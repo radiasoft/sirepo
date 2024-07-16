@@ -504,12 +504,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, re
             });
     };
 
-    self.deepEquals = function(v1, v2, doStripHashKey=false) {
-
-        function stripHashKey(keys) {
-            return doStripHashKey ? keys.filter(k => k !== '$$hashKey') : keys;
-        }
-
+    self.deepEquals = function(v1, v2) {
         if (v1 === v2) {
             return true;
         }
@@ -518,18 +513,18 @@ SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, re
                 return false;
             }
             for (let i = 0; i < v1.length; i++) {
-                if (! self.deepEquals(v1[i], v2[i], doStripHashKey)) {
+                if (! self.deepEquals(v1[i], v2[i])) {
                     return false;
                 }
             }
             return true;
         }
         if (angular.isObject(v1) && angular.isObject(v2)) {
-            const keys = stripHashKey(Object.keys(v1));
-            if (keys.length !== stripHashKey(Object.keys(v2)).length) {
+            const keys = Object.keys(v1);
+            if (keys.length !== Object.keys(v2).length) {
                 return false;
             }
-            return ! keys.some(k => ! self.deepEquals(v1[k], v2[k], doStripHashKey));
+            return ! keys.some(k => ! self.deepEquals(v1[k], v2[k]));
         }
         return v1 == v2;
     };
@@ -775,7 +770,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, re
         if (typeof(name) == 'string') {
             name = [name];
         }
-        let updatedFields = [];
         var updatedModels = [];
         var requireReportUpdate = false;
 
@@ -787,12 +781,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, re
                 }
             }
             else {
-                for (let f in self.models[name[i]]) {
-                    const s = savedModelValues[name[i]];
-                    if (! s || ! self.deepEquals(s[f], self.models[name[i]][f], true)) {
-                        updatedFields.push(`${name[i]}.${f}`);
-                    }
-                }
                 self.saveQuietly(name[i]);
                 updatedModels.push(name[i]);
                 if (! self.isReportModelName(name[i])) {
@@ -1556,14 +1544,87 @@ SIREPO.app.service('validationService', function(utilities) {
 
 });
 
+SIREPO.app.factory('srCache', function($rootScope) {
+    const self = {};
+    const STORE = "db";
+    const FRAME = "frame";
+    let db = null;
 
-SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, authState, $interval, $rootScope, $timeout) {
+    function invokeCallback(callback, value) {
+        $rootScope.$applyAsync(() => callback(value));
+    }
+
+    function key(prefix, value) {
+        return prefix + ':' + value;
+    }
+
+    function open() {
+        if (! window.indexedDB) {
+            return;
+        }
+        const r = window.indexedDB.open('srCache', 1);
+        r.onsuccess = (event) => {
+            db = event.target.result;
+        };
+        r.onupgradeneeded = (event) => {
+            db = event.target.result;
+            if (db.objectStoreNames.contains(STORE)) {
+                db.deleteObjectStore(STORE);
+            }
+            db.createObjectStore(STORE);
+        };
+    }
+
+    function objectStore(mode) {
+        try {
+            if (db) {
+                const t = db.transaction(STORE, mode);
+                return t.objectStore(STORE);
+            }
+        }
+        catch (e) {
+        }
+        return null;
+    }
+
+    self.clearFrames = (simId, modelName) => {
+    };
+
+    self.getFrame = (frameId, callback) => {
+        const o = objectStore("readonly");
+        if (! o) {
+            invokeCallback(callback, null);
+            return;
+        }
+        const c = o.get(key(FRAME, frameId));
+        c.onsuccess = (event) => {
+            invokeCallback(callback, event.target.result);
+        };
+        c.onerror = () => {
+            invokeCallback(callback, null);
+        };
+    };
+
+    self.saveFrame = (frameId, data) => {
+        const o = objectStore("readwrite");
+        if (o) {
+            o.put(data, key(FRAME, frameId));
+        }
+    };
+
+    open();
+
+    return self;
+});
+
+
+SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, srCache, $interval, $rootScope, $timeout) {
     var self = {};
     var frameCountByModelKey = {};
     var masterFrameCount = 0;
     self.modelToCurrentFrame = {};
 
-    self.frameId = function(frameReport, frameIndex) {
+    function frameId(frameReport, frameIndex) {
         function fieldToFrameParam(field) {
             if (angular.isObject(field)) {
                 return JSON.stringify(field);
@@ -1596,7 +1657,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, a
         return v.concat(
             f.map(a => fieldToFrameParam(m[a]))
         ).join('*');
-    };
+    }
 
     self.getCurrentFrame = function(modelName) {
         return self.modelToCurrentFrame[modelName] || 0;
@@ -1641,38 +1702,50 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, a
             return  milliseconds / parseInt(x);
         };
 
-        const requestFunction = function() {
-            setPanelStateIsLoadingTimer = $timeout(() => {
-		panelState.setLoading(modelName, true);
-	    }, 5000);
-            requestSender.sendRequest(
-                {
-                    routeName: 'simulationFrame',
-                    frame_id: self.frameId(modelName, index),
+        const callbackData = (data) => {
+            let e = framePeriod() - (now() - frameRequestTime);
+            if (e <= 0) {
+                callback(index, data);
+                return;
+            }
+            $interval(
+                function() {
+                    callback(index, data);
                 },
-                function(data) {
-		    cancelSetPanelStateIsLoadingTimer();
-                    panelState.setLoading(modelName, false);
-                    if ('state' in data && data.state === 'missing') {
-                        onError();
-                        return;
-                    }
-                    let e = framePeriod() - (now() - frameRequestTime);
-                    if (e <= 0) {
-                        callback(index, data);
-                        return;
-                    }
-                    $interval(
-                        function() {
-                            callback(index, data);
-                        },
-                        e,
-                        1
-                    );
-                },
-                null,
-                onError
+                e,
+                1
             );
+        };
+
+        const requestFunction = function() {
+            const id = frameId(modelName, index);
+            srCache.getFrame(id, (data) => {
+                if (data) {
+                    callbackData(data);
+                    return;
+                }
+                setPanelStateIsLoadingTimer = $timeout(() => {
+                    panelState.setLoading(modelName, true);
+                }, 5000);
+                requestSender.sendRequest(
+                    {
+                        routeName: 'simulationFrame',
+                        frame_id: id,
+                    },
+                    function(data) {
+                        cancelSetPanelStateIsLoadingTimer();
+                        panelState.setLoading(modelName, false);
+                        if ('state' in data && data.state === 'missing') {
+                            onError();
+                            return;
+                        }
+                        callbackData(data);
+                        srCache.saveFrame(id, data);
+                    },
+                    null,
+                    onError
+                );
+            });
         };
         if (isHidden) {
             panelState.addPendingRequest(modelName, requestFunction);
