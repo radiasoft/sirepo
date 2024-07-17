@@ -56,6 +56,10 @@ def stateless_compute_automatic_analysis(data, **kwargs):
     return _request_scan_monitor(PKDict(method="automatic_analysis", data=data))
 
 
+def stateless_compute_get_automatic_analysis(data, **kwargs):
+    return _request_scan_monitor(PKDict(method="get_automatic_analysis", data=data))
+
+
 def stateless_compute_catalog_names(data, **kwargs):
     return _request_scan_monitor(PKDict(method="catalog_names", data=data))
 
