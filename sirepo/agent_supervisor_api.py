@@ -8,31 +8,19 @@ For example, sim_db_file and global_resources.
 
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc
-import re
 import requests
+import sirepo.http_util
 import sirepo.job
+import sirepo.tornado
 import sirepo.util
-import tornado.web
-
-#: prefix for auth header of requests
-_AUTH_HEADER_PREFIX = f"{sirepo.util.AUTH_HEADER_SCHEME_BEARER} "
-
-#: Regex to test format of auth header and extract token
-_AUTH_HEADER_RE = re.compile(
-    sirepo.util.AUTH_HEADER_SCHEME_BEARER
-    + r"\s("
-    + sirepo.job.UNIQUE_KEY_CHARS_RE
-    + ")",
-    re.IGNORECASE,
-)
 
 
-class ReqBase(tornado.web.RequestHandler):
+class ReqBase(sirepo.tornado.AuthHeaderRequestHandler):
     @classmethod
     def token_for_user(cls, uid):
         def _token():
             for _ in range(10):
-                t = sirepo.job.unique_key()
+                t = sirepo.util.unique_key()
                 if t not in cls._TOKEN_TO_UID:
                     cls._TOKEN_TO_UID[t] = uid
                     return t
@@ -40,27 +28,17 @@ class ReqBase(tornado.web.RequestHandler):
 
         return cls._UID_TO_TOKEN.pksetdefault(uid, _token)[uid]
 
-    def _rs_authenticate(self, *args, **kwargs):
-        t = self.request.headers.get(sirepo.util.AUTH_HEADER)
-        if not t:
-            raise sirepo.tornado.error_forbidden()
-        p = t.split(" ")
-        if len(p) != 2:
-            raise sirepo.tornado.error_forbidden()
-        m = _AUTH_HEADER_RE.search(t)
-        if not m:
-            pkdlog("invalid auth header={}", t)
-            raise sirepo.tornado.error_forbidden()
-        u = self._TOKEN_TO_UID.get(m.group(1))
+    def write_error(self, status_code, *args, **kwargs):
+        if status_code >= 500 and (e := kwargs.get("exc_info")):
+            pkdlog("exception={} stack={}", e[1], pkdexc(e))
+        super().write_error(status_code, *args, **kwargs)
+
+    def _sr_authenticate(self, token, *args, **kwargs):
+        u = self._TOKEN_TO_UID.get(token)
         if not u:
-            pkdlog("token={} not found", m.group(1))
+            pkdlog("token={} not found", token)
             raise sirepo.tornado.error_forbidden()
         return u
-
-    def write_error(self, *args, **kwargs):
-        if e := kwargs.get("exc_info"):
-            pkdlog("exception={} stack={}", e[1], pkdexc(e))
-        super().write_error(*args, **kwargs)
 
 
 def request(method, uri, token, data=None, json=None):
@@ -71,11 +49,7 @@ def request(method, uri, token, data=None, json=None):
         json=json,
         data=data,
         verify=sirepo.job.cfg().verify_tls,
-        headers=PKDict(
-            {
-                sirepo.util.AUTH_HEADER: _AUTH_HEADER_PREFIX + token,
-            }
-        ),
+        headers=sirepo.tornado.AuthHeaderRequestHandler.get_header(token),
     )
 
 

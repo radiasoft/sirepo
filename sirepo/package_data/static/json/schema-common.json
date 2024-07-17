@@ -45,8 +45,8 @@
             "shortName": "JSPEC"
         },
         "jupyterhublogin": {
-            "longName": "JupyterHub Login",
-            "shortName": "JupyterHub"
+            "longName": "Jupyter",
+            "shortName": "Jupyter"
         },
         "madx": {
             "longName": "MAD-X",

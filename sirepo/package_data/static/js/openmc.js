@@ -222,16 +222,17 @@ SIREPO.app.factory('openmcService', function(appState, panelState, $rootScope) {
         return null;
     };
 
-    self.invalidateRange = (model, field) => {
-        model[field] = [0, 0];
+    self.invalidateRange = (field) => {
+        appState.models.openmcAnimation[field] = [0, 0];
     };
 
     self.isGraveyard = volume => {
         return volume.name && volume.name.toLowerCase() === 'graveyard';
     };
 
-    self.isRangeValid = (model, field) => {
-        return model[field] && (model[field][0] || model[field][1]);
+    self.isRangeValid = (field) => {
+        const m = appState.models.openmcAnimation;
+        return m[field] && (m[field][0] || m[field][1]);
     };
 
     self.toggleAllVolumes = (isVisible, visibleKey) => {
@@ -364,7 +365,7 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
     self.results = null;
     self.simScope = $scope;
     self.simComputeModel = 'openmcAnimation';
-    let errorMessage;
+    let errorMessage, isRunning, statusMessage;
 
     function validateSelectedTally(tallies) {
         appState.models.openmcAnimation.tallies = tallies;
@@ -380,9 +381,20 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
     };
 
     self.simHandleStatus = function(data) {
+        statusMessage = '';
+        tallyService.isRunning = self.simState.isProcessing();
+        if (isRunning || self.simState.isProcessing()) {
+            if (data.frameCount != frameCache.getFrameCount()) {
+                openmcService.invalidateRange('thresholds');
+            }
+            isRunning = self.simState.isProcessing();
+        }
         errorMessage = data.error;
         self.eigenvalue = data.eigenvalue;
         self.results = data.results;
+        if (data.iteration > 0) {
+            statusMessage = ': ' + (data.iteration > 1 ? ( data.iteration + ' iterations, ') : '') + data.batch + ' batches';
+        }
         if (data.frameCount) {
             frameCache.setFrameCount(data.frameCount);
         }
@@ -392,16 +404,19 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
     };
     self.simState = persistentSimulation.initSimulationState(self);
     self.simState.errorMessage = () => errorMessage;
+    self.simCompletionState = () => {
+        return statusMessage;
+    };
     self.simState.runningMessage = () => {
-        return `Completed batch: ${self.simState.getFrameCount()}`;
+        return 'Completed' + statusMessage;
     };
     self.startSimulation = function() {
         tallyService.clearMesh();
         const r = appState.models.openmcAnimation;
         delete r.tallies;
         delete r.tally;
-        openmcService.invalidateRange(r, 'energyRangeSum');
-        openmcService.invalidateRange(r, 'thresholds');
+        openmcService.invalidateRange('energyRangeSum');
+        openmcService.invalidateRange('thresholds');
         r.isEnergySelected = "0";
         panelState.clear('tallyReport');
         self.simState.saveAndRunSimulation('openmcAnimation');
@@ -577,12 +592,12 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
         self.fieldData = fieldData.map(n);
         self.minField = n(min);
         self.maxField = n(max);
-        if (! openmcService.isRangeValid(appState.models.openmcAnimation, 'thresholds')) {
+        if (! openmcService.isRangeValid('thresholds')) {
             appState.models.openmcAnimation.thresholds = [self.minField, self.maxField];
             appState.saveQuietly('openmcAnimation');
         }
         const f = openmcService.findFilter('energyFilter');
-        if (f && ! openmcService.isRangeValid(appState.models.openmcAnimation, 'energyRangeSum')) {
+        if (f && ! openmcService.isRangeValid('energyRangeSum')) {
             appState.models.openmcAnimation.energyRangeSum = [
                 f.start,
                 f.stop,
@@ -955,7 +970,6 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
                 r[y] = vVal;
                 r[z] = appState.models.tallyReport.planePos;
                 appState.models.openmcAnimation.isEnergySelected = "1";
-                appState.saveChanges(['energyAnimation', 'openmcAnimation']);
             }
 
             function buildTallyReport() {
@@ -1238,7 +1252,13 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
                 if (d.name !== SIREPO.PLOTTING.HeatmapSelectCellEvent) {
                     return;
                 }
-                setBins(...d.cell);
+                if (d.cell) {
+                    setBins(...d.cell);
+                }
+                else {
+                    appState.models.openmcAnimation.isEnergySelected = '0';
+                }
+                appState.saveChanges(['energyAnimation', 'openmcAnimation']);
             });
 
             $scope.$on('sr-volume-visibility-toggle', (event, volume, isVisible, doUpdate) => {
@@ -2694,7 +2714,7 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
         panelState.showFields(
             $scope.modelName,
             [
-                ['eigenvalueHistory', 'inactive'], isRunModeEigenvalue,
+                ['inactive'], isRunModeEigenvalue,
             ],
         );
         panelState.showFields('survivalBiasing', [
@@ -3118,7 +3138,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, openmcService, panelSta
     }, 500);
 
     function invalidateThreshold() {
-        openmcService.invalidateRange(appState.models.openmcAnimation, 'thresholds');
+        openmcService.invalidateRange('thresholds');
     }
 
     function showFields() {

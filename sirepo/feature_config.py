@@ -188,6 +188,11 @@ def _init():
             "codes that contain proprietary information and authorization to use is granted manually",
         ),
         raydata=dict(
+            scan_monitor_api_secret=(
+                "a_secret",
+                str,
+                "secret to secure communication with scan monitor",
+            ),
             scan_monitor_url=(
                 "http://127.0.0.1:9001/scan-monitor",
                 str,

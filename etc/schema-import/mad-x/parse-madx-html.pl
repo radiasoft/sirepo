@@ -158,8 +158,10 @@ sub lookup_madx_types {
         next if $visited->{$f};
         $visited->{$f} = 1;
         my($info) = $all_fields->{$f};
-        die('missing field info: ' . $f)
-            unless $info;
+        unless ($info) {
+            print('error: missing field info: ' . $f . "\n");
+            next;
+        }
         #print(' ', $f, ' ', $info->[0], ' ', $info->[1], "\n");
         push(@$res, [$f, $info->[0], $info->[1]]);
     }
