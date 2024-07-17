@@ -2970,7 +2970,7 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                         </div>
                         <div class="row">
                           <div class="col-sm-6 pull-right">
-                            <button data-ng-click="saveChanges()" class="btn btn-primary" data-ng-disabled="! form.$valid">Save</button>
+                            <button data-ng-click="saveChanges()" class="btn btn-primary sr-button-save-cancel" data-ng-disabled="! form.$valid">Save</button>
                             <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
                           </div>
                         </div>

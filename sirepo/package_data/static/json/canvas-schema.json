@@ -27,6 +27,17 @@
             ["elliptical", "elliptical"],
             ["rectangular", "rectangular"]
         ],
+        "Distribution": [
+            ["File", "From File"],
+            ["Gaussian", "Gaussian"],
+            ["KVdist", "KVdist"],
+            ["Kurth4D", "Kurth4D"],
+            ["Kurth6D", "Kurth6D"],
+            ["Semigaussian", "Semigaussian"],
+            ["Thermal", "Thermal"],
+            ["Triangle", "Triangle"],
+            ["Waterbag", "Waterbag"]
+        ],
         "MultipoleIndex": [
             ["1", "dipole"],
             ["2", "quadrupole"],
@@ -41,11 +52,51 @@
                 "controller": "LatticeController as lattice",
                 "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
             }
+        },
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/canvas-source.html"
+            }
+        },
+        "comparison": {
+            "route": "/comparison/:simulationId",
+            "config": {
+              "controller": "ComparisonController as comparison",
+              "templateUrl": "/static/html/canvas-comparison.html"
+            }
         }
     },
     "model": {
         "beamline": {
             "name": ["Name", "ValidatedString"]
+        },
+        "distribution": {
+            "particleCount": ["Particle Count", "Integer", 10000],
+            "distributionType": ["Distribution Type", "Distribution", "Waterbag"],
+            "lambdax": ["X Lambda [m]", "Float", 0],
+            "lambday": ["Y Lambda [m]", "Float", 0],
+            "lambdat": ["T Lambda [m]", "Float", 0],
+            "lambdapx": ["X Lambda P [rad]", "Float", 0],
+            "lambdapy": ["Y Lambda P [rad]", "Float", 0],
+            "lambdapt": ["T Lambda P [rad]", "Float", 0],
+            "muxpx": ["X Mu P", "Float", 0, "correlation length-momentum"],
+            "muypy": ["Y Mu P", "Float", 0],
+            "mutpt": ["T Mu P", "Float", 0],
+
+            "k": ["k", "Float", 0],
+            "kT": ["kT", "Float", 0],
+            "kt_halo": ["kT halo", "Float", 0],
+            "normalize": ["normalize", "Float", 0],
+            "normalize_halo": ["normalize halo", "Float", 0],
+            "halo": ["halo", "Float", 0],
+
+            "distributionFile": ["Distribution File", "InputFile", ""]
+        },
+        "simulationSettings": {
+            "useElegant": ["elegant", "Bool", true],
+            "useMadx": ["MAD-X", "Bool", true],
+            "useImpactX": ["ImpactX", "Bool", true]
         },
         "_ELEMENT": {
             "_super": ["", "model", "_MISALIGNMENT"],
@@ -113,6 +164,9 @@
             "name": ["Name", "String"],
             "value": ["Value", "RPNValue"]
         },
+        "simulation": {
+            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
+        },
         "simulationStatus": {}
     },
     "view": {
@@ -121,6 +175,49 @@
             "advanced": [
                 "name"
             ]
+        },
+        "distribution": {
+            "title": "Particle Distribution",
+            "basic": [
+                "particleCount",
+                "distributionType",
+                [
+                    ["X", [
+                        "lambdax",
+                        "lambdapx",
+                        "muxpx"
+                    ]],
+                    ["Y", [
+                        "lambday",
+                        "lambdapy",
+                        "muypy"
+                    ]],
+                    ["T", [
+                        "lambdat",
+                        "lambdapt",
+                        "mutpt"
+                    ]]
+                ],
+                "k",
+                "kT",
+                "kt_halo",
+                "normalize",
+                "normalize_halo",
+                "halo",
+                "distributionFile"
+            ],
+            "advanced": []
+        },
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "simulation.visualizationBeamlineId",
+                "*Compare Codes",
+                "useElegant",
+                "useMadx",
+                "useImpactX"
+            ],
+            "advanced": []
         },
         "APERTURE": {
             "title": "APERTURE",

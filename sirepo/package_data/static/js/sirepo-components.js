@@ -816,8 +816,8 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               <div data-ng-switch-when="InputFile" class="col-sm-7">
                 <div data-file-field="field" data-form="form" data-model="model" data-model-name="modelName"  data-selection-required="info[4]" data-empty-selection-text="No File Selected"></div>
               </div>
-              <div data-ng-switch-when="Bool" class="col-sm-7">
-                  <input type="checkbox" data-ng-model="model[field]">
+              <div data-ng-switch-when="Bool" class="col-sm-offset-5 col-sm-7">
+                  <label><input type="checkbox" data-ng-model="model[field]"> {{ info[0] }}</label>
               </div>
               <div data-ng-switch-when="Boolean" data-ng-class="fieldClass">
                 <input class="sr-bs-toggle" data-ng-open="fieldDelegate.refreshChecked()" data-ng-model="model[field]" data-bootstrap-toggle="" data-model="model" data-field="field" data-field-delegate="fieldDelegate" data-info="info" type="checkbox">
@@ -873,6 +873,9 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
             }
 
             function showLabel(labelSize) {
+                if ($scope.info[1] == "Bool") {
+                    return false;
+                }
                 if (labelSize === '') {
                     return true;
                 }

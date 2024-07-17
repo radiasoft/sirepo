@@ -56,7 +56,9 @@ SIREPO.app.directive('appHeader', function(canvasService) {
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
                 <div data-sim-sections="">
-                  <li class="sim-section" data-ng-class="{active: nav.isActive('lattice')}"><a href data-ng-click="nav.openSection('lattice')"> Lattice</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('lattice')}"><a href data-ng-click="nav.openSection('lattice')"><span class="glyphicon glyphicon-option-horizontal"></span>  Lattice</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('source')}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('comparison')}"><a href data-ng-click="nav.openSection('comparison')">Comparison</a></li>
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
@@ -86,5 +88,28 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
         "SBEND",
         "SEXTUPOLE",
         "SOLENOID"
+    ];
+});
+
+SIREPO.app.controller('SourceController', function(latticeService) {
+});
+
+SIREPO.app.controller('ComparisonController', function(latticeService) {
+});
+
+
+SIREPO.viewLogic('distributionView', function(appState, panelState, $scope) {
+    function updateFields() {
+        const d = appState.models.distribution;
+        panelState.showFields('distribution', [
+            ['k', 'kT', 'kt_halo', 'normalize', 'normalize_halo', 'halo'], d.distributionType == 'Thermal',
+            ['distributionFile'], d.distributionType == 'File',
+        ]);
+        panelState.showRow('distribution', 'lambdax', ! ['Thermal', 'File'].includes(d.distributionType));
+
+    }
+    $scope.whenSelected = updateFields;
+    $scope.watchFields = [
+        ['distribution.distributionType'], updateFields,
     ];
 });

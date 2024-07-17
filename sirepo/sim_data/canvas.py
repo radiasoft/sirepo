@@ -13,7 +13,14 @@ import sirepo.sim_data
 class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
-        pass
+        dm = data.models
+        cls._init_models(
+            dm,
+            [
+                "distribution",
+                "simulationSettings",
+            ],
+        )
 
     @classmethod
     def _lib_file_basenames(cls, data):
