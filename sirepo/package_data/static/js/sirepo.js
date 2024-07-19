@@ -1580,8 +1580,7 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
     function objectStore(mode) {
         try {
             if (db) {
-                const t = db.transaction(STORE, mode);
-                return t.objectStore(STORE);
+                return db.transaction(STORE, mode).objectStore(STORE);
             }
         }
         catch (e) {
