@@ -407,12 +407,14 @@ class _RequestHandler(_JsonPostRequestHandler):
         return sirepo.raydata.analysis_driver.get(req_data).get_run_log()
 
     def _request_get_automatic_analysis(self, req_data):
-        return PKDict(data=PKDict(automaticAnalysis=cfg.automatic_analysis))
+        n = req_data.catalogName
+        return PKDict(data=PKDict(automaticAnalysis=n in _CATALOG_MONITOR_TASKS))
 
     def _request_automatic_analysis(self, req_data):
-        cfg.automatic_analysis = bool(int(req_data.automaticAnalysis))
-        # if cfg.automatic_analysis:
-        #     pkasyncio.Loop().run(_init_catalog_monitors())
+        if bool(int(req_data.automaticAnalysis)):
+            _monitor_catalog(req_data.catalogName)
+        else:
+            _CATALOG_MONITOR_TASKS.pkdel(req_data.catalogName)
         return PKDict(data="ok")
 
     def _request_catalog_names(self, _):
@@ -607,24 +609,23 @@ def _get_detailed_status(catalog_name, rduid):
 #         assert catalog_name not in _CATALOG_MONITOR_TASKS
 #         return asyncio.create_task(_poll_catalog_for_scans(catalog_name))
 
-#     if not cfg.automatic_analysis:
-#         return
+#
 #     for c in cfg.catalog_names:
 #         _CATALOG_MONITOR_TASKS[c] = _monitor_catalog(c)
 #     await asyncio.gather(*_CATALOG_MONITOR_TASKS.values())
 
 
 async def _init_catalog_monitors():
+    if not cfg.automatic_analysis:
+        return
     for c in cfg.catalog_names:
         await _monitor_catalog(c)
         # todo when to run vs await
 
 
 async def _monitor_catalog(catalog_name):
-    if not cfg.automatic_analysis:
-        return
     assert catalog_name not in _CATALOG_MONITOR_TASKS
-    new_task = asyncio.create_task(_poll_catalog_for_scans(catalog_name))
+    new_task = pkasyncio.create_task(_poll_catalog_for_scans(catalog_name))
     _CATALOG_MONITOR_TASKS[catalog_name] = new_task
     await new_task
 
@@ -658,7 +659,7 @@ async def _poll_catalog_for_scans(catalog_name):
 
     async def _poll_for_new_scans(most_recent_scan_metadata):
         m = most_recent_scan_metadata
-        while cfg.automatic_analysis:
+        while catalog_name in _CATALOG_MONITOR_TASKS:
             m = _collect_new_scans_and_queue(m)
             await pkasyncio.sleep(2)
 

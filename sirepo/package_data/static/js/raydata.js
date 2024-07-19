@@ -657,6 +657,7 @@ SIREPO.app.directive('scansTable', function() {
                         {
                             method: 'get_automatic_analysis',
                             args: {
+                                catalogName: appState.applicationState().catalog.catalogName
                             }
                         },
                         errorOptions
@@ -674,7 +675,7 @@ SIREPO.app.directive('scansTable', function() {
                             method: 'automatic_analysis',
                             args: {
                                 automaticAnalysis: appState.models.runAnalysis.automaticAnalysis,
-                            }
+                                catalogName: appState.applicationState().catalog.catalogName                                         }
                         },
                         errorOptions
                 );
