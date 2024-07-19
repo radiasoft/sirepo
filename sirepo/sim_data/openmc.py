@@ -11,12 +11,26 @@ import sirepo.sim_data
 
 class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
-    def dagmc_filename(cls, data):
-        return cls.lib_file_name_with_model_field(
+    def dagmc_and_maybe_step_filename(cls, data):
+        """Get the dagmc and possibly step filenames
+
+        Args:
+          data (PKDict): simulation data
+        Returns:
+          (str, str|None): Tuple of the dagmc filename. And either the
+        original step file the dagmc was generated from or None if the
+        dagmc wasn't generated from a step file.
+        """
+        d = cls.lib_file_name_with_model_field(
             "geometryInput",
             "dagmcFile",
             data.models.geometryInput.dagmcFile,
         )
+        s = None
+        if d.endswith(".stp"):
+            s = d
+            d += ".h5m"
+        return d, s
 
     @classmethod
     def materials_filename(cls, data):
@@ -130,10 +144,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         if data.get("report") == "tallyReport":
             return r
         if data.models.geometryInput.dagmcFile:
-            r = [
-                cls.dagmc_filename(data),
-            ] + cls.source_filenames(data)
+            r = cls.source_filenames(data)
         if data.get("report") == "dagmcAnimation":
+            d, s = cls.dagmc_and_maybe_step_filename(data)
+            r.append(s or d)
             if data.models.geometryInput.materialsFile:
                 r.append(cls.materials_filename(data))
         return r
@@ -144,4 +158,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if data.report == "openmcAnimation":
             for v in data.models.volumes:
                 res.append(PKDict(basename=f"{data.models.volumes[v].volId}.ply"))
+            d, s = cls.dagmc_and_maybe_step_filename(data)
+            if s:
+                res.append(PKDict(basename=d))
         return res

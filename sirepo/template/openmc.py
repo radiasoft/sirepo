@@ -6,10 +6,11 @@
 
 from pykern import pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 from sirepo import simulation_db
 from sirepo import util
 from sirepo.template import template_common
+import CAD_to_OpenMC.assembly
 import math
 import numpy
 import re
@@ -34,7 +35,7 @@ def background_percent_complete(report, run_dir, is_running):
                 frameCount=0,
             )
         if not run_dir.join(_VOLUME_INFO_FILE).exists():
-            raise AssertionError("Volume extraction failed")
+            return PKDict(percentComplete=100, frameCount=0)
         return PKDict(
             percentComplete=100,
             frameCount=1,
@@ -46,7 +47,8 @@ def background_percent_complete(report, run_dir, is_running):
 def get_data_file(run_dir, model, frame, options):
     sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if model == "geometry3DReport":
-        return _SIM_DATA.dagmc_filename(sim_in)
+        d, _ = _SIM_DATA.dagmc_and_maybe_step_filename(sim_in)
+        return d
     if model == "dagmcAnimation":
         return f"{frame}.zip"
     if model == "openmcAnimation":
@@ -77,8 +79,13 @@ def post_execution_processing(
 ):
     if success_exit:
         if compute_model == "dagmcAnimation":
-            ply_files = pkio.sorted_glob(run_dir.join("*.ply"))
-            for f in ply_files:
+            l = pkio.sorted_glob(run_dir.join("*.ply"))
+            d, s = _SIM_DATA.dagmc_and_maybe_step_filename(
+                simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+            )
+            if s:
+                l.append(run_dir.join(d))
+            for f in l:
                 _SIM_DATA.put_sim_file(sim_id, f, f.basename)
         return None
     return _parse_openmc_log(run_dir)
@@ -235,8 +242,21 @@ def validate_file(file_type, path):
     import h5py
 
     if file_type == "geometryInput-dagmcFile":
-        if not h5py.is_hdf5(path):
-            return "dagmcFile must be valid hdf5 file"
+        if path.ext == ".h5m" and not h5py.is_hdf5(path):
+            return "File is not a valid hdf5 file."
+        if path.ext == ".stp":
+            try:
+                a = CAD_to_OpenMC.assembly.Assembly([path])
+                a.load_stp_file(path)
+            except Exception as e:
+                pkdlog(
+                    "path={} is not a valid stp file error={} stack={}",
+                    path,
+                    e,
+                    pkdexc(),
+                )
+                return "File is not a valid stp file."
+
     return None
 
 
@@ -585,7 +605,7 @@ def _generate_parameters_file(data, run_dir=None):
     if report == "tallyReport":
         return ""
     res, v = template_common.generate_parameters_file(data)
-    v.dagmcFilename = _SIM_DATA.dagmc_filename(data)
+    v.dagmcFilename, v.stepFilename = _SIM_DATA.dagmc_and_maybe_step_filename(data)
     if report == "dagmcAnimation":
         v.volumeInfoFile = _VOLUME_INFO_FILE
         if data.models.geometryInput.materialsFile:

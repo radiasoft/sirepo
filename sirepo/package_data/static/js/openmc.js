@@ -118,7 +118,7 @@ SIREPO.app.config(() => {
         </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
-        'geometryInput-dagmcFile': '.h5m',
+        'geometryInput-dagmcFile': '.h5m,.stp',
         'geometryInput-materialsFile': '.xml',
     };
 });
@@ -313,6 +313,7 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
                 // don't initialize simulation until geometry is known
                 hasGeometry = data.animationDirExists;
                 self.simState = persistentSimulation.initSimulationState(self);
+                self.simState.errorMessage = () => self.errorMessage;
             },
             {
                 method: 'check_animation_dir',
@@ -330,6 +331,7 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
     self.isGeometryProcessed = () => hasVolumes;
 
     self.simHandleStatus = (data) => {
+        self.errorMessage = data.error;
         self.hasServerStatus = true;
         if (hasGeometry && data.volumes) {
             hasVolumes = true;
