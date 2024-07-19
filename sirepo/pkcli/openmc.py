@@ -4,6 +4,7 @@
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
@@ -64,8 +65,9 @@ def step_to_dagmc(input_step_filename, output_dagmc_filename, threads=1):
     o = subprocess.check_output(("check_watertight", output_dagmc_filename))
     r = re.findall(rb"(\(0%\) unsealed)", o)
     if len(r) != 2:
+        d = pkcompat.from_bytes(o).replace("\n", " ")
         raise AssertionError(
-            f"output_dagmc_filename={output_dagmc_filename} not watertight: {o}"
+            f"stp file could not be converted to watertight dagmc: {d}"
         )
 
 
