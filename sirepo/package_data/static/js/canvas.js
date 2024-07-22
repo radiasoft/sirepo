@@ -92,6 +92,8 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
 });
 
 SIREPO.app.controller('SourceController', function(latticeService) {
+    const self = this;
+    latticeService.initSourceController(self);
 });
 
 SIREPO.app.controller('ComparisonController', function(latticeService) {
@@ -102,7 +104,7 @@ SIREPO.viewLogic('distributionView', function(appState, panelState, $scope) {
     function updateFields() {
         const d = appState.models.distribution;
         panelState.showFields('distribution', [
-            ['k', 'kT', 'kt_halo', 'normalize', 'normalize_halo', 'halo'], d.distributionType == 'Thermal',
+            ['k', 'kT', 'kT_halo', 'normalize', 'normalize_halo', 'halo'], d.distributionType == 'Thermal',
             ['distributionFile'], d.distributionType == 'File',
         ]);
         panelState.showRow('distribution', 'lambdax', ! ['Thermal', 'File'].includes(d.distributionType));

@@ -1,0 +1,58 @@
+
+from impactx import ImpactX, distribution, elements
+import impactx
+
+sim = ImpactX()
+
+#TODO(pjm): add beam model with additional field values
+sim.particle_shape = 2  # B-spline order
+sim.space_charge = False
+sim.init_grids()
+
+kin_energy_MeV = 2.0e3  # reference energy
+bunch_charge_C = 100.0e-12  # used with space charge
+npart = {{ distribution_particleCount }}  # number of macro particles
+
+ref = sim.particle_container().ref_particle()
+ref.set_charge_qe(1.0).set_mass_MeV(0.510998950).set_kin_energy_MeV(kin_energy_MeV)
+
+{% if distribution_distributionType == 'Thermal' %}
+distr = distribution.Thermal(
+    k={{ distribution_k }},
+    kT={{ distribution_kT }},
+    kT_halo={{ distribution_kT_halo }},
+    normalize={{ distribution_normalize }},
+    normalize_halo={{ distribution_normalize_halo }},
+    halo={{ distribution_halo }},
+)
+{% elif distribution_distributionType == 'File' %}
+raise AssertionError('File distribution is not yet implemented')
+{% else %}
+distr = distribution.{{ distribution_distributionType }}(
+    lambdaX={{ distribution_lambdax }},
+    lambdaY={{ distribution_lambday }},
+    lambdaT={{ distribution_lambdat }},
+    lambdaPx={{ distribution_lambdapx }},
+    lambdaPy={{ distribution_lambdapy }},
+    lambdaPt={{ distribution_lambdapt }},
+    muxpx={{ distribution_muxpx }},
+    muypy={{ distribution_muypy }},
+    mutpt={{ distribution_mutpt }},
+)
+{% endif %}
+
+sim.add_particles(bunch_charge_C, distr, npart)
+
+sim.lattice.extend(
+    [
+        elements.Drift(ds=0, nslice=1),
+        elements.BeamMonitor("monitor", backend="h5"),
+    ]
+)
+
+# run simulation
+sim.evolve()
+
+#TODO(pjm): save stats for client?
+
+sim.finalize()
