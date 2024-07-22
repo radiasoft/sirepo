@@ -18,10 +18,11 @@ pytestmark = pytest.mark.sirepo_args(
 
 def test_sims(fc):
     from pykern import pkunit
+    import sirepo.template.omega
 
     def _case(name, sims):
         fc.sr_get_root(sim_type=_SIM_TYPE)
-        r = fc.sr_post(
+        sim = fc.sr_post(
             "newSimulation",
             PKDict(
                 simulationType=fc.sr_sim_type,
@@ -29,12 +30,13 @@ def test_sims(fc):
                 name=name,
             ),
         )
-        r.models.simWorkflow = _workflow(fc, sims)
-        r = fc.sr_run_sim(
-            data=fc.sr_post("saveSimulationData", r),
-            model="animation",
+        sim.models.simWorkflow = _workflow(fc, sims)
+        pkunit.file_eq(
+            pkunit.data_dir().join(f"{name}.txt"),
+            actual=sirepo.template.omega.python_source_for_model(
+                sim, model="animation", qcall=None
+            ),
         )
-        pkunit.pkok("completed", r.state)
 
     def _coupled_sim(stype, sname):
         r = fc.sr_sim_data(sim_type=stype, sim_name=sname)

@@ -3473,6 +3473,7 @@ SIREPO.app.directive('completeRegistration', function() {
     return {
         restrict: 'A',
         template: `
+          <div class="sr-login-panel">
             <form class="form-horizontal" autocomplete="off" novalidate>
               <div class="form-group">
                 <div class="col-sm-offset-3 col-sm-10">
@@ -3492,6 +3493,7 @@ SIREPO.app.directive('completeRegistration', function() {
                 </div>
               </div>
             </form>
+          </div>
         `,
     };
 });
@@ -3501,6 +3503,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
         restrict: 'A',
         scope: {},
         template: `
+          <div class="sr-login-panel">
             <div data-ng-show="isJupyterHub" class="alert alert-info col-sm-offset-2 col-sm-10" role="alert">
             We're improving your Jupyter experience by making both Jupyter and Sirepo accessible via a single email login. Simply follow the directions below to complete this process.
             </div>
@@ -3529,6 +3532,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
             <div data-confirmation-modal="" data-is-required="true" data-id="sr-email-login-done" data-title="Check your inbox" data-ok-text="" data-cancel-text="">
               <p>We just emailed a confirmation link to {{ data.sentEmail }}. Click the link and you'll be signed in. You may close this window.</p>
             </div>
+          </div>
         `,
         controller: function($scope) {
             function handleResponse(data) {
@@ -3578,6 +3582,7 @@ SIREPO.app.directive('emailLoginConfirm', function() {
     return {
         restrict: 'A',
         template: `
+          <div class="sr-login-panel">
             <div class="row text-center">
               <p>Please click the button below to complete the login process.</p>
             </div>
@@ -3587,6 +3592,7 @@ SIREPO.app.directive('emailLoginConfirm', function() {
                  <button data-ng-click="loginConfirm.submit()" class="btn btn-primary">Confirm</button>
               </div>
             </form>
+          </div>
         `,
     };
 });
@@ -5190,23 +5196,38 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
             route: '@',
         },
         template: `
-            <span data-loading-spinner data-sentinel="simList">
+            <span data-loading-spinner data-sentinel="items">
               <div style="white-space: nowrap">
-                <select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as itemName(item) disable when item.invalidMsg for item in simList"></select>
+                <select style="display: inline-block" class="form-control" data-ng-model="model[field]" data-ng-options="item.simulationId as item.name disable when item.isInvalid for item in items"></select>
 
                 <button type="button" style="padding: 3px 10px 5px 10px; margin-top: -1px" title="View Simulation" class="btn btn-default" data-ng-click="openSimulation()"><span class="glyphicon glyphicon-eye-open"></span></button>
               </div>
             </span>
         `,
         controller: function($scope) {
-            $scope.simList = null;
 
-            // special processing of the item's name if necessary
-            $scope.itemName = function(item) {
-                return item.invalidMsg ? `${item.name} <${item.invalidMsg}>` : item.name;
-            };
+            function buildList(simList) {
+                $scope.items = [];
+                for (const s of simList) {
+                    $scope.items.push({
+                        simulationId: s.simulationId,
+                        isInvalid: s.invalidMsg ? true : false,
+                        name: itemName(s),
+                    });
+                }
+                $scope.items.sort((a, b) => a.name.localeCompare(b.name));
+            }
 
-            $scope.openSimulation = function() {
+            function itemName(sim) {
+                const n = sim.folder === '/'
+                        ? `/${sim.name}`
+                        : `${sim.folder}/${sim.name}`;
+                return sim.invalidMsg
+                     ? `${n} <${sim.invalidMsg}>`
+                     : n;
+            }
+
+            $scope.openSimulation = () => {
                 if ($scope.model && $scope.model[$scope.field]) {
                     requestSender.openSimulation(
                         $scope.code,
@@ -5215,14 +5236,13 @@ SIREPO.app.directive('simList', function(appState, requestSender) {
                     );
                 }
             };
-            appState.whenModelsLoaded($scope, function() {
+
+            appState.whenModelsLoaded($scope, () => {
                 requestSender.sendStatefulCompute(
                     appState,
-                    function(data) {
+                    (data) => {
                         if (appState.isLoaded() && data.simList) {
-                            $scope.simList = data.simList.sort(function(a, b) {
-                                return a.name.localeCompare(b.name);
-                            });
+                            buildList(data.simList);
                         }
                     },
                     {

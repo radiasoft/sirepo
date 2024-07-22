@@ -10,66 +10,27 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
+from sirepo.template.lattice import LatticeUtil
 import h5py
 import numpy
-import pmd_beamphysics
-import pmd_beamphysics.interfaces.elegant
-import pmd_beamphysics.interfaces.genesis
-import pmd_beamphysics.interfaces.opal
 import re
+import pmd_beamphysics
 import sirepo.sim_data
 import sirepo.template
 
+
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _PHASE_PLOT_COUNT = 4
-_PHASE_PLOTS = PKDict(
-    genesis=[
-        ["x", "pxmc"],
-        ["y", "pymc"],
-        ["x", "y"],
-        ["psi", "gamma"],
-    ],
-    opal=[
-        ["x", "px"],
-        ["y", "py"],
-        ["x", "y"],
-        ["z", "pz"],
-    ],
-    elegant=[
-        ["x", "xp"],
-        ["y", "yp"],
-        ["x", "y"],
-        ["t", "p"],
-    ],
-)
+_PHASE_PLOTS = [["x", "px"], ["y", "py"], ["x", "y"], ["z", "pz"]]
 _PLOT_TITLE = PKDict(
-    opal=PKDict(
-        {
-            "x-px": "Horizontal",
-            "y-py": "Vertical",
-            "x-y": "Cross-section",
-            "z-pz": "Longitudinal",
-        },
-    ),
-    genesis=PKDict(
-        {
-            "x-pxmc": "Horizontal",
-            "y-pymc": "Vertical",
-            "x-y": "Cross-section",
-            "psi-gamma": "PSI/Gamma",
-        },
-    ),
+    {
+        "x-px": "Horizontal",
+        "y-py": "Vertical",
+        "x-y": "Cross-section",
+        "z-pz": "Longitudinal",
+    }
 )
-_PLOT_Y_LABEL = PKDict(
-    opal=PKDict(
-        {
-            # TODO(pjm): should format px and βx with subscripts
-            "x-px": "px (βx γ)",
-            "y-py": "py (βy γ)",
-            "z-pz": "pz (β γ)",
-        }
-    )
-)
+
 _BEAM_PARAMETERS = PKDict(
     genesis=PKDict(
         rmsx="xrms",
@@ -107,11 +68,23 @@ _ELEGANT_BEAM_PARAMETER_FILE = PKDict(
     Cx="run_setup.centroid.sdds",
     Cy="run_setup.centroid.sdds",
 )
+_OUT_DIR = "out"
+_PARTICLE_OUTFILE = "openpmd.h5"
 _RELATED_SIMS_FOLDER = "/Omega"
 _SUCCESS_OUTPUT_FILE = PKDict(
     elegant="run_setup.output.sdds",
     opal="opal.h5",
     genesis="genesis.out.dpa",
+)
+_SIM_TYPE_TO_CODE = PKDict(
+    elegant="Elegant",
+    opal="OPAL",
+    genesis="Genesis2",
+)
+_SIM_TYPE_TO_INPUT_FILE = PKDict(
+    elegant="elegant.ele",
+    opal="opal.in",
+    genesis="genesis.in",
 )
 
 
@@ -157,60 +130,17 @@ def copy_related_sims(data, qcall=None):
 
 
 def get_data_file(run_dir, model, frame, options):
-    def _particle_file_and_sim_info():
-        i = int(re.search(r"Animation(\d+)\-", model).groups(1)[0])
-        s = _sim_info(
-            simulation_db.read_json(
-                run_dir.join(template_common.INPUT_BASE_NAME)
-            ).models,
-            i - 1,
-        )
-        return (pkio.py_path(f"run{i}").join(_SUCCESS_OUTPUT_FILE[s.sim_type]), s)
-
-    def _particle_group(sim_type, particle_file):
-        if sim_type == "elegant":
-            return pmd_beamphysics.ParticleGroup(
-                data=pmd_beamphysics.interfaces.elegant.elegant_to_data(particle_file),
-            )
-        elif sim_type == "opal":
-            step = _template_for_sim_type(sim_type).read_frame_count(run_dir)
-            with h5py.File(particle_file, "r") as f:
-                return pmd_beamphysics.ParticleGroup(
-                    data=pmd_beamphysics.interfaces.opal.opal_to_data(
-                        f[f"/Step#{step}"]
-                    ),
-                )
-        elif sim_type == "genesis":
-            dm = simulation_db.read_json(
-                particle_file.dirpath().join(template_common.INPUT_BASE_NAME + ".json")
-            ).models
-            v = numpy.fromfile(
-                particle_file.dirpath().join(particle_file.purebasename + ".dpa"),
-                dtype=numpy.float64,
-            )
-            v = v.reshape(
-                int(len(v) / 6 / dm.electronBeam.npart),
-                6,
-                dm.electronBeam.npart,
-            )
-            return pmd_beamphysics.ParticleGroup(
-                data=pmd_beamphysics.interfaces.genesis.genesis2_dpa_to_data(
-                    v,
-                    xlamds=dm.radiation.xlamds,
-                    current=numpy.array([dm.electronBeam.curpeak]),
-                )
-            )
-        else:
-            raise AssertionError(f"unsupported sim_type={sim_type}")
-
-    f, s = _particle_file_and_sim_info()
+    i = int(re.search(r"Animation(\d+)\-", model).groups(1)[0])
+    out = _sim_out_dir(run_dir, i)
+    s = _sim_info(
+        simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models,
+        i - 1,
+    )
     if options.suffix is None:
-        return f
-    if options.suffix != "openpmd":
-        raise AssertionError(f"unknown data type={options.suffix} requested")
-    n = f"{s.sim_type}_openpmd.h5"
-    _particle_group(s.sim_type, f).write(n)
-    return n
+        return out.join(_SUCCESS_OUTPUT_FILE[s.sim_type])
+    if options.suffix == "openpmd":
+        return out.join(_PARTICLE_OUTFILE)
+    raise AssertionError(f"unknown data type={options.suffix} requested")
 
 
 def post_execution_processing(success_exit, run_dir, **kwargs):
@@ -227,7 +157,7 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
         s = _sim_info(dm, idx)
         if not s.sim_type or not s.sid:
             continue
-        sim_dir = _sim_dir(run_dir, idx + 1)
+        sim_dir = _sim_out_dir(run_dir, idx + 1)
         sim_template = _template_for_sim_type(s.sim_type)
         res = f"{s.sim_type.upper()} failed\n"
         if success_exit:
@@ -246,6 +176,13 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
     return "An unknown error occurred"
 
 
+def prepare_for_client(data, qcall, **kwargs):
+    # ensure the related codes are present
+    for s in SCHEMA.relatedSimTypes:
+        simulation_db.simulation_dir(s, qcall=qcall)
+    return data
+
+
 def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
 
@@ -254,10 +191,12 @@ def sim_frame(frame_args):
     sim_type = frame_args.sim_in.models.simWorkflow.coupledSims[
         int(frame_args.simCount) - 1
     ].simulationType
-    frame_args.run_dir = _sim_dir(frame_args.run_dir, frame_args.simCount)
     frame_args.sim_in = simulation_db.read_json(
-        frame_args.run_dir.join(template_common.INPUT_BASE_NAME)
+        _sim_in_dir(frame_args.run_dir, frame_args.simCount).join(
+            template_common.INPUT_BASE_NAME
+        )
     )
+    frame_args.run_dir = _sim_out_dir(frame_args.run_dir, frame_args.simCount)
     if "Phase" in frame_args.frameReport:
         return _plot_phase(sim_type, frame_args)
     if "Beam" in frame_args.frameReport:
@@ -282,6 +221,7 @@ def stateful_compute_get_opal_sim_list(**kwargs):
 
 
 def write_parameters(data, run_dir, is_parallel):
+    _prepare_subsims(data, run_dir)
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
@@ -324,9 +264,8 @@ def _extract_elegant_beam_plot(frame_args):
     return res
 
 
-def _generate_parameters_file(data):
+def _coupled_sims_list(data):
     dm = data.models
-    res, v = template_common.generate_parameters_file(data)
     sim_list = []
     for idx in range(len(dm.simWorkflow.coupledSims)):
         s = _sim_info(dm, idx)
@@ -341,7 +280,24 @@ def _generate_parameters_file(data):
             break
     if not sim_list:
         raise AssertionError("No simulations selected")
-    v.simList = sim_list
+    return sim_list
+
+
+def _generate_parameters_file(data):
+    res, v = template_common.generate_parameters_file(data)
+    v.simCall = []
+    for idx, s in enumerate(_coupled_sims_list(data)):
+        v.simCall.append(
+            PKDict(
+                name=f"run{idx + 1}",
+                input_file=_SIM_TYPE_TO_INPUT_FILE[s.sim_type],
+                code=_SIM_TYPE_TO_CODE[s.sim_type],
+                out=_OUT_DIR,
+                initial_particles=f"run{idx}.final_particles()" if idx else "None",
+                update_filenames=True if s.sim_type in ("opal", "elegant") else False,
+            )
+        )
+    v.particleOutfile = _PARTICLE_OUTFILE
     return res + template_common.render_jinja(SIM_TYPE, v)
 
 
@@ -363,7 +319,7 @@ def _output_info(run_dir):
 
     res = []
     idx = 0
-    sim_dir = _sim_dir(run_dir, idx + 1)
+    sim_dir = _sim_out_dir(run_dir, idx + 1)
     while sim_dir.exists() and _has_file(sim_dir):
         r = []
         res.append(r)
@@ -385,7 +341,7 @@ def _output_info(run_dir):
                 ]
             )
         idx += 1
-        sim_dir = _sim_dir(run_dir, idx + 1)
+        sim_dir = _sim_out_dir(run_dir, idx + 1)
 
     return res
 
@@ -403,7 +359,7 @@ def _is_genesis(run_dir, index):
 
 
 def _phase_plot_args(sim_type, frame_args):
-    xy = _PHASE_PLOTS[sim_type][int(frame_args.reportCount) - 1]
+    xy = _PHASE_PLOTS[int(frame_args.reportCount) - 1]
     del frame_args["y1"]
     frame_args.x = xy[0]
     frame_args.y = xy[1]
@@ -418,9 +374,6 @@ def _plot_beam(sim_type, frame_args):
     if sim_type == "elegant":
         return _extract_elegant_beam_plot(frame_args)
     if sim_type == "genesis":
-        frame_args.sim_in = simulation_db.read_json(
-            frame_args.run_dir.join(template_common.INPUT_BASE_NAME)
-        )
         return _template_for_sim_type(sim_type).sim_frame_parameterAnimation(frame_args)
 
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
@@ -433,39 +386,105 @@ def _plot_field_dist(sim_type, frame_args):
 
 
 def _plot_phase(sim_type, frame_args):
-    _phase_plot_args(sim_type, frame_args)
+    def _col(column_name):
+        p = pmd_beamphysics.ParticleGroup(h5=str(frame_args.run_dir.join("openpmd.h5")))
+        c = PKDict(
+            x=p.x,
+            y=p.y,
+            z=p.z if sim_type == "opal" else p.t,
+            px=p.px,
+            py=p.py,
+            pz=p.pz,
+        )[column_name]
+        return numpy.array(c)
 
-    if sim_type == "opal":
-        r = _template_for_sim_type(sim_type).bunch_plot(
-            frame_args,
-            frame_args.run_dir,
-            frame_args.frameIndex,
-        )
-        return r.pkupdate(
-            title=_PLOT_TITLE[sim_type][frame_args.x + "-" + frame_args.y],
-            y_label=_PLOT_Y_LABEL[sim_type].get(
-                frame_args.x + "-" + frame_args.y, r.y_label
+    def _x_label(x_name):
+        if x_name == "z" and sim_type != "opal":
+            return "t"
+        return x_name
+
+    _phase_plot_args(sim_type, frame_args)
+    if sim_type in ("elegant", "opal", "genesis"):
+        # remove any NaN particles
+        x = _col(frame_args.x)
+        y = _col(frame_args.y)
+        if numpy.isnan(x).any():
+            x = x[~numpy.isnan(x)]
+            y = y[~numpy.isnan(x)]
+        if numpy.isnan(y).any():
+            x = x[~numpy.isnan(y)]
+            y = y[~numpy.isnan(y)]
+        return template_common.heatmap(
+            values=[x, y],
+            model=frame_args,
+            plot_fields=PKDict(
+                x_label=_x_label(frame_args.x),
+                y_label=frame_args.y,
+                title=_PLOT_TITLE[frame_args.x + "-" + frame_args.y],
             ),
-        )
-    if sim_type == "elegant":
-        return _template_for_sim_type(sim_type).extract_report_data(
-            str(frame_args.run_dir.join(_SUCCESS_OUTPUT_FILE[sim_type])),
-            frame_args,
-        )
-    if sim_type == "genesis":
-        frame_args.frameIndex = 0
-        return (
-            _template_for_sim_type(sim_type)
-            .sim_frame_finalParticleAnimation(frame_args)
-            .pkupdate(
-                title=_PLOT_TITLE[sim_type][frame_args.x + "-" + frame_args.y],
-            )
         )
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
 
 
-def _sim_dir(run_dir, sim_count):
+def _prepare_elegant(run_dir, elegant_id):
+    data = _read_sim("elegant", elegant_id)
+    data.computeModel = "animation"
+    if "report" in data:
+        del data["report"]
+    sirepo.simulation_db.prepare_simulation(data, run_dir)
+    t = pkio.read_text(run_dir.join(template_common.PARAMETERS_PYTHON_FILE))
+    m = re.search(r'"""(.*?)""".*?"""(.*?)"""', t, re.MULTILINE | re.DOTALL)
+    assert m
+    pkio.write_text(run_dir.join("elegant.lte"), m.group(1))
+    pkio.write_text(run_dir.join("elegant.ele"), m.group(2))
+
+
+def _prepare_genesis(run_dir, genesis_id):
+    data = _read_sim("genesis", genesis_id)
+    data.computeModel = "animation"
+    if "report" in data:
+        del data["report"]
+    sirepo.simulation_db.prepare_simulation(data, run_dir)
+    t = pkio.read_text(run_dir.join(template_common.PARAMETERS_PYTHON_FILE))
+    m = re.search(r'"""(.*?)"""', t, re.MULTILINE | re.DOTALL)
+    assert m
+    pkio.write_text(run_dir.join("genesis.in"), m.group(1))
+
+
+def _prepare_opal(run_dir, opal_id):
+    data = _read_sim("opal", opal_id)
+    data.computeModel = "animation"
+    LatticeUtil.find_first_command(data, "option").psdumpfreq = 0
+    sirepo.simulation_db.prepare_simulation(data, run_dir)
+
+
+def _prepare_subsims(data, run_dir):
+    sim_list = _coupled_sims_list(data)
+    for idx in range(len(sim_list)):
+        s = sim_list[idx]
+        d = _sim_in_dir(run_dir, idx + 1)
+        pkio.unchecked_remove(d)
+        pkio.mkdir_parent(d)
+        if s.sim_type == "opal":
+            _prepare_opal(d, s.sim_id)
+        elif s.sim_type == "elegant":
+            _prepare_elegant(d, s.sim_id)
+        elif s.sim_type == "genesis":
+            _prepare_genesis(d, s.sim_id)
+        else:
+            raise AssertionError(f"unhandled sim_type={s.sim_type}")
+
+
+def _read_sim(sim_type, sim_id):
+    return sirepo.sim_data.get_class(sim_type).sim_db_read_sim(sim_id)
+
+
+def _sim_in_dir(run_dir, sim_count):
     return run_dir.join(f"run{sim_count}")
+
+
+def _sim_out_dir(run_dir, sim_count):
+    return _sim_in_dir(run_dir, sim_count).join(_OUT_DIR)
 
 
 def _sim_info(dm, idx):
