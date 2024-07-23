@@ -40,8 +40,6 @@ _ANALYSIS_PROCESSOR_TASKS = None
 #: task(s) monitoring catalogs for new scans
 _CATALOG_MONITOR_TASKS = PKDict()
 
-_LOOP = None
-
 # TODO(e-carlin): tune this number
 _MAX_NUM_SCANS = 1000
 
@@ -407,14 +405,26 @@ class _RequestHandler(_JsonPostRequestHandler):
         return sirepo.raydata.analysis_driver.get(req_data).get_run_log()
 
     def _request_get_automatic_analysis(self, req_data):
-        n = req_data.catalogName
-        return PKDict(data=PKDict(automaticAnalysis=n in _CATALOG_MONITOR_TASKS))
+        return PKDict(
+            data=PKDict(
+                automaticAnalysis=req_data.catalogName in _CATALOG_MONITOR_TASKS
+            )
+        )
 
     def _request_automatic_analysis(self, req_data):
         if bool(int(req_data.automaticAnalysis)):
-            _monitor_catalog(req_data.catalogName)
+            pkdp(
+                f"111 received true request current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
+            )
+            asyncio.run(_monitor_catalog(req_data.catalogName))
         else:
+            pkdp(
+                f"111 received false request current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
+            )
             _CATALOG_MONITOR_TASKS.pkdel(req_data.catalogName)
+        pkdp(
+            f"111 returning current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
+        )
         return PKDict(data="ok")
 
     def _request_catalog_names(self, _):
@@ -604,30 +614,19 @@ def _get_detailed_status(catalog_name, rduid):
         return None
 
 
-# async def _init_catalog_monitors():
-#     def _monitor_catalog(catalog_name):
-#         assert catalog_name not in _CATALOG_MONITOR_TASKS
-#         return asyncio.create_task(_poll_catalog_for_scans(catalog_name))
-
-#
-#     for c in cfg.catalog_names:
-#         _CATALOG_MONITOR_TASKS[c] = _monitor_catalog(c)
-#     await asyncio.gather(*_CATALOG_MONITOR_TASKS.values())
-
-
 async def _init_catalog_monitors():
     if not cfg.automatic_analysis:
         return
     for c in cfg.catalog_names:
         await _monitor_catalog(c)
-        # todo when to run vs await
 
 
 async def _monitor_catalog(catalog_name):
+    pkdp(f"111 called monitor catalog")
     assert catalog_name not in _CATALOG_MONITOR_TASKS
-    new_task = pkasyncio.create_task(_poll_catalog_for_scans(catalog_name))
-    _CATALOG_MONITOR_TASKS[catalog_name] = new_task
-    await new_task
+    t = pkasyncio.create_task(_poll_catalog_for_scans(catalog_name))
+    _CATALOG_MONITOR_TASKS[catalog_name] = t
+    await t
 
 
 # TODO(e-carlin): Rather than polling for scans we should explore using RunEngine.subscribe
@@ -660,8 +659,10 @@ async def _poll_catalog_for_scans(catalog_name):
     async def _poll_for_new_scans(most_recent_scan_metadata):
         m = most_recent_scan_metadata
         while catalog_name in _CATALOG_MONITOR_TASKS:
+            pkdp(f"111 polling {catalog_name}")
             m = _collect_new_scans_and_queue(m)
             await pkasyncio.sleep(2)
+        pkdp(f"111 stopped polling {catalog_name}")
 
     pkdlog("catalog_name={}", catalog_name)
     c = None
@@ -807,11 +808,10 @@ def start():
         sirepo.raydata.analysis_driver.init(cfg.catalog_names)
 
     def _start():
-        global _LOOP
-        _LOOP = pkasyncio.Loop()
-        _LOOP.run(_init_catalog_monitors(), _init_analysis_processors())
-        _LOOP.http_server(PKDict(uri_map=((_URI, _RequestHandler),)))
-        _LOOP.start()
+        l = pkasyncio.Loop()
+        l.run(_init_catalog_monitors(), _init_analysis_processors())
+        l.http_server(PKDict(uri_map=((_URI, _RequestHandler),)))
+        l.start()
 
     if cfg:
         return

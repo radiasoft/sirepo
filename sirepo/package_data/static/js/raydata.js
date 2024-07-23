@@ -652,7 +652,7 @@ SIREPO.app.directive('scansTable', function() {
                                 appState.models.runAnalysis.automaticAnalysis = 0;
                             }
 //                            appState.models.runAnalysis.automaticAnalysis = json.data.automaticAnalysis;
-                            srdbg('set automatic analysis', appState.models.runAnalysis.automaticAnalysis);
+                            srdbg('automatic analysis was set to', appState.models.runAnalysis.automaticAnalysis);
                         },
                         {
                             method: 'get_automatic_analysis',
