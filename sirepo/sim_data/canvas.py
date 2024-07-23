@@ -41,4 +41,11 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def _lib_file_basenames(cls, data):
         res = []
+        d = data.models.distribution
+        if d.distributionType == "File" and d.distributionFile:
+            res.append(
+                cls.lib_file_name_with_model_field(
+                    "distribution", "distributionFile", d.distributionFile
+                )
+            )
         return res

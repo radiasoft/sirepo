@@ -107,7 +107,7 @@
             "normalize_halo": ["normalize halo", "RPNValue", 0],
             "halo": ["halo", "RPNValue", 0],
 
-            "distributionFile": ["Distribution File", "InputFile", ""]
+            "distributionFile": ["Distribution File [hdf5]", "InputFile", "", "An OpenPMD HDF5 ParticleGroup File"]
         },
         "simulationSettings": {
             "useElegant": ["elegant", "Bool", true],

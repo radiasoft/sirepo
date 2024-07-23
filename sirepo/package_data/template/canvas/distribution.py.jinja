@@ -1,6 +1,9 @@
 
 from impactx import ImpactX, distribution, elements
+import amrex.space3d
+import h5py
 import impactx
+import re
 
 sim = ImpactX()
 
@@ -12,10 +15,37 @@ sim.init_grids()
 kin_energy_MeV = 2.0e3  # reference energy
 bunch_charge_C = 100.0e-12  # used with space charge
 npart = {{ distribution_particleCount }}  # number of macro particles
-
 ref = sim.particle_container().ref_particle()
 ref.set_charge_qe(1.0).set_mass_MeV(0.510998950).set_kin_energy_MeV(kin_energy_MeV)
 
+{% if distribution_distributionType == 'File' %}
+
+def _vector(value, name):
+    res = amrex.space3d.PODVector_real_std()
+    for v in value[name]:
+        res.push_back(v)
+    return res
+
+#TODO(pjm): set energy, charge, npart from file info
+with h5py.File("{{ distributionFile }}", "r") as f:
+    bp = re.sub(r"\%T/.*", "", f.attrs["basePath"].decode("utf8"))
+    last = None
+    for n in f[bp]:
+        p = f"{bp}{n}"
+        if f.attrs["particlesPath"] in f[p]:
+            last = p + "/" + f.attrs["particlesPath"].decode("utf8")
+    qm_eev = -1.0 / 0.510998950 / 1e6
+    sim.particle_container().add_n_particles(
+        _vector(f[last], 'beam/position/x'),
+        _vector(f[last], 'beam/position/y'),
+        _vector(f[last], 'beam/position/t'),
+        _vector(f[last], 'beam/momentum/x'),
+        _vector(f[last], 'beam/momentum/y'),
+        _vector(f[last], 'beam/momentum/t'),
+        qm_eev,
+        bunch_charge_C,
+    )
+{% else %}
 {% if distribution_distributionType == 'Thermal' %}
 distr = distribution.Thermal(
     k={{ distribution_k }},
@@ -25,8 +55,6 @@ distr = distribution.Thermal(
     normalize_halo={{ distribution_normalize_halo }},
     halo={{ distribution_halo }},
 )
-{% elif distribution_distributionType == 'File' %}
-raise AssertionError('File distribution is not yet implemented')
 {% else %}
 distr = distribution.{{ distribution_distributionType }}(
     lambdaX={{ distribution_lambdax }},
@@ -40,8 +68,8 @@ distr = distribution.{{ distribution_distributionType }}(
     mutpt={{ distribution_mutpt }},
 )
 {% endif %}
-
 sim.add_particles(bunch_charge_C, distr, npart)
+{% endif %}
 
 sim.lattice.extend(
     [
@@ -50,9 +78,6 @@ sim.lattice.extend(
     ]
 )
 
-# run simulation
 sim.evolve()
-
-#TODO(pjm): save stats for client?
 
 sim.finalize()

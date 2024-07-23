@@ -17,6 +17,7 @@ import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 DISTRIBUTION_PYTHON_FILE = "distribution.py"
+_BUNCH_REPORT_OUTPUT_FILE = "diags/openPMD/monitor.h5"
 
 
 def code_var(variables):
@@ -28,6 +29,11 @@ def code_var(variables):
             )
         ),
     )
+
+
+def get_data_file(run_dir, model, frame, options):
+    if "bunchReport" in model:
+        return run_dir.join(_BUNCH_REPORT_OUTPUT_FILE)
 
 
 def prepare_for_client(data, qcall, **kwargs):
@@ -71,26 +77,27 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _bunch_plot(run_dir, model):
     _M = PKDict(
-        x="position/x",
-        px="momentum/x",
-        y="position/y",
-        py="momentum/y",
-        t="position/t",
-        pt="momentum/t",
-        qm="qm",
+        x=["position/x", "m"],
+        px=["momentum/x", "rad"],
+        y=["position/y", "m"],
+        py=["momentum/y", "rad"],
+        t=["position/t", "m"],
+        pt=["momentum/t", "rad"],
+        qm=["qm", ""],
     )
 
     def _points(file, frame_index, name):
-        return numpy.array(file[f"data/2/particles/beam/{_M[name]}"])
+        return numpy.array(file[f"data/2/particles/beam/{_M[name][0]}"])
 
     def _format_plot(h5file, field):
-        return field
+        u = _M[field.label][1]
+        if u:
+            field.label = f"{field.label} [{u}]"
 
     def _title(file, frame_index):
         return ""
 
-    fn = "diags/openPMD/monitor.h5"
-    return hdf5_util.HDF5Util(str(run_dir.join(fn))).heatmap(
+    return hdf5_util.HDF5Util(str(run_dir.join(_BUNCH_REPORT_OUTPUT_FILE))).heatmap(
         PKDict(
             format_plot=_format_plot,
             frame_index=0,
@@ -103,4 +110,14 @@ def _bunch_plot(run_dir, model):
 
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
+    d = data.models.distribution
+    if d.distributionType == "File":
+        if not d.distributionFile:
+            raise AssertionError("Missing Distribution File")
+        v.distributionFile = _SIM_DATA.lib_file_name_with_model_field(
+            "distribution",
+            "distributionFile",
+            d.distributionFile,
+        )
+    _BUNCH_REPORT_OUTPUT_FILE
     return res + template_common.render_jinja(SIM_TYPE, v, DISTRIBUTION_PYTHON_FILE)

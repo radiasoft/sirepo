@@ -22,6 +22,9 @@ SIREPO.app.config(() => {
             zeroLength: [],
         },
     };
+    SIREPO.FILE_UPLOAD_TYPE = {
+        'distribution.distributionFile': '.h5',
+    };
 });
 
 SIREPO.app.factory('canvasService', function(appState) {
