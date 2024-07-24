@@ -837,7 +837,13 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.columnIsSortable = (column) => {
-                return column !== 'stop';
+                if (['stop'].includes(column)) {
+                    return false;
+                } else if ($scope.scans.length > 0 && typeof $scope.scans[0][column] === 'object') {
+                    return false;
+                } else {
+                    return true;
+                }
             };
 
             $scope.sortCol = column => {
