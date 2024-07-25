@@ -43,6 +43,8 @@ _CATALOG_MONITOR_TASKS = PKDict()
 # TODO(e-carlin): tune this number
 _MAX_NUM_SCANS = 1000
 
+_AA_CHANGED_SENTINEL = False
+
 # Fields that come from the top-level of metadata (as opposed to start document).
 # Must match key name from _default_columns()
 _METADATA_COLUMNS = {"start", "stop", "suid"}
@@ -411,21 +413,29 @@ class _RequestHandler(_JsonPostRequestHandler):
             )
         )
 
+
+
     def _request_automatic_analysis(self, req_data):
-        if bool(int(req_data.automaticAnalysis)):
-            pkdp(
-                f"111 received true request current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
-            )
-            asyncio.run(_monitor_catalog(req_data.catalogName))
-        else:
-            pkdp(
-                f"111 received false request current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
-            )
-            _CATALOG_MONITOR_TASKS.pkdel(req_data.catalogName)
-        pkdp(
-            f"111 returning current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
-        )
+        new = bool(int(req_data.automaticAnalysis))
+        current = req_data.catalogName in _CATALOG_MONITOR_TASKS
+        if new != current:
+            _AA_CHANGED_SENTINEL = True
         return PKDict(data="ok")
+
+        # if bool(int(req_data.automaticAnalysis)):
+        #     pkdp(
+        #         f"111 received true request current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
+        #     )
+        #     asyncio.run(_monitor_catalog(req_data.catalogName))
+        # else:
+        #     pkdp(
+        #         f"111 received false request current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
+        #     )
+        #     _CATALOG_MONITOR_TASKS.pkdel(req_data.catalogName)
+        # pkdp(
+        #     f"111 returning current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
+        # )
+        # return PKDict(data="ok")
 
     def _request_catalog_names(self, _):
         return PKDict(
@@ -627,6 +637,13 @@ async def _monitor_catalog(catalog_name):
     t = pkasyncio.create_task(_poll_catalog_for_scans(catalog_name))
     _CATALOG_MONITOR_TASKS[catalog_name] = t
     await t
+
+async def _handle_automatic_analysis():
+    while True:
+        if _AA_CHANGED_SENTINEL:
+
+        else:
+            pkasyncio.sleep(5)
 
 
 # TODO(e-carlin): Rather than polling for scans we should explore using RunEngine.subscribe
