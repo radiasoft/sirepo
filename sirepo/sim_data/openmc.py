@@ -144,7 +144,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         if data.get("report") == "tallyReport":
             return r
         if data.models.geometryInput.dagmcFile:
-            r = cls.source_filenames(data)
+            d, s = cls.dagmc_and_maybe_step_filename(data)
+            if not s:
+                r.append(d)
+            r += cls.source_filenames(data)
         if data.get("report") == "dagmcAnimation":
             d, s = cls.dagmc_and_maybe_step_filename(data)
             r.append(s or d)
