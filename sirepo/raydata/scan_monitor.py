@@ -482,18 +482,16 @@ class _RequestHandler(_JsonPostRequestHandler):
 def _sort_params(req_data):
     r = []
     has_time = False
-    if req_data.sortColumns != "":
-        for x in req_data.sortColumns.split(";"):
-            x = x.split(",")
-            if x[1] == "true":
-                x[1] = pymongo.ASCENDING
-            else:
-                assert x[1] == "false", f"unrecognized sort order {x}"
-                x[1] = pymongo.DESCENDING
-            x[0] = _default_columns(req_data.catalogName).get(x[0], x[0])
-            if x[0] == "time":
-                has_time = True
-            r.append(x)
+    for x in req_data.sortColumns:
+        n = _default_columns(req_data.catalogName).get(x[0], x[0])
+        if n == "time":
+            has_time = True
+        r.append(
+            [
+                n,
+                pymongo.ASCENDING if x[1] else pymongo.DESCENDING,
+            ]
+        )
     if not has_time:
         r.append(["time", pymongo.DESCENDING])
     return r

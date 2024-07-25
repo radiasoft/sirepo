@@ -540,30 +540,12 @@ SIREPO.app.directive('scansTable', function() {
                 }
             }
 
-            function decodeSortColumns(encoded) {
-                let columns = new Map();
-                if (encoded !== '') {
-                    encoded.split(';').forEach((e) => {
-                        let z = e.split(',');
-                        if (z[1] === 'true') {
-                            columns.set(z[0], true);
-                        } else {
-                            columns.set(z[0], false);
-                        }
-                    });
-                }
-                return columns;
-            }
-
             function defaultSortColumns() {
-                return new Map(
-                    [
-                        [
-                            $scope.analysisStatus == 'queued' ? 'queue order' : 'start',
-                            $scope.analysisStatus == 'queued'
-                        ]
-                    ]
-                );
+                if ($scope.analysisStatus == 'queued') {
+                    return [['queue order', true]];
+                } else {
+                    return [['start', false]];
+                }
             }
 
             function findScan(scanId) {
@@ -604,7 +586,7 @@ SIREPO.app.directive('scansTable', function() {
                 }
                 scanArgs.pageCount = scanInfo.pageCount || 0;
                 scanArgs.pageNumber = scanInfo.pageNumber;
-                scanArgs.sortColumns = decodeSortColumns(scanInfo.sortColumns);
+                scanArgs.sortColumns = scanInfo.sortColumns;
                 updatePageLocation();
             }
 
@@ -653,7 +635,7 @@ SIREPO.app.directive('scansTable', function() {
                                 pageNumber: scanArgs.pageNumber,
                                 searchText: m.searchText,
                                 searchTerms: buildSearchTerms(m.searchTerms),
-                                sortColumns: [...scanArgs.sortColumns.entries()].join(';')
+                                sortColumns: scanArgs.sortColumns
                             }
                         },
                         errorOptions
@@ -701,13 +683,16 @@ SIREPO.app.directive('scansTable', function() {
             }
 
             $scope.arrowClass = column => {
-                if (! scanArgs.sortColumns.has(column)) {
-                    return {};
-                }
-                return {
-                    glyphicon: true,
-                    [`glyphicon-arrow-${scanArgs.sortColumns.get(column) ? 'up' : 'down'}`]: true,
-                };
+                let r = {};
+                scanArgs.sortColumns.forEach((arr) => {
+                    if (arr[0] === column) {
+                        r= {
+                            glyphicon: true,
+                            [`glyphicon-arrow-${arr[1] ? 'up' : 'down'}`]: true,
+                        };
+                    }
+                });
+                return r;
             };
 
             $scope.canNextPage = () => {
@@ -719,7 +704,7 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.clearSort = () => {
-                scanArgs.sortColumns = new Map();
+                scanArgs.sortColumns = [];
             };
 
             $scope.deleteCol = colName => {
@@ -846,15 +831,27 @@ SIREPO.app.directive('scansTable', function() {
                 }
             };
 
+
             $scope.sortCol = column => {
                 if (! $scope.columnIsSortable(column)) {
                     return;
-                } else if (scanArgs.sortColumns.has(column)) {
-                    scanArgs.sortColumns.set(column, ! scanArgs.sortColumns.get(column));
-                } else if ($scope.analysisStatus !== 'allStatuses') {
-                    scanArgs.sortColumns = new Map([[column, true]]);
-                } else {
-                    scanArgs.sortColumns.set(column, true);
+                }
+                let inList = false;
+                scanArgs.sortColumns.forEach((arr) => {
+                    if (arr[0] === column) {
+                        inList = true;
+                        arr[1] = ! arr[1];
+                    }
+                });
+                if (! inList) {
+                    if ($scope.analysisStatus !== 'allStatuses') {
+                        scanArgs.sortColumns = [[column, true]];
+                    } else {
+                        scanArgs.sortColumns.unshift([column, true]);
+                        if (scanArgs.sortColumns.length > 3) {
+                            scanArgs.sortColumns.pop();
+                        }
+                    }
                 }
                 sendScanRequest(true, true);
             };
