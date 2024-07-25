@@ -43,7 +43,7 @@ _CATALOG_MONITOR_TASKS = PKDict()
 # TODO(e-carlin): tune this number
 _MAX_NUM_SCANS = 1000
 
-_AA_CHANGED_SENTINEL = False
+_AA_CHANGED_SENTINEL = {}
 
 # Fields that come from the top-level of metadata (as opposed to start document).
 # Must match key name from _default_columns()
@@ -413,29 +413,27 @@ class _RequestHandler(_JsonPostRequestHandler):
             )
         )
 
-
-
     def _request_automatic_analysis(self, req_data):
         new = bool(int(req_data.automaticAnalysis))
         current = req_data.catalogName in _CATALOG_MONITOR_TASKS
         if new != current:
-            _AA_CHANGED_SENTINEL = True
+            _AA_CHANGED_SENTINEL[req_data.catalogName] = True
         return PKDict(data="ok")
 
-        # if bool(int(req_data.automaticAnalysis)):
-        #     pkdp(
-        #         f"111 received true request current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
-        #     )
-        #     asyncio.run(_monitor_catalog(req_data.catalogName))
-        # else:
-        #     pkdp(
-        #         f"111 received false request current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
-        #     )
-        #     _CATALOG_MONITOR_TASKS.pkdel(req_data.catalogName)
-        # pkdp(
-        #     f"111 returning current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
-        # )
-        # return PKDict(data="ok")
+    # if bool(int(req_data.automaticAnalysis)):
+    #     pkdp(
+    #         f"111 received true request current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
+    #     )
+    #
+    # else:
+    #     pkdp(
+    #         f"111 received false request current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
+    #     )
+    #
+    # pkdp(
+    #     f"111 returning current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
+    # )
+    # return PKDict(data="ok")
 
     def _request_catalog_names(self, _):
         return PKDict(
@@ -638,10 +636,16 @@ async def _monitor_catalog(catalog_name):
     _CATALOG_MONITOR_TASKS[catalog_name] = t
     await t
 
-async def _handle_automatic_analysis():
-    while True:
-        if _AA_CHANGED_SENTINEL:
 
+async def _handle_automatic_analysis(catalog_name):
+    while True:
+        if _AA_CHANGED_SENTINEL.get(catalog_name):
+            _AA_CHANGED_SENTINEL[catalog_name] = False
+            if catalog_name in _CATALOG_MONITOR_TASKS:
+                _CATALOG_MONITOR_TASKS.pkdel(catalog_name)
+            else:
+                # todo will await prevent next change? does incoming request need to handle cancel and this handles start
+                await _monitor_catalog(catalog_name)
         else:
             pkasyncio.sleep(5)
 
@@ -825,8 +829,17 @@ def start():
         sirepo.raydata.analysis_driver.init(cfg.catalog_names)
 
     def _start():
+        _HANDLE_AUTOMATIC_ANALYSIS_TASKS = []
+        for c in cfg.catalog_names:
+            _HANDLE_AUTOMATIC_ANALYSIS_TASKS.append(
+                pkasyncio.create_task(_handle_automatic_analysis(c))
+            )
         l = pkasyncio.Loop()
-        l.run(_init_catalog_monitors(), _init_analysis_processors())
+        l.run(
+            _init_catalog_monitors(),
+            _init_analysis_processors(),
+            *_HANDLE_AUTOMATIC_ANALYSIS_TASKS,
+        )
         l.http_server(PKDict(uri_map=((_URI, _RequestHandler),)))
         l.start()
 
