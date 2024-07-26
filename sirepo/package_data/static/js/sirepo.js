@@ -1549,7 +1549,7 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
     // Browser side caching implemented using indexedDB
     // - Caches sim frame responses
     // - Allows cache to be cleared by simId or (simId, modelName)
-    // - Keeps MRU date on item access and deletes expired records at startup
+    // - Keeps updateTime on item access and deletes expired records at startup
 
     const self = {};
     const STORE = 'db';
@@ -1558,41 +1558,41 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
     const EXPIRY_TIME = 30 * 24 * 60 * 60 * 1000;
     let db = null;
 
-    function deleteKeys(keys) {
-        if (keys.length) {
-            const o = objectStore('readwrite');
-            if (o) {
-                for (const k of keys) {
-                    o.delete(k);
-                }
-            }
+    const deleteKeys = (keys) => {
+        if (! keys.length) {
+            return;
         }
-    }
+        withObjectStore('readwrite', (o) => {
+            for (const k of keys) {
+                o.delete(k);
+            }
+        });
+    };
 
-    function invokeCallback(callback, value) {
+    const invokeCallback = (callback, value) => {
         $rootScope.$applyAsync(() => callback(value));
-    }
+    };
 
-    function key(prefix, value) {
-        return prefix + ':' + value;
-    }
+    const objectKey = (prefix, value) => prefix + ':' + value;
 
-    function objectStore(mode) {
+    const objectStore = (mode) => {
         try {
             if (db) {
                 return db.transaction(STORE, mode).objectStore(STORE);
             }
         }
         catch (e) {
+            // at any point the browser can remove the object store
+            // and the transaction() would raise a NotFoundError
         }
         return null;
-    }
+    };
 
-    function open() {
+    const initializeDatabase = () => {
         if (! window.indexedDB || ! SIREPO.authState.uiWebSocket) {
             return;
         }
-        const r = window.indexedDB.open('srCache', 1);
+        const r = window.indexedDB.open('srCache', 2);
         r.onsuccess = (event) => {
             db = event.target.result;
             removeOldRecords();
@@ -1604,35 +1604,39 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
             }
             const o = db.createObjectStore(STORE);
             o.createIndex('simId', '_srcache_simId', { unique: false });
-            o.createIndex('mru', '_srcache_mru', { unique: false });
+            o.createIndex('updateTime', '_srcache_updateTime', { unique: false });
         };
-    }
+    };
 
-    function removeOldRecords() {
-        const o = objectStore('readonly');
-        if (! o) {
-            return;
-        }
-        const expired = [];
-        const d = new Date().getTime();
-        o.index('mru').openKeyCursor().onsuccess = (event) => {
-            const c = event.target.result;
-            if (c) {
-                if ((d - c.key) > EXPIRY_TIME) {
-                    expired.push(c.primaryKey);
+    const removeOldRecords = () => {
+        withObjectStore('readonly', (o) => {
+            const expired = [];
+            const d = new Date().getTime();
+            o.index('updateTime').openKeyCursor().onsuccess = (event) => {
+                const c = event.target.result;
+                if (c) {
+                    if ((d - c.key) > EXPIRY_TIME) {
+                        expired.push(c.primaryKey);
+                    }
+                    c.continue();
                 }
-                c.continue();
-            }
-            else {
-                deleteKeys(expired);
-            }
-        };
-    }
+                else {
+                    deleteKeys(expired);
+                }
+            };
+        });
+    };
+
+    const withObjectStore = (mode, callback) => {
+        const o = objectStore(mode);
+        if (o) {
+            callback(o);
+        }
+    };
 
     self.clearFrames = (simId, modelName) => {
         // deletes frames by simId, or (simId, modelName)
-        const o = objectStore('readonly');
-        if (o) {
+        withObjectStore('readonly', (o) => {
             const keys = [];
             o.index('simId').openCursor(window.IDBKeyRange.only(simId)).onsuccess = (event) => {
                 const c = event.target.result;
@@ -1646,7 +1650,7 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
                     deleteKeys(keys);
                 }
             };
-        }
+        });
     };
 
     self.getFrame = (frameId, modelName, callback) => {
@@ -1655,12 +1659,12 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
             invokeCallback(callback, null);
             return;
         }
-        const c = o.get(key(FRAME, frameId));
+        const c = o.get(objectKey(FRAME, frameId));
         c.onsuccess = (event) => {
             const d = event.target.result;
             invokeCallback(callback, d);
             if (d) {
-                // update MRU (most recently used)
+                // sets updateTime
                 self.saveFrame(frameId, modelName, d);
             }
         };
@@ -1670,16 +1674,15 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
     };
 
     self.saveFrame = (frameId, modelName, data) => {
-        const o = objectStore('readwrite');
-        if (o) {
-            data._srcache_mru = new Date().getTime();
+        withObjectStore('readwrite', (o) => {
+            data._srcache_updateTime = new Date().getTime();
             data._srcache_modelName = modelName;
             data._srcache_simId = appState.models.simulation.simulationId;
-            o.put(data, key(FRAME, frameId));
-        }
+            o.put(data, objectKey(FRAME, frameId));
+        });
     };
 
-    open();
+    initializeDatabase();
 
     return self;
 });
