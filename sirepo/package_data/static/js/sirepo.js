@@ -1569,25 +1569,6 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
         });
     };
 
-    const invokeCallback = (callback, value) => {
-        $rootScope.$applyAsync(() => callback(value));
-    };
-
-    const objectKey = (prefix, value) => prefix + ':' + value;
-
-    const objectStore = (mode) => {
-        try {
-            if (db) {
-                return db.transaction(STORE, mode).objectStore(STORE);
-            }
-        }
-        catch (e) {
-            // at any point the browser can remove the object store
-            // and the transaction() would raise a NotFoundError
-        }
-        return null;
-    };
-
     const initializeDatabase = () => {
         if (! window.indexedDB || ! SIREPO.authState.uiWebSocket) {
             return;
@@ -1606,6 +1587,25 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
             o.createIndex('simId', '_srcache_simId', { unique: false });
             o.createIndex('updateTime', '_srcache_updateTime', { unique: false });
         };
+    };
+
+    const invokeCallback = (callback, value) => {
+        $rootScope.$applyAsync(() => callback(value));
+    };
+
+    const objectKey = (prefix, value) => prefix + ':' + value;
+
+    const objectStore = (mode) => {
+        try {
+            if (db) {
+                return db.transaction(STORE, mode).objectStore(STORE);
+            }
+        }
+        catch (e) {
+            // at any point the browser can remove the object store
+            // and the transaction() would raise a NotFoundError
+        }
+        return null;
     };
 
     const removeOldRecords = () => {
