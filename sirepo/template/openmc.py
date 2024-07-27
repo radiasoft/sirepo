@@ -676,6 +676,11 @@ def _generate_run_mode(data, v):
 def _generate_source(source):
     if source.get("type") == "file" and source.get("file"):
         return f"openmc.IndependentSource(filename=\"{_SIM_DATA.lib_file_name_with_model_field('source', 'file', source.file)}\")"
+    if source.space._type == "box":
+        # TODO(pjm): move only_fissionable outside of box
+        c = f"{{'fissionable': {source.space.only_fissionable == '1'}}}"
+    else:
+        c = "None"
     return f"""openmc.IndependentSource(
         space={_generate_space(source.space)},
         angle={_generate_angle(source.angle)},
@@ -683,6 +688,7 @@ def _generate_source(source):
         time={_generate_distribution(source.time)},
         strength={source.strength},
         particle="{source.particle}",
+        constraints={c},
     )"""
 
 
@@ -701,7 +707,6 @@ def _generate_space(space):
         args += [
             _generate_array(space.lower_left),
             _generate_array(space.upper_right),
-            f'only_fissionable={space.only_fissionable == "1"}',
         ]
     elif space._type == "cartesianIndependent":
         args += [_generate_distribution(space[v]) for v in ["x", "y", "z"]]
