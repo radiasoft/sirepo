@@ -118,7 +118,7 @@ SIREPO.app.config(() => {
         </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
-        'geometryInput-dagmcFile': '.h5m',
+        'geometryInput-dagmcFile': '.h5m,.stp',
         'geometryInput-materialsFile': '.xml',
     };
 });
@@ -313,6 +313,7 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
                 // don't initialize simulation until geometry is known
                 hasGeometry = data.animationDirExists;
                 self.simState = persistentSimulation.initSimulationState(self);
+                self.simState.errorMessage = () => self.errorMessage;
             },
             {
                 method: 'check_animation_dir',
@@ -330,6 +331,7 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
     self.isGeometryProcessed = () => hasVolumes;
 
     self.simHandleStatus = (data) => {
+        self.errorMessage = data.error;
         self.hasServerStatus = true;
         if (hasGeometry && data.volumes) {
             hasVolumes = true;
@@ -1086,6 +1088,16 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
                         .attr('fill', d => sourceColor(d));
                 }
 
+                function toReversed(arr) {
+                    // Array.toReversed() is not available in all active browsers
+                    // not using a polyfill due to array iteration bugs
+                    const r = [];
+                    for (let i = (arr.length - 1); i >= 0; --i) {
+                        r.push(arr[i]);
+                    }
+                    return r;
+                }
+
                 const outlines = [];
                 const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
                 for (const volId of openmcService.getNonGraveyardVolumes()) {
@@ -1110,7 +1122,7 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
                     outlines.push({
                         name: `source-${s.particle}-${s.space._type}-${i}`,
                         color: sourceColor('#ff0000'),
-                        data: view.shapePoints(dim).map(p => p.toReversed()),
+                        data: view.shapePoints(dim).map(p => toReversed(p)),
                         doClose: true,
                     });
                 });
@@ -1130,7 +1142,7 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
                         name: `${p.type}-${p.energy}eV-${n}`,
                         color: sourceColor(particleColor(p)),
                         dashes: p.type === 'PHOTON' ? '6 2' : '',
-                        data: [p1, p2].map(p => p.toReversed()),
+                        data: [p1, p2].map(p => toReversed(p)),
                         marker: particleId(p),
                     });
                 });
@@ -2046,9 +2058,10 @@ SIREPO.app.directive('volumeSelector', function(appState, openmcService, panelSt
 
             loadRows();
 
-            for (const i in $scope.rows) {
+            for (let i = 0; i < $scope.rows.length; i++) {
                 for (const p of ['color', 'opacity']) {
-                    $scope.$watch(`rows[${i}].${p}`, () => broadcastVolumePropertyChanged(i, p));
+                    const i2 = i;
+                    $scope.$watch(`rows[${i}].${p}`, () => broadcastVolumePropertyChanged(i2, p));
                 }
             }
         },
