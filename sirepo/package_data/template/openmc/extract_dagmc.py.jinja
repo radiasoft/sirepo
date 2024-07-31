@@ -54,6 +54,9 @@ def add_materials(volumes):
                     c.percent = float(m.attrib["wo"])
 {% endif %}
 
+{% if stepFilename %}
+sirepo.pkcli.openmc.step_to_dagmc("{{ stepFilename }}", "{{ dagmcFilename }}")
+{% endif %}
 volumes = sirepo.pkcli.openmc.extract_dagmc("{{ dagmcFilename }}")
 {% if materialsFile %}
 add_materials(volumes)

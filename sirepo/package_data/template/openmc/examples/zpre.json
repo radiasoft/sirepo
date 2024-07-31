@@ -94,15 +94,15 @@
                         "_super": "spatial",
                         "_type": "box",
                         "lower_left": [
-                            -200,
-                            -200,
+                            -40,
+                            -40,
                             -200
                         ],
                         "only_fissionable": "1",
                         "upper_right": [
-                            200,
-                            200,
-                            200
+                            40,
+                            40,
+                            100
                         ]
                     },
                     "strength": 1,

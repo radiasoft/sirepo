@@ -4,6 +4,7 @@
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
@@ -11,7 +12,6 @@ from sirepo.template import template_common
 import copy
 import json
 import numpy
-import py.path
 import pymeshlab
 import pymoab.core
 import pymoab.rng
@@ -20,6 +20,7 @@ import re
 import sirepo.mpi
 import sirepo.simulation_db
 import sirepo.util
+import subprocess
 import uuid
 
 _DECIMATION_MAX_POLYGONS = 10000
@@ -36,6 +37,38 @@ def extract_dagmc(dagmc_filename):
             density=g.density,
         )
     return res
+
+
+def step_to_dagmc(input_step_filename, output_dagmc_filename, threads=1):
+    """Convert a CAD step (.stp) file to dagmc (.h5m) file.
+
+    A sanity check (check_watertight) is performed on the output file.
+
+    Args:
+      input_step_filename (str): .stp input file
+      output_dagmc_filename (str): .h5m output file
+      threads (int): number of thread used for conversion (optional)
+    """
+    import CAD_to_OpenMC.assembly
+
+    if not input_step_filename.endswith(".stp") or not output_dagmc_filename.endswith(
+        ".h5m"
+    ):
+        raise AssertionError(
+            f"input_step_filename={input_step_filename} must be .stp and output_dagmc_filename={output_dagmc_filename} must be .h5m"
+        )
+    CAD_to_OpenMC.assembly.mesher_config["threads"] = threads
+    a = CAD_to_OpenMC.assembly.Assembly([input_step_filename])
+    a.import_stp_files()
+    a.merge_all()
+    a.solids_to_h5m(backend="stl", h5m_filename=output_dagmc_filename)
+    o = subprocess.check_output(("check_watertight", output_dagmc_filename))
+    r = re.findall(rb"(\(0%\) unsealed)", o)
+    if len(r) != 2:
+        d = pkcompat.from_bytes(o).replace("\n", " ")
+        raise AssertionError(
+            f"stp file could not be converted to watertight dagmc: {d}"
+        )
 
 
 class _MoabGroupCollector:
