@@ -411,20 +411,6 @@ class _RequestHandler(_JsonPostRequestHandler):
     def _request_analysis_run_log(self, req_data):
         return sirepo.raydata.analysis_driver.get(req_data).get_run_log()
 
-    def _request_get_automatic_analysis(self, req_data):
-        return PKDict(
-            data=PKDict(
-                automaticAnalysis=req_data.catalogName in _CATALOG_MONITOR_TASKS
-            )
-        )
-
-    def _request_set_automatic_analysis(self, req_data):
-        if bool(int(req_data.automaticAnalysis)) != (
-            req_data.catalogName in _CATALOG_MONITOR_TASKS
-        ):
-            _CHANGE_AUTOMATIC_ANALYSIS[req_data.catalogName] = True
-        return PKDict(data="ok")
-
     def _request_catalog_names(self, _):
         return PKDict(
             data=PKDict(
@@ -454,6 +440,13 @@ class _RequestHandler(_JsonPostRequestHandler):
                 verify=not pkconfig.channel_in("dev"),
             ).raise_for_status()
             return PKDict()
+
+    def _request_get_automatic_analysis(self, req_data):
+        return PKDict(
+            data=PKDict(
+                automaticAnalysis=req_data.catalogName in _CATALOG_MONITOR_TASKS
+            )
+        )
 
     def _request_get_scans(self, req_data):
         s = 1
@@ -517,6 +510,13 @@ class _RequestHandler(_JsonPostRequestHandler):
                 ).get_start_fields(),
             )
         )
+
+    def _request_set_automatic_analysis(self, req_data):
+        if bool(int(req_data.automaticAnalysis)) != (
+            req_data.catalogName in _CATALOG_MONITOR_TASKS
+        ):
+            _CHANGE_AUTOMATIC_ANALYSIS[req_data.catalogName] = True
+        return PKDict(data="ok")
 
     def _sr_authenticate(self, token):
         if (
@@ -614,7 +614,7 @@ def _get_detailed_status(catalog_name, rduid):
 
 async def _init_catalog_monitors():
     for c in cfg.catalog_names:
-        _HANDLE_AUTOMATIC_ANALYSIS_TASKS.append(
+        _AUTOMATIC_ANALYSIS_HANDLER_TASKS.append(
             pkasyncio.create_task(_handle_automatic_analysis(c))
         )
     if cfg.automatic_analysis:
