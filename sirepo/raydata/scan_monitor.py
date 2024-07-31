@@ -415,7 +415,7 @@ class _RequestHandler(_JsonPostRequestHandler):
             )
         )
 
-    def _request_automatic_analysis(self, req_data):
+    def _request_set_automatic_analysis(self, req_data):
         new = bool(int(req_data.automaticAnalysis))
         current = req_data.catalogName in _CATALOG_MONITOR_TASKS
         if new != current:
@@ -633,7 +633,6 @@ async def _handle_automatic_analysis(catalog_name):
             if catalog_name in _CATALOG_MONITOR_TASKS:
                 _CATALOG_MONITOR_TASKS.pkdel(catalog_name)
             else:
-                # todo will await prevent next change? does incoming request need to handle cancel and this handles start
                 await _monitor_catalog(catalog_name)
         else:
             await pkasyncio.sleep(5)

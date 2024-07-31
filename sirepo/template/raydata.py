@@ -52,14 +52,6 @@ def stateless_compute_analysis_run_log(data, **kwargs):
     return r
 
 
-def stateless_compute_automatic_analysis(data, **kwargs):
-    return _request_scan_monitor(PKDict(method="automatic_analysis", data=data))
-
-
-def stateless_compute_get_automatic_analysis(data, **kwargs):
-    return _request_scan_monitor(PKDict(method="get_automatic_analysis", data=data))
-
-
 def stateless_compute_catalog_names(data, **kwargs):
     return _request_scan_monitor(PKDict(method="catalog_names", data=data))
 
@@ -68,6 +60,10 @@ def stateless_compute_download_analysis_pdfs(data, data_file_uri=None, **kwargs)
     assert data_file_uri, f"expected data_file_uri={data_file_uri}"
     data.args.dataFileUri = data_file_uri
     return _request_scan_monitor(PKDict(method="download_analysis_pdfs", data=data))
+
+
+def stateless_compute_get_automatic_analysis(data, **kwargs):
+    return _request_scan_monitor(PKDict(method="get_automatic_analysis", data=data))
 
 
 def stateless_compute_reorder_scan(data, **kwargs):
@@ -84,6 +80,10 @@ def stateless_compute_scans(data, **kwargs):
 
 def stateless_compute_scan_fields(data, **kwargs):
     return _request_scan_monitor(PKDict(method="scan_fields", data=data))
+
+
+def stateless_compute_set_automatic_analysis(data, **kwargs):
+    return _request_scan_monitor(PKDict(method="set_automatic_analysis", data=data))
 
 
 def _request_scan_monitor(data):

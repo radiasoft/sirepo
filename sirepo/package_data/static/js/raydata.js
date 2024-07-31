@@ -670,7 +670,7 @@ SIREPO.app.directive('scansTable', function() {
                         json => {
                         },
                         {
-                            method: 'automatic_analysis',
+                            method: 'set_automatic_analysis',
                             args: {
                                 automaticAnalysis: appState.models.runAnalysis.automaticAnalysis,
                                 catalogName: appState.applicationState().catalog.catalogName                                         }
