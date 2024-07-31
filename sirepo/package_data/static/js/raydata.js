@@ -646,13 +646,14 @@ SIREPO.app.directive('scansTable', function() {
                 requestSender.sendStatelessCompute(
                         appState,
                         json => {
-                            if (json.data.automaticAnalysis === 'true') {
+                            srdbg('previous', appState.models.runAnalysis.automaticAnalysis);
+                            if (json.data.automaticAnalysis) {
                                 appState.models.runAnalysis.automaticAnalysis = 1;
-                            } else if (json.data.automaticAnalysis === 'false') {
+                            } else {
                                 appState.models.runAnalysis.automaticAnalysis = 0;
                             }
 //                            appState.models.runAnalysis.automaticAnalysis = json.data.automaticAnalysis;
-                            srdbg('automatic analysis was set to', appState.models.runAnalysis.automaticAnalysis);
+                            srdbg('automatic analysis was received', json.data.automaticAnalysis, 'set to', appState.models.runAnalysis.automaticAnalysis);
                         },
                         {
                             method: 'get_automatic_analysis',

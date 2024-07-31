@@ -37,6 +37,8 @@ import zipfile
 #: task(s) monitoring the execution of the analysis process
 _ANALYSIS_PROCESSOR_TASKS = None
 
+_HANDLE_AUTOMATIC_ANALYSIS_TASKS = []
+
 #: task(s) monitoring catalogs for new scans
 _CATALOG_MONITOR_TASKS = PKDict()
 
@@ -407,6 +409,9 @@ class _RequestHandler(_JsonPostRequestHandler):
         return sirepo.raydata.analysis_driver.get(req_data).get_run_log()
 
     def _request_get_automatic_analysis(self, req_data):
+        pkdp(
+            f"111 got req tasks={_CATALOG_MONITOR_TASKS} returning={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
+        )
         return PKDict(
             data=PKDict(
                 automaticAnalysis=req_data.catalogName in _CATALOG_MONITOR_TASKS
@@ -414,6 +419,7 @@ class _RequestHandler(_JsonPostRequestHandler):
         )
 
     def _request_automatic_analysis(self, req_data):
+        pkdp(f"111 received request to transition to {req_data.automaticAnalysis}")
         new = bool(int(req_data.automaticAnalysis))
         current = req_data.catalogName in _CATALOG_MONITOR_TASKS
         if new != current:
@@ -623,10 +629,19 @@ def _get_detailed_status(catalog_name, rduid):
 
 
 async def _init_catalog_monitors():
-    if not cfg.automatic_analysis:
-        return
+    pkdp(
+        f"111 init catalog monitors cfg={cfg.automatic_analysis} tasks={_CATALOG_MONITOR_TASKS}"
+    )
     for c in cfg.catalog_names:
-        await _monitor_catalog(c)
+        _HANDLE_AUTOMATIC_ANALYSIS_TASKS.append(
+            pkasyncio.create_task(_handle_automatic_analysis(c))
+        )
+
+    # TODo if automatic analysis config, set sentinel
+    # if not cfg.automatic_analysis:
+    #     return
+    # for c in cfg.catalog_names:
+    #     await _monitor_catalog(c)
 
 
 async def _monitor_catalog(catalog_name):
@@ -647,7 +662,7 @@ async def _handle_automatic_analysis(catalog_name):
                 # todo will await prevent next change? does incoming request need to handle cancel and this handles start
                 await _monitor_catalog(catalog_name)
         else:
-            pkasyncio.sleep(5)
+            await pkasyncio.sleep(5)
 
 
 # TODO(e-carlin): Rather than polling for scans we should explore using RunEngine.subscribe
@@ -679,7 +694,7 @@ async def _poll_catalog_for_scans(catalog_name):
 
     async def _poll_for_new_scans(most_recent_scan_metadata):
         m = most_recent_scan_metadata
-        while catalog_name in _CATALOG_MONITOR_TASKS:
+        while not _AA_CHANGED_SENTINEL.get(catalog_name):
             pkdp(f"111 polling {catalog_name}")
             m = _collect_new_scans_and_queue(m)
             await pkasyncio.sleep(2)
@@ -829,18 +844,15 @@ def start():
         sirepo.raydata.analysis_driver.init(cfg.catalog_names)
 
     def _start():
-        _HANDLE_AUTOMATIC_ANALYSIS_TASKS = []
-        for c in cfg.catalog_names:
-            _HANDLE_AUTOMATIC_ANALYSIS_TASKS.append(
-                pkasyncio.create_task(_handle_automatic_analysis(c))
-            )
         l = pkasyncio.Loop()
         l.run(
             _init_catalog_monitors(),
             _init_analysis_processors(),
-            *_HANDLE_AUTOMATIC_ANALYSIS_TASKS,
         )
         l.http_server(PKDict(uri_map=((_URI, _RequestHandler),)))
+        pkdp(
+            f"111 starting loop cfg={cfg.automatic_analysis} tasks={_CATALOG_MONITOR_TASKS}"
+        )
         l.start()
 
     if cfg:
