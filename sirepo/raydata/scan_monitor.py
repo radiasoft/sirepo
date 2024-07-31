@@ -819,10 +819,7 @@ def start():
 
     def _start():
         l = pkasyncio.Loop()
-        l.run(
-            _init_catalog_monitors(),
-            _init_analysis_processors(),
-        )
+        l.run(_init_catalog_monitors(), _init_analysis_processors())
         l.http_server(PKDict(uri_map=((_URI, _RequestHandler),)))
         l.start()
 
