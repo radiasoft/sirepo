@@ -37,15 +37,18 @@ import zipfile
 #: task(s) monitoring the execution of the analysis process
 _ANALYSIS_PROCESSOR_TASKS = None
 
-_HANDLE_AUTOMATIC_ANALYSIS_TASKS = []
+#: task(s) monitoring _CHANGE_AUTOMATIC_ANALYSIS
+_AUTOMATIC_ANALYSIS_HANDLER_TASKS = []
 
 #: task(s) monitoring catalogs for new scans
 _CATALOG_MONITOR_TASKS = PKDict()
 
+#: sentinels for whether automatic analysis needs to change
+_CHANGE_AUTOMATIC_ANALYSIS = {}
+
 # TODO(e-carlin): tune this number
 _MAX_NUM_SCANS = 1000
 
-_AA_CHANGED_SENTINEL = {}
 
 # Fields that come from the top-level of metadata (as opposed to start document).
 # Must match key name from _default_columns()
@@ -419,7 +422,7 @@ class _RequestHandler(_JsonPostRequestHandler):
         new = bool(int(req_data.automaticAnalysis))
         current = req_data.catalogName in _CATALOG_MONITOR_TASKS
         if new != current:
-            _AA_CHANGED_SENTINEL[req_data.catalogName] = True
+            _CHANGE_AUTOMATIC_ANALYSIS[req_data.catalogName] = True
         return PKDict(data="ok")
 
     def _request_catalog_names(self, _):
@@ -616,7 +619,7 @@ async def _init_catalog_monitors():
         )
     if cfg.automatic_analysis:
         for c in cfg.catalog_names:
-            _AA_CHANGED_SENTINEL[c] = True
+            _CHANGE_AUTOMATIC_ANALYSIS[c] = True
 
 
 async def _monitor_catalog(catalog_name):
@@ -628,8 +631,8 @@ async def _monitor_catalog(catalog_name):
 
 async def _handle_automatic_analysis(catalog_name):
     while True:
-        if _AA_CHANGED_SENTINEL.get(catalog_name):
-            _AA_CHANGED_SENTINEL[catalog_name] = False
+        if _CHANGE_AUTOMATIC_ANALYSIS.get(catalog_name):
+            _CHANGE_AUTOMATIC_ANALYSIS[catalog_name] = False
             if catalog_name in _CATALOG_MONITOR_TASKS:
                 _CATALOG_MONITOR_TASKS.pkdel(catalog_name)
             else:
@@ -667,7 +670,7 @@ async def _poll_catalog_for_scans(catalog_name):
 
     async def _poll_for_new_scans(most_recent_scan_metadata):
         m = most_recent_scan_metadata
-        while not _AA_CHANGED_SENTINEL.get(catalog_name):
+        while not _CHANGE_AUTOMATIC_ANALYSIS.get(catalog_name):
             m = _collect_new_scans_and_queue(m)
             await pkasyncio.sleep(2)
 
