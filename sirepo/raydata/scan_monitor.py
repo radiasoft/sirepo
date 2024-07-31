@@ -636,6 +636,9 @@ async def _init_catalog_monitors():
         _HANDLE_AUTOMATIC_ANALYSIS_TASKS.append(
             pkasyncio.create_task(_handle_automatic_analysis(c))
         )
+    if cfg.automatic_analysis:
+        for c in cfg.catalog_names:
+            _AA_CHANGED_SENTINEL[c] = True
 
     # TODo if automatic analysis config, set sentinel
     # if not cfg.automatic_analysis:

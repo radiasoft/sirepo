@@ -547,7 +547,7 @@ SIREPO.app.directive('scansTable', function() {
             }
 
             function init() {
-                getAutomaticAnalysis()
+                getAutomaticAnalysis();
                 setColumnHeaders();
                 if (scanService.cachedScans($scope.analysisStatus)) {
                     loadScans(scanService.cachedScans($scope.analysisStatus));
@@ -652,6 +652,7 @@ SIREPO.app.directive('scansTable', function() {
                             } else {
                                 appState.models.runAnalysis.automaticAnalysis = 0;
                             }
+                            appState.saveChanges('runAnalysis');
 //                            appState.models.runAnalysis.automaticAnalysis = json.data.automaticAnalysis;
                             srdbg('automatic analysis was received', json.data.automaticAnalysis, 'set to', appState.models.runAnalysis.automaticAnalysis);
                         },
