@@ -646,15 +646,12 @@ SIREPO.app.directive('scansTable', function() {
                 requestSender.sendStatelessCompute(
                         appState,
                         json => {
-                            srdbg('previous', appState.models.runAnalysis.automaticAnalysis);
                             if (json.data.automaticAnalysis) {
                                 appState.models.runAnalysis.automaticAnalysis = 1;
                             } else {
                                 appState.models.runAnalysis.automaticAnalysis = 0;
                             }
                             appState.saveChanges('runAnalysis');
-//                            appState.models.runAnalysis.automaticAnalysis = json.data.automaticAnalysis;
-                            srdbg('automatic analysis was received', json.data.automaticAnalysis, 'set to', appState.models.runAnalysis.automaticAnalysis);
                         },
                         {
                             method: 'get_automatic_analysis',
@@ -668,7 +665,6 @@ SIREPO.app.directive('scansTable', function() {
 
 
             function setAutomaticAnalysis() {
-                srdbg('called set automatic analysis', appState.models.runAnalysis.automaticAnalysis);
                 requestSender.sendStatelessCompute(
                         appState,
                         json => {

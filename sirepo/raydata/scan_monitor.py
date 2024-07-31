@@ -409,9 +409,6 @@ class _RequestHandler(_JsonPostRequestHandler):
         return sirepo.raydata.analysis_driver.get(req_data).get_run_log()
 
     def _request_get_automatic_analysis(self, req_data):
-        pkdp(
-            f"111 got req tasks={_CATALOG_MONITOR_TASKS} returning={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
-        )
         return PKDict(
             data=PKDict(
                 automaticAnalysis=req_data.catalogName in _CATALOG_MONITOR_TASKS
@@ -419,27 +416,11 @@ class _RequestHandler(_JsonPostRequestHandler):
         )
 
     def _request_automatic_analysis(self, req_data):
-        pkdp(f"111 received request to transition to {req_data.automaticAnalysis}")
         new = bool(int(req_data.automaticAnalysis))
         current = req_data.catalogName in _CATALOG_MONITOR_TASKS
         if new != current:
             _AA_CHANGED_SENTINEL[req_data.catalogName] = True
         return PKDict(data="ok")
-
-    # if bool(int(req_data.automaticAnalysis)):
-    #     pkdp(
-    #         f"111 received true request current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
-    #     )
-    #
-    # else:
-    #     pkdp(
-    #         f"111 received false request current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
-    #     )
-    #
-    # pkdp(
-    #     f"111 returning current state={req_data.catalogName in _CATALOG_MONITOR_TASKS}"
-    # )
-    # return PKDict(data="ok")
 
     def _request_catalog_names(self, _):
         return PKDict(
@@ -629,9 +610,6 @@ def _get_detailed_status(catalog_name, rduid):
 
 
 async def _init_catalog_monitors():
-    pkdp(
-        f"111 init catalog monitors cfg={cfg.automatic_analysis} tasks={_CATALOG_MONITOR_TASKS}"
-    )
     for c in cfg.catalog_names:
         _HANDLE_AUTOMATIC_ANALYSIS_TASKS.append(
             pkasyncio.create_task(_handle_automatic_analysis(c))
@@ -640,15 +618,8 @@ async def _init_catalog_monitors():
         for c in cfg.catalog_names:
             _AA_CHANGED_SENTINEL[c] = True
 
-    # TODo if automatic analysis config, set sentinel
-    # if not cfg.automatic_analysis:
-    #     return
-    # for c in cfg.catalog_names:
-    #     await _monitor_catalog(c)
-
 
 async def _monitor_catalog(catalog_name):
-    pkdp(f"111 called monitor catalog")
     assert catalog_name not in _CATALOG_MONITOR_TASKS
     t = pkasyncio.create_task(_poll_catalog_for_scans(catalog_name))
     _CATALOG_MONITOR_TASKS[catalog_name] = t
@@ -698,10 +669,8 @@ async def _poll_catalog_for_scans(catalog_name):
     async def _poll_for_new_scans(most_recent_scan_metadata):
         m = most_recent_scan_metadata
         while not _AA_CHANGED_SENTINEL.get(catalog_name):
-            pkdp(f"111 polling {catalog_name}")
             m = _collect_new_scans_and_queue(m)
             await pkasyncio.sleep(2)
-        pkdp(f"111 stopped polling {catalog_name}")
 
     pkdlog("catalog_name={}", catalog_name)
     c = None
@@ -853,9 +822,6 @@ def start():
             _init_analysis_processors(),
         )
         l.http_server(PKDict(uri_map=((_URI, _RequestHandler),)))
-        pkdp(
-            f"111 starting loop cfg={cfg.automatic_analysis} tasks={_CATALOG_MONITOR_TASKS}"
-        )
         l.start()
 
     if cfg:
