@@ -419,9 +419,9 @@ class _RequestHandler(_JsonPostRequestHandler):
         )
 
     def _request_set_automatic_analysis(self, req_data):
-        new = bool(int(req_data.automaticAnalysis))
-        current = req_data.catalogName in _CATALOG_MONITOR_TASKS
-        if new != current:
+        if bool(int(req_data.automaticAnalysis)) != (
+            req_data.catalogName in _CATALOG_MONITOR_TASKS
+        ):
             _CHANGE_AUTOMATIC_ANALYSIS[req_data.catalogName] = True
         return PKDict(data="ok")
 
@@ -638,7 +638,7 @@ async def _handle_automatic_analysis(catalog_name):
             else:
                 await _monitor_catalog(catalog_name)
         else:
-            await pkasyncio.sleep(5)
+            await pkasyncio.sleep(2)
 
 
 # TODO(e-carlin): Rather than polling for scans we should explore using RunEngine.subscribe

@@ -646,11 +646,7 @@ SIREPO.app.directive('scansTable', function() {
                 requestSender.sendStatelessCompute(
                         appState,
                         json => {
-                            if (json.data.automaticAnalysis) {
-                                appState.models.runAnalysis.automaticAnalysis = 1;
-                            } else {
-                                appState.models.runAnalysis.automaticAnalysis = 0;
-                            }
+                            appState.models.runAnalysis.automaticAnalysis = json.data.automaticAnalysis ? 1 : 0;
                             appState.saveChanges('runAnalysis');
                         },
                         {
