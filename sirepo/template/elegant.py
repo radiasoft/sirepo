@@ -703,6 +703,8 @@ def extract_report_data(filename, frame_args, page_count=0):
 
 
 def generate_parameters_file(data, is_parallel=False, qcall=None):
+    if "bunchReport" in data.get("report", ""):
+        _prepare_bunch_simulation(data)
     return _Generate(data, qcall=qcall).sim(full=is_parallel)
 
 
@@ -923,17 +925,21 @@ def stateful_compute_import_file(data, **kwargs):
 def validate_file(file_type, path):
     err = None
     if file_type == "bunchFile-sourceFile":
-        _sdds_init()
-        err = "expecting sdds file with (x, xp, y, yp, t, p) or (r, pr, pz, t, pphi) columns"
-        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(path)) == 1:
-            beam_type = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
-            if beam_type in ("elegant", "spiffe"):
-                sdds.sddsdata.ReadPage(_SDDS_INDEX)
-                if len(sdds.sddsdata.GetColumn(_SDDS_INDEX, 0)) > 0:
-                    err = None
-                else:
-                    err = "sdds file contains no rows"
-        sdds.sddsdata.Terminate(_SDDS_INDEX)
+        if _is_openpmd_file(path):
+            # TODO(pjm): validate openPMD file
+            pass
+        else:
+            _sdds_init()
+            err = "expecting sdds file with (x, xp, y, yp, t, p) or (r, pr, pz, t, pphi) columns"
+            if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(path)) == 1:
+                beam_type = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
+                if beam_type in ("elegant", "spiffe"):
+                    sdds.sddsdata.ReadPage(_SDDS_INDEX)
+                    if len(sdds.sddsdata.GetColumn(_SDDS_INDEX, 0)) > 0:
+                        err = None
+                    else:
+                        err = "sdds file contains no rows"
+            sdds.sddsdata.Terminate(_SDDS_INDEX)
     return err
 
 
@@ -971,6 +977,7 @@ class _Generate(sirepo.lib.GenerateBase):
         self._schema = SCHEMA
         self._update_output_filenames = update_output_filenames
         self._cv = code_var(data.models.rpnVariables)
+        self._openpmd_files = []
         if validate:
             self._validate_data()
 
@@ -991,75 +998,12 @@ class _Generate(sirepo.lib.GenerateBase):
         r, v = template_common.generate_parameters_file(d)
         v.rpn_variables = generate_variables(d)
         self.jinja_env = v
-        if full:
-            return r + self._full_simulation()
-        if d.get("report", "") == "twissReport":
+        if d.get("report", "") == "twissReport" and not full:
             return r + self._twiss_simulation()
-        return r + self._bunch_simulation()
+        return r + self._full_simulation()
 
     def _abspath(self, basename):
         return _SIM_DATA.lib_file_abspath(basename, qcall=self.qcall)
-
-    def _bunch_simulation(self):
-        d = self.data
-        v = self.jinja_env
-        for f in SCHEMA.model.bunch:
-            info = SCHEMA.model.bunch[f]
-            if info[1] == "RPNValue":
-                field = f"bunch_{f}"
-                v[field] = _format_rpn_value(v[field], is_command=True)
-        v.bunch_p_central_mev = self._cv.eval_var_with_assert(
-            d.models.bunch.p_central_mev
-        )
-        longitudinal_method = int(d.models.bunch.longitudinalMethod)
-        # sigma s, sigma dp, dp s coupling
-        if longitudinal_method == 1:
-            v.update(
-                bunch_emit_z=0,
-                bunch_beta_z=0,
-                bunch_alpha_z=0,
-            )
-        # sigma s, sigma dp, alpha z
-        elif longitudinal_method == 2:
-            v.update(
-                bunch_emit_z=0,
-                bunch_beta_z=0,
-                bunch_dp_s_coupling=0,
-            )
-        # emit z, beta z, alpha z
-        elif longitudinal_method == 3:
-            v.update(
-                bunch_sigma_dp=0,
-                bunch_sigma_s=0,
-                bunch_dp_s_coupling=0,
-            )
-        if d.models.bunchSource.inputSource == "sdds_beam":
-            v.update(
-                bunch_beta_x=5,
-                bunch_beta_y=5,
-                bunch_alpha_x=0,
-            )
-            if v.bunchFile_sourceFile and v.bunchFile_sourceFile != "None":
-                v.bunchInputFile = self._input_file(
-                    "bunchFile",
-                    "sourceFile",
-                    v.bunchFile_sourceFile,
-                )
-                v.bunchFileType = _sdds_beam_type_from_file(
-                    self._abspath(v.bunchInputFile),
-                )
-        if str(d.models.bunch.p_central_mev) == "0":
-            run_setup = LatticeUtil.find_first_command(d, "run_setup")
-            if run_setup and run_setup.expand_for:
-                v.bunchExpandForFile = 'expand_for = "{}",'.format(
-                    self._input_file(
-                        "command_run_setup",
-                        "expand_for",
-                        run_setup.expand_for,
-                    ),
-                )
-        v.bunchOutputFile = _report_output_filename("bunchReport")
-        return template_common.render_jinja(SIM_TYPE, v, "bunch.py")
 
     def _commands(self):
         commands = self.util.iterate_models(
@@ -1111,8 +1055,21 @@ class _Generate(sirepo.lib.GenerateBase):
             )
             if el_type == "InputFileXY":
                 value += "={}+{}".format(model[field + "X"], model[field + "Y"])
+            elif (
+                el_type == "InputFile"
+                and "_type" in model
+                and model._type == "run_setup"
+                and field == "expand_for"
+                and _is_openpmd_file(value)
+            ):
+                self._openpmd_files.append(value)
+                value += ".sdds"
         elif el_type == "BeamInputFile":
             value = self._input_file("bunchFile", "sourceFile", value)
+            if _is_openpmd_file(value):
+                self._openpmd_files.append(value)
+                value += ".sdds"
+                model.input_type = "elegant"
         elif el_type == "LatticeBeamlineList":
             value = state.id_map[int(value)].name
         elif el_type == "ElegantLatticeList":
@@ -1145,6 +1102,7 @@ class _Generate(sirepo.lib.GenerateBase):
             commands=_escape(self._commands()),
             lattice=_escape(self._lattice()),
             simulationMode=d.models.simulation.simulationMode,
+            openPMDFiles=self._openpmd_files,
         )
         return template_common.render_jinja(SIM_TYPE, self.jinja_env)
 
@@ -1249,6 +1207,12 @@ def _is_histogram_file(filename, columns):
         or ("t" in columns and "p" in columns)
     ):
         return True
+    return False
+
+
+def _is_openpmd_file(filename):
+    if filename:
+        return re.search(r"\.h5$", str(filename), re.IGNORECASE)
     return False
 
 
@@ -1422,10 +1386,57 @@ def _parse_elegant_log(run_dir):
     return res, last_element, step
 
 
+def _prepare_bunch_simulation(data):
+    state = PKDict(next_id=0)
+
+    def new_model(name, type_field="_type", id_field="_id"):
+        state.next_id += 1
+        res = _SIM_DATA.model_defaults(name).pkupdate(
+            {
+                id_field: state.next_id,
+            }
+        )
+        if type_field:
+            res[type_field] = name.replace("command_", "")
+        return res
+
+    data.models.elements = [
+        new_model("WATCH", type_field="type").pkupdate(
+            name="W1",
+            filename="1",
+        )
+    ]
+    data.models.beamlines = [
+        new_model("beamline", type_field="", id_field="id").pkupdate(
+            name="bl",
+            items=[data.models.elements[0]._id],
+        )
+    ]
+    bc = None
+    expand_for = ""
+    if data.models.bunchSource.inputSource == "bunched_beam":
+        bc = LatticeUtil.find_first_command(data, "bunched_beam")
+        bc.use_twiss_command_values = "0"
+    else:
+        bc = LatticeUtil.find_first_command(data, "sdds_beam")
+        expand_for = LatticeUtil.find_first_command(data, "run_setup").expand_for
+    data.models.commands = [
+        new_model("command_run_setup").pkupdate(
+            lattice="Lattice",
+            use_beamline=data.models.beamlines[0].id,
+            p_central_mev=data.models.bunch.p_central_mev,
+            expand_for=expand_for,
+        ),
+        new_model("command_run_control"),
+        bc,
+        new_model("command_track"),
+    ]
+
+
 def _report_output_filename(report):
     if report == "twissReport":
         return "twiss_output.filename.sdds"
-    return "elegant.bun"
+    return "W1.filename.sdds"
 
 
 def _sdds_beam_type(column_names):
@@ -1443,6 +1454,8 @@ def _sdds_beam_type(column_names):
 
 
 def _sdds_beam_type_from_file(path):
+    if _is_openpmd_file(path):
+        return "openPMD"
     _sdds_init()
     res = ""
     if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(path)) == 1:

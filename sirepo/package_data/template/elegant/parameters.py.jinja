@@ -1,5 +1,5 @@
 # {{simulation_name}}
-execution_mode = '{{simulationMode}}'
+execution_mode = "{{simulationMode}}"
 
 lattice_file = """
 {{rpn_variables}}
@@ -9,3 +9,59 @@ lattice_file = """
 elegant_file = """
 {{commands}}
 """
+
+{% if openPMDFiles %}
+from pmd_beamphysics import ParticleGroup
+from rsbeams.rsdata.SDDS import writeSDDS
+from rsbeams.rsstats import kinematic
+import h5py
+import numpy
+import pmd_beamphysics.readers
+import scipy.constants
+
+
+def convert_to_sdds(openpmd_file):
+    try:
+        # use openPMD beamphysics format first
+        pmd_beamphysics.interfaces.elegant.write_elegant(
+            ParticleGroup(openpmd_file),
+            openpmd_file + ".sdds",
+        )
+        return
+    except KeyError:
+        pass
+
+    # manually convert from x,y,t format
+    with h5py.File(openpmd_file, "r") as f:
+        pp = pmd_beamphysics.readers.particle_paths(f)
+        d = f[pp[-1]]
+        if "beam" in d:
+            d = d["beam"]
+        elegant_t = -numpy.array(d["position/t"]) / scipy.constants.c
+        ref = kinematic.Converter(
+            mass=d.attrs["mass_ref"],
+            mass_unit="SI",
+            gamma=d.attrs["gamma_ref"],
+        )()
+        elegant_p = kinematic.Converter(
+            mass=d.attrs["mass_ref"],
+            mass_unit="SI",
+            energy=numpy.array(numpy.array(d["momentum/t"])) * ref["momentum"]
+            + ref["energy"],
+        )(silent=True)["betagamma"]
+
+        s = writeSDDS()
+        s.create_column("x", numpy.array(d["position/x"]), "double", colUnits="m")
+        s.create_column("xp", numpy.array(d["momentum/x"]), "double", colUnits="")
+        s.create_column("y", numpy.array(d["position/y"]), "double", colUnits="m")
+        s.create_column("yp", numpy.array(d["momentum/y"]), "double", colUnits="")
+        s.create_column("t", elegant_t, "double", colUnits="s")
+        s.create_column("p", elegant_p, "double", colUnits="m$be$nc")
+        s.create_parameter("particles", elegant_p.size, "long")
+        s.create_parameter("pCentral", ref["betagamma"], "double", parUnits="MeV/c")
+        s.save_sdds(openpmd_file + ".sdds", dataMode="binary")
+
+{% for filename in openPMDFiles %}
+convert_to_sdds("{{ filename }}")
+{% endfor %}
+{% endif %}
