@@ -497,7 +497,7 @@ class _RequestHandler(_JsonPostRequestHandler):
     def _request_run_engine_event_callback(self, req_data):
         # Start as a task. No need to hold request until task is
         # completed because the caller does nothing with the response.
-        asyncio.create_task(
+        pkasyncio.create_task(
             sirepo.raydata.adaptive_workflow.run_engine_event_callback(req_data)
         )
         return PKDict()
@@ -579,7 +579,7 @@ async def _init_analysis_processors():
 
     assert not _ANALYSIS_PROCESSOR_TASKS
     _ANALYSIS_PROCESSOR_TASKS = [
-        asyncio.create_task(_process_analysis_queue())
+        pkasyncio.create_task(_process_analysis_queue())
     ] * cfg.concurrent_analyses
     await asyncio.gather(*_ANALYSIS_PROCESSOR_TASKS)
 
