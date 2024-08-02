@@ -832,10 +832,12 @@ SIREPO.app.directive('scansTable', function() {
                     return;
                 }
                 let inList = false;
-                scanArgs.sortColumns.forEach((arr) => {
-                    if (arr[0] === column) {
+                scanArgs.sortColumns.forEach((field, i) => {
+                    if (field[0] === column) {
                         inList = true;
-                        arr[1] = ! arr[1];
+                        field[1] = ! field[1];
+                        scanArgs.sortColumns.splice(i, 1);
+                        scanArgs.sortColumns.unshift(field);
                     }
                 });
                 if (! inList) {
