@@ -3,11 +3,15 @@
     <div class="col-md-6 col-xl-4">
       <div data-basic-editor-panel="" data-view-name="bunch"></div>
     </div>
-    <div data-ng-repeat="item in source.reports() track by item.modelKey">
-      <div class="col-md-6 col-xl-4">
-        <div data-report-panel="{{ source.plotType() }}" data-model-name="{{ source.reportModel() }}" data-model-data="item" data-panel-title="{{ source.headings()(item) }}"></div>
+    <div class="col-md-12 col-xl-8">
+      <div class="row">
+        <div data-ng-repeat="item in source.reports() track by item.modelKey">
+          <div class="col-md-6">
+            <div data-report-panel="{{ source.plotType() }}" data-model-name="{{ source.reportModel() }}" data-model-data="item" data-panel-title="{{ source.headings()(item) }}"></div>
+          </div>
+          <div data-ng-if="$index % 2" class="clearfix"></div>
+        </div>
       </div>
-      <div data-ng-if="$index == 0" class="hidden-xl clearfix"></div>
     </div>
   </div>
 </div>

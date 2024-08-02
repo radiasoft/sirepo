@@ -4,6 +4,9 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.FILE_UPLOAD_TYPE = {
+        'bunch-sourceFile': '.h5',
+    };
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
     SIREPO.SINGLE_FRAME_ANIMATION = ['twissAnimation', 'twissFromParticlesAnimation'];
     SIREPO.appReportTypes = `
@@ -523,8 +526,27 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
         return e[0];
     });
 
+    function isFile() {
+        return appState.models.bunch.beamDefinition === 'file';
+    }
+
+    function updateEnergyFields() {
+        panelState.showFields("command_beam", [
+            ["energy", "pc", "gamma", "beta", "brho"],
+            ! isFile()
+        ]);
+        panelState.showField('bunch', 'sourceFile', isFile());
+        panelState.showTab("bunch", 2, ! isFile());
+        panelState.showTab("bunch", 3, ! isFile());
+        panelState.showTab("bunch", 4, ! isFile());
+    }
+
     function calculateBunchParameters() {
         updateParticle();
+        updateEnergyFields();
+        if (isFile()) {
+            return;
+        }
         requestSender.sendStatelessCompute(
             appState,
             function(data) {
@@ -595,6 +617,7 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
     $scope.whenSelected = function() {
         updateParticle();
         updateTwissFields();
+        updateEnergyFields();
     };
 
     $scope.watchFields = [

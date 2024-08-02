@@ -103,7 +103,8 @@
             ["pc", "From PC"],
             ["gamma", "From Gamma"],
             ["beta", "From Beta"],
-            ["brho", "From BRHO"]
+            ["brho", "From BRHO"],
+            ["file", "From Particle File"]
         ],
         "CommandMakethinStyle": [
             ["teapot", "Teapot"],
@@ -222,6 +223,8 @@
             "name": ["Name", "ValidatedString"]
         },
         "bunch": {
+            "distributionType": ["Distribution Type", "DistributionType", "twiss"],
+            "sourceFile": ["Particle File", "InputFile", "", "OpenPMD hdf5 particle file"],
             "beamDefinition": ["Beam Definition", "BeamDefinition", "energy"],
             "matchTwissParameters": ["Match Twiss Parameters", "Boolean", "0", "Use twiss parameters computed from the selected beamline"],
             "numberOfParticles": ["Number Of Particles", "Integer", 1000, "Number of particles to track.", 1, 10000],
@@ -1352,7 +1355,8 @@
                     "command_beam.pc",
                     "command_beam.gamma",
                     "command_beam.beta",
-                    "command_beam.brho"
+                    "command_beam.brho",
+                    "sourceFile"
                 ]],
                 ["Distribution", [
                     "matchTwissParameters",

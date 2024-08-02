@@ -58,5 +58,10 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_file_basenames(cls, data):
-        # TODO(e-carlin): impl
+        if data.models.bunch.beamDefinition == "file" and data.models.bunch.sourceFile:
+            return [
+                cls.lib_file_name_with_model_field(
+                    "bunch", "sourceFile", data.models.bunch.sourceFile
+                ),
+            ]
         return []

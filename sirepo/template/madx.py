@@ -50,6 +50,7 @@ _FIELD_UNITS = PKDict(
     s="m",
     x="m",
     y="m",
+    t="m",
     x0="m",
     y0="m",
 )
@@ -82,7 +83,7 @@ _PTC_TRACK_COMMAND = "ptc_track"
 
 _PTC_TRACKLINE_COMMAND = "ptc_trackline"
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 PTC_OBSERVE_TWISS_COLS = [
     "W",
