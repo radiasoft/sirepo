@@ -331,7 +331,7 @@
             "_type": ["", "TallyFilter"]
         },
         "geometryInput": {
-            "dagmcFile": ["DAGMC file", "InputFile", ""],
+            "dagmcFile": ["Model file", "InputFile", "", "A DAGMC (.h5m) or Step (.stp) file"],
             "materialsFile": ["Materials XML file (optional)", "InputFile", "", "An OpenMC materials.xml mapping from names to volume properties", false],
             "exampleURL": ["", "String", ""]
         },

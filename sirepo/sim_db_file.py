@@ -156,34 +156,37 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
     _TOKEN_TO_UID = PKDict()
     _UID_TO_TOKEN = PKDict()
 
-    async def get(self, unused_arg):
-        if not self.__authenticate_and_path():
-            return
-        if self.__path.exists():
-            self.write(pkio.read_binary(self.__path))
-        else:
-            self.send_error(404)
+    def _sr_authenticate(self, token, *args, **kwargs):
+        self.__uid = super()._sr_authenticate(token, *args, **kwargs)
+        p = _uri_parse(self.request.path, uid=self.__uid)
+        if p is None:
+            raise sirepo.tornado.error_forbidden()
+        self.__uri_parts = p
+        return p.path
 
-    async def post(self, unused_arg):
+    async def _sr_get(self, path, *args, **kwargs):
+        if path.exists():
+            self.write(pkio.read_binary(path))
+        else:
+            raise sirepo.tornado.error_not_found()
+
+    async def _sr_post(self, path, *args, **kwargs):
         def _result(value):
             return PKDict(result=value).pksetdefault(state="ok")
 
         try:
-            if not self.__authenticate_and_path():
-                return
             r = pkjson.load_any(self.request.body)
             # note that args may be empty (but must be PKDict), since uri has path
             if not isinstance(a := r.get("args"), PKDict):
-                raise AssertionError(f"invalid post path={self.__path} args={a}")
+                raise AssertionError(f"invalid post path={path} args={a}")
             if not (m := r.get("method")):
-                raise AssertionError(f"missing method path={self.__path} args={a}")
-            self.write(_result(await getattr(self, "_sr_post_" + m)(a)))
+                raise AssertionError(f"missing method path={path} args={a}")
+            self.write(_result(await getattr(self, "_sr_post_" + m)(path, a)))
         except Exception as e:
             if pkio.exception_is_not_found(e) or isinstance(
                 e, sirepo.util.SPathNotFound
             ):
-                self.send_error(404)
-                return
+                raise sirepo.tornado.error_not_found()
             pkdlog(
                 "uri={} body={} exception={} stack={}",
                 self.request.path,
@@ -193,44 +196,34 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
             )
             self.write({state: "error"})
 
-    async def put(self, unused_arg):
-        # TODO(robnagler) should this be atomic?
-        # check size
-        if not self.__authenticate_and_path():
-            return
-        async with aiofiles.open(self.__path, "wb") as f:
-            await f.write(self.request.body)
-
-    async def _sr_post_delete_glob(self, args):
-        if not self.__authenticate_and_path():
-            return
+    async def _sr_post_delete_glob(self, path, args):
         t = []
-        for f in pkio.sorted_glob(f"{self.__path}*"):
+        for f in pkio.sorted_glob(f"{path}*"):
             if f.check(dir=True):
                 pkdlog("path={} is a directory", f)
-                self.send_error(403)
+                raise sirepo.tornado.error_forbidden()
                 return
             t.append(f)
         for f in t:
             pkio.unchecked_remove(f)
 
-    async def _sr_post_copy(self, args):
+    async def _sr_post_copy(self, path, args):
         p = self.__uri_arg_to_path(args.dst_uri)
         if not p:
             return
         # TODO(robnagler) should this be atomic?
-        self.__path.copy(p)
+        path.copy(p)
 
-    async def _sr_post_exists(self, args):
-        return self.__path.check(file=True)
+    async def _sr_post_exists(self, path, args):
+        return path.check(file=True)
 
-    async def _sr_post_move(self, args):
+    async def _sr_post_move(self, path, args):
         p = self.__uri_arg_to_path(args.dst_uri)
         if not p:
             return
-        self.__path.move(p)
+        path.move(p)
 
-    async def _sr_post_read_sim(self, args):
+    async def _sr_post_read_sim(self, path, args):
         from sirepo import quest, simulation_db
 
         with quest.start() as qcall:
@@ -241,12 +234,12 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
                     qcall=qcall,
                 )
 
-    async def _sr_post_save_from_url(self, args):
+    async def _sr_post_save_from_url(self, path, args):
         max_size = sirepo.job.cfg().max_message_bytes
         size = 0
         ok = False
         # so update is atomic
-        t = self.__path + ".tmp"
+        t = path + ".tmp"
         try:
             async with aiohttp.ClientSession() as s:
                 async with s.get(args.src_url) as r:
@@ -268,12 +261,12 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
             return PKDict(error=e)
         finally:
             if ok:
-                t.move(self.__path)
+                t.move(path)
             else:
                 pkio.unchecked_remove(t)
         return PKDict(size=size)
 
-    async def _sr_post_save_sim(self, args):
+    async def _sr_post_save_sim(self, path, args):
         from sirepo import quest, simulation_db
 
         with quest.start() as qcall:
@@ -285,24 +278,18 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
                     modified=True,
                 )
 
-    async def _sr_post_size(self, args):
-        return self.__path.size()
+    async def _sr_post_size(self, path, args):
+        return path.size()
 
-    def __authenticate_and_path(self):
-        self.__uid = self._rs_authenticate()
-        p = _uri_parse(self.request.path, uid=self.__uid)
-        if p is None:
-            self.send_error(403)
-            return False
-        self.__path = p.path
-        self.__uri_parts = p
-        return self.__path
+    async def _sr_put(self, path):
+        # TODO(e-carlin): check length of path and size of body
+        async with aiofiles.open(path, "wb") as f:
+            await f.write(self.request.body)
 
     def __uri_arg_to_path(self, uri):
         res = _uri_parse(uri, uid=self.__uid, is_arg_uri=True)
         if res is None:
-            self.send_error(403)
-            return None
+            raise sirepo.tornado.error_forbidden()
         return res.path
 
 
