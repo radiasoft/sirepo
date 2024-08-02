@@ -1579,11 +1579,11 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
             removeOldRecords();
         };
         r.onupgradeneeded = (event) => {
-            db = event.target.result;
-            if (db.objectStoreNames.contains(STORE)) {
-                db.deleteObjectStore(STORE);
+            const d = event.target.result;
+            if (d.objectStoreNames.contains(STORE)) {
+                d.deleteObjectStore(STORE);
             }
-            const o = db.createObjectStore(STORE);
+            const o = d.createObjectStore(STORE);
             o.createIndex('simId', '_srcache_simId', { unique: false });
             o.createIndex('updateTime', '_srcache_updateTime', { unique: false });
         };
@@ -1595,7 +1595,8 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
 
     const objectKey = (prefix, value) => prefix + ':' + value;
 
-    const objectStore = (mode) => {
+    const getObjectStore = (mode) => {
+        // Returns null if the objectStore is not accessible
         try {
             if (db) {
                 return db.transaction(STORE, mode).objectStore(STORE);
@@ -1628,7 +1629,7 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
     };
 
     const withObjectStore = (mode, callback) => {
-        const o = objectStore(mode);
+        const o = getObjectStore(mode);
         if (o) {
             callback(o);
         }
@@ -1654,7 +1655,7 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
     };
 
     self.getFrame = (frameId, modelName, callback) => {
-        const o = objectStore('readonly');
+        const o = getObjectStore('readonly');
         if (! o) {
             invokeCallback(callback, null);
             return;
