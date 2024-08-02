@@ -7,16 +7,15 @@ import re
 
 sim = ImpactX()
 
-#TODO(pjm): add beam model with additional field values
 sim.particle_shape = 2  # B-spline order
 sim.space_charge = False
 sim.init_grids()
 
-kin_energy_MeV = 2.0e3  # reference energy
-bunch_charge_C = 100.0e-12  # used with space charge
+kin_energy_MeV = {{ kineticEnergy }}  # reference energy
+bunch_charge_C = {{ distribution_charge }}  # used with space charge
 npart = {{ distribution_particleCount }}  # number of macro particles
 ref = sim.particle_container().ref_particle()
-ref.set_charge_qe(1.0).set_mass_MeV(0.510998950).set_kin_energy_MeV(kin_energy_MeV)
+ref.set_charge_qe({{ speciesCharge }}).set_mass_MeV({{ speciesMass }}).set_kin_energy_MeV(kin_energy_MeV)
 
 {% if distribution_distributionType == 'File' %}
 
@@ -26,7 +25,6 @@ def _vector(value, name):
         res.push_back(v)
     return res
 
-#TODO(pjm): set energy, charge, npart from file info
 with h5py.File("{{ distributionFile }}", "r") as f:
     bp = re.sub(r"\%T/.*", "", f.attrs["basePath"].decode("utf8"))
     last = None

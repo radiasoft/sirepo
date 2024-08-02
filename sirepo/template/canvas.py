@@ -20,6 +20,13 @@ DISTRIBUTION_PYTHON_FILE = "distribution.py"
 _BUNCH_REPORT_OUTPUT_FILE = "diags/openPMD/monitor.h5"
 
 
+def background_percent_complete(report, run_dir, is_running):
+    return PKDict(
+        percentComplete=100,
+        frameCount=0,
+    )
+
+
 def code_var(variables):
     return code_variable.CodeVar(
         variables,
@@ -78,11 +85,11 @@ def write_parameters(data, run_dir, is_parallel):
 def _bunch_plot(run_dir, model):
     _M = PKDict(
         x=["position/x", "m"],
-        px=["momentum/x", "rad"],
+        px=["momentum/x", ""],
         y=["position/y", "m"],
-        py=["momentum/y", "rad"],
+        py=["momentum/y", ""],
         t=["position/t", "m"],
-        pt=["momentum/t", "rad"],
+        pt=["momentum/t", ""],
         qm=["qm", ""],
     )
 
@@ -119,5 +126,20 @@ def _generate_parameters_file(data):
             "distributionFile",
             d.distributionFile,
         )
-    _BUNCH_REPORT_OUTPUT_FILE
+    # TODO(pjm): for distributionType == "File" need to sample energy from file
+    v.kineticEnergy = round(
+        template_common.ParticleEnergy.compute_energy(
+            SIM_TYPE,
+            d.species,
+            PKDict(
+                energy=d.energy,
+            ),
+        )["kinetic_energy"]
+        * 1e3,
+        9,
+    )
+    mc = SCHEMA.constants.particleMassAndCharge[d.species]
+    v.speciesMass = round(mc[0] * 1e3, 9)
+    v.speciesCharge = mc[1]
+
     return res + template_common.render_jinja(SIM_TYPE, v, DISTRIBUTION_PYTHON_FILE)

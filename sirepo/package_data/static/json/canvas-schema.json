@@ -4,6 +4,13 @@
             "localRoute": "lattice"
         }
     },
+    "constants": {
+        "particleMassAndCharge": {
+            "positron": [0.510998950e-03, 1],
+            "electron": [0.510998950e-03, -1],
+            "proton": [0.93827208816, 1]
+        }
+    },
     "dynamicFiles": {
         "externalLibs": {
             "js": [
@@ -52,6 +59,11 @@
             ["t", "t"],
             ["pt", "Pt"],
             ["qm", "q"]
+        ],
+        "Species": [
+            ["positron", "Positron"],
+            ["electron", "Electron"],
+            ["proton", "Proton"]
         ]
     },
     "localRoutes": {
@@ -88,6 +100,10 @@
             "notes": ["Notes", "Text", ""]
         },
         "distribution": {
+            "species": ["Species", "Species", "electron"],
+            "energy": ["Energy [GeV]", "RPNValue", 1.0],
+            "charge": ["Bunch Charge [C]", "RPNValue", 100.0e-12],
+
             "particleCount": ["Particle Count", "Integer", 10000],
             "distributionType": ["Distribution Type", "Distribution", "Waterbag"],
             "lambdax": ["X Lambda [m]", "RPNValue", 0],
@@ -110,9 +126,9 @@
             "distributionFile": ["Distribution File [hdf5]", "InputFile", "", "An OpenPMD HDF5 ParticleGroup File"]
         },
         "simulationSettings": {
-            "useElegant": ["elegant", "Bool", true],
-            "useMadx": ["MAD-X", "Bool", true],
-            "useImpactX": ["ImpactX", "Bool", true]
+            "useElegant": ["elegant", "Boolean", "1"],
+            "useMadx": ["MAD-X", "Boolean", "1"],
+            "useImpactX": ["ImpactX", "Boolean", "1"]
         },
         "_ELEMENT": {
             "_super": ["", "model", "_MISALIGNMENT"],
@@ -211,8 +227,11 @@
         "distribution": {
             "title": "Particle Distribution",
             "basic": [
-                "particleCount",
                 "distributionType",
+                "species",
+                "energy",
+                "charge",
+                "particleCount",
                 [
                     ["X", [
                         "lambdax",
