@@ -446,7 +446,7 @@ SIREPO.app.directive('scansTable', function() {
                     <tr>
                       <th style="width: 20px; height: 40px; white-space: nowrap" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-checked="pdfSelectAllScans" data-ng-click="togglePdfSelectAll()"/> <span style="vertical-align: top">PDF</span></th>
                       <th data-ng-repeat="column in columnHeaders track by $index" class="raydata-removable-column" style="width: 100px; height: 40px; white-space: nowrap">
-                        <span data-ng-if="columnIsSortable(column)" style="color:lightgray;" data-ng-class="arrowClass(column)"></span>
+                        <span data-ng-if="columnIsSortable(column)" style="{{ arrowStyle(column) }}" data-ng-class="arrowClass(column)"></span>
                         <span data-ng-attr-style="{{ columnIsSortable(column) ? 'cursor: pointer;' : '' }}" data-ng-click="sortCol(column)">{{ column }}</span>
                         <button type="submit" class="btn btn-info btn-xs raydata-remove-column-button" data-ng-if="showDeleteButton($index)" data-ng-click="deleteCol(column)"><span class="glyphicon glyphicon-remove"></span></button>
                       </th>
@@ -683,15 +683,26 @@ SIREPO.app.directive('scansTable', function() {
 
             $scope.arrowClass = column => {
                 let r = {};
-                scanArgs.sortColumns.forEach((arr) => {
-                    if (arr[0] === column) {
+                scanArgs.sortColumns.forEach((sortField) => {
+                    if (sortField[0] === column) {
                         r= {
                             glyphicon: true,
-                            [`glyphicon-arrow-${arr[1] ? 'up' : 'down'}`]: true,
+                            [`glyphicon-arrow-${sortField[1] ? 'up' : 'down'}`]: true,
                         };
                     }
                 });
                 return r;
+            };
+
+            $scope.arrowStyle = column => {
+                let r = '';
+                scanArgs.sortColumns.forEach((sortField, i) => {
+                    if (sortField[0] === column) {
+                        let a = i === 0 ? 1 : (-0.3 * i) + 0.8;
+                        r = `color: rgba(0, 0, 0, ${a})`;
+                        return;
+                    }});
+                    return r;
             };
 
             $scope.canNextPage = () => {
@@ -832,12 +843,12 @@ SIREPO.app.directive('scansTable', function() {
                     return;
                 }
                 let inList = false;
-                scanArgs.sortColumns.forEach((field, i) => {
-                    if (field[0] === column) {
+                scanArgs.sortColumns.forEach((sortField, i) => {
+                    if (sortField[0] === column) {
                         inList = true;
-                        field[1] = ! field[1];
+                        sortField[1] = ! sortField[1];
                         scanArgs.sortColumns.splice(i, 1);
-                        scanArgs.sortColumns.unshift(field);
+                        scanArgs.sortColumns.unshift(sortField);
                     }
                 });
                 if (! inList) {
