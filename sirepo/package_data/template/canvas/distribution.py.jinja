@@ -1,9 +1,12 @@
 
 from impactx import ImpactX, distribution, elements
+from rsbeams.rsstats import kinematic
 import amrex.space3d
 import h5py
 import impactx
+import pmd_beamphysics.readers
 import re
+import scipy.constants
 
 sim = ImpactX()
 
@@ -11,13 +14,7 @@ sim.particle_shape = 2  # B-spline order
 sim.space_charge = False
 sim.init_grids()
 
-kin_energy_MeV = {{ kineticEnergy }}  # reference energy
-bunch_charge_C = {{ distribution_charge }}  # used with space charge
-npart = {{ distribution_particleCount }}  # number of macro particles
-ref = sim.particle_container().ref_particle()
-ref.set_charge_qe({{ speciesCharge }}).set_mass_MeV({{ speciesMass }}).set_kin_energy_MeV(kin_energy_MeV)
-
-{% if distribution_distributionType == 'File' %}
+{% if distribution_distributionType == "File" %}
 
 def _vector(value, name):
     res = amrex.space3d.PODVector_real_std()
@@ -25,26 +22,49 @@ def _vector(value, name):
         res.push_back(v)
     return res
 
+
 with h5py.File("{{ distributionFile }}", "r") as f:
-    bp = re.sub(r"\%T/.*", "", f.attrs["basePath"].decode("utf8"))
-    last = None
-    for n in f[bp]:
-        p = f"{bp}{n}"
-        if f.attrs["particlesPath"] in f[p]:
-            last = p + "/" + f.attrs["particlesPath"].decode("utf8")
-    qm_eev = -1.0 / 0.510998950 / 1e6
+    pp = pmd_beamphysics.readers.particle_paths(f)
+    d = f[pp[-1]]
+    if "beam" in d:
+        d = d["beam"]
+
+    speciesMass_MeV = (
+        d.attrs["mass_ref"]
+        / scipy.constants.physical_constants["electron volt-kilogram relationship"][0]
+        * 1e-6
+    )
+    speciesCharge = d.attrs["charge_ref"] / abs(d.attrs["charge_ref"])
+    # docs say charge over mass [1/eV], but seems to be [C / kg]
+    qm = d.attrs["charge_ref"] / d.attrs["mass_ref"]
+    npart = len(d["position/x"])
+    kin_energy_MeV = kinematic.Converter(
+        mass=d.attrs["mass_ref"],
+        mass_unit="SI",
+        gamma=d.attrs["gamma_ref"],
+    )()['kenergy'] * 1e-6
+    sim.particle_container().ref_particle().set_charge_qe(speciesCharge).set_mass_MeV(
+        speciesMass_MeV
+    ).set_kin_energy_MeV(kin_energy_MeV)
     sim.particle_container().add_n_particles(
-        _vector(f[last], 'beam/position/x'),
-        _vector(f[last], 'beam/position/y'),
-        _vector(f[last], 'beam/position/t'),
-        _vector(f[last], 'beam/momentum/x'),
-        _vector(f[last], 'beam/momentum/y'),
-        _vector(f[last], 'beam/momentum/t'),
-        qm_eev,
-        bunch_charge_C,
+        _vector(d, "position/x"),
+        _vector(d, "position/y"),
+        _vector(d, "position/t"),
+        _vector(d, "momentum/x"),
+        _vector(d, "momentum/y"),
+        _vector(d, "momentum/t"),
+        qm,
+        abs(d.attrs["charge_C"]),
     )
 {% else %}
-{% if distribution_distributionType == 'Thermal' %}
+
+kin_energy_MeV = {{ kineticEnergy }}  # reference energy
+bunch_charge_C = {{ distribution_charge }}  # used with space charge
+npart = {{ distribution_particleCount }}  # number of macro particles
+speciesCharge = {{ speciesCharge }}
+speciesMass_MeV = {{ speciesMass }}
+
+{% if distribution_distributionType == "Thermal" %}
 distr = distribution.Thermal(
     k={{ distribution_k }},
     kT={{ distribution_kT }},
@@ -66,6 +86,9 @@ distr = distribution.{{ distribution_distributionType }}(
     mutpt={{ distribution_mutpt }},
 )
 {% endif %}
+sim.particle_container().ref_particle().set_charge_qe(speciesCharge).set_mass_MeV(
+    speciesMass_MeV
+).set_kin_energy_MeV(kin_energy_MeV)
 sim.add_particles(bunch_charge_C, distr, npart)
 {% endif %}
 

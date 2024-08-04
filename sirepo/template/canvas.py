@@ -126,7 +126,6 @@ def _generate_parameters_file(data):
             "distributionFile",
             d.distributionFile,
         )
-    # TODO(pjm): for distributionType == "File" need to sample energy from file
     v.kineticEnergy = round(
         template_common.ParticleEnergy.compute_energy(
             SIM_TYPE,
