@@ -702,7 +702,7 @@ SIREPO.app.directive('scansTable', function() {
                         r = `color: rgba(0, 0, 0, ${a})`;
                         return;
                     }});
-                    return r;
+                return r;
             };
 
             $scope.canNextPage = () => {
