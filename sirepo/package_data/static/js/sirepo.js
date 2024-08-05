@@ -504,12 +504,7 @@ SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, re
             });
     };
 
-    self.deepEquals = function(v1, v2, doStripHashKey=false) {
-
-        function stripHashKey(keys) {
-            return doStripHashKey ? keys.filter(k => k !== '$$hashKey') : keys;
-        }
-
+    self.deepEquals = function(v1, v2) {
         if (v1 === v2) {
             return true;
         }
@@ -518,18 +513,18 @@ SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, re
                 return false;
             }
             for (let i = 0; i < v1.length; i++) {
-                if (! self.deepEquals(v1[i], v2[i], doStripHashKey)) {
+                if (! self.deepEquals(v1[i], v2[i])) {
                     return false;
                 }
             }
             return true;
         }
         if (angular.isObject(v1) && angular.isObject(v2)) {
-            const keys = stripHashKey(Object.keys(v1));
-            if (keys.length !== stripHashKey(Object.keys(v2)).length) {
+            const keys = Object.keys(v1);
+            if (keys.length !== Object.keys(v2).length) {
                 return false;
             }
-            return ! keys.some(k => ! self.deepEquals(v1[k], v2[k], doStripHashKey));
+            return ! keys.some(k => ! self.deepEquals(v1[k], v2[k]));
         }
         return v1 == v2;
     };
@@ -775,7 +770,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, re
         if (typeof(name) == 'string') {
             name = [name];
         }
-        let updatedFields = [];
         var updatedModels = [];
         var requireReportUpdate = false;
 
@@ -787,12 +781,6 @@ SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, re
                 }
             }
             else {
-                for (let f in self.models[name[i]]) {
-                    const s = savedModelValues[name[i]];
-                    if (! s || ! self.deepEquals(s[f], self.models[name[i]][f], true)) {
-                        updatedFields.push(`${name[i]}.${f}`);
-                    }
-                }
                 self.saveQuietly(name[i]);
                 updatedModels.push(name[i]);
                 if (! self.isReportModelName(name[i])) {
@@ -1556,14 +1544,158 @@ SIREPO.app.service('validationService', function(utilities) {
 
 });
 
+SIREPO.app.factory('srCache', function(appState, $rootScope) {
 
-SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, authState, $interval, $rootScope, $timeout) {
+    // Browser side caching implemented using indexedDB
+    // - Caches sim frame responses
+    // - Allows cache to be cleared by simId or (simId, modelName)
+    // - Keeps updateTime on item access and deletes expired records at startup
+
+    const self = {};
+    const STORE = 'db';
+    const FRAME = 'frame';
+    // 30 days until expired
+    const EXPIRY_TIME = 30 * 24 * 60 * 60 * 1000;
+    let db = null;
+
+    const deleteKeys = (keys) => {
+        if (! keys.length) {
+            return;
+        }
+        withObjectStore('readwrite', (o) => {
+            for (const k of keys) {
+                o.delete(k);
+            }
+        });
+    };
+
+    const initializeDatabase = () => {
+        if (! window.indexedDB || ! SIREPO.authState.uiWebSocket) {
+            return;
+        }
+        const r = window.indexedDB.open('srCache', 2);
+        r.onsuccess = (event) => {
+            db = event.target.result;
+            removeOldRecords();
+        };
+        r.onupgradeneeded = (event) => {
+            const d = event.target.result;
+            if (d.objectStoreNames.contains(STORE)) {
+                d.deleteObjectStore(STORE);
+            }
+            const o = d.createObjectStore(STORE);
+            o.createIndex('simId', '_srcache_simId', { unique: false });
+            o.createIndex('updateTime', '_srcache_updateTime', { unique: false });
+        };
+    };
+
+    const invokeCallback = (callback, value) => {
+        $rootScope.$applyAsync(() => callback(value));
+    };
+
+    const objectKey = (prefix, value) => prefix + ':' + value;
+
+    const getObjectStore = (mode) => {
+        // Returns null if the objectStore is not accessible
+        try {
+            if (db) {
+                return db.transaction(STORE, mode).objectStore(STORE);
+            }
+        }
+        catch (e) {
+            // at any point the browser can remove the object store
+            // and the transaction() would raise a NotFoundError
+        }
+        return null;
+    };
+
+    const removeOldRecords = () => {
+        withObjectStore('readonly', (o) => {
+            const expired = [];
+            const d = new Date().getTime();
+            o.index('updateTime').openKeyCursor().onsuccess = (event) => {
+                const c = event.target.result;
+                if (c) {
+                    if ((d - c.key) > EXPIRY_TIME) {
+                        expired.push(c.primaryKey);
+                    }
+                    c.continue();
+                }
+                else {
+                    deleteKeys(expired);
+                }
+            };
+        });
+    };
+
+    const withObjectStore = (mode, callback) => {
+        const o = getObjectStore(mode);
+        if (o) {
+            callback(o);
+        }
+    };
+
+    self.clearFrames = (simId, modelName) => {
+        // deletes frames by simId, or (simId, modelName)
+        withObjectStore('readonly', (o) => {
+            const keys = [];
+            o.index('simId').openCursor(window.IDBKeyRange.only(simId)).onsuccess = (event) => {
+                const c = event.target.result;
+                if (c) {
+                    if ((! modelName) || modelName === c.value._srcache_modelName) {
+                        keys.push(c.primaryKey);
+                        c.continue();
+                    }
+                }
+                else {
+                    deleteKeys(keys);
+                }
+            };
+        });
+    };
+
+    self.getFrame = (frameId, modelName, callback) => {
+        const o = getObjectStore('readonly');
+        if (! o) {
+            invokeCallback(callback, null);
+            return;
+        }
+        const c = o.get(objectKey(FRAME, frameId));
+        c.onsuccess = (event) => {
+            const d = event.target.result;
+            invokeCallback(callback, d);
+            if (d) {
+                // sets updateTime
+                self.saveFrame(frameId, modelName, d);
+            }
+        };
+        c.onerror = () => {
+            invokeCallback(callback, null);
+        };
+    };
+
+    self.saveFrame = (frameId, modelName, data) => {
+        withObjectStore('readwrite', (o) => {
+            data._srcache_updateTime = new Date().getTime();
+            data._srcache_modelName = modelName;
+            data._srcache_simId = appState.models.simulation.simulationId;
+            o.put(data, objectKey(FRAME, frameId));
+        });
+    };
+
+    initializeDatabase();
+
+    return self;
+});
+
+
+SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, srCache, $interval, $rootScope, $timeout) {
     var self = {};
     var frameCountByModelKey = {};
     var masterFrameCount = 0;
     self.modelToCurrentFrame = {};
 
-    self.frameId = function(frameReport, frameIndex) {
+    function frameId(frameReport, frameIndex) {
         function fieldToFrameParam(field) {
             if (angular.isObject(field)) {
                 return JSON.stringify(field);
@@ -1596,7 +1728,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, a
         return v.concat(
             f.map(a => fieldToFrameParam(m[a]))
         ).join('*');
-    };
+    }
 
     self.getCurrentFrame = function(modelName) {
         return self.modelToCurrentFrame[modelName] || 0;
@@ -1641,38 +1773,50 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, a
             return  milliseconds / parseInt(x);
         };
 
-        const requestFunction = function() {
-            setPanelStateIsLoadingTimer = $timeout(() => {
-		panelState.setLoading(modelName, true);
-	    }, 5000);
-            requestSender.sendRequest(
-                {
-                    routeName: 'simulationFrame',
-                    frame_id: self.frameId(modelName, index),
+        const callbackData = (data) => {
+            let e = framePeriod() - (now() - frameRequestTime);
+            if (e <= 0) {
+                callback(index, data);
+                return;
+            }
+            $interval(
+                function() {
+                    callback(index, data);
                 },
-                function(data) {
-		    cancelSetPanelStateIsLoadingTimer();
-                    panelState.setLoading(modelName, false);
-                    if ('state' in data && data.state === 'missing') {
-                        onError();
-                        return;
-                    }
-                    let e = framePeriod() - (now() - frameRequestTime);
-                    if (e <= 0) {
-                        callback(index, data);
-                        return;
-                    }
-                    $interval(
-                        function() {
-                            callback(index, data);
-                        },
-                        e,
-                        1
-                    );
-                },
-                null,
-                onError
+                e,
+                1
             );
+        };
+
+        const requestFunction = function() {
+            const id = frameId(modelName, index);
+            srCache.getFrame(id, modelName, (data) => {
+                if (data) {
+                    callbackData(data);
+                    return;
+                }
+                setPanelStateIsLoadingTimer = $timeout(() => {
+                    panelState.setLoading(modelName, true);
+                }, 5000);
+                requestSender.sendRequest(
+                    {
+                        routeName: 'simulationFrame',
+                        frame_id: id,
+                    },
+                    function(data) {
+                        cancelSetPanelStateIsLoadingTimer();
+                        panelState.setLoading(modelName, false);
+                        if ('state' in data && data.state === 'missing') {
+                            onError();
+                            return;
+                        }
+                        callbackData(data);
+                        srCache.saveFrame(id, modelName, data);
+                    },
+                    null,
+                    onError
+                );
+            });
         };
         if (isHidden) {
             panelState.addPendingRequest(modelName, requestFunction);
@@ -1717,6 +1861,9 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, a
     self.setFrameCount = function(frameCount, modelKey) {
         if (modelKey) {
             frameCountByModelKey[modelKey] = frameCount;
+            if (frameCount === 0) {
+                srCache.clearFrames(appState.models.simulation.simulationId, modelKey);
+            }
             return;
         }
         if (frameCount == masterFrameCount) {
@@ -3539,7 +3686,7 @@ SIREPO.app.factory('requestQueue', function($rootScope, requestSender) {
 });
 
 
-SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, authState, frameCache, stringsService, $interval) {
+SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, authState, frameCache, stringsService, srCache, $interval) {
     var self = {};
     const ELAPSED_TIME_INTERVAL_SECS = 1;
 
@@ -3758,6 +3905,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             }
             //TODO(robnagler) should be part of simulationStatus
             frameCache.setFrameCount(0);
+            srCache.clearFrames(appState.models.simulation.simulationId);
             setSimulationStatus({state: 'pending'});
             state.simulationQueueItem = simulationQueue.addPersistentItem(
                 state.model,
