@@ -599,7 +599,7 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
 	`,
         controller: function($scope, appState, sbatchLoginService, stringsService) {
 	    $scope.sbatchLoginService = sbatchLoginService;
-            $scope.startButtonLabel = stringsService.startButtonLabel();
+            $scope.startButtonLabel = stringsService.startButtonLabel($scope.simState.model);
             $scope.startWasClicked = false;
             $scope.label = () => {
                 return sbatchLoginService.loginButtonLabel();

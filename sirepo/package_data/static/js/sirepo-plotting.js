@@ -3337,6 +3337,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             function drawOverlay() {
                 const ns = 'http://www.w3.org/2000/svg';
                 const overlay = select(overlaySelector);
+                overlay.selectAll(`rect.${cellHighlightClass}`).remove();
                 if ($scope.enableSelection && selectedCell) {
                     const c = overlay
                         .selectAll(`rect.${cellHighlightClass}`)
@@ -3385,7 +3386,9 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 if (! mouseClickPoint || ! d3.event.altKey || ! $scope.enableSelection) {
                     return;
                 }
-                selectedCell = binnedCoords(mouseClickPoint);
+                const newSelected = binnedCoords(mouseClickPoint);
+                selectedCell = appState.deepEquals(newSelected, selectedCell)
+                             ? null : newSelected;
                 drawOverlay();
                 $scope.broadcastEvent({
                     name: SIREPO.PLOTTING.HeatmapSelectCellEvent,

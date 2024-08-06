@@ -4,6 +4,7 @@
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
@@ -11,7 +12,6 @@ from sirepo.template import template_common
 import copy
 import json
 import numpy
-import py.path
 import pymeshlab
 import pymoab.core
 import pymoab.rng
@@ -20,6 +20,7 @@ import re
 import sirepo.mpi
 import sirepo.simulation_db
 import sirepo.util
+import subprocess
 import uuid
 
 _DECIMATION_MAX_POLYGONS = 10000
@@ -33,16 +34,41 @@ def extract_dagmc(dagmc_filename):
         res[g.name] = PKDict(
             name=g.name,
             volId=g.vol_id,
+            density=g.density,
         )
     return res
 
 
-def run(cfg_dir):
-    template_common.exec_parameters()
-    data = sirepo.simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    sirepo.template.import_module("openmc").extract_report_data(
-        pkio.py_path(cfg_dir), data
-    )
+def step_to_dagmc(input_step_filename, output_dagmc_filename, threads=1):
+    """Convert a CAD step (.stp) file to dagmc (.h5m) file.
+
+    A sanity check (check_watertight) is performed on the output file.
+
+    Args:
+      input_step_filename (str): .stp input file
+      output_dagmc_filename (str): .h5m output file
+      threads (int): number of thread used for conversion (optional)
+    """
+    import CAD_to_OpenMC.assembly
+
+    if not input_step_filename.endswith(".stp") or not output_dagmc_filename.endswith(
+        ".h5m"
+    ):
+        raise AssertionError(
+            f"input_step_filename={input_step_filename} must be .stp and output_dagmc_filename={output_dagmc_filename} must be .h5m"
+        )
+    CAD_to_OpenMC.assembly.mesher_config["threads"] = threads
+    a = CAD_to_OpenMC.assembly.Assembly([input_step_filename])
+    a.import_stp_files()
+    a.merge_all()
+    a.solids_to_h5m(backend="stl", h5m_filename=output_dagmc_filename)
+    o = subprocess.check_output(("check_watertight", output_dagmc_filename))
+    r = re.findall(rb"(\(0%\) unsealed)", o)
+    if len(r) != 2:
+        d = pkcompat.from_bytes(o).replace("\n", " ")
+        raise AssertionError(
+            f"stp file could not be converted to watertight dagmc: {d}"
+        )
 
 
 class _MoabGroupCollector:
@@ -66,13 +92,13 @@ class _MoabGroupCollector:
     def _groups_and_volumes(self, mb):
         res = PKDict()
         for g in self._groups(mb):
-            n = self._parse_entity_name(mb, g)
+            n, d = self._parse_entity_name_and_density(mb, g)
             if not n:
                 continue
             v = [h for h in mb.get_entities_by_handle(g)]
             if not v:
                 continue
-            res.pksetdefault(n, lambda: PKDict(name=n, volumes=[]))
+            res.pksetdefault(n, lambda: PKDict(name=n, volumes=[], density=d))
             res[n].volumes[0:0] = v
         for g in res.values():
             g.vol_id = self._tag_value(mb, self._id_tag, g.volumes[0])
@@ -81,11 +107,13 @@ class _MoabGroupCollector:
                 g.is_complement = True
         return tuple(res.values())
 
-    def _parse_entity_name(self, mb, group):
-        m = re.search("^mat:(.*)$", self._tag_value(mb, self._name_tag, group))
+    def _parse_entity_name_and_density(self, mb, group):
+        m = re.search(
+            r"^mat:(.*?)(?:/rho:(.*))?$", self._tag_value(mb, self._name_tag, group)
+        )
         if m:
-            return m.group(1)
-        return None
+            return m.group(1), m.group(2)
+        return None, None
 
     def _tag(self, mb, name):
         return mb.tag_get_handle(getattr(pymoab.types, f"{name}_TAG_NAME"))
