@@ -107,48 +107,9 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
         appState.saveQuietly('commands');
     }
 
-    self.isParticleTrackingEnabled = function () {
-        if (appState.isLoaded()) {
-            return appState.applicationState().simulation.enableParticleTracking == '1';
-        }
-        return false;
-    };
-
-    self.reportModel = function() {
-        return self.isParticleTrackingEnabled() ? 'bunchReport' : 'twissEllipseReport';
-    };
-
-    self.reports = function() {
-        return self.isParticleTrackingEnabled() ? self.bunchReports : self.ellipseReports;
-    };
-
-    self.plotType = function() {
-        return self.isParticleTrackingEnabled() ? 'heatmap' : 'parameter';
-    };
-
-    self.headings = function() {
-        return self.isParticleTrackingEnabled() ? self.bunchReportHeading : self.twissEllipseReportHeading;
-    };
-
-    self.twissEllipseReportHeading = function(modelKey) {
-        return 'Twiss Ellipse';
-    };
-
     appState.whenModelsLoaded($scope, function() {
         loadBeamCommand();
         $scope.$on('bunch.changed', saveBeamCommand);
-
-        // [1, 2, 3]?
-        self.ellipseReports = [1, 2].map(function(id) {
-            var modelKey = 'twissEllipseReport' + id;
-            return {
-                id: id,
-                modelKey: modelKey,
-                getData: function() {
-                    return appState.models[modelKey];
-                },
-            };
-        });
     });
 
     latticeService.initSourceController(self);

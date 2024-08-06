@@ -1193,7 +1193,6 @@
             "activeBeamlineId": 114,
             "commandTemplate": "particle",
             "computeTwissFromParticles": "0",
-            "enableParticleTracking": "1",
             "folder": "/Examples",
             "name": "BESSY II Booster",
             "visualizationBeamlineId": 114

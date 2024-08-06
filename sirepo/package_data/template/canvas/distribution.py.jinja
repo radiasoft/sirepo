@@ -56,13 +56,14 @@ with h5py.File("{{ distributionFile }}", "r") as f:
         qm,
         abs(d.attrs["charge_C"]),
     )
+
 {% else %}
 
-kin_energy_MeV = {{ kineticEnergy }}  # reference energy
+kin_energy_MeV = {{ kineticEnergyMeV }}  # reference energy
 bunch_charge_C = {{ distribution_charge }}  # used with space charge
 npart = {{ distribution_particleCount }}  # number of macro particles
 speciesCharge = {{ speciesCharge }}
-speciesMass_MeV = {{ speciesMass }}
+speciesMass_MeV = {{ speciesMassMeV }}
 
 {% if distribution_distributionType == "Thermal" %}
 distr = distribution.Thermal(

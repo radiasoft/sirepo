@@ -1,5 +1,5 @@
 # {{simulation_name}}
-execution_mode = "{{simulationMode}}"
+execution_mode = '{{simulationMode}}'
 
 lattice_file = """
 {{rpn_variables}}
@@ -9,7 +9,6 @@ lattice_file = """
 elegant_file = """
 {{commands}}
 """
-
 {% if openPMDFiles %}
 from pmd_beamphysics import ParticleGroup
 from rsbeams.rsdata.SDDS import writeSDDS

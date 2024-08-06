@@ -115,8 +115,7 @@ def _bunch_plot(run_dir, model):
     )
 
 
-def _generate_parameters_file(data):
-    res, v = template_common.generate_parameters_file(data)
+def _generate_distribution(data, res, v):
     d = data.models.distribution
     if d.distributionType == "File":
         if not d.distributionFile:
@@ -126,7 +125,7 @@ def _generate_parameters_file(data):
             "distributionFile",
             d.distributionFile,
         )
-    v.kineticEnergy = round(
+    v.kineticEnergyMeV = round(
         template_common.ParticleEnergy.compute_energy(
             SIM_TYPE,
             d.species,
@@ -138,7 +137,18 @@ def _generate_parameters_file(data):
         9,
     )
     mc = SCHEMA.constants.particleMassAndCharge[d.species]
-    v.speciesMass = round(mc[0] * 1e3, 9)
+    v.speciesMassMeV = round(mc[0] * 1e3, 9)
     v.speciesCharge = mc[1]
-
     return res + template_common.render_jinja(SIM_TYPE, v, DISTRIBUTION_PYTHON_FILE)
+
+
+def _generate_parameters_file(data):
+    res, v = template_common.generate_parameters_file(data)
+    if "bunchReport" in data.get("report", ""):
+        return _generate_distribution(data, res, v)
+    _generate_madx(data)
+    raise AssertionError("unknown generate request")
+
+
+def _generate_madx(data):
+    pass

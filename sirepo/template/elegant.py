@@ -4,7 +4,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
@@ -19,11 +18,8 @@ from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
 import copy
-import glob
 import math
-import os
 import os.path
-import py.path
 import pygments
 import pygments.formatters
 import pygments.lexers

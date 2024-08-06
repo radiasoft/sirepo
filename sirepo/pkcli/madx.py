@@ -9,16 +9,10 @@ from pykern import pksubprocess
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
-from sirepo.template import particle_beam
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
-from sirepo.template.madx import code_var
 import glob
-import h5py
-import numpy
 import os
-import pmd_beamphysics
-import pmd_beamphysics.readers
 import re
 import sirepo.template.madx as template
 
@@ -53,67 +47,7 @@ def create_particle_file(cfg_dir, data):
         data.report = report
         if data.report == "animation":
             template.write_parameters(data, pkio.py_path(cfg_dir), False)
-    _generate_ptc_particles_file(cfg_dir, data, twiss)
-
-
-def _generate_ptc_particles_file(run_dir, data, twiss):
-    bunch = data.models.bunch
-    v = None
-    if bunch.beamDefinition == "file":
-        with h5py.File(
-            template.SIM_DATA.lib_file_name_with_model_field(
-                "bunch", "sourceFile", bunch.sourceFile
-            ),
-            "r",
-        ) as f:
-            pp = pmd_beamphysics.readers.particle_paths(f)
-            d = f[pp[-1]]
-            if "beam" in d:
-                d = d["beam"]
-            # TODO(pjm): add to file validation
-            if "position/x" not in d:
-                raise AssertionError("OpenPMD file missing position/x dataset")
-            v = PKDict(
-                x=list(d["position/x"]),
-                y=list(d["position/y"]),
-                t=list(d["position/t"]),
-                px=list(d["momentum/x"]),
-                py=list(d["momentum/y"]),
-                pt=list(d["momentum/t"]),
-            )
-    else:
-        beam = LatticeUtil.find_first_command(data, "beam")
-        c = code_var(data.models.rpnVariables)
-        p = particle_beam.populate_uncoupled_beam(
-            bunch.numberOfParticles,
-            float(bunch.betx),
-            float(bunch.alfx),
-            float(c.eval_var_with_assert(beam.ex)),
-            float(bunch.bety),
-            float(bunch.alfy),
-            c.eval_var_with_assert(beam.ey),
-            c.eval_var_with_assert(beam.sigt),
-            c.eval_var_with_assert(beam.sige),
-            iseed=bunch.randomSeed,
-        )
-        v = PKDict(
-            x=template.to_floats(p[:, 0] + float(bunch.x)),
-            px=template.to_floats(p[:, 1] + float(bunch.px)),
-            y=template.to_floats(p[:, 2] + float(bunch.y)),
-            py=template.to_floats(p[:, 3] + float(bunch.py)),
-            t=template.to_floats(p[:, 4]),
-            pt=template.to_floats(p[:, 5]),
-        )
-    if "report" in data and "bunchReport" in data.report:
-        v.summaryData = twiss
-        simulation_db.write_json(run_dir.join(template.BUNCH_PARTICLES_FILE), v)
-    r = ""
-    for i in range(len(v.x)):
-        r += "ptc_start"
-        for f in ("x", "px", "y", "py", "t", "pt"):
-            r += f", {f}={v[f][i]}"
-        r += ";\n"
-    pkio.write_text(run_dir.join(template.PTC_PARTICLES_FILE), r)
+    template.generate_ptc_particles_file(cfg_dir, data, twiss)
 
 
 def _need_particle_file(data):

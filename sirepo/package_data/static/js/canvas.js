@@ -102,11 +102,14 @@ SIREPO.app.controller('SourceController', function(latticeService) {
 SIREPO.app.controller('ComparisonController', function(persistentSimulation, $scope) {
     var self = this;
     self.simScope = $scope;
+    self.errorMessage = '';
 
     self.simHandleStatus = (data) => {
+        self.errorMessage = data.error;
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
+    self.simState.errorMessage = () => self.errorMessage;
 });
 
 

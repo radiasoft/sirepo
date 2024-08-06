@@ -145,11 +145,6 @@
             ["5", "5"],
             ["6", "6"]
         ],
-        "SpaceCoordinate": [
-            ["x", "x"],
-            ["y", "y"],
-            ["z", "z"]
-        ],
         "OptionalBoolean": [
             ["", "NOT SELECTED"],
             ["1", "Yes"],
@@ -239,7 +234,6 @@
             "y": ["Vertical Centroid [m]", "Float", 0.0]
         },
         "simulation": {
-            "enableParticleTracking": ["Particle Tracking", "Boolean", "1"],
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""],
             "commandTemplate": ["Template", "CommandTemplate", "particle"],
             "computeTwissFromParticles": ["Compute Twiss From Particles", "Boolean", "0"]
@@ -785,10 +779,6 @@
         "rpnVariable": {
             "name": ["Name", "String"],
             "value": ["Value", "RPNValue"]
-        },
-        "twissEllipseReport": {
-            "dim": ["Dimension", "SpaceCoordinate", "x"],
-            "notes": ["Notes", "Text", ""]
         },
         "twissFromParticlesAnimation": {
             "x": ["Horizontal Value to Plot", "ValueList", ""],
@@ -2046,10 +2036,6 @@
         "simulationStatus": {
             "title": "Simulation Status",
             "advanced": []
-        },
-        "twissEllipseReport": {
-            "title": "Twiss Ellipse",
-            "advanced": ["dim"]
         },
         "twissFromParticlesAnimation": {
             "title": "Twiss From Particles",
