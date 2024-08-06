@@ -505,6 +505,8 @@ SIREPO.app.directive('scansTable', function() {
                 sortColumns: defaultSortColumns(),
             };
 
+            const MAX_NUM_SORT_COLUMNS = 3;
+
             const errorOptions = {
                 modelName: $scope.modelName,
                 onError: data => {
@@ -696,12 +698,14 @@ SIREPO.app.directive('scansTable', function() {
 
             $scope.arrowStyle = column => {
                 let r = '';
-                scanArgs.sortColumns.forEach((sortField, i) => {
+                for (const [i, sortField] of scanArgs.sortColumns.entries()) {
                     if (sortField[0] === column) {
+                        // logic for alpha value assumes that sortColumns are in descending priority and MAX_NUM_SORT_COLUMNS is 3
                         let a = i === 0 ? 1 : (-0.3 * i) + 0.8;
                         r = `color: rgba(0, 0, 0, ${a})`;
-                        return;
-                    }});
+                        break;
+                    }
+                }
                 return r;
             };
 
@@ -828,13 +832,7 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.columnIsSortable = (column) => {
-                if (['stop'].includes(column)) {
-                    return false;
-                } else if ($scope.scans.length > 0 && $scope.scans[0][column] !== null && typeof $scope.scans[0][column] === 'object') {
-                    return false;
-                } else {
-                    return true;
-                }
+                return ! (column === 'stop' || $scope.scans.length > 0 && $scope.scans[0][column] !== null && typeof $scope.scans[0][column] === 'object');
             };
 
 
@@ -856,7 +854,7 @@ SIREPO.app.directive('scansTable', function() {
                         scanArgs.sortColumns = [[column, true]];
                     } else {
                         scanArgs.sortColumns.unshift([column, true]);
-                        if (scanArgs.sortColumns.length > 3) {
+                        if (scanArgs.sortColumns.length > MAX_NUM_SORT_COLUMNS) {
                             scanArgs.sortColumns.pop();
                         }
                     }
