@@ -34,6 +34,7 @@ import sqlalchemy.ext.declarative
 import sqlalchemy.orm
 import zipfile
 
+
 #: task(s) monitoring the execution of the analysis process
 _ANALYSIS_PROCESSOR_TASKS = None
 
@@ -42,6 +43,7 @@ _CATALOG_MONITOR_TASKS = PKDict()
 
 # TODO(e-carlin): tune this number
 _MAX_NUM_SCANS = 1000
+
 
 # Fields that come from the top-level of metadata (as opposed to start document).
 # Must match key name from _default_columns()
@@ -56,6 +58,10 @@ _SCANS_AWAITING_ANALYSIS = []
 
 #: path scan_monitor registers to receive api requests
 _URI = "/scan-monitor"
+
+#: Whether or not new scans should be automatically analyzed (per catalog)
+_WANT_AUTOMATIC_ANALYSIS_FOR_CATALOG = PKDict()
+
 
 _SIM_TYPE = "raydata"
 
@@ -434,6 +440,15 @@ class _RequestHandler(_JsonPostRequestHandler):
             ).raise_for_status()
             return PKDict()
 
+    def _request_get_automatic_analysis(self, req_data):
+        return PKDict(
+            data=PKDict(
+                automaticAnalysis=_WANT_AUTOMATIC_ANALYSIS_FOR_CATALOG[
+                    req_data.catalogName
+                ]
+            )
+        )
+
     def _request_get_scans(self, req_data):
         s = 1
         if req_data.analysisStatus == "allStatuses":
@@ -483,7 +498,7 @@ class _RequestHandler(_JsonPostRequestHandler):
     def _request_run_engine_event_callback(self, req_data):
         # Start as a task. No need to hold request until task is
         # completed because the caller does nothing with the response.
-        asyncio.create_task(
+        pkasyncio.create_task(
             sirepo.raydata.adaptive_workflow.run_engine_event_callback(req_data)
         )
         return PKDict()
@@ -496,6 +511,12 @@ class _RequestHandler(_JsonPostRequestHandler):
                 ).get_start_fields(),
             )
         )
+
+    def _request_set_automatic_analysis(self, req_data):
+        _WANT_AUTOMATIC_ANALYSIS_FOR_CATALOG[req_data.catalogName] = bool(
+            int(req_data.automaticAnalysis)
+        )
+        return PKDict(data="ok")
 
     def _sr_authenticate(self, token):
         if (
@@ -558,7 +579,7 @@ async def _init_analysis_processors():
 
     assert not _ANALYSIS_PROCESSOR_TASKS
     _ANALYSIS_PROCESSOR_TASKS = [
-        asyncio.create_task(_process_analysis_queue())
+        pkasyncio.create_task(_process_analysis_queue())
     ] * cfg.concurrent_analyses
     await asyncio.gather(*_ANALYSIS_PROCESSOR_TASKS)
 
@@ -596,10 +617,9 @@ async def _init_catalog_monitors():
         assert catalog_name not in _CATALOG_MONITOR_TASKS
         return asyncio.create_task(_poll_catalog_for_scans(catalog_name))
 
-    if not cfg.automatic_analysis:
-        return
     for c in cfg.catalog_names:
         _CATALOG_MONITOR_TASKS[c] = _monitor_catalog(c)
+        _WANT_AUTOMATIC_ANALYSIS_FOR_CATALOG[c] = cfg.automatic_analysis
     await asyncio.gather(*_CATALOG_MONITOR_TASKS.values())
 
 
@@ -630,11 +650,19 @@ async def _poll_catalog_for_scans(catalog_name):
             l = s
         return l
 
-    async def _poll_for_new_scans(most_recent_scan_metadata):
-        m = most_recent_scan_metadata
+    async def _poll_for_new_scans():
         while True:
-            m = _collect_new_scans_and_queue(m)
-            await pkasyncio.sleep(2)
+            if not _WANT_AUTOMATIC_ANALYSIS_FOR_CATALOG[catalog_name]:
+                await asyncio.sleep(2)
+                continue
+            s = sirepo.raydata.databroker.get_metadata_for_most_recent_scan(
+                catalog_name
+            )
+            if not _Analysis.have_analyzed_scan(s):
+                _queue_for_analysis(s)
+            while _WANT_AUTOMATIC_ANALYSIS_FOR_CATALOG[catalog_name]:
+                s = _collect_new_scans_and_queue(s)
+                await pkasyncio.sleep(2)
 
     pkdlog("catalog_name={}", catalog_name)
     c = None
@@ -644,10 +672,7 @@ async def _poll_catalog_for_scans(catalog_name):
         except KeyError:
             pkdlog(f"no catalog_name={catalog_name}. Retrying...")
             await pkasyncio.sleep(15)
-    s = sirepo.raydata.databroker.get_metadata_for_most_recent_scan(catalog_name)
-    if not _Analysis.have_analyzed_scan(s):
-        _queue_for_analysis(s)
-    await _poll_for_new_scans(s)
+    await _poll_for_new_scans()
     raise AssertionError("should never get here")
 
 
