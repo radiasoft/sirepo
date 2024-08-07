@@ -16,7 +16,6 @@ import numpy
 import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
-DISTRIBUTION_PYTHON_FILE = "distribution.py"
 _BUNCH_REPORT_OUTPUT_FILE = "diags/openPMD/monitor.h5"
 
 
@@ -77,7 +76,7 @@ def save_sequential_report_data(run_dir, data):
 
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
-        run_dir.join(DISTRIBUTION_PYTHON_FILE),
+        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
 
@@ -139,16 +138,14 @@ def _generate_distribution(data, res, v):
     mc = SCHEMA.constants.particleMassAndCharge[d.species]
     v.speciesMassMeV = round(mc[0] * 1e3, 9)
     v.speciesCharge = mc[1]
-    return res + template_common.render_jinja(SIM_TYPE, v, DISTRIBUTION_PYTHON_FILE)
+    return res + template_common.render_jinja(SIM_TYPE, v, "distribution.py")
 
 
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
-    if "bunchReport" in data.get("report", ""):
+    if (
+        "bunchReport" in data.get("report", "")
+        or data.models.distribution.distributionType != "File"
+    ):
         return _generate_distribution(data, res, v)
-    _generate_madx(data)
-    raise AssertionError("unknown generate request")
-
-
-def _generate_madx(data):
-    pass
+    return ""

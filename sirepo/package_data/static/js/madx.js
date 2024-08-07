@@ -462,6 +462,7 @@ SIREPO.app.directive('commandConfirmation', function(appState, commandService, l
                 if (sim.commandTemplate == 'particle') {
                     addCommands([
                         { _type: 'ptc_create_universe', sector_nmul: 10, sector_nmul_max: 10 },
+                        //TODO(pjm): look at adding method: 4, nst: 25
                         { _type: 'ptc_create_layout' },
                         { _type: 'ptc_track', element_by_element: '1', file: '1', icase: '6' },
                         { _type: 'ptc_track_end' },
@@ -589,9 +590,12 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
     ];
 });
 
-SIREPO.viewLogic('simulationSettingsView', function(commandService, panelState, madxService, $scope) {
+SIREPO.viewLogic('simulationSettingsView', function(appState, commandService, panelState, madxService, $scope) {
     $scope.whenSelected = function() {
-        panelState.showField('bunch', 'numberOfParticles', madxService.isParticleSimulation());
+        panelState.showField(
+            'bunch',
+            'numberOfParticles',
+            madxService.isParticleSimulation() && appState.models.bunch.beamDefinition != 'file');
         panelState.showField(
             'simulation',
             'computeTwissFromParticles',

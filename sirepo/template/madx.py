@@ -154,6 +154,13 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
             dest_dir.join(source_path.basename),
             generate_parameters_file(data),
         )
+        if data.models.bunch.beamDefinition == "file":
+            f = SIM_DATA.lib_file_name_with_model_field(
+                "bunch", "sourceFile", data.models.bunch.sourceFile
+            )
+            d = dest_dir.join(f)
+            pykern.pkio.mkdir_parent_only(d)
+            d.mksymlinkto(source_path.dirpath().join(f), absolute=False)
         if LatticeUtil.find_first_command(data, PTC_LAYOUT_COMMAND):
             generate_ptc_particles_file(dest_dir, data, None)
         return PKDict()
@@ -367,27 +374,14 @@ def generate_ptc_particles_file(run_dir, data, twiss):
     bunch = data.models.bunch
     v = None
     if bunch.beamDefinition == "file":
-        with h5py.File(
-            SIM_DATA.lib_file_name_with_model_field(
-                "bunch", "sourceFile", bunch.sourceFile
+        v = _read_bunch_file(
+            run_dir.join(
+                SIM_DATA.lib_file_name_with_model_field(
+                    "bunch", "sourceFile", bunch.sourceFile
+                )
             ),
-            "r",
-        ) as f:
-            pp = pmd_beamphysics.readers.particle_paths(f)
-            d = f[pp[-1]]
-            if "beam" in d:
-                d = d["beam"]
-            # TODO(pjm): add to file validation
-            if "position/x" not in d:
-                raise AssertionError("OpenPMD file missing position/x dataset")
-            v = PKDict(
-                x=list(d["position/x"]),
-                y=list(d["position/y"]),
-                t=list(d["position/t"]),
-                px=list(d["momentum/x"]),
-                py=list(d["momentum/y"]),
-                pt=list(d["momentum/t"]),
-            )
+            _read_particles,
+        )
     else:
         beam = LatticeUtil.find_first_command(data, "beam")
         c = code_var(data.models.rpnVariables)
@@ -1049,11 +1043,38 @@ def _parse_match_summary(run_dir, filename):
     return res
 
 
+def _read_bunch_file(path, callback):
+    with h5py.File(
+        path,
+        "r",
+    ) as f:
+        pp = pmd_beamphysics.readers.particle_paths(f)
+        d = f[pp[-1]]
+        if "beam" in d:
+            d = d["beam"]
+        # TODO(pjm): add to file validation
+        if "position/x" not in d:
+            raise AssertionError("OpenPMD file missing position/x dataset")
+        return callback(d)
+
+
+def _read_particles(h5):
+    return PKDict(
+        x=list(h5["position/x"]),
+        y=list(h5["position/y"]),
+        t=list(h5["position/t"]),
+        px=list(h5["momentum/x"]),
+        py=list(h5["momentum/y"]),
+        pt=list(h5["momentum/t"]),
+    )
+
+
 def _update_beam_energy(data):
     beam = LatticeUtil.find_first_command(data, "beam")
     assert beam, "BEAM missing from command list"
     bunch = data.models.bunch
-    if bunch.beamDefinition != "other":
+    # TODO(pjm): file source needs to update beam mass, charge and energy
+    if bunch.beamDefinition != "file":
         for e in SCHEMA.enum.BeamDefinition:
             if bunch.beamDefinition != e[0]:
                 beam[e[0]] = 0
