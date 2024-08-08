@@ -348,25 +348,6 @@ class _RequestHandler(_JsonPostRequestHandler):
                 }
             return q
 
-        def _sort_params(req_data):
-            c = _default_columns(req_data.catalogName).get(
-                req_data.sortColumn, req_data.sortColumn
-            )
-            s = [
-                (
-                    c,
-                    pymongo.ASCENDING if req_data.sortOrder else pymongo.DESCENDING,
-                ),
-            ]
-            if c != "time":
-                s.append(
-                    (
-                        "time",
-                        pymongo.DESCENDING,
-                    )
-                )
-            return s
-
         c = sirepo.raydata.databroker.catalog(req_data.catalogName)
         pc = math.ceil(
             len(
@@ -528,6 +509,24 @@ class _RequestHandler(_JsonPostRequestHandler):
 
     async def _sr_post(self, *args, **kwargs):
         self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
+
+
+def _sort_params(req_data):
+    r = []
+    has_time = False
+    for x in req_data.sortColumns:
+        n = _default_columns(req_data.catalogName).get(x[0], x[0])
+        if n == "time":
+            has_time = True
+        r.append(
+            [
+                n,
+                pymongo.ASCENDING if x[1] else pymongo.DESCENDING,
+            ]
+        )
+    if not has_time:
+        r.append(["time", pymongo.DESCENDING])
+    return r
 
 
 async def _init_analysis_processors():
@@ -730,9 +729,10 @@ def _scan_info(
 
 def _scan_info_result(scans, page_count, req_data):
     def _compare_values(v1, v2):
+        sort_column = _sort_params(req_data)[0][0]
         # very careful compare - needs to account for missing values or mismatched types
-        v1 = v1.get(req_data.sortColumn)
-        v2 = v2.get(req_data.sortColumn)
+        v1 = v1.get(sort_column)
+        v2 = v2.get(sort_column)
         if v1 is None and v2 is None:
             return 0
         if v1 is None:
@@ -765,7 +765,7 @@ def _scan_info_result(scans, page_count, req_data):
         s = sorted(
             s,
             key=functools.cmp_to_key(_compare_values),
-            reverse=not req_data.sortOrder,
+            reverse=not _sort_params(req_data)[0][1],
         )
     return PKDict(
         data=PKDict(
@@ -773,8 +773,7 @@ def _scan_info_result(scans, page_count, req_data):
             cols=_display_columns(all_columns),
             pageCount=page_count,
             pageNumber=req_data.pageNumber,
-            sortColumn=req_data.sortColumn,
-            sortOrder=req_data.sortOrder,
+            sortColumns=req_data.sortColumns,
         )
     )
 

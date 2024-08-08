@@ -446,7 +446,7 @@ SIREPO.app.directive('scansTable', function() {
                     <tr>
                       <th style="width: 20px; height: 40px; white-space: nowrap" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-checked="pdfSelectAllScans" data-ng-click="togglePdfSelectAll()"/> <span style="vertical-align: top">PDF</span></th>
                       <th data-ng-repeat="column in columnHeaders track by $index" class="raydata-removable-column" style="width: 100px; height: 40px; white-space: nowrap">
-                        <span data-ng-if="columnIsSortable(column)" style="color:lightgray;" data-ng-class="arrowClass(column)"></span>
+                        <span data-ng-if="columnIsSortable(column)" style="{{ arrowStyle(column) }}" data-ng-class="arrowClass(column)"></span>
                         <span data-ng-attr-style="{{ columnIsSortable(column) ? 'cursor: pointer;' : '' }}" data-ng-click="sortCol(column)">{{ column }}</span>
                         <button type="submit" class="btn btn-info btn-xs raydata-remove-column-button" data-ng-if="showDeleteButton($index)" data-ng-click="deleteCol(column)"><span class="glyphicon glyphicon-remove"></span></button>
                       </th>
@@ -502,9 +502,10 @@ SIREPO.app.directive('scansTable', function() {
             let scanArgs = {
                 pageCount: 0,
                 pageNumber: 0,
-                sortColumn: $scope.analysisStatus == 'queued' ? 'queue order' : 'start',
-                sortOrder: $scope.analysisStatus == 'queued',
+                sortColumns: defaultSortColumns(),
             };
+
+            const MAX_NUM_SORT_COLUMNS = 3;
 
             const errorOptions = {
                 modelName: $scope.modelName,
@@ -537,6 +538,14 @@ SIREPO.app.directive('scansTable', function() {
                 if (scanRequestInterval) {
                     $interval.cancel(scanRequestInterval);
                     scanRequestInterval = null;
+                }
+            }
+
+            function defaultSortColumns() {
+                if ($scope.analysisStatus == 'queued') {
+                    return [['queue order', true]];
+                } else {
+                    return [['start', false]];
                 }
             }
 
@@ -579,8 +588,7 @@ SIREPO.app.directive('scansTable', function() {
                 }
                 scanArgs.pageCount = scanInfo.pageCount || 0;
                 scanArgs.pageNumber = scanInfo.pageNumber;
-                scanArgs.sortColumn = scanInfo.sortColumn;
-                scanArgs.sortOrder = scanInfo.sortOrder;
+                scanArgs.sortColumns = scanInfo.sortColumns;
                 updatePageLocation();
             }
 
@@ -629,8 +637,7 @@ SIREPO.app.directive('scansTable', function() {
                                 pageNumber: scanArgs.pageNumber,
                                 searchText: m.searchText,
                                 searchTerms: buildSearchTerms(m.searchTerms),
-                                sortColumn: scanArgs.sortColumn,
-                                sortOrder: scanArgs.sortOrder,
+                                sortColumns: scanArgs.sortColumns
                             }
                         },
                         errorOptions
@@ -711,13 +718,29 @@ SIREPO.app.directive('scansTable', function() {
             }
 
             $scope.arrowClass = column => {
-                if (scanArgs.sortColumn !== column) {
-                    return {};
+                let r = {};
+                scanArgs.sortColumns.forEach((sortField) => {
+                    if (sortField[0] === column) {
+                        r= {
+                            glyphicon: true,
+                            [`glyphicon-arrow-${sortField[1] ? 'up' : 'down'}`]: true,
+                        };
+                    }
+                });
+                return r;
+            };
+
+            $scope.arrowStyle = column => {
+                let r = '';
+                for (const [i, sortField] of scanArgs.sortColumns.entries()) {
+                    if (sortField[0] === column) {
+                        // logic for alpha value assumes that sortColumns are in descending priority and MAX_NUM_SORT_COLUMNS is 3
+                        let a = i === 0 ? 1 : (-0.3 * i) + 0.8;
+                        r = `color: rgba(0, 0, 0, ${a})`;
+                        break;
+                    }
                 }
-                return {
-                    glyphicon: true,
-                    [`glyphicon-arrow-${scanArgs.sortOrder ? 'up' : 'down'}`]: true,
-                };
+                return r;
             };
 
             $scope.canNextPage = () => {
@@ -843,15 +866,33 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.columnIsSortable = (column) => {
-                return column !== 'stop';
+                return ! (column === 'stop' || $scope.scans.length > 0 && $scope.scans[0][column] !== null && typeof $scope.scans[0][column] === 'object');
             };
+
 
             $scope.sortCol = column => {
                 if (! $scope.columnIsSortable(column)) {
                     return;
                 }
-                scanArgs.sortColumn = column;
-                scanArgs.sortOrder = ! scanArgs.sortOrder;
+                let inList = false;
+                scanArgs.sortColumns.forEach((sortField, i) => {
+                    if (sortField[0] === column) {
+                        inList = true;
+                        sortField[1] = ! sortField[1];
+                        scanArgs.sortColumns.splice(i, 1);
+                        scanArgs.sortColumns.unshift(sortField);
+                    }
+                });
+                if (! inList) {
+                    if ($scope.analysisStatus !== 'allStatuses') {
+                        scanArgs.sortColumns = [[column, true]];
+                    } else {
+                        scanArgs.sortColumns.unshift([column, true]);
+                        if (scanArgs.sortColumns.length > MAX_NUM_SORT_COLUMNS) {
+                            scanArgs.sortColumns.pop();
+                        }
+                    }
+                }
                 sendScanRequest(true, true);
             };
 
