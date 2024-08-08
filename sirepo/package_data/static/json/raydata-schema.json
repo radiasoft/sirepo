@@ -64,6 +64,7 @@
             "searchStopTime":["Stop", "DateTimePicker", null],
             "searchText": ["Search Text", "OptionalString", "", "Search across all text columns by term.<br /><br />Phrases can be quoted, ex. \"canted mode\".<br /><br />Negations can be added to the search text by adding a minus (-) sign to the word, however negations must be included with another search term, ex. csx -flatfield.<br /><br />ex. csx \"canted mode\" pinhole -flatfield<br /><br />Use the individual search fields below to search for a specific field value. Wildcards (*) may be used with individual field searches, ex. <b>owner</b> xf*"],
             "pageSize": ["Page Size", "Integer", 15],
+            "automaticAnalysis": ["Automatically Run Analysis", "Boolean", "0"],
             "scans": ["", "RunAnalysisTable", ""],
             "confirmRunAnalysis": ["Hide this message for this session", "Boolean", "0"],
             "searchTerms": ["", "SearchTerms", []]
@@ -118,7 +119,8 @@
                 "searchTerms"
             ],
             "advanced": [
-                "pageSize"
+                "pageSize",
+                "automaticAnalysis"
             ]
         },
         "simulation": {
