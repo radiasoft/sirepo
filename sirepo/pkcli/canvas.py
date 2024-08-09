@@ -31,6 +31,19 @@ _MODEL_FIELD_MAP = PKDict(
     QUADRUPOLE=PKDict(
         _fields=["name", "type", "l", "k1", "k1s", "_id"],
     ),
+    SBEND=PKDict(
+        _fields=[
+            "name",
+            "type",
+            "l",
+            "angle",
+            "fint",
+            "fintx",
+            "e1",
+            "e2",
+            "_id",
+        ],
+    ),
 )
 
 
@@ -150,6 +163,8 @@ sim = ImpactX()
 
 sim.particle_shape = 2  # B-spline order
 sim.space_charge = False
+sim.slice_step_diagnostics = True
+
 sim.init_grids()
 
 
@@ -220,22 +235,32 @@ def _write_madx(run_dir, data, input_file):
     s.write_files("madx")
 
 
-def _beam_settings_from_file(input_file):
-    def _read_energy(h5):
+def _beam_settings_from_file(input_file, model=None):
+    def _read_beam_values(h5):
         return PKDict(
-            gamma=h5.attrs["gamma_ref"],
-            mass=h5.attrs["mass_ref"],
-            charge=h5.attrs["charge_ref"],
+            beam=PKDict(
+                gamma=h5.attrs["gamma_ref"],
+                mass=h5.attrs["mass_ref"],
+                charge=h5.attrs["charge_ref"],
+            ),
+            twiss=PKDict(
+                alfx=h5.attrs["alpha_x"],
+                alfy=h5.attrs["alpha_y"],
+                betx=h5.attrs["beta_x"],
+                bety=h5.attrs["beta_y"],
+            ),
         )
 
     e = sirepo.template.import_module("madx")._read_bunch_file(
         input_file,
-        _read_energy,
+        _read_beam_values,
     )
+    if model == "twiss":
+        return e.twiss
     return PKDict(
-        gamma=e.gamma,
-        charge=abs(e.charge) / e.charge,
-        mass=e.mass
+        gamma=e.beam.gamma,
+        charge=abs(e.beam.charge) / e.beam.charge,
+        mass=e.beam.mass
         / scipy.constants.physical_constants["electron volt-kilogram relationship"][0]
         / 1e9,
     )
@@ -253,8 +278,10 @@ def _to_madx(data, source_file):
         state.next_id += 1
         return res
 
+    util = LatticeUtil(data, _MADX.schema())
     state = PKDict(
-        next_id=LatticeUtil(data, _MADX.schema()).max_id + 1,
+        next_id=util.max_id + 1,
+        util=util,
     )
     bunch = PKDict(
         beamDefinition="file",
@@ -285,7 +312,7 @@ def _to_madx(data, source_file):
                     PKDict(
                         _type="twiss",
                         file="1",
-                    ),
+                    ).pkupdate(_beam_settings_from_file(source_file, model="twiss")),
                 ),
                 _command(
                     state,
@@ -333,10 +360,58 @@ def _to_madx(data, source_file):
     )
 
     for e in data.models.elements:
+        assert e.type in _MODEL_FIELD_MAP, f"Missing type handler: {e.type}"
         if e.type in _MODEL_FIELD_MAP:
             m = _MADX.model_defaults(e.type)
             for f in _MODEL_FIELD_MAP[e.type]._fields:
                 m[f] = e[f]
             res.models.elements.append(m)
-
+            if e.type == "SBEND":
+                m.hgap = e.gap / 2
+                _add_dipedges(res, m, _next_id(state), _next_id(state), state)
     return res
+
+
+def _add_dipedges(data, sbend, d1_id, d2_id, state):
+    if not sbend.l:
+        raise AssertionError(f"SBEND missing length: {sbend.name}")
+    d1 = _MADX.model_defaults("DIPEDGE").pkupdate(
+        _id=d1_id,
+        type="DIPEDGE",
+        name=f"_DP1_{sbend.name}",
+        hgap=sbend.hgap,
+        fint=sbend.fint,
+        h=sbend.angle / sbend.l,
+        e1=sbend.e1,
+    )
+    d2 = _MADX.model_defaults("DIPEDGE").pkupdate(
+        _id=d2_id,
+        type="DIPEDGE",
+        name=f"_DP2_{sbend.name}",
+        hgap=sbend.hgap,
+        fint=sbend.fintx,
+        h=sbend.angle / sbend.l,
+        e1=sbend.e2,
+    )
+    sbend.hgap = 0
+    sbend.fint = 0
+    sbend.fintx = -1
+    sbend.e1 = 0
+    sbend.e2 = 0
+    data.models.elements += [d1, d2]
+    for bl in data.models.beamlines:
+        _add_dipedges_to_beamline(data, bl, sbend, d1, d2, state)
+
+
+def _add_dipedges_to_beamline(data, beamline, sbend, d1, d2, state):
+    sbend_indices = []
+    for idx, item in enumerate(beamline["items"]):
+        e = state.util.id_map[item]
+        if "_id" in e:
+            if e._id == sbend._id:
+                sbend_indices.append(idx)
+        else:
+            _add_dipedges_to_beamline(data, e, sbend, state)
+    for idx in reversed(sbend_indices):
+        beamline["items"].insert(idx + 1, d2._id)
+        beamline["items"].insert(idx - 1, d1._id)

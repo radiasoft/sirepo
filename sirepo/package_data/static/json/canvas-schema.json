@@ -66,6 +66,24 @@
             ["proton", "Proton"]
         ]
     },
+    "frameIdFields": {
+        "sigmaAnimation": [
+        ],
+        "twissAnimation": [
+        ],
+        "bunchAnimation1": [
+            "simCode",
+            "histogramBins"
+        ],
+        "bunchAnimation2": [
+            "simCode",
+            "histogramBins"
+        ],
+        "bunchAnimation3": [
+            "simCode",
+            "histogramBins"
+        ]
+    },
     "localRoutes": {
         "lattice": {
             "route": "/lattice/:simulationId",
@@ -91,6 +109,21 @@
     "model": {
         "beamline": {
             "name": ["Name", "ValidatedString"]
+        },
+        "bunchAnimation1": {
+            "simCode": ["", "String", "elegant"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "notes": ["Notes", "Text", ""]
+        },
+        "bunchAnimation2": {
+            "simCode": ["", "String", "madx"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "notes": ["Notes", "Text", ""]
+        },
+        "bunchAnimation3": {
+            "simCode": ["", "String", "impactx"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "notes": ["Notes", "Text", ""]
         },
         "bunchReport": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "x"],
@@ -125,10 +158,18 @@
 
             "distributionFile": ["Distribution File [hdf5]", "InputFile", "", "An OpenPMD HDF5 ParticleGroup File"]
         },
+        "sigmaAnimation": {
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
+            "notes": ["Notes", "Text", ""]
+        },
         "simulationSettings": {
             "useElegant": ["elegant", "Boolean", "1"],
             "useMadx": ["MAD-X", "Boolean", "1"],
             "useImpactX": ["ImpactX", "Boolean", "1"]
+        },
+        "twissAnimation": {
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
+            "notes": ["Notes", "Text", ""]
         },
         "_ELEMENT": {
             "_super": ["", "model", "_MISALIGNMENT"],
@@ -208,6 +249,24 @@
                 "name"
             ]
         },
+        "bunchAnimation1": {
+            "title": "Phase Space",
+            "advanced": [
+                "notes"
+            ]
+        },
+        "bunchAnimation2": {
+            "title": "Phase Space",
+            "advanced": [
+                "notes"
+            ]
+        },
+        "bunchAnimation3": {
+            "title": "Phase Space",
+            "advanced": [
+                "notes"
+            ]
+        },
         "bunchReport": {
             "title": "Beam Phase Space",
             "advanced": [
@@ -259,6 +318,13 @@
             ],
             "advanced": []
         },
+        "sigmaAnimation": {
+            "title": "Sigma",
+            "advanced": [
+                "includeLattice",
+                "notes"
+            ]
+        },
         "simulationSettings": {
             "title": "Simulation Settings",
             "basic": [
@@ -269,6 +335,13 @@
                 "useImpactX"
             ],
             "advanced": []
+        },
+        "twissAnimation": {
+            "title": "Twiss",
+            "advanced": [
+                "includeLattice",
+                "notes"
+            ]
         },
         "APERTURE": {
             "title": "APERTURE",
@@ -380,6 +453,7 @@
                     "name",
                     "l",
                     "angle",
+                    "gap",
                     [
                         ["Entrance", [
                             "fint",

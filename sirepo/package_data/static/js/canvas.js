@@ -99,13 +99,14 @@ SIREPO.app.controller('SourceController', function(latticeService) {
     latticeService.initSourceController(self);
 });
 
-SIREPO.app.controller('ComparisonController', function(persistentSimulation, $scope) {
+SIREPO.app.controller('ComparisonController', function(frameCache, persistentSimulation, $scope) {
     var self = this;
     self.simScope = $scope;
     self.errorMessage = '';
 
     self.simHandleStatus = (data) => {
         self.errorMessage = data.error;
+        frameCache.setFrameCount(data.frameCount || 0);
     };
 
     self.simState = persistentSimulation.initSimulationState(self);

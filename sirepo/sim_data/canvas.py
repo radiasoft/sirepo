@@ -17,8 +17,13 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(
             dm,
             [
+                "bunchAnimation1",
+                "bunchAnimation2",
+                "bunchAnimation3",
                 "distribution",
+                "sigmaAnimation",
                 "simulationSettings",
+                "twissAnimation",
             ],
         )
         if "bunchReport1" not in dm:
