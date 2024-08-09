@@ -3836,7 +3836,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function isPlotVisible(pIndex) {
-                return parseFloat(plotPath(pIndex).style('opacity')) == 1;
+                return parseFloat(plotPath(pIndex).style('opacity')) > 0;
             }
 
             function modulateRGBA(start, end, steps, reverse) {
@@ -3884,7 +3884,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     return;
                 }
                 ([pIndex].concat(childPlots[pIndex] || [])).forEach(function (i) {
-                    plotPath(i).style('opacity', isVisible ? 1.0 : 0.0);
+                    plotPath(i).style('opacity', isVisible ? ($scope.axes.y.plots[pIndex].opacity || 1.0) : 0.0);
                     vIcon(i).text(vIconText(isVisible));
                 });
 
@@ -4107,7 +4107,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     // modulated by the amount specified
                     var endColor = plot.colorModulation || color;
                     var reverseMod = (plot.modDirection || 0) < 0;
-                    var strokeWidth = plot._parent ? 0.75 : 2.0;
+                    var strokeWidth = plot._parent ? 0.75 : (plot.strokeWidth || 2.0);
                     var sym;
                     if (plot.symbol) {
                         $scope.hasSymbols = true;
@@ -4169,6 +4169,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             .attr('data-sr-index', ip)
                             .style('stroke', rgbaToCSS(plotColorMod[ip]))
                             .style('stroke-width', strokeWidth)
+                            .style('opacity', plot.opacity || 1)
                             .datum(plot.points);
                         if (plot.dashes) {
                             p.style('stroke-dasharray', (plot.dashes));
