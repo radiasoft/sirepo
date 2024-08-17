@@ -11,8 +11,11 @@
     <div class="col-md-6 col-xl-4" data-ng-if="visualization.simState.getFrameCount() >= 1">
       <div data-report-panel="parameterWithLattice" data-model-name="statAnimation"></div>
     </div>
-    <div data-ng-repeat="item in visualization.outputFiles" data-column-for-aspect-ratio="{{ item.modelAccess.modelKey }}" data-ng-if="visualization.simState.hasFrames()">
-      <div data-report-panel="{{ item.modelAccess.getData().plotType }}" data-model-data="item.modelAccess" data-panel-title="{{ item.panelTitle }}"></div>
+    <div data-ng-repeat="item in visualization.outputFiles track by $index" data-ng-if="visualization.simState.hasFrames()">
+      <div data-column-for-aspect-ratio="{{ item.modelAccess.modelKey }}">
+        <div data-report-panel="{{ item.modelAccess.getData().plotType }}" data-model-data="item.modelAccess" data-panel-title="{{ item.panelTitle }}"></div>
+      </div>
+      <div data-ng-if="$index == 1" class="clearfix""></div>
     </div>
   </div>
 </div>

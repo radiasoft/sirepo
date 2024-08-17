@@ -69,14 +69,15 @@
             ["3", "no output"]
         ],
         "DistType": [
-            ["1", "Uniform"],
+            ["27", "CylcoldZSob"],
+            ["16", "From File"],
             ["2", "Gauss3"],
-            ["3", "Waterbag"],
-            ["4", "Semigauss"],
             ["5", "KV3d"],
             ["10", "ParobGauss"],
             ["15", "SemicircGauss"],
-            ["27", "CylcoldZSob"]
+            ["4", "Semigauss"],
+            ["1", "Uniform"],
+            ["3", "Waterbag"]
         ],
         "PhaseSpaceCoordinate": [
             ["x", "x"],
@@ -179,7 +180,7 @@
             "Np": ["Macroparticle count", "Integer", 1000, "Np: Number of macroparticles to track"],
             "Bcurr": ["Current [A]", "RPNValue", 1.0],
             "Bkenergy": ["Initial energy [eV]", "RPNValue", 1.0, "Bkenergy: Initial beam pseudo-kinetic energy in eV"],
-            "Bmas": ["Mass [eV]", "RPNValue", 510998.95],
+            "Bmass": ["Mass [eV]", "RPNValue", 510998.95],
             "Bcharge": ["Charge", "RPNValue", -1.0, "Bcharge: Particle charge in units of proton charge"],
             "Bfreq": ["Reference frequency [Hz]", "RPNValue", 2856000000.0],
             "Tini": ["Initial reference time [sec]", "RPNValue", 0.0],
@@ -207,7 +208,8 @@
             "zscale": ["Z scale", "RPNValue", 1.0],
             "pzscale": ["Z pscale", "RPNValue", 1.0],
             "zmu1": ["Z mu1 [m]", "RPNValue", 0.0],
-            "zmu2": ["Z mu2", "RPNValue", 19.569511835591836]
+            "zmu2": ["Z mu2", "RPNValue", 19.569511835591836],
+            "filename": ["Filename", "InputFile", "", "Particle datafiles with the format:<br>nptot<br>nx, px, y, py, z, pz"]
         },
         "elementAnimation": {
             "x": ["X Value", "PhaseSpaceCoordinate", "x"],
@@ -383,6 +385,8 @@
             "title": "Beam",
             "basic": [
                 "particle",
+                "Bmass",
+                "Bcharge",
                 "Np",
                 "Bcurr",
                 "Bkenergy",
@@ -395,6 +399,7 @@
             "title": "Particle Distribution",
             "basic": [
                 "Flagdist",
+                "filename",
                 [
                     ["X", [
                         "sigx",

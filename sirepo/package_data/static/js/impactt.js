@@ -158,8 +158,8 @@ SIREPO.viewLogic('wakefieldView', function(appState, panelState, $scope) {
             return;
         }
         panelState.showFields('WAKEFIELD', [
-            ['gap', 'period', 'iris_radius'], m.method == 'analytical',
-            ['filename'], m.method == 'from_file',
+            ['gap', 'period', 'iris_radius'], m.method === 'analytical',
+            ['filename'], m.method === 'from_file',
         ]);
     }
 
@@ -167,4 +167,33 @@ SIREPO.viewLogic('wakefieldView', function(appState, panelState, $scope) {
     $scope.watchFields = [
         ['WAKEFIELD.method'], updateFields,
     ];
+});
+
+SIREPO.viewLogic('beamView', function(appState, panelState, $scope) {
+
+    function updateFields() {
+        panelState.showFields('beam', [
+            ['Bmass', 'Bcharge'], appState.models.beam.particle === 'other',
+        ]);
+    }
+
+    $scope.whenSelected = updateFields;
+    $scope.watchFields = [
+        ['beam.particle'], updateFields,
+    ];
+
+});
+
+SIREPO.viewLogic('distributionView', function(appState, panelState, $scope) {
+
+    function updateFields() {
+        panelState.showField('distribution', 'filename', appState.models.distribution.Flagdist === "16");
+        panelState.showRow('distribution', 'sigx', appState.models.distribution.Flagdist !== "16");
+    }
+
+    $scope.whenSelected = updateFields;
+    $scope.watchFields = [
+        ['distribution.Flagdist'], updateFields,
+    ];
+
 });

@@ -195,6 +195,10 @@ def _format_field(name, field, field_type, value):
             # TODO(pjm): handle wakefield filename
             return ""
         value = f'prep_input_file("{_SIM_DATA.lib_file_name_with_model_field(name, field, value)}")'
+    elif field_type == "RPNValue":
+        value = float(value)
+    elif field_type == "Integer":
+        pass
     else:
         value = f'"{value}"'
     return f"{field}={value},\n"
@@ -204,16 +208,21 @@ def _generate_header(data):
     dm = data.models
     res = PKDict()
     for m in ("beam", "distribution", "simulationSettings"):
+        s = SCHEMA.model[m]
         for k in dm[m]:
-            res[k] = dm[m][k]
-    if dm.beam.particle == "electron":
-        pass
-    elif dm.beam.particle == "proton":
-        pass
+            if s[k][1] == "RPNValue":
+                res[k] = float(dm[m][k])
+            else:
+                res[k] = dm[m][k]
+    if dm.beam.particle in ("electron", "proton"):
+        res["Bmass"], res["Bcharge"] = SCHEMA.constants.particleMassAndCharge[
+            dm.beam.particle
+        ]
     else:
         if dm.beam.particle != "other":
             raise AssertionError(f"Invalid particle type: {dm.beam.particle}")
     del res["particle"]
+    del res["filename"]
     return res
 
 
@@ -254,6 +263,7 @@ def _generate_parameters_file(data):
     v.lattice = _generate_lattice(util, util.select_beamline().id, [])
     v.archiveFile = _ARCHIVE_FILE
     v.numProcs = sirepo.mpi.cfg().cores
+    v.distributionFilename = _SIM_DATA.get_distribution_file(data)
     v.impactHeader = _generate_header(data)
     return res + template_common.render_jinja(
         SIM_TYPE,
@@ -290,9 +300,27 @@ def _output_info(data, run_dir):
     return res
 
 
+def _watches_in_beamline_order(data, beamline_id, result):
+    util = sirepo.template.lattice.LatticeUtil(data, SCHEMA)
+    beamline = util.id_map[abs(beamline_id)]
+    for item_id in beamline["items"]:
+        item = util.id_map[abs(item_id)]
+        if "type" in item:
+            pkdp("item.type: {}", item.type)
+            if item.type == "WRITE_BEAM":
+                pkdp("FOUND WRITE_BEAM")
+                if item.name not in result:
+                    pkdp("ADDING {}", item.name)
+                    result.append(item.name)
+        else:
+            _watches_in_beamline_order(data, item_id, result)
+    pkdp("HERE result: {}", result)
+    return result
+
+
 def _output_names(data):
-    res = ["initial_particles", "final_particles"]
-    for el in data.models.elements:
-        if el.type == "WRITE_BEAM":
-            res.append(el.name)
-    return res
+    return _watches_in_beamline_order(
+        data,
+        data.models.simulation.visualizationBeamlineId,
+        ["initial_particles", "final_particles"],
+    )
