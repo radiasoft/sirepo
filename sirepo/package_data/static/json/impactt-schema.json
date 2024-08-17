@@ -97,9 +97,11 @@
         ],
         "Stat": [
             ["none", "None"],
+            ["Bz", "Bz"],
             ["cov_x__px", "cov_x__px"],
             ["cov_y__py", "cov_y__py"],
             ["cov_z__pz", "cov_z__pz"],
+            ["Ez", "Ez"],
             ["loadbalance_max_n_particle", "loadbalance_max_n_particle"],
             ["loadbalance_min_n_particle", "loadbalance_min_n_particle"],
             ["max_amplitude_px", "max_amplitude_px"],
