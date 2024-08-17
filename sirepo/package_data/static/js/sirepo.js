@@ -1675,6 +1675,9 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
     };
 
     self.saveFrame = (frameId, modelName, data) => {
+        if (data.error) {
+            return;
+        }
         withObjectStore('readwrite', (o) => {
             data._srcache_updateTime = new Date().getTime();
             data._srcache_modelName = modelName;

@@ -10,7 +10,9 @@ from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import template_common
 import impact
+import impact.fieldmaps
 import impact.parsers
+import numpy
 import pmd_beamphysics
 import sirepo.mpi
 import sirepo.sim_data
@@ -124,10 +126,12 @@ def sim_frame_statAnimation(frame_args):
     )
     for _ in range(_STAT_RETRIES):
         try:
+            I.load_input(I._workdir + "/ImpactT.in")
             I.load_output()
         except ValueError as err:
             time.sleep(1)
     if "stats" not in I.output:
+        I.load_input(I._workdir + "/ImpactT.in")
         I.load_output()
     stats = I.output["stats"]
     plots = PKDict()
@@ -141,10 +145,35 @@ def sim_frame_statAnimation(frame_args):
             units = f" [{units}]"
         else:
             units = ""
+        if frame_args[f] in ("Bz", "Ez"):
+            zlist = I.stat("mean_z")
+            tlist = I.stat("t")
+            eles = [
+                ele
+                for ele in I.lattice
+                if ele["type"] in impact.fieldmaps.FIELD_CALC_ELE_TYPES
+            ]
+            p = numpy.array(
+                [
+                    impact.fieldmaps.lattice_field(
+                        eles,
+                        z=z,
+                        x=0,
+                        y=0,
+                        t=t,
+                        component=frame_args[f],
+                        fmaps=I.fieldmaps,
+                    )
+                    for z, t in zip(zlist, tlist)
+                ]
+            )
+
+        else:
+            p = stats[frame_args[f]]
         plots[f] = PKDict(
             label=f"{_PLOT_LABEL.get(frame_args[f], frame_args[f])}{units}",
             dim=f,
-            points=stats[frame_args[f]].tolist(),
+            points=p.tolist(),
         )
     return template_common.parameter_plot(
         x=plots.x.points,
@@ -193,7 +222,7 @@ def _find_last_stop(data, beamline_id):
     return 0
 
 
-def _format_field(name, field, field_type, value):
+def _format_field(code_var, name, field, field_type, value):
     if field == "_super":
         return ""
     if field == "l":
@@ -204,6 +233,7 @@ def _format_field(name, field, field_type, value):
             return ""
         value = f'prep_input_file("{_SIM_DATA.lib_file_name_with_model_field(name, field, value)}")'
     elif field_type == "RPNValue":
+        #TODO(pjm): eval RPNValue
         value = float(value)
     elif field_type == "Integer":
         pass
@@ -236,6 +266,7 @@ def _generate_header(data):
 
 def _generate_lattice(util, beamline_id, result):
     beamline = util.id_map[abs(beamline_id)]
+    cv = code_var(util.data.models.rpnVariables)
     output_ids = set(
         impact.parsers.FORT_STAT_TYPES
         + impact.parsers.FORT_DIPOLE_STAT_TYPES
@@ -258,7 +289,7 @@ def _generate_lattice(util, beamline_id, result):
             for f, d in SCHEMA.model[item.type].items():
                 if d[1] == "OutputFile":
                     item[f] = f"fort.{_next_output_id(output_ids)}"
-                el += _format_field(item.type, f, d[1], item[f])
+                el += _format_field(cv, item.type, f, d[1], item[f])
             result.append(el)
         else:
             _generate_lattice(util, item.id, result)
