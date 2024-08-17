@@ -188,7 +188,7 @@ SIREPO.viewLogic('distributionView', function(appState, panelState, $scope) {
 
     function updateFields() {
         panelState.showField('distribution', 'filename', appState.models.distribution.Flagdist === "16");
-        panelState.showRow('distribution', 'sigx', appState.models.distribution.Flagdist !== "16");
+        // the other distribution fields may also apply even when "from file" is selected
     }
 
     $scope.whenSelected = updateFields;

@@ -21,6 +21,14 @@ import time
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _ARCHIVE_FILE = "impact.h5"
 _MAX_OUTPUT_ID = 100
+_PLOT_LABEL = PKDict(
+    sigma_x="$\\sigma_x$",
+    sigma_y="$\\sigma_y$",
+    sigma_z="$\\sigma_z$",
+    sigma_px="$\\sigma_{px}$",
+    sigma_py="$\\sigma_{py}$",
+    sigma_pz="$\\sigma_{pz}$",
+)
 _PLOT_TITLE = PKDict(
     {
         "x-px": "Horizontal",
@@ -134,7 +142,7 @@ def sim_frame_statAnimation(frame_args):
         else:
             units = ""
         plots[f] = PKDict(
-            label=f"{frame_args[f]}{units}",
+            label=f"{_PLOT_LABEL.get(frame_args[f], frame_args[f])}{units}",
             dim=f,
             points=stats[frame_args[f]].tolist(),
         )

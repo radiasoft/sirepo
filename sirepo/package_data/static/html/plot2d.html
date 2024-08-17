@@ -1,4 +1,12 @@
   <div ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}" data-ng-attr-id="{{ ::reportId }}">
+    <div style="position: absolute">
+      <div data-ng-attr-style="transform: rotate(-90deg); position: relative; left: -{{ height / 2 - 12 }}px; top:{{ height / 2 + margin.top - 10 }}px; width: {{ height }}px;">
+        <div class="y-axis-label text-center"></div>
+      </div>
+      <div data-ng-attr-style="position: relative; left: {{ margin.left }}px; top: {{ height + margin.top }}px; width: {{ width }}px;">
+        <div class="x-axis-label text-center"></div>
+      </div>
+    </div>
     <div class="latex-title"></div>
     <div><svg class="sr-plot" xmlns:xlink="http://www.w3.org/1999/xlink">
       <defs>
@@ -15,8 +23,6 @@
         <g data-ng-if="wantColorbar" class="colorbar" ng-attr-transform="translate({{ margin.left + width }}, 0)">
           <text class="frequency-label" ng-attr-x="{{ -margin.right / 2 + 15 }}" y="-5"></text>
         </g>
-        <text class="y-axis-label" transform="rotate(-90)" ng-attr-x="{{ - height / 2 }}" ng-attr-y="-{{ margin.left }}" dy="1em"></text>
-        <text class="x-axis-label" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ height + 26 }}" dy="1em"></text>
         <text class="main-title" ng-attr-x="{{ width / 2 }}" ng-attr-y="-{{ margin.top / 2 }}"></text>
         <text class="sub-title" ng-attr-x="{{ width / 2 }}" y="0" dy="-.5em"></text>
         <text class="x-base" text-anchor="end" ng-attr-x="{{ width + margin.right - 5 }}" ng-attr-y="{{ height + 40 }}"></text>

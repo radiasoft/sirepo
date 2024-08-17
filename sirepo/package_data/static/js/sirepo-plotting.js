@@ -1654,7 +1654,7 @@ SIREPO.app.service('focusPointService', function(plotting) {
 
 });
 
-SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
+SIREPO.app.service('layoutService', function(mathRendering, panelState, plotting, utilities) {
     var svc = this;
 
     svc.formatUnits = (units, isFixed) => {
@@ -1906,6 +1906,10 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
             return calcFormat(tickValues.length, unit, base);
         }
 
+        function setLabel(label, select) {
+            select(`.${dimension}-axis-label`).html(mathRendering.mathAsHTML(label));
+        }
+
         function useFloatFormat(v) {
             v = valuePrecision(v);
             return v >= -2 && v <= 3;
@@ -1948,7 +1952,7 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
 
         self.updateLabel = (label, select) => {
             self.parseLabelAndUnits(label);
-            select(`.${dimension}-axis-label`).text(label);
+            setLabel(label, select);
         };
 
         self.updateLabelAndTicks = function(canvasSize, select, cssPrefix) {
@@ -1960,9 +1964,11 @@ SIREPO.app.service('layoutService', function(panelState, plotting, utilities) {
                 if (self.units) {
                     unit = formatPrefix(0);
                     formatInfo = calcTicks(calcFormat(MAX_TICKS, unit), canvasSize, fontSize);
-                    select('.' + dimension + '-axis-label').text(
+                    setLabel(
                         self.label + (formatInfo.base ? (' - ' + baseLabel()) : '')
-                        + ' ' + svc.formatUnits(formatInfo.unit.symbol + self.units));
+                        + ' ' + svc.formatUnits(formatInfo.unit.symbol + self.units),
+                        select,
+                    );
                 }
                 else {
                     formatInfo = calcTicks(calcFormat(MAX_TICKS), canvasSize, fontSize);
