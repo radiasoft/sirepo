@@ -3,6 +3,7 @@
 :copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+from pmd_beamphysics.labels import mathlabel
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
@@ -14,6 +15,7 @@ import impact.fieldmaps
 import impact.parsers
 import numpy
 import pmd_beamphysics
+import re
 import sirepo.mpi
 import sirepo.sim_data
 import sirepo.template.lattice
@@ -23,14 +25,6 @@ import time
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _ARCHIVE_FILE = "impact.h5"
 _MAX_OUTPUT_ID = 100
-_PLOT_LABEL = PKDict(
-    sigma_x="$\\sigma_x$",
-    sigma_y="$\\sigma_y$",
-    sigma_z="$\\sigma_z$",
-    sigma_px="$\\sigma_{px}$",
-    sigma_py="$\\sigma_{py}$",
-    sigma_pz="$\\sigma_{pz}$",
-)
 _PLOT_TITLE = PKDict(
     {
         "x-px": "Horizontal",
@@ -171,7 +165,7 @@ def sim_frame_statAnimation(frame_args):
         else:
             p = stats[frame_args[f]]
         plots[f] = PKDict(
-            label=f"{_PLOT_LABEL.get(frame_args[f], frame_args[f])}{units}",
+            label=f"{_plot_label(frame_args[f])}{units}",
             dim=f,
             points=p.tolist(),
         )
@@ -233,7 +227,7 @@ def _format_field(code_var, name, field, field_type, value):
             return ""
         value = f'prep_input_file("{_SIM_DATA.lib_file_name_with_model_field(name, field, value)}")'
     elif field_type == "RPNValue":
-        #TODO(pjm): eval RPNValue
+        # TODO(pjm): eval RPNValue
         value = float(value)
     elif field_type == "Integer":
         pass
@@ -339,21 +333,24 @@ def _output_info(data, run_dir):
     return res
 
 
+def _plot_label(field):
+    l = mathlabel(field)
+    if re.search(r"mathrm|None", l):
+        return field
+    return l
+
+
 def _watches_in_beamline_order(data, beamline_id, result):
     util = sirepo.template.lattice.LatticeUtil(data, SCHEMA)
     beamline = util.id_map[abs(beamline_id)]
     for item_id in beamline["items"]:
         item = util.id_map[abs(item_id)]
         if "type" in item:
-            pkdp("item.type: {}", item.type)
             if item.type == "WRITE_BEAM":
-                pkdp("FOUND WRITE_BEAM")
                 if item.name not in result:
-                    pkdp("ADDING {}", item.name)
                     result.append(item.name)
         else:
             _watches_in_beamline_order(data, item_id, result)
-    pkdp("HERE result: {}", result)
     return result
 
 

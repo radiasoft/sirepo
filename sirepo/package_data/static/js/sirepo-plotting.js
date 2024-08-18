@@ -1973,8 +1973,10 @@ SIREPO.app.service('layoutService', function(mathRendering, panelState, plotting
                 else {
                     formatInfo = calcTicks(calcFormat(MAX_TICKS), canvasSize, fontSize);
                     if (self.label) {
-                        select('.' + dimension + '-axis-label').text(
-                            self.label + (formatInfo.base ? (' - ' + baseLabel()) : ''));
+                        setLabel(
+                            self.label + (formatInfo.base ? (' - ' + baseLabel()) : ''),
+                            select,
+                        );
                     }
                 }
                 if (! self.noBaseFormat) {
@@ -3963,7 +3965,8 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         yLabel += ' ' + layoutService.formatUnits(units[idx], true);
                     }
                 });
-                if (yLabel.length > maxLabelSize) {
+                // strip out any KaTeX formatting before computing label length
+                if (yLabel.replace(/\$|\{|\s+/g, '').length > maxLabelSize) {
                     yLabel = yUnits;
                 }
                 else if (yUnits) {

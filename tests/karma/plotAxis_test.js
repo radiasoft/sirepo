@@ -12,7 +12,7 @@ describe('plotting: plotAxis', function() {
         }
         function selectStub() {
             var res = function() {};
-            res.text = function(v) {
+            res.html = res.text = function(v) {
                 formattedBase = v;
             };
             return res;
