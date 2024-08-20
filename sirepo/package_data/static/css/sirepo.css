@@ -566,37 +566,6 @@
     .sr-plot .x-base, .sr-plot .y-base {
       font-size: 13px;
     }
-    .sr-plot .popup-report {
-        display: none;
-    }
-    .sr-plot .popup-group {
-        fill: white;
-    }
-    .sr-plot .popup-group .report-window {
-        fill: rgba(255, 255, 255, 0.90);
-        stroke: blue;
-    }
-    .sr-plot .popup-group .report-window-title-bar {
-        fill: rgba(221, 237, 246, 0.9);
-        stroke: none;
-        cursor: move;
-    }
-
-    .sr-plot .popup-group .report-window-title-icon {
-        fill: #222;
-        cursor: pointer;
-        user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        -webkit-user-select: none;
-    }
-    .sr-plot .popup-group .report-window-close {
-    }
-    .sr-plot .popup-group .report-window-copy {
-        font-family: "Glyphicons Halflings";
-        fill: #337ab7;
-    }
-
 
     .sr-plot .plot-visibility {
         cursor: pointer;

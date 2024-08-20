@@ -1946,6 +1946,9 @@ SIREPO.app.directive('textWithMath', function(appState, mathRendering, utilities
         controller: function($scope) {
             $scope.appState = appState;
             $scope.getHTML = function() {
+                if (! $scope.textWithMath) {
+                    return '';
+                }
                 return $sce.trustAsHtml(mathRendering.mathAsHTML(
                     utilities.interpolateString($scope.textWithMath, $scope)
                 ));
