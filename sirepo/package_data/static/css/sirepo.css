@@ -1019,9 +1019,6 @@ label .katex {
   font-size: 16px;
   font-weight: normal;
 }
-.latex-title .katex {
-    font-size: 18px;
-}
 
 .sr-disabled-item {
   background-color: lightgray !important;

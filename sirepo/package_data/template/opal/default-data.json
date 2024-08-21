@@ -250,7 +250,6 @@
         ],
         "elements": [],
         "plotAnimation": {
-            "aspectRatio": "1",
             "notes": "",
             "x": "SPOS",
             "y1": "#varepsilon x",

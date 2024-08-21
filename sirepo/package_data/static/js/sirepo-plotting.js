@@ -2521,7 +2521,6 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
     return {
         restrict: 'A',
         scope: {
-            reportId: '<',
             modelName: '@',
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
@@ -2595,7 +2594,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
     return {
         restrict: 'A',
         scope: {
-            reportId: '<',
             modelName: '@',
         },
         templateUrl: '/static/html/plot3d.html' + SIREPO.SOURCE_CACHE_KEY,
@@ -3530,11 +3528,13 @@ SIREPO.app.directive('plotLegend', function(mathRendering) {
             togglePlot: '&',
         },
         template: `
-            <div data-ng-repeat="p in plots" style="margin-left: 1em">
-              <div data-ng-click="click($index)" style="cursor: pointer; display: inline">
-                <a href data-ng-style="{ opacity: opacity(p) }"><span class="glyphicon" data-ng-class="{'glyphicon-check': p._isVisible, 'glyphicon-unchecked': ! p._isVisible}"> </span></a>
-                <div style="display:inline" data-color-circle="p.color"></div>
-                <span data-text-with-math="label(p)" data-is-dynamic="1"></span>
+            <div data-ng-if="plots.length > 1">
+              <div data-ng-repeat="p in plots" style="margin-left: 1em">
+                <div data-ng-click="click($index)" style="cursor: pointer; display: inline">
+                  <a href data-ng-style="{ opacity: opacity(p) }"><span class="glyphicon" data-ng-class="{'glyphicon-check': p._isVisible, 'glyphicon-unchecked': ! p._isVisible}"> </span></a>
+                  <div style="display:inline" data-color-circle="p.color"></div>
+                  <span data-text-with-math="label(p)" data-is-dynamic="1"></span>
+                </div>
               </div>
             </div>
         `,
@@ -3578,25 +3578,16 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
     return {
         restrict: 'A',
         scope: {
-            reportId: '<',
             modelName: '@',
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
-            let childPlots = {};
             let dynamicYLabel = false;
-            let includeForDomain = [];
             let scaleFunction;
 
             $scope.reportId = SIREPO.UTILS.randomId();
-            $scope.domPadding = {
-                x: 0,
-                y: 0
-            };
             $scope.focusPoints = [];
             $scope.focusStrategy = 'closest';
-            $scope.latexTitle = '';
-            $scope.wantLegend = true;
 
             function build2dPointsForPlot(plotIndex) {
                 var pts = [];
@@ -3611,13 +3602,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function canToggle(pIndex) {
-                let count = 0;
-                for (const p of $scope.axes.y.plots) {
-                    if (p._isVisible) {
-                        count++;
-                        if (count > 1) {
-                            return true;
-                        }
+                for (const [idx, p] of $scope.axes.y.plots.entries()) {
+                    if (idx != pIndex && p._isVisible) {
+                        return true;
                     }
                 }
                 return false;
@@ -3627,61 +3614,18 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 return $scope.axes.y.plots.map(plot => plot.label);
             }
 
-            function includeDomain(pIndex, doInclude) {
-                var domainIndex = includeForDomain.indexOf(pIndex);
-                if (! doInclude) {
-                    if (domainIndex >= 0) {
-                        includeForDomain.splice(domainIndex, 1);
-                    }
-                }
-                else {
-                    if (domainIndex < 0) {
-                        includeForDomain.push(pIndex);
-                    }
-                }
-                if (childPlots[pIndex]) {
-                    childPlots[pIndex].forEach(function (cIndex) {
-                        includeDomain(cIndex, doInclude);
-                    });
-                }
+            function isFixedDomain() {
+                var m = appState.models[$scope.modelName];
+                return m && (m.plotRangeType == 'fixed' || m.plotRangeType == 'fit');
             }
 
             function isPlotVisible(pIndex) {
                 return $scope.axes.y.plots[pIndex]._isVisible;
             }
 
-            function modulateRGBA(start, end, steps, reverse) {
-                if (! start[3]) {
-                    start.push(1.0);
-                }
-                if (! end[3]) {
-                    end.push(1.0);
-                }
-                var s = reverse ? end : start;
-                var e = reverse ? start : end;
-                if (steps <= 1) {
-                    return [e];
-                }
-                var rgbaSteps = [];
-                for (var i  = 0; i < steps; ++i) {
-                    var c = [];
-                    for (var j = 0; j < 4; ++j) {
-                        var startComp = s[j];
-                        var endComp = e[j];
-                        c.push(startComp + i * (endComp - startComp) / (steps - 1));
-                    }
-                    rgbaSteps.push(c);
-                }
-                return rgbaSteps;
-            }
-
             function plotPath(pIndex) {
                 var sel = '.plot-viewport .param-plot[data-sr-index=\'' + pIndex + '\']';
                 return d3.selectAll(selectAll(sel)[0]);
-            }
-
-            function rgbaToCSS(rgba) {
-                return 'rgba(' + rgba[0] + ',' + rgba[1] + ',' + rgba[2] + ',' + rgba[3] + ')';
             }
 
             function selectAll(selector) {
@@ -3695,12 +3639,8 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     return;
                 }
                 $scope.axes.y.plots[pIndex]._isVisible = isVisible;
-                ([pIndex].concat(childPlots[pIndex] || [])).forEach(function (i) {
-                    plotPath(i).style('opacity', isVisible ? 1.0 : 0.0);
-                });
-
+                plotPath(pIndex).style('opacity', isVisible ? 1.0 : 0.0);
                 if ($scope.axes.y.plots && $scope.axes.y.plots[pIndex]) {
-                    includeDomain(pIndex, isVisible);
                     $scope.recalculateYDomain();
                     $scope.resize();
                 }
@@ -3711,10 +3651,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     index: pIndex,
                 });
             }
-
-            $scope.togglePlot = (pIndex) => {
-                togglePlot(pIndex);
-            };
 
             function togglePlot(pIndex) {
                 setPlotVisible(pIndex, ! isPlotVisible(pIndex));
@@ -3773,21 +3709,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 $scope.resize();
             }
 
-            // get the broadest domain from the visible plots
-            function visibleDomain() {
-                var ydomMin = utilities.arrayMin(
-                    includeForDomain.map(function(index) {
-                        return utilities.arrayMin($scope.axes.y.plots[index].points);
-                    })
-                );
-                var ydomMax = utilities.arrayMax(
-                    includeForDomain.map(function(index) {
-                        return utilities.arrayMax($scope.axes.y.plots[index].points);
-                    })
-                );
-                return plotting.ensureDomain([ydomMin, ydomMax], scaleFunction);
-            }
-
             $scope.formatFocusPointData = function(fp) {
                 const plotLabels = getPlotLabels();
                 var yLabel = plotLabels[$scope.focusPoints.indexOf(fp)];
@@ -3836,8 +3757,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 }
                 $scope.firstRefresh = true;
                 //TODO(pjm): move first part into normalizeInput()
-                childPlots = {};
-                includeForDomain.length = 0;
                 $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 4.0 / 7);
                 dynamicYLabel = json.dynamicYLabel || false;
                 // data may contain 2 plots (y1, y2) or multiple plots (plots)
@@ -3887,14 +3806,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 $scope.axes.y.plots = plots;
 
                 plots.forEach(function(plot, ip) {
-                    var color = plotting.colorsFromHexString(plot.color, 1.0);
-
-                    // specifically meant for historical data - each data point's color gets
-                    // modulated by the amount specified
-                    var endColor = plot.colorModulation || color;
-                    var reverseMod = (plot.modDirection || 0) < 0;
-                    var strokeWidth = plot._parent ? 0.75 : 2.0;
-                    var sym;
+                    var strokeWidth = 2.0;
                     if (plot.style === 'scatter') {
                         var clusterInfo;
                         var circleRadius = plot.circleRadius || 2;
@@ -3920,26 +3832,14 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             .attr('class', 'scatter-point line-color');
                     }
                     else {
-                        var plotColorMod = modulateRGBA(color, endColor, plots.length, reverseMod);
                         var p = viewport.append('path')
                             .attr('class', 'param-plot line line-color')
                             .attr('data-sr-index', ip)
-                            .style('stroke', rgbaToCSS(plotColorMod[ip]))
+                            .style('stroke', plot.color)
                             .style('stroke-width', strokeWidth)
                             .datum(plot.points);
                         if (plot.dashes) {
                             p.style('stroke-dasharray', (plot.dashes));
-                        }
-                    }
-                    if (plot._parent) {
-                        var parent = plots.filter(function (p, j) {
-                            return j !== ip && p.label === plot._parent;
-                        })[0];
-                        if (parent) {
-                            var pIndex = plots.indexOf(parent);
-                            var cp = childPlots[pIndex] || [];
-                            cp.push(ip);
-                            childPlots[pIndex] = cp;
                         }
                     }
                     // must create extra focus points here since we don't know how many to make
@@ -3958,8 +3858,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], [], false, $scope);
                     }
                 }
-
-                $($element).find('.latex-title').eq(0).html(mathRendering.mathAsHTML(json.latex_label, {displayMode: true}));
 
                 //TODO(pjm): onRefresh indicates an embedded header, needs improvement
                 $scope.margin.top = json.title
@@ -3982,6 +3880,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             };
 
             $scope.recalculateYDomain = function() {
+                if (isFixedDomain()) {
+                    $scope.setYDomain();
+                    return;
+                }
                 var ydom;
                 var xdom = $scope.axes.x.scale.domain();
                 var xPoints = $scope.axes.x.points;
@@ -3991,19 +3893,21 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     if (x > xdom[1] || x < xdom[0]) {
                         continue;
                     }
-                    for (var d in includeForDomain) {
-                        var j = includeForDomain[d];
-                        var y = plots[j].points[i];
-                        if (ydom) {
-                            if (y < ydom[0]) {
-                                ydom[0] = y;
+
+                    for (const p of plots) {
+                        if (p._isVisible) {
+                            var y = p.points[i];
+                            if (ydom) {
+                                if (y < ydom[0]) {
+                                    ydom[0] = y;
+                                }
+                                else if (y > ydom[1]) {
+                                    ydom[1] = y;
+                                }
                             }
-                            else if (y > ydom[1]) {
-                                ydom[1] = y;
+                            else {
+                                ydom = [y, y];
                             }
-                        }
-                        else {
-                            ydom = [y, y];
                         }
                     }
                 }
@@ -4013,17 +3917,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             };
 
             $scope.refresh = function() {
-                // need to wait for the screen dimensions to be set, then calculate the padding once
-                if ($scope.firstRefresh) {
-                    $scope.firstRefresh = false;
-                    const xdom = $scope.axes.x.domain;
-                    $scope.setYDomain();
-                    $scope.padXDomain();
-                    if (! appState.deepEquals(xdom, $scope.axes.x.domain)) {
-                        $scope.axes.x.scale.domain($scope.axes.x.domain);
-                    }
-                }
-
                 $scope.select('.plot-viewport').selectAll('.line')
                     .each(function (d) {
                         var ip = parseInt(d3.select(this).attr('data-sr-index'));
@@ -4049,6 +3942,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 if ($scope.onRefresh) {
                     $scope.onRefresh();
                 }
+            };
+
+            $scope.togglePlot = (pIndex) => {
+                togglePlot(pIndex);
             };
 
             $scope.$on(SIREPO.PLOTTING_CSV_EVENT, ()=> {
@@ -4079,17 +3976,12 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             // user interaction
             $scope.padXDomain = function() {
                 var xdom = $scope.axes.x.domain;
-                $scope.axes.x.domain = [xdom[0] - $scope.domPadding.x, xdom[1] + $scope.domPadding.x];
+                $scope.axes.x.domain = [xdom[0], xdom[1]];
             };
 
             $scope.setYDomain = function() {
-                var model = appState.models[$scope.modelName];
-                if (model && (model.plotRangeType == 'fixed' || model.plotRangeType == 'fit')) {
+                if (isFixedDomain()) {
                     $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
-                }
-                else {
-                    var vd = visibleDomain();
-                    $scope.axes.y.scale.domain([vd[0] - $scope.domPadding.y, vd[1] + $scope.domPadding.y]).nice();
                 }
             };
         },
