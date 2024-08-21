@@ -6,9 +6,10 @@
   --sr-item-user-dark-mode: #46c246;
   --sr-link-dark-mode: #5da1e1;
   --sr-link-hover-dark-mode: #fff;
-  --sr-panel-bg-dark-mode: #333;
+  --sr-panel-heading-bg-dark-mode: #282c31;
+  --sr-panel-bg-dark-mode: #000;
   --sr-panel-border-dark-mode: #999;
-  --sr-panel-control-dark-mode: #444;
+  --sr-panel-control-dark-mode: #21252a;
   --sr-panel-text-dark-mode: #eee;
 }
 @media (prefers-color-scheme: dark) {
@@ -44,12 +45,6 @@
   svg.sr-plot g.axis > path {
     stroke: var(--sr-panel-text-dark-mode);
   }
-  svg.sr-plot g.sr-plot-legend-item > text {
-    fill: var(--sr-link-dark-mode);
-  }
-  svg.sr-plot g.sr-plot-legend-item > text.focus-text {
-    fill: var(--sr-link-dark-mode);
-  }
   svg.sr-plot g.text-block > text#x-text {
     fill: var(--sr-panel-text-dark-mode) !important;
   }
@@ -75,9 +70,16 @@
     border-color: var(--sr-panel-border-dark-mode);
     border-bottom-color: transparent;
   }
+  app-header-right-sim-loaded .nav-tabs > li.sim-section > a:hover {
+    background-color: transparent;
+  }
 
   .btn-default {
     background-color: var(--sr-panel-control-dark-mode);
+    color: var(--sr-item-active-dark-mode);
+  }
+  .btn-default:hover {
+    background-color: var(--sr-item-focused-bg-dark-mode);
     color: var(--sr-item-active-dark-mode);
   }
 
@@ -140,12 +142,18 @@
   .panel-info {
     border-color: var(--sr-panel-border-dark-mode);
   }
+  .modal-content {
+    border-color: var(--sr-panel-border-dark-mode);
+  }
+  .modal-backdrop.in {
+    opacity: 0.7;
+  }
   .panel-info > .panel-heading {
     border-color: var(--sr-panel-border-dark-mode);
-    background-color: var(--sr-panel-bg-dark-mode);
+    background-color: var(--sr-panel-heading-bg-dark-mode);
   }
   .bg-warning, .bg-info {
-    background-color: var(--sr-panel-bg-dark-mode);
+    background-color: var(--sr-panel-heading-bg-dark-mode);
   }
   button.close {
     color: var(--sr-panel-color);
@@ -154,6 +162,10 @@
   button.close:focus, button.close:hover {
     color: var(--sr-panel-color);
     opacity: 1;
+  }
+
+  .progress {
+    background-color: var(--sr-panel-heading-bg-dark-mode);
   }
 
   .report-window {
@@ -214,5 +226,41 @@
 
   .table-hover > tbody > tr:hover {
     background-color: var(--sr-item-bg-dark-mode);
+  }
+
+  .sr-panel-loading .sr-panel-wait, .sr-panel-waiting .sr-panel-wait {
+    background-color: var(--sr-panel-heading-bg-dark-mode);
+  }
+
+  .nav-tabs > li.active > a,
+  .nav-tabs > li.active > a:hover,
+  .nav-tabs > li.active > a:focus {
+    background-color: var(--sr-bg-dark-mode);
+    color: var(--sr-item-active-dark-mode);
+  }
+
+  .nav > li > a:hover,
+  .nav > li > a:focus {
+    background-color: transparent;
+  }
+
+  .toggle-group label.toggle-on {
+    background-color: var(--sr-panel-heading-bg-dark-mode);
+  }
+  .toggle.btn {
+    border-color: #ccc;
+  }
+  .toggle-group label.btn-default.toggle-off {
+    color: var(--sr-panel-text-dark-mode);
+    background-color: var(--sr-bg-dark-mode);
+  }
+
+  .sr-lattice-watch {
+    stroke: white;
+    stroke-width: 0.01;
+  }
+
+  .sr-screenshot {
+    background-color: var(--sr-bg-dark-mode);
   }
 }

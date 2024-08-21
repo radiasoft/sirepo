@@ -134,3 +134,8 @@ div.sr-lattice-icon-disabled span {
   max-width: none;
   width: 25em;
 }
+
+.sr-lattice-watch {
+  stroke: black;
+  stroke-width: 0.01;
+}

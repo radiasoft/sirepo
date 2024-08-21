@@ -90,6 +90,7 @@ def bunch_plot(model, run_dir, frame_index, filename):
             x_label=f"{model.x} [{p.units(model.x)}]",
             y_label=f"{model.y} [{p.units(model.y)}]",
             title=_PLOT_TITLE.get(f"{model.x}-{model.y}", f"{model.x} - {model.y}"),
+            threshold=[1e-20, 1e20],
         ),
     )
 

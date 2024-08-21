@@ -97,16 +97,16 @@ def extract_beam_position_report(data, run_dir):
                 field="x",
                 points=points.x,
                 label="x [m]",
-                symbol="triangle-up",
                 color="#1f77b4",
+                circleRadius=10,
             ),
             PKDict(
                 style="scatter",
                 field="y",
                 points=points.y,
                 label="y [m]",
-                symbol="triangle-down",
                 color="#ff7f0e",
+                circleRadius=10,
             ),
         ],
         y_range=_y_range(points),
@@ -121,8 +121,8 @@ def extract_beam_position_report(data, run_dir):
                 field="log_y",
                 points=points.log_y,
                 label="y [m]",
-                symbol="diamond",
                 color="#d62728",
+                circleRadius=10,
             ),
         )
         res.plots.insert(
@@ -132,8 +132,8 @@ def extract_beam_position_report(data, run_dir):
                 field="log_x",
                 points=points.log_x,
                 label="x [m]",
-                symbol="square",
                 color="#2ca02c",
+                circleRadius=10,
             ),
         )
     return res

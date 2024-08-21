@@ -2275,12 +2275,12 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
         template: `
             <div style="pointer-events: all; position: absolute" class="sr-popup-report"
               data-ng-drag="true" data-ng-drag-success="dragDone($data, $event)">
-              <div style="border: 2px solid steelblue; border-radius: 4px; background-color: white">
-                <div class="bg-info" style="cursor: move; padding: 3px" ng-drag-handle="">
+              <div class="panel panel-info">
+                <div class="panel-heading" style="cursor: move; padding: 3px" ng-drag-handle="">
                   <a href><span style="margin-left: 3px" data-ng-click="copyToClipboard()"
                     class="glyphicon glyphicon-copy"></span></a>
-                  <div class="pull-right" data-ng-click="closePopup()"><span class="close"
-                    style="margin-top: -2px; margin-right: 2px">&times;</span></div>
+                  <div class="pull-right"><button type="button" class="close"  data-ng-click="closePopup()"
+                    style="margin-top: -2px; margin-right: 2px"><span>&times;</span></button></div>
                 </div>
                 <div style="padding: 4px; white-space: nowrap">
                 <div style="height: 20px"><span data-text-with-math="focusPoints[0].config.xAxis.label"
@@ -2327,7 +2327,7 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
                 const m = focusPointService.dataCoordsToMouseCoords(
                     $scope.modelName, $scope.focusPoints[0]);
                 if (m) {
-                    const p = popup()
+                    const p = popup();
                     setPosition(m.x, p.offset().top - p.parent().offset().top);
                 }
             }
@@ -2345,7 +2345,7 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
             }
 
             function setRelativePosition(left, top) {
-                const p = popup()
+                const p = popup();
                 const po = p.parent().offset();
                 setPosition(left - po.left, top - po.top);
             }
@@ -2360,17 +2360,17 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
 
             $scope.closePopup = () => {
                 focusPointService.hideFocusPoint(plotScope(), true);
-            }
+            };
 
             $scope.copyToClipboard = () => {
                 plotScope().copyToClipboard();
-            }
+            };
 
             $scope.dragDone = ($data, $event) => {
                 didDragToNewPositon = true;
                 const o = popup().offset();
                 setRelativePosition(o.left, o.top);
-            }
+            };
 
             $scope.opacity = (index) => {
                 if (! $scope.focusPoints[0].config.yAxis.plots[index]._isVisible) {
@@ -3025,7 +3025,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 var domain = plotting.ensureDomain([zmin, zmax], scaleFunction);
                 axes.bottomY.scale.domain(domain).nice();
                 axes.rightX.scale.domain([domain[1], domain[0]]).nice();
-                plotting.initImage({ min: zmin, max: zmax }, heatmap, cacheCanvas, imageData, $scope.modelName);
+                plotting.initImage({ min: zmin, max: zmax }, heatmap, cacheCanvas, imageData, $scope.modelName, json.threshold);
                 $scope.resize();
                 $scope.resize();
             };
@@ -3135,7 +3135,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             let canvas, ctx, amrLine, heatmap, mouseClickPoint, mouseMovePoint, pointer, zoom;
             let globalMin = 0.0;
             let globalMax = 1.0;
-            let threshold = null;
             let cacheCanvas, imageData;
             let colorbar, hideColorBar;
             const overlaySelector = 'svg.sr-plot g.sr-overlay-data-group';
@@ -3307,7 +3306,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 return selector ? e.select(selector) : e;
             }
 
-            function setColorScale() {
+            function setColorScale(threshold) {
                 var plotMin = globalMin != null ? globalMin : plotting.min2d(heatmap);
                 var plotMax = globalMax != null ? globalMax : plotting.max2d(heatmap);
                 if (plotMin == plotMax) {
@@ -3322,7 +3321,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     cacheCanvas,
                     imageData,
                     $scope.modelName,
-                    threshold
+                    threshold,
                 );
                 colorbar.scale(colorScale);
             }
@@ -3448,7 +3447,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 heatmap = plotting.safeHeatmap(appState.clone(json.z_matrix).reverse());
                 globalMin = json.global_min;
                 globalMax = json.global_max;
-                threshold = json.threshold;
                 select('.main-title').text(json.title);
                 select('.sub-title').text(json.subtitle);
                 let c = false;
@@ -3470,7 +3468,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 imageData = ctx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
                 select('.z-axis-label').text(json.z_label);
                 select('.frequency-label').text(json.frequency_title);
-                setColorScale();
+                setColorScale(json.threshold);
                 hideColorBar = json.hideColorBar || false;
 
                 var amrLines = [];
@@ -3534,7 +3532,7 @@ SIREPO.app.directive('plotLegend', function(mathRendering) {
         template: `
             <div data-ng-repeat="p in plots" style="margin-left: 1em">
               <div data-ng-click="click($index)" style="cursor: pointer; display: inline">
-                <span data-ng-style="{ color: checkboxColor(p) }" class="glyphicon" data-ng-class="{'glyphicon-check': p._isVisible, 'glyphicon-unchecked': ! p._isVisible}"> </span>
+                <a href data-ng-style="{ opacity: opacity(p) }"><span class="glyphicon" data-ng-class="{'glyphicon-check': p._isVisible, 'glyphicon-unchecked': ! p._isVisible}"> </span></a>
                 <div style="display:inline" data-color-circle="p.color"></div>
                 <span data-text-with-math="label(p)" data-is-dynamic="1"></span>
               </div>
@@ -3550,16 +3548,8 @@ SIREPO.app.directive('plotLegend', function(mathRendering) {
                 return true;
             }
 
-            $scope.checkboxColor = (p) => {
-                if (p._isVisible) {
-                    for (const p2 of $scope.plots) {
-                        if (p.label !== p2.label && p2._isVisible) {
-                            return 'black';
-                        }
-                    }
-                    return 'gray';
-                }
-                return 'black';
+            $scope.click = (index) => {
+                $scope.togglePlot({ pIndex: index });
             };
 
             $scope.label = (p) => {
@@ -3568,8 +3558,17 @@ SIREPO.app.directive('plotLegend', function(mathRendering) {
                 }
                 return p.label;
             };
-            $scope.click = (index) => {
-                $scope.togglePlot({ pIndex: index });
+
+            $scope.opacity = (p) => {
+                if (p._isVisible) {
+                    for (const p2 of $scope.plots) {
+                        if (p.label !== p2.label && p2._isVisible) {
+                            return 1.0;
+                        }
+                    }
+                    return 0.4;
+                }
+                return 1.0;
             };
         },
     };
@@ -3839,10 +3838,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 //TODO(pjm): move first part into normalizeInput()
                 childPlots = {};
                 includeForDomain.length = 0;
-                if (json.aspectRatio) {
-                    // only use aspectRatio from server for parameterPlot for now, not from model like heatplots
-                    $scope.aspectRatio = json.aspectRatio;
-                }
+                $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 4.0 / 7);
                 dynamicYLabel = json.dynamicYLabel || false;
                 // data may contain 2 plots (y1, y2) or multiple plots (plots)
                 var plots = json.plots || [
@@ -3901,14 +3897,14 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     var sym;
                     if (plot.style === 'scatter') {
                         var clusterInfo;
-                        var circleRadius = 2;
+                        var circleRadius = plot.circleRadius || 2;
                         if (json.clusters) {
                             clusterInfo = json.clusters;
                             $scope.clusterInfo = clusterInfo;
                             clusterInfo.scale = clusterInfo.count > 10
                                 ? d3.scale.category20()
                                 : d3.scale.category10();
-                            circleRadius = 4;
+                            circleRadius = plot.circleRadius || 4;
                         }
                         viewport.append('g')
                         .attr('class', 'param-plot')
