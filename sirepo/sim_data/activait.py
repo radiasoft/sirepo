@@ -61,13 +61,15 @@ class SimData(sirepo.sim_data.SimDataBase):
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
-    def _compute_job_fields(cls, data, r, compute_model):
+    def _compute_job_fields(cls, data, report, compute_model):
         res = [
             "columnInfo.header",
             "dataFile.file",
             "dataFile.inputsScaler",
         ]
-        if "fileColumnReport" in r:
+        if "analysisReport" in report:
+            res.append(report)
+        if "fileColumnReport" in report:
             d = data.models.dataFile
             if d.appMode == "classification":
                 # no outputsScaler for classification
@@ -78,7 +80,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 # the columns will be unchanged when switching between input/output
                 return res
             return res + ["columnInfo.inputOutput"]
-        if "partitionColumnReport" in r:
+        if "partitionColumnReport" in report:
             res.append("partition")
         return res
 

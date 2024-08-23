@@ -1204,8 +1204,8 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
         $scope.axes = {
             x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
             y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
+            y2: layoutService.plotAxis($scope.margin, 'y2', 'right', refresh),
         };
-
         function init() {
             $scope.select('svg.sr-plot').attr('height', plotting.initialHeight($scope));
             $.each($scope.axes, function(dim, axis) {
@@ -1222,11 +1222,24 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
             resetZoom();
         }
 
+        function recalcAxes() {
+            $.each($scope.axes, function(dim, axis) {
+                axis.updateLabelAndTicks({
+                    width: $scope.width,
+                    height: $scope.height,
+                    scaleFunction: dim == 'x' ? null: scaleFunction,
+                }, $scope.select);
+                axis.grid.ticks(axis.tickCount);
+                $scope.select('.' + dim + '.axis.grid').call(axis.grid);
+            });
+        }
+
         function refresh() {
             if (! $scope.axes.x.domain) {
                 return;
             }
             if (layoutService.plotAxis.allowUpdates) {
+                recalcAxes();
                 var elementWidth = parseInt($scope.select().style('width'));
                 if (isNaN(elementWidth)) {
                     return;
@@ -1237,15 +1250,19 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
                     .attr('height', $scope.height + $scope.margin.top + $scope.margin.bottom);
                 $scope.axes.x.scale.range([0, $scope.width]);
                 $scope.axes.y.scale.range([$scope.height, 0]);
+                if ($scope.axes.y2) {
+                    $scope.axes.y2.scale.range([$scope.height, 0]);
+                }
                 $scope.axes.x.grid.tickSize(-$scope.height);
                 $scope.axes.y.grid.tickSize(-$scope.width);
+                recalcAxes();
             }
             var isFullSize = plotting.trimDomain($scope.axes.x.scale, $scope.axes.x.domain);
-            if (isFullSize) {
-                $scope.setYDomain();
-            }
-            else if ($scope.recalculateYDomain && ! $scope.isZoomXY) {
+            if ($scope.recalculateYDomain && ! $scope.isZoomXY) {
                 $scope.recalculateYDomain();
+            }
+            else if (isFullSize) {
+                $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
             }
             $scope.select($scope.zoomContainer)
                 .classed('mouse-zoom', isFullSize)
@@ -1254,15 +1271,6 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
                 .classed('mouse-move-ew', ! isFullSize && ! ($scope.isZoomXY || $scope.isZoomY));
             resetZoom();
             $scope.select($scope.zoomContainer).call(zoom);
-            $.each($scope.axes, function(dim, axis) {
-                axis.updateLabelAndTicks({
-                    width: $scope.width,
-                    height: $scope.height,
-                    scaleFunction: dim == 'y' ? scaleFunction : null,
-                }, $scope.select);
-                axis.grid.ticks(axis.tickCount);
-                $scope.select('.' + dim + '.axis.grid').call(axis.grid);
-            });
             if ($scope.wantColorbar) {
                 colorbar.barlength($scope.height)
                     .origin([0, 0]);
@@ -1298,12 +1306,6 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
             }
             refresh();
         };
-
-        if (! $scope.setYDomain) {
-            $scope.setYDomain = function() {
-                $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
-            };
-        }
 
         $scope.updatePlot = function(json) {
             $scope.dataCleared = false;
@@ -2271,6 +2273,7 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
         scope: {
             modelName: '@',
             focusPoints: '=',
+            plots: '=',
         },
         template: `
             <div style="pointer-events: all; position: absolute" class="sr-popup-report"
@@ -2286,8 +2289,8 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
                 <div style="height: 20px"><span data-text-with-math="focusPoints[0].config.xAxis.label"
                   data-is-dynamic="1"></span> = {{ pointText(0, true) }} {{ focusPoints[0].config.xAxis.units }}</div>
                 <div data-ng-style="{ opacity: opacity($index) }" style="height: 20px"
-                  data-ng-repeat="p in focusPoints[0].config.yAxis.plots track by p._label + $index">
-                  <div style="display:inline" data-color-circle="p.color"></div>
+                  data-ng-repeat="p in plots track by p._label + $index">
+                  <div style="display:inline" data-color-circle="p.color" data-dashed="p._yaxis === 'right'"></div>
                   <span data-text-with-math="p._label"></span> = {{ pointText($index) }} {{ p._units }}
                 </div>
                 </div>
@@ -2373,7 +2376,7 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
             };
 
             $scope.opacity = (index) => {
-                if (! $scope.focusPoints[0].config.yAxis.plots[index]._isVisible) {
+                if (! $scope.plots[index]._isVisible) {
                     return 0.4;
                 }
                 return 1.0;
@@ -3025,7 +3028,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 axes.rightX.scale.domain([domain[1], domain[0]]).nice();
                 plotting.initImage({ min: zmin, max: zmax }, heatmap, cacheCanvas, imageData, $scope.modelName, json.threshold);
                 $scope.resize();
-                $scope.resize();
             };
 
             $scope.modelChanged = function() {
@@ -3481,7 +3483,6 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 }
                 select('.line-amr-grid').datum(amrLines);
                 $scope.resize();
-                $scope.resize();
             };
 
             $scope.resize = function() {
@@ -3513,10 +3514,16 @@ SIREPO.app.directive('colorCircle', function() {
         resize: 'A',
         scope: {
             color: '<colorCircle',
+            dashed: '<',
         },
         template: `
-          <div data-ng-style="{ background: color }" style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-bottom: -2px"> </div>
+          <div data-ng-style="{ background: bgcolor }" style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-bottom: -2px"> </div>
         `,
+        controller: function($scope) {
+            $scope.bgcolor = $scope.dashed
+                ? `linear-gradient(90deg, ${$scope.color} 38%, transparent 38%, transparent 62%, ${$scope.color} 62%)`
+                : $scope.color;
+        },
     };
 });
 
@@ -3524,15 +3531,16 @@ SIREPO.app.directive('plotLegend', function(mathRendering) {
     return {
         restrict: 'A',
         scope: {
-            plots: '=',
+            plots: '<',
             togglePlot: '&',
+            dynamicYLabel: '<',
         },
         template: `
             <div data-ng-if="plots.length > 1">
               <div data-ng-repeat="p in plots" style="margin-left: 1em">
                 <div data-ng-click="click($index)" style="cursor: pointer; display: inline">
                   <a href data-ng-style="{ opacity: opacity(p) }"><span class="glyphicon" data-ng-class="{'glyphicon-check': p._isVisible, 'glyphicon-unchecked': ! p._isVisible}"> </span></a>
-                  <div style="display:inline" data-color-circle="p.color"></div>
+                  <div style="display:inline" data-color-circle="p.color" data-dashed="p._yaxis === 'right'"></div>
                   <span data-text-with-math="label(p)" data-is-dynamic="1"></span>
                 </div>
               </div>
@@ -3553,7 +3561,7 @@ SIREPO.app.directive('plotLegend', function(mathRendering) {
             };
 
             $scope.label = (p) => {
-                if (hasSameUnits(p._units)) {
+                if ($scope.dynamicYLabel && hasSameUnits(p._units)) {
                     return p._label;
                 }
                 return p.label;
@@ -3582,27 +3590,29 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
         },
         templateUrl: '/static/html/plot2d.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
-            let dynamicYLabel = false;
-            let scaleFunction;
+            const yMargin = 23;
+            let scaleFunction, y2_axis;
 
-            $scope.reportId = SIREPO.UTILS.randomId();
+            $scope.dynamicYLabel = false;
             $scope.focusPoints = [];
             $scope.focusStrategy = 'closest';
+            $scope.plots = null;
+            $scope.reportId = SIREPO.UTILS.randomId();
 
             function build2dPointsForPlot(plotIndex) {
                 var pts = [];
-                var xPoints = $scope.axes.y.plots[plotIndex].x_points || $scope.axes.x.points;
+                var xPoints = $scope.axes.x.points;
                 for (var ptIndex = 0; ptIndex < xPoints.length; ++ptIndex) {
                     pts.push([
                         xPoints[ptIndex],
-                        $scope.axes.y.plots[plotIndex].points[ptIndex]
+                        $scope.plots[plotIndex].points[ptIndex]
                     ]);
                 }
                 return pts;
             }
 
             function canToggle(pIndex) {
-                for (const [idx, p] of $scope.axes.y.plots.entries()) {
+                for (const [idx, p] of $scope.plots.entries()) {
                     if (idx != pIndex && p._isVisible) {
                         return true;
                     }
@@ -3611,7 +3621,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function getPlotLabels() {
-                return $scope.axes.y.plots.map(plot => plot.label);
+                return $scope.plots.map(plot => plot.label);
             }
 
             function isFixedDomain() {
@@ -3620,7 +3630,74 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function isPlotVisible(pIndex) {
-                return $scope.axes.y.plots[pIndex]._isVisible;
+                return $scope.plots[pIndex]._isVisible;
+            }
+
+            function normalizeInput(json) {
+                $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 4.0 / 7);
+                $scope.dynamicYLabel = json.dynamicYLabel || false;
+                // data may contain 2 plots (y1, y2) or multiple plots (plots)
+                json.plots = json.plots || [
+                    {
+                        points: json.points[0],
+                        label: json.y1_title,
+                        color: '#1f77b4',
+                    },
+                    {
+                        points: json.points[1],
+                        label: json.y2_title,
+                        color: '#ff7f0e',
+                    },
+                ];
+                if (json.plots[0].x_points) {
+                    $scope.noOverlay = true;
+                }
+                if (json.plots.length == 1 && ! json.y_label) {
+                    json.y_label = json.plots[0].label;
+                }
+                $scope.axes.x.points = json.x_points
+                    || plotting.linearlySpacedArray(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
+                if (angular.isArray($scope.axes.x.points[0])) {
+                    throw new Error('expecting a single array for x values: ' + $scope.modelName);
+                }
+                //TODO(pjm): onRefresh indicates a beamline overlay, needs improvement
+                if ($scope.onRefresh && json.x_range[1] > 0) {
+                    // beamline overlay always starts at position 0
+                    json.x_range[0] = 0;
+                }
+                $scope.margin.top = json.title
+                    ? 50
+                    : $scope.onRefresh
+                        ? 65
+                        : 20;
+                let hasY2Axis = false;
+                json.plots.forEach(function(plot, ip) {
+                    const lu = layoutService.parseLabelAndUnits(plot.label);
+                    plot._units = lu.units;
+                    plot._label = lu.label;
+                    plot._yaxis = appState.applicationState()[$scope.modelName][plot.dim + 'Position'] || 'left';
+                    if (plot._yaxis == 'right') {
+                        hasY2Axis = true;
+                        plot.dashes = '5 5';
+                    }
+                });
+                if (hasY2Axis) {
+                    const ydoms = calcYDomains(json.plots);
+                    json.y_range = ydoms[0];
+                    json.y2_range = ydoms[1];
+                    $scope.axes.y2 = y2_axis;
+                    $($element).find('.y2.axis').show();
+                    $($element).find('.y2-axis-label').show();
+                }
+                else {
+                    delete json.y2_range;
+                    if ($scope.axes.y2) {
+                        delete $scope.axes.y2;
+                        $($element).find('.y2.axis').hide();
+                        $($element).find('.y2-axis-label').hide();
+                        $scope.margin.right = yMargin;
+                    }
+                }
             }
 
             function plotPath(pIndex) {
@@ -3638,11 +3715,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 if (! isVisible && ! canToggle(pIndex)) {
                     return;
                 }
-                $scope.axes.y.plots[pIndex]._isVisible = isVisible;
+                $scope.plots[pIndex]._isVisible = isVisible;
                 plotPath(pIndex).style('opacity', isVisible ? 1.0 : 0.0);
-                if ($scope.axes.y.plots && $scope.axes.y.plots[pIndex]) {
+                if ($scope.plots && $scope.plots[pIndex]) {
                     $scope.recalculateYDomain();
-                    $scope.resize();
                 }
                 $scope.broadcastEvent({
                     name: 'setInfoVisible',
@@ -3652,164 +3728,15 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 });
             }
 
-            function togglePlot(pIndex) {
-                setPlotVisible(pIndex, ! isPlotVisible(pIndex));
-                updateYLabel();
-            }
-
-            function updateYLabel() {
-                // combine labels from all selected plots, use common units if possible
-                if (! dynamicYLabel) {
-                    return;
-                }
-                function addUnits(labels, units) {
-                    let isFixedUnits = false;
-                    let hasCommonUnits = true;
-                    labels.forEach((label, idx) => {
-                        let lu = layoutService.parseLabelAndUnits(label);
-                        if (! lu.units) {
-                            lu = layoutService.parseLabelAndUnits(label, true);
-                            isFixedUnits = true;
-                        }
-                        labels[idx] = lu.label;
-                        units.push(lu.units);
-                        if (units[0] != units[idx]) {
-                            hasCommonUnits = false;
-                        }
-                    });
-                    return hasCommonUnits
-                        ? layoutService.formatUnits(units[0], isFixedUnits)
-                        : '';
-                }
-                const maxLabelSize = 45;
-                const labels = getPlotLabels().filter((l, idx) => isPlotVisible(idx));
-                if (! labels.length) {
-                    return;
-                }
-                const units = [];
-                const yUnits = addUnits(labels, units);
-                let yLabel = '';
-                labels.forEach((l, idx) => {
-                    if (yLabel) {
-                        yLabel += ', ';
-                    }
-                    yLabel += l;
-                    if (! yUnits && units[idx]) {
-                        yLabel += ' ' + layoutService.formatUnits(units[idx], true);
-                    }
-                });
-                // strip out any KaTeX formatting before computing label length
-                if (yLabel.replace(/\$|\{|\s+/g, '').length > maxLabelSize) {
-                    yLabel = yUnits;
-                }
-                else if (yUnits) {
-                    yLabel += ' ' + yUnits;
-                }
-                $scope.axes.y.updateLabel(yLabel, $scope.select);
-                $scope.resize();
-            }
-
-            $scope.formatFocusPointData = function(fp) {
-                const plotLabels = getPlotLabels();
-                var yLabel = plotLabels[$scope.focusPoints.indexOf(fp)];
-                var lu = {};
-                if (yLabel) {
-                    lu = layoutService.parseLabelAndUnits(yLabel);
-                    yLabel = lu.label;
-                }
-                fp.config.yLabel = yLabel;
-                return focusPointService.formatFocusPointData(fp, fp.config.xAxis.label, yLabel, null, lu.units);
-            };
-
-            // interface used by parameterWithLattice
-            $scope.getXAxis = function() {
-                return $scope.axes.x;
-            };
-
-            $scope.init = function() {
-                plot2dService.init2dPlot($scope, {
-                    margin: {top: 50, right: 23, bottom: 20, left: 75}
-                });
-                // override graphLine to work with multiple point sets
-                $scope.plotGraphLine = function(plotIndex) {
-                    var xPoints = (($scope.axes.y.plots || [])[plotIndex] || {}).x_points || $scope.axes.x.points;
-                    return d3.svg.line()
-                        .x(function(d, i) {
-                            return $scope.axes.x.scale(xPoints[i]);
-                        })
-                        .y(function(d) {
-                            return $scope.axes.y.scale(scaleFunction ? scaleFunction(d) : d);
-                        });
-                };
-                $scope.graphLine = d3.svg.line()
-                    .x(function(d, i) {
-                        return $scope.axes.x.scale($scope.axes.x.points[i]);
-                    })
-                    .y(function(d) {
-                        return $scope.axes.y.scale(scaleFunction ? scaleFunction(d) : d);
-                    });
-            };
-
-            $scope.load = function(json) {
-                if (! json.plots && ! json.points) {
-                    //TODO(pjm): plot may be loaded with { state: 'canceled' }?
-                    return;
-                }
-                $scope.firstRefresh = true;
-                //TODO(pjm): move first part into normalizeInput()
-                $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 4.0 / 7);
-                dynamicYLabel = json.dynamicYLabel || false;
-                // data may contain 2 plots (y1, y2) or multiple plots (plots)
-                var plots = json.plots || [
-                    {
-                        points: json.points[0],
-                        label: json.y1_title,
-                        color: '#1f77b4',
-                    },
-                    {
-                        points: json.points[1],
-                        label: json.y2_title,
-                        color: '#ff7f0e',
-                    },
-                ];
-                if (plots[0].x_points) {
-                    $scope.noOverlay = true;
-                }
-                if (plots.length == 1 && ! json.y_label) {
-                    json.y_label = plots[0].label;
-                }
-                $scope.axes.x.points = json.x_points
-                    || plotting.linearlySpacedArray(json.x_range[0], json.x_range[1], json.x_range[2] || json.points.length);
-                if (angular.isArray($scope.axes.x.points[0])) {
-                    throw new Error('expecting a single array for x values: ' + $scope.modelName);
-                }
-                var xdom = [json.x_range[0], json.x_range[1]];
-                //TODO(pjm): onRefresh indicates a beamline overlay, needs improvement
-                if ($scope.onRefresh && xdom[1] > 0) {
-                    // beamline overlay always starts at position 0
-                    xdom[0] = 0;
-                }
-
-                if (! appState.deepEquals(xdom, $scope.axes.x.domain)) {
-                    $scope.axes.x.domain = xdom;
-                    $scope.axes.x.scale.domain(xdom);
-                }
-                scaleFunction = plotting.scaleFunction($scope.modelName);
-                $scope.axes.y.domain = plotting.ensureDomain([json.y_range[0], json.y_range[1]], scaleFunction);
-                $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
-
-                var viewport = $scope.select('.plot-viewport');
+            function setupPlots(json) {
+                const viewport = $scope.select('.plot-viewport');
                 viewport.selectAll('.line').remove();
                 viewport.selectAll('g.param-plot').remove();
-
-                const oldPlots = $scope.axes.y.plots;
-                $scope.axes.y.plots = plots;
-
-                plots.forEach(function(plot, ip) {
-                    var strokeWidth = 2.0;
+                json.plots.forEach(function(plot, ip) {
+                    let strokeWidth = 2.0;
                     if (plot.style === 'scatter') {
-                        var clusterInfo;
-                        var circleRadius = plot.circleRadius || 2;
+                        let clusterInfo;
+                        let circleRadius = plot.circleRadius || 2;
                         if (json.clusters) {
                             clusterInfo = json.clusters;
                             $scope.clusterInfo = clusterInfo;
@@ -3832,7 +3759,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             .attr('class', 'scatter-point line-color');
                     }
                     else {
-                        var p = viewport.append('path')
+                        const p = viewport.append('path')
                             .attr('class', 'param-plot line line-color')
                             .attr('data-sr-index', ip)
                             .style('stroke', plot.color)
@@ -3843,76 +3770,223 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         }
                     }
                     // must create extra focus points here since we don't know how many to make
-                    var name = $scope.modelName + '-fp-' + ip;
+                    const name = $scope.modelName + '-fp-' + ip;
                     if (! $scope.focusPoints[ip]) {
-                        $scope.focusPoints[ip] = focusPointService.setupFocusPoint($scope.axes.x, $scope.axes.y, false, name);
+                        $scope.focusPoints[ip] = focusPointService.setupFocusPoint(
+                            $scope.axes.x,
+                            // will be reset below
+                            $scope.axes.y,
+                            false,
+                            name,
+                        );
                     }
-                });
+                    $scope.focusPoints[ip].config.yAxis = $scope.axes[plot._yaxis === 'left' ? 'y' : 'y2'];
 
-                for (var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
-                    if (fpIndex < plots.length) {
-                        $scope.focusPoints[fpIndex].config.color = plots[fpIndex].color;
-                        focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], build2dPointsForPlot(fpIndex), false, $scope);
-                    }
-                    else {
-                        focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], [], false, $scope);
-                    }
+                });
+                return json.plots;
+            }
+
+            function togglePlot(pIndex) {
+                setPlotVisible(pIndex, ! isPlotVisible(pIndex));
+                updateYLabels();
+                $scope.resize();
+            }
+
+            function updateAxes(json) {
+                const xdom = [json.x_range[0], json.x_range[1]];
+                if (! appState.deepEquals(xdom, $scope.axes.x.domain)) {
+                    $scope.axes.x.domain = xdom;
+                    $scope.axes.x.scale.domain(xdom);
                 }
 
-                //TODO(pjm): onRefresh indicates an embedded header, needs improvement
-                $scope.margin.top = json.title
-                    ? 50
-                    : $scope.onRefresh
-                        ? 65
-                        : 20;
-                $scope.updatePlot(json);
+                function setDomain(dim, range) {
+                    if (range) {
+                        $scope.axes[dim].domain = plotting.ensureDomain([range[0], range[1]], plotting.scaleFunction($scope.modelName));
+                        $scope.axes[dim].scale.domain($scope.axes[dim].domain).nice();
+                    }
+                }
+                setDomain('y', json.y_range);
+                setDomain('y2', json.y2_range);
+            }
 
-                plots.forEach((plot, ip) => setPlotVisible(ip, true));
-                plots.forEach(function(plot, ip) {
-                    const lu = layoutService.parseLabelAndUnits(plot.label);
-                    plot._units = lu.units;
-                    plot._label = lu.label;
+            function updateYLabels() {
+                // combine labels from all selected plots, use common units if possible
+                if (! $scope.dynamicYLabel) {
+                    return;
+                }
+                updateYLabel($scope.axes.y, 'left');
+                updateYLabel($scope.axes.y2, 'right');
+            }
+
+            function updateYLabel(yaxis, orientation) {
+                if (! yaxis) {
+                    return;
+                }
+                function addUnits(labels, units) {
+                    let isFixedUnits = false;
+                    let hasCommonUnits = true;
+                    labels.forEach((label, idx) => {
+                        let lu = layoutService.parseLabelAndUnits(label);
+                        if (! lu.units) {
+                            lu = layoutService.parseLabelAndUnits(label, true);
+                            isFixedUnits = true;
+                        }
+                        labels[idx] = lu.label;
+                        units.push(lu.units);
+                        if (units[0] != units[idx]) {
+                            hasCommonUnits = false;
+                        }
+                    });
+                    return hasCommonUnits
+                        ? layoutService.formatUnits(units[0], isFixedUnits)
+                        : '';
+                }
+                const maxLabelSize = 45;
+                const labels = getPlotLabels().filter((l, idx) => {
+                    return isPlotVisible(idx) && $scope.plots[idx]._yaxis === orientation;
+                });
+                if (! labels.length) {
+                    return;
+                }
+                const units = [];
+                const yUnits = addUnits(labels, units);
+                let yLabel = '';
+                labels.forEach((l, idx) => {
+                    if (yLabel) {
+                        yLabel += ', ';
+                    }
+                    yLabel += l;
+                    if (! yUnits && units[idx]) {
+                        yLabel += ' ' + layoutService.formatUnits(units[idx], true);
+                    }
+                });
+                // strip out any KaTeX formatting before computing label length
+                if (yLabel.replace(/\$|\{|\s+/g, '').length > maxLabelSize) {
+                    yLabel = yUnits;
+                }
+                else if (yUnits) {
+                    yLabel += ' ' + yUnits;
+                }
+                yaxis.updateLabel(yLabel, $scope.select);
+            }
+
+            $scope.formatFocusPointData = function(fp) {
+                const plotLabels = getPlotLabels();
+                var yLabel = plotLabels[$scope.focusPoints.indexOf(fp)];
+                var lu = {};
+                if (yLabel) {
+                    lu = layoutService.parseLabelAndUnits(yLabel);
+                    yLabel = lu.label;
+                }
+                fp.config.yLabel = yLabel;
+                return focusPointService.formatFocusPointData(fp, fp.config.xAxis.label, yLabel, null, lu.units);
+            };
+
+            // interface used by parameterWithLattice
+            $scope.getXAxis = function() {
+                return $scope.axes.x;
+            };
+
+            $scope.init = function() {
+                plot2dService.init2dPlot($scope, {
+                    margin: {top: 50, right: yMargin, bottom: 20, left: yMargin}
+                });
+                y2_axis = $scope.axes.y2;
+                delete $scope.axes.y2;
+                // override graphLine to work with multiple point sets
+                $scope.plotGraphLine = function(plotIndex) {
+                    const p = ($scope.plots || [])[plotIndex] || {};
+                    const xPoints = p.x_points || $scope.axes.x.points;
+                    const yaxis = p._yaxis == 'right' ? $scope.axes.y2 : $scope.axes.y;
+                    return d3.svg.line()
+                        .x(function(d, i) {
+                            return $scope.axes.x.scale(xPoints[i]);
+                        })
+                        .y(function(d) {
+                            return yaxis.scale(scaleFunction ? scaleFunction(d) : d);
+                        });
+                };
+                $scope.graphLine = d3.svg.line()
+                    .x(function(d, i) {
+                        return $scope.axes.x.scale($scope.axes.x.points[i]);
+                    })
+                    .y(function(d) {
+                        return $scope.axes.y.scale(scaleFunction ? scaleFunction(d) : d);
+                    });
+            };
+
+            $scope.load = function(json) {
+                if (! json.plots && ! json.points) {
+                    //TODO(pjm): plot may be loaded with { state: 'canceled' }?
+                    return;
+                }
+                normalizeInput(json);
+                updateAxes(json);
+                const oldPlots = $scope.plots;
+                $scope.plots = setupPlots(json);
+                $scope.updatePlot(json);
+                $scope.plots.forEach((plot, ip) => setPlotVisible(ip, true));
+                $scope.plots.forEach(function(plot, ip) {
                     if (oldPlots && oldPlots[ip] && oldPlots[ip].label === plot.label && ! oldPlots[ip]._isVisible) {
                         setPlotVisible(ip, false);
                     }
                 });
-                updateYLabel();
-            };
-
-            $scope.recalculateYDomain = function() {
-                if (isFixedDomain()) {
-                    $scope.setYDomain();
-                    return;
-                }
-                var ydom;
-                var xdom = $scope.axes.x.scale.domain();
-                var xPoints = $scope.axes.x.points;
-                var plots = $scope.axes.y.plots;
-                for (var i = 0; i < xPoints.length; i++) {
-                    var x = xPoints[i];
-                    if (x > xdom[1] || x < xdom[0]) {
-                        continue;
-                    }
-
-                    for (const p of plots) {
-                        if (p._isVisible) {
-                            var y = p.points[i];
-                            if (ydom) {
-                                if (y < ydom[0]) {
-                                    ydom[0] = y;
-                                }
-                                else if (y > ydom[1]) {
-                                    ydom[1] = y;
-                                }
-                            }
-                            else {
-                                ydom = [y, y];
-                            }
+                updateYLabels();
+                if (! $scope.noOverlay) {
+                    for (var fpIndex = 0; fpIndex < $scope.focusPoints.length; ++fpIndex) {
+                        if (fpIndex < $scope.plots.length) {
+                            $scope.focusPoints[fpIndex].config.color = $scope.plots[fpIndex].color;
+                            focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], build2dPointsForPlot(fpIndex), false, $scope);
+                        }
+                        else {
+                            focusPointService.loadFocusPoint($scope.focusPoints[fpIndex], [], false, $scope);
                         }
                     }
                 }
-                if (ydom) {
-                    plotting.scaleYDomain($scope.axes.y.scale, ydom, scaleFunction, ydom[0] > 0 && $scope.axes.y.domain[0] == 0);
+                $scope.resize();
+            };
+
+            function calcYDomains(plots, xdom) {
+                // calculate left and right y axis domains for plots (assumed all visible)
+                const ydom = [null, null];
+                const xPoints = $scope.axes.x.points;
+
+                for (let i = 0; i < xPoints.length; i++) {
+                    const x = xPoints[i];
+                    if (xdom && (x > xdom[1] || x < xdom[0])) {
+                        continue;
+                    }
+                    for (const p of plots) {
+                        const y = p.points[i];
+                        const ia = p._yaxis == 'left' ? 0 : 1;
+                        if (ydom[ia]) {
+                            if (y < ydom[ia][0]) {
+                                ydom[ia][0] = y;
+                            }
+                            else if (y > ydom[ia][1]) {
+                                ydom[ia][1] = y;
+                            }
+                        }
+                        else {
+                            ydom[ia] = [y, y];
+                        }
+                    }
+                }
+                return ydom;
+            }
+
+            $scope.recalculateYDomain = function() {
+                if (isFixedDomain()) {
+                    //TODO(pjm): I don't think a fixed domain works in conjunction with scaleFunction
+                    $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
+                    return;
+                }
+                const ydoms = calcYDomains($scope.plots.filter(p => p._isVisible), $scope.axes.x.scale.domain());
+                if (ydoms[0]) {
+                    plotting.scaleYDomain($scope.axes.y.scale, ydoms[0], scaleFunction, ydoms[0][0] > 0 && $scope.axes.y.domain[0] == 0);
+                }
+                if (ydoms[1]) {
+                    plotting.scaleYDomain($scope.axes.y2.scale, ydoms[1], scaleFunction, ydoms[1][0] > 0 && $scope.axes.y2.domain[0] == 0);
                 }
             };
 
@@ -3952,11 +4026,11 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 const points = [
                     $scope.axes.x.points,
                 ];
-                $scope.axes.y.plots.forEach((plot)=> {
+                $scope.plots.forEach((plot)=> {
                     points.push(plot.points);
                 });
                 let res = $scope.axes.x.label;
-                for (const p of $scope.axes.y.plots) {
+                for (const p of $scope.plots) {
                     res += ',' + p.label;
                 }
                 res += '\n';
@@ -3977,12 +4051,6 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             $scope.padXDomain = function() {
                 var xdom = $scope.axes.x.domain;
                 $scope.axes.x.domain = [xdom[0], xdom[1]];
-            };
-
-            $scope.setYDomain = function() {
-                if (isFixedDomain()) {
-                    $scope.axes.y.scale.domain($scope.axes.y.domain).nice();
-                }
             };
         },
         link: function link(scope, element) {

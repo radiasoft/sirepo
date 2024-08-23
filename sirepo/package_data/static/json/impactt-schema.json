@@ -55,7 +55,7 @@
             "histogramBins",
             "reportIndex"
         ],
-        "statAnimation": ["x", "y1", "y2", "y3"]
+        "statAnimation": ["x", "y1", "y2", "y3", "y4", "y5"]
     },
     "enum": {
         "BeamParticle": [
@@ -254,6 +254,13 @@
             "y1": ["Vertical Value to Plot", "Stat", "sigma_x"],
             "y2": ["Vertical Value to Plot", "Stat", "sigma_y"],
             "y3": ["Vertical Value to Plot", "Stat", "sigma_z"],
+            "y4": ["Vertical Value to Plot", "Stat", "none"],
+            "y5": ["Vertical Value to Plot", "Stat", "none"],
+            "y1Position": ["Vertical Postion", "AxisPosition", "left"],
+            "y2Position": ["Vertical Position", "AxisPosition", "left"],
+            "y3Position": ["Vertical Position", "AxisPosition", "left"],
+            "y4Position": ["Vertical Position", "AxisPosition", "right"],
+            "y5Position": ["Vertical Position", "AxisPosition", "right"],
             "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.5625"],
             "notes": ["Notes", "Text", ""]
@@ -497,7 +504,16 @@
                     ["Vertical", [
                         "y1",
                         "y2",
-                        "y3"
+                        "y3",
+                        "y4",
+                        "y5"
+                    ]],
+                    ["Position", [
+                        "y1Position",
+                        "y2Position",
+                        "y3Position",
+                        "y4Position",
+                        "y5Position"
                     ]]
                 ],
                 "includeLattice",

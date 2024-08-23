@@ -132,7 +132,7 @@ def sim_frame_statAnimation(frame_args):
     plots = PKDict()
     if frame_args.x == "none":
         frame_args.x = "mean_z"
-    for f in ("x", "y1", "y2", "y3"):
+    for f in ("x", "y1", "y2", "y3", "y4", "y5"):
         if frame_args[f] == "none":
             continue
         units = I.units(frame_args[f])

@@ -93,7 +93,6 @@ def extract_beam_position_report(data, run_dir):
         x_range=[points.s[0], points.s[-1]],
         plots=[
             PKDict(
-                style="scatter",
                 field="x",
                 points=points.x,
                 label="x [m]",
@@ -101,7 +100,6 @@ def extract_beam_position_report(data, run_dir):
                 circleRadius=10,
             ),
             PKDict(
-                style="scatter",
                 field="y",
                 points=points.y,
                 label="y [m]",
@@ -117,7 +115,6 @@ def extract_beam_position_report(data, run_dir):
         res.plots.insert(
             0,
             PKDict(
-                style="scatter",
                 field="log_y",
                 points=points.log_y,
                 label="y [m]",
@@ -128,7 +125,6 @@ def extract_beam_position_report(data, run_dir):
         res.plots.insert(
             0,
             PKDict(
-                style="scatter",
                 field="log_x",
                 points=points.log_x,
                 label="x [m]",

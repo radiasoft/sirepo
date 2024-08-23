@@ -281,6 +281,10 @@
                 ["0.333333", "3 x 1"],
                 ["0.25", "4 x 1"]
             ],
+            "AxisPosition": [
+                ["left", "Left"],
+                ["right", "Right"]
+            ],
             "Boolean": [
                 ["0", "No"],
                 ["1", "Yes"]

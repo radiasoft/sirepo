@@ -4,8 +4,13 @@
         <div class="y-axis-label text-center"></div>
       </div>
     </div>
+    <div style="position: absolute; height: 0">
+      <div data-ng-attr-style="transform: rotate(-90deg); position: relative; left: {{ width - height / 2 + margin.left + margin.right - 12 }}px; top:{{ height / 2 + margin.top - 10 }}px; width: {{ height }}px;">
+        <div class="y2-axis-label text-center"></div>
+      </div>
+    </div>
     <div style="position: relative">
-      <div data-ng-if="focusPoints" data-popup-report="" data-model-name="{{ modelName }}" data-focus-points="focusPoints" style="overflow: hidden; pointer-events: none; position: absolute; top: {{ margin.top }}px; left: {{ margin.left }}px; width: {{ width }}px; height: {{ height }}px;" data-ng-drop="true"></div>
+      <div data-ng-if="focusPoints" data-popup-report="" data-plots="plots" data-model-name="{{ modelName }}" data-focus-points="focusPoints" style="overflow: hidden; pointer-events: none; position: absolute; top: {{ margin.top }}px; left: {{ margin.left }}px; width: {{ width }}px; height: {{ height }}px;" data-ng-drop="true"></div>
       <svg class="sr-plot" xmlns:xlink="http://www.w3.org/1999/xlink">
         <text class="y-base" x="5" ng-attr-y="{{ margin.top - 10 }}"></text>
         <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
@@ -15,6 +20,9 @@
           <g class="x axis grid" ng-attr-transform="translate(0, {{ height }})"></g>
           <g class="y axis"></g>
           <g class="y axis grid"></g>
+          <g ng-attr-transform="translate({{ width }}, 0)">
+            <g class="y2 axis"></g>
+          </g>
           <g data-ng-if="wantColorbar" class="colorbar" ng-attr-transform="translate({{ margin.left + width }}, 0)">
             <text class="frequency-label" ng-attr-x="{{ -margin.right / 2 + 15 }}" y="-5"></text>
           </g>
@@ -40,7 +48,7 @@
         </g>
       </svg>
       <div class="x-axis-label text-center"></div>
-      <div data-plot-legend="" data-plots="axes.y.plots" data-toggle-plot="togglePlot(pIndex)"></div>
+      <div data-plot-legend="" data-plots="plots" data-toggle-plot="togglePlot(pIndex)" data-dynamic-y-label="dynamicYLabel"></div>
     </div>
     <div data-animation-buttons=""></div>
   </div>
