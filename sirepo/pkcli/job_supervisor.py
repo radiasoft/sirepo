@@ -15,6 +15,7 @@ import sirepo.const
 import sirepo.events
 import sirepo.feature_config
 import sirepo.global_resources.api
+import sirepo.http_util
 import sirepo.job
 import sirepo.job_driver
 import sirepo.job_supervisor
@@ -97,7 +98,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
         pkdlog(
             "uri={} remote_ip={} ",
             self.request.uri,
-            self.request.remote_ip,
+            sirepo.http_util.remote_ip(self.request),
         )
 
     def sr_close(self):
