@@ -11,9 +11,9 @@ import email.utils
 import pykern.pkcompat
 import pykern.pkjson
 import sirepo.const
+import sirepo.http_util
 import sirepo.quest
 import sirepo.util
-import urllib.parse
 import user_agents
 
 
@@ -186,7 +186,7 @@ class _SRequestHTTP(_SRequestBase):
             http_method=r.method,
             http_request_uri=r.full_url(),
             http_server_uri=f"{r.protocol}://{r.host}/",
-            remote_addr=r.remote_ip,
+            remote_addr=sirepo.http_util.remote_ip(r),
         )
 
     def body_as_bytes(self):
