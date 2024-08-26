@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
 """SMTP connection to send emails
 
-:copyright: Copyright (c) 2018-2019 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2018-2024 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from __future__ import absolute_import, division, print_function
 from pykern.pkdebug import pkdp, pkdlog
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
@@ -68,7 +66,7 @@ def _send_directly(msg):
             s.send_message(msg)
 
 
-def _send_to_configured_smtp_server(msg):
+def _send_via_relay_server(msg):
     with smtplib.SMTP(_cfg.server, _cfg.port) as s:
         s.starttls()
         s.ehlo()
@@ -95,7 +93,7 @@ def _init():
         _cfg.server = "not " + _DEV_SMTP_SERVER
         _SEND = _send_directly
         return
-    _SEND = _send_to_configured_smtp_server
+    _SEND = _send_via_relay_server
     if pkconfig.in_dev_mode():
         if _cfg.server is None:
             _cfg.server = _DEV_SMTP_SERVER
@@ -103,6 +101,10 @@ def _init():
     if _cfg.server is None:
         pkconfig.raise_error(
             f"server={_cfg.server} must be defined",
+        )
+    if bool(_cfg.user) != bool(_cfg.password):
+        pkconfig.raise_error(
+            f"user={_cfg.user} and password={_cfg.password} must be both set or not"
         )
 
 
