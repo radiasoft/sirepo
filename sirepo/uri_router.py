@@ -7,25 +7,21 @@
 from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkinspect
-from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdformat
 import asyncio
-import contextlib
 import importlib
 import inspect
-import os
-import pkgutil
 import re
 import sirepo.api_auth
 import sirepo.auth
 import sirepo.const
 import sirepo.events
 import sirepo.feature_config
+import sirepo.http_util
 import sirepo.spa_session
 import sirepo.uri
 import sirepo.util
-import urllib.parse
 
 #: prefix for api functions
 _FUNC_PREFIX = "api_"
@@ -225,7 +221,7 @@ def start_tornado(ip, port, debug):
             self.__headers = PKDict(r.headers)
             self.cookie_state = self.__headers.get("Cookie")
             self.http_server_uri = f"{r.protocol}://{r.host}/"
-            self.remote_addr = r.remote_ip
+            self.remote_addr = sirepo.http_util.remote_ip(r)
             self.ws_id = ws_count
             self.sr_log(None, "open", fmt=" ip={}", args=[_remote_peer(r)])
 
@@ -354,7 +350,7 @@ def start_tornado(ip, port, debug):
             # socket is not set on stream for websockets.
             if hasattr(c, "stream") and hasattr(c.stream, "socket"):
                 return "{}:{}".format(*c.stream.socket.getpeername())
-        return f"{request.remote_ip}:0"
+        return f"{sirepo.http_util.remote_ip(request)}:0"
 
     sirepo.modules.import_and_init("sirepo.server").init_tornado()
     s = httpserver.HTTPServer(
