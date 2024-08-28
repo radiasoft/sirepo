@@ -23,7 +23,6 @@ import time
 
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
-_ARCHIVE_FILE = "impact.h5"
 _MAX_OUTPUT_ID = 100
 _PLOT_TITLE = PKDict(
     {
@@ -45,7 +44,6 @@ _S_ELEMENTS = set(
         "WRITE_SLICE_INFO",
     ]
 )
-_STAT_RETRIES = 5
 _TIME_AND_ENERGY_FILE_NO = 18
 
 
@@ -62,7 +60,7 @@ def background_percent_complete(report, run_dir, is_running):
                 d = impact.parsers.load_many_fort(
                     str(run_dir), types=[_TIME_AND_ENERGY_FILE_NO]
                 )
-                if "mean_z" in d and len(d["mean_z"] > 1):
+                if "mean_z" in d and len(d["mean_z"] > 10):
                     return PKDict(
                         frameCount=len(d["mean_z"]),
                         percentComplete=d["mean_z"][-1] * 100.0 / stop_z,
@@ -114,20 +112,57 @@ def sim_frame(frame_args):
     )
 
 
+def load_many_fort(path, types=impact.parsers.FORT_STAT_TYPES, verbose=False):
+    """
+    Loads a large dict with data from many fort files.
+    Checks that keys do not conflict.
+
+    Default types are for typical statistical information along the simulation path.
+
+    """
+    fortfiles = impact.parsers.fort_files(path)
+    alldat = {}
+    size = None
+    for f in fortfiles:
+        file_type = impact.parsers.fort_type(f, verbose=False)
+        if file_type not in types:
+            continue
+
+        dat = impact.parsers.load_fort(f, type=file_type, verbose=verbose)
+        for k in dat:
+            if isinstance(dat[k], dict):
+                alldat[k] = dat[k]
+                continue
+            if size is None:
+                size = len(dat[k])
+            elif len(dat[k]) > size:
+                dat[k] = dat[k][:size]
+            if k not in alldat:
+                alldat[k] = dat[k]
+
+            elif numpy.allclose(alldat[k], dat[k], atol=1e-20):
+                # If the difference between alldat-dat < 1e-20,
+                # move on to next key without error.
+                # https://numpy.org/devdocs/reference/generated/numpy.isclose.html#numpy.isclose
+                pass
+
+            else:
+                # Data is not close enough to ignore differences.
+                # Check that this data is the same as what's already in there
+                assert numpy.all(alldat[k] == dat[k]), "Conflicting data for key:" + k
+
+    return alldat
+
+
 def sim_frame_statAnimation(frame_args):
+    # TODO(pjm): monkey patch to avoid shape errors when loading during updates
+    impact.parsers.load_many_fort = load_many_fort
     I = impact.Impact(
         use_temp_dir=False,
         workdir=str(frame_args.run_dir),
     )
-    for _ in range(_STAT_RETRIES):
-        try:
-            I.load_input(I._workdir + "/ImpactT.in")
-            I.load_output()
-        except ValueError as err:
-            time.sleep(1)
-    if "stats" not in I.output:
-        I.load_input(I._workdir + "/ImpactT.in")
-        I.load_output()
+    I.load_input(I._workdir + "/ImpactT.in")
+    I.load_output()
     stats = I.output["stats"]
     plots = PKDict()
     if frame_args.x == "none":
@@ -295,7 +330,6 @@ def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     util = sirepo.template.lattice.LatticeUtil(data, SCHEMA)
     v.lattice = _generate_lattice(util, util.select_beamline().id, [])
-    v.archiveFile = _ARCHIVE_FILE
     v.numProcs = sirepo.mpi.cfg().cores
     v.distributionFilename = _SIM_DATA.get_distribution_file(data)
     v.impactHeader = _generate_header(data)
