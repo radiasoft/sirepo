@@ -21,10 +21,14 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
 
     def get_detailed_status_file(self, rduid):
         p = self.get_output_dir().join(f"progress_dict_{rduid}.json")
-        if os.path.exists(p):
-            with open(p, "r") as f:
-                return pkjson.load_any(f)
-        return PKDict()
+        if not p.check():
+            return PKDict()
+        d = pkjson.load_any(p)
+        # The notebooks do json.dump(json.dumps(progress_dict), outfile)
+        # which double encodes the json object. So, we may
+        # need to decode it 2x. Be compliant either way in case this
+        # changes in the future.
+        return pkjson.load_any(d) if isinstance(d, str) else d
 
     def get_notebooks(self):
         return [
@@ -54,9 +58,19 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
 
     def _get_papermill_args(self, *args, **kwargs):
         return [
-            ["run_two_time", True],
-            ["run_dose", False],
-            ["username", self._scan_metadata.get_start_field("user")],
+            # Cycle can look like 2024_2 which is converted to int by papermill unless raw_param=True
+            PKDict(
+                name="cycle",
+                value=self._scan_metadata.get_start_field("cycle"),
+                raw_param=True,
+            ),
+            # POSIT: Same as AutoRun_functions.get_process_id
+            PKDict(name="process_id", value=f"{self.rduid}_0"),
+            PKDict(name="username", value=self._scan_metadata.get_start_field("user")),
+            PKDict(
+                name="user_group",
+                value=self._scan_metadata.get_start_field("user_group", unchecked=True),
+            ),
         ]
 
 

@@ -1198,83 +1198,73 @@ SIREPO.app.directive('scanDetail', function() {
         template: `
             <div><strong>Scan Detail</strong></div>
             <div class="well" style="height: 250px; overflow: auto;">
-            <div data-ng-if="scan">
-              <div><strong>Scan Id:</strong> {{ scan.rduid }}</div>
-              <div data-ng-if="analysisElapsedTime()"><strong>Analysis Elapsed Time:</strong> {{ analysisElapsedTime() }} seconds</div>
-              <div data-ng-if="detailedStatusFile()">
-                <div><strong>Current Consecutive Failures:</strong> {{ consecutiveFailures() }}</div>
-              </div>
-              <div data-ng-if="detailedStatusFile()">
-                <div><strong>Most Recent Status</strong></div>
-                <pre>{{ currentStatus() }}</pre>
-              </div>
-              <div data-ng-if="detailedStatusFile()">
-                <div><strong>Detailed Status File</strong></div>
-                <pre>{{ detailedStatus() }}</pre>
+              <div data-ng-if="scan">
+                <div><strong>Scan Id:</strong> {{ scan.rduid }}</div>
+                <div data-ng-if="analysisElapsedTime()"><strong>Analysis Elapsed Time:</strong> {{ analysisElapsedTime() }} seconds</div>
+                <div>
+                  <div><strong>Current Status: </strong>{{ scan.status }}</div>
+                  <div data-ng-if="! isEmptyObject(latestDetailedStatus)">
+                    <strong>Detailed Status:</strong>
+                      <ul>
+                        <li data-ng-repeat="(stepName, stepInfo) in latestDetailedStatus">
+                          {{ stepName }}
+                          <ul>
+                            <li data-ng-repeat="key in ['start', 'stop']" data-ng-if="stepInfo[key]">
+                              {{ key }}: {{ parseTime(stepInfo[key]) }}
+                            </li>
+                            <li data-ng-if="stepElapsed(stepInfo)">elapsed: {{ stepElapsed(stepInfo) }}</li>
+                            <li data-ng-if="stepStatus(stepInfo)">status: {{ stepStatus(stepInfo) }}</li>
+                          </ul>
+                        </li>
+                      </ul>
+                  </div>
+                </div>
               </div>
             </div>
-            </div>
-`,
-        controller: function($scope, columnsService, utilities) {
-            function failureInRun(run) {
-                let r = false;
-                for (const f of Object.values($scope.detailedStatusFile()[run])) {
-                    if (f.status === 'failed') {
-                        r = true;
-                    }
-                }
-                return r;
-            }
+	`,
+        controller: function($filter, $scope, columnsService, raydataService, utilities) {
+	    $scope.latestDetailedStatus = null;
 
-            function getSortedRunIndexes() {
-                return Object.keys($scope.detailedStatusFile()).map((x) => parseInt(x)).sort();
-            }
-
-            function mostRecentAnalysisDetails() {
-                return $scope.detailedStatusFile()? $scope.detailedStatusFile()[Math.max(...getSortedRunIndexes())] : '';
-             }
+	    function setLatestDetailedStatus() {
+		$scope.latestDetailedStatus = $scope.scan.detailed_status[Math.max(Object.keys($scope.scan.detailed_status))];
+	    }
 
             $scope.analysisElapsedTime = () => {
                 return $scope.scan && $scope.scan.analysis_elapsed_time ? $scope.scan.analysis_elapsed_time : null;
             };
 
-            $scope.consecutiveFailures = () => {
-                if (! $scope.detailedStatusFile()) {
-                    return '';
-                }
-                let r = 0;
-                for (const k of getSortedRunIndexes().reverse()) {
-                    if (failureInRun(k)) {
-                        r += 1;
-                    } else {
-                        return r;
-                    }
-                }
+	    $scope.isEmptyObject = (obj) => {
+		return $.isEmptyObject(obj);
+	    };
 
-                return r;
-            };
+	    $scope.parseTime = (unixTime) => {
+		return (new Date(unixTime * 1000)).toString();
+	    };
 
-            $scope.currentStatus = () => {
-                let r = '';
-                for (const k of Object.keys(mostRecentAnalysisDetails())) {
-                    r += k + ': ' + mostRecentAnalysisDetails()[k].status + '\n';
-                }
-                return r;
-            };
+	    $scope.stepElapsed = (stepInfo) => {
+		if (stepInfo.start && stepInfo.stop) {
+		    return $filter('date')((stepInfo.stop - stepInfo.start) * 1000, 'HH:mm:ss', 'UTC');
+		}
+		return null;
+	    };
 
-            $scope.detailedStatus = () => {
-                return utilities.objectToText($scope.detailedStatusFile()).replace(
-                    /(start:|stop:)(\s*)(\d+\.?\d*)/gi,
-                    (_, p1, p2, p3) => {
-                        return p1 + p2 + (new Date(parseFloat(p3)*1000)).toString();
-                    }
-                )
-                ;
-            };
+	    $scope.stepStatus = (stepInfo) => {
+		function pendingIfRunningElseError(scanStatus) {
+		    if (raydataService.ANALYSIS_STATUS_NON_STOPPED.includes(scanStatus)) {
+			return 'pending';
+		    }
+		    return 'error';
+		}
 
-            $scope.detailedStatusFile = () => {
-                return $scope.scan && $scope.scan.detailed_status && Object.keys($scope.scan.detailed_status).length > 0 ? $scope.scan.detailed_status : null;
-            };
+		// start and stop have been set so the notebook was
+		// able to manage setting the status itself.
+		if (stepInfo.start && stepInfo.stop) {
+		    return stepInfo.status;
+		}
+		return pendingIfRunningElseError($scope.scan.status);
+	    };
+
+            $scope.$watch('scan', setLatestDetailedStatus);
         },
     };
 });
