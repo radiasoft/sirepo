@@ -1985,10 +1985,10 @@ SIREPO.app.directive('columnForAspectRatio', function(appState) {
                 if (appState.isLoaded()) {
                     var ratio = parseFloat(appState.applicationState()[$scope.modelName].aspectRatio);
                     if (ratio <= 0.5) {
-                        return 'col-md-12 col-xl-8';
+                        return 'col-md-12 col-xl-8 col-xxl-5';
                     }
                 }
-                return 'col-md-6 col-xl-4';
+                return 'col-md-6 col-xl-4 col-xxl-2';
             };
         }
     };
@@ -3972,6 +3972,15 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         }
                     }
                 }
+                ['left', 'right'].forEach((v, i) => {
+                    if (ydom[i]) {
+                        const limit = appState.applicationState()[$scope.modelName][`${v}Limit`];
+                        if (limit && ydom[i][1] > limit) {
+                            ydom[i][1] = limit;
+                        }
+                    }
+                });
+
                 return ydom;
             }
 

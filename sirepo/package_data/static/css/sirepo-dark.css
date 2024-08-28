@@ -11,6 +11,7 @@
   --sr-panel-border-dark-mode: #999;
   --sr-panel-control-dark-mode: #21252a;
   --sr-panel-text-dark-mode: #eee;
+  --sr-input-error-dark-mode: #430101;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -263,4 +264,12 @@
   .sr-screenshot {
     background-color: var(--sr-bg-dark-mode);
   }
+
+  input.ng-invalid.ng-dirty {
+    background-color: var(--sr-input-error-dark-mode);
+  }
+  .btn-invalid {
+    background-color: var(--sr-input-error-dark-mode);
+  }
+
 }
