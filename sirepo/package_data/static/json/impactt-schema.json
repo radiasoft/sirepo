@@ -44,8 +44,7 @@
             ],
             "css": [
                 "lattice.css",
-                "command.css",
-                "sirepo-dark.css"
+                "command.css"
            ]
         }
     },
