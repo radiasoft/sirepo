@@ -145,3 +145,8 @@ div.sr-lattice-icon-disabled span {
   color: #333;
   border: 1px solid #777;
 }
+
+.sr-lattice-marker > path {
+  stroke: black;
+  stroke-width: 1;
+}

@@ -6,18 +6,13 @@ SIREPO.app.config(function() {
     SIREPO.appFieldEditors += ``;
     SIREPO.lattice = {
         elementColor: {
-            MULTIPOLE: 'yellow',
-            QUADRUPOLE: 'red',
-            DIPOLE: 'lightgreen',
-            SOLENOID: 'red',
-            DRIFT: 'grey',
         },
         elementPic: {
             drift: ['DRIFT', 'EMFIELD_CARTESIAN', 'EMFIELD_CYLINDRICAL', 'WAKEFIELD'],
             lens: ['ROTATIONALLY_SYMMETRIC_TO_3D'],
             magnet: ['QUADRUPOLE', 'DIPOLE'],
             solenoid: ['SOLENOID', 'SOLRF'],
-            watch: ['WRITE_BEAM', 'WRITE_SLICE_INFO',],
+            watch: ['WRITE_BEAM', 'WRITE_SLICE_INFO'],
             zeroLength: [
                 'CHANGE_TIMESTEP',
                 'OFFSET_BEAM',

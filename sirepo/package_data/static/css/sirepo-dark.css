@@ -12,6 +12,8 @@
   --sr-panel-control-dark-mode: #21252a;
   --sr-panel-text-dark-mode: #eee;
   --sr-input-error-dark-mode: #430101;
+  --sr-table-border-dark-mode: #3d444db3;
+  --sr-body-color-dark-mode: #f0f6fc;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -29,6 +31,7 @@
   }
 
   body {
+    color: var(--sr-body-color-dark-mode);
     background-color: var(--sr-bg-dark-mode);
   }
 
@@ -272,4 +275,19 @@
     background-color: var(--sr-input-error-dark-mode);
   }
 
+  .table > tbody > tr > td {
+    border-top-color: var(--sr-table-border-dark-mode);
+  }
+  .table > thead > tr > th {
+    border-bottom-color: var(--sr-table-border-dark-mode);
+    color: var(--sr-panel-color);
+  }
+  .table > tbody > tr.active > td {
+    background-color: var(--sr-item-active-dark-mode);
+    color: var(--sr-bg-dark-mode);
+  }
+
+  .sr-lattice-marker > path {
+    stroke: var(--sr-panel-text-dark-mode);
+  }
 }

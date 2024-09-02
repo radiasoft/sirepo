@@ -218,7 +218,7 @@
             "x": ["X Value", "PhaseSpaceCoordinate", "x"],
             "y": ["Y Value", "PhaseSpaceCoordinate", "px"],
             "plotType": ["Plot Type", "PlotType", "heatmap"],
-            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""],
