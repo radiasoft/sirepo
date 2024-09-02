@@ -39,6 +39,11 @@ class AnalysisDriverBase(PKDict):
         raise NotImplementedError("children must implement this method")
 
     def get_output(self):
+        def load_json(path):
+            d = pkjson.load_any(path)
+            # CHX json are double encoded so may need to load 2x
+            return pkjson.load_any(d) if isinstance(d, str) else d
+
         res = PKDict()
         for e in [
             PKDict(
@@ -53,7 +58,7 @@ class AnalysisDriverBase(PKDict):
             PKDict(
                 name="jsonFiles",
                 file_type="json",
-                op=pkjson.load_any,
+                op=load_json,
             ),
         ]:
             res[e.name] = [
@@ -69,12 +74,14 @@ class AnalysisDriverBase(PKDict):
 
     def get_papermill_args(self):
         res = []
-        for n, v in [
-            ["uid", self.rduid],
-            ["scan", self.rduid],
+        for a in [
+            PKDict(name="uid", value=self.rduid),
+            PKDict(name="scan", value=self.rduid),
             *self._get_papermill_args(),
         ]:
-            res.extend(["-p", f"'{n}'", f"'{v}'"])
+            res.extend(
+                ["-r" if a.get("raw_param") else "-p", f"'{a.name}'", f"'{a.value}'"]
+            )
         res.extend(("--report-mode", "--log-output", "--progress-bar"))
         return res
 

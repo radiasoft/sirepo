@@ -46,3 +46,18 @@ def parse_auth_header(headers):
     if m := _AUTH_HEADER_RE.search(h):
         return m.group(1)
     return None
+
+
+def remote_ip(request):
+    """IP address of client from request.
+
+    Tornado covers 'X-Real-Ip' and 'X-Forwared-For'. This adds addition
+    headers to check.
+
+    Args:
+      request (tornado.httputil.HTTPServerRequest): Incoming request
+    Returns:
+      str:  IP address of client
+
+    """
+    return request.headers.get("proxy-for", request.remote_ip)
