@@ -55,7 +55,7 @@
             "histogramBins",
             "reportIndex"
         ],
-        "statAnimation": ["x", "y1", "y2", "y3"]
+        "statAnimation": ["x", "y1", "y2", "y3", "y4", "y5"]
     },
     "enum": {
         "BeamParticle": [
@@ -69,14 +69,15 @@
             ["3", "no output"]
         ],
         "DistType": [
-            ["1", "Uniform"],
+            ["27", "CylcoldZSob"],
+            ["16", "From File"],
             ["2", "Gauss3"],
-            ["3", "Waterbag"],
-            ["4", "Semigauss"],
             ["5", "KV3d"],
             ["10", "ParobGauss"],
             ["15", "SemicircGauss"],
-            ["27", "CylcoldZSob"]
+            ["4", "Semigauss"],
+            ["1", "Uniform"],
+            ["3", "Waterbag"]
         ],
         "PhaseSpaceCoordinate": [
             ["x", "x"],
@@ -181,7 +182,7 @@
             "Np": ["Macroparticle count", "Integer", 1000, "Np: Number of macroparticles to track"],
             "Bcurr": ["Current [A]", "RPNValue", 1.0],
             "Bkenergy": ["Initial energy [eV]", "RPNValue", 1.0, "Bkenergy: Initial beam pseudo-kinetic energy in eV"],
-            "Bmas": ["Mass [eV]", "RPNValue", 510998.95],
+            "Bmass": ["Mass [eV]", "RPNValue", 510998.95],
             "Bcharge": ["Charge", "RPNValue", -1.0, "Bcharge: Particle charge in units of proton charge"],
             "Bfreq": ["Reference frequency [Hz]", "RPNValue", 2856000000.0],
             "Tini": ["Initial reference time [sec]", "RPNValue", 0.0],
@@ -209,13 +210,14 @@
             "zscale": ["Z scale", "RPNValue", 1.0],
             "pzscale": ["Z pscale", "RPNValue", 1.0],
             "zmu1": ["Z mu1 [m]", "RPNValue", 0.0],
-            "zmu2": ["Z mu2", "RPNValue", 19.569511835591836]
+            "zmu2": ["Z mu2", "RPNValue", 19.569511835591836],
+            "filename": ["Filename", "InputFile", "", "Particle datafiles with the format:<br>nptot<br>nx, px, y, py, z, pz"]
         },
         "elementAnimation": {
             "x": ["X Value", "PhaseSpaceCoordinate", "x"],
             "y": ["Y Value", "PhaseSpaceCoordinate", "px"],
             "plotType": ["Plot Type", "PlotType", "heatmap"],
-            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""],
@@ -252,7 +254,17 @@
             "y1": ["Vertical Value to Plot", "Stat", "sigma_x"],
             "y2": ["Vertical Value to Plot", "Stat", "sigma_y"],
             "y3": ["Vertical Value to Plot", "Stat", "sigma_z"],
+            "y4": ["Vertical Value to Plot", "Stat", "none"],
+            "y5": ["Vertical Value to Plot", "Stat", "none"],
+            "y1Position": ["Vertical Postion", "AxisPosition", "left"],
+            "y2Position": ["Vertical Position", "AxisPosition", "left"],
+            "y3Position": ["Vertical Position", "AxisPosition", "left"],
+            "y4Position": ["Vertical Position", "AxisPosition", "right"],
+            "y5Position": ["Vertical Position", "AxisPosition", "right"],
+            "leftLimit": ["Left Axis Limit", "Float", 0],
+            "rightLimit": ["Right Axis Limit", "Float", 0],
             "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.5625"],
             "notes": ["Notes", "Text", ""]
         },
         "_ELEMENT": {
@@ -385,6 +397,8 @@
             "title": "Beam",
             "basic": [
                 "particle",
+                "Bmass",
+                "Bcharge",
                 "Np",
                 "Bcurr",
                 "Bkenergy",
@@ -397,6 +411,7 @@
             "title": "Particle Distribution",
             "basic": [
                 "Flagdist",
+                "filename",
                 [
                     ["X", [
                         "sigx",
@@ -484,18 +499,40 @@
         "statAnimation": {
             "title": "Beam Variables",
             "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y1",
-                        "y2",
-                        "y3"
-                    ]]
-                ],
-                "includeLattice",
-                "notes"
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1",
+                            "y2",
+                            "y3",
+                            "y4",
+                            "y5"
+                        ]],
+                        ["Position", [
+                            "y1Position",
+                            "y2Position",
+                            "y3Position",
+                            "y4Position",
+                            "y5Position"
+                        ]]
+                    ],
+                    "includeLattice",
+                    "aspectRatio",
+                    "notes"
+                ]],
+                ["Limits", [
+                    [
+                        ["Left", [
+                            "leftLimit"
+                        ]],
+                        ["Right", [
+                            "rightLimit"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "CHANGE_TIMESTEP": {

@@ -26,7 +26,7 @@
               <g ng-repeat="item in ::group.items track by item.trackHash" ng-switch="::item.picType" ng-click="itemClicked(item.element)" ng-dblclick="itemDblClicked(item.element)">
                 <polygon ng-switch-when="bend" ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-points="{{::item.points[0][0] +',' + item.points[0][1] + ' ' + item.points[1][0] + ',' + item.points[1][1] + ' ' + item.points[2][0] + ',' + item.points[2][1] + ' ' + item.points[3][0] + ',' + item.points[3][1] }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.title }}</title></polygon>
                 <g ng-switch-when="watch" ng-attr-transform="translate({{ ::item.x }},{{ ::item.y }})">
-                  <path ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-transform="scale({{ item.subScaling().x }}, {{ item.subScaling().y }})" ng-attr-d="{{ ::'M0 0 L 0 ' + -item.height + ' L 0.25 -0.875 L 0 -0.75' }}" ng-attr-style="stroke: black; fill: {{ ::item.color}}; stroke-width: 0.01"><title>{{ ::item.title }}</title></path>
+                  <path ng-attr-class="sr-lattice-watch {{ ::item.element.indexClass }}" ng-attr-transform="scale({{ item.subScaling().x }}, {{ item.subScaling().y }})" ng-attr-d="{{ ::'M0 0 L 0 ' + -item.height + ' L 0.25 -0.875 L 0 -0.75' }}" ng-attr-style="fill: {{ ::item.color}};"><title>{{ ::item.title }}</title></path>
                 </g>
                 <g ng-switch-when="undulator">
                   <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height }}" ng-attr-style="fill: {{ ::item.color }}"><title>{{ ::item.title }}</title></rect>
@@ -60,8 +60,8 @@
           </g>
         </g>
       </g>
-      <g data-ng-if="markerUnits" ng-attr-transform="translate({{ width - margin - 40 }},{{ height - margin - 15 }})">
-        <path ng-attr-d="{{ 'M-' + markerWidth + ' -26 L -' + markerWidth + ' 14 M-' + markerWidth + ' -6 L 0 -6 M 0 -26 L 0 14' }}" style="stroke: black; stroke-width: 1" />
+      <g class="sr-lattice-marker" data-ng-if="markerUnits" ng-attr-transform="translate({{ width - margin - 40 }},{{ height - margin - 15 }})">
+        <path ng-attr-d="{{ 'M-' + markerWidth + ' -26 L -' + markerWidth + ' 14 M-' + markerWidth + ' -6 L 0 -6 M 0 -26 L 0 14' }}" />
         <text dx="5" style="font-size: 12px">{{ markerUnits }}</text>
       </g>
   </svg></div>

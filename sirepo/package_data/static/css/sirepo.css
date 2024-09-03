@@ -388,7 +388,6 @@
     .sr-plot .axis text.sr-svg-result {
       fill: #8a8a8a;
       font-size: 16px;
-      font-weight: bold;
     }
 
     .sr-plot text.sr-svg-label {
@@ -420,14 +419,17 @@
     .sr-plot text.z-axis-label,
     .sr-plot text.y-axis-label,
     .sr-plot text.x-axis-label,
-    .sr-plot text.frequency-label {
+    .sr-plot text.frequency-label,
+    .y-axis-label
+    {
       font-size: 14px;
-      font-weight: bold;
       text-anchor: middle;
+    }
+    .sr-plot .katex {
+      font-size: 18px;
     }
     .sr-plot .main-title {
       font-size: 18px;
-      font-weight: bold;
       text-anchor: middle;
     }
     .sr-plot .sub-title {
@@ -564,37 +566,6 @@
     .sr-plot .x-base, .sr-plot .y-base {
       font-size: 13px;
     }
-    .sr-plot .popup-report {
-        display: none;
-    }
-    .sr-plot .popup-group {
-        fill: white;
-    }
-    .sr-plot .popup-group .report-window {
-        fill: rgba(255, 255, 255, 0.90);
-        stroke: blue;
-    }
-    .sr-plot .popup-group .report-window-title-bar {
-        fill: rgba(221, 237, 246, 0.9);
-        stroke: none;
-        cursor: move;
-    }
-
-    .sr-plot .popup-group .report-window-title-icon {
-        fill: #222;
-        cursor: pointer;
-        user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        -webkit-user-select: none;
-    }
-    .sr-plot .popup-group .report-window-close {
-    }
-    .sr-plot .popup-group .report-window-copy {
-        font-family: "Glyphicons Halflings";
-        fill: #337ab7;
-    }
-
 
     .sr-plot .plot-visibility {
         cursor: pointer;
@@ -624,9 +595,10 @@
     @media (max-width: 767px) {
       div.sr-plot .z-axis-label,
       div.sr-plot .y-axis-label,
-      div.sr-plot .x-axis-label {
+      div.sr-plot .x-axis-label,
+      .y-axis-label
+      {
         font-size: 12px;
-        font-weight: bold;
         text-anchor: middle;
       }
       div.sr-plot .main-title {
@@ -634,6 +606,9 @@
       }
       div.sr-plot .focus-text {
         font-size: 12px;
+      }
+      .sr-plot .katex {
+        font-size: 16px;
       }
     }
 
@@ -1043,9 +1018,6 @@ label .katex {
 .tooltip .katex {
   font-size: 16px;
   font-weight: normal;
-}
-.latex-title .katex {
-    font-size: 18px;
 }
 
 .sr-disabled-item {

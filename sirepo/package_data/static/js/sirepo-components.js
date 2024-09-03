@@ -1946,6 +1946,9 @@ SIREPO.app.directive('textWithMath', function(appState, mathRendering, utilities
         controller: function($scope) {
             $scope.appState = appState;
             $scope.getHTML = function() {
+                if (! $scope.textWithMath) {
+                    return '';
+                }
                 return $sce.trustAsHtml(mathRendering.mathAsHTML(
                     utilities.interpolateString($scope.textWithMath, $scope)
                 ));
@@ -4978,7 +4981,7 @@ SIREPO.app.service('plotToPNG', function() {
         html2canvas(el, {
             scale: outputHeight / $(el).height(),
             backgroundColor: '#ffffff',
-            ignoreElements: (element) => element.matches("path.pointer.axis")
+            ignoreElements: (element) => element.matches("path.pointer.axis") || element.matches('text.glyphicon')
         }).then(canvas => {
             canvas.toBlob(function(blob) {
                 saveAs(blob, fileName);
@@ -5048,7 +5051,10 @@ SIREPO.app.service('mathRendering', function() {
             return encodeHTML(text);
         }
         var parts = [];
-
+        //if (! options) {
+        //    options = {};
+        //}
+        //options.output = 'html';
         var i = text.search(RE);
         while (i != -1) {
             if (i > 0) {
