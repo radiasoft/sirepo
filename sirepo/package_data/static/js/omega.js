@@ -164,6 +164,9 @@ SIREPO.app.directive('beamAndPhasePlots', function(appState, omegaService) {
             };
 
             $scope.$on('modelChanged', (e, name) => {
+                if (! $scope.reports) {
+                    return;
+                }
                 for (const sim of $scope.reports) {
                     if (name === sim[1][0].modelKey) {
                         const updated = [];
@@ -183,7 +186,7 @@ SIREPO.app.directive('beamAndPhasePlots', function(appState, omegaService) {
     };
 });
 
-SIREPO.app.directive('dynamicSimList', function(appState, requestSender) {
+SIREPO.app.directive('dynamicSimList', function(appState) {
     return {
         restrict: 'A',
         scope: {
@@ -196,20 +199,6 @@ SIREPO.app.directive('dynamicSimList', function(appState, requestSender) {
           </div>
         `,
         controller: function($scope) {
-            const requestSimListByType = (simType) => {
-                requestSender.sendRequest(
-                    'listSimulations',
-                    () => {},
-                    {
-                        simulationType: simType,
-                    }
-                );
-            };
-            if (SIREPO.APP_SCHEMA.relatedSimTypes) {
-                SIREPO.APP_SCHEMA.relatedSimTypes.forEach(simType => {
-                    requestSimListByType(simType);
-                });
-            }
             $scope.selectedCode = () => {
                 if ($scope.model) {
                     $scope.code = $scope.model.simulationType;

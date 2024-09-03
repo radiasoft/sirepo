@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from pmd_beamphysics import pmd_init
 from pykern import pkio
 from rslume import Elegant, OPAL, Genesis2
@@ -14,23 +16,18 @@ def run_and_save_particles(sim):
     sim.run()
     p = sim.final_particles()
     if p:
-        with h5py.File(os.path.join(sim.workdir, "{{ particleOutfile }}"), "w") as f:
+        with h5py.File(os.path.join(sim.workdir, "openpmd.h5"), "w") as f:
             pmd_init(f, basePath="/", particlesPath="/" )
             p.write(f)
     return sim
 
 
-{% for sim in simCall %}
-{{ sim.name }} = run_and_save_particles(
-    {{ sim.code }}(
-        input_file="{{ sim.name }}/{{ sim.input_file }}",
+run1 = run_and_save_particles(
+    Genesis2(
+        input_file="run1/genesis.in",
         use_temp_dir=False,
-        workdir="{{ sim.name}}/{{ sim.out }}",
-        initial_particles={{ sim.initial_particles }},
-        {% if sim.update_filenames %}
-        update_filenames=True,
-        {% endif %}
+        workdir="run1/out",
+        initial_particles=None,
     ),
 )
 
-{% endfor %}

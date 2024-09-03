@@ -6,7 +6,13 @@
 """
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common
+import os
 
 
 def run_background(cfg_dir):
+    # TODO(pjm): work-around until rslume is bundled with sirepo
+    try:
+        import rslume.elegant
+    except ModuleNotFoundError as e:
+        os.system("pip install git+https://github.com/radiasoft/rslume")
     template_common.exec_parameters()
