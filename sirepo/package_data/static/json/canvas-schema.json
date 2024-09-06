@@ -252,18 +252,21 @@
         "bunchAnimation1": {
             "title": "Phase Space",
             "advanced": [
+                "histogramBins",
                 "notes"
             ]
         },
         "bunchAnimation2": {
             "title": "Phase Space",
             "advanced": [
+                "histogramBins",
                 "notes"
             ]
         },
         "bunchAnimation3": {
             "title": "Phase Space",
             "advanced": [
+                "histogramBins",
                 "notes"
             ]
         },

@@ -117,6 +117,8 @@ PTC_OBSERVE_TWISS_COLS = [
     "pypt",
     "pypy",
     "s",
+    "sx",
+    "sy",
     "x0",
     "xct",
     "xpt",
@@ -382,6 +384,7 @@ def generate_ptc_particles_file(run_dir, data, twiss):
             ),
             _read_particles,
         )
+        v.t = list(-numpy.array(v.t))
     else:
         beam = LatticeUtil.find_first_command(data, "beam")
         c = code_var(data.models.rpnVariables)

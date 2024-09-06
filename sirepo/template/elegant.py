@@ -270,6 +270,11 @@ class ElegantMadxConverter(MadxConverter):
             ["LSCDRIFT", "l"],
         ],
         [
+            # DIPEDGE attributes will be combined with any CSBEND or RBEN elements nearby
+            "DIPEDGE",
+            ["CSBEND", "e1", "tilt", "hgap", "fint"],
+        ],
+        [
             "SBEND",
             [
                 "CSBEND",
@@ -467,6 +472,7 @@ class ElegantMadxConverter(MadxConverter):
         data = self.fill_in_missing_constants(
             super().from_madx(madx), _ELEGANT_CONSTANTS
         )
+        self.__combine_dipedge(data)
         eb = LatticeUtil.find_first_command(data, "bunched_beam")
         mb = LatticeUtil.find_first_command(madx, "beam")
         for f in self._BEAM_VARS:
@@ -539,6 +545,44 @@ class ElegantMadxConverter(MadxConverter):
             for f in scale:
                 if f in element_out:
                     element_out[f] = f"{element_out[f]} {op} {scale[f]}"
+
+    def __combine_dipedge(self, data):
+        # DIPEDGE elements get converted into a CSBEND with no length
+        # combine attributes with nearby CSBEND elements
+        dmap = PKDict()
+        bmap = PKDict()
+        els = []
+        for el in data.models.elements:
+            if el.type == "CSBEND":
+                if el.l == 0:
+                    dmap[el._id] = el
+                    continue
+                else:
+                    bmap[el._id] = el
+            els.append(el)
+        data.models.elements = els
+        for bl in data.models.beamlines:
+            bl2 = []
+            for i, id in enumerate(bl["items"]):
+                if id in dmap:
+                    if i > 0 and bl["items"][i - 1] in bmap:
+                        # trailing dipedge
+                        b = bmap[bl["items"][i - 1]]
+                        d = dmap[id]
+                        b.e2 = d.e1
+                        b.fint2 = d.fint
+                        b.hgap = d.hgap
+                    continue
+                if id in bmap and i > 0 and bl["items"][i - 1] in dmap:
+                    # leading dipedge
+                    d = dmap[bl["items"][i - 1]]
+                    b = bmap[id]
+                    b.e1 = d.e1
+                    b.fint1 = d.fint
+                    b.hgap = d.hgap
+                    b.tilt = d.tilt
+                bl2.append(id)
+            bl["items"] = bl2
 
     def __normalize_elegant_beam(self, data, beam):
         # ensure p_central_mev, emit_x, emit_y, sigma_s, sigma_dp and dp_s_coupling are set

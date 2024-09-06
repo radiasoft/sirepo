@@ -8,6 +8,7 @@ SIREPO.app.config(function() {
         'bunch-sourceFile': '.h5',
     };
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
+    SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.SINGLE_FRAME_ANIMATION = ['twissAnimation', 'twissFromParticlesAnimation'];
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="matchSummaryAnimation" data-match-summary-panel="" class="sr-plot sr-screenshot"></div>

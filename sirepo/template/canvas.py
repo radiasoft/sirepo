@@ -125,51 +125,56 @@ def sim_frame(frame_args):
 
 
 def sim_frame_sigmaAnimation(frame_args):
-    s = sdds_util.extract_sdds_column(
-        str(frame_args.run_dir.join("elegant/run_setup.sigma.sdds")),
-        "s",
-        0,
-    )["values"]
-    elegant_sx = sdds_util.extract_sdds_column(
-        str(frame_args.run_dir.join("elegant/run_setup.sigma.sdds")),
-        "Sx",
-        0,
-    )["values"]
-    elegant_sy = sdds_util.extract_sdds_column(
-        str(frame_args.run_dir.join("elegant/run_setup.sigma.sdds")),
-        "Sy",
-        0,
-    )["values"]
-
-    # impactx
+    elegant = PKDict(
+        s=sdds_util.extract_sdds_column(
+            str(frame_args.run_dir.join("elegant/run_setup.sigma.sdds")),
+            "s",
+            0,
+        )["values"],
+        sx=sdds_util.extract_sdds_column(
+            str(frame_args.run_dir.join("elegant/run_setup.sigma.sdds")),
+            "Sx",
+            0,
+        )["values"],
+        sy=sdds_util.extract_sdds_column(
+            str(frame_args.run_dir.join("elegant/run_setup.sigma.sdds")),
+            "Sy",
+            0,
+        )["values"],
+    )
     impactx_sigma = pandas.read_csv(
         "impactx/diags/reduced_beam_characteristics.0.0", delimiter=" "
+    )
+    impactx = PKDict(
+        s=list(impactx_sigma["s"].values),
+        sx=list(impactx_sigma["sig_x"].values),
+        sy=list(impactx_sigma["sig_y"].values),
     )
 
     # TODO(pjm): group both codes by "s" and interpolate values if necessary
 
+    _trim_duplicate_positions(elegant, "s", "sx", "sy")
+    _trim_duplicate_positions(impactx, "s", "sx", "sy")
+
     return template_common.parameter_plot(
-        x=s,
+        x=elegant.s,
         plots=[
             PKDict(
                 label="elegant sigma x [m]",
-                points=elegant_sx,
+                points=elegant.sx,
                 strokeWidth=10,
                 opacity=0.5,
             ),
             PKDict(
                 label="elegant sigma y [m]",
-                points=elegant_sy,
+                points=elegant.sy,
                 strokeWidth=10,
                 opacity=0.5,
             ),
-            PKDict(
-                label="impactx sigma x [m]",
-                points=list(impactx_sigma["sig_x"].values),
-            ),
+            PKDict(label="impactx sigma x [m]", points=impactx.sx),
             PKDict(
                 label="impactx sigma y [m]",
-                points=list(impactx_sigma["sig_y"].values),
+                points=impactx.sy,
             ),
         ],
         model=frame_args,

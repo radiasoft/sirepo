@@ -23,6 +23,7 @@ import sirepo.template
 import sirepo.template.canvas
 import sirepo.template.elegant_common
 
+_SCHEMA = sirepo.sim_data.get_class("canvas").schema()
 _MADX = sirepo.sim_data.get_class("madx")
 _MODEL_FIELD_MAP = PKDict(
     DRIFT=PKDict(
@@ -30,6 +31,9 @@ _MODEL_FIELD_MAP = PKDict(
     ),
     QUADRUPOLE=PKDict(
         _fields=["name", "type", "l", "k1", "k1s", "_id"],
+    ),
+    RFCAVITY=PKDict(
+        _fields=["name", "type", "l", "volt", "freq", "_id"],
     ),
     SBEND=PKDict(
         _fields=[
@@ -122,9 +126,10 @@ def _write_elegant(run_dir, data, input_file):
                 center_transversely=1,
             ),
         )
+        for el in d.models.elements:
+            if el.type == "CSBEND":
+                el.n_slices = 20
         return d
-
-    # pkio.py_path('bunch-sourceFile.electron.h5').copy(pkio.py_path(f));
 
     s = sirepo.lib.SimData(
         madx_to_elegant("madx/in.madx", input_file),
@@ -143,7 +148,7 @@ def _write_impactx(run_dir, data, input_file):
     pkio.unchecked_remove("impactx")
     pkio.mkdir_parent("impactx")
     f = sirepo.sim_data.get_class("canvas").lib_file_name_without_type(input_file)
-    beamline = LatticeUtil(data, _MADX.schema()).select_beamline().name
+    beamline = LatticeUtil(data, _SCHEMA).select_beamline().name
     pkio.py_path(input_file).copy(pkio.py_path("impactx").join(f))
 
     pkio.write_text(
@@ -187,9 +192,6 @@ with h5py.File("{ f }", "r") as f:
         * 1e-6
     )
     speciesCharge = d.attrs["charge_ref"] / abs(d.attrs["charge_ref"])
-    # docs say charge over mass [1/eV], but seems to be [C / kg]
-    qm = d.attrs["charge_ref"] / d.attrs["mass_ref"]
-    npart = len(d["position/x"])
     kin_energy_MeV = kinematic.Converter(
         mass=d.attrs["mass_ref"],
         mass_unit="SI",
@@ -205,7 +207,8 @@ with h5py.File("{ f }", "r") as f:
         _vector(d, "momentum/x"),
         _vector(d, "momentum/y"),
         _vector(d, "momentum/t"),
-        qm,
+        # docs say charge over mass [1/eV], but seems to be [C / kg]
+        d.attrs["charge_ref"] / d.attrs["mass_ref"],
         abs(d.attrs["charge_C"]),
     )
 
@@ -266,6 +269,12 @@ def _beam_settings_from_file(input_file, model=None):
     )
 
 
+def _next_id(state):
+    res = state.next_id
+    state.next_id += 1
+    return res
+
+
 def _to_madx(data, source_file):
     def _command(state, values):
         m = _MADX.model_defaults(f"command_{values._type}")
@@ -273,15 +282,11 @@ def _to_madx(data, source_file):
         m._id = _next_id(state)
         return m
 
-    def _next_id(state):
-        res = state.next_id
-        state.next_id += 1
-        return res
-
-    util = LatticeUtil(data, _MADX.schema())
+    util = LatticeUtil(data, _SCHEMA)
     state = PKDict(
         next_id=util.max_id + 1,
         util=util,
+        visited=set(),
     )
     bunch = PKDict(
         beamDefinition="file",
@@ -318,6 +323,8 @@ def _to_madx(data, source_file):
                     state,
                     PKDict(
                         _type="ptc_create_universe",
+                        sector_nmul=10,
+                        sector_nmul_max=10,
                     ),
                 ),
                 _command(
@@ -335,6 +342,7 @@ def _to_madx(data, source_file):
                         element_by_element="1",
                         file="1",
                         icase="6",
+                        maxaper="{1, 1, 1, 1, 5, 1}",
                     ),
                 ),
                 _command(
@@ -368,26 +376,28 @@ def _to_madx(data, source_file):
             res.models.elements.append(m)
             if e.type == "SBEND":
                 m.hgap = e.gap / 2
-                _add_dipedges(res, m, _next_id(state), _next_id(state), state)
+                _add_dipedges(res, m, state)
+            elif e.type == "RFCAVITY":
+                m.lag = e.phase
     return res
 
 
-def _add_dipedges(data, sbend, d1_id, d2_id, state):
+def _add_dipedges(data, sbend, state):
     if not sbend.l:
         raise AssertionError(f"SBEND missing length: {sbend.name}")
     d1 = _MADX.model_defaults("DIPEDGE").pkupdate(
-        _id=d1_id,
+        _id=_next_id(state),
         type="DIPEDGE",
-        name=f"_DP1_{sbend.name}",
+        name=f"DP1_{sbend.name}",
         hgap=sbend.hgap,
         fint=sbend.fint,
         h=sbend.angle / sbend.l,
         e1=sbend.e1,
     )
     d2 = _MADX.model_defaults("DIPEDGE").pkupdate(
-        _id=d2_id,
+        _id=_next_id(state),
         type="DIPEDGE",
-        name=f"_DP2_{sbend.name}",
+        name=f"DP2_{sbend.name}",
         hgap=sbend.hgap,
         fint=sbend.fintx,
         h=sbend.angle / sbend.l,
@@ -404,14 +414,13 @@ def _add_dipedges(data, sbend, d1_id, d2_id, state):
 
 
 def _add_dipedges_to_beamline(data, beamline, sbend, d1, d2, state):
-    sbend_indices = []
-    for idx, item in enumerate(beamline["items"]):
-        e = state.util.id_map[item]
-        if "_id" in e:
-            if e._id == sbend._id:
-                sbend_indices.append(idx)
-        else:
-            _add_dipedges_to_beamline(data, e, sbend, state)
-    for idx in reversed(sbend_indices):
-        beamline["items"].insert(idx + 1, d2._id)
-        beamline["items"].insert(idx - 1, d1._id)
+    bl = []
+    for i in beamline["items"]:
+        e = state.util.id_map.get(abs(i))
+        if e and e.get("type") == "SBEND" and e._id == sbend._id:
+            bl.append(d1._id)
+            bl.append(i)
+            bl.append(d2._id)
+            continue
+        bl.append(i)
+    beamline["items"] = bl
