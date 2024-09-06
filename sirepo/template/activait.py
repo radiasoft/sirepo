@@ -1201,14 +1201,12 @@ def _get_fit_report(report, x_vals, y_vals):
         PKDict(
             points=fit_y_min.tolist(),
             x_points=fit_x.tolist(),
-            label="confidence",
-            _parent="confidence",
+            label="confidence 1",
         ),
         PKDict(
             points=fit_y_max.tolist(),
             x_points=fit_x.tolist(),
-            label="",
-            _parent="confidence",
+            label="confidence 2",
         ),
     ]
     return param_vals, param_sigmas, plots

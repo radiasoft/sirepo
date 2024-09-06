@@ -26,13 +26,29 @@ class SimData(sirepo.sim_data.SimDataBase):
         dm.setdefault("rpnVariables", [])
 
     @classmethod
+    def get_distribution_file(cls, data):
+        if (
+            data.models.distribution.Flagdist == "16"
+            and data.models.distribution.filename
+        ):
+            return cls.lib_file_name_with_model_field(
+                "distribution", "filename", data.models.distribution.filename
+            )
+        return None
+
+    @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
         return [data.report]
 
     @classmethod
     def _lib_file_basenames(cls, data):
+        res = []
+        df = cls.get_distribution_file(data)
+        if df:
+            res.append(df)
         return (
-            sirepo.template.lattice.LatticeUtil(data, cls.schema())
+            res
+            + sirepo.template.lattice.LatticeUtil(data, cls.schema())
             .iterate_models(sirepo.template.lattice.InputFileIterator(cls))
             .result
         )

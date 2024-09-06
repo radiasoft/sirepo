@@ -36,6 +36,10 @@ I.lattice.extend([
 {% if numProcs > 1 %}
 I.numprocs = {{ numProcs }}
 {% endif %}
+
+{% if distributionFilename %}
+shutil.copy("{{distributionFilename}}", "partcl.data")
+{% endif %}
 I.run()
 
 for k in I.output["particles"]:

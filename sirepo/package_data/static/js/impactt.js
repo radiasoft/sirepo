@@ -1,26 +1,18 @@
 'use strict';
 
-var srlog = SIREPO.srlog;
-var srdbg = SIREPO.srdbg;
-
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
     SIREPO.SINGLE_FRAME_ANIMATION = ['statAnimation'];
     SIREPO.appFieldEditors += ``;
     SIREPO.lattice = {
         elementColor: {
-            MULTIPOLE: 'yellow',
-            QUADRUPOLE: 'red',
-            DIPOLE: 'lightgreen',
-            SOLENOID: 'red',
-            DRIFT: 'grey',
         },
         elementPic: {
             drift: ['DRIFT', 'EMFIELD_CARTESIAN', 'EMFIELD_CYLINDRICAL', 'WAKEFIELD'],
             lens: ['ROTATIONALLY_SYMMETRIC_TO_3D'],
             magnet: ['QUADRUPOLE', 'DIPOLE'],
             solenoid: ['SOLENOID', 'SOLRF'],
-            watch: ['WRITE_BEAM', 'WRITE_SLICE_INFO',],
+            watch: ['WRITE_BEAM', 'WRITE_SLICE_INFO'],
             zeroLength: [
                 'CHANGE_TIMESTEP',
                 'OFFSET_BEAM',
@@ -136,7 +128,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
                 <div data-sim-sections="">
-                  <li class="sim-section" data-ng-class="{active: nav.isActive('lattice')}"><a href data-ng-click="nav.openSection('lattice')"><span class="glyphicon glyphicon-flash"></span> Lattice</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('lattice')}"><a href data-ng-click="nav.openSection('lattice')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>
                   <li class="sim-section" data-ng-class="{active: nav.isActive('source')}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
                   <li class="sim-section" data-ng-class="{active: nav.isActive('visualization')}"><a href data-ng-click="nav.openSection('visualization')"><span class="glyphicon glyphicon-flash"></span> Visualization</a></li>
                 </div>
@@ -158,8 +150,8 @@ SIREPO.viewLogic('wakefieldView', function(appState, panelState, $scope) {
             return;
         }
         panelState.showFields('WAKEFIELD', [
-            ['gap', 'period', 'iris_radius'], m.method == 'analytical',
-            ['filename'], m.method == 'from_file',
+            ['gap', 'period', 'iris_radius'], m.method === 'analytical',
+            ['filename'], m.method === 'from_file',
         ]);
     }
 
@@ -167,4 +159,33 @@ SIREPO.viewLogic('wakefieldView', function(appState, panelState, $scope) {
     $scope.watchFields = [
         ['WAKEFIELD.method'], updateFields,
     ];
+});
+
+SIREPO.viewLogic('beamView', function(appState, panelState, $scope) {
+
+    function updateFields() {
+        panelState.showFields('beam', [
+            ['Bmass', 'Bcharge'], appState.models.beam.particle === 'other',
+        ]);
+    }
+
+    $scope.whenSelected = updateFields;
+    $scope.watchFields = [
+        ['beam.particle'], updateFields,
+    ];
+
+});
+
+SIREPO.viewLogic('distributionView', function(appState, panelState, $scope) {
+
+    function updateFields() {
+        panelState.showField('distribution', 'filename', appState.models.distribution.Flagdist === "16");
+        // the other distribution fields may also apply even when "from file" is selected
+    }
+
+    $scope.whenSelected = updateFields;
+    $scope.watchFields = [
+        ['distribution.Flagdist'], updateFields,
+    ];
+
 });
