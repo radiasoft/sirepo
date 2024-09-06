@@ -275,6 +275,9 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
                 }
             }
             var m = appState.models[modelKey];
+            if (outputFile.reportType != 'heatmap') {
+                m.aspectRatio = 4.0 / 7;
+            }
             appState.setModelDefaults(m, 'elementAnimation');
             var yColumnWithNone = appState.clone(info.plottableColumns);
             yColumnWithNone.unshift('None');
