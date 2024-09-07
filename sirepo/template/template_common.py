@@ -242,7 +242,7 @@ class ParticleEnergy:
     SPEED_OF_LIGHT = 299792458  # [m/s]
 
     ENERGY_PRIORITY = PKDict(
-        canvas=["energy"],
+        impactx=["energy"],
         opal=["gamma", "energy", "pc"],
         madx=["energy", "pc", "gamma", "beta", "brho"],
     )

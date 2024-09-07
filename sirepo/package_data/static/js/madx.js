@@ -14,7 +14,7 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="matchSummaryAnimation" data-match-summary-panel="" class="sr-plot sr-screenshot"></div>
     `;
     SIREPO.appFieldEditors += `
-        <div data-ng-switch-when="FloatArray" data-ng-class="fieldClass">
+        <div data-ng-switch-when="FloatArray" class="col-sm-7">
           <input data-ng-model="model[field]" class="form-control" data-lpignore="true" required />
         </div>
         <div data-ng-switch-when="Float2StringArray" class="col-sm-7">
@@ -240,6 +240,9 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
                 }
             }
             var m = appState.models[modelKey];
+            if (outputFile.reportType != 'heatmap') {
+                m.aspectRatio = 4.0 / 7;
+            }
             appState.setModelDefaults(m, 'elementAnimation');
             var yColumnWithNone = appState.clone(info.plottableColumns);
             yColumnWithNone.unshift('None');

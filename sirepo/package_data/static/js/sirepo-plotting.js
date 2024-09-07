@@ -3715,11 +3715,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 if (! isVisible && ! canToggle(pIndex)) {
                     return;
                 }
-                $scope.plots[pIndex]._isVisible = isVisible;
-                plotPath(pIndex).style('opacity', isVisible ? 1.0 : 0.0);
-                if ($scope.plots && $scope.plots[pIndex]) {
-                    $scope.recalculateYDomain();
-                }
+                const p = $scope.plots[pIndex];
+                p._isVisible = isVisible;
+                plotPath(pIndex).style('opacity', isVisible ? (p.opacity || 1.0) : 0.0);
+                $scope.recalculateYDomain();
                 $scope.broadcastEvent({
                     name: 'setInfoVisible',
                     isVisible: isVisible,
@@ -3733,7 +3732,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 viewport.selectAll('.line').remove();
                 viewport.selectAll('g.param-plot').remove();
                 json.plots.forEach(function(plot, ip) {
-                    let strokeWidth = 2.0;
+                    let strokeWidth = plot.strokeWidth || 2.0;
                     if (plot.style === 'scatter') {
                         let clusterInfo;
                         let circleRadius = plot.circleRadius || 2;

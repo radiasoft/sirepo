@@ -45,6 +45,7 @@ _NON_PROD_FOSS_CODES = frozenset(
         "canvas",
         "epicsllrf",
         "impactt",
+        "impactx",
         "myapp",
         "hellweg",
     )

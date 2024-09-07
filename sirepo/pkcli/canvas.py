@@ -13,7 +13,6 @@ from sirepo.template import template_common
 from sirepo.template.elegant import ElegantMadxConverter
 from sirepo.template.lattice import LatticeUtil
 import copy
-import pmd_beamphysics.readers
 import scipy.constants
 import sirepo.lib
 import sirepo.pkcli.elegant
@@ -49,14 +48,6 @@ _MODEL_FIELD_MAP = PKDict(
         ],
     ),
 )
-
-
-def run(cfg_dir):
-    template_common.exec_parameters()
-    sirepo.template.canvas.save_sequential_report_data(
-        pkio.py_path(cfg_dir),
-        simulation_db.read_json(template_common.INPUT_BASE_NAME),
-    )
 
 
 def run_background(cfg_dir):

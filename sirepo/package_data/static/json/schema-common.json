@@ -40,6 +40,10 @@
             "longName": "Impact-T",
             "shortName": "Impact-T"
         },
+        "impactx": {
+            "longName": "ImpactX",
+            "shortName": "ImpactX"
+        },
         "jspec": {
             "longName": "JSPEC",
             "shortName": "JSPEC"

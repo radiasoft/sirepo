@@ -34,10 +34,10 @@ SIREPO.app.factory('impacttService', function(appState) {
 
 
 SIREPO.app.controller('SourceController', function(appState, $scope) {
-    var self = this;
+    const self = this;
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, frameCache, impacttService, panelState, persistentSimulation, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, frameCache, panelState, persistentSimulation, $scope) {
     const self = this;
     self.simScope = $scope;
     self.errorMessage = '';
@@ -49,7 +49,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     function loadReports(reports) {
         self.outputFiles = [];
         reports.forEach((info) => {
-            var outputFile = {
+            const outputFile = {
                 info: info,
                 reportType: 'heatmap',
                 viewName: 'elementAnimation',
@@ -67,7 +67,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
             if (! appState.models[info.modelKey]) {
                 appState.models[info.modelKey] = {};
             }
-            var m = appState.models[info.modelKey];
+            const m = appState.models[info.modelKey];
             appState.setModelDefaults(m, 'elementAnimation');
             appState.saveQuietly(info.modelKey);
             frameCache.setFrameCount(1, info.modelKey);
@@ -91,8 +91,8 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     };
 });
 
-SIREPO.app.controller('LatticeController', function(latticeService, appState) {
-    var self = this;
+SIREPO.app.controller('LatticeController', function(latticeService) {
+    const self = this;
     self.latticeService = latticeService;
 
     self.advancedNames = SIREPO.APP_SCHEMA.constants.advancedElementNames;

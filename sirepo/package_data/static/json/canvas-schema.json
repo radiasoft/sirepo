@@ -21,7 +21,8 @@
             "js": [
                 "canvas.js",
                 "sirepo-command.js",
-                "sirepo-lattice.js"
+                "sirepo-lattice.js",
+                "impactx-util.js"
             ],
              "css": [
                  "lattice.css",
@@ -95,7 +96,7 @@
         "source": {
             "config": {
                 "controller": "SourceController as source",
-                "templateUrl": "/static/html/canvas-source.html"
+                "template": "<div data-impactx-source-tab=\"\" data-source=\"source\"></div>"
             }
         },
         "comparison": {
