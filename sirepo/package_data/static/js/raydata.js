@@ -5,12 +5,6 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
     SIREPO.appFieldEditors += `
-        <div data-ng-switch-when="DateTimePicker" class="col-sm-7">
-          <div data-date-time-picker="" data-model="model" data-field="field"></div>
-        </div>
-        <div data-ng-switch-when="PresetTimePicker" class="col-sm-7">
-          <div class="text-right" data-preset-time-picker="" data-model="model" data-model-name="modelName"></div>
-        </div>
         <div data-ng-switch-when="RecentlyExecutedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="recentlyExecuted"></div>
         </div>
@@ -313,34 +307,6 @@ SIREPO.app.directive('columnPicker', function() {
     };
 });
 
-SIREPO.app.directive('dateTimePicker', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            field: '=',
-        },
-        template: `<input type="datetime-local" class="form-control" ng-model="dateTime" required >`,
-        controller: function($scope, timeService) {
-            $scope.dateTime = $scope.model[$scope.field] ? timeService.unixTimeToDate($scope.model[$scope.field]) : '';
-            $scope.$watch('dateTime', function(newTime, oldTime) {
-                if (
-                    (newTime && !oldTime) ||
-                    (newTime && newTime.getTime() !== oldTime.getTime())
-                ) {
-                    $scope.model[$scope.field] = timeService.unixTime(newTime);
-                }
-            });
-
-            $scope.$watch('model.' + $scope.field, function(newTime, oldTime) {
-                if (newTime !== oldTime) {
-                    $scope.dateTime = timeService.unixTimeToDate(newTime);
-                }
-            });
-        }
-    };
-});
-
 SIREPO.app.directive('dotsAnimation', function() {
     return {
         restrict: 'A',
@@ -374,52 +340,6 @@ SIREPO.app.directive('pngImage', function(plotting) {
         controller: function(raydataService, $element, $scope) {
             $scope.id = raydataService.nextPngImageId();
             raydataService.setPngDataUrl($element.children()[0], $scope.image);
-        }
-    };
-});
-
-SIREPO.app.directive('presetTimePicker', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            modelName: '=',
-        },
-        template: `
-          <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastHour()">Last Hour</button>
-          <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastDay()">Last Day</button>
-          <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastWeek()">Last Week</button>
-          <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeMaxRange()">All Time</button>
-        `,
-        controller: function(appState, timeService, $scope) {
-            $scope.setDefaultStartStopTime = () => {
-                if (!$scope.model.searchStartTime && !$scope.model.searchStopTime) {
-                    $scope.setSearchTimeLastHour();
-                    appState.saveChanges($scope.modelName);
-                }
-            };
-
-            $scope.setSearchTimeLastDay = () => {
-                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneDayAgo());
-                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
-            };
-
-            $scope.setSearchTimeLastHour = () => {
-                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneHourAgo());
-                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
-            };
-
-            $scope.setSearchTimeLastWeek = () => {
-                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneWeekAgo());
-                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
-            };
-
-            $scope.setSearchTimeMaxRange = () => {
-                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(60);
-                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
-            };
-
-            $scope.setDefaultStartStopTime();
         }
     };
 });
