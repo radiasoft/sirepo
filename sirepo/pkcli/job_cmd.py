@@ -66,6 +66,9 @@ def default_command(in_file):
             msg and msg.get("simulationType"),
             pkdexc(),
         )
+        # Workaround for sirepo#7247. Unlikely case, because _dispatch_compute already
+        # has a try.
+        time.sleep(0.3)
         r = _maybe_parse_user_alert(e)
     return pkjson.dump_pretty(r, pretty=False)
 
