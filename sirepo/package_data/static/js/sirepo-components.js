@@ -305,7 +305,7 @@ SIREPO.app.directive('basicEditorPanel', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('buttons', function(appState, panelState) {
+SIREPO.app.directive('buttons', function(appState, panelState, stringsService) {
     return {
         restrict: 'A',
         scope: {
@@ -316,7 +316,7 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
         },
         template: `
             <div data-ng-show="isFormDirty()">
-              <button data-ng-click="saveChanges()" class="btn btn-primary sr-button-save-cancel" data-ng-disabled="! isFormValid()">Save</button>
+              <button data-ng-click="saveChanges()" class="btn btn-primary sr-button-save-cancel" data-ng-disabled="! isFormValid()">{{ ::saveButtonLabel() }}</button>
               <button data-ng-click="cancelChanges()" class="btn btn-default sr-button-save-cancel">Cancel</button>
             </div>
         `,
@@ -365,7 +365,11 @@ SIREPO.app.directive('buttons', function(appState, panelState) {
                 return ctlsValid && $scope.form.$valid;
             };
 
-           $scope.saveChanges = function() {
+            $scope.saveButtonLabel = () => {
+                return stringsService.saveButtonLabel($scope.modelName);
+            };
+
+            $scope.saveChanges = function() {
                 if ($scope.form.$valid) {
                     appState.saveChanges(Object.keys(fieldsByModel));
                 }
@@ -846,6 +850,17 @@ SIREPO.app.directive('fieldEditor', function(appState, keypressService, panelSta
               </div>
               <div data-ng-switch-when="ModelArray" class="col-sm-12">
                 <div data-model-array="" data-model-name="modelName" data-model="model" data-field="field"></div>
+              </div>
+              <div data-ng-switch-when="DateTimePicker" class="col-sm-5">
+                <div data-date-time-picker="" data-model="model" data-field="field"></div>
+              </div>
+              <div data-ng-switch-when="PresetTimePicker" class="col-sm-7">
+                <div class="text-right" data-preset-time-picker="" data-model="model" data-model-name="modelName"></div>
+              </div>
+              <div data-ng-switch-when="OptionalFloat" data-ng-class="fieldClass">
+                <input data-string-to-number="" data-ng-model="model[field]"
+                  data-min="info[4]" data-max="info[5]" class="form-control"
+                  style="text-align: right" data-lpignore="true" />
               </div>
               ${SIREPO.appFieldEditors}
               <div data-ng-switch-default data-ng-class="fieldClass">
@@ -5590,5 +5605,79 @@ SIREPO.app.directive('srDroppable', function() {
                 $element.off();
             });
         },
+    };
+});
+
+SIREPO.app.directive('dateTimePicker', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: `<input type="datetime-local" class="form-control" ng-model="dateTime" required >`,
+        controller: function($scope, timeService) {
+            $scope.dateTime = $scope.model[$scope.field] ? timeService.unixTimeToDate($scope.model[$scope.field]) : '';
+            $scope.$watch('dateTime', function(newTime, oldTime) {
+                if (
+                    (newTime && !oldTime) ||
+                    (newTime && newTime.getTime() !== oldTime.getTime())
+                ) {
+                    $scope.model[$scope.field] = timeService.unixTime(newTime);
+                }
+            });
+
+            $scope.$watch('model.' + $scope.field, function(newTime, oldTime) {
+                if (newTime !== oldTime) {
+                    $scope.dateTime = timeService.unixTimeToDate(newTime);
+                }
+            });
+        }
+    };
+});
+
+SIREPO.app.directive('presetTimePicker', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            modelName: '=',
+        },
+        template: `
+          <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastHour()">Last Hour</button>
+          <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastDay()">Last Day</button>
+          <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastWeek()">Last Week</button>
+          <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeMaxRange()">All Time</button>
+        `,
+        controller: function(appState, timeService, $scope) {
+            $scope.setDefaultStartStopTime = () => {
+                if (!$scope.model.searchStartTime && !$scope.model.searchStopTime) {
+                    $scope.setSearchTimeLastHour();
+                    appState.saveChanges($scope.modelName);
+                }
+            };
+
+            $scope.setSearchTimeLastDay = () => {
+                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneDayAgo());
+                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
+            };
+
+            $scope.setSearchTimeLastHour = () => {
+                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneHourAgo());
+                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
+            };
+
+            $scope.setSearchTimeLastWeek = () => {
+                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneWeekAgo());
+                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
+            };
+
+            $scope.setSearchTimeMaxRange = () => {
+                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(60);
+                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
+            };
+
+            $scope.setDefaultStartStopTime();
+        }
     };
 });
