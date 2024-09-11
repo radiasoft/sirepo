@@ -45,6 +45,7 @@ def default_command(in_file):
     Returns:
         str: json output of command, e.g. status msg
     """
+    msg = None
     try:
         f = pkio.py_path(in_file)
         msg = pkjson.load_any(f)
@@ -58,6 +59,16 @@ def default_command(in_file):
             return
         r = PKDict(res).pksetdefault(state=job.COMPLETED)
     except Exception as e:
+        pkdlog(
+            "exception={} jobCmd={} simType={} stack={}",
+            e,
+            msg and msg.get("jobCmd"),
+            msg and msg.get("simulationType"),
+            pkdexc(),
+        )
+        # Workaround for sirepo#7247. Unlikely case, because _dispatch_compute already
+        # has a try.
+        time.sleep(0.3)
         r = _maybe_parse_user_alert(e)
     return pkjson.dump_pretty(r, pretty=False)
 
