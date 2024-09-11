@@ -294,4 +294,8 @@
   input[type="datetime-local"] {
     color-scheme: dark;
   }
+
+  .sr-button-bar {
+    background-color: var(--sr-bg-dark-mode);
+  }
 }
