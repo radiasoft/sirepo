@@ -19,8 +19,50 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _BUNCH_REPORT_OUTPUT_FILE = "diags/openPMD/monitor.h5"
 
 
+def background_percent_complete(report, run_dir, is_running):
+    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    if is_running:
+        pass
+    return PKDict(
+        frameCount=0,
+        percentComplete=0,
+    )
+
+
 def code_var(variables):
     return code_variable.CodeVar(variables, code_variable.PurePythonEval())
+
+
+def _generate_particles(data, res, v):
+    d = data.models.distribution
+    if d.distributionType == "File":
+        if not d.distributionFile:
+            raise AssertionError("Missing Distribution File")
+        v.distributionFile = _SIM_DATA.lib_file_name_with_model_field(
+            "distribution",
+            "distributionFile",
+            d.distributionFile,
+        )
+    v.kineticEnergyMeV = round(
+        template_common.ParticleEnergy.compute_energy(
+            SIM_TYPE,
+            d.species,
+            PKDict(
+                energy=d.energy,
+            ),
+        )["kinetic_energy"]
+        * 1e3,
+        9,
+    )
+    mc = SCHEMA.constants.particleMassAndCharge[d.species]
+    v.speciesMassMeV = round(mc[0] * 1e3, 9)
+    v.speciesCharge = mc[1]
+    v.createParticles = template_common.render_jinja(SIM_TYPE, v, "particles.py")
+
+
+def generate_distribution(data, res, v):
+    _generate_particles(data, res, v)
+    return res + template_common.render_jinja(SIM_TYPE, v, "distribution.py")
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -65,6 +107,9 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
+    if is_parallel:
+        return template_common.get_exec_parameters_cmd(False)
+    return None
 
 
 def _bunch_plot(run_dir, model):
@@ -100,38 +145,9 @@ def _bunch_plot(run_dir, model):
     )
 
 
-def _generate_distribution(data, res, v):
-    d = data.models.distribution
-    if d.distributionType == "File":
-        if not d.distributionFile:
-            raise AssertionError("Missing Distribution File")
-        v.distributionFile = _SIM_DATA.lib_file_name_with_model_field(
-            "distribution",
-            "distributionFile",
-            d.distributionFile,
-        )
-    v.kineticEnergyMeV = round(
-        template_common.ParticleEnergy.compute_energy(
-            SIM_TYPE,
-            d.species,
-            PKDict(
-                energy=d.energy,
-            ),
-        )["kinetic_energy"]
-        * 1e3,
-        9,
-    )
-    mc = SCHEMA.constants.particleMassAndCharge[d.species]
-    v.speciesMassMeV = round(mc[0] * 1e3, 9)
-    v.speciesCharge = mc[1]
-    return res + template_common.render_jinja(SIM_TYPE, v, "distribution.py")
-
-
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
-    if (
-        "bunchReport" in data.get("report", "")
-        or data.models.distribution.distributionType != "File"
-    ):
-        return _generate_distribution(data, res, v)
-    return ""
+    if "bunchReport" in data.get("report", ""):
+        return generate_distribution(data, res, v)
+    _generate_particles(data, res, v)
+    return res + template_common.render_jinja(SIM_TYPE, v, "parameters.py")

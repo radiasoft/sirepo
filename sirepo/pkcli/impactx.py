@@ -16,3 +16,6 @@ def run(cfg_dir):
         pkio.py_path(cfg_dir),
         simulation_db.read_json(template_common.INPUT_BASE_NAME),
     )
+
+
+# no run_background() because template.impactx.write_parameters() returns a run command

@@ -21,6 +21,7 @@ import sirepo.sim_data
 import sirepo.template
 import sirepo.template.canvas
 import sirepo.template.elegant_common
+import sirepo.pkcli.impactx
 
 _SCHEMA = sirepo.sim_data.get_class("canvas").schema()
 _MADX = sirepo.sim_data.get_class("madx")
@@ -48,6 +49,10 @@ _MODEL_FIELD_MAP = PKDict(
         ],
     ),
 )
+
+
+def run(cfg_dir):
+    return sirepo.pkcli.impactx.run(cfg_dir)
 
 
 def run_background(cfg_dir):

@@ -1,0 +1,40 @@
+
+from impactx import ImpactX, distribution, elements
+from rsbeams.rsstats import kinematic
+import amrex.space3d
+import h5py
+import impactx
+import pmd_beamphysics.readers
+import re
+import scipy.constants
+
+sim = ImpactX()
+
+sim.particle_shape = {{ simulationSettings_particle_shape }}  # B-spline order
+sim.space_charge = {{ simulationSettings_space_charge == '1' }}
+sim.slice_step_diagnostics = {{ simulationSettings_slice_step_diagnostics == '1' }}
+
+sim.init_grids()
+
+{{ createParticles }}
+
+##TODO(pjm): the generated lattice goes here
+monitor = elements.BeamMonitor("monitor", backend="h5")
+ns = 25  # number of slices per ds in the element
+rc = 10.3462283686195526  # bend radius (meters)
+psi = 0.048345620280243  # pole face rotation angle (radians)
+lb = 0.500194828041958  # bend arc length (meters)
+dr1 = elements.Drift(ds=5.0058489435, nslice=ns)
+dr2 = elements.Drift(ds=0.5, nslice=ns)
+sbend1 = elements.Sbend(ds=lb, rc=-rc, nslice=ns)
+sbend2 = elements.Sbend(ds=lb, rc=rc, nslice=ns)
+dipedge1 = elements.DipEdge(psi=-psi, rc=-rc, g=0.0, K2=0.0)
+dipedge2 = elements.DipEdge(psi=psi, rc=rc, g=0.0, K2=0.0)
+lattice_dogleg = [sbend1, dipedge1, dr1, dipedge2, sbend2, dr2]
+sim.lattice.append(monitor)
+sim.lattice.extend(lattice_dogleg)
+sim.lattice.append(monitor)
+
+sim.evolve()
+
+sim.finalize()

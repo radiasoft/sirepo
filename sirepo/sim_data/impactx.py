@@ -17,6 +17,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             dm,
             [
                 "distribution",
+                "simulationSettings",
             ],
         )
         if "bunchReport1" not in dm:

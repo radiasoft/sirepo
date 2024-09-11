@@ -282,5 +282,5 @@ def _generate_parameters_file(data):
         "bunchReport" in data.get("report", "")
         or data.models.distribution.distributionType != "File"
     ):
-        return sirepo.template.impactx._generate_distribution(data, res, v)
+        return sirepo.template.impactx.generate_distribution(data, res, v)
     return ""

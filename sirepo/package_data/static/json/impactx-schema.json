@@ -89,6 +89,11 @@
             ["dimensionless", "Dimensionless"],
             ["T-m", "T-m"]
         ],
+        "ParticleBSplineOrder": [
+            ["1", "Linear"],
+            ["2", "Quadratic"],
+            ["3", "Cubic"]
+        ],
         "PhaseSpaceCoordinate": [
             ["x", "x"],
             ["px", "Px"],
@@ -191,6 +196,12 @@
             "notes": ["Notes", "Text", ""],
             "reportIndex": ["", "Integer"]
         },
+        "simulationSettings": {
+            "particle_shape": ["Particle B-spline order", "ParticleBSplineOrder", "2", "The order of the shape factors (splines) for the macro-particles along all spatial directions:"],
+            "space_charge": ["Space Charge", "Boolean", "0", "Whether to calculation space charge effects"],
+            "slice_step_diagnostics": ["Diagnostics every slice step", "Boolean", "1"]
+        },
+        "simulationStatus": {},
         "rpnVariable": {
             "name": ["Name", "String"],
             "value": ["Value", "RPNValue"]
@@ -440,6 +451,19 @@
                 "colorMap",
                 "notes"
             ]
+        },
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "particle_shape",
+                "space_charge",
+                "slice_step_diagnostics"
+            ],
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
         },
         "_MISALIGNED_ELEMENT_VIEW": {
             "advanced": [
