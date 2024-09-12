@@ -2416,10 +2416,11 @@ SIREPO.app.directive('reportPanel', function(appState, panelState, utilities) {
             // optional, allow caller to provide path for modelKey and model data
             modelData: '=',
             requestPriority: '@',
+            viewName: '@',
         },
         template: `
             <div class="panel panel-info" data-ng-style="reportStyle">
-              <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1"></div>
+              <div class="panel-heading clearfix" data-panel-heading="{{ reportTitle() }}" data-model-key="modelKey" data-is-report="1" data-view-name="{{ viewName }}"></div>
               <div data-report-content="{{ reportPanel }}" data-model-key="{{ modelKey }}"><div data-ng-transclude=""></div></div>
               <div data-ng-if="notes()"><span class="pull-right sr-notes" data-sr-tooltip="{{ notes() }}" data-placement="top"></span><div class="clearfix"></div></div>
         `,
@@ -5615,8 +5616,12 @@ SIREPO.app.directive('dateTimePicker', function() {
             model: '=',
             field: '=',
         },
-        template: `<input type="datetime-local" class="form-control" ng-model="dateTime" required >`,
+        template: `<input data-ng-style="style" type="datetime-local" class="form-control" ng-model="dateTime" required >`,
         controller: function($scope, timeService) {
+            $scope.style = window.safari ? {
+                // work-around safari browser formatting problem
+                'line-height': '14px',
+            } : {};
             $scope.dateTime = $scope.model[$scope.field] ? timeService.unixTimeToDate($scope.model[$scope.field]) : '';
             $scope.$watch('dateTime', function(newTime, oldTime) {
                 if (
