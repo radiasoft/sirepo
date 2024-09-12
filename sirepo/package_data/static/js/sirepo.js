@@ -932,12 +932,16 @@ SIREPO.app.factory('appDataService', function() {
 SIREPO.app.factory('stringsService', function(authState) {
     const strings = SIREPO.APP_SCHEMA.strings;
 
-    function typeOfSimulation(modelName) {
+    function lookup(modelName, key) {
         let s;
-        if (modelName && strings[modelName] && strings[modelName].typeOfSimulation) {
-            s = strings[modelName].typeOfSimulation;
+        if (modelName && strings[modelName] && strings[modelName][key]) {
+            s = strings[modelName][key];
         }
-        return ucfirst(s || strings.typeOfSimulation);
+        return s || strings[key];
+    }
+
+    function typeOfSimulation(modelName) {
+        return ucfirst(lookup(modelName, 'typeOfSimulation'));
     }
 
     function ucfirst(str) {
@@ -972,6 +976,9 @@ SIREPO.app.factory('stringsService', function(authState) {
         },
 	sbatchLoginServiceStatus: () => {return 'Requesting login status...';},
         sbatchLoginServiceLogin: () => {return `Login to ${authState.sbatchHostDisplayName}`;},
+        saveButtonLabel: (modelName) => {
+            return lookup(modelName, 'save') || 'Save';
+        },
         startButtonLabel: (modelName) => {
             return `Start New ${typeOfSimulation(modelName)}`;
         },

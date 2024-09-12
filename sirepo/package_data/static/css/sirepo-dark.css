@@ -152,7 +152,7 @@
   .modal-backdrop.in {
     opacity: 0.7;
   }
-  .panel-info > .panel-heading {
+  .panel-info > .panel-heading, .btn-info {
     border-color: var(--sr-panel-border-dark-mode);
     background-color: var(--sr-panel-heading-bg-dark-mode);
   }
@@ -289,5 +289,13 @@
 
   .sr-lattice-marker > path {
     stroke: var(--sr-panel-text-dark-mode);
+  }
+
+  input[type="datetime-local"] {
+    color-scheme: dark;
+  }
+
+  .sr-button-bar {
+    background-color: var(--sr-bg-dark-mode);
   }
 }
