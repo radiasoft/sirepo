@@ -104,7 +104,7 @@ SIREPO.app.controller('LatticeController', function(latticeService) {
 
 });
 
-SIREPO.app.directive('appFooter', function() {
+SIREPO.app.directive('appFooter', function(impacttService) {
     return {
         restrict: 'A',
         scope: {
