@@ -46,6 +46,13 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     self.errorMessage = '';
 
     self.simHandleStatus = (data) => {
+        if (data.error) {
+            self.errorMessage = data.error;
+            return;
+        }
+        if (data.frameCount) {
+            frameCache.setFrameCount(data.frameCount);
+        }
     };
     self.simState = persistentSimulation.initSimulationState(self);
 });

@@ -12,17 +12,23 @@ from sirepo.template import code_variable
 from sirepo.template import hdf5_util
 from sirepo.template import template_common
 import numpy
+import pandas
 import sirepo.sim_data
 
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _BUNCH_REPORT_OUTPUT_FILE = "diags/openPMD/monitor.h5"
+_STAT_REPORT_OUTPUT_FILE = "diags/reduced_beam_characteristics.0.0"
 
 
 def background_percent_complete(report, run_dir, is_running):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
-    if is_running:
-        pass
+    if not is_running:
+        if run_dir.join(_STAT_REPORT_OUTPUT_FILE).exists():
+            return PKDict(
+                frameCount=10,
+                percentComplete=100,
+            )
     return PKDict(
         frameCount=0,
         percentComplete=0,
@@ -31,33 +37,6 @@ def background_percent_complete(report, run_dir, is_running):
 
 def code_var(variables):
     return code_variable.CodeVar(variables, code_variable.PurePythonEval())
-
-
-def _generate_particles(data, res, v):
-    d = data.models.distribution
-    if d.distributionType == "File":
-        if not d.distributionFile:
-            raise AssertionError("Missing Distribution File")
-        v.distributionFile = _SIM_DATA.lib_file_name_with_model_field(
-            "distribution",
-            "distributionFile",
-            d.distributionFile,
-        )
-    v.kineticEnergyMeV = round(
-        template_common.ParticleEnergy.compute_energy(
-            SIM_TYPE,
-            d.species,
-            PKDict(
-                energy=d.energy,
-            ),
-        )["kinetic_energy"]
-        * 1e3,
-        9,
-    )
-    mc = SCHEMA.constants.particleMassAndCharge[d.species]
-    v.speciesMassMeV = round(mc[0] * 1e3, 9)
-    v.speciesCharge = mc[1]
-    v.createParticles = template_common.render_jinja(SIM_TYPE, v, "particles.py")
 
 
 def generate_distribution(data, res, v):
@@ -99,6 +78,34 @@ def save_sequential_report_data(run_dir, data):
     template_common.write_sequential_result(
         res,
         run_dir=run_dir,
+    )
+
+
+def sim_frame_statAnimation(frame_args):
+    d = pandas.read_csv(
+        str(frame_args.run_dir.join(_STAT_REPORT_OUTPUT_FILE)), delimiter=" "
+    )
+    if frame_args.x == "none":
+        frame_args.x = "s"
+    plots = PKDict()
+    for f in ("x", "y1", "y2", "y3", "y4", "y5"):
+        if frame_args[f] == "none":
+            continue
+        plots[f] = PKDict(
+            label=frame_args[f],
+            dim=f,
+            points=d[frame_args[f]].tolist(),
+        )
+    return template_common.parameter_plot(
+        x=plots.x.points,
+        plots=[p for p in plots.values() if p.dim != "x"],
+        model=frame_args,
+        plot_fields=PKDict(
+            dynamicYLabel=True,
+            title="",
+            y_label="",
+            x_label=plots.x.label,
+        ),
     )
 
 
@@ -151,3 +158,30 @@ def _generate_parameters_file(data):
         return generate_distribution(data, res, v)
     _generate_particles(data, res, v)
     return res + template_common.render_jinja(SIM_TYPE, v, "parameters.py")
+
+
+def _generate_particles(data, res, v):
+    d = data.models.distribution
+    if d.distributionType == "File":
+        if not d.distributionFile:
+            raise AssertionError("Missing Distribution File")
+        v.distributionFile = _SIM_DATA.lib_file_name_with_model_field(
+            "distribution",
+            "distributionFile",
+            d.distributionFile,
+        )
+    v.kineticEnergyMeV = round(
+        template_common.ParticleEnergy.compute_energy(
+            SIM_TYPE,
+            d.species,
+            PKDict(
+                energy=d.energy,
+            ),
+        )["kinetic_energy"]
+        * 1e3,
+        9,
+    )
+    mc = SCHEMA.constants.particleMassAndCharge[d.species]
+    v.speciesMassMeV = round(mc[0] * 1e3, 9)
+    v.speciesCharge = mc[1]
+    v.createParticles = template_common.render_jinja(SIM_TYPE, v, "particles.py")
