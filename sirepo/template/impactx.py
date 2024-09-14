@@ -14,6 +14,7 @@ from sirepo.template import template_common
 import numpy
 import pandas
 import sirepo.sim_data
+import sirepo.template.lattice
 
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -65,6 +66,10 @@ def prepare_sequential_output_file(run_dir, data):
             except IOError:
                 # the output file isn't readable
                 pass
+
+
+def python_source_for_model(data, model, qcall, **kwargs):
+    return _generate_parameters_file(data)
 
 
 def save_sequential_report_data(run_dir, data):
@@ -152,11 +157,48 @@ def _bunch_plot(run_dir, model):
     )
 
 
+def _element_name(el):
+    return el.name.lower()
+
+
+def _generate_beamlines(util):
+    res = []
+    for bl in util.data.models.beamlines:
+        a = []
+        for i in bl["items"]:
+            prefix = "-" if i < 0 else ""
+            e = util.id_map[abs(i)]
+            if util.is_beamline(e):
+                a.append(f'"{prefix}{_element_name(e)}"')
+            else:
+                a.append(f"el.{_element_name(e)}")
+        res.append(f"{_element_name(bl)}=[{', '.join(a)}],")
+    return "\n".join(res)
+
+
+def _generate_elements(util):
+    return """m1=elements.BeamMonitor("monitor", backend="h5"),
+dr1=elements.Drift(ds=5.0058489435, nslice=25),
+dr2=elements.Drift(ds=0.5, nslice=25),
+sbend1=elements.Sbend(ds=0.500194828041958, rc=-10.3462283686195526, nslice=25),
+sbend2=elements.Sbend(ds=0.500194828041958, rc=10.3462283686195526, nslice=25),
+dipedge1=elements.DipEdge(psi=-0.048345620280243, rc=-10.3462283686195526, g=0.0, K2=0.0),
+dipedge2=elements.DipEdge(psi=0.048345620280243, rc=10.3462283686195526, g=0.0, K2=0.0),"""
+
+
+def _generate_lattice(data, res, v):
+    util = sirepo.template.lattice.LatticeUtil(data, SCHEMA)
+    v.latticeElements = _generate_elements(util)
+    v.latticeBeamlines = _generate_beamlines(util)
+    v.selectedBeamline = _element_name(util.select_beamline())
+
+
 def _generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     if "bunchReport" in data.get("report", ""):
         return generate_distribution(data, res, v)
     _generate_particles(data, res, v)
+    _generate_lattice(data, res, v)
     return res + template_common.render_jinja(SIM_TYPE, v, "parameters.py")
 
 

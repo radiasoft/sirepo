@@ -263,6 +263,9 @@
             "name": ["Name", "String"],
             "value": ["Value", "RPNValue"]
         },
+        "simulation": {
+            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
+        },
         "_ELEMENT": {
             "name": ["NAME", "ValidatedString", "", ""]
         },
@@ -512,6 +515,7 @@
         "simulationSettings": {
             "title": "Simulation Settings",
             "basic": [
+                "simulation.visualizationBeamlineId",
                 "particle_shape",
                 "space_charge",
                 "slice_step_diagnostics"

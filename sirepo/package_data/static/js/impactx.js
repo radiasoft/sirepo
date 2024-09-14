@@ -2,6 +2,7 @@
 
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
+    SIREPO.SINGLE_FRAME_ANIMATION = ['statAnimation'];
     SIREPO.appFieldEditors += ``;
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="FloatArray" class="col-sm-7">
@@ -9,6 +10,7 @@ SIREPO.app.config(function() {
         </div>
     `;
     SIREPO.lattice = {
+        canReverseBeamline: true,
         elementColor: {
         },
         elementPic: {
