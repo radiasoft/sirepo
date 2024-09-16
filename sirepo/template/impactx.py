@@ -11,15 +11,149 @@ from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import hdf5_util
 from sirepo.template import template_common
+from sirepo.template.madx_converter import MadxConverter
 import numpy
 import pandas
 import sirepo.sim_data
 import sirepo.template.lattice
 
 
+# _DEFAULT_NSLICE = 12
+_DEFAULT_NSLICE = 1
+_MONITOR_NAME = "monitor"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
-_BUNCH_REPORT_OUTPUT_FILE = "diags/openPMD/monitor.h5"
+_BUNCH_REPORT_OUTPUT_FILE = f"diags/openPMD/{_MONITOR_NAME}.h5"
 _STAT_REPORT_OUTPUT_FILE = "diags/reduced_beam_characteristics.0.0"
+_FIELD_MAPPING = PKDict(
+    l="ds",
+)
+_TYPE_TO_CLASS = PKDict(
+    BEAMMONITOR="BeamMonitor",
+    DIPEDGE="DipEdge",
+    DRIFT="Drift",
+    KICKER="Kicker",
+    QUAD="Quad",
+    SBEND="Sbend",
+    SOL="Sol",
+)
+
+
+class ImpactxMadxConverter(MadxConverter):
+    _FIELD_MAP = [
+        [
+            "DRIFT",
+            ["DRIFT", "l"],
+        ],
+        [
+            "DIPEDGE",
+            ["DIPEDGE", "tilt", "K2=fint"],
+        ],
+        [
+            "SBEND",
+            ["SBEND", "l"],
+        ],
+        [
+            "QUADRUPOLE",
+            ["QUAD", "l", "k=k1"],
+        ],
+        [
+            "SOLENOID",
+            ["SOL", "l", "ks"],
+        ],
+        [
+            "KICKER",
+            ["KICKER", "xkick=hkick", "ykick=vkick"],
+        ],
+        [
+            "MONITOR",
+            ["BEAMMONITOR"],
+        ],
+    ]
+
+    def __init__(self, qcall=None, nslice=1, **kwargs):
+        super().__init__(
+            SIM_TYPE,
+            self._FIELD_MAP,
+            downcase_variables=True,
+            qcall=qcall,
+            **kwargs,
+        )
+        self.nslice = nslice
+        self.bends = PKDict()
+
+    def from_madx(self, madx):
+        data = self.fill_in_missing_constants(super().from_madx(madx), PKDict())
+        self.__set_dipedge_angle(data)
+        self.__remove_zero_drifts(data)
+        return data
+
+    def _fixup_element(self, element_in, element_out):
+        super()._fixup_element(element_in, element_out)
+        if self.from_class.sim_type() == SIM_TYPE:
+            pass
+        else:
+            if "nslice" in SCHEMA.model[element_out.type]:
+                element_out.nslice = self.nslice
+            if element_in.type == "SBEND":
+                element_out.rc = self.__val(element_out.l) / self.__val(
+                    element_in.angle
+                )
+                self.bends[element_out._id] = self.__val(element_in.angle)
+            elif element_in.type == "DIPEDGE":
+                element_out.rc = 1.0 / self.__val(element_in.h)
+                element_out.g = 2 * self.__val(element_in.hgap)
+            elif element_out.type == "QUAD" and self.__val(element_out.k) == 0:
+                element_out.type = "DRIFT"
+            elif element_out.type == "SOL" and self.__val(element_out.ks) == 0:
+                element_out.type = "DRIFT"
+            elif "KICKER" in element_in.type and self.__val(element_in.l) > 0:
+                # TODO(pjm): add l/2 drift around kicker in beamline
+                assert False
+                pass
+            elif element_in.type == "MONITOR" and self.__val(element_in.l) > 0:
+                # TODO(pjm) add drift
+                assert False
+                pass
+
+    def __remove_zero_drifts(self, data):
+        z = set()
+        e = []
+        for el in data.models.elements:
+            if el.type == "DRIFT" and el.l == 0:
+                z.add(el._id)
+            else:
+                e.append(el)
+        data.models.elements = e
+        for bl in data.models.beamlines:
+            i = []
+            for it in bl["items"]:
+                if it not in z:
+                    i.append(it)
+            bl["items"] = i
+
+    def __set_dipedge_angle(self, data):
+        dipedges = PKDict()
+        for el in data.models.elements:
+            if el.type == "DIPEDGE":
+                dipedges[el._id] = el
+        for bl in data.models.beamlines:
+            prev = None
+            next = None
+            for i in bl["items"]:
+                if i in dipedges:
+                    if prev and prev in self.bends:
+                        dipedges[i].psi = self.bends[prev] / 2
+                    else:
+                        next = i
+                        continue
+                if next:
+                    assert i in self.bends
+                    dipedges[next].psi = self.bends[i] / 2
+                    next = None
+                prev = i
+
+    def __val(self, var_value):
+        return self.vars.eval_var_with_assert(var_value)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -114,6 +248,14 @@ def sim_frame_statAnimation(frame_args):
     )
 
 
+def stateful_compute_import_file(data, **kwargs):
+    res = ImpactxMadxConverter(nslice=_DEFAULT_NSLICE).from_madx_text(
+        data.args.file_as_str
+    )
+    res.models.simulation.name = data.args.purebasename
+    return PKDict(imported_data=res)
+
+
 def write_parameters(data, run_dir, is_parallel):
     pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -176,14 +318,33 @@ def _generate_beamlines(util):
     return "\n".join(res)
 
 
+def _format_field_value(state, model, field, field_type):
+    v = model[field]
+    return [_FIELD_MAPPING.get(field, field), v, field_type]
+
+
 def _generate_elements(util):
-    return """m1=elements.BeamMonitor("monitor", backend="h5"),
-dr1=elements.Drift(ds=5.0058489435, nslice=25),
-dr2=elements.Drift(ds=0.5, nslice=25),
-sbend1=elements.Sbend(ds=0.500194828041958, rc=-10.3462283686195526, nslice=25),
-sbend2=elements.Sbend(ds=0.500194828041958, rc=10.3462283686195526, nslice=25),
-dipedge1=elements.DipEdge(psi=-0.048345620280243, rc=-10.3462283686195526, g=0.0, K2=0.0),
-dipedge2=elements.DipEdge(psi=0.048345620280243, rc=10.3462283686195526, g=0.0, K2=0.0),"""
+    v = util.iterate_models(
+        sirepo.template.lattice.LatticeIterator(PKDict(), _format_field_value),
+        "elements",
+    ).result
+    cv = code_var(util.data.models.rpnVariables)
+    res = ""
+    for mf in v:
+        m, fields = mf
+        if m.type == "BEAMMONITOR":
+            fields.append(["name", f'"{_MONITOR_NAME}"', "String"])
+            fields.append(["backend", '"h5"', "String"])
+        res += f"{_element_name(m)}=elements.{_TYPE_TO_CLASS[m.type]}("
+        fres = []
+        for f in fields:
+            if f[2] == "RPNValue":
+                f[1] = cv.eval_var_with_assert(f[1])
+                if f[0] == "nslice":
+                    f[1] = int(f[1])
+            fres.append(f"{f[0]}={f[1]}")
+        res += ", ".join(fres) + "),\n"
+    return res
 
 
 def _generate_lattice(data, res, v):

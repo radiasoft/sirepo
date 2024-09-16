@@ -110,6 +110,7 @@ SIREPO.app.directive('appFooter', function(impactxService) {
         },
         template: `
             <div data-common-footer="nav"></div>
+            <div data-elegant-import-dialog=""></div>
         `,
     };
 });
@@ -134,6 +135,9 @@ SIREPO.app.directive('appHeader', function() {
               <app-settings>
               </app-settings>
               <app-header-right-sim-list>
+                <ul class="nav navbar-nav sr-navbar-right">
+                  <li><a href data-ng-click="nav.showImportModal()"><span class="glyphicon glyphicon-cloud-upload"></span> Import</a></li>
+                </ul>
               </app-header-right-sim-list>
             </div>
         `,

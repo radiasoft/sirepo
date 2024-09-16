@@ -19,7 +19,7 @@ sim.init_grids()
 
 {{ createParticles }}
 
-def beamline_elements(beamline):
+def beamline_elements(beamline_name):
     el = PKDict(
         {{ latticeElements | indent(8) }}
     )
@@ -41,7 +41,7 @@ def beamline_elements(beamline):
         bl = re.sub(r"^-", "", beamline)
         return bl, bl != beamline
 
-    return _expand(beamline)
+    return _expand(beamline_name)
 
 sim.lattice.extend(beamline_elements("{{ selectedBeamline }}"))
 
