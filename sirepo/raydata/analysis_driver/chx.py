@@ -19,10 +19,10 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
     def get_conda_env(self):
         return _cfg.conda_env
 
-    def get_detailed_status_file(self, rduid):
+    def get_detailed_status_file(self, rduid, *args, **kwargs):
         p = self.get_output_dir().join(f"progress_dict_{rduid}.json")
         if not p.check():
-            return PKDict()
+            return None
         d = pkjson.load_any(p)
         # The notebooks do json.dump(json.dumps(progress_dict), outfile)
         # which double encodes the json object. So, we may
@@ -55,6 +55,9 @@ class CHX(sirepo.raydata.analysis_driver.AnalysisDriverBase):
             "Results",
             self.rduid,
         )
+
+    def is_scan_elegible_for_analysis(self):
+        return bool(self._scan_metadata.get_start_field("cycle", unchecked=True))
 
     def _get_papermill_args(self, *args, **kwargs):
         return [
