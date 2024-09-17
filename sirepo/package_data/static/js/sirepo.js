@@ -4801,7 +4801,7 @@ SIREPO.app.controller('SimulationsController', function (appState, browserStorag
 
     self.canCreateNewSimulation = () => {
 	return SIREPO.APP_SCHEMA.constants.canCreateNewSimulation;
-    }
+    };
 
     self.canDelete = function(item) {
         if (item.isFolder) {
