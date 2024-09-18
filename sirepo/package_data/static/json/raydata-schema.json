@@ -5,6 +5,7 @@
         }
     },
     "constants": {
+	"canCreateNewSimulation": false,
 	"canDownloadInputFile": false,
 	"canExportArchive": false,
         "canShowDocumentationUrl": false,
@@ -82,8 +83,8 @@
     },
     "strings": {
         "completionState": "",
-        "simulationDataType": "notebook",
-        "simulationDataTypePlural": "notebooks",
+        "simulationDataType": "analysis",
+        "simulationDataTypePlural": "analyses",
         "typeOfSimulation": "poll"
     },
     "view": {

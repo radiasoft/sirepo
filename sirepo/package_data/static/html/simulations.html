@@ -57,7 +57,7 @@
               <div style="display: inline-block"><a href data-ng-click="simulations.openItem(item)"><span data-ng-class="{ 'sr-user-item': ! simulations.fileManager.isItemExample(item) }">{{ item.name | simulationName | limitTo: 60 }}</span></a> <span data-sr-tooltip="{{ item.notes }}"><span></div>
               <ul class="dropdown-menu">
                 <li><a href data-ng-click="simulations.openItem(item)"><span class="glyphicon sr-nav-icon" data-ng-class="{'glyphicon-folder-open': item.isFolder, 'glyphicon-open-file': ! item.isFolder}"></span> Open</a></li>
-                <li data-ng-if="! item.isFolder"><a href data-ng-click="simulations.copyItem(item)"><span class="glyphicon glyphicon-duplicate sr-nav-icon"></span> Open as a New Copy</a></li>
+                <li data-ng-if="! item.isFolder && simulations.canCreateNewSimulation()"><a href data-ng-click="simulations.copyItem(item)"><span class="glyphicon glyphicon-duplicate sr-nav-icon"></span> Open as a New Copy</a></li>
                 <li data-ng-if="! simulations.fileManager.isItemExample(item)"><a href data-ng-click="simulations.renameItem(item)"><span class="glyphicon glyphicon-edit sr-nav-icon"></span> Rename</a></li>
                 <li data-ng-if="! simulations.fileManager.isItemExample(item)"><a href data-ng-click="simulations.moveItem(item)"><span class="glyphicon glyphicon-arrow-right sr-nav-icon"></span> Move</a></li>
                 <li data-ng-if="item.canExport"><a data-ng-href="{{ simulations.exportArchiveUrl(item, 'zip') }}"><span class="glyphicon glyphicon-save-file sr-nav-icon"></span> Export as Zip</a></li>
