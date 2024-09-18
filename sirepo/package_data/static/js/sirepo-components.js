@@ -2690,7 +2690,9 @@ SIREPO.app.directive('fileChooser', function(appState, fileManager, fileUpload, 
 SIREPO.app.directive('elegantImportDialog', function(appState, commandService, fileManager, fileUpload, requestSender) {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            isMadXOnly: '@',
+        },
         template: `
             <div class="modal fade" data-backdrop="static" id="simulation-import" tabindex="-1" role="dialog">
               <div class="modal-dialog modal-lg">
@@ -2712,7 +2714,7 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
                           <div data-ng-show="isState('ready') || isState('lattice')">
                             <div data-ng-show="isState('ready')" class="form-group">
                               <label>{{ fileTypes() }}</label>
-                              <input id="elegant-file-import" type="file" data-file-model="elegantFile" accept=".ele,.lte,.madx,.zip,.in,.seq" />
+                              <input id="elegant-file-import" type="file" data-file-model="elegantFile" data-ng-attr-accept="{{ acceptFileTypes() }}" />
                               <br />
                               <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
                             </div>
@@ -2894,8 +2896,18 @@ SIREPO.app.directive('elegantImportDialog', function(appState, commandService, f
                     + item[1];
             };
 
+            $scope.acceptFileTypes = () => {
+                return $scope.isMadXOnly
+                     ? '.madx,.seq,.zip'
+                     : '.ele,.in,.lte,.madx,.seq,.zip';
+            };
+
             $scope.fileTypes = function() {
-                return `Select Command (.ele), Lattice (.lte, .in, .madx, .seq), or ${SIREPO.APP_SCHEMA.productInfo.shortName} Export (.zip)`;
+                return (
+                    $scope.isMadXOnly
+                        ? 'Select Lattice (.madx, .seq),'
+                        : 'Select Command (.ele), Lattice (.lte, .in, .madx, .seq),'
+                ) + ` or ${SIREPO.APP_SCHEMA.productInfo.shortName} Export (.zip)`;
             };
 
             $scope.importElegantFile = function(elegantFile) {

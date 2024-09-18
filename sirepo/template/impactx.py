@@ -14,8 +14,10 @@ from sirepo.template import template_common
 from sirepo.template.madx_converter import MadxConverter
 import numpy
 import pandas
+import sirepo.lib
 import sirepo.sim_data
 import sirepo.template.lattice
+import sirepo.template.sdds_util
 
 
 # _DEFAULT_NSLICE = 12
@@ -36,6 +38,32 @@ _TYPE_TO_CLASS = PKDict(
     SBEND="Sbend",
     SOL="Sol",
 )
+
+
+class LibAdapter(sirepo.lib.LibAdapterBase):
+    def parse_file(self, path):
+        return self._convert(
+            ImpactxMadxConverter(nslice=_DEFAULT_NSLICE).from_madx_text(
+                pkio.read_text(path)
+            )
+        )
+
+    def write_files(self, data, source_path, dest_dir):
+        pkio.write_text(
+            dest_dir.join(source_path.basename),
+            _generate_parameters_file(data),
+        )
+        if data.models.distribution.distributionType == "File":
+            f = _SIM_DATA.lib_file_name_with_model_field(
+                "distribution",
+                "distributionFile",
+                data.models.distribution.distributionFile,
+            )
+            # f = data.models.distribution.distributionFile
+            d = dest_dir.join(f)
+            pkio.mkdir_parent_only(d)
+            d.mksymlinkto(source_path.dirpath().join(f), absolute=False)
+        return PKDict()
 
 
 class ImpactxMadxConverter(MadxConverter):
@@ -79,12 +107,10 @@ class ImpactxMadxConverter(MadxConverter):
             **kwargs,
         )
         self.nslice = nslice
-        self.bends = PKDict()
 
     def from_madx(self, madx):
         data = self.fill_in_missing_constants(super().from_madx(madx), PKDict())
-        self.__set_dipedge_angle(data)
-        self.__remove_zero_drifts(data)
+        self._remove_zero_drifts(data)
         return data
 
     def _fixup_element(self, element_in, element_out):
@@ -98,59 +124,21 @@ class ImpactxMadxConverter(MadxConverter):
                 element_out.rc = self.__val(element_out.l) / self.__val(
                     element_in.angle
                 )
-                self.bends[element_out._id] = self.__val(element_in.angle)
+                # self.bends[element_out._id] = self.__val(element_in.angle)
             elif element_in.type == "DIPEDGE":
                 element_out.rc = 1.0 / self.__val(element_in.h)
                 element_out.g = 2 * self.__val(element_in.hgap)
+                element_out.psi = element_in.e1
             elif element_out.type == "QUAD" and self.__val(element_out.k) == 0:
                 element_out.type = "DRIFT"
             elif element_out.type == "SOL" and self.__val(element_out.ks) == 0:
                 element_out.type = "DRIFT"
             elif "KICKER" in element_in.type and self.__val(element_in.l) > 0:
                 # TODO(pjm): add l/2 drift around kicker in beamline
-                assert False
                 pass
             elif element_in.type == "MONITOR" and self.__val(element_in.l) > 0:
                 # TODO(pjm) add drift
-                assert False
                 pass
-
-    def __remove_zero_drifts(self, data):
-        z = set()
-        e = []
-        for el in data.models.elements:
-            if el.type == "DRIFT" and el.l == 0:
-                z.add(el._id)
-            else:
-                e.append(el)
-        data.models.elements = e
-        for bl in data.models.beamlines:
-            i = []
-            for it in bl["items"]:
-                if it not in z:
-                    i.append(it)
-            bl["items"] = i
-
-    def __set_dipedge_angle(self, data):
-        dipedges = PKDict()
-        for el in data.models.elements:
-            if el.type == "DIPEDGE":
-                dipedges[el._id] = el
-        for bl in data.models.beamlines:
-            prev = None
-            next = None
-            for i in bl["items"]:
-                if i in dipedges:
-                    if prev and prev in self.bends:
-                        dipedges[i].psi = self.bends[prev] / 2
-                    else:
-                        next = i
-                        continue
-                if next:
-                    assert i in self.bends
-                    dipedges[next].psi = self.bends[i] / 2
-                    next = None
-                prev = i
 
     def __val(self, var_value):
         return self.vars.eval_var_with_assert(var_value)
@@ -373,17 +361,7 @@ def _generate_particles(data, res, v):
             "distributionFile",
             d.distributionFile,
         )
-    v.kineticEnergyMeV = round(
-        template_common.ParticleEnergy.compute_energy(
-            SIM_TYPE,
-            d.species,
-            PKDict(
-                energy=d.energy,
-            ),
-        )["kinetic_energy"]
-        * 1e3,
-        9,
-    )
+        v.isSDDS = sirepo.template.sdds_util.is_sdds_file(d.distributionFile)
     mc = SCHEMA.constants.particleMassAndCharge[d.species]
     v.speciesMassMeV = round(mc[0] * 1e3, 9)
     v.speciesCharge = mc[1]

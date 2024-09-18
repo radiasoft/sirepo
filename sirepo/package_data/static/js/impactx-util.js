@@ -34,18 +34,24 @@ SIREPO.app.directive('impactxSourceTab', function() {
 });
 
 SIREPO.viewLogic('distributionView', function(appState, panelState, $scope) {
+
+    function isSDDS() {
+        return (appState.models.distribution.distributionFile || '').search(/\.sdds$/i) > 0;
+    }
+
     function updateFields() {
         const d = appState.models.distribution;
         panelState.showFields('distribution', [
             ['k', 'kT', 'kT_halo', 'normalize', 'normalize_halo', 'halo'], d.distributionType == 'Thermal',
             ['distributionFile'], d.distributionType == 'File',
-            ['species', 'energy', 'charge', 'particleCount'], d.distributionType != 'File',
+            ['species', 'charge'], d.distributionType != 'File' || isSDDS(),
+            ['energy', 'particleCount'], d.distributionType != 'File',
         ]);
         panelState.showRow('distribution', 'lambdax', ! ['Thermal', 'File'].includes(d.distributionType));
 
     }
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
-        ['distribution.distributionType'], updateFields,
+        ['distribution.distributionType', 'distribution.distributionFile'], updateFields,
     ];
 });

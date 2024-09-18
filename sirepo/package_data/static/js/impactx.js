@@ -59,7 +59,7 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
     self.simState = persistentSimulation.initSimulationState(self);
 });
 
-SIREPO.app.controller('LatticeController', function(appState, latticeService, $scope) {
+SIREPO.app.controller('LatticeController', function(appState, latticeService, rpnService, $scope) {
     const self = this;
     self.latticeService = latticeService;
 
@@ -72,8 +72,14 @@ SIREPO.app.controller('LatticeController', function(appState, latticeService, $s
     };
 
     const updateElementAttributes = (element) => {
-        if (element.type == 'DIPEDGE') {
-            element.angle = element.psi;
+        if (element.type == 'SBEND') {
+            const s = '(1.0 / ' + element.rc + ') * ' + element.l;
+            if (rpnService.getRpnValue(element.rc) === 0) {
+                element.angle = 0;
+            }
+            else {
+                element.angle = 1.0 / rpnService.getRpnValue(element.rc) * rpnService.getRpnValue(element.l);
+            }
         }
         else if (element.type == 'EXACTSBEND') {
             element.angle = 'pi * ' + element.phi + ' / 180';

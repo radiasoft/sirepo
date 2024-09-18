@@ -42,7 +42,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: `
             <div data-common-footer="nav"></div>
-            <div data-import-dialog=""></div>
+            <div data-elegant-import-dialog="" data-is-mad-x-only="1"></div>
         `,
     };
 });

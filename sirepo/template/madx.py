@@ -139,7 +139,6 @@ _TFS_FILE_EXTENSION = "tfs"
 _TWISS_OUTPUT_FILE = f"twiss.{_TFS_FILE_EXTENSION}"
 
 
-# TODO(pjm): this is only a start on the MAD-X LibAdapter
 class LibAdapter(sirepo.lib.LibAdapterBase):
     def parse_file(self, path):
         from sirepo.template import madx_parser
@@ -829,6 +828,7 @@ def _extract_report_matchSummaryAnimation(data, run_dir, filename):
 def extract_report_twissFromParticlesAnimation(data, run_dir, filename):
     res = particle_beam.analyze_ptc_beam(
         particle_beam.read_ptc_data(run_dir.join(filename))[0],
+        # TODO(pjm): should use the mass of the selected species
         mc2=SCHEMA.constants.particleMassAndCharge.proton[0],
     )
     # remap alpha/beta columns

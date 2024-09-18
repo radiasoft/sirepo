@@ -2290,7 +2290,7 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
                   data-is-dynamic="1"></span> = {{ pointText(0, true) }} {{ focusPoints[0].config.xAxis.units }}</div>
                 <div data-ng-style="{ opacity: opacity($index) }" style="height: 20px"
                   data-ng-repeat="p in plots track by p._label + $index">
-                  <div style="display:inline" data-color-circle="p.color" data-dashed="p._yaxis === 'right'"></div>
+                  <div style="display:inline" data-color-circle="p.color" data-dashed="p.dashes"></div>
                   <span data-text-with-math="p._label"></span> = {{ pointText($index) }} {{ p._units }}
                 </div>
                 </div>
@@ -3540,7 +3540,7 @@ SIREPO.app.directive('plotLegend', function(mathRendering) {
               <div data-ng-repeat="p in plots" style="margin-left: 1em">
                 <div data-ng-click="click($index)" style="cursor: pointer; display: inline">
                   <a href data-ng-style="{ opacity: opacity(p) }"><span class="glyphicon" data-ng-class="{'glyphicon-check': p._isVisible, 'glyphicon-unchecked': ! p._isVisible}"> </span></a>
-                  <div style="display:inline" data-color-circle="p.color" data-dashed="p._yaxis === 'right'"></div>
+                  <div style="display:inline" data-color-circle="p.color" data-dashed="p.dashes"></div>
                   <span data-text-with-math="label(p)" data-is-dynamic="1"></span>
                 </div>
               </div>

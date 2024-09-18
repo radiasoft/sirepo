@@ -1,10 +1,12 @@
 
 from impactx import ImpactX, distribution, elements
 from pykern.pkcollections import PKDict
+from rsbeams.rsdata.SDDS import readSDDS
 from rsbeams.rsstats import kinematic
 import amrex.space3d
 import h5py
 import impactx
+import numpy
 import pmd_beamphysics.readers
 import re
 import scipy.constants
@@ -46,5 +48,8 @@ def beamline_elements(beamline_name):
 sim.lattice.extend(beamline_elements("{{ selectedBeamline }}"))
 
 sim.evolve()
+
+#TODO(pjm): file name
+sim.particle_container().to_df(local=True).to_hdf('diags/final_distribution.h5', 'final')
 
 sim.finalize()

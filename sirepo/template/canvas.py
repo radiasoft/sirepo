@@ -11,13 +11,110 @@ from sirepo.template import code_variable
 from sirepo.template import madx_parser
 from sirepo.template import sdds_util
 from sirepo.template import template_common
+from sirepo.template.madx_converter import MadxConverter
 import math
 import pandas
 import sirepo.sim_data
-import sirepo.template.madx
 import sirepo.template.impactx
+import sirepo.template.madx
+import sirepo.template.sdds_util
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+
+
+class CanvasMadxConverter(MadxConverter):
+    _FIELD_MAP = [
+        [
+            "DRIFT",
+            ["DRIFT", "l"],
+        ],
+        [
+            "QUADRUPOLE",
+            ["QUADRUPOLE", "l", "k1", "k1s"],
+        ],
+        ["RFCAVITY", ["RFCAVITY", "l", "volt", "freq", "phase=lag"]],
+        [
+            "SBEND",
+            ["SBEND", "l", "angle", "fint", "fintx", "e1", "e2"],
+        ],
+        [
+            "DIPEDGE",
+            ["SBEND"],
+        ],
+        [
+            "SEXTUPOLE",
+            ["SEXTUPOLE", "l", "k2", "k2s"],
+        ],
+    ]
+
+    def __init__(self, qcall=None, **kwargs):
+        super().__init__(
+            SIM_TYPE,
+            self._FIELD_MAP,
+            downcase_variables=True,
+            qcall=qcall,
+            **kwargs,
+        )
+        self.dipedges = PKDict()
+
+    def from_madx(self, madx):
+        data = self.fill_in_missing_constants(super().from_madx(madx), PKDict())
+        self._remove_zero_drifts(data)
+        self.__merge_dipedges(data)
+        return data
+
+    def _fixup_element(self, element_in, element_out):
+        super()._fixup_element(element_in, element_out)
+        if self.from_class.sim_type() == SIM_TYPE:
+            pass
+        else:
+            if element_in.type == "DIPEDGE":
+                self.dipedges[element_out._id] = element_in
+            elif element_in.type == "SBEND":
+                element_out.gap = self.__val(element_in.hgap) * 2
+                if element_out.fintx == -1:
+                    element_out.fintx = element_out.fint
+
+    def __merge_dipedges(self, data):
+        # dipedge in: {'e1': 0.048345620280243, 'fint': 0.0, 'h': 0.096653578905433, 'hgap': 0.0, }
+        # bend angle, gap, fint, fintx, e1, e2
+        bends = PKDict()
+        el = []
+        for e in data.models.elements:
+            if e._id in self.dipedges:
+                continue
+            if e.type == "SBEND":
+                bends[e._id] = e
+            el.append(e)
+        data.models.elements = el
+        for b in data.models.beamlines:
+            bl = []
+            dip = None
+            bend = None
+            for i in b["items"]:
+                if i in self.dipedges:
+                    if bend:
+                        # trailing dipedge
+                        bend.fintx = self.dipedges[i].fint
+                        bend.e2 = self.dipedges[i].e1
+                        bend.gap = 2 * self.__val(self.dipedges[i].hgap)
+                        bend = None
+                    else:
+                        dip = self.dipedges[i]
+                    continue
+                if i in bends:
+                    bend = bends[i]
+                    if dip:
+                        # leading dipedge
+                        bend.fint = dip.fint
+                        bend.e1 = dip.e1
+                        bend.gap = 2 * self.__val(dip.hgap)
+                        dip = None
+                bl.append(i)
+            b["items"] = bl
+
+    def __val(self, var_value):
+        return self.vars.eval_var_with_assert(var_value)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -28,7 +125,8 @@ def background_percent_complete(report, run_dir, is_running):
     if is_running:
         return res
     # TODO(pjm): check enable code output files
-    if run_dir.join("impactx/final_distribution.h5").exists():
+    # TODO(pjm): file name hard coded
+    if run_dir.join("impactx/diags/final_distribution.h5").exists():
         res.frameCount = 1
     return res
 
@@ -86,7 +184,7 @@ def sim_frame(frame_args):
         x = sirepo.template.madx.to_floats(madx_particles["x"])
         y = sirepo.template.madx.to_floats(madx_particles["px"])
     elif frame_args.simCode == "impactx":
-        impactx_particles = pandas.read_hdf("impactx/final_distribution.h5")
+        impactx_particles = pandas.read_hdf("impactx/diags/final_distribution.h5")
         x = list(impactx_particles["position_x"])
         y = list(impactx_particles["momentum_x"])
     else:
@@ -163,6 +261,12 @@ def sim_frame_sigmaAnimation(frame_args):
             dynamicYLabel=True,
         ),
     )
+
+
+def stateful_compute_import_file(data, **kwargs):
+    res = CanvasMadxConverter().from_madx_text(data.args.file_as_str)
+    res.models.simulation.name = data.args.purebasename
+    return PKDict(imported_data=res)
 
 
 def _trim_duplicate_positions(v, s, k1, k2):
@@ -249,14 +353,16 @@ def sim_frame_twissAnimation(frame_args):
             PKDict(
                 label="madx beta x [m]",
                 points=madx.bx,
-                strokeWidth=15,
-                opacity=0.3,
+                # strokeWidth=15,
+                # opacity=0.3,
+                dashes="5 5",
             ),
             PKDict(
                 label="madx beta y [m]",
                 points=madx.by,
-                strokeWidth=15,
-                opacity=0.3,
+                # strokeWidth=15,
+                # opacity=0.3,
+                dashes="5 5",
             ),
         ],
         model=frame_args,
@@ -281,6 +387,12 @@ def _generate_parameters_file(data):
     if (
         "bunchReport" in data.get("report", "")
         or data.models.distribution.distributionType != "File"
+        or (
+            data.models.distribution.distributionType == "File"
+            and sirepo.template.sdds_util.is_sdds_file(
+                data.models.distribution.distributionFile
+            )
+        )
     ):
         return sirepo.template.impactx.generate_distribution(data, res, v)
     return ""

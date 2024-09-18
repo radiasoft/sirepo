@@ -721,8 +721,7 @@ def convert_to_sdds(openpmd_file):
         elegant_p = kinematic.Converter(
             mass=d.attrs["mass_ref"],
             mass_unit="SI",
-            energy=numpy.array(numpy.array(d["momentum/t"])) * ref["momentum"]
-            + ref["energy"],
+            gamma=-numpy.array(d["momentum/t"]) * ref["betagamma"] + ref["gamma"],
         )(silent=True)["betagamma"]
 
         s = writeSDDS()

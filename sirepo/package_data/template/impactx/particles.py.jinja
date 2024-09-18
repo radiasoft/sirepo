@@ -1,6 +1,62 @@
 
 {% if distribution_distributionType == "File" %}
 
+  {% if isSDDS %}
+
+def _vector(values):
+    res = amrex.space3d.PODVector_real_std()
+    for v in values:
+        res.push_back(float(v))
+    return res
+
+f = readSDDS("{{ distributionFile }}")
+f.read()
+
+speciesCharge = {{ speciesCharge }}
+speciesMass_MeV = {{ speciesMassMeV }}
+
+ref = kinematic.Converter(
+    betagamma=f.parameters[0][0]["pCentral"],
+    mass=speciesMass_MeV * 1e6,
+)()
+elegant_distribution = f.columns.squeeze()
+x = numpy.array(elegant_distribution["x"])
+y = numpy.array(elegant_distribution["y"])
+z = - numpy.array(elegant_distribution["t"] * scipy.constants.c)
+px = numpy.array(elegant_distribution["xp"])
+py = numpy.array(elegant_distribution["yp"])
+pz = -(
+    (
+        kinematic.Converter(
+            betagamma=elegant_distribution["p"],
+            mass=speciesMass_MeV * 1e6,
+        )(silent=True)["gamma"]
+        - ref["gamma"]
+    )
+    / ref["betagamma"]
+)
+
+# TODO(pjm): not right
+qm = {{ speciesCharge }} / {{ speciesMassMeV }} / 1e6  # electron charge/mass in e / eV
+bunch_charge_C = {{ distribution_charge }}  # used if space charge
+kin_energy_MeV = ref["kenergy"] * 1e-6
+
+sim.particle_container().ref_particle().set_charge_qe(speciesCharge).set_mass_MeV(
+    speciesMass_MeV
+).set_kin_energy_MeV(kin_energy_MeV)
+sim.particle_container().add_n_particles(
+    _vector(x),
+    _vector(y),
+    _vector(z),
+    _vector(px),
+    _vector(py),
+    _vector(pz),
+    qm,
+    bunch_charge_C,
+)
+
+  {% else %}
+
 def _vector(value, name):
     res = amrex.space3d.PODVector_real_std()
     for v in value[name]:
@@ -42,13 +98,19 @@ with h5py.File("{{ distributionFile }}", "r") as f:
         abs(d.attrs["charge_C"]),
     )
 
+  {% endif %}
+
 {% else %}
 
-kin_energy_MeV = {{ kineticEnergyMeV }}  # reference energy
 bunch_charge_C = {{ distribution_charge }}  # used with space charge
 npart = {{ distribution_particleCount }}  # number of macro particles
 speciesCharge = {{ speciesCharge }}
 speciesMass_MeV = {{ speciesMassMeV }}
+
+kin_energy_MeV = kinematic.Converter(
+    mass=speciesMass_MeV * 1e6,
+    energy={{ distribution_energy }} * 1e9,
+)()['kenergy'] * 1e-6
 
 {% if distribution_distributionType == "Thermal" %}
 distr = distribution.Thermal(

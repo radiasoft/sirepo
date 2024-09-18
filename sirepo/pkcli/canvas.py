@@ -16,12 +16,13 @@ import copy
 import scipy.constants
 import sirepo.lib
 import sirepo.pkcli.elegant
+import sirepo.pkcli.impactx
 import sirepo.pkcli.madx
 import sirepo.sim_data
 import sirepo.template
 import sirepo.template.canvas
 import sirepo.template.elegant_common
-import sirepo.pkcli.impactx
+import sirepo.template.sdds_util
 
 _SCHEMA = sirepo.sim_data.get_class("canvas").schema()
 _MADX = sirepo.sim_data.get_class("madx")
@@ -48,6 +49,9 @@ _MODEL_FIELD_MAP = PKDict(
             "_id",
         ],
     ),
+    SEXTUPOLE=PKDict(
+        _fields=["name", "type", "l", "k2", "k2s", "_id"],
+    ),
 )
 
 
@@ -57,7 +61,12 @@ def run(cfg_dir):
 
 def run_background(cfg_dir):
     d = simulation_db.read_json(template_common.INPUT_BASE_NAME)
-    if d.models.distribution.distributionType == "File":
+    if (
+        d.models.distribution.distributionType == "File"
+        and not sirepo.template.sdds_util.is_sdds_file(
+            d.models.distribution.distributionFile
+        )
+    ):
         f1 = _MADX.lib_file_name_with_model_field(
             "distribution", "distributionFile", d.models.distribution.distributionFile
         )
@@ -66,10 +75,10 @@ def run_background(cfg_dir):
         f1 = str(pkio.py_path("diags/openPMD/monitor.h5"))
     f2 = "beam.h5"
     pkio.py_path(f1).copy(pkio.py_path(f2))
-    _write_madx(pkio.py_path(cfg_dir), d, f2)
+    _write_madx(d, f2)
     # TODO(pjm): conditional generation
-    _write_elegant(pkio.py_path(cfg_dir), d, f2)
-    _write_impactx(pkio.py_path(cfg_dir), d, f2)
+    _write_elegant(f2)
+    _write_impactx(f2)
     _run_all()
 
 
@@ -94,7 +103,7 @@ def _run_all():
         )
 
 
-def _write_elegant(run_dir, data, input_file):
+def _write_elegant(input_file):
     elegant = sirepo.sim_data.get_class("elegant")
 
     def madx_to_elegant(madx_in, source_file):
@@ -107,6 +116,7 @@ def _write_elegant(run_dir, data, input_file):
                 cmd.centroid = ""
                 cmd.sigma = "run_setup.sigma.sdds"
                 cmd.output = "run_setup.output.sdds"
+                cmd.use_beamline = d.models.simulation.visualizationBeamlineId
             if cmd._type == "twiss_output":
                 cmd.filename = "twiss_output.filename.sdds"
             if cmd._type == "bunched_beam":
@@ -140,85 +150,39 @@ def _write_elegant(run_dir, data, input_file):
     )
 
 
-def _write_impactx(run_dir, data, input_file):
+def _write_impactx(input_file):
+    impactx = sirepo.sim_data.get_class("impactx")
+
+    def update_beam(data, input_file):
+        data.models.distribution.pkupdate(
+            PKDict(
+                distributionType="File",
+                distributionFile=input_file,
+            )
+        )
+        pkio.py_path(input_file).copy(
+            pkio.py_path(
+                impactx.lib_file_name_with_model_field(
+                    "distribution", "distributionFile", input_file
+                )
+            )
+        )
+        return data
+
+    i = sirepo.template.import_module("impactx").LibAdapter()
+    s = sirepo.lib.SimData(
+        # TODO(pjm): file name
+        update_beam(i.parse_file("madx/in.madx"), input_file),
+        # TODO(pjm): file name
+        pkio.py_path("run.py"),
+        i,
+    )
     pkio.unchecked_remove("impactx")
     pkio.mkdir_parent("impactx")
-    f = sirepo.sim_data.get_class("canvas").lib_file_name_without_type(input_file)
-    beamline = LatticeUtil(data, _SCHEMA).select_beamline().name
-    pkio.py_path(input_file).copy(pkio.py_path("impactx").join(f))
-
-    pkio.write_text(
-        "impactx/run.py",
-        f"""
-#!/usr/bin/env python
-from impactx import ImpactX, distribution, elements
-from rsbeams.rsstats import kinematic
-import amrex.space3d
-import h5py
-import impactx
-import pmd_beamphysics.readers
-import re
-import scipy.constants
-
-sim = ImpactX()
-
-sim.particle_shape = 2  # B-spline order
-sim.space_charge = False
-sim.slice_step_diagnostics = True
-
-sim.init_grids()
+    s.write_files("impactx")
 
 
-def _vector(value, name):
-    res = amrex.space3d.PODVector_real_std()
-    for v in value[name]:
-        res.push_back(v)
-    return res
-
-
-with h5py.File("{ f }", "r") as f:
-    pp = pmd_beamphysics.readers.particle_paths(f)
-    d = f[pp[-1]]
-    if "beam" in d:
-        d = d["beam"]
-
-    speciesMass_MeV = (
-        d.attrs["mass_ref"]
-        / scipy.constants.physical_constants["electron volt-kilogram relationship"][0]
-        * 1e-6
-    )
-    speciesCharge = d.attrs["charge_ref"] / abs(d.attrs["charge_ref"])
-    kin_energy_MeV = kinematic.Converter(
-        mass=d.attrs["mass_ref"],
-        mass_unit="SI",
-        gamma=d.attrs["gamma_ref"],
-    )(silent=True)['kenergy'] * 1e-6
-    sim.particle_container().ref_particle().set_charge_qe(speciesCharge).set_mass_MeV(
-        speciesMass_MeV
-    ).set_kin_energy_MeV(kin_energy_MeV)
-    sim.particle_container().add_n_particles(
-        _vector(d, "position/x"),
-        _vector(d, "position/y"),
-        _vector(d, "position/t"),
-        _vector(d, "momentum/x"),
-        _vector(d, "momentum/y"),
-        _vector(d, "momentum/t"),
-        # docs say charge over mass [1/eV], but seems to be [C / kg]
-        d.attrs["charge_ref"] / d.attrs["mass_ref"],
-        abs(d.attrs["charge_C"]),
-    )
-
-sim.lattice.load_file('../madx/in.madx', nslice=1, beamline='{ beamline }')
-sim.periods = 1
-sim.evolve()
-
-sim.particle_container().to_df(local=True).to_hdf('final_distribution.h5', 'final')
-sim.finalize()
-    """,
-    )
-
-
-def _write_madx(run_dir, data, input_file):
+def _write_madx(data, input_file):
     pkio.py_path(input_file).copy(
         pkio.py_path(
             _MADX.lib_file_name_with_model_field("bunch", "sourceFile", input_file)
@@ -306,6 +270,7 @@ def _to_madx(data, source_file):
                     state,
                     PKDict(
                         _type="beam",
+                        particle=data.models.distribution.species,
                     ).pkupdate(_beam_settings_from_file(source_file)),
                 ),
                 _command(
@@ -355,7 +320,7 @@ def _to_madx(data, source_file):
                 ),
             ],
             elements=[],
-            rpnVariables=PKDict(),
+            rpnVariables=data.models.rpnVariables,
             simulation=PKDict(
                 computeTwissFromParticles="0",
                 visualizationBeamlineId=data.models.simulation.visualizationBeamlineId,
@@ -387,7 +352,7 @@ def _add_dipedges(data, sbend, state):
         name=f"DP1_{sbend.name}",
         hgap=sbend.hgap,
         fint=sbend.fint,
-        h=sbend.angle / sbend.l,
+        h=f"{sbend.angle} / {sbend.l}",
         e1=sbend.e1,
     )
     d2 = _MADX.model_defaults("DIPEDGE").pkupdate(
@@ -396,7 +361,7 @@ def _add_dipedges(data, sbend, state):
         name=f"DP2_{sbend.name}",
         hgap=sbend.hgap,
         fint=sbend.fintx,
-        h=sbend.angle / sbend.l,
+        h=f"{sbend.angle} / {sbend.l}",
         e1=sbend.e2,
     )
     sbend.hgap = 0
