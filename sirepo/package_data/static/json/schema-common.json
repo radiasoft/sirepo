@@ -200,6 +200,7 @@
             }
         },
         "constants": {
+	    "canCreateNewSimulation": true,
             "canDownloadInputFile": true,
             "canExportArchive": true,
             "canShowDocumentationUrl": true,
