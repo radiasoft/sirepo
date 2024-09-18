@@ -35,6 +35,9 @@ class AnalysisDriverBase(PKDict):
     def get_conda_env(self):
         raise NotImplementedError("children must implement this method")
 
+    def get_detailed_status_file(*args, **kwargs):
+        return None
+
     def get_notebooks(self, *args, **kwargs):
         raise NotImplementedError("children must implement this method")
 
@@ -95,6 +98,11 @@ class AnalysisDriverBase(PKDict):
     def has_analysis_pdfs(self):
         return len(self.get_analysis_pdf_paths()) > 0
 
+    # TODO(e-carlin): There should be a databroker class for each
+    # beamline and this question should be answered by it.
+    def is_scan_elegible_for_analysis(self):
+        return True
+
     def render_papermill_script(self, input_f, output_f):
         p = self.get_output_dir().join(_PAPERMILL_SCRIPT)
         pkjinja.render_resource(
@@ -116,6 +124,7 @@ class AnalysisDriverBase(PKDict):
         return []
 
 
+# TODO(e-carlin): support just passing catalog_name and rduid outsidef of PKDict
 def get(incoming):
     def _verify_rduid(rduid):
         # rduid will be combined with paths throughout the application.

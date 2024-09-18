@@ -1123,7 +1123,7 @@ SIREPO.app.directive('scanDetail', function() {
                 <div data-ng-if="analysisElapsedTime()"><strong>Analysis Elapsed Time:</strong> {{ analysisElapsedTime() }} seconds</div>
                 <div>
                   <div><strong>Current Status: </strong>{{ scan.status }}</div>
-                  <div data-ng-if="! isEmptyObject(latestDetailedStatus)">
+                  <div data-ng-if="latestDetailedStatus">
                     <strong>Detailed Status:</strong>
                       <ul>
                         <li data-ng-repeat="(stepName, stepInfo) in latestDetailedStatus">
@@ -1146,16 +1146,16 @@ SIREPO.app.directive('scanDetail', function() {
 	    $scope.latestDetailedStatus = null;
 
 	    function setLatestDetailedStatus() {
-		$scope.latestDetailedStatus = $scope.scan.detailed_status[Math.max(Object.keys($scope.scan.detailed_status))];
+		 $scope.latestDetailedStatus = null;
+		if ($scope.scan.detailed_status) {
+		    $scope.latestDetailedStatus = $scope.scan.detailed_status[Math.max(Object.keys($scope.scan.detailed_status))];
+		}
+
 	    }
 
             $scope.analysisElapsedTime = () => {
                 return $scope.scan && $scope.scan.analysis_elapsed_time ? $scope.scan.analysis_elapsed_time : null;
             };
-
-	    $scope.isEmptyObject = (obj) => {
-		return $.isEmptyObject(obj);
-	    };
 
 	    $scope.parseTime = (unixTime) => {
 		return (new Date(unixTime * 1000)).toString();
