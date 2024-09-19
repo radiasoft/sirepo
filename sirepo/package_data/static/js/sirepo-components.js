@@ -237,15 +237,16 @@ SIREPO.app.directive('getStarted', function(browserStorage, stringsService) {
                 <span>
                     <div class="text-center"><strong>Welcome to Sirepo - ${SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType].longName}!</strong></div>
                     Below are some example ${SIREPO.APP_SCHEMA.strings.simulationDataTypePlural}
-                    and folders containing ${SIREPO.APP_SCHEMA.strings.simulationDataTypePlural}
+                    and folders containing ${SIREPO.APP_SCHEMA.strings.simulationDataTypePlural}.
                     Click on the ${SIREPO.APP_SCHEMA.strings.simulationDataType}
                     to open and view the ${SIREPO.APP_SCHEMA.strings.simulationDataType} results.
-                    You can create a new ${SIREPO.APP_SCHEMA.strings.simulationDataType}
-                    by selecting the "${stringsService.newSimulationLabel()}" link above.
+                    <span data-ng-if="SIREPO.APP_SCHEMA.constants.canCreateNewSimulation">You can create a new ${SIREPO.APP_SCHEMA.strings.simulationDataType}
+                    by selecting the "${stringsService.newSimulationLabel()}" link above.</span>
                 </span>
             </div>
         `,
         controller: function($scope) {
+	    $scope.SIREPO = SIREPO;
             const storageKey = 'getStarted';
             let isActive = true;
 
@@ -2572,7 +2573,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                 </li>
               </ul>
               <ul class="nav navbar-nav" data-ng-show="nav.isActive('simulations')">
-                <li class="sr-new-simulation-item"><a href data-ng-click="showSimulationModal()"><span
+                <li data-ng-if="SIREPO.APP_SCHEMA.constants.canCreateNewSimulation" class="sr-new-simulation-item"><a href data-ng-click="showSimulationModal()"><span
                         class="glyphicon glyphicon-plus sr-small-icon"></span><span class="glyphicon glyphicon-file"></span>
                   {{ newSimulationLabel() }}</a></li>
                 <li><a href data-ng-click="showNewFolderModal()"><span class="glyphicon glyphicon-plus sr-small-icon"></span><span
@@ -2592,7 +2593,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                             class="glyphicon glyphicon-exclamation-sign"></span> Report a Bug</a></li>
                     <li data-help-link="helpUserManualURL" data-title="User Manual" data-icon="list-alt"></li>
                     <li data-help-link="helpUserForumURL" data-title="User Forum" data-icon="globe"></li>
-                    <li data-ng-if="showLink" data-help-link="helpVideoURL" data-title="Instructional Video" data-icon="film"></li>
+                    <li data-ng-if="SIREPO.APP_SCHEMA.feature_config.show_video_links" data-help-link="helpVideoURL" data-title="Instructional Video" data-icon="film"></li>
                   </ul>
                 </li>
               </ul>
@@ -2615,7 +2616,7 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
         controller: function($scope, stringsService) {
             $scope.authState = authState;
             $scope.slackUri = $scope.authState.slackUri;
-            $scope.showLink = SIREPO.APP_SCHEMA.feature_config.show_video_links;
+	    $scope.SIREPO = SIREPO;
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
             };
@@ -3741,6 +3742,9 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             </div>
         `,
         controller: function($scope) {
+	    if (SIREPO.APP_SCHEMA.constants.canCreateNewSimulation) {
+		throw new Error(`SIREPO.APP_SCHEMA.constants.canCreateNewSimulation=${SIREPO.APP_SCHEMA.constants.canCreateNewSimulation} but adding simConversionModal`);
+	    }
             $scope.newSimURL = false;
             $scope.title = $scope.convMethod == 'create_shadow_simulation' ? 'Shadow' : 'SRW';
 

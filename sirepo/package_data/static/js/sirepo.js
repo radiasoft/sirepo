@@ -924,7 +924,7 @@ SIREPO.app.factory('appDataService', function() {
         return self.applicationMode;
     };
     self.canCopy = function() {
-        return true;
+	return SIREPO.APP_SCHEMA.constants.canCreateNewSimulation;
     };
     return self;
 });
@@ -4798,6 +4798,10 @@ SIREPO.app.controller('SimulationsController', function (appState, browserStorag
                 self.selectedItem = null;
             });
     }
+
+    self.canCreateNewSimulation = () => {
+	return SIREPO.APP_SCHEMA.constants.canCreateNewSimulation;
+    };
 
     self.canDelete = function(item) {
         if (item.isFolder) {

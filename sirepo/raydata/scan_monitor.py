@@ -186,20 +186,15 @@ class _Analysis(_DbBase):
         r.save()
 
     @classmethod
-    def statuses_for_scans(cls, catalog_name, rduids):
-        return (
-            cls.session.query(cls.rduid, cls.status)
-            .filter(cls.catalog_name == catalog_name, cls.rduid.in_(rduids))
-            .all()
+    def status_and_elapsed_time(cls, catalog_name, rduid):
+        r = (
+            cls.session.query(cls.status, cls.analysis_elapsed_time)
+            .filter(cls.rduid == rduid)
+            .one_or_none()
         )
-
-    @classmethod
-    def analysis_elapsed_time_for_scans(cls, catalog_name, rduids):
-        return (
-            cls.session.query(cls.rduid, cls.analysis_elapsed_time)
-            .filter(cls.catalog_name == catalog_name, cls.rduid.in_(rduids))
-            .all()
-        )
+        if r:
+            return PKDict(status=r[0], analysis_elapsed_time=r[1])
+        return PKDict(status=None, analysis_elapsed_time=None)
 
     @classmethod
     def _db_upgrade(cls):
@@ -317,7 +312,7 @@ class _RequestHandler(_JsonPostRequestHandler):
                     },
                 ],
             }
-        elif len(nums):
+        if len(nums):
             return {
                 "scan_id": {"$in": nums},
             }
@@ -358,32 +353,27 @@ class _RequestHandler(_JsonPostRequestHandler):
             )
             / req_data.pageSize
         )
-        l = [
-            PKDict(rduid=u)
-            for u in c.search(
-                _search_params(req_data),
-                sort=_sort_params(req_data),
-                limit=req_data.pageSize,
-                skip=req_data.pageNumber * req_data.pageSize,
-            )
-        ]
-        d = PKDict(
-            _Analysis.statuses_for_scans(
-                catalog_name=req_data.catalogName, rduids=[s.rduid for s in l]
-            )
-        )
-
-        e = PKDict(
-            _Analysis.analysis_elapsed_time_for_scans(
-                catalog_name=req_data.catalogName, rduids=[s.rduid for s in l]
-            )
-        )
-
-        for s in l:
-            s.status = d.get(s.rduid, _AnalysisStatus.NONE)
-            s.analysis_elapsed_time = e.get(s.rduid, None)
-            s.detailed_status = _get_detailed_status(req_data.catalogName, s.rduid)
-        return l, pc
+        res = []
+        for u in c.search(
+            _search_params(req_data),
+            sort=_sort_params(req_data),
+            limit=req_data.pageSize,
+            skip=req_data.pageNumber * req_data.pageSize,
+        ):
+            # Code after this (ex detailed_status) expects that the
+            # scan is valid (ex 'cycle' exists in start doc for chx).
+            # So, don't even show scans to users that aren't elegible.
+            if sirepo.raydata.analysis_driver.get(
+                PKDict(catalog_name=req_data.catalogName, rduid=u)
+            ).is_scan_elegible_for_analysis():
+                res.append(
+                    PKDict(
+                        rduid=u,
+                        detailed_status=_get_detailed_status(req_data.catalogName, u),
+                        **_Analysis.status_and_elapsed_time(req_data.catalogName, u),
+                    )
+                )
+        return res, pc
 
     def _request_analysis_output(self, req_data):
         return sirepo.raydata.analysis_driver.get(req_data).get_output()
@@ -602,13 +592,9 @@ def _default_columns(catalog_name):
 
 
 def _get_detailed_status(catalog_name, rduid):
-    d = sirepo.raydata.analysis_driver.get(
+    return sirepo.raydata.analysis_driver.get(
         PKDict(catalog_name=catalog_name, rduid=rduid)
-    )
-    if hasattr(d, "get_detailed_status_file"):
-        return d.get_detailed_status_file(rduid)
-    else:
-        return None
+    ).get_detailed_status_file(rduid)
 
 
 async def _init_catalog_monitors():
@@ -629,7 +615,6 @@ async def _init_catalog_monitors():
 # new documents are available.
 # But, for now it is easiest to just poll
 async def _poll_catalog_for_scans(catalog_name):
-    # TODO(e-carlin): need to test polling feature
     def _collect_new_scans_and_queue(last_known_scan_metadata):
         r = [
             sirepo.raydata.databroker.get_metadata(s, catalog_name)
@@ -663,14 +648,17 @@ async def _poll_catalog_for_scans(catalog_name):
                 s = _collect_new_scans_and_queue(s)
                 await pkasyncio.sleep(2)
 
+    async def _wait_for_catalog():
+        while True:
+            try:
+                sirepo.raydata.databroker.catalog(catalog_name)
+                return
+            except KeyError:
+                pkdlog(f"no catalog_name={catalog_name}. Retrying...")
+                await pkasyncio.sleep(15)
+
     pkdlog("catalog_name={}", catalog_name)
-    c = None
-    while not c:
-        try:
-            c = sirepo.raydata.databroker.catalog(catalog_name)
-        except KeyError:
-            pkdlog(f"no catalog_name={catalog_name}. Retrying...")
-            await pkasyncio.sleep(15)
+    await _wait_for_catalog()
     await _poll_for_new_scans()
     raise AssertionError("should never get here")
 
@@ -680,6 +668,8 @@ def _queue_for_analysis(scan_metadata):
         rduid=scan_metadata.rduid,
         catalog_name=scan_metadata.catalog_name,
     )
+    if not sirepo.raydata.analysis_driver.get(s).is_scan_elegible_for_analysis():
+        return
     pkdlog("scan={}", s)
     if s not in _SCANS_AWAITING_ANALYSIS:
         pkio.unchecked_remove(sirepo.raydata.analysis_driver.get(s).get_output_dir())
