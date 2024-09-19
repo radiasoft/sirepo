@@ -2751,7 +2751,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         const c = cookiesSorted;
         _saveCookies();
         // first time is null, and reordering is ok
-        if (c === null || c === cookiesSorted) {
+        if (c === null || c === cookiesSorted.replace(`; ${SIREPO.cookieConsentName}=dismiss`, '')) {
             return false;
         }
         srlog("cookies changed via another browser tab, reloading application");
