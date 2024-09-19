@@ -113,23 +113,23 @@
         },
         "bunchAnimation1": {
             "simCode": ["", "String", "elegant"],
-            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "histogramBins": ["Histogram Bins", "Integer", 80],
             "notes": ["Notes", "Text", ""]
         },
         "bunchAnimation2": {
             "simCode": ["", "String", "madx"],
-            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "histogramBins": ["Histogram Bins", "Integer", 80],
             "notes": ["Notes", "Text", ""]
         },
         "bunchAnimation3": {
             "simCode": ["", "String", "impactx"],
-            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "histogramBins": ["Histogram Bins", "Integer", 80],
             "notes": ["Notes", "Text", ""]
         },
         "bunchReport": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "x"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "px"],
-            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "histogramBins": ["Histogram Bins", "Integer", 80],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },

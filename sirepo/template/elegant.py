@@ -270,11 +270,6 @@ class ElegantMadxConverter(MadxConverter):
             ["LSCDRIFT", "l"],
         ],
         [
-            # DIPEDGE attributes will be combined with any CSBEND or RBEN elements nearby
-            "DIPEDGE",
-            ["CSBEND", "e1", "tilt", "hgap", "fint"],
-        ],
-        [
             "SBEND",
             [
                 "CSBEND",
@@ -351,6 +346,11 @@ class ElegantMadxConverter(MadxConverter):
                 "fint",
             ],
             ["TUBEND", "l", "angle"],
+        ],
+        [
+            # DIPEDGE attributes will be combined with any CSBEND or RBEN elements nearby
+            "DIPEDGE",
+            ["CSBEND", "e1", "tilt", "hgap", "fint"],
         ],
         [
             "QUADRUPOLE",
@@ -553,7 +553,7 @@ class ElegantMadxConverter(MadxConverter):
         bmap = PKDict()
         els = []
         for el in data.models.elements:
-            if el.type == "CSBEND":
+            if el.type == "CSBEND" or el.type == "RBEN":
                 if el.l == 0:
                     dmap[el._id] = el
                     continue

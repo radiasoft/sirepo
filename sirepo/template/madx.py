@@ -1068,7 +1068,7 @@ def _read_particles(h5):
         t=list(h5["position/t"]),
         px=list(h5["momentum/x"]),
         py=list(h5["momentum/y"]),
-        pt=list(h5["momentum/t"]),
+        pt=list(-numpy.array(h5["momentum/t"])),
     )
 
 
