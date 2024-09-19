@@ -125,8 +125,9 @@ def background_percent_complete(report, run_dir, is_running):
     if is_running:
         return res
     # TODO(pjm): check enable code output files
-    # TODO(pjm): file name hard coded
-    if run_dir.join("impactx/diags/final_distribution.h5").exists():
+    if run_dir.join(
+        f"impactx/{ sirepo.template.impactx.FINAL_DISTRIBUTION_OUTPUT_FILE }"
+    ).exists():
         res.frameCount = 1
     return res
 

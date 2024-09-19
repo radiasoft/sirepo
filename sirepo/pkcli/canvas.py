@@ -25,7 +25,10 @@ import sirepo.template.elegant_common
 import sirepo.template.sdds_util
 
 _SCHEMA = sirepo.sim_data.get_class("canvas").schema()
+_ELEGANT_INPUT_FILE = "elegant.ele"
+_IMPACTX_RUN_FILE = "run.py"
 _MADX = sirepo.sim_data.get_class("madx")
+_MADX_INPUT_FILE = "in.madx"
 _MODEL_FIELD_MAP = PKDict(
     DRIFT=PKDict(
         _fields=["name", "type", "l", "_id"],
@@ -89,7 +92,7 @@ def _run_all():
 
     with pkio.save_chdir("elegant"):
         pksubprocess.check_call_with_signals(
-            ["elegant", "elegant.ele"],
+            ["elegant", _ELEGANT_INPUT_FILE],
             msg=pkdlog,
             output=sirepo.pkcli.elegant.ELEGANT_LOG_FILE,
             env=sirepo.template.elegant_common.subprocess_env(),
@@ -97,7 +100,7 @@ def _run_all():
 
     with pkio.save_chdir("impactx"):
         pksubprocess.check_call_with_signals(
-            ["python", "run.py"],
+            ["python", _IMPACTX_RUN_FILE],
             msg=pkdlog,
             output="impactx.log",
         )
@@ -138,8 +141,8 @@ def _write_elegant(input_file):
         return d
 
     s = sirepo.lib.SimData(
-        madx_to_elegant("madx/in.madx", input_file),
-        pkio.py_path("elegant.ele"),
+        madx_to_elegant(f"madx/{_MADX_INPUT_FILE}", input_file),
+        pkio.py_path(_ELEGANT_INPUT_FILE),
         sirepo.template.import_module("elegant").LibAdapter(),
     )
     pkio.unchecked_remove("elegant")
@@ -171,10 +174,8 @@ def _write_impactx(input_file):
 
     i = sirepo.template.import_module("impactx").LibAdapter()
     s = sirepo.lib.SimData(
-        # TODO(pjm): file name
-        update_beam(i.parse_file("madx/in.madx"), input_file),
-        # TODO(pjm): file name
-        pkio.py_path("run.py"),
+        update_beam(i.parse_file(f"madx/{_MADX_INPUT_FILE}"), input_file),
+        pkio.py_path(_IMPACTX_RUN_FILE),
         i,
     )
     pkio.unchecked_remove("impactx")
@@ -190,7 +191,7 @@ def _write_madx(data, input_file):
     )
     s = sirepo.lib.SimData(
         _to_madx(data, input_file),
-        pkio.py_path("in.madx"),
+        pkio.py_path(_MADX_INPUT_FILE),
         sirepo.template.import_module("madx").LibAdapter(),
     )
     pkio.unchecked_remove("madx")

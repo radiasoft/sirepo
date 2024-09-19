@@ -49,7 +49,6 @@ sim.lattice.extend(beamline_elements("{{ selectedBeamline }}"))
 
 sim.evolve()
 
-#TODO(pjm): file name
-sim.particle_container().to_df(local=True).to_hdf('diags/final_distribution.h5', 'final')
+sim.particle_container().to_df(local=True).to_hdf("{{ finalDistributionOutputFile }}", "final")
 
 sim.finalize()

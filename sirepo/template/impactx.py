@@ -20,6 +20,7 @@ import sirepo.template.lattice
 import sirepo.template.sdds_util
 
 
+FINAL_DISTRIBUTION_OUTPUT_FILE = "diags/final_distribution.h5"
 # _DEFAULT_NSLICE = 12
 _DEFAULT_NSLICE = 1
 _MONITOR_NAME = "monitor"
@@ -124,7 +125,6 @@ class ImpactxMadxConverter(MadxConverter):
                 element_out.rc = self.__val(element_out.l) / self.__val(
                     element_in.angle
                 )
-                # self.bends[element_out._id] = self.__val(element_in.angle)
             elif element_in.type == "DIPEDGE":
                 element_out.rc = 1.0 / self.__val(element_in.h)
                 element_out.g = 2 * self.__val(element_in.hgap)
@@ -366,3 +366,4 @@ def _generate_particles(data, res, v):
     v.speciesMassMeV = round(mc[0] * 1e3, 9)
     v.speciesCharge = mc[1]
     v.createParticles = template_common.render_jinja(SIM_TYPE, v, "particles.py")
+    v.finalDistributionOutputFile = FINAL_DISTRIBUTION_OUTPUT_FILE
