@@ -1208,6 +1208,7 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
         };
         function init() {
             $scope.select('svg.sr-plot').attr('height', plotting.initialHeight($scope));
+            delete $scope.axes.y2;
             $.each($scope.axes, function(dim, axis) {
                 axis.init();
                 axis.grid = axis.createAxis();
@@ -2538,7 +2539,7 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
 
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
-                    margin: {top: 50, right: 10, bottom: 50, left: 75},
+                    margin: {top: 50, right: 10, bottom: 20, left: 75},
                 });
                 $scope.focusPoints.push(
                     focusPointService.setupFocusPoint($scope.axes.x, $scope.axes.y, false));
@@ -2574,6 +2575,7 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
                 });
 
                 $scope.updatePlot(json);
+                $scope.resize();
             };
 
             $scope.recalculateYDomain = function() {
@@ -4080,7 +4082,7 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
 
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
-                    margin: {top: 50, right: 23, bottom: 50, left: 75},
+                    margin: {top: 50, right: 23, bottom: 20, left: 75},
                 });
             };
 
