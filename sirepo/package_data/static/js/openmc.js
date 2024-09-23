@@ -12,15 +12,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
         <div data-ng-switch-when="tallyViewer" data-tally-viewer="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
     `;
-    //TODO(pjm): OptionalFloat should be standard
     SIREPO.appFieldEditors = `
         <div data-ng-switch-when="Point3D" class="col-sm-7">
           <div data-point3d="" data-model="model" data-field="field"></div>
-        </div>
-        <div data-ng-switch-when="OptionalFloat" data-ng-class="fieldClass">
-          <input data-string-to-number="" data-ng-model="model[field]"
-            data-min="info[4]" data-max="info[5]" class="form-control"
-            style="text-align: right" data-lpignore="true" />
         </div>
         <div data-ng-switch-when="MaterialComponents" class="col-sm-12">
           <div data-material-components=""></div>
