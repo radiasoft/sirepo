@@ -958,6 +958,7 @@
             "sourceColorMap": ["Source Energy Color Map", "ColorMap", "jet"],
             "tally": ["Tally", "PlotTallyList"],
             "thresholds": ["Threshold", "Threshold", [0, 0], "Tally cells with a value outside this range will not be displayed"],
+            "colorRange": ["Color Range", "Threshold", [0, 0]],
             "score": ["Score", "PlotScoreList"],
             "sourceNormalization": ["Normalize to particle count", "Float", 1e12, "Per-particle tally scores are normalized to this many source particles (a factor of {{ appState.models.openmcAnimation.sourceNormalization / appState.models.settings.particles }})", 1.0],
             "isEnergySelected": ["", "Boolean", "0"],
@@ -1267,6 +1268,7 @@
                     "energyRangeSum",
                     "colorMap",
                     "thresholds",
+                    "colorRange",
                     "opacity",
                     "tallyReport.axis",
                     "tallyReport.planePos"

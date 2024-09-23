@@ -1,6 +1,7 @@
 'use strict';
 
 // Common code shared between the landing page app and the various sirepo apps
+SIREPO.cookieConsentName = 'sr_cookieconsent';
 
 window.cookieconsent.initialise({
     //TODO(pjm): set cookie domain?
@@ -11,7 +12,7 @@ window.cookieconsent.initialise({
         link: null,
     },
     cookie: {
-        name: 'sr_cookieconsent',
+        name: SIREPO.cookieConsentName,
     },
     palette: {
         popup: {

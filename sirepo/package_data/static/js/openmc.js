@@ -12,15 +12,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="geometry3d" data-geometry-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
         <div data-ng-switch-when="tallyViewer" data-tally-viewer="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
     `;
-    //TODO(pjm): OptionalFloat should be standard
     SIREPO.appFieldEditors = `
         <div data-ng-switch-when="Point3D" class="col-sm-7">
           <div data-point3d="" data-model="model" data-field="field"></div>
-        </div>
-        <div data-ng-switch-when="OptionalFloat" data-ng-class="fieldClass">
-          <input data-string-to-number="" data-ng-model="model[field]"
-            data-min="info[4]" data-max="info[5]" class="form-control"
-            style="text-align: right" data-lpignore="true" />
         </div>
         <div data-ng-switch-when="MaterialComponents" class="col-sm-12">
           <div data-material-components=""></div>
@@ -386,6 +380,7 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
         if (isRunning || self.simState.isProcessing()) {
             if (data.frameCount != frameCache.getFrameCount()) {
                 openmcService.invalidateRange('thresholds');
+                openmcService.invalidateRange('colorRange');
             }
             isRunning = self.simState.isProcessing();
         }
@@ -417,6 +412,7 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
         delete r.tally;
         openmcService.invalidateRange('energyRangeSum');
         openmcService.invalidateRange('thresholds');
+        openmcService.invalidateRange('colorRange');
         r.isEnergySelected = "0";
         panelState.clear('tallyReport');
         self.simState.saveAndRunSimulation('openmcAnimation');
@@ -523,7 +519,7 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
 
     self.colorScale = modelName => {
         return SIREPO.PLOTTING.Utils.colorScale(
-            ...appState.models.openmcAnimation.thresholds,
+            ...appState.models.openmcAnimation.colorRange,
             SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.applicationState()[modelName].colorMap],
         );
     };
@@ -592,8 +588,9 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
         self.fieldData = fieldData.map(n);
         self.minField = n(min);
         self.maxField = n(max);
-        if (! openmcService.isRangeValid('thresholds')) {
+        if (! (openmcService.isRangeValid('thresholds') && openmcService.isRangeValid('colorRange'))) {
             appState.models.openmcAnimation.thresholds = [self.minField, self.maxField];
+            appState.models.openmcAnimation.colorRange = [self.minField, self.maxField];
             appState.saveQuietly('openmcAnimation');
         }
         const f = openmcService.findFilter('energyFilter');
@@ -1014,8 +1011,8 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
                 const r =  {
                     enableSelection: ! ! $scope.energyFilter,
                     aspectRatio: ar,
-                    global_min: appState.models.openmcAnimation.thresholds[0],
-                    global_max: appState.models.openmcAnimation.thresholds[1],
+                    global_min: appState.models.openmcAnimation.colorRange[0],
+                    global_max: appState.models.openmcAnimation.colorRange[1],
                     threshold: appState.models.openmcAnimation.thresholds,
                     title: `Score at ${z} = ${SIREPO.UTILS.roundToPlaces(pos, 6)}m${energySumLabel()}`,
                     x_label: `${x} [m]`,
@@ -3128,10 +3125,11 @@ SIREPO.viewLogic('tallySettingsView', function(appState, openmcService, panelSta
     const autoUpdate = utilities.debounce((field) => {
         if ($scope.form.$valid) {
             //TODO(pjm): thresholds is an array and === doesn't check values
-            if (field === 'openmcAnimation.thresholds') {
+            if (['openmcAnimation.thresholds', 'openmcAnimation.colorRange'].includes(field)) {
+                const m = appState.parseModelField(field);
                 if (appState.deepEquals(
-                    appState.models.openmcAnimation.thresholds,
-                    appState.applicationState().openmcAnimation.thresholds,
+                    appState.models[m[0]][m[1]],
+                    appState.applicationState()[m[0]][m[1]],
                 )) {
                     return;
                 }
@@ -3144,6 +3142,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, openmcService, panelSta
 
     function invalidateThreshold() {
         openmcService.invalidateRange('thresholds');
+        openmcService.invalidateRange('colorRange');
     }
 
     function showFields() {
@@ -3210,6 +3209,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, openmcService, panelSta
             'openmcAnimation.score',
             'openmcAnimation.sourceNormalization',
             'openmcAnimation.thresholds',
+            'openmcAnimation.colorRange',
         ], autoUpdate,
         ['tallyReport.planePos'], updateEnergyPlot,
         ['openmcAnimation.tally'], validateTally,

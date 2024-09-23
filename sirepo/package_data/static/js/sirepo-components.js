@@ -3742,9 +3742,6 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             </div>
         `,
         controller: function($scope) {
-	    if (SIREPO.APP_SCHEMA.constants.canCreateNewSimulation) {
-		throw new Error(`SIREPO.APP_SCHEMA.constants.canCreateNewSimulation=${SIREPO.APP_SCHEMA.constants.canCreateNewSimulation} but adding simConversionModal`);
-	    }
             $scope.newSimURL = false;
             $scope.title = $scope.convMethod == 'create_shadow_simulation' ? 'Shadow' : 'SRW';
 
