@@ -1208,7 +1208,6 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
         };
         function init() {
             $scope.select('svg.sr-plot').attr('height', plotting.initialHeight($scope));
-            delete $scope.axes.y2;
             $.each($scope.axes, function(dim, axis) {
                 axis.init();
                 axis.grid = axis.createAxis();
@@ -2291,7 +2290,7 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
                   data-is-dynamic="1"></span> = {{ pointText(0, true) }} {{ focusPoints[0].config.xAxis.units }}</div>
                 <div data-ng-style="{ opacity: opacity($index) }" style="height: 20px"
                   data-ng-repeat="p in plots track by p._label + $index">
-                  <div style="display:inline" data-color-circle="p.color" data-dashed="p._yaxis === 'right'"></div>
+                  <div style="display:inline" data-color-circle="p.color" data-dashed="p.dashes"></div>
                   <span data-text-with-math="p._label"></span> = {{ pointText($index) }} {{ p._units }}
                 </div>
                 </div>
@@ -2541,6 +2540,7 @@ SIREPO.app.directive('plot2d', function(focusPointService, plotting, plot2dServi
                 plot2dService.init2dPlot($scope, {
                     margin: {top: 50, right: 10, bottom: 20, left: 75},
                 });
+                delete $scope.axes.y2;
                 $scope.focusPoints.push(
                     focusPointService.setupFocusPoint($scope.axes.x, $scope.axes.y, false));
             };
@@ -3542,7 +3542,7 @@ SIREPO.app.directive('plotLegend', function(mathRendering) {
               <div data-ng-repeat="p in plots" style="margin-left: 1em">
                 <div data-ng-click="click($index)" style="cursor: pointer; display: inline">
                   <a href data-ng-style="{ opacity: opacity(p) }"><span class="glyphicon" data-ng-class="{'glyphicon-check': p._isVisible, 'glyphicon-unchecked': ! p._isVisible}"> </span></a>
-                  <div style="display:inline" data-color-circle="p.color" data-dashed="p._yaxis === 'right'"></div>
+                  <div style="display:inline" data-color-circle="p.color" data-dashed="p.dashes"></div>
                   <span data-text-with-math="label(p)" data-is-dynamic="1"></span>
                 </div>
               </div>
@@ -3717,11 +3717,10 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 if (! isVisible && ! canToggle(pIndex)) {
                     return;
                 }
-                $scope.plots[pIndex]._isVisible = isVisible;
-                plotPath(pIndex).style('opacity', isVisible ? 1.0 : 0.0);
-                if ($scope.plots && $scope.plots[pIndex]) {
-                    $scope.recalculateYDomain();
-                }
+                const p = $scope.plots[pIndex];
+                p._isVisible = isVisible;
+                plotPath(pIndex).style('opacity', isVisible ? (p.opacity || 1.0) : 0.0);
+                $scope.recalculateYDomain();
                 $scope.broadcastEvent({
                     name: 'setInfoVisible',
                     isVisible: isVisible,
@@ -3735,7 +3734,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 viewport.selectAll('.line').remove();
                 viewport.selectAll('g.param-plot').remove();
                 json.plots.forEach(function(plot, ip) {
-                    let strokeWidth = 2.0;
+                    let strokeWidth = plot.strokeWidth || 2.0;
                     if (plot.style === 'scatter') {
                         let clusterInfo;
                         let circleRadius = plot.circleRadius || 2;

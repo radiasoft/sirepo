@@ -2537,7 +2537,6 @@
         "simulation": {
             "activeBeamlineId": 130,
             "documentationUrl": "",
-            "enableParticleTracking": "1",
             "folder": "/Examples",
             "isExample": true,
             "name": "Match Sextupole Strengths",
@@ -2545,14 +2544,6 @@
             "numberOfParticles": 1000,
             "randomSeed": 123456789,
             "visualizationBeamlineId": 130
-        },
-        "twissEllipseReport1": {
-            "dim": "x",
-            "notes": ""
-        },
-        "twissEllipseReport2": {
-            "dim": "y",
-            "notes": ""
         },
         "twissReport": {
             "includeLattice": "1",

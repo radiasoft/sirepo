@@ -1,0 +1,30 @@
+
+from impactx import ImpactX, distribution, elements
+from rsbeams.rsdata.SDDS import readSDDS
+from rsbeams.rsstats import kinematic
+import amrex.space3d
+import h5py
+import impactx
+import numpy
+import pmd_beamphysics.readers
+import re
+import scipy.constants
+
+sim = ImpactX()
+
+sim.particle_shape = 2  # B-spline order
+sim.space_charge = False
+sim.init_grids()
+
+{{ createParticles }}
+
+sim.lattice.extend(
+    [
+        elements.Drift(ds=0, nslice=1),
+        elements.BeamMonitor("monitor", backend="h5"),
+    ]
+)
+
+sim.evolve()
+
+sim.finalize()

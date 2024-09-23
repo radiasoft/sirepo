@@ -1892,7 +1892,6 @@
                     "commandTemplate": "particle",
                     "computeTwissFromParticles": "1",
                     "documentationUrl": "",
-                    "enableParticleTracking": "1",
                     "folder": "/",
                     "isExample": false,
                     "lastModified": 1663967786442,

@@ -12,6 +12,10 @@
             "longName": "Activait",
             "shortName": "Activait"
         },
+        "canvas": {
+            "longName": "Lattice Canvas",
+            "shortName": "canvas"
+        },
         "controls": {
             "longName": "Controls",
             "shortName": "Controls"
@@ -35,6 +39,10 @@
         "impactt": {
             "longName": "Impact-T",
             "shortName": "Impact-T"
+        },
+        "impactx": {
+            "longName": "ImpactX",
+            "shortName": "ImpactX"
         },
         "jspec": {
             "longName": "JSPEC",

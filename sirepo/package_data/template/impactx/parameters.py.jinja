@@ -1,0 +1,54 @@
+
+from impactx import ImpactX, distribution, elements
+from pykern.pkcollections import PKDict
+from rsbeams.rsdata.SDDS import readSDDS
+from rsbeams.rsstats import kinematic
+import amrex.space3d
+import h5py
+import impactx
+import numpy
+import pmd_beamphysics.readers
+import re
+import scipy.constants
+
+sim = ImpactX()
+
+sim.particle_shape = {{ simulationSettings_particle_shape }}  # B-spline order
+sim.space_charge = {{ simulationSettings_space_charge == "1" }}
+sim.slice_step_diagnostics = {{ simulationSettings_slice_step_diagnostics == "1" }}
+
+sim.init_grids()
+
+{{ createParticles }}
+
+def beamline_elements(beamline_name):
+    el = PKDict(
+        {{ latticeElements | indent(8) }}
+    )
+    b = PKDict(
+        {{ latticeBeamlines | indent(8) }}
+    )
+
+    def _expand(beamline):
+        beamline, r = _is_reverse(beamline)
+        res = []
+        for e in b[beamline]:
+            if isinstance(e, str):
+                res += _expand(e)
+            else:
+                res.append(e)
+        return list(reversed(res)) if r else res
+
+    def _is_reverse(beamline):
+        bl = re.sub(r"^-", "", beamline)
+        return bl, bl != beamline
+
+    return _expand(beamline_name)
+
+sim.lattice.extend(beamline_elements("{{ selectedBeamline }}"))
+
+sim.evolve()
+
+sim.particle_container().to_df(local=True).to_hdf("{{ finalDistributionOutputFile }}", "final")
+
+sim.finalize()

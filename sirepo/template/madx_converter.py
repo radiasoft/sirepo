@@ -170,6 +170,22 @@ class MadxConverter:
     def _fixup_element(self, element_in, element_out):
         pass
 
+    def _remove_zero_drifts(self, data):
+        z = set()
+        e = []
+        for el in data.models.elements:
+            if el.type == "DRIFT" and el.l == 0:
+                z.add(el._id)
+            else:
+                e.append(el)
+        data.models.elements = e
+        for bl in data.models.beamlines:
+            i = []
+            for it in bl["items"]:
+                if it not in z:
+                    i.append(it)
+            bl["items"] = i
+
     def __init_direction(self, data, from_class, to_class):
         self.from_class = sirepo.sim_data.get_class(from_class)
         self.to_class = sirepo.sim_data.get_class(to_class)

@@ -4,6 +4,9 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.FILE_UPLOAD_TYPE = {
+        'bunchFile-sourceFile': '.sdds,.h5',
+    };
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.appFieldEditors += [

@@ -43,6 +43,7 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         'x-y': 'Cross-section',
         'Y-Z': 'Cross-section',
         't-p': 'Longitudinal',
+        't-pt': 'Longitudinal',
         'z-zp': 'Longitudinal',
         'z-pz': 'Longitudinal',
         'xp': "X'",
@@ -1375,10 +1376,21 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             function itemTrackHash(item, group, length, angle) {
-                return group.items.length + '-' + item.name + '-' + item._id + '-' + length + '-'
-                    + group.rotate + '-' + group.rotateX + '-' + group.rotateY + '-' + (angle || 0)
-                    + '-' + item.beamlineIndex + '-' + (item.elemedge || 0)
-                    + '-' + (item.open_side || '');
+                return [
+                    group.items.length,
+                    item.name,
+                    item._id,
+                    length,
+                    group.rotate,
+                    group.rotateX,
+                    group.rotateY,
+                    angle,
+                    item.beamlineIndex,
+                    item.elemedge,
+                    item.open_side,
+                    item.e1,
+                    item.e2,
+                ].reduce((a, v) => a + '-' + (v || 0), 'v');
             }
 
             function subScaleWatch() {

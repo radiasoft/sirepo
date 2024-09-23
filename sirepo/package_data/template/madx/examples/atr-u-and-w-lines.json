@@ -3475,18 +3475,9 @@
             "activeBeamlineId": 287,
             "commandTemplate": "particle",
             "computeTwissFromParticles": "1",
-            "enableParticleTracking": "1",
             "folder": "/Examples",
             "name": "ATR U and W lines",
             "visualizationBeamlineId": 287
-        },
-        "twissEllipseReport1": {
-            "dim": "x",
-            "notes": ""
-        },
-        "twissEllipseReport2": {
-            "dim": "y",
-            "notes": ""
         },
         "twissFromParticlesAnimation": {
             "aspectRatio": "1",
