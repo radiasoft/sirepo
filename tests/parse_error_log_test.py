@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
 """Parsing of an error run.log
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-import pytest
-import os
 
 
 def test_runError(fc):
@@ -42,7 +38,7 @@ def test_parse_python_errors():
 
     err = """
 Traceback (most recent call last):
-  File "/home/vagrant/src/radiasoft/sirepo/sirepo/pkcli/zgoubi.py", line 120, in _validate_estimate_output_file_size
+  File "zgoubi.py", line 120, in _validate_estimate_output_file_size
     'Estimated FAI output too large.\n'
 AssertionError: Estimated FAI output too large.
 Reduce particle count or number of runs,
