@@ -2290,7 +2290,7 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
                   data-is-dynamic="1"></span> = {{ pointText(0, true) }} {{ focusPoints[0].config.xAxis.units }}</div>
                 <div data-ng-style="{ opacity: opacity($index) }" style="height: 20px"
                   data-ng-repeat="p in plots track by p._label + $index">
-                  <div style="display:inline" data-color-circle="p.color" data-dashed="p.dashes"></div>
+                  <div style="display:inline" data-color-circle="p"></div>
                   <span data-text-with-math="p._label"></span> = {{ pointText($index) }} {{ p._units }}
                 </div>
                 </div>
@@ -3515,17 +3515,16 @@ SIREPO.app.directive('colorCircle', function() {
     return {
         resize: 'A',
         scope: {
-            color: '<colorCircle',
-            dashed: '<',
+            plot: '<colorCircle',
         },
         template: `
-          <div data-ng-style="{ background: bgcolor }" style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-bottom: -2px"> </div>
+              <svg width="30" height="10" style="padding-top: 3px">
+                <line x1="0" y1="1" x2="30" y2="1"
+                  data-ng-attr-stroke-width="{{ plot.strokeWidth }}"
+                  data-ng-attr-opacity="{{ plot.opacity }}"
+                  data-ng-attr-stroke="{{ plot.color }}" data-ng-attr-stroke-dasharray="{{ plot.dashes }}" />
+              </svg>
         `,
-        controller: function($scope) {
-            $scope.bgcolor = $scope.dashed
-                ? `linear-gradient(90deg, ${$scope.color} 38%, transparent 38%, transparent 62%, ${$scope.color} 62%)`
-                : $scope.color;
-        },
     };
 });
 
@@ -3542,7 +3541,7 @@ SIREPO.app.directive('plotLegend', function(mathRendering) {
               <div data-ng-repeat="p in plots" style="margin-left: 1em">
                 <div data-ng-click="click($index)" style="cursor: pointer; display: inline">
                   <a href data-ng-style="{ opacity: opacity(p) }"><span class="glyphicon" data-ng-class="{'glyphicon-check': p._isVisible, 'glyphicon-unchecked': ! p._isVisible}"> </span></a>
-                  <div style="display:inline" data-color-circle="p.color" data-dashed="p.dashes"></div>
+                  <div style="display:inline" data-color-circle="p"></div>
                   <span data-text-with-math="label(p)" data-is-dynamic="1"></span>
                 </div>
               </div>
@@ -3680,7 +3679,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     plot._yaxis = appState.applicationState()[$scope.modelName][plot.dim + 'Position'] || 'left';
                     if (plot._yaxis == 'right') {
                         hasY2Axis = true;
-                        plot.dashes = '5 5';
+                        plot.dashes = '5 3';
                     }
                 });
                 if (hasY2Axis) {
