@@ -3518,11 +3518,12 @@ SIREPO.app.directive('colorCircle', function() {
             plot: '<colorCircle',
         },
         template: `
-              <svg width="30" height="10" style="padding-top: 3px">
-                <line x1="0" y1="1" x2="30" y2="1"
+              <svg width="30" height="10">
+                <line x1="0" y1="4" x2="30" y2="4"
                   data-ng-attr-stroke-width="{{ plot.strokeWidth }}"
-                  data-ng-attr-opacity="{{ plot.opacity }}"
-                  data-ng-attr-stroke="{{ plot.color }}" data-ng-attr-stroke-dasharray="{{ plot.dashes }}" />
+                  data-ng-attr-opacity="{{ plot.opacity || 1.0 }}"
+                  data-ng-attr-stroke="{{ plot.color }}"
+                  data-ng-attr-stroke-dasharray="{{ plot.dashes }}" />
               </svg>
         `,
     };
@@ -3733,7 +3734,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 viewport.selectAll('.line').remove();
                 viewport.selectAll('g.param-plot').remove();
                 json.plots.forEach(function(plot, ip) {
-                    let strokeWidth = plot.strokeWidth || 2.0;
+                    plot.strokeWidth = plot.strokeWidth || 2.0;
                     if (plot.style === 'scatter') {
                         let clusterInfo;
                         let circleRadius = plot.circleRadius || 2;
@@ -3763,7 +3764,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             .attr('class', 'param-plot line line-color')
                             .attr('data-sr-index', ip)
                             .style('stroke', plot.color)
-                            .style('stroke-width', strokeWidth)
+                            .style('stroke-width', plot.strokeWidth)
                             .datum(plot.points);
                         if (plot.dashes) {
                             p.style('stroke-dasharray', (plot.dashes));
