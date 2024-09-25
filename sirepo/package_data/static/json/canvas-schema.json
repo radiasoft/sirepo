@@ -58,8 +58,11 @@
             ["y", "y"],
             ["py", "Py"],
             ["t", "t"],
-            ["pt", "Pt"],
-            ["qm", "q"]
+            ["pt", "Pt"]
+        ],
+        "PlotType": [
+            ["heatmap", "Heatmap"],
+            ["3d", "Heatmap with Histograms"]
         ],
         "Species": [
             ["positron", "Positron"],
@@ -74,15 +77,21 @@
         ],
         "bunchAnimation1": [
             "simCode",
-            "histogramBins"
+            "histogramBins",
+            "x",
+            "y"
         ],
         "bunchAnimation2": [
             "simCode",
-            "histogramBins"
+            "histogramBins",
+            "x",
+            "y"
         ],
         "bunchAnimation3": [
             "simCode",
-            "histogramBins"
+            "histogramBins",
+            "x",
+            "y"
         ]
     },
     "localRoutes": {
@@ -111,20 +120,22 @@
         "beamline": {
             "name": ["Name", "ValidatedString"]
         },
-        "bunchAnimation1": {
-            "simCode": ["", "String", "elegant"],
-            "histogramBins": ["Histogram Bins", "Integer", 80],
+        "bunchAnimation": {
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
+        },
+        "bunchAnimation1": {
+            "simCode": ["", "String", "elegant"]
         },
         "bunchAnimation2": {
-            "simCode": ["", "String", "madx"],
-            "histogramBins": ["Histogram Bins", "Integer", 80],
-            "notes": ["Notes", "Text", ""]
+            "simCode": ["", "String", "madx"]
         },
         "bunchAnimation3": {
-            "simCode": ["", "String", "impactx"],
-            "histogramBins": ["Histogram Bins", "Integer", 80],
-            "notes": ["Notes", "Text", ""]
+            "simCode": ["", "String", "impactx"]
         },
         "bunchReport": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "x"],
@@ -250,26 +261,35 @@
                 "name"
             ]
         },
-        "bunchAnimation1": {
+
+        "bunchAnimation": {
             "title": "Phase Space",
             "advanced": [
+                "plotType",
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
                 "histogramBins",
+                "colorMap",
                 "notes"
             ]
+        },
+        "bunchAnimation1": {
+            "title": "Phase Space",
+            "advanced": []
         },
         "bunchAnimation2": {
             "title": "Phase Space",
-            "advanced": [
-                "histogramBins",
-                "notes"
-            ]
+            "advanced": []
         },
         "bunchAnimation3": {
             "title": "Phase Space",
-            "advanced": [
-                "histogramBins",
-                "notes"
-            ]
+            "advanced": []
         },
         "bunchReport": {
             "title": "Beam Phase Space",

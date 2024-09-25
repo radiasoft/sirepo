@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
     SIREPO.lattice = {
         canReverseBeamline: true,
         elementColor: {
@@ -111,4 +112,45 @@ SIREPO.app.controller('ComparisonController', function(frameCache, persistentSim
 
     self.simState = persistentSimulation.initSimulationState(self);
     self.simState.errorMessage = () => self.errorMessage;
+});
+
+SIREPO.app.directive('phaseSpacePlots', function() {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div class="col-sm-12">
+              <div data-simple-panel="bunchAnimation" data-is-report="1">
+                <div class="sr-screenshot" style="display: grid; grid-template-columns: 33% 33% 33%">
+                  <div data-ng-repeat="r in reports track by $index">
+                    <div data-ng-if="isHeatmap(r)" data-heatmap="" data-model-name="{{ r }}"></div>
+                    <div data-ng-if="! isHeatmap(r)" data-plot3d="" data-model-name="{{ r }}"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function(appState, $scope) {
+            $scope.reports = ['bunchAnimation1', 'bunchAnimation2', 'bunchAnimation3'];
+
+            $scope.isHeatmap = (report) => {
+                return appState.models[report].plotType == 'heatmap';
+            };
+
+            $scope.$on('bunchAnimation.changed', (e) => {
+                const b = appState.models.bunchAnimation;
+                const updated = {};
+                for (const r of $scope.reports) {
+                    const m = appState.models[r];
+                    for (const f of ['x', 'y', 'histogramBins', 'colorMap', 'plotType']) {
+                        if (b[f] !== m[f]) {
+                            m[f] = b[f];
+                            updated[r] = true;
+                        }
+                    }
+                }
+                appState.saveChanges(Object.keys(updated));
+            });
+        },
+    };
 });

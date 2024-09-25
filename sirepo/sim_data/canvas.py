@@ -17,6 +17,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(
             dm,
             [
+                "bunchAnimation",
                 "bunchAnimation1",
                 "bunchAnimation2",
                 "bunchAnimation3",

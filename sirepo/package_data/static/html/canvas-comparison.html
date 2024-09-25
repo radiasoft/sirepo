@@ -16,14 +16,7 @@
       <div data-report-panel="parameterWithLattice" data-model-name="twissAnimation"></div>
     </div>
     <div class="clearfix"></div>
-    <div class="col-md-4" data-ng-if="comparison.simState.hasFrames()">
-      <div data-report-panel="heatmap" data-model-name="bunchAnimation1"></div>
-    </div>
-    <div class="col-md-4" data-ng-if="comparison.simState.hasFrames()">
-      <div data-report-panel="heatmap" data-model-name="bunchAnimation2"></div>
-    </div>
-    <div class="col-md-4" data-ng-if="comparison.simState.hasFrames()">
-      <div data-report-panel="heatmap" data-model-name="bunchAnimation3"></div>
-    </div>
+
+    <div data-ng-if="comparison.simState.hasFrames()" data-phase-space-plots=""></div>
   </div>
 </div>

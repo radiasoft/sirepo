@@ -165,29 +165,73 @@ def save_sequential_report_data(run_dir, data):
     return sirepo.template.impactx.save_sequential_report_data(run_dir, data)
 
 
+# ["x", "x"],
+# ["px", "Px"],
+# ["y", "y"],
+# ["py", "Py"],
+# ["t", "t"],
+# ["pt", "Pt"]
+
+
 def sim_frame(frame_args):
-    # TODO(pjm): implement selecting columns from frame_args
     if frame_args.simCode == "elegant":
+        _ELEGANT_FIELD_MAP = PKDict(
+            px="xp",
+            py="yp",
+            # TODO(pjm): transform elegant p to pt
+            pt="p",
+        )
         x = sdds_util.extract_sdds_column(
             str(frame_args.run_dir.join("elegant/run_setup.output.sdds")),
-            "x",
+            _ELEGANT_FIELD_MAP.get(frame_args.x, frame_args.x),
             0,
         )["values"]
         y = sdds_util.extract_sdds_column(
             str(frame_args.run_dir.join("elegant/run_setup.output.sdds")),
-            "xp",
+            _ELEGANT_FIELD_MAP.get(frame_args.y, frame_args.y),
             0,
         )["values"]
+        # # TODO(pjm): improve this
+        # if frame_args.y == "pt":
+        #     from rsbeams.rsdata.SDDS import readSDDS
+
+        #     f = readSDDS("elegant/run_setup.output.sdds")
+        #     f.read()
+
+        #     ref = kinematic.Converter(
+        #         betagamma=f.parameters[0][0]["pCentral"],
+        #         mass=speciesMass_MeV * 1e6,
+        #     )()
+
+        #     pz = -(
+        #         (
+        #             kinematic.Converter(
+        #                 betagamma=elegant_distribution["p"],
+        #                 mass=speciesMass_MeV * 1e6,
+        #             )(silent=True)["gamma"]
+        #             - ref["gamma"]
+        #         )
+        #         / ref["betagamma"]
+        #     )
+
     elif frame_args.simCode == "madx":
         madx_particles = madx_parser.parse_tfs_file(
             "madx/ptc_track.file.tfs", want_page=1
         )
-        x = sirepo.template.madx.to_floats(madx_particles["x"])
-        y = sirepo.template.madx.to_floats(madx_particles["px"])
+        x = sirepo.template.madx.to_floats(madx_particles[frame_args.x])
+        y = sirepo.template.madx.to_floats(madx_particles[frame_args.y])
     elif frame_args.simCode == "impactx":
+        _IMPACTX_FIELD_MAP = PKDict(
+            x="position_x",
+            px="momentum_x",
+            y="position_y",
+            py="momentum_y",
+            t="position_t",
+            pt="momentum_t",
+        )
         impactx_particles = pandas.read_hdf("impactx/diags/final_distribution.h5")
-        x = list(impactx_particles["position_x"])
-        y = list(impactx_particles["momentum_x"])
+        x = list(impactx_particles[_IMPACTX_FIELD_MAP[frame_args.x]])
+        y = list(impactx_particles[_IMPACTX_FIELD_MAP[frame_args.y]])
     else:
         raise AssertionError(f"Unknown simCode: {frame_args.simCode}")
     return template_common.heatmap(
