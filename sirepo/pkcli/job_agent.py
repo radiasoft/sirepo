@@ -15,6 +15,7 @@ import datetime
 import os
 import re
 import signal
+import sirepo.const
 import sirepo.feature_config
 import sirepo.modules
 import sirepo.nersc
@@ -47,8 +48,13 @@ _PID_FILE = "job_agent.pid"
 
 _SBATCH_ID_FILE = "sirepo_sbatch_id"
 
+_SBATCH_STOPPED_FILE = "sbatch_status_stop"
+
 _cfg = None
 
+_DEV_PYTHON_PATH = ":".join(
+    str(sirepo.const.DEV_SRC_RADIASOFT_DIR.join(p)) for p in ("sirepo", "pykern")
+)
 
 def start():
     # TODO(robnagler) commands need their own init hook like the server has
@@ -57,11 +63,7 @@ def start():
     _cfg = pkconfig.init(
         agent_id=pkconfig.Required(str, "id of this agent"),
         # POSIT: same as job_driver.DriverBase._agent_env
-        dev_source_dirs=(
-            pkconfig.in_dev_mode(),
-            bool,
-            "add ~/src/radiasoft/{pykern,sirepo} to $PYTHONPATH",
-        ),
+        dev_source_dirs=(pkconfig.in_dev_mode(), bool, f"set PYTHONPATH={_DEV_PYTHON_PATH}"),
         fastcgi_sock_dir=(
             pkio.py_path("/tmp"),
             pkio.py_path,
@@ -628,8 +630,7 @@ class _SbatchCmd(_Cmd):
         # POSIT: sirepo.mpi cfg sentinel for running in slurm
         e = PKDict(SIREPO_MPI_IN_SLURM=1)
         if _cfg.dev_source_dirs:
-            h = pkio.py_path("~/src/radiasoft")
-            e.PYTHONPATH = "{}:{}".format(h.join("sirepo"), h.join("pykern"))
+            e.PYTHONPATH = _DEV_PYTHON_PATH
         return super().job_cmd_env(e)
 
 
@@ -671,7 +672,7 @@ class _SbatchRun(_SbatchCmd):
             _start_time=0,
             _status="PENDING",
             _status_cb=None,
-            _stopped_sentinel=self.run_dir.join("sbatch_status_stop"),
+            _stopped_sentinel=self.run_dir.join(_SBATCH_STOPPED_FILE),
         )
         self.msg.jobCmd = "sbatch_status"
         # pkdel so does not get removed twice (see destroy)

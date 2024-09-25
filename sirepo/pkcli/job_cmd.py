@@ -291,19 +291,16 @@ def _do_prepare_simulation(msg, template):
 def _do_sbatch_status(msg, template):
     s = pkio.py_path(msg.stopSentinel)
     status = None
-    while True:
-        if s.exists():
-            if job.COMPLETED not in s.read():
-                # told to stop for an error or otherwise
-                return None
-            status = _write_parallel_status(status, msg, template, False)
-            pkio.unchecked_remove(s)
-            return PKDict(state=job.COMPLETED)
+    while not s.exists():
         status = _write_parallel_status(status, msg, template, True)
         # Not asyncio.sleep: not in coroutine
         time.sleep(msg.nextRequestSeconds)
-    # DOES NOT RETURN
-
+    if job.COMPLETED not in s.read():
+        # told to stop for an error or otherwise
+        return None
+    status = _write_parallel_status(status, msg, template, False)
+    pkio.unchecked_remove(s)
+    return PKDict(state=job.COMPLETED)
 
 def _do_sequential_result(msg, template):
     r = template_common.read_sequential_result(msg.runDir)
