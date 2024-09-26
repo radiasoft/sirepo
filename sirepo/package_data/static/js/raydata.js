@@ -954,7 +954,7 @@ SIREPO.app.directive('logModal', function() {
                         },
                     }
                 );
-	    }
+	    };
 
             $scope.$watch('scanId', () => {
                 if ($scope.scanId) {
@@ -1068,7 +1068,7 @@ SIREPO.app.directive('analysisModal', function() {
                         },
                     }
                 );
-	    }
+	    };
 
             $scope.formatJsonFile = contents => {
                 return JSON.stringify(contents, undefined, 2);
