@@ -2475,7 +2475,7 @@ SIREPO.app.directive('scrollToBottom', function ($timeout) {
 	    scrollToBottom: "="
 	},
 	link: function (scope, element) {
-	    scope.$watchCollection('scrollToBottom', function (newValue, oldValue) {
+	    scope.$watch('scrollToBottom', function (newValue, oldValue) {
 		if (newValue !== oldValue) {
 		    // Wait for DOM to update
 		    $timeout(function () {
