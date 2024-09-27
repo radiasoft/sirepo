@@ -4,7 +4,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import code_variable
@@ -12,12 +11,17 @@ from sirepo.template import madx_parser
 from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.madx_converter import MadxConverter
+import impactx
 import math
 import pandas
+import pykern.pkio
+import pykern.pksubprocess
+import re
 import sirepo.sim_data
 import sirepo.template.impactx
 import sirepo.template.madx
 import sirepo.template.sdds_util
+import tempfile
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
@@ -264,6 +268,24 @@ def sim_frame_sigmaAnimation(frame_args):
     )
 
 
+def stateless_compute_code_versions(data, **kwargs):
+    def _run_code(name, regexp):
+        t = tempfile.NamedTemporaryFile()
+        pykern.pksubprocess.check_call_with_signals([name], output=t.name)
+        m = re.match(regexp, pykern.pkio.read_text(t.name), re.MULTILINE | re.DOTALL)
+        if not m:
+            raise AssertionError(f"Unable to parse version for code: {name}")
+        return m.group(1)
+
+    return PKDict(
+        elegant="elegant ("
+        + _run_code("elegant", r".*?This is elegant ([\d\.]{4,}),")
+        + ")",
+        madx="MAD-X (" + _run_code("madx", r".*?MAD-X\s([\d\.]{4,})\s") + ")",
+        impactx=f"ImpactX ({ impactx.__version__ })",
+    )
+
+
 def stateful_compute_import_file(data, **kwargs):
     res = CanvasMadxConverter().from_madx_text(data.args.file_as_str)
     res.models.simulation.name = data.args.purebasename
@@ -308,12 +330,8 @@ def sim_frame_twissAnimation(frame_args):
     )
     impactx = PKDict(
         s=list(impactx_sigma["s"].values),
-        bx=list(
-            impactx_sigma["sig_x"].values ** 2 / impactx_sigma["emittance_x"].values
-        ),
-        by=list(
-            impactx_sigma["sig_y"].values ** 2 / impactx_sigma["emittance_y"].values
-        ),
+        bx=list(impactx_sigma["beta_x"].values),
+        by=list(impactx_sigma["beta_y"].values),
     )
     madx_twiss = madx_parser.parse_tfs_file("madx/twiss.file.tfs")
     madx = PKDict(
@@ -377,7 +395,7 @@ def sim_frame_twissAnimation(frame_args):
 
 
 def write_parameters(data, run_dir, is_parallel):
-    pkio.write_text(
+    pykern.pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )

@@ -27,10 +27,38 @@ SIREPO.app.config(() => {
     };
 });
 
-SIREPO.app.factory('canvasService', function(appState) {
+SIREPO.app.factory('canvasService', function(appState, requestSender) {
     const self = {};
+    let codeLabels = null;
     appState.setAppService(self);
     self.computeModel = analysisModel => 'animation';
+
+    const updateCodeLabels = () => {
+        const m = SIREPO.APP_SCHEMA.model.simulationSettings;
+        for (const c of SIREPO.APP_SCHEMA.constants.codes) {
+            // update the schema simulationSettings labels
+            m[c][0] = codeLabels[c];
+        }
+    };
+
+    self.updateCodeVersions = (scope) => {
+        if (codeLabels) {
+            updateCodeLabels();
+            return;
+        }
+        requestSender.sendStatelessCompute(
+            appState,
+            function(data) {
+                if (data.elegant) {
+                    codeLabels = data;
+                    updateCodeLabels();
+                }
+            },
+            {
+                method: 'code_versions',
+            },
+        );
+    };
     return self;
 });
 
@@ -99,7 +127,7 @@ SIREPO.app.controller('SourceController', function(latticeService) {
     latticeService.initSourceController(self);
 });
 
-SIREPO.app.controller('ComparisonController', function(frameCache, persistentSimulation, $scope) {
+SIREPO.app.controller('ComparisonController', function(canvasService, frameCache, persistentSimulation, $scope) {
     var self = this;
     self.simScope = $scope;
     self.errorMessage = '';
@@ -111,4 +139,6 @@ SIREPO.app.controller('ComparisonController', function(frameCache, persistentSim
 
     self.simState = persistentSimulation.initSimulationState(self);
     self.simState.errorMessage = () => self.errorMessage;
+
+    canvasService.updateCodeVersions($scope);
 });
