@@ -330,12 +330,8 @@ def sim_frame_twissAnimation(frame_args):
     )
     impactx = PKDict(
         s=list(impactx_sigma["s"].values),
-        bx=list(
-            impactx_sigma["sig_x"].values ** 2 / impactx_sigma["emittance_x"].values
-        ),
-        by=list(
-            impactx_sigma["sig_y"].values ** 2 / impactx_sigma["emittance_y"].values
-        ),
+        bx=list(impactx_sigma["beta_x"].values),
+        by=list(impactx_sigma["beta_y"].values),
     )
     madx_twiss = madx_parser.parse_tfs_file("madx/twiss.file.tfs")
     madx = PKDict(
