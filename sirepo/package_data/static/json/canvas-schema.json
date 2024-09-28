@@ -5,6 +5,7 @@
         }
     },
     "constants": {
+        "codes": ["elegant", "madx", "impactx"],
         "particleMassAndCharge": {
             "positron": [0.510998950e-03, 1],
             "electron": [0.510998950e-03, -1],
@@ -164,9 +165,9 @@
             "notes": ["Notes", "Text", ""]
         },
         "simulationSettings": {
-            "useElegant": ["elegant", "Boolean", "1"],
-            "useMadx": ["MAD-X", "Boolean", "1"],
-            "useImpactX": ["ImpactX", "Boolean", "1"]
+            "elegant": ["elegant {{ elegantVersion }}", "Boolean", "1"],
+            "madx": ["MAD-X {{ madxVersion }}", "Boolean", "1"],
+            "impactx": ["ImpactX {{ impactxVersion }}", "Boolean", "1"]
         },
         "twissAnimation": {
             "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
@@ -334,9 +335,9 @@
             "basic": [
                 "simulation.visualizationBeamlineId",
                 "*Compare Codes",
-                "useElegant",
-                "useMadx",
-                "useImpactX"
+                "elegant",
+                "madx",
+                "impactx"
             ],
             "advanced": []
         },
