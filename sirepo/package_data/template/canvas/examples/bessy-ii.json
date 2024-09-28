@@ -114,7 +114,7 @@
         "commands": [],
         "distribution": {
             "charge": 1e-10,
-            "distributionFile": "bessy-ii-bunch.sdds",
+            "distributionFile": "",
             "distributionType": "Gaussian",
             "energy": 1.72,
             "halo": 0,

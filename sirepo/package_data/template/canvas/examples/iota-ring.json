@@ -2022,7 +2022,7 @@
         "commands": [],
         "distribution": {
             "charge": 1e-10,
-            "distributionFile": "chris-elegant-iota.sdds",
+            "distributionFile": "",
             "distributionType": "Triangle",
             "energy": 0.15,
             "halo": 0,
