@@ -2005,7 +2005,7 @@ SIREPO.app.directive('validatedString', function(panelState, validationService) 
     };
 });
 
-SIREPO.app.directive('viewLogIframe', function() {
+SIREPO.app.directive('viewLogModal', function() {
     return {
         restrict: 'A',
         scope: {
@@ -2030,12 +2030,11 @@ SIREPO.app.directive('viewLogIframe', function() {
                       </button>
                     </div>
                   </div>
-                  <div class="modal-body" style="padding: 0">
+                  <div class="modal-body" scroll-to-bottom="logHtml"  style="max-height: 80vh; overflow-y:auto;">
                     <div data-ng-if="logIsLoading">Loading...</div>
                     <div data-ng-if="! logIsLoading">
                         <div data-ng-if="logPath">{{ logPath }}</div>
-                        <iframe id="sr-text-iframe"
-                          style="border: 0; width: 100%; height: 80vh" src="" srcdoc="{{ logHtml }}"></iframe>
+                        <div ng-bind-html="logHtml"></div>
                     </div>
                   </div>
                 </div>
@@ -2469,6 +2468,25 @@ SIREPO.app.directive('reportPanel', function(appState, panelState, utilities) {
         },
     };
 });
+
+SIREPO.app.directive('scrollToBottom', function ($timeout) {
+    return {
+	scope: {
+	    scrollToBottom: "="
+	},
+	link: function (scope, element) {
+	    scope.$watch('scrollToBottom', function (newValue, oldValue) {
+		if (newValue !== oldValue) {
+		    // Wait for DOM to update
+		    $timeout(function () {
+			element[0].scrollTop = element[0].scrollHeight;
+		    }, 0);
+		}
+	    });
+	}
+    };
+});
+
 
 SIREPO.app.directive('appHeaderBrand', function() {
     var appInfo = SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_SCHEMA.simulationType];
