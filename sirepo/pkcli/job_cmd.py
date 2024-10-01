@@ -148,7 +148,7 @@ def _do_compute(msg, template):
             stderr=run_log,
         )
 
-    if pkconfig.in_dev_mode() and pkunit.is_test_run():
+    if _in_pkunit():
         sys.stderr.write(pkio.read_text(msg.runDir.join(template_common.RUN_LOG)))
     status = None
     while True:
@@ -350,6 +350,10 @@ def _file_reply(resp, msg):
     return job.ok_reply()
 
 
+def _in_pkunit():
+    return pkconfig.in_dev_mode() and pkunit.is_test_run()
+
+
 def _maybe_parse_user_alert(exception, error=None):
     e = error or str(exception)
     if isinstance(exception, sirepo.util.UserAlert):
@@ -392,6 +396,8 @@ def _on_do_compute_exit(
 
 
 def _parse_python_errors(text):
+    if _in_pkunit():
+        return text
     m = re.search(
         r"^Traceback .*?^\w*(?:Error|Exception):\s*(.*)",
         text,

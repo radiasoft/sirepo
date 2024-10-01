@@ -1,12 +1,16 @@
-# -*- coding: utf-8 -*-
 """Parsing of an error run.log
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-import pytest
+
 import os
+
+
+def setup_module(module):
+    os.environ.update(
+        PYKERN_PKCONFIG_DEV_MODE="0",
+    )
 
 
 def test_runError(fc):
@@ -50,7 +54,7 @@ or increase diagnostic interval.
 """
     pkeq(
         job_cmd._parse_python_errors(err),
-        "Estimated FAI output too large.\n"
-        "Reduce particle count or number of runs,\n"
-        "or increase diagnostic interval.",
+        """Estimated FAI output too large.
+Reduce particle count or number of runs,
+or increase diagnostic interval.""",
     )
