@@ -46,6 +46,7 @@ SIREPO.app.factory('raydataService', function(appState, $rootScope) {
     self.ANALYSIS_STATUS_COMPLETED = "completed";
     self.ANALYSIS_STATUS_NONE = "none";
     self.ANALYSIS_STATUS_PENDING = "pending";
+    self.UPDATE_DATA_PERIOD_MS = 5000;
 
     self.detailScan = null;
 
@@ -566,7 +567,7 @@ SIREPO.app.directive('scansTable', function() {
                 cancelRequestInterval();
                 // Send once and then will happen on $interval
                 doRequest();
-                scanRequestInterval = $interval(doRequest, 5000);
+                scanRequestInterval = $interval(doRequest, raydataService.UPDATE_DATA_PERIOD_MS);
             }
 
             function getAutomaticAnalysis() {
@@ -907,14 +908,13 @@ SIREPO.app.directive('logModal', function() {
             scanId: '=',
         },
         template: `
-            <div data-ng-if="showLogModal()"></div>
-            <div data-view-log-iframe data-log-path="logPath" data-log-html="log" data-log-is-loading="logIsLoading" data-modal-id="modalId"></div>
+            <div data-view-log-modal data-log-path="logPath" data-log-html="log" data-log-is-loading="logIsLoading" data-modal-id="modalId"></div>
         `,
-        controller: function(appState, errorService, requestSender, $scope) {
+        controller: function(appState, errorService, raydataService, requestSender, $scope, $timeout) {
             $scope.log = null;
             $scope.logIsLoading = false;
             $scope.logPath = null;
-            $scope.modalId = 'sr-view-log-iframe-' + $scope.analysisStatus;
+            $scope.modalId = 'sr-view-log-modal-' + $scope.analysisStatus;
 
             function showModal() {
                 const el = $('#' + $scope.modalId);
@@ -925,12 +925,20 @@ SIREPO.app.directive('logModal', function() {
                 });
                 $scope.logIsLoading = true;
                 el.modal('show');
+		updateModal();
+            }
+
+	    const updateModal = () => {
+		if (! $scope.scanId) {
+		    return;
+		}
                 requestSender.sendStatelessCompute(
                     appState,
                     json => {
                         $scope.logIsLoading = false;
                         $scope.log = json.run_log;
                         $scope.logPath = json.log_path;
+			$timeout(updateModal, raydataService.UPDATE_DATA_PERIOD_MS);
                     },
                     {
                         method: 'analysis_run_log',
@@ -946,7 +954,7 @@ SIREPO.app.directive('logModal', function() {
                         },
                     }
                 );
-            }
+	    };
 
             $scope.$watch('scanId', () => {
                 if ($scope.scanId) {
@@ -972,14 +980,16 @@ SIREPO.app.directive('analysisModal', function() {
                     <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                     <span class="lead modal-title text-info">Output for scan {{ scanId }}</span>
                   </div>
-                  <div class="modal-body">
+                  <div class="modal-body" scroll-to-bottom="modalContentFilenames" style="max-height: 80vh; overflow-y:auto;">
                     <span data-loading-spinner data-sentinel="images">
-                    <div class="container-fluid">
-                      <div class="row">
-                        <div class="col-sm-12">
+                      <div class="container-fluid">
+                        <div class="row">
+                          <div class="col-sm-12">
                             <div data-ng-repeat="i in images">
                               <div class="panel panel-info">
-                                <div class="panel-heading"><span class="sr-panel-heading">{{ i.filename }}</span></div>
+                                <div class="panel-heading">
+                                  <span class="sr-panel-heading">{{ i.filename }}</span>
+                                </div>
                                 <div class="panel-body">
                                   <div data-png-image="" data-image="{{ i.data }}"></div>
                                 </div>
@@ -987,7 +997,9 @@ SIREPO.app.directive('analysisModal', function() {
                             </div>
                             <div data-ng-repeat="j in jsonFiles">
                               <div class="panel panel-info">
-                                <div class="panel-heading"><span class="sr-panel-heading">{{ j.filename }}</span></div>
+                                <div class="panel-heading">
+                                  <span class="sr-panel-heading">{{ j.filename }}</span>
+                                </div>
                                 <div class="panel-body">
                                   <pre style="overflow: scroll; height: 150px">{{ formatJsonFile(j.data) }}</pre>
                                 </div>
@@ -995,11 +1007,11 @@ SIREPO.app.directive('analysisModal', function() {
                             </div>
                           </div>
                         </div>
-                      </div>
-                      <br/>
-                      <div class="row">
-                        <div class="col-sm-offset-4 col-sm-4">
-                        <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+                        <br/>
+                        <div class="row">
+                          <div class="col-sm-offset-4 col-sm-4">
+                            <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+                          </div>
                         </div>
                       </div>
                     </span>
@@ -1007,11 +1019,13 @@ SIREPO.app.directive('analysisModal', function() {
                 </div>
               </div>
             </div>
-        `,
-        controller: function(appState, errorService, requestSender, $scope) {
+
+`,
+        controller: function(appState, errorService, raydataService, requestSender, $scope, $timeout) {
             $scope.analysisModalId = 'sr-analysis-output-' + $scope.analysisStatus;
             $scope.images = null;
             $scope.jsonFiles = null;
+	    $scope.modalContentFilenames = null;
 
             function showModal() {
                 $scope.images = null;
@@ -1023,11 +1037,23 @@ SIREPO.app.directive('analysisModal', function() {
                     el.off();
                     $scope.$apply();
                 });
+		updateModal();
+            }
+
+	    const updateModal = () => {
+		if (! $scope.scanId) {
+		    return;
+		}
                 requestSender.sendStatelessCompute(
                     appState,
                     json => {
                         $scope.images = json.images;
                         $scope.jsonFiles = json.jsonFiles;
+			// Easier to compare filenames (string) to determine if content has changed
+			$scope.modalContentFilenames = $scope.images.concat($scope.jsonFiles).map(
+			    obj => obj.filename
+			).join('');
+			$timeout(updateModal, raydataService.UPDATE_DATA_PERIOD_MS);
                     },
                     {
                         method: 'analysis_output',
@@ -1042,14 +1068,14 @@ SIREPO.app.directive('analysisModal', function() {
                         },
                     }
                 );
-            }
+	    };
 
             $scope.formatJsonFile = contents => {
                 return JSON.stringify(contents, undefined, 2);
             };
 
             $scope.$watch('scanId', () => {
-                if ($scope.scanId !== null) {
+                if ($scope.scanId) {
                     showModal();
                 }
             });
