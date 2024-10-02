@@ -142,6 +142,7 @@ SIREPO.app.controller('ComparisonController', function(canvasService, frameCache
     self.simState.errorMessage = () => self.errorMessage;
 
     canvasService.updateCodeVersions($scope);
+
 });
 
 SIREPO.app.directive('phaseSpacePlots', function() {
