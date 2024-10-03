@@ -130,13 +130,31 @@
             "notes": ["Notes", "Text", ""]
         },
         "bunchAnimation1": {
-            "simCode": ["", "String", "elegant"]
+            "simCode": ["", "String", "elegant"],
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
         },
         "bunchAnimation2": {
-            "simCode": ["", "String", "madx"]
+            "simCode": ["", "String", "madx"],
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
         },
         "bunchAnimation3": {
-            "simCode": ["", "String", "impactx"]
+            "simCode": ["", "String", "impactx"],
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
         },
         "bunchReport": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "x"],
@@ -264,6 +282,7 @@
         },
 
         "bunchAnimation": {
+            "hasDataFile": false,
             "title": "Phase Space",
             "advanced": [
                 "plotType",
@@ -344,6 +363,7 @@
             "advanced": []
         },
         "sigmaAnimation": {
+            "hasDataFile": false,
             "title": "Sigma",
             "advanced": [
                 "includeLattice",
@@ -362,6 +382,7 @@
             "advanced": []
         },
         "twissAnimation": {
+            "hasDataFile": false,
             "title": "Twiss",
             "advanced": [
                 "includeLattice",
