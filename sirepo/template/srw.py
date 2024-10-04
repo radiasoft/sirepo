@@ -2505,6 +2505,8 @@ def _update_model_fields(models):
     is_ideal_undulator = _SIM_DATA.srw_is_idealized_undulator(st, ut)
     if is_ideal_undulator:
         models.fluxAnimation.magneticField = 1
+    elif st == "a":
+        models.fluxAnimation.magneticField = 2
     if _SIM_DATA.srw_is_tabulated_undulator_source(models.simulation):
         if is_ideal_undulator:
             models.tabulatedUndulator.gap = 0.0
@@ -2524,6 +2526,7 @@ def _update_models_for_report(report, models):
         # render the watchpoint report settings in the initialIntensityReport template slot
         models.initialIntensityReport = models[report].copy()
     if report == "sourceIntensityReport":
+        models.sourceIntensityReport.magneticField = models.simulation.magneticField
         models.simulation.update(models.sourceIntensityReport)
     elif report == "coherentModesAnimation":
         models.simulation.update(models.coherentModesAnimation)

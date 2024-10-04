@@ -1331,12 +1331,19 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
 
 SIREPO.viewLogic('fluxAnimationView', function(appState, panelState, srwService, $scope) {
 
+    // fluxAnimation.method "Flux Computation Method" 1: auto-undulator 2: auto-wiggler -1: use approximate
+    // fluxAnimation.magneticField "Magnetic Field Treatment" 1: approximate 2: accurate (tabulated)
+
     function updateFluxAnimation() {
-        // ["-1", "Use Approximate Method"]
         var approxMethodKey = '-1';
         var isApproximateMethod = appState.models.fluxAnimation.method == approxMethodKey;
-        panelState.enableField('fluxAnimation', 'magneticField', srwService.isTabulatedUndulatorWithMagenticFile());
-        if (srwService.isTabulatedUndulatorWithMagenticFile()) {
+        if (srwService.isArbitraryMagField()) {
+            appState.models.fluxAnimation.magneticField = '2';
+        }
+        panelState.enableField(
+            'fluxAnimation', 'magneticField',
+            srwService.isTabulatedUndulatorWithMagenticFile());
+        if (srwService.isTabulatedUndulatorWithMagenticFile() || srwService.isArbitraryMagField()) {
             if (appState.models.fluxAnimation.magneticField == '2' && isApproximateMethod) {
                 appState.models.fluxAnimation.method = '1';
             }
@@ -1357,6 +1364,9 @@ SIREPO.viewLogic('fluxAnimationView', function(appState, panelState, srwService,
     }
 
     $scope.whenSelected = updateFluxAnimation;
+    $scope.watchFields = [
+        ['fluxAnimation.magneticField'], updateFluxAnimation,
+    ];
 });
 
 SIREPO.viewLogic('gaussianBeamView', function(appState, panelState, srwService, $scope) {
@@ -2135,6 +2145,9 @@ SIREPO.app.directive('modelSelectionList', function(appState, srwService) {
             }
 
             function updateListFromModel(model) {
+                if (! $scope.userModelList) {
+                    return;
+                }
                 $scope.userModelList.some(function(m) {
                     if (m.id == model.id) {
                         $.extend(m, appState.clone(model));
