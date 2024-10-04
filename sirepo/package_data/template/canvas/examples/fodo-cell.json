@@ -52,14 +52,14 @@
             "histogramBins": 80,
             "notes": "",
             "x": "x",
-            "y": "px"
+            "y": "y"
         },
         "bunchReport4": {
             "colorMap": "viridis",
             "histogramBins": 80,
             "notes": "",
-            "x": "x",
-            "y": "px"
+            "x": "t",
+            "y": "pt"
         },
         "commands": [],
         "distribution": {

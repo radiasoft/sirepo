@@ -256,22 +256,20 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _bunch_plot(run_dir, model):
     _M = PKDict(
-        x=["position/x", "m"],
-        px=["momentum/x", ""],
-        y=["position/y", "m"],
-        py=["momentum/y", ""],
-        t=["position/t", "m"],
-        pt=["momentum/t", ""],
-        qm=["qm", ""],
+        x=["position/x", "x [m]"],
+        px=["momentum/x", "Px [rad]"],
+        y=["position/y", "y [m]"],
+        py=["momentum/y", "Py [rad]"],
+        t=["position/t", "t [m]"],
+        pt=["momentum/t", "Pt (%)"],
+        qm=["qm", "qm"],
     )
 
     def _points(file, frame_index, name):
         return numpy.array(file[f"data/2/particles/beam/{_M[name][0]}"])
 
     def _format_plot(h5file, field):
-        u = _M[field.label][1]
-        if u:
-            field.label = f"{field.label} [{u}]"
+        field.label = _M[field.label][1]
 
     def _title(file, frame_index):
         return ""

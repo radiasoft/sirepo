@@ -101,7 +101,7 @@
             ["py", "Py"],
             ["t", "t"],
             ["pt", "Pt"],
-            ["qm", "q"]
+            ["qm", "qm"]
         ],
         "SoftSolenoidUnits": [
             ["0", "1/m"],

@@ -1857,7 +1857,11 @@ SIREPO.app.service('layoutService', function(mathRendering, panelState, plotting
         }
 
         function maxDomainWidth(formatInfo) {
-            const d = self.scale.domain();
+            //const d = self.scale.domain();
+            const d = [
+                formatInfo.tickValues[0],
+                formatInfo.tickValues[formatInfo.tickCount - 1],
+            ];
             return Math.max(
                 formatInfo.format(applyUnit(d[0], formatInfo.base, formatInfo.unit)).length,
                 formatInfo.format(applyUnit(d[1], formatInfo.base, formatInfo.unit)).length,
@@ -3041,6 +3045,9 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 if (select().empty()) {
                     return;
                 }
+                //TODO(pjm): double refresh required to get correct axis in some cases
+                // see https://github.com/radiasoft/sirepo/issues/7297
+                refresh();
                 refresh();
             };
 
@@ -3491,6 +3498,9 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 if (select().empty()) {
                     return;
                 }
+                //TODO(pjm): double refresh required to get correct axis in some cases
+                // see https://github.com/radiasoft/sirepo/issues/7297
+                refresh();
                 refresh();
             };
 
@@ -3519,7 +3529,7 @@ SIREPO.app.directive('colorCircle', function() {
         },
         template: `
               <svg width="30" height="10">
-                <line x1="0" y1="4" x2="30" y2="4"
+                <line x1="0" y1="5" x2="30" y2="5"
                   data-ng-attr-stroke-width="{{ plot.strokeWidth }}"
                   data-ng-attr-opacity="{{ plot.opacity || 1.0 }}"
                   data-ng-attr-stroke="{{ plot.color }}"

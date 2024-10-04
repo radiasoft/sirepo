@@ -1292,7 +1292,7 @@ SIREPO.app.directive('parameterWithLattice', function(appState) {
                     if (! isNestedSVG) {
                         // nest the SVG so the "download as png" gets both images
                         isNestedSVG = true;
-                        var svgs = $($element).find('svg');
+                        var svgs = $($element).find('svg.sr-plot');
                         $(svgs[1]).prepend(svgs[0]);
                     }
                     latticeScope.updateFixedAxis(plotScope.getXAxis(), plotScope.margin.left);
