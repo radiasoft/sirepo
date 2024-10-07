@@ -41,7 +41,7 @@
     <div data-ng-if="source.srwService.isGaussianBeam() || source.srwService.isElectronBeam()" class="sr-panel-item">
       <div data-report-panel="3d" data-request-priority="5" data-model-name="sourceIntensityReport" data-panel-title="{{ source.srwService.getReportTitle('sourceIntensityReport') }}"></div>
     </div>
-    <div data-ng-if="! source.srwService.isGaussianBeam()" class="sr-panel-item">
+    <div data-ng-if="! source.srwService.isGaussianBeam() && ! source.srwService.isArbitraryMagField()" class="sr-panel-item">
       <div data-report-panel="3d" data-request-priority="5" data-model-name="coherentModesAnimation" data-panel-title="{{ source.srwService.getReportTitle('coherentModesAnimation') }}"><div data-simulation-status-panel="coherentModesAnimation"></div></div>
     </div>
     <div data-ng-if="source.srwService.isIdealizedUndulator()" class="sr-panel-item">
