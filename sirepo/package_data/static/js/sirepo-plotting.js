@@ -2626,7 +2626,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             $scope.subTitleCenter = 0;
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 55;
             $scope.dataCleared = true;
-            $scope.focusTextCloseSpace = 18;
             $scope.focusPoints = [];
 
             var canvas, ctx, fullDomain, heatmap, lineOuts, prevDomain, scaleFunction, xyZoom;
@@ -2792,6 +2791,12 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 return pixels < MIN_PIXEL_RESOLUTION;
             }
 
+            function layoutFocusPointText() {
+                select('.focus-text-close').node().setAttribute(
+                    'x', select('.focus-text').node().getComputedTextLength() + 16,
+                );
+            }
+
             function refresh() {
                 if (! fullDomain) {
                     return;
@@ -2877,24 +2882,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 xyZoom = axes.x.createZoom($scope).y(axes.y.scale);
                 axes.x.zoom = axes.x.createZoom($scope);
                 axes.y.zoom = axes.y.createZoom($scope);
-            }
-
-            function resizefocusPointText() {
-                var maxSize = 14;
-                var minSize = 9;
-                var focusText = select('.focus-text');
-                var fs = focusText.style('font-size');
-
-                var currentFontSize = utilities.fontSizeFromString(fs);
-                var newFontSize = currentFontSize;
-
-                var textWidth = focusText.node().getComputedTextLength();
-                var pct = ($scope.canvasSize.width - $scope.focusTextCloseSpace) / textWidth;
-
-                newFontSize *= pct;
-                newFontSize = Math.max(minSize, newFontSize);
-                newFontSize = Math.min(maxSize, newFontSize);
-                focusText.style('font-size', newFontSize + 'px');
             }
 
             function restoreDomain(scale, oldValue) {
@@ -3073,7 +3060,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 }
                 select('.sub-title').style('display', 'none');
                 focusText.text(xyfText);
-                resizefocusPointText();
+                layoutFocusPointText();
             };
 
             $scope.showPlotSize = () => {
