@@ -1331,8 +1331,8 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
 
 SIREPO.viewLogic('fluxAnimationView', function(appState, panelState, srwService, $scope) {
 
-    // fluxAnimation.method "Flux Computation Method" 1: auto-undulator 2: auto-wiggler -1: use approximate
-    // fluxAnimation.magneticField "Magnetic Field Treatment" 1: approximate 2: accurate (tabulated)
+    // sm_meth fluxAnimation.method "Flux Computation Method" 1: auto-undulator 2: auto-wiggler -1: use approximate
+    // sm_mag fluxAnimation.magneticField "Magnetic Field Treatment" 1: approximate 2: accurate (tabulated)
 
     function updateFluxAnimation() {
         var approxMethodKey = '-1';
