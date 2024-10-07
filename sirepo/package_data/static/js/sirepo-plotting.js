@@ -3988,6 +3988,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         const limit = appState.applicationState()[$scope.modelName][`${v}Limit`];
                         if (limit && ydom[i][1] > limit) {
                             ydom[i][1] = limit;
+                            if (ydom[i][0] > ydom[i][1]) {
+                                ydom[i][0] = ydom[i][1];
+                            }
                         }
                     }
                 });
