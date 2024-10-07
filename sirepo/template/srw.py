@@ -28,6 +28,7 @@ import srwpy.srwl_bl
 import srwpy.srwlib
 import srwpy.srwlpy
 import srwpy.uti_io
+import srwpy.uti_math
 import srwpy.uti_plot_com
 import time
 import traceback
@@ -444,6 +445,20 @@ def extract_report_data(sim_in):
     if out.dimensions == 3:
         res.report = r
         res = _remap_3d(res, allrange, out, dm[r])
+        if res.z_label:
+            m = re.match(r"^(.*?)(\[.*)$", res.z_label)
+            if m:
+                res.z_footer1 = "Total " + m.group(1)
+                res.z_footer2 = m.group(2)
+                res.z_footer3 = "{:.4e}".format(
+                    srwpy.uti_math.integ_ar_2d(
+                        data,
+                        1,
+                        allrange[3:6],
+                        allrange[6:9],
+                    )
+                    * 1.0e6
+                )
     return res
 
 
