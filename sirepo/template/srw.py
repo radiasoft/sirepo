@@ -1985,12 +1985,6 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     content = [
         f"v = srwpy.srwl_bl.srwl_uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options({vp_var}), use_sys_argv={plot_reports})",
     ]
-    if (plot_reports or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
-        content.append(
-            'setup_magnetic_measurement_files(v.fdir + "{}", v)'.format(
-                data.models.tabulatedUndulator.magneticFile
-            )
-        )
     if report == "beamlineAnimation":
         content.append("v.si_fn = ''")
         content.append("v.ws_fni = ''")
@@ -2384,27 +2378,6 @@ def _save_user_model_list(model_name, beam_list, qcall=None):
     return beam_list
 
 
-def _set_magnetic_measurement_parameters(run_dir, v, qcall=None):
-    src_zip = (
-        str(run_dir.join(v.tabulatedUndulator_magneticFile))
-        if run_dir
-        else str(
-            _SIM_DATA.lib_file_abspath(v.tabulatedUndulator_magneticFile, qcall=qcall)
-        )
-    )
-    target_dir = str(run_dir.join(_TABULATED_UNDULATOR_DATA_DIR))
-    # The MagnMeasZip class defined above has convenient properties we can use here
-    mmz = MagnMeasZip(src_zip)
-    zindex = _zip_path_for_file(mmz.z, mmz.index_file)
-    zdata = map(lambda fn: _zip_path_for_file(mmz.z, fn), mmz.dat_files)
-    # extract only the index file and the data files it lists
-    mmz.z.extract(zindex, target_dir)
-    for df in zdata:
-        mmz.z.extract(df, target_dir)
-    v.magneticMeasurementsDir = _TABULATED_UNDULATOR_DATA_DIR + "/" + mmz.index_dir
-    v.magneticMeasurementsIndexFile = mmz.index_file
-
-
 def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
     report = data.report
     is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
@@ -2418,12 +2391,7 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
     v[report] = 1
     for k in _OUTPUT_FOR_MODEL:
         v["{}Filename".format(k)] = _OUTPUT_FOR_MODEL[k].filename
-    v.setupMagneticMeasurementFiles = (
-        plot_reports or is_for_rsopt
-    ) and _SIM_DATA.srw_uses_tabulated_zipfile(data)
     v.srwMain = _generate_srw_main(data, plot_reports, beamline_info)
-    if (run_dir or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
-        _set_magnetic_measurement_parameters(run_dir or "", v, qcall=qcall)
     if _SIM_DATA.srw_is_background_report(report) and "beamlineAnimation" not in report:
         if sirepo.mpi.cfg().in_slurm:
             v.sbatchBackup = "1"
@@ -2738,27 +2706,3 @@ def _write_rsopt_zip(data, ctx):
         content_type="application/zip",
         filename=filename,
     )
-
-
-def _zip_path_for_file(zf, file_to_find):
-    """Find the full path of the specified file within the zip.
-
-    For a zip zf containing:
-        foo1
-        foo2
-        bar/
-        bar/foo3
-
-    _zip_path_for_file(zf, 'foo3') will return 'bar/foo3'
-
-    Args:
-        zf(zipfile.ZipFile): the zip file to examine
-        file_to_find (str): name of the file to find
-
-    Returns:
-        The first path in the zip that matches the file name, or None if no match is found
-    """
-
-    # Get the base file names from the zip (directories have a basename of '')
-    file_names_in_zip = [os.path.basename(x) for x in zf.namelist()]
-    return zf.namelist()[file_names_in_zip.index(file_to_find)]
