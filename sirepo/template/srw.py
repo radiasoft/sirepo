@@ -417,10 +417,10 @@ def extract_report_data(sim_in):
         res.report = r
         res = _remap_3d(res, allrange, out, dm[r])
         if res.z_label:
-            m = re.match(r"^(.*?)(\[.*)$", res.z_label)
+            m = re.match(r"^(.*?)(\[.*?)/mm.*$", res.z_label)
             if m:
                 res.z_footer1 = "Total " + m.group(1)
-                res.z_footer2 = m.group(2)
+                res.z_footer2 = m.group(2) + "]"
                 res.z_footer3 = "{:.4e}".format(
                     srwpy.uti_math.integ_ar_2d(
                         data,
