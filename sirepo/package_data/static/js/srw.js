@@ -716,7 +716,7 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
             var d = parseFloat(beamline[i + 1].position) - parseFloat(beamline[i].position);
             if (d > 0) {
                 self.propagations.push({
-                    title: 'Drift ' + srwService.formatFloat4(d) + 'm',
+                    title: 'Drift ' + srwService.formatFloat4(d) + ' m',
                     params: p[1],
                     defaultparams: [p[1][12], p[1][13], p[1][14], p[1][15], p[1][16] ],
                 });
@@ -3050,7 +3050,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, plotToPNG, srwSe
                 if (item.name) {
                     var res = item.name;
                     if (options().showPosition == '1' && item.position) {
-                        res += ', ' + srwService.formatFloat(item.position, 1) + 'm';
+                        res += ', ' + srwService.formatFloat(item.position, 1) + ' m';
                     }
                     return res;
                 }

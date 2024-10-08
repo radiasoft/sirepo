@@ -5,8 +5,8 @@
           <text class="focus-hint" text-anchor="start" x="0" y="-10" dy=".35em"></text>
           <text class="focus-text" text-anchor="start" ng-attr-x="0" y="-10" dy=".35em"></text>
           <text class="focus-text-close close" text-anchor="end" ng-attr-x="{{ canvasSize.width }}" y="-10" dy=".35em">&times;</text>
-          <text class="main-title" ng-attr-x="{{ titleCenter }}" ng-attr-y="{{ -margin.top / 2 }}"></text>
-          <text class="sub-title" ng-attr-x="{{ subTitleCenter }}" y="0" dy="-.5em"></text>
+          <text class="main-title" ng-attr-x="{{ (canvasSize.width + rightPanelWidth - margin.right) / 2 }}" ng-attr-y="{{ -margin.top / 2 }}"></text>
+          <text class="sub-title" ng-attr-x="{{ (canvasSize.width + rightPanelWidth - margin.right) / 2 }}" y="0" dy="-.5em"></text>
           <g class="y axis grid"></g>
           <defs>
             <clippath id="{{ modelName }}-bottomclip">

@@ -2622,8 +2622,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 width: 0,
                 height: 0,
             };
-            $scope.titleCenter = 0;
-            $scope.subTitleCenter = 0;
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 55;
             $scope.dataCleared = true;
             $scope.focusPoints = [];
@@ -2666,30 +2664,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                     }
                     scale.domain(domain);
                 }
-            }
-
-            function centerNode(node, defaultCtr) {
-                // center the node over the image; if node is too large, center it over whole plot
-                if (node && ! (node.style && node.style.display == 'none')) {
-                    var width = node.getBBox().width;
-                    var ctr = $scope.canvasSize.width / 2;
-                    if (width > $scope.canvasSize.width) {
-                        ctr += $scope.rightPanelWidth / 2;
-                    }
-                    return ctr;
-                }
-                if (defaultCtr) {
-                    return defaultCtr;
-                }
-                return 0;
-            }
-
-            function centerSubTitle() {
-                $scope.subTitleCenter = centerNode(select('text.sub-title').node(), $scope.subTitleCenter);
-            }
-
-            function centerTitle() {
-                $scope.titleCenter = centerNode(select('text.main-title').node(), $scope.titleCenter);
             }
 
             function clipDomain(scale, axisName) {
@@ -2870,8 +2844,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                     axes.x.scale.domain(),
                     axes.y.scale.domain(),
                 ];
-                centerTitle();
-                centerSubTitle();
                 if (appState.deepEquals(fullDomain, prevDomain)) {
                     adjustZoomToCenter(axes.x.scale);
                     adjustZoomToCenter(axes.y.scale);
