@@ -315,6 +315,7 @@
         "horizontalPosition": 0,
         "initialEnergy": 10000,
         "initialHarmonic": 1,
+        "jobRunMode": "parallel",
         "longitudinalPrecision": 1,
         "magneticField": 2,
         "method": 1,
@@ -326,6 +327,10 @@
         "polarization": 6,
         "precision": 0.01,
         "savingPeriodicity": 5,
+        "sbatchCores": 128,
+        "sbatchHours": 0.4,
+        "sbatchProject": "",
+        "sbatchQueue": "debug",
         "verticalApertureSize": "1",
         "verticalPosition": 0
     },
