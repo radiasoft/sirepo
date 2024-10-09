@@ -1860,8 +1860,10 @@ SIREPO.app.directive('geometry3d', function(appState, openmcService, plotting, p
             }
             else {
                 $scope.$on('sr-volume-property.changed', (event, volId, prop, val) => {
-                    bundleByVolume[volId].setActorProperty(prop, val);
-                    vtkScene.render();
+                    if (bundleByVolume[volId]) {
+                        bundleByVolume[volId].setActorProperty(prop, val);
+                        vtkScene.render();
+                    }
                 });
             }
         },

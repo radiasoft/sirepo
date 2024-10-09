@@ -25,6 +25,7 @@ _OUTLINES_FILE = "outlines.json"
 _PREP_SBATCH_PREFIX = "prep-sbatch"
 _VOLUME_INFO_FILE = "volumes.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+_WEIGHT_WINDOWS_FILE = "weight_windows.h5"
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -620,6 +621,11 @@ def _generate_parameters_file(data, run_dir=None):
         v.isSBATCH = _is_sbatch_run_mode(data)
     v.batchSequence = _batch_sequence(data.models.settings)
     v.weightWindowsMesh = _generate_mesh(data.models.weightWindowsMesh)
+    v.weightWindowsFile = _SIM_DATA.lib_file_name_with_model_field(
+        "settings",
+        "weightWindowsFile",
+        data.models.settings.weightWindowsFile,
+    )
     v.runCommand = _generate_run_mode(data, v)
     v.incomplete_data_msg = ""
     v.materials = _generate_materials(data, v)
@@ -1015,6 +1021,8 @@ with openmc.lib.run_in_memory():
     for i in range({ww.iterations}):
         openmc.lib.reset()
         openmc.lib.run()
+        if i == {ww.iterations - 1}:
+            openmc.lib.export_weight_windows(filename="{_WEIGHT_WINDOWS_FILE}")
         wws.update_magic(tally)
         openmc.lib.settings.weight_windows_on = True
 """
