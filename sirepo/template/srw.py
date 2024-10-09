@@ -372,7 +372,13 @@ def extract_report_data(sim_in):
             plotModesEnd=dm[r].get("plotModesEnd", ""),
         ),
     )
-    data, _, allrange, labels, units = srwpy.uti_plot_com.file_load(out.filename)
+    points, _, allrange, labels, units = srwpy.uti_plot_com.file_load(out.filename)
+    if (
+        r == "multiElectronAnimation"
+        and dm.multiElectronAnimation.photonEnergyBandWidth > 0
+    ):
+        # SRW sometimes reports this units wrong in this case
+        units[3] = "ph/s/mm^2"
 
     if "labels" not in out:
         if out.dimensions == 3:
@@ -400,8 +406,8 @@ def extract_report_data(sim_in):
         x_label=out.labels[0] + " [" + out.units[0] + "]",
         x_units=out.units[0],
         y_units=out.units[1],
-        points=data,
-        z_range=[np.min(data), np.max(data)],
+        points=points,
+        z_range=[np.min(points), np.max(points)],
         # send the full plot ranges as summaryData
         summaryData=PKDict(
             fieldRange=allrange,
@@ -409,27 +415,14 @@ def extract_report_data(sim_in):
             .get("summaryData", {})
             .get(
                 "fieldIntensityRange",
-                [np.min(data), np.max(data)],
+                [np.min(points), np.max(points)],
             ),
         ),
     )
     if out.dimensions == 3:
         res.report = r
         res = _remap_3d(res, allrange, out, dm[r])
-        if res.z_label:
-            m = re.match(r"^(.*?)(\[.*?)/mm.*$", res.z_label)
-            if m:
-                res.z_footer1 = "Total " + m.group(1)
-                res.z_footer2 = m.group(2) + "]"
-                res.z_footer3 = "{:.4e}".format(
-                    srwpy.uti_math.integ_ar_2d(
-                        data,
-                        1,
-                        allrange[3:6],
-                        allrange[6:9],
-                    )
-                    * 1.0e6
-                )
+        res.z_footer = _plot_z_footer(res.z_label, allrange, points)
     return res
 
 
@@ -2232,6 +2225,28 @@ def _machine_learning_percent_complete(run_dir, res):
     res.frameCount = count
     res.percentComplete = 100 * count / dm.exportRsOpt.totalSamples
     return res
+
+
+def _plot_z_footer(z_label, allrange, points):
+    m = re.match(r"^(.*?)\[(.*?)/mm.*$", z_label)
+    if m:
+        l, u = m.group(1), m.group(2)
+        if u == "W":
+            l = "Total Power"
+        elif u == "ph/s":
+            l = "Flux"
+        else:
+            l = "Spectral Flux"
+        v = "{:.3e}".format(
+            srwpy.uti_math.integ_ar_2d(
+                points,
+                1,
+                allrange[3:6],
+                allrange[6:9],
+            )
+            * 1.0e6
+        )
+        return f"{l}: {v} {u}"
 
 
 def _process_rsopt_elements(els):

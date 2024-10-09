@@ -2981,10 +2981,8 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 axes.x.updateLabel(json.x_label, select);
                 axes.y.updateLabel(json.y_label, select);
                 select('.z-axis-label').text(json.z_label);
-                if (json.z_footer1) {
-                    for (const f of [1, 2, 3]) {
-                        select(`.z-axis-footer${f}`).text(json[`z_footer${f}`]);
-                    }
+                if (json.z_footer) {
+                    select('.z-axis-footer').text(json.z_footer);
                 }
                 var zmin = plotting.min2d(heatmap);
                 var zmax = plotting.max2d(heatmap);

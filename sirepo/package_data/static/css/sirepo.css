@@ -420,13 +420,14 @@
     .sr-plot text.y-axis-label,
     .sr-plot text.x-axis-label,
     .sr-plot text.frequency-label,
-    .sr-plot text.z-axis-footer1,
-    .sr-plot text.z-axis-footer2,
-    .sr-plot text.z-axis-footer3,
     .y-axis-label
     {
       font-size: 14px;
       text-anchor: middle;
+    }
+    .sr-plot text.z-axis-footer {
+      font-size: 14px;
+      text-anchor: end;
     }
     .sr-plot .katex {
       font-size: 18px;
@@ -599,13 +600,10 @@
       div.sr-plot .z-axis-label,
       div.sr-plot .y-axis-label,
       div.sr-plot .x-axis-label,
-      div.sr-plot .z-axis-footer1,
-      div.sr-plot .z-axis-footer2,
-      div.sr-plot .z-axis-footer3,
+      div.sr-plot .z-axis-footer,
       .y-axis-label
       {
         font-size: 12px;
-        text-anchor: middle;
       }
       div.sr-plot .main-title {
         font-size: 12px;

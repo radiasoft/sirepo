@@ -60,9 +60,7 @@
             <text class="y-base" text-anchor="end" ng-attr-x="{{ rightPanelWidth - 2 * pad }}" ng-attr-y="-14"></text>
           </g>
           <text class="z-axis-label" ng-attr-x="{{ canvasSize.width + rightPanelWidth / 2 }}" ng-attr-y="{{ canvasSize.height + 48 }}"></text>
-          <text class="z-axis-footer1" ng-attr-x="{{ canvasSize.width + rightPanelWidth / 2 }}" ng-attr-y="{{ canvasSize.height + pad + bottomPanelHeight - 36 }}"></text>
-          <text class="z-axis-footer2" ng-attr-x="{{ canvasSize.width + rightPanelWidth / 2 }}" ng-attr-y="{{ canvasSize.height + pad + bottomPanelHeight - 18 }}"></text>
-          <text class="z-axis-footer3" ng-attr-x="{{ canvasSize.width + rightPanelWidth / 2 }}" ng-attr-y="{{ canvasSize.height + pad + bottomPanelHeight }}"></text>
+          <text class="z-axis-footer" ng-attr-x="{{ canvasSize.width + rightPanelWidth }}" ng-attr-y="{{ canvasSize.height + pad + bottomPanelHeight + 18 }}"></text>
           <rect class="mouse-rect-xy mouse-zoom" ng-attr-width="{{ canvasSize.width }}" ng-attr-height="{{ canvasSize.height }}" style="pointer-events: all; fill: none;"></rect>
           <rect class="mouse-rect-y mouse-zoom" data-interactive-overlay="" data-report-id="reportId" data-focus-points="[focusPointY]" ng-attr-x="{{ canvasSize.width }}" ng-attr-width="{{ rightPanelWidth }}" ng-attr-height="{{ canvasSize.height }}" style="pointer-events: all; fill: none;"></rect>
           <rect class="mouse-rect-x mouse-zoom" data-interactive-overlay="" data-report-id="reportId" data-focus-points="[focusPointX]" ng-attr-y="{{ canvasSize.height }}" ng-attr-width="{{ canvasSize.width }}" ng-attr-height="{{ bottomPanelHeight }}" style="pointer-events: all; fill: none;"></rect>
