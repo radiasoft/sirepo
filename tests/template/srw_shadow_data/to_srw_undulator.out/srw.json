@@ -331,6 +331,7 @@
         "sbatchHours": 0.4,
         "sbatchProject": "",
         "sbatchQueue": "debug",
+        "tasksPerNode": 128,
         "verticalApertureSize": "1",
         "verticalPosition": 0
     },

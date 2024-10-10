@@ -718,6 +718,7 @@
             "notes": ["Notes", "Text", ""],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
             "sbatchCores": ["Cores", "Integer", 128],
+            "tasksPerNode": ["Processes per node", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchProject": ["Project", "OptionalString", ""]
