@@ -970,7 +970,8 @@
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchCores": ["CPUs per task", "Integer", 16, "", 1],
             "sbatchProject": ["Project", "OptionalString", ""],
-            "ompThreads": ["OMP threads", "Integer", 16, "", 1]
+            "ompThreads": ["OMP threads", "Integer", 16, "", 1],
+            "selectedVolumes": ["", "SelectedTallyVolumes", ""]
         },
         "particle": {
             "value": ["Particle", "FilterParticle"]
@@ -1274,6 +1275,9 @@
                     "opacity",
                     "tallyReport.axis",
                     "tallyReport.planePos"
+                ]],
+                ["Volumes", [
+                    "selectedVolumes"
                 ]],
                 ["Source", [
                     "showSources",

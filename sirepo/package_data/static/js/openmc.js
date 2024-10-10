@@ -108,6 +108,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="PlanesList">
           <div data-plane-list="" data-model="model" data-field="field" data-sub-model-name="plane"></div>
         </div>
+        <div data-ng-switch-when="SelectedTallyVolumes">
+          <div data-tally-volume-picker=""></div>
+        </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
         'geometryInput-dagmcFile': '.h5m,.stp',
@@ -127,7 +130,7 @@ SIREPO.app.factory('openmcService', function(appState, panelState, $rootScope) {
     }
 
     function findScore(tallies, tally, score) {
-        return findTally(tallies, tally).scores.filter(v => v.score == score).length
+        return findTally(tallies, tally).scores.filter(v => v.score === score).length
             ? score
             : null;
     }
@@ -159,7 +162,7 @@ SIREPO.app.factory('openmcService', function(appState, panelState, $rootScope) {
     self.canNormalizeScore = score => ! SIREPO.APP_SCHEMA.constants.unnormalizableScores.includes(score);
 
     self.computeModel = (modelKey) => {
-        if (modelKey == "energyAnimation") {
+        if (modelKey === "energyAnimation") {
             return "openmcAnimation";
         }
         return modelKey;
@@ -396,6 +399,7 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
         if (data.tallies) {
             validateSelectedTally(data.tallies);
         }
+        self.hasWeightWindowsFile = data.hasWeightWindowsFile;
     };
     self.simState = persistentSimulation.initSimulationState(self);
     self.simState.errorMessage = () => errorMessage;
@@ -429,6 +433,16 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
     self.tallyTitle = () => {
         const a = appState.models.openmcAnimation;
         return `Tally Results - ${a.tally} - ${a.score} - ${a.aspect}`;
+    };
+
+    self.weightWindowsFileURL = () => {
+        return requestSender.formatUrl('downloadDataFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<model>': self.simComputeModel,
+            '<frame>': SIREPO.nonDataFileFrame,
+            '<suffix>': 'h5',
+        });
     };
 
     const sortTallies = () => {
@@ -817,75 +831,45 @@ SIREPO.app.directive('tallyVolumePicker', function(openmcService, volumeLoadingS
         restrict: 'A',
         scope: {},
         template: `
-            <div data-ng-if="volumeList" style="padding-top: 8px; padding-bottom: 8px;"><div data-ng-click="toggleVolumeList()" title="{{ isVolumeListExpanded ? 'hide' : 'show' }}" style="cursor: pointer; display: inline-block">Select Volumes <span class="glyphicon" data-ng-class="isVolumeListExpanded ? 'glyphicon-chevron-up' : 'glyphicon-chevron-down'"></span></div></div>
-            <div data-ng-if="! buildVolumeList()" style="padding-top: 8px; padding-bottom: 8px;">Loading Volumes<span data-header-tooltip="'loading'"></span></div>
-            <table data-ng-show="isVolumeListExpanded" class="table-condensed">
+            <div class="col-sm-12" style="margin-top: -34px">
+              <table class="table-condensed">
                 <thead>
-                <th style="border-bottom: solid lightgray;" colspan="{{ numVolumeCols }}">
-                    <div
-                        title="{{ allVolumesVisible ? 'Deselect' : 'Select' }} all volumes"
-                        style="display: inline-block; cursor: pointer; white-space: nowrap; min-height: 25px;"
-                        data-ng-click="toggleAllVolumes(v)">
-                            <span class="glyphicon"
-                                data-ng-class="allVolumesVisible ? 'glyphicon-check' : 'glyphicon-unchecked'">
-                            </span>
-                    </div>
-                </th>
+                  <th data-ng-attr-colspan="{{ numVolumeCols }}">
+                    <div data-select-all-checkbox="" data-field="isVisibleWithTallies"
+                      data-all-visible="allVisible"></div>
+                  </th>
                 </thead>
                 <tbody>
-                    <tr data-ng-repeat="r in volumeList track by $index">
-                        <td data-ng-repeat="v in r track by v.volId">
-                            <div
-                                title="{{ v.isVisibleWithTallies ? 'Deselect' : 'Select' }} volume"
-                                style="display: inline-block; cursor: pointer; white-space: nowrap; min-height: 25px;"
-                                data-ng-click="toggleVolume(v)">
-                                    <span class="glyphicon"
-                                        data-ng-class="v.isVisibleWithTallies ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
-                                <span style="font-weight: 500;">{{ v.name }}</span>
-                            </div>
-                        </td>
-                    </tr>
+                  <tr data-ng-repeat="r in volumeList track by $index">
+                    <td data-ng-repeat="v in r track by v.volId">
+                      <div data-volume-checkbox="" data-field="isVisibleWithTallies" data-volume="v"></div>
+                    </td>
+                  </tr>
                 </tbody>
-            </table>
+              </table>
+            </div>
         `,
         controller: function($scope) {
-            $scope.allVolumesVisible = false;
             $scope.numVolumeCols = 2;
-            $scope.isVolumeListExpanded = false;
-            $scope.volumeList = null;
-            const volumeIds = openmcService.getNonGraveyardVolumes();
+            $scope.allVisible = true;
 
-            function getVolumes() {
-                return volumeIds.map(x => openmcService.getVolumeById(x));
-            }
-
-            $scope.buildVolumeList = () => {
-                if (! $scope.volumeList) {
-                    const vols = getVolumes();
-                    if (! $scope.numVolumeCols) {
-                        return vols;
+            const buildVolumeList = () => {
+                const vols = openmcService.getNonGraveyardVolumes().map(x => openmcService.getVolumeById(x));
+                $scope.volumeList = [];
+                for (let i = 0; i < vols.length; i += $scope.numVolumeCols) {
+                    const r = vols.slice(i, i + $scope.numVolumeCols);
+                    $scope.volumeList.push(r);
+                    if ($scope.allVisible) {
+                        for (const v of r) {
+                            if (! v.isVisibleWithTallies) {
+                                $scope.allVisible = false;
+                            }
+                        }
                     }
-                    const v = [];
-                    for (let i = 0; i < vols.length; i += $scope.numVolumeCols) {
-                        v.push(vols.slice(i, i + $scope.numVolumeCols));
-                    }
-                    $scope.volumeList = v;
                 }
-                return true;
             };
 
-            $scope.toggleAllVolumes = () => {
-                $scope.allVolumesVisible = ! $scope.allVolumesVisible;
-                openmcService.toggleAllVolumes($scope.allVolumesVisible, 'isVisibleWithTallies');
-            };
-
-            $scope.toggleVolume = volume => {
-                openmcService.toggleVolume(volume, 'isVisibleWithTallies', true);
-            };
-
-            $scope.toggleVolumeList = () => {
-                $scope.isVolumeListExpanded = ! $scope.isVolumeListExpanded;
-            };
+            buildVolumeList();
         },
     };
 });
@@ -1833,7 +1817,7 @@ SIREPO.app.directive('geometry3d', function(appState, openmcService, plotting, p
 
             $scope.$on('sr-volume-visibility-toggle', (event, volume, isVisible, doUpdate) => {
                 setVolumeVisible(volume.volId, isVisible);
-                if (doUpdate) {
+                if (doUpdate && $scope.axisCfg) {
                     renderAxes();
                 }
             });
@@ -1901,30 +1885,67 @@ SIREPO.app.directive('compoundField', function() {
     };
 });
 
-SIREPO.app.directive('volumeSelector', function(appState, openmcService, panelState, utilities, $rootScope) {
+SIREPO.app.directive('volumeCheckbox', function() {
     return {
         restrict: 'A',
-        scope: {},
+        scope: {
+            field: '@',
+            volume: '=',
+        },
         template: `
-            <div style="padding: 0.5ex 1ex; border-bottom: 1px solid #ddd;">
+            <div
+              style="display: inline-block; cursor: pointer; white-space: nowrap; min-height: 25px;"
+              data-ng-click="openmcService.toggleVolume(volume, field, true)">
+              <span class="glyphicon"
+                data-ng-class="volume[field] ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
+              <span style="font-weight: 500">{{ volume.name }}</span>
+            </div>
+        `,
+        controller: function(openmcService, $scope) {
+            $scope.openmcService = openmcService;
+        },
+    };
+});
+
+SIREPO.app.directive('selectAllCheckbox', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '@',
+            allVisible: '=',
+        },
+        template: `
+            <div style="padding: 0.5ex 1ex 0.5ex 0; border-bottom: 1px solid #ddd;"
+              title="{{ allVisible ? 'Deselect' : 'Select' }} all volumes">
               <div style="display: inline-block; cursor: pointer"
                 data-ng-click="toggleAllVolumes()">
                 <span class="glyphicon"
                   data-ng-class="allVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
               </div>
             </div>
+        `,
+        controller: function(openmcService, $scope) {
+            $scope.toggleAllVolumes = () => {
+                $scope.allVisible = ! $scope.allVisible;
+                openmcService.toggleAllVolumes($scope.allVisible, $scope.field);
+            };
+        },
+    };
+});
+
+
+SIREPO.app.directive('volumeSelector', function(appState, openmcService, panelState, utilities, $rootScope) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div data-select-all-checkbox="" data-field="isVisible" data-all-visible="allVisible"></div>
             <div id="sr-volume-list" data-ng-style="heightStyle()">
               <div class="sr-hover-row" data-ng-repeat="row in rows track by $index"
-                style="padding: 0.5ex 0 0.5ex 1ex; white-space: nowrap; overflow: hidden"
+                style="padding: 0.5ex 0 0.5ex 0; white-space: nowrap; overflow: hidden"
                 data-ng-class="{'bg-warning': ! row.material.density}">
                 <div style="position: relative">
-                  <div
-                    style="display: inline-block; cursor: pointer; white-space: nowrap; min-height: 25px;"
-                    data-ng-click="toggleVolume(row)">
-                    <span class="glyphicon"
-                      data-ng-class="row.isVisible ? 'glyphicon-check' : 'glyphicon-unchecked'"></span>
-                    <b>{{ row.name }}</b>
-                  </div>
+                  <div data-volume-checkbox="" data-field="isVisible" data-volume="row"></div>
                   <div style="position: absolute; top: 0px; right: 5px">
                     <button type="button" data-ng-click="editMaterial(row)"
                       class="btn btn-info btn-xs sr-hover-button">Edit</button>
@@ -1980,6 +2001,9 @@ SIREPO.app.directive('volumeSelector', function(appState, openmcService, panelSt
                         continue;
                     }
                     $scope.rows.push(row);
+                    if ($scope.allVisible && ! row.isVisible) {
+                        $scope.allVisible = false;
+                    }
                 }
                 $scope.rows.sort((a, b) => a.name.localeCompare(b.name));
             }
@@ -2019,15 +2043,6 @@ SIREPO.app.directive('volumeSelector', function(appState, openmcService, panelSt
                     height: `calc(100vh - ${Math.ceil(offset) + 35}px)`,
                     overflow: 'auto',
                 };
-            };
-
-            $scope.toggleAllVolumes = () => {
-                $scope.allVisible = ! $scope.allVisible;
-                openmcService.toggleAllVolumes($scope.allVisible, 'isVisible');
-            };
-
-            $scope.toggleVolume = (row) => {
-                openmcService.toggleVolume(row, 'isVisible', true);
             };
 
             $scope.$on('material.changed', () => {
@@ -2663,7 +2678,7 @@ SIREPO.viewLogic('energyAnimationView', function(appState, panelState, tallyServ
             panelState.showField(
                 $scope.modelName,
                 dim,
-                appState.models.tallyReport.selectedGeometry == '3D'
+                appState.models.tallyReport.selectedGeometry === '3D'
                     || (
                         appState.models.tallyReport.axis != dim
                             && tallyService.tallyRange(dim, true).steps > 1
@@ -2722,17 +2737,18 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
             ],
         );
         panelState.showFields('survivalBiasing', [
-            ['weight', 'weight_avg'], m.varianceReduction == 'survival_biasing',
+            ['weight', 'weight_avg'], m.varianceReduction === 'survival_biasing',
         ]);
         panelState.showFields('weightWindows', [
-            ['tally', 'iterations', 'particles'], m.varianceReduction == 'weight_windows_tally',
+            ['tally', 'iterations', 'particles'], m.varianceReduction === 'weight_windows_tally',
             ['particle'], ['weight_windows_tally', 'weight_windows_mesh'].includes(m.varianceReduction),
         ]);
         panelState.showFields('weightWindowsMesh', [
-            ['dimension', 'lower_left', 'upper_right'], m.varianceReduction == 'weight_windows_mesh',
+            ['dimension', 'lower_left', 'upper_right'], m.varianceReduction === 'weight_windows_mesh',
         ]);
         panelState.showFields('settings', [
             ['max_splits'], ['weight_windows_tally', 'weight_windows_mesh'].includes(m.varianceReduction),
+            ['weightWindowsFile'], m.varianceReduction === 'weight_windows_file',
         ]);
         validationService.validateField(
             $scope.modelName,
@@ -3075,22 +3091,6 @@ SIREPO.app.directive('slider', function(appState, panelState) {
                     slider = null;
                 }
             });
-        },
-    };
-});
-
-SIREPO.app.directive('tallySettings', function(appState, openmcService) {
-    return {
-        restrict: 'A',
-        scope: {},
-        template: `
-            <div data-tally-volume-picker=""></div>
-            <div data-advanced-editor-pane="" data-view-name="'tallySettings'" data-want-buttons="" data-field-def="basic"></div>
-        `,
-        controller: function($scope) {
-            $scope.is2D = () => {
-                return appState.models.tallyReport.selectedGeometry === '2D';
-            };
         },
     };
 });

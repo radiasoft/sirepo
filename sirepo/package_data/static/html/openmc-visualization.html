@@ -7,6 +7,9 @@
       <div data-simple-panel="simulationStatus">
         <div data-sim-status-panel="visualization.simState" data-start-function="visualization.startSimulation()"></div>
         <div class="row">
+          <div class="col-sm-12">
+            <div class="col-sm-12" data-ng-if="visualization.hasWeightWindowsFile"><a data-ng-attr-href="{{ visualization.weightWindowsFileURL() }}"><span class="glyphicon glyphicon-cloud-download"></span> Computed Weight Windows</div></a>
+          </div>
           <div class="col-md-offset-2 col-md-8" data-ng-show="visualization.eigenvalue.length">
           <table class="table">
             <caption style="text-align: center; font-weight: bold;">Eigenvalues</caption>
@@ -54,7 +57,8 @@
     </div>
     <div class="col-sm-4">
       <div data-simple-panel="tallySettings">
-          <div data-tally-settings=""></div>
+          <div data-advanced-editor-pane="" data-view-name="'tallySettings'" data-want-buttons=""
+            data-field-def="basic"></div>
       </div>
       <div data-ng-if="showEnergyPlot()">
         <div data-report-panel="parameter" data-model-name="energyAnimation" data-panel-title="Energy Spectrum">

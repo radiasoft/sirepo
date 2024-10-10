@@ -55,6 +55,11 @@ def get_data_file(run_dir, model, frame, options):
     if model == "openmcAnimation":
         if options.suffix == "log":
             return template_common.text_data_file(template_common.RUN_LOG, run_dir)
+        if options.suffix == "h5":
+            return template_common.JobCmdFile(
+                reply_uri=sim_in.models.simulation.name.replace(" ", "-") + ".h5",
+                reply_path=run_dir.join(_WEIGHT_WINDOWS_FILE),
+            )
         return _statepoint_filename(
             simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         )
@@ -968,6 +973,8 @@ def _percent_complete(run_dir, is_running):
     if res.frameCount:
         _cleanup_statepoint_files(run_dir, data, res.frameCount, is_running)
         res.tallies = data.models.settings.tallies
+        if not is_running and run_dir.join(_WEIGHT_WINDOWS_FILE).exists():
+            res.hasWeightWindowsFile = True
     return res
 
 
