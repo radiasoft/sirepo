@@ -3374,14 +3374,14 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
                 onwheel: utilities.debounce(refresh, 100),
             };
 
+            function asyncRefresh() {
+                $scope.$applyAsync(refresh);
+            }
+
             function ondblclick() {
                 $scope.vtkScene.resetView();
                 refresh();
                 $scope.$apply();
-            }
-
-            function resize() {
-                refresh();
             }
 
             $scope.init = function() {
@@ -3437,7 +3437,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
                     );
                 }
                 $scope.$emit('vtk-init', $scope.vtkScene);
-                resize();
+                refresh();
             };
 
             $scope.canvasGeometry = function() {
@@ -3469,7 +3469,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
 
             $scope.$on('$destroy', function() {
                 $element.off();
-                $($window).off('resize', resize);
+                $($window).off('resize', asyncRefresh);
                 $scope.vtkScene.teardown();
             });
 
@@ -3494,8 +3494,14 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
             });
             $scope.init();
 
+            // ensure the axes update on each resize event
+            $($window).resize(asyncRefresh);
 
-            $($window).resize(resize);
+            $scope.$on('sr-window-resize', () => {
+                // ensure full-screen and exit full-screen resize the renderer
+                $scope.vtkScene.fsRenderer.resize();
+                refresh();
+            });
         },
     };
 });
