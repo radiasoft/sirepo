@@ -153,7 +153,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             r.append(s or d)
             if data.models.geometryInput.materialsFile:
                 r.append(cls.materials_filename(data))
-        elif data.get("report") == "openmcAnimation":
+        else:
+            # openmcAnimation or zip export
             if data.models.settings.varianceReduction == "weight_windows_file":
                 r.append(
                     cls.lib_file_name_with_model_field(

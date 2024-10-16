@@ -512,7 +512,7 @@ SIREPO.app.directive('beamlineIcon', function() {
     };
 });
 
-SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
+SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout, $rootScope) {
     return {
         scope: {
             item: '=',
@@ -566,8 +566,7 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout) {
             }).on('show.bs.popover', function() {
                 $('.srw-beamline-element-label').not(el).popover('hide');
                 beamlineService.setActiveItem(scope.item);
-                var editor = el.data('bs.popover').getContent();
-                editor.trigger('sr.resetActivePage');
+                $rootScope.$broadcast('sr.setActivePage', scope.item.type, 0);
             }).on('shown.bs.popover', function() {
                 $('.popover-content .form-control').first().select();
             }).on('hide.bs.popover', function() {

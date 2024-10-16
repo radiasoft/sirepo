@@ -57,7 +57,9 @@ def get_data_file(run_dir, model, frame, options):
             return template_common.text_data_file(template_common.RUN_LOG, run_dir)
         if options.suffix == "h5":
             return template_common.JobCmdFile(
-                reply_uri=sim_in.models.simulation.name.replace(" ", "-") + ".h5",
+                reply_uri=_format_weight_windows_file_name(
+                    sim_in.models.simulation.name
+                ),
                 reply_path=run_dir.join(_WEIGHT_WINDOWS_FILE),
             )
         return _statepoint_filename(
@@ -218,6 +220,21 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
     return PKDict()
 
 
+def stateless_compute_save_weight_windows_file_to_lib(data, **kwargs):
+    n = _format_weight_windows_file_name(data.args.name)
+    _SIM_DATA.lib_file_write(
+        _SIM_DATA.lib_file_name_with_model_field(
+            "settings",
+            "weightWindowsFile",
+            n,
+        ),
+        simulation_db.simulation_dir(SIM_TYPE, data.simulationId).join(
+            _WEIGHT_WINDOWS_FILE
+        ),
+    )
+    return PKDict(filename=n)
+
+
 def stateless_compute_validate_material_name(data, **kwargs):
     import openmc
 
@@ -286,6 +303,7 @@ def write_parameters(data, run_dir, is_parallel):
                 PKDict(
                     cacheDir=sirepo.sim_run.cache_dir(_CACHE_DIR),
                     numThreads=data.models.openmcAnimation.ompThreads,
+                    saveWeightWindowsFile=_generate_save_weight_windows(data),
                 ),
                 "openmc-sbatch.py",
             ),
@@ -647,6 +665,8 @@ def _generate_parameters_file(data, run_dir=None):
         return (
             f'raise AssertionError("Unable to generate sim: {v.incomplete_data_msg}")'
         )
+    if not v.isSBATCH and not v.isPythonSource:
+        v.saveWeightWindowsFile = _generate_save_weight_windows(data)
     return template_common.render_jinja(
         SIM_TYPE,
         v,
@@ -682,6 +702,22 @@ def _generate_run_mode(data, v):
     if v.isPythonSource:
         return "openmc.run()"
     return f"openmc.run(threads={cores})"
+
+
+def _generate_save_weight_windows(data):
+    if data.models.settings.varianceReduction in (
+        "weight_windows_mesh",
+        "weight_windows_tally",
+    ):
+        return f"""
+import sirepo.sim_data
+sirepo.sim_data.get_class("{ SIM_TYPE }").put_sim_file(
+    "{ data.models.simulation.simulationId }",
+    "{ _WEIGHT_WINDOWS_FILE }",
+    "{ _WEIGHT_WINDOWS_FILE }",
+)
+"""
+    return ""
 
 
 def _generate_source(source):
@@ -917,6 +953,10 @@ def _parse_run_stats(run_dir, out):
                 m = re.match(rf"^\s+(.+)\s=\s({RE_F})\s+\+/-\s+({RE_F})", line)
                 if m:
                     out.results.append(_get_groups(m, 1, 2, 3))
+
+
+def _format_weight_windows_file_name(name):
+    return name.strip().replace(" ", "-") + ".h5"
 
 
 def _frame_count_for_batch(batch, data):

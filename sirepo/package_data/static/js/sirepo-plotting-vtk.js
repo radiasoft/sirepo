@@ -3266,6 +3266,12 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
 
             $scope.$on('axes.refresh', refresh);
 
+            $scope.$watch('width', () => {
+                if ($scope.boundObj) {
+                    refresh();
+                }
+            });
+
             // may not need this refresh?
             $scope.$watch('boundObj', function (d) {
                 if (d) {

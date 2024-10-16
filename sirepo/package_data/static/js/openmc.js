@@ -118,7 +118,7 @@ SIREPO.app.config(() => {
     };
 });
 
-SIREPO.app.factory('openmcService', function(appState, panelState, $rootScope) {
+SIREPO.app.factory('openmcService', function(appState, panelState, requestSender, $rootScope) {
     const self = {};
     appState.setAppService(self);
 
@@ -230,6 +230,10 @@ SIREPO.app.factory('openmcService', function(appState, panelState, $rootScope) {
         return m[field] && (m[field][0] || m[field][1]);
     };
 
+    self.selectVarianceReductionTab = () => {
+        $rootScope.$broadcast('sr.setActivePage', 'settings', 4);
+    };
+
     self.toggleAllVolumes = (isVisible, visibleKey) => {
         for (const vId of self.getNonGraveyardVolumes()) {
             const v = self.getVolumeById(vId);
@@ -259,6 +263,17 @@ SIREPO.app.factory('openmcService', function(appState, panelState, $rootScope) {
         }
         appState.saveQuietly('openmcAnimation');
     };
+
+    self.weightWindowsFileURL = () => {
+        return requestSender.formatUrl('downloadDataFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<model>': 'openmcAnimation',
+            '<frame>': SIREPO.nonDataFileFrame,
+            '<suffix>': 'h5',
+        });
+    };
+
     return self;
 });
 
@@ -356,7 +371,7 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
     verifyGeometry();
 });
 
-SIREPO.app.controller('VisualizationController', function(appState, openmcService, frameCache, panelState, persistentSimulation, requestSender, tallyService, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, errorService, openmcService, frameCache, panelState, persistentSimulation, requestSender, tallyService, $scope) {
     const self = this;
     self.eigenvalue = null;
     self.results = null;
@@ -370,9 +385,13 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
         openmcService.validateSelectedTally();
     }
 
+    self.applyWeightWindows = () => {
+        $('#sr-apply-weight-windows-confirmation').modal('show');
+    };
+
     self.eigenvalueHistory = () => appState.models.settings.eigenvalueHistory;
 
-    $scope.showEnergyPlot = () => {
+    self.showEnergyPlot = () => {
         return openmcService.findFilter('energyFilter')
             && appState.applicationState().openmcAnimation.isEnergySelected === "1";
     };
@@ -410,8 +429,16 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
         return 'Completed' + statusMessage;
     };
     self.startSimulation = function() {
-        tallyService.clearMesh();
         const r = appState.models.openmcAnimation;
+        if (r.jobRunMode === 'sbatch' && appState.models.settings.varianceReduction === 'weight_windows_tally') {
+            errorService.alertText(`
+                MAGIC Method for Tally is not available with sbatch. Use the MAGIC Method
+                technique and define a static mesh instead.
+            `);
+            openmcService.selectVarianceReductionTab();
+            return;
+        }
+        tallyService.clearMesh();
         delete r.tallies;
         delete r.tally;
         openmcService.invalidateRange('energyRangeSum');
@@ -435,15 +462,7 @@ SIREPO.app.controller('VisualizationController', function(appState, openmcServic
         return `Tally Results - ${a.tally} - ${a.score} - ${a.aspect}`;
     };
 
-    self.weightWindowsFileURL = () => {
-        return requestSender.formatUrl('downloadDataFile', {
-            '<simulation_id>': appState.models.simulation.simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<model>': self.simComputeModel,
-            '<frame>': SIREPO.nonDataFileFrame,
-            '<suffix>': 'h5',
-        });
-    };
+    self.weightWindowsFileURL = openmcService.weightWindowsFileURL;
 
     const sortTallies = () => {
         for (const t of appState.models.settings.tallies) {
@@ -3292,6 +3311,56 @@ SIREPO.app.directive('planePositionSlider', function(appState, panelState, tally
             }
             updateRange();
             $scope.$watch('tallyService.fieldData', updateRange);
+        },
+    };
+});
+
+SIREPO.app.directive('applyWeightWindowConfirmation', function(appState, openmcService, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div data-confirmation-modal="" data-id="sr-apply-weight-windows-confirmation" data-title="Apply the computed weight windows to this simulation?" data-ok-text="Apply" data-ok-clicked="applyWeightWindows()">
+            </div>
+        `,
+        controller: function($scope) {
+            const addFileToLib = (callback) => {
+                requestSender.sendStatelessCompute(
+                    appState,
+                    (data) => {
+                        callback(data.filename);
+                    },
+                    {
+                        method: 'save_weight_windows_file_to_lib',
+                        args: {
+                            name: appState.models.simulation.name,
+                        },
+                    }
+                );
+            };
+
+            $scope.applyWeightWindows = () => {
+                addFileToLib((filename) => {
+                    const t = 'settings-weightWindowsFile';
+                    requestSender.loadListFiles(t, {
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
+                        fileType: t,
+                    },
+                    () => {
+                        const list = requestSender.getListFilesData(t);
+                        if (list.indexOf(filename) < 0) {
+                            list.push(filename);
+                        }
+                        openmcService.selectVarianceReductionTab();
+                        const s = appState.models.settings;
+                        s.weightWindowsFile = filename;
+                        s.varianceReduction = "weight_windows_file";
+                        appState.saveChanges('settings');
+                        $('#sr-apply-weight-windows-confirmation').modal('hide');
+                    });
+                });
+                return false;
+            };
         },
     };
 });
