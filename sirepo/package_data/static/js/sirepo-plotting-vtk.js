@@ -2988,35 +2988,34 @@ SIREPO.app.directive('vtkAxes', function(geometry, layoutService, plotting) {
         template: `
             <svg class="sr-vtk-axes" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}">
             <g class="vtk-axes">
-                <g data-ng-repeat="dim in geometry.basis">
+                <g data-ng-repeat="dim in dimensions">
                     <g class="{{ dim }} axis"></g>
                     <text class="{{ dim }}-axis-label"></text>
                 </g>
-                <g data-ng-repeat="dim in geometry.basis">
+                <g data-ng-repeat="dim in dimensions">
                     <g class="{{ dim }}-axis-central" data-ng-if="axisCfg[dim].showCentral">
-                        <line style="stroke: gray;" stroke-dasharray="5,5" data-ng-attr-x1="{{ centralAxes[dim].x[0] }}" data-ng-attr-y1="{{ centralAxes[dim].y[0] }}" data-ng-attr-x2="{{ centralAxes[dim].x[1] }}" data-ng-attr-y2="{{ centralAxes[dim].y[1] }}" />
+                        <line style="stroke: gray;" stroke-dasharray="5,5"
+                          data-ng-attr-x1="{{ centralAxes[dim].x[0] }}"
+                          data-ng-attr-y1="{{ centralAxes[dim].y[0] }}"
+                          data-ng-attr-x2="{{ centralAxes[dim].x[1] }}"
+                          data-ng-attr-y2="{{ centralAxes[dim].y[1] }}" />
                     </g>
                 </g>
             </g>
             </svg>
         `,
         controller: function($scope, $element) {
-            $scope.centralAxes = {
-                x: { x: [-0.5, 0.5], y: [-0.5, 0.5] },
-                y: { x: [-0.5, 0.5], y: [-0.5, 0.5] },
-                z: { x: [-0.5, 0.5], y: [-0.5, 0.5] },
-            };
-            $scope.geometry = geometry;
-            $scope.margin = {top: 50, right: 23, bottom: 50, left: 75};
-            const axes = {
-                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
-                y: layoutService.plotAxis($scope.margin, 'y', 'bottom', refresh),
-                z: layoutService.plotAxis($scope.margin, 'z', 'left', refresh)
-            };
+            $scope.dimensions = geometry.basis;
+            $scope.centralAxes = Object.fromEntries(
+                $scope.dimensions.map(d => [d, { x: [-0.5, 0.5], y: [-0.5, 0.5] }]),
+            );
+            const axes = Object.fromEntries(
+                $scope.dimensions.map(d => [d, layoutService.plotAxis({}, d, 'bottom', refresh)]),
+            )
             let axisCfg, d3self;
 
-            function axisSelector(dim) {
-                return `.${dim}.axis`;
+            function axisSelector(dim, suffix) {
+                return `.${dim}.axis${suffix || ''}`;
             }
 
             function computeEdgeStats(edge) {
@@ -3046,7 +3045,7 @@ SIREPO.app.directive('vtkAxes', function(geometry, layoutService, plotting) {
                         bottom: sortedPts[1].y,
                     },
                     radAngle: radAngle,
-                    angle: 180 * radAngle / Math.PI,
+                    angle: SIREPO.GEOMETRY.GeometryUtils.toDegrees(radAngle),
                 };
             }
 
@@ -3083,7 +3082,7 @@ SIREPO.app.directive('vtkAxes', function(geometry, layoutService, plotting) {
                     new SIREPO.GEOMETRY.Point($scope.width, $scope.height),
                 );
 
-                for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
+                for (const dim in axes) {
                     updateCentralAxis(screenRect, dim);
                     const edge = geometry.bestEdgeInBounds(
                         $scope.boundObj.externalViewportEdgesForDimension(dim),
@@ -3120,7 +3119,7 @@ SIREPO.app.directive('vtkAxes', function(geometry, layoutService, plotting) {
 
                 d3self.select(axisSelector(dim)).attr(
                     'transform',
-                    'translate(' + e.axis.left + ',' + e.axis.top + ') ' + 'rotate(' + e.angle + ')',
+                    `translate(${e.axis.left}, ${e.axis.top}) rotate(${e.angle})`,
                 );
             }
 
@@ -3130,11 +3129,11 @@ SIREPO.app.directive('vtkAxes', function(geometry, layoutService, plotting) {
                 const minAxisDisplayLen = 75;
 
                 // counter-rotate the tick labels
-                d3self.selectAll(axisSelector(dim) + ' text').attr('transform', 'rotate(' + (-e.angle) + ')');
-                d3self.select(axisSelector(dim) + ' .domain').style({'stroke': 'none'});
+                d3self.selectAll(axisSelector(dim, ' text')).attr('transform', `rotate(${-e.angle})`);
+                d3self.select(axisSelector(dim, ' .domain')).style({'stroke': 'none'});
                 d3self.select(axisSelector(dim)).style('opacity', e.newRange < minAxisDisplayLen ? 0 : 1);
 
-                const labelSpace = 3 * plotting.tickFontSize(d3self.select(axisSelector(dim) + '-label'));
+                const labelSpace = 3 * plotting.tickFontSize(d3self.select(axisSelector(dim, '-label')));
                 const labelSpaceX = (e.isHorizontal ? Math.sin(e.radAngle) : Math.cos(e.radAngle)) * labelSpace;
                 const labelSpaceY = (e.isHorizontal ? Math.cos(e.radAngle) : Math.sin(e.radAngle)) * labelSpace;
                 const labelX = e.axis.left + (e.bottomOrLeft ? -1 : 1) * labelSpaceX + (e.axis.right - e.axis.left) / 2.0;
@@ -3142,7 +3141,7 @@ SIREPO.app.directive('vtkAxes', function(geometry, layoutService, plotting) {
                 d3self.select(`.${dim}-axis-label`)
                     .attr('x', labelX)
                     .attr('y', labelY)
-                    .attr('transform', 'rotate(' + (e.isHorizontal ? 0 : -90) + ' ' + labelX + ' ' + labelY + ')')
+                    .attr('transform', `rotate(${e.isHorizontal ? 0 : -90} ${labelX} ${labelY})`)
                     .style('opacity', e.newRange < minAxisDisplayLen ? 0 : 1);
             }
 
