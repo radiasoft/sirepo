@@ -1651,11 +1651,7 @@ SIREPO.app.directive('geometry3d', function(appState, openmcService, plotting, p
                 $scope.axisCfg = {};
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach((dim, i) => {
                     $scope.axisCfg[dim] = {
-                        dimLabel: dim,
                         label: dim + ' [m]',
-                        numPoints: 2,
-                        screenDim: dim === 'z' ? 'y' : 'x',
-                        showCentral: false,
                     };
                 });
             }

@@ -202,7 +202,7 @@ def sim_frame(frame_args):
 
 def stateful_compute_check_animation_dir(data, **kwargs):
     return PKDict(
-        animationDirExists=simulation_db.simulation_dir("openmc", sid=data.simulationId)
+        animationDirExists=simulation_db.simulation_dir(SIM_TYPE, sid=data.simulationId)
         .join(data.args.modelName)
         .exists()
     )
