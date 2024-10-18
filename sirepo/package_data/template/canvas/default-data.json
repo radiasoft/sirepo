@@ -1,0 +1,91 @@
+{
+    "models": {
+        "beamlines": [],
+        "bunchAnimation1": {
+            "histogramBins": 80,
+            "notes": "",
+            "simCode": "elegant"
+        },
+        "bunchAnimation2": {
+            "histogramBins": 80,
+            "notes": "",
+            "simCode": "madx"
+        },
+        "bunchAnimation3": {
+            "histogramBins": 80,
+            "notes": "",
+            "simCode": "impactx"
+        },
+        "bunchReport1": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "x",
+            "y": "px"
+        },
+        "bunchReport2": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "y",
+            "y": "py"
+        },
+        "bunchReport3": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "x",
+            "y": "y"
+        },
+        "bunchReport4": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "t",
+            "y": "pt"
+        },
+        "commands": [],
+        "distribution": {
+            "charge": 1e-09,
+            "distributionFile": "",
+            "distributionType": "Waterbag",
+            "energy": 2,
+            "halo": 0,
+            "k": 6.283185307179586,
+            "kT": 3.6e-05,
+            "kT_halo": 3.6e-05,
+            "lambdapt": 0.002,
+            "lambdapx": 2.662353876e-05,
+            "lambdapy": 2.662353876e-05,
+            "lambdat": 0.001,
+            "lambdax": 3.998488477e-05,
+            "lambday": 3.998488477e-05,
+            "mutpt": 0,
+            "muxpx": -0.846574929020762,
+            "muypy": 0.846574929020762,
+            "normalize": 0.41604661,
+            "normalize_halo": 0,
+            "particleCount": 10000,
+            "species": "electron"
+        },
+        "elements": [],
+        "rpnVariables": [],
+        "sigmaAnimation": {
+            "includeLattice": "1",
+            "notes": ""
+        },
+        "simulation": {
+            "name": ""
+        },
+        "simulationSettings": {
+            "useElegant": "1",
+            "useImpactX": "1",
+            "useMadx": "1"
+        },
+        "twissAnimation": {
+            "includeLattice": "1",
+            "notes": ""
+        }
+    },
+    "simulationType": "canvas"
+}

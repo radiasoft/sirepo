@@ -67,7 +67,7 @@ class AnalysisDriverBase(PKDict):
             res[e.name] = [
                 PKDict(filename=p.basename, data=e.op(p))
                 for p in pkio.sorted_glob(
-                    self.get_output_dir().join(f"**/*.{e.file_type}")
+                    self.get_output_dir().join(f"**/*.{e.file_type}"), key="mtime"
                 )
             ]
         return res

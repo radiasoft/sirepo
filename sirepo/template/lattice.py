@@ -655,6 +655,11 @@ class LatticeUtil(object):
         return None
 
     @classmethod
+    def is_beamline(cls, model):
+        """Is the model a beamline?"""
+        return "_id" not in model and "type" not in model
+
+    @classmethod
     def is_command(cls, model):
         """Is the model a command or a lattice element?"""
         return "_type" in model

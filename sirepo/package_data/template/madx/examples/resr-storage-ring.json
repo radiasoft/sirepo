@@ -1748,7 +1748,6 @@
         "simulation": {
             "activeBeamlineId": 136,
             "documentationUrl": "",
-            "enableParticleTracking": "1",
             "folder": "/Examples",
             "isExample": true,
             "name": "RESR Storage Ring",
@@ -1756,14 +1755,6 @@
             "numberOfParticles": 5002,
             "randomSeed": 123456789,
             "visualizationBeamlineId": 136
-        },
-        "twissEllipseReport1": {
-            "dim": "x",
-            "notes": ""
-        },
-        "twissEllipseReport2": {
-            "dim": "y",
-            "notes": ""
         },
         "twissReport": {
             "includeLattice": "1",

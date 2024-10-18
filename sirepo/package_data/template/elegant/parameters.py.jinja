@@ -9,3 +9,9 @@ lattice_file = """
 elegant_file = """
 {{commands}}
 """
+{% if openPMDFiles %}
+import sirepo.template.elegant
+{% for filename in openPMDFiles %}
+sirepo.template.elegant.convert_to_sdds("{{ filename }}")
+{% endfor %}
+{% endif %}

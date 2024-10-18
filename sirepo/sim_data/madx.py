@@ -4,8 +4,6 @@
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.sim_data
 from sirepo.template.lattice import LatticeUtil
@@ -44,19 +42,20 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "simulation.activeBeamlineId",
                 "rpnVariables",
             ]
-        if "twissEllipseReport" in compute_model:
-            res += [r, "commands", "rpnVariables"]
         return res
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if "bunchReport" in analysis_model:
             return "bunchReport"
-        if "twissEllipseReport" in analysis_model:
-            return "twissEllipseReport"
         return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
 
     @classmethod
     def _lib_file_basenames(cls, data):
-        # TODO(e-carlin): impl
+        if data.models.bunch.beamDefinition == "file" and data.models.bunch.sourceFile:
+            return [
+                cls.lib_file_name_with_model_field(
+                    "bunch", "sourceFile", data.models.bunch.sourceFile
+                ),
+            ]
         return []

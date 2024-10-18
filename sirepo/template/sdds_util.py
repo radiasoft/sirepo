@@ -169,6 +169,10 @@ def extract_sdds_column(filename, field, page_index):
     return process_sdds_page(filename, page_index, _sdds_column, field)
 
 
+def is_sdds_file(filename):
+    return re.search(r".sdds$", filename, re.IGNORECASE)
+
+
 def process_sdds_page(filename, page_index, callback, *args, **kwargs):
     """Invokes callback on one page of data."""
     sdds_index = _next_index()

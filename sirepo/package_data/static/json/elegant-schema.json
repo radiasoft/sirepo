@@ -29,7 +29,7 @@
     },
     "enum": {
         "BunchInputSource": [
-            ["sdds_beam", "SDDS Input File"],
+            ["sdds_beam", "Input File"],
             ["bunched_beam", "Twiss Parameters"]
         ],
         "FramesPerSecond": [
@@ -132,7 +132,8 @@
         ],
         "SddsBeamInputType": [
             ["elegant", "Elegant"],
-            ["spiffe", "Spiffe"]
+            ["spiffe", "Spiffe"],
+            ["openPMD", "openPMD"]
         ],
         "SimulationMode": [
             ["serial", "Serial"],
@@ -541,7 +542,7 @@
             "randomize_order": ["Randomize Order", "RandomizeStringArray", "0, 0, 0", "Allows randomizing the order of assigned coordinates for the pairs (x, x'), (y, y'), and (t,p). 0 means no randomization; 1 means randomize (x, x', y, y', t, p) values independently, which destroys any x-x', y-y', and t-p correlations; 2 means randomize (x, x'), (y, y'), and (t, p) in pair-wise fashion. This is used with Halton sequences to remove banding. It is suggested that that the user employ sddsanalyzebeam to verify that the beam properties when randomization is used.", "X, Y, Z"]
         },
         "bunchFile": {
-            "sourceFile": ["Beam File", "InputFile", ""]
+            "sourceFile": ["Beam File", "InputFile", "", "SDDS (.sdds) or openPMD (.h5)"]
         },
         "bunchReport": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],

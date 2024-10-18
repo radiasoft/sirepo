@@ -425,6 +425,10 @@
       font-size: 14px;
       text-anchor: middle;
     }
+    .sr-plot text.z-axis-footer {
+      font-size: 14px;
+      text-anchor: end;
+    }
     .sr-plot .katex {
       font-size: 18px;
     }
@@ -596,10 +600,10 @@
       div.sr-plot .z-axis-label,
       div.sr-plot .y-axis-label,
       div.sr-plot .x-axis-label,
+      div.sr-plot .z-axis-footer,
       .y-axis-label
       {
         font-size: 12px;
-        text-anchor: middle;
       }
       div.sr-plot .main-title {
         font-size: 12px;

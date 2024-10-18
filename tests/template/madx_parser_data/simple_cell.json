@@ -27,6 +27,7 @@
             "beamDefinition": "energy",
             "betx": 1.0,
             "bety": 1.0,
+            "distributionType": "twiss",
             "ex": 1e-06,
             "ey": 1e-06,
             "matchTwissParameters": "0",
@@ -34,6 +35,7 @@
             "px": 0.0,
             "py": 0.0,
             "randomSeed": 123456789,
+            "sourceFile": "",
             "x": 0.0,
             "y": 0.0
         },
@@ -329,20 +331,11 @@
             "commandTemplate": "particle",
             "computeTwissFromParticles": "0",
             "documentationUrl": "",
-            "enableParticleTracking": "1",
             "folder": "/",
             "name": "",
             "notes": "",
             "simulationSerial": 0,
             "visualizationBeamlineId": 119
-        },
-        "twissEllipseReport1": {
-            "dim": "x",
-            "notes": ""
-        },
-        "twissEllipseReport2": {
-            "dim": "y",
-            "notes": ""
         },
         "twissReport": {
             "includeLattice": "1",

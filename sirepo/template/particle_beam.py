@@ -181,6 +181,9 @@ def analyze_ptc_beam(ptc_beam_data, mc2=m_p_GeV):
     ptc_beam_dict["gamma_x"] = ptc_beam_dict["pxpx"] / ptc_beam_dict["emit_x"]
     ptc_beam_dict["gamma_y"] = ptc_beam_dict["pypy"] / ptc_beam_dict["emit_y"]
 
+    ptc_beam_dict["sx"] = np.sqrt(ptc_beam_dict["xx"])
+    ptc_beam_dict["sy"] = np.sqrt(ptc_beam_dict["yy"])
+
     return ptc_beam_dict
 
 

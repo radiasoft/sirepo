@@ -4,13 +4,17 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.FILE_UPLOAD_TYPE = {
+        'bunch-sourceFile': '.h5',
+    };
     SIREPO.PLOTTING_COLOR_MAP = 'afmhot';
+    SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.SINGLE_FRAME_ANIMATION = ['twissAnimation', 'twissFromParticlesAnimation'];
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="matchSummaryAnimation" data-match-summary-panel="" class="sr-plot sr-screenshot"></div>
     `;
     SIREPO.appFieldEditors += `
-        <div data-ng-switch-when="FloatArray" data-ng-class="fieldClass">
+        <div data-ng-switch-when="FloatArray" class="col-sm-7">
           <input data-ng-model="model[field]" class="form-control" data-lpignore="true" required />
         </div>
         <div data-ng-switch-when="Float2StringArray" class="col-sm-7">
@@ -104,48 +108,9 @@ SIREPO.app.controller('SourceController', function(appState, commandService, lat
         appState.saveQuietly('commands');
     }
 
-    self.isParticleTrackingEnabled = function () {
-        if (appState.isLoaded()) {
-            return appState.applicationState().simulation.enableParticleTracking == '1';
-        }
-        return false;
-    };
-
-    self.reportModel = function() {
-        return self.isParticleTrackingEnabled() ? 'bunchReport' : 'twissEllipseReport';
-    };
-
-    self.reports = function() {
-        return self.isParticleTrackingEnabled() ? self.bunchReports : self.ellipseReports;
-    };
-
-    self.plotType = function() {
-        return self.isParticleTrackingEnabled() ? 'heatmap' : 'parameter';
-    };
-
-    self.headings = function() {
-        return self.isParticleTrackingEnabled() ? self.bunchReportHeading : self.twissEllipseReportHeading;
-    };
-
-    self.twissEllipseReportHeading = function(modelKey) {
-        return 'Twiss Ellipse';
-    };
-
     appState.whenModelsLoaded($scope, function() {
         loadBeamCommand();
         $scope.$on('bunch.changed', saveBeamCommand);
-
-        // [1, 2, 3]?
-        self.ellipseReports = [1, 2].map(function(id) {
-            var modelKey = 'twissEllipseReport' + id;
-            return {
-                id: id,
-                modelKey: modelKey,
-                getData: function() {
-                    return appState.models[modelKey];
-                },
-            };
-        });
     });
 
     latticeService.initSourceController(self);
@@ -501,6 +466,7 @@ SIREPO.app.directive('commandConfirmation', function(appState, commandService, l
                 if (sim.commandTemplate == 'particle') {
                     addCommands([
                         { _type: 'ptc_create_universe', sector_nmul: 10, sector_nmul_max: 10 },
+                        //TODO(pjm): look at adding method: 4, nst: 25
                         { _type: 'ptc_create_layout' },
                         { _type: 'ptc_track', element_by_element: '1', file: '1', icase: '6' },
                         { _type: 'ptc_track_end' },
@@ -526,8 +492,27 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
         return e[0];
     });
 
+    function isFile() {
+        return appState.models.bunch.beamDefinition === 'file';
+    }
+
+    function updateEnergyFields() {
+        panelState.showFields("command_beam", [
+            ["energy", "pc", "gamma", "beta", "brho"],
+            ! isFile()
+        ]);
+        panelState.showField('bunch', 'sourceFile', isFile());
+        panelState.showTab("bunch", 2, ! isFile());
+        panelState.showTab("bunch", 3, ! isFile());
+        panelState.showTab("bunch", 4, ! isFile());
+    }
+
     function calculateBunchParameters() {
         updateParticle();
+        updateEnergyFields();
+        if (isFile()) {
+            return;
+        }
         requestSender.sendStatelessCompute(
             appState,
             function(data) {
@@ -598,6 +583,7 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
     $scope.whenSelected = function() {
         updateParticle();
         updateTwissFields();
+        updateEnergyFields();
     };
 
     $scope.watchFields = [
@@ -608,9 +594,12 @@ SIREPO.viewLogic('bunchView', function(appState, commandService, madxService, pa
     ];
 });
 
-SIREPO.viewLogic('simulationSettingsView', function(commandService, panelState, madxService, $scope) {
+SIREPO.viewLogic('simulationSettingsView', function(appState, commandService, panelState, madxService, $scope) {
     $scope.whenSelected = function() {
-        panelState.showField('bunch', 'numberOfParticles', madxService.isParticleSimulation());
+        panelState.showField(
+            'bunch',
+            'numberOfParticles',
+            madxService.isParticleSimulation() && appState.models.bunch.beamDefinition != 'file');
         panelState.showField(
             'simulation',
             'computeTwissFromParticles',

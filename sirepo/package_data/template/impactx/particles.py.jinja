@@ -1,0 +1,141 @@
+
+{% if distribution_distributionType == "File" %}
+
+  {% if isSDDS %}
+
+def _vector(values):
+    res = amrex.space3d.PODVector_real_std()
+    for v in values:
+        res.push_back(float(v))
+    return res
+
+f = readSDDS("{{ distributionFile }}")
+f.read()
+
+speciesCharge = {{ speciesCharge }}
+speciesMass_MeV = {{ speciesMassMeV }}
+
+ref = kinematic.Converter(
+    betagamma=f.parameters[0][0]["pCentral"],
+    mass=speciesMass_MeV * 1e6,
+)()
+elegant_distribution = f.columns.squeeze()
+x = numpy.array(elegant_distribution["x"])
+y = numpy.array(elegant_distribution["y"])
+z = - numpy.array(elegant_distribution["t"] * scipy.constants.c)
+px = numpy.array(elegant_distribution["xp"])
+py = numpy.array(elegant_distribution["yp"])
+pz = -(
+    (
+        kinematic.Converter(
+            betagamma=elegant_distribution["p"],
+            mass=speciesMass_MeV * 1e6,
+        )(silent=True)["gamma"]
+        - ref["gamma"]
+    )
+    / ref["betagamma"]
+)
+
+# TODO(pjm): not right
+qm = {{ speciesCharge }} / {{ speciesMassMeV }} / 1e6  # electron charge/mass in e / eV
+bunch_charge_C = {{ distribution_charge }}  # used if space charge
+kin_energy_MeV = ref["kenergy"] * 1e-6
+
+sim.particle_container().ref_particle().set_charge_qe(speciesCharge).set_mass_MeV(
+    speciesMass_MeV
+).set_kin_energy_MeV(kin_energy_MeV)
+sim.particle_container().add_n_particles(
+    _vector(x),
+    _vector(y),
+    _vector(z),
+    _vector(px),
+    _vector(py),
+    _vector(pz),
+    qm,
+    bunch_charge_C,
+)
+
+  {% else %}
+
+def _vector(value, name):
+    res = amrex.space3d.PODVector_real_std()
+    for v in value[name]:
+        res.push_back(v)
+    return res
+
+
+with h5py.File("{{ distributionFile }}", "r") as f:
+    pp = pmd_beamphysics.readers.particle_paths(f)
+    d = f[pp[-1]]
+    if "beam" in d:
+        d = d["beam"]
+
+    speciesMass_MeV = (
+        d.attrs["mass_ref"]
+        / scipy.constants.physical_constants["electron volt-kilogram relationship"][0]
+        * 1e-6
+    )
+    speciesCharge = d.attrs["charge_ref"] / abs(d.attrs["charge_ref"])
+    # docs say charge over mass [1/eV], but seems to be [C / kg]
+    qm = d.attrs["charge_ref"] / d.attrs["mass_ref"]
+    npart = len(d["position/x"])
+    kin_energy_MeV = kinematic.Converter(
+        mass=d.attrs["mass_ref"],
+        mass_unit="SI",
+        gamma=d.attrs["gamma_ref"],
+    )()['kenergy'] * 1e-6
+    sim.particle_container().ref_particle().set_charge_qe(speciesCharge).set_mass_MeV(
+        speciesMass_MeV
+    ).set_kin_energy_MeV(kin_energy_MeV)
+    sim.particle_container().add_n_particles(
+        _vector(d, "position/x"),
+        _vector(d, "position/y"),
+        _vector(d, "position/t"),
+        _vector(d, "momentum/x"),
+        _vector(d, "momentum/y"),
+        _vector(d, "momentum/t"),
+        qm,
+        abs(d.attrs["charge_C"]),
+    )
+
+  {% endif %}
+
+{% else %}
+
+bunch_charge_C = {{ distribution_charge }}  # used with space charge
+npart = {{ distribution_particleCount }}  # number of macro particles
+speciesCharge = {{ speciesCharge }}
+speciesMass_MeV = {{ speciesMassMeV }}
+
+kin_energy_MeV = kinematic.Converter(
+    mass=speciesMass_MeV * 1e6,
+    energy={{ distribution_energy }} * 1e9,
+)()['kenergy'] * 1e-6
+
+{% if distribution_distributionType == "Thermal" %}
+distr = distribution.Thermal(
+    k={{ distribution_k }},
+    kT={{ distribution_kT }},
+    kT_halo={{ distribution_kT_halo }},
+    normalize={{ distribution_normalize }},
+    normalize_halo={{ distribution_normalize_halo }},
+    halo={{ distribution_halo }},
+)
+{% else %}
+distr = distribution.{{ distribution_distributionType }}(
+    lambdaX={{ distribution_lambdax }},
+    lambdaY={{ distribution_lambday }},
+    lambdaT={{ distribution_lambdat }},
+    lambdaPx={{ distribution_lambdapx }},
+    lambdaPy={{ distribution_lambdapy }},
+    lambdaPt={{ distribution_lambdapt }},
+    muxpx={{ distribution_muxpx }},
+    muypy={{ distribution_muypy }},
+    mutpt={{ distribution_mutpt }},
+)
+{% endif %}
+sim.particle_container().ref_particle().set_charge_qe(speciesCharge).set_mass_MeV(
+    speciesMass_MeV
+).set_kin_energy_MeV(kin_energy_MeV)
+sim.add_particles(bunch_charge_C, distr, npart)
+{% endif %}

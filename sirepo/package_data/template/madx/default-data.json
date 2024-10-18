@@ -58,14 +58,6 @@
         "simulation": {
             "name": ""
         },
-        "twissEllipseReport1": {
-            "dim": "x",
-            "notes": ""
-        },
-        "twissEllipseReport2": {
-            "dim": "y",
-            "notes": ""
-        },
         "twissReport": {}
     },
     "simulationType": "madx"

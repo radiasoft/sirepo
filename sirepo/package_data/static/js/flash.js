@@ -15,11 +15,6 @@ SIREPO.app.config(function() {
             data-min="info[4]" data-max="info[5]" class="form-control"
             style="text-align: right" data-lpignore="true" />
         </div>
-        <div data-ng-switch-when="OptionalFloat" data-ng-class="fieldClass">
-          <input data-string-to-number="" data-ng-model="model[field]"
-            data-min="info[4]" data-max="info[5]" class="form-control"
-            style="text-align: right" data-lpignore="true" />
-        </div>
         <div data-ng-switch-when="PlotFileArray" class="col-sm-7">
           <div data-plot-file-selection-list="" data-field="model[field]"
             data-model-name="modelName"></div>

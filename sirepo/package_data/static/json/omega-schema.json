@@ -59,7 +59,6 @@
         "simWorkflow": {
             "coupledSims": ["", "SimArray", []]
         },
-        "simulationStatus": {},
         "simBeamAnimation": {
             "simCount": ["", "Integer"],
             "y1": ["Y1 Value", "BeamParameter", "rmsx"],

@@ -88,8 +88,7 @@ varParam = [
 #---tabulated params
     ['und_g', 'f', 6.72, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
     ['und_ph', 'f', 0.0, 'shift of magnet arrays [mm] for which the field should be set up'],
-    ['und_mdir', 's', '', 'name of magnetic measurements sub-folder'],
-    ['und_mfs', 's', '', 'name of magnetic measurements for different gaps summary file'],
+    ['und_mfz', 's', 'magnetic_measurements.zip', 'name of zip-file of directory with magnetic measurement files for different gaps + summary file (if it is defined, it overrides the values of und_mdir and und_mfs)'],
 #---both  params
     ['und_zc', 'f', 1.305, 'undulator center longitudinal position [m]'],
     ['und_per', 'f', 0.02, 'undulator period [m]'],
@@ -259,41 +258,6 @@ varParam = [
     #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
 ]
 
-def setup_magnetic_measurement_files(filename, v):
-    import os
-    c = None
-    f = None
-    r = 0
-    try:
-        import mpi4py.MPI
-        if mpi4py.MPI.COMM_WORLD.Get_size() > 1:
-            c = mpi4py.MPI.COMM_WORLD
-            r = c.Get_rank()
-    except Exception:
-        pass
-    if r == 0:
-        try:
-            import zipfile
-            z = zipfile.ZipFile(filename)
-            f = [x for x in z.namelist() if x.endswith('.txt')]
-            if len(f) != 1:
-                raise RuntimeError(
-                    '{} magnetic measurement index (*.txt) file={}'.format(
-                        'too many' if len(f) > 0 else 'missing',
-                        filename,
-                    )
-                )
-            f = f[0]
-            z.extractall(v.fdir)
-        except Exception:
-            if c:
-                c.Abort(1)
-            raise
-    if c:
-        f = c.bcast(f, root=0)
-    v.und_mfs = os.path.basename(f)
-    v.und_mdir = os.path.dirname(f) or './'
-
 
 def epilogue():
     pass
@@ -301,7 +265,6 @@ def epilogue():
 
 def main():
     v = srwpy.srwl_bl.srwl_uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options(varParam), use_sys_argv=True)
-    setup_magnetic_measurement_files(v.fdir + "magnetic_measurements.zip", v)
     names = ['Aperture','Aperture_Watchpoint']
     op = set_optics(v, names, True)
     v.ws = True

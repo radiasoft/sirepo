@@ -1,0 +1,12 @@
+{
+    "models": {
+        "beamlines": [],
+        "commands": [],
+        "elements": [],
+        "rpnVariables": [],
+        "simulation": {
+            "visualizationBeamlineId": ""
+        }
+    },
+    "simulationType": "impactx"
+}

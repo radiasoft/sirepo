@@ -1,11 +1,13 @@
 User-agent: *
 Disallow: /activait
+Disallow: /canvas
 Disallow: /controls
 Disallow: /elegant
 Disallow: /epicsllrf
 Disallow: /genesis
 Disallow: /hellweg
 Disallow: /impactt
+Disallow: /impactx
 Disallow: /jspec
 Disallow: /madx
 Disallow: /myapp

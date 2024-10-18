@@ -4,7 +4,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
@@ -18,23 +17,24 @@ from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 import copy
 import functools
+import h5py
 import math
-import numpy as np
+import numpy
 import os.path
+import pmd_beamphysics.readers
 import pykern.pkinspect
 import re
-import scipy.constants
 import sirepo.lib
 import sirepo.sim_data
 
 
-BUNCH_PARTICLES_FILE = "ptc_particles.json"
+_BUNCH_PARTICLES_FILE = "ptc_particles.json"
 
 MADX_INPUT_FILE = "in.madx"
 
 MADX_LOG_FILE = "madx.log"
 
-PTC_PARTICLES_FILE = "ptc_particles.madx"
+_PTC_PARTICLES_FILE = "ptc_particles.madx"
 
 PTC_LAYOUT_COMMAND = "ptc_create_layout"
 
@@ -50,6 +50,7 @@ _FIELD_UNITS = PKDict(
     s="m",
     x="m",
     y="m",
+    t="m",
     x0="m",
     y0="m",
 )
@@ -82,7 +83,7 @@ _PTC_TRACK_COMMAND = "ptc_track"
 
 _PTC_TRACKLINE_COMMAND = "ptc_trackline"
 
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 PTC_OBSERVE_TWISS_COLS = [
     "W",
@@ -116,6 +117,8 @@ PTC_OBSERVE_TWISS_COLS = [
     "pypt",
     "pypy",
     "s",
+    "sx",
+    "sy",
     "x0",
     "xct",
     "xpt",
@@ -136,7 +139,6 @@ _TFS_FILE_EXTENSION = "tfs"
 _TWISS_OUTPUT_FILE = f"twiss.{_TFS_FILE_EXTENSION}"
 
 
-# TODO(pjm): this is only a start on the MAD-X LibAdapter
 class LibAdapter(sirepo.lib.LibAdapterBase):
     def parse_file(self, path):
         from sirepo.template import madx_parser
@@ -153,11 +155,15 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
             dest_dir.join(source_path.basename),
             generate_parameters_file(data),
         )
+        if data.models.bunch.beamDefinition == "file":
+            f = SIM_DATA.lib_file_name_with_model_field(
+                "bunch", "sourceFile", data.models.bunch.sourceFile
+            )
+            d = dest_dir.join(f)
+            pykern.pkio.mkdir_parent_only(d)
+            d.mksymlinkto(source_path.dirpath().join(f), absolute=False)
         if LatticeUtil.find_first_command(data, PTC_LAYOUT_COMMAND):
-            import sirepo.pkcli.madx
-
-            # TODO(pjm): move the method to template.madx.generate_ptc_particles_file()
-            sirepo.pkcli.madx._generate_ptc_particles_file(dest_dir, data, None)
+            generate_ptc_particles_file(dest_dir, data, None)
         return PKDict()
 
 
@@ -311,15 +317,33 @@ def extract_parameter_report(
     return res
 
 
-def _iterate_and_format_rpns(data, schema):
-    def _rpn_update(model, field):
-        if code_variable.CodeVar.is_var_value(model[field]):
-            model[field] = _format_rpn_value(model[field])
+def field_label(field):
+    if field in _FIELD_UNITS:
+        return "{} [{}]".format(field, _FIELD_UNITS[field])
+    return field
 
-    lattice.LatticeUtil(data, schema).iterate_models(
-        lattice.UpdateIterator(_rpn_update)
+
+def file_info(filename, run_dir, file_id):
+    path = str(run_dir.join(filename))
+    plottable = []
+    tfs = madx_parser.parse_tfs_file(path)
+    for f in tfs:
+        if f in _ALPHA_COLUMNS:
+            continue
+        v = to_floats(tfs[f])
+        if numpy.any(v):
+            plottable.append(f)
+    count = 1
+    if "turn" in tfs:
+        info = madx_parser.parse_tfs_page_info(path)
+        count = len(info)
+    return PKDict(
+        modelKey="elementAnimation{}".format(file_id),
+        filename=filename,
+        isHistogram=not _is_parameter_report_file(filename),
+        plottableColumns=plottable,
+        pageCount=count,
     )
-    return data
 
 
 def generate_parameters_file(data):
@@ -347,9 +371,57 @@ def generate_parameters_file(data):
     return template_common.render_jinja(SIM_TYPE, v, "parameters.madx")
 
 
+def generate_ptc_particles_file(run_dir, data, twiss):
+    bunch = data.models.bunch
+    v = None
+    if bunch.beamDefinition == "file":
+        v = _read_bunch_file(
+            run_dir.join(
+                SIM_DATA.lib_file_name_with_model_field(
+                    "bunch", "sourceFile", bunch.sourceFile
+                )
+            ),
+            _read_particles,
+        )
+        v.t = list(-numpy.array(v.t))
+    else:
+        beam = LatticeUtil.find_first_command(data, "beam")
+        c = code_var(data.models.rpnVariables)
+        p = particle_beam.populate_uncoupled_beam(
+            bunch.numberOfParticles,
+            float(bunch.betx),
+            float(bunch.alfx),
+            float(c.eval_var_with_assert(beam.ex)),
+            float(bunch.bety),
+            float(bunch.alfy),
+            c.eval_var_with_assert(beam.ey),
+            c.eval_var_with_assert(beam.sigt),
+            c.eval_var_with_assert(beam.sige),
+            iseed=bunch.randomSeed,
+        )
+        v = PKDict(
+            x=to_floats(p[:, 0] + float(bunch.x)),
+            px=to_floats(p[:, 1] + float(bunch.px)),
+            y=to_floats(p[:, 2] + float(bunch.y)),
+            py=to_floats(p[:, 3] + float(bunch.py)),
+            t=to_floats(p[:, 4]),
+            pt=to_floats(p[:, 5]),
+        )
+    if "report" in data and "bunchReport" in data.report:
+        v.summaryData = twiss
+        simulation_db.write_json(run_dir.join(_BUNCH_PARTICLES_FILE), v)
+    r = ""
+    for i in range(len(v.x)):
+        r += "ptc_start"
+        for f in ("x", "px", "y", "py", "t", "pt"):
+            r += f", {f}={v[f][i]}"
+        r += ";\n"
+    pkio.write_text(run_dir.join(_PTC_PARTICLES_FILE), r)
+
+
 def get_data_file(run_dir, model, frame, options):
     if _is_report("bunchReport", model):
-        return PTC_PARTICLES_FILE
+        return _PTC_PARTICLES_FILE
     if frame == SCHEMA.constants.logFileFrameId:
         return template_common.text_data_file(MADX_LOG_FILE, run_dir)
     if frame >= 0:
@@ -380,11 +452,7 @@ def prepare_for_client(data, qcall, **kwargs):
 
 def prepare_sequential_output_file(run_dir, data):
     r = data.report
-    if (
-        r == "twissReport"
-        or _is_report("bunchReport", r)
-        or _is_report("twissEllipseReport", r)
-    ):
+    if r == "twissReport" or _is_report("bunchReport", r):
         f = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
         if f.exists():
             f.remove()
@@ -568,9 +636,7 @@ def write_parameters(data, run_dir, is_parallel, filename=MADX_INPUT_FILE):
         run_dir (py.path): where to write
         is_parallel (bool): run in background?
     """
-    if _is_report("twissEllipseReport", data.report) or _is_report(
-        "bunchReport", data.report
-    ):
+    if _is_report("bunchReport", data.report):
         # these reports don't need to run madx
         return
     pkio.write_text(
@@ -601,7 +667,7 @@ def _add_commands(data, util):
         idx + 1,
         PKDict(
             _type="call",
-            file=PTC_PARTICLES_FILE,
+            file=_PTC_PARTICLES_FILE,
             _id=LatticeUtil.max_id(data),
         ),
     )
@@ -701,7 +767,7 @@ def _calc_bunch_parameters(bunch, beam, variables):
 
 
 def _extract_report_bunchReport(data, run_dir):
-    parts = simulation_db.read_json(run_dir.join(BUNCH_PARTICLES_FILE))
+    parts = simulation_db.read_json(run_dir.join(_BUNCH_PARTICLES_FILE))
     m = data.models[data.report]
     res = template_common.heatmap(
         [
@@ -730,7 +796,7 @@ def _extract_report_data(data, run_dir):
 
 
 def _extract_report_elementAnimation(data, run_dir, filename):
-    if is_parameter_report_file(filename):
+    if _is_parameter_report_file(filename):
         return extract_parameter_report(data, run_dir, filename)
     m = data.models[data.report]
     t = madx_parser.parse_tfs_file(run_dir.join(filename), want_page=m.frameIndex)
@@ -759,44 +825,10 @@ def _extract_report_matchSummaryAnimation(data, run_dir, filename):
     )
 
 
-def _extract_report_twissEllipseReport(data, run_dir):
-    # TODO(pjm): use bunch twiss values, not command_twiss values
-    beam = _first_beam_command(data)
-    r_model = data.models[data.report]
-    dim = r_model.dim
-    n_pts = 100
-    theta = np.arange(0, 2.0 * np.pi * (n_pts / (n_pts - 1)), 2.0 * np.pi / n_pts)
-    # TODO(pjm): get code_var value for alf, bet, d
-    a = float(data.models.bunch[f"alf{dim}"]) or 0
-    b = float(data.models.bunch[f"bet{dim}"]) or 0
-    assert b > 0, f'TWISS parameter "bet{dim}" must be > 0'
-    g = (1.0 + a * a) / b
-    e = beam[f"e{dim}"] or 1
-    phi = _twiss_ellipse_rotation(a, b)
-
-    # major, minor axes of ellipse
-    mj = np.sqrt(e * b)
-    mn = np.sqrt(e * g)
-
-    # apply rotation
-    x = mj * np.cos(theta) * np.sin(phi) + mn * np.sin(theta) * np.cos(phi)
-    y = mj * np.cos(theta) * np.cos(phi) - mn * np.sin(theta) * np.sin(phi)
-
-    return template_common.parameter_plot(
-        x.tolist(),
-        [PKDict(field=dim, points=y.tolist(), label=f"{dim}' [rad]")],
-        {},
-        PKDict(
-            title=f"a{dim} = {a} b{dim} = {b} g{dim} = {g}",
-            y_label="",
-            x_label=f"{dim} [m]",
-        ),
-    )
-
-
 def extract_report_twissFromParticlesAnimation(data, run_dir, filename):
     res = particle_beam.analyze_ptc_beam(
         particle_beam.read_ptc_data(run_dir.join(filename))[0],
+        # TODO(pjm): should use the mass of the selected species
         mc2=SCHEMA.constants.particleMassAndCharge.proton[0],
     )
     # remap alpha/beta columns
@@ -822,35 +854,6 @@ def _extract_report_twissReport(data, run_dir):
     return extract_parameter_report(data, run_dir)
 
 
-def field_label(field):
-    if field in _FIELD_UNITS:
-        return "{} [{}]".format(field, _FIELD_UNITS[field])
-    return field
-
-
-def file_info(filename, run_dir, file_id):
-    path = str(run_dir.join(filename))
-    plottable = []
-    tfs = madx_parser.parse_tfs_file(path)
-    for f in tfs:
-        if f in _ALPHA_COLUMNS:
-            continue
-        v = to_floats(tfs[f])
-        if np.any(v):
-            plottable.append(f)
-    count = 1
-    if "turn" in tfs:
-        info = madx_parser.parse_tfs_page_info(path)
-        count = len(info)
-    return PKDict(
-        modelKey="elementAnimation{}".format(file_id),
-        filename=filename,
-        isHistogram=not is_parameter_report_file(filename),
-        plottableColumns=plottable,
-        pageCount=count,
-    )
-
-
 def _filename_for_report(run_dir, report):
     for info in _output_info(run_dir):
         if info.modelKey == report:
@@ -858,16 +861,6 @@ def _filename_for_report(run_dir, report):
     if report == "matchSummaryAnimation":
         return MADX_LOG_FILE
     raise AssertionError(f"no output file for report={report}")
-
-
-def first_beam_command(data):
-    return _first_beam_command(data)
-
-
-def _first_beam_command(data):
-    m = LatticeUtil.find_first_command(data, "beam")
-    assert m, "BEAM missing from command list"
-    return m
 
 
 def _format_field_value(state, model, field, el_type):
@@ -957,12 +950,23 @@ def _get_filename_for_element_id(file_id, data):
     return _build_filename_map(data)[file_id]
 
 
-def is_parameter_report_file(filename):
+def _is_parameter_report_file(filename):
     return "twiss" in filename or "touschek" in filename
 
 
 def _is_report(name, report):
     return name in report
+
+
+def _iterate_and_format_rpns(data, schema):
+    def _rpn_update(model, field):
+        if code_variable.CodeVar.is_var_value(model[field]):
+            model[field] = _format_rpn_value(model[field])
+
+    lattice.LatticeUtil(data, schema).iterate_models(
+        lattice.UpdateIterator(_rpn_update)
+    )
+    return data
 
 
 def _output_info(run_dir):
@@ -1042,16 +1046,38 @@ def _parse_match_summary(run_dir, filename):
     return res
 
 
-def _twiss_ellipse_rotation(alpha, beta):
-    if alpha == 0:
-        return 0
-    return 0.5 * math.atan(2.0 * alpha * beta / (1 + alpha * alpha - beta * beta))
+def _read_bunch_file(path, callback):
+    with h5py.File(
+        path,
+        "r",
+    ) as f:
+        pp = pmd_beamphysics.readers.particle_paths(f)
+        d = f[pp[-1]]
+        if "beam" in d:
+            d = d["beam"]
+        # TODO(pjm): add to file validation
+        if "position/x" not in d:
+            raise AssertionError("OpenPMD file missing position/x dataset")
+        return callback(d)
+
+
+def _read_particles(h5):
+    return PKDict(
+        x=list(h5["position/x"]),
+        y=list(h5["position/y"]),
+        t=list(h5["position/t"]),
+        px=list(h5["momentum/x"]),
+        py=list(h5["momentum/y"]),
+        pt=list(-numpy.array(h5["momentum/t"])),
+    )
 
 
 def _update_beam_energy(data):
-    beam = _first_beam_command(data)
+    beam = LatticeUtil.find_first_command(data, "beam")
+    assert beam, "BEAM missing from command list"
     bunch = data.models.bunch
-    if bunch.beamDefinition != "other":
+    # TODO(pjm): file source needs to update beam mass, charge and energy
+    if bunch.beamDefinition != "file":
         for e in SCHEMA.enum.BeamDefinition:
             if bunch.beamDefinition != e[0]:
                 beam[e[0]] = 0
