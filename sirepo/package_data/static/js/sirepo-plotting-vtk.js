@@ -3011,7 +3011,7 @@ SIREPO.app.directive('vtkAxes', function(geometry, layoutService, plotting) {
             );
             const axes = Object.fromEntries(
                 $scope.dimensions.map(d => [d, layoutService.plotAxis({}, d, 'bottom', refresh)]),
-            )
+            );
             let axisCfg, d3self;
 
             function axisSelector(dim, suffix) {
