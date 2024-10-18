@@ -2622,11 +2622,8 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 width: 0,
                 height: 0,
             };
-            $scope.titleCenter = 0;
-            $scope.subTitleCenter = 0;
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 55;
             $scope.dataCleared = true;
-            $scope.focusTextCloseSpace = 18;
             $scope.focusPoints = [];
 
             var canvas, ctx, fullDomain, heatmap, lineOuts, prevDomain, scaleFunction, xyZoom;
@@ -2667,30 +2664,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                     }
                     scale.domain(domain);
                 }
-            }
-
-            function centerNode(node, defaultCtr) {
-                // center the node over the image; if node is too large, center it over whole plot
-                if (node && ! (node.style && node.style.display == 'none')) {
-                    var width = node.getBBox().width;
-                    var ctr = $scope.canvasSize.width / 2;
-                    if (width > $scope.canvasSize.width) {
-                        ctr += $scope.rightPanelWidth / 2;
-                    }
-                    return ctr;
-                }
-                if (defaultCtr) {
-                    return defaultCtr;
-                }
-                return 0;
-            }
-
-            function centerSubTitle() {
-                $scope.subTitleCenter = centerNode(select('text.sub-title').node(), $scope.subTitleCenter);
-            }
-
-            function centerTitle() {
-                $scope.titleCenter = centerNode(select('text.main-title').node(), $scope.titleCenter);
             }
 
             function clipDomain(scale, axisName) {
@@ -2792,6 +2765,12 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 return pixels < MIN_PIXEL_RESOLUTION;
             }
 
+            function layoutFocusPointText() {
+                select('.focus-text-close').node().setAttribute(
+                    'x', select('.focus-text').node().getComputedTextLength() + 16,
+                );
+            }
+
             function refresh() {
                 if (! fullDomain) {
                     return;
@@ -2865,8 +2844,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                     axes.x.scale.domain(),
                     axes.y.scale.domain(),
                 ];
-                centerTitle();
-                centerSubTitle();
                 if (appState.deepEquals(fullDomain, prevDomain)) {
                     adjustZoomToCenter(axes.x.scale);
                     adjustZoomToCenter(axes.y.scale);
@@ -2877,24 +2854,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 xyZoom = axes.x.createZoom($scope).y(axes.y.scale);
                 axes.x.zoom = axes.x.createZoom($scope);
                 axes.y.zoom = axes.y.createZoom($scope);
-            }
-
-            function resizefocusPointText() {
-                var maxSize = 14;
-                var minSize = 9;
-                var focusText = select('.focus-text');
-                var fs = focusText.style('font-size');
-
-                var currentFontSize = utilities.fontSizeFromString(fs);
-                var newFontSize = currentFontSize;
-
-                var textWidth = focusText.node().getComputedTextLength();
-                var pct = ($scope.canvasSize.width - $scope.focusTextCloseSpace) / textWidth;
-
-                newFontSize *= pct;
-                newFontSize = Math.max(minSize, newFontSize);
-                newFontSize = Math.min(maxSize, newFontSize);
-                focusText.style('font-size', newFontSize + 'px');
             }
 
             function restoreDomain(scale, oldValue) {
@@ -3022,6 +2981,9 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 axes.x.updateLabel(json.x_label, select);
                 axes.y.updateLabel(json.y_label, select);
                 select('.z-axis-label').text(json.z_label);
+                if (json.z_footer) {
+                    select('.z-axis-footer').text(json.z_footer);
+                }
                 var zmin = plotting.min2d(heatmap);
                 var zmax = plotting.max2d(heatmap);
                 if ('z_range' in json) { zmin = json.z_range[0]; zmax = json.z_range[1]; }
@@ -3068,7 +3030,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 }
                 select('.sub-title').style('display', 'none');
                 focusText.text(xyfText);
-                resizefocusPointText();
+                layoutFocusPointText();
             };
 
             $scope.showPlotSize = () => {
@@ -3988,6 +3950,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         const limit = appState.applicationState()[$scope.modelName][`${v}Limit`];
                         if (limit && ydom[i][1] > limit) {
                             ydom[i][1] = limit;
+                            if (ydom[i][0] > ydom[i][1]) {
+                                ydom[i][0] = ydom[i][1];
+                            }
                         }
                     }
                 });

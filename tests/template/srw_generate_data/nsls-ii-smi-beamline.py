@@ -278,8 +278,7 @@ varParam = [
 #---tabulated params
 #    ['und_g', 'f', 6.72, 'undulator gap [mm] (assumes availability of magnetic measurement or simulation data)'],
 #    ['und_ph', 'f', 0.0, 'shift of magnet arrays [mm] for which the field should be set up'],
-#    ['und_mdir', 's', '', 'name of magnetic measurements sub-folder'],
-#    ['und_mfs', 's', '', 'name of magnetic measurements for different gaps summary file'],
+#    ['und_mfz', 's', 'magnetic_measurements.zip', 'name of zip-file of directory with magnetic measurement files for different gaps + summary file (if it is defined, it overrides the values of und_mdir and und_mfs)'],
 #---both  params
     ['und_zc', 'f', 0.6, 'undulator center longitudinal position [m]'],
     ['und_per', 'f', 0.023, 'undulator period [m]'],
@@ -589,7 +588,6 @@ varParam = [
     #[15]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Horizontal Coordinate
     #[16]: Optional: Orientation of the Horizontal Base vector of the Output Frame in the Incident Beam Frame: Vertical Coordinate
 ]
-
 
 
 def epilogue():

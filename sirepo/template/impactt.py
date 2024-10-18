@@ -60,7 +60,7 @@ def background_percent_complete(report, run_dir, is_running):
                 d = impact.parsers.load_many_fort(
                     str(run_dir), types=[_TIME_AND_ENERGY_FILE_NO]
                 )
-                if "mean_z" in d and len(d["mean_z"] > 10):
+                if "mean_z" in d and len(d["mean_z"]) > 10:
                     return PKDict(
                         frameCount=len(d["mean_z"]),
                         percentComplete=d["mean_z"][-1] * 100.0 / stop_z,

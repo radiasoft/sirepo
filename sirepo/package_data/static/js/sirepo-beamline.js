@@ -67,31 +67,31 @@ SIREPO.app.factory('beamlineService', function(appState, panelState, validationS
             for (var i = 0; i < savedModelValues.beamline.length; i += 1) {
                 if (savedModelValues.beamline[i].id == itemId) {
                     return 'Intensity ' + savedModelValues.beamline[i].title + ', '
-                        + savedModelValues.beamline[i].position + 'm';
+                        + savedModelValues.beamline[i].position + ' m';
                 }
             }
         }
         var model = savedModelValues[modelName];
         var distance = '';
         if (model && 'distanceFromSource' in model) {
-            distance = ', ' + model.distanceFromSource + 'm';
+            distance = ', ' + model.distanceFromSource + ' m';
         }
         else if (appState.isAnimationModelName(modelName)) {
             if (savedModelValues.beamline.length) {
                 var item = model.watchpointId ? self.getItemById(model.watchpointId) : savedModelValues.beamline[savedModelValues.beamline.length - 1];
-                distance = ', ' + item.position + 'm';
+                distance = ', ' + item.position + ' m';
             }
         }
         else if (modelName == 'initialIntensityReport' || (modelName == 'watchpointReport' && itemId == 0)) {
             if (savedModelValues.beamline && savedModelValues.beamline.length) {
-                distance = ', ' + savedModelValues.beamline[0].position + 'm';
+                distance = ', ' + savedModelValues.beamline[0].position + ' m';
             }
             else {
                 if ('models' in appState && 'simulation' in appState.models && 'distanceFromSource' in appState.models.simulation) {
-                    distance = ', ' + appState.models.simulation.distanceFromSource + 'm';
+                    distance = ', ' + appState.models.simulation.distanceFromSource + ' m';
                 }
                 else {
-                    distance = ', ' + DEFAULT_INTENSITY_DISTANCE + 'm';
+                    distance = ', ' + DEFAULT_INTENSITY_DISTANCE + ' m';
                 }
             }
             modelName = 'initialIntensityReport';
@@ -522,7 +522,7 @@ SIREPO.app.directive('beamlineItem', function(beamlineService, $timeout, $rootSc
             setWatchpointActive: '&',
         },
         template: `
-            <span class="srw-beamline-badge badge">{{ item.position ? item.position + 'm' : (item.position === 0 ? '0m' : '⚠ ') }}</span>
+            <span class="srw-beamline-badge badge">{{ item.position ? item.position + ' m' : (item.position === 0 ? '0 m' : '⚠ ') }}</span>
             <span data-ng-if="showItemButtons()" data-ng-click="beamlineService.removeElement(item)" class="srw-beamline-close-icon srw-beamline-toggle glyphicon glyphicon-remove-circle" title="Delete Element"></span>
             <span data-ng-if="showItemButtons()" data-ng-click="beamlineService.copyElement(item)" class="srw-beamline-copy-icon srw-beamline-toggle glyphicon glyphicon-duplicate" title="Copy Element"></span>
             <span data-ng-if="showItemButtons() && showActiveIcon(item)" data-ng-click="setWatchpointActive(item)" class="srw-beamline-report-icon srw-beamline-toggle glyphicon glyphicon-ok" data-ng-class="{'srw-beamline-report-icon-active': isWatchpointActive(item)}" title="{{ activeWatchpointTitle }}"></span>
