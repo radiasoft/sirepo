@@ -1106,19 +1106,19 @@ SIREPO.app.directive('srBunchEditor', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('viewLogIframeWrapper', function() {
+SIREPO.app.directive('viewLogModalWrapper', function() {
     return {
         restrict: 'A',
         scope: {},
         template: `
             <a href data-ng-click="viewLog()">View Log</a>
-            <div data-view-log-iframe data-download-log="downloadLog" data-log-html="log" data-log-is-loading="logIsLoading" data-modal-id="modalId"></div>
+            <div data-view-log-modal data-download-log="downloadLog" data-log-html="log" data-log-is-loading="logIsLoading" data-modal-id="modalId"></div>
         `,
         controller: function(appState, elegantService, requestSender, $scope) {
             $scope.logIsLoading = false;
             $scope.log = null;
             $scope.logPath = null;
-            $scope.modalId = 'sr-view-log-iframe';
+            $scope.modalId = 'sr-view-log-modal';
 
             $scope.downloadLog = function() {
                 var m = appState.models.simulationStatus.animation.computeModel;

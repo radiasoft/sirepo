@@ -76,7 +76,7 @@ def run_background(cfg_dir):
     else:
         template_common.exec_parameters()
         f1 = str(pkio.py_path("diags/openPMD/monitor.h5"))
-    f2 = "beam.h5"
+    f2 = sirepo.template.canvas.INPUT_IMPACTX_BEAM_FILE
     pkio.py_path(f1).copy(pkio.py_path(f2))
     _write_madx(d, f2)
     # TODO(pjm): conditional generation

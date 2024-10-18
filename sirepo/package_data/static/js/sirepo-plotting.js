@@ -1857,7 +1857,11 @@ SIREPO.app.service('layoutService', function(mathRendering, panelState, plotting
         }
 
         function maxDomainWidth(formatInfo) {
-            const d = self.scale.domain();
+            //const d = self.scale.domain();
+            const d = [
+                formatInfo.tickValues[0],
+                formatInfo.tickValues[formatInfo.tickCount - 1],
+            ];
             return Math.max(
                 formatInfo.format(applyUnit(d[0], formatInfo.base, formatInfo.unit)).length,
                 formatInfo.format(applyUnit(d[1], formatInfo.base, formatInfo.unit)).length,
@@ -2290,7 +2294,7 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
                   data-is-dynamic="1"></span> = {{ pointText(0, true) }} {{ focusPoints[0].config.xAxis.units }}</div>
                 <div data-ng-style="{ opacity: opacity($index) }" style="height: 20px"
                   data-ng-repeat="p in plots track by p._label + $index">
-                  <div style="display:inline" data-color-circle="p.color" data-dashed="p.dashes"></div>
+                  <div style="display:inline" data-color-circle="p"></div>
                   <span data-text-with-math="p._label"></span> = {{ pointText($index) }} {{ p._units }}
                 </div>
                 </div>
@@ -2618,11 +2622,8 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 width: 0,
                 height: 0,
             };
-            $scope.titleCenter = 0;
-            $scope.subTitleCenter = 0;
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 55;
             $scope.dataCleared = true;
-            $scope.focusTextCloseSpace = 18;
             $scope.focusPoints = [];
 
             var canvas, ctx, fullDomain, heatmap, lineOuts, prevDomain, scaleFunction, xyZoom;
@@ -2663,30 +2664,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                     }
                     scale.domain(domain);
                 }
-            }
-
-            function centerNode(node, defaultCtr) {
-                // center the node over the image; if node is too large, center it over whole plot
-                if (node && ! (node.style && node.style.display == 'none')) {
-                    var width = node.getBBox().width;
-                    var ctr = $scope.canvasSize.width / 2;
-                    if (width > $scope.canvasSize.width) {
-                        ctr += $scope.rightPanelWidth / 2;
-                    }
-                    return ctr;
-                }
-                if (defaultCtr) {
-                    return defaultCtr;
-                }
-                return 0;
-            }
-
-            function centerSubTitle() {
-                $scope.subTitleCenter = centerNode(select('text.sub-title').node(), $scope.subTitleCenter);
-            }
-
-            function centerTitle() {
-                $scope.titleCenter = centerNode(select('text.main-title').node(), $scope.titleCenter);
             }
 
             function clipDomain(scale, axisName) {
@@ -2788,6 +2765,12 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 return pixels < MIN_PIXEL_RESOLUTION;
             }
 
+            function layoutFocusPointText() {
+                select('.focus-text-close').node().setAttribute(
+                    'x', select('.focus-text').node().getComputedTextLength() + 16,
+                );
+            }
+
             function refresh() {
                 if (! fullDomain) {
                     return;
@@ -2861,8 +2844,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                     axes.x.scale.domain(),
                     axes.y.scale.domain(),
                 ];
-                centerTitle();
-                centerSubTitle();
                 if (appState.deepEquals(fullDomain, prevDomain)) {
                     adjustZoomToCenter(axes.x.scale);
                     adjustZoomToCenter(axes.y.scale);
@@ -2873,24 +2854,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 xyZoom = axes.x.createZoom($scope).y(axes.y.scale);
                 axes.x.zoom = axes.x.createZoom($scope);
                 axes.y.zoom = axes.y.createZoom($scope);
-            }
-
-            function resizefocusPointText() {
-                var maxSize = 14;
-                var minSize = 9;
-                var focusText = select('.focus-text');
-                var fs = focusText.style('font-size');
-
-                var currentFontSize = utilities.fontSizeFromString(fs);
-                var newFontSize = currentFontSize;
-
-                var textWidth = focusText.node().getComputedTextLength();
-                var pct = ($scope.canvasSize.width - $scope.focusTextCloseSpace) / textWidth;
-
-                newFontSize *= pct;
-                newFontSize = Math.max(minSize, newFontSize);
-                newFontSize = Math.min(maxSize, newFontSize);
-                focusText.style('font-size', newFontSize + 'px');
             }
 
             function restoreDomain(scale, oldValue) {
@@ -3018,6 +2981,9 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 axes.x.updateLabel(json.x_label, select);
                 axes.y.updateLabel(json.y_label, select);
                 select('.z-axis-label').text(json.z_label);
+                if (json.z_footer) {
+                    select('.z-axis-footer').text(json.z_footer);
+                }
                 var zmin = plotting.min2d(heatmap);
                 var zmax = plotting.max2d(heatmap);
                 if ('z_range' in json) { zmin = json.z_range[0]; zmax = json.z_range[1]; }
@@ -3041,6 +3007,9 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 if (select().empty()) {
                     return;
                 }
+                //TODO(pjm): double refresh required to get correct axis in some cases
+                // see https://github.com/radiasoft/sirepo/issues/7297
+                refresh();
                 refresh();
             };
 
@@ -3061,7 +3030,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 }
                 select('.sub-title').style('display', 'none');
                 focusText.text(xyfText);
-                resizefocusPointText();
+                layoutFocusPointText();
             };
 
             $scope.showPlotSize = () => {
@@ -3491,6 +3460,9 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 if (select().empty()) {
                     return;
                 }
+                //TODO(pjm): double refresh required to get correct axis in some cases
+                // see https://github.com/radiasoft/sirepo/issues/7297
+                refresh();
                 refresh();
             };
 
@@ -3515,17 +3487,17 @@ SIREPO.app.directive('colorCircle', function() {
     return {
         resize: 'A',
         scope: {
-            color: '<colorCircle',
-            dashed: '<',
+            plot: '<colorCircle',
         },
         template: `
-          <div data-ng-style="{ background: bgcolor }" style="display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-bottom: -2px"> </div>
+              <svg width="30" height="10">
+                <line x1="0" y1="5" x2="30" y2="5"
+                  data-ng-attr-stroke-width="{{ plot.strokeWidth }}"
+                  data-ng-attr-opacity="{{ plot.opacity || 1.0 }}"
+                  data-ng-attr-stroke="{{ plot.color }}"
+                  data-ng-attr-stroke-dasharray="{{ plot.dashes }}" />
+              </svg>
         `,
-        controller: function($scope) {
-            $scope.bgcolor = $scope.dashed
-                ? `linear-gradient(90deg, ${$scope.color} 38%, transparent 38%, transparent 62%, ${$scope.color} 62%)`
-                : $scope.color;
-        },
     };
 });
 
@@ -3542,7 +3514,7 @@ SIREPO.app.directive('plotLegend', function(mathRendering) {
               <div data-ng-repeat="p in plots" style="margin-left: 1em">
                 <div data-ng-click="click($index)" style="cursor: pointer; display: inline">
                   <a href data-ng-style="{ opacity: opacity(p) }"><span class="glyphicon" data-ng-class="{'glyphicon-check': p._isVisible, 'glyphicon-unchecked': ! p._isVisible}"> </span></a>
-                  <div style="display:inline" data-color-circle="p.color" data-dashed="p.dashes"></div>
+                  <div style="display:inline" data-color-circle="p"></div>
                   <span data-text-with-math="label(p)" data-is-dynamic="1"></span>
                 </div>
               </div>
@@ -3680,7 +3652,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     plot._yaxis = appState.applicationState()[$scope.modelName][plot.dim + 'Position'] || 'left';
                     if (plot._yaxis == 'right') {
                         hasY2Axis = true;
-                        plot.dashes = '5 5';
+                        plot.dashes = '5 3';
                     }
                 });
                 if (hasY2Axis) {
@@ -3734,7 +3706,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 viewport.selectAll('.line').remove();
                 viewport.selectAll('g.param-plot').remove();
                 json.plots.forEach(function(plot, ip) {
-                    let strokeWidth = plot.strokeWidth || 2.0;
+                    plot.strokeWidth = plot.strokeWidth || 2.0;
                     if (plot.style === 'scatter') {
                         let clusterInfo;
                         let circleRadius = plot.circleRadius || 2;
@@ -3764,7 +3736,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                             .attr('class', 'param-plot line line-color')
                             .attr('data-sr-index', ip)
                             .style('stroke', plot.color)
-                            .style('stroke-width', strokeWidth)
+                            .style('stroke-width', plot.strokeWidth)
                             .datum(plot.points);
                         if (plot.dashes) {
                             p.style('stroke-dasharray', (plot.dashes));
@@ -3978,6 +3950,9 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         const limit = appState.applicationState()[$scope.modelName][`${v}Limit`];
                         if (limit && ydom[i][1] > limit) {
                             ydom[i][1] = limit;
+                            if (ydom[i][0] > ydom[i][1]) {
+                                ydom[i][0] = ydom[i][1];
+                            }
                         }
                     }
                 });

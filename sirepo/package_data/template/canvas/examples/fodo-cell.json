@@ -52,19 +52,19 @@
             "histogramBins": 80,
             "notes": "",
             "x": "x",
-            "y": "px"
+            "y": "y"
         },
         "bunchReport4": {
             "colorMap": "viridis",
             "histogramBins": 80,
             "notes": "",
-            "x": "x",
-            "y": "px"
+            "x": "t",
+            "y": "pt"
         },
         "commands": [],
         "distribution": {
             "charge": 1e-14,
-            "distributionFile": "fodo.sdds",
+            "distributionFile": "",
             "distributionType": "KVdist",
             "energy": 1.188272046,
             "halo": 0,

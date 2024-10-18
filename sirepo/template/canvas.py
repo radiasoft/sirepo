@@ -4,22 +4,41 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
+from rsbeams.rsdata.SDDS import readSDDS
+from rsbeams.rsstats import kinematic
 from sirepo.template import code_variable
 from sirepo.template import madx_parser
 from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.madx_converter import MadxConverter
+import h5py
+import impactx
 import math
+import numpy
 import pandas
+import pmd_beamphysics.readers
+import pykern.pkio
+import pykern.pksubprocess
+import re
+import scipy.constants
 import sirepo.sim_data
 import sirepo.template.impactx
 import sirepo.template.madx
 import sirepo.template.sdds_util
+import tempfile
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+INPUT_IMPACTX_BEAM_FILE = "beam.h5"
+_PHASE_SPACE_LABEL = PKDict(
+    x="x [m]",
+    px="Px [rad]",
+    y="y [m]",
+    py="Py [rad]",
+    t="t [m]",
+    pt="Pt (%)",
+)
 
 
 class CanvasMadxConverter(MadxConverter):
@@ -166,36 +185,63 @@ def save_sequential_report_data(run_dir, data):
 
 
 def sim_frame(frame_args):
-    # TODO(pjm): implement selecting columns from frame_args
+
+    def _flip_sign(values):
+        return (-numpy.array(values)).tolist()
+
     if frame_args.simCode == "elegant":
-        x = sdds_util.extract_sdds_column(
-            str(frame_args.run_dir.join("elegant/run_setup.output.sdds")),
-            "x",
-            0,
-        )["values"]
-        y = sdds_util.extract_sdds_column(
-            str(frame_args.run_dir.join("elegant/run_setup.output.sdds")),
-            "xp",
-            0,
-        )["values"]
-    elif frame_args.simCode == "madx":
-        madx_particles = madx_parser.parse_tfs_file(
-            "madx/ptc_track.file.tfs", want_page=1
+        _ELEGANT_FIELD_MAP = PKDict(
+            px="xp",
+            py="yp",
+            pt="p",
         )
-        x = sirepo.template.madx.to_floats(madx_particles["x"])
-        y = sirepo.template.madx.to_floats(madx_particles["px"])
+
+        def _to_elegant(field):
+            v = sdds_util.extract_sdds_column(
+                str(frame_args.run_dir.join("elegant/run_setup.output.sdds")),
+                _ELEGANT_FIELD_MAP.get(field, field),
+                0,
+            )["values"]
+            if field == "t":
+                v = -numpy.array(v) * scipy.constants.c
+                v -= v.mean()
+            elif field == "pt":
+                v = _elegant_p_to_pt(frame_args.run_dir, v)
+            return v
+
+        x = _to_elegant(frame_args.x)
+        y = _to_elegant(frame_args.y)
+    elif frame_args.simCode == "madx":
+
+        def _to_madx(particles, field):
+            v = sirepo.template.madx.to_floats(particles[field])
+            if field in ("t", "pt"):
+                v = _flip_sign(v)
+            return v
+
+        p = madx_parser.parse_tfs_file("madx/ptc_track.file.tfs", want_page=1)
+        x = _to_madx(p, frame_args.x)
+        y = _to_madx(p, frame_args.y)
     elif frame_args.simCode == "impactx":
+        _IMPACTX_FIELD_MAP = PKDict(
+            x="position_x",
+            px="momentum_x",
+            y="position_y",
+            py="momentum_y",
+            t="position_t",
+            pt="momentum_t",
+        )
         impactx_particles = pandas.read_hdf("impactx/diags/final_distribution.h5")
-        x = list(impactx_particles["position_x"])
-        y = list(impactx_particles["momentum_x"])
+        x = list(impactx_particles[_IMPACTX_FIELD_MAP[frame_args.x]])
+        y = list(impactx_particles[_IMPACTX_FIELD_MAP[frame_args.y]])
     else:
         raise AssertionError(f"Unknown simCode: {frame_args.simCode}")
     return template_common.heatmap(
         values=[x, y],
         model=frame_args,
         plot_fields=PKDict(
-            x_label="x [m]",
-            y_label="xp [rad]",
+            x_label=_PHASE_SPACE_LABEL[frame_args.x],
+            y_label=_PHASE_SPACE_LABEL[frame_args.y],
             title=frame_args.simCode,
         ),
     )
@@ -239,13 +285,13 @@ def sim_frame_sigmaAnimation(frame_args):
             PKDict(
                 label="elegant sigma x [m]",
                 points=elegant.sx,
-                strokeWidth=10,
+                strokeWidth=7,
                 opacity=0.5,
             ),
             PKDict(
                 label="elegant sigma y [m]",
                 points=elegant.sy,
-                strokeWidth=10,
+                strokeWidth=7,
                 opacity=0.5,
             ),
             PKDict(label="impactx sigma x [m]", points=impactx.sx),
@@ -264,24 +310,28 @@ def sim_frame_sigmaAnimation(frame_args):
     )
 
 
+def stateless_compute_code_versions(data, **kwargs):
+    def _run_code(name, regexp):
+        t = tempfile.NamedTemporaryFile()
+        pykern.pksubprocess.check_call_with_signals([name], output=t.name)
+        m = re.match(regexp, pykern.pkio.read_text(t.name), re.MULTILINE | re.DOTALL)
+        if not m:
+            raise AssertionError(f"Unable to parse version for code: {name}")
+        return m.group(1)
+
+    return PKDict(
+        elegant="elegant ("
+        + _run_code("elegant", r".*?This is elegant ([\d\.]{4,}),")
+        + ")",
+        madx="MAD-X (" + _run_code("madx", r".*?MAD-X\s([\d\.]{4,})\s") + ")",
+        impactx=f"ImpactX ({ impactx.__version__ })",
+    )
+
+
 def stateful_compute_import_file(data, **kwargs):
     res = CanvasMadxConverter().from_madx_text(data.args.file_as_str)
     res.models.simulation.name = data.args.purebasename
     return PKDict(imported_data=res)
-
-
-def _trim_duplicate_positions(v, s, k1, k2):
-    s2 = []
-    last_pos = None
-    for idx in reversed(range(len(v[s]))):
-        pos = v[s][idx]
-        if last_pos is not None and last_pos == pos:
-            del v[k1][idx]
-            del v[k2][idx]
-        else:
-            s2.insert(0, pos)
-        last_pos = pos
-    v[s] = s2
 
 
 def sim_frame_twissAnimation(frame_args):
@@ -308,12 +358,8 @@ def sim_frame_twissAnimation(frame_args):
     )
     impactx = PKDict(
         s=list(impactx_sigma["s"].values),
-        bx=list(
-            impactx_sigma["sig_x"].values ** 2 / impactx_sigma["emittance_x"].values
-        ),
-        by=list(
-            impactx_sigma["sig_y"].values ** 2 / impactx_sigma["emittance_y"].values
-        ),
+        bx=list(impactx_sigma["beta_x"].values),
+        by=list(impactx_sigma["beta_y"].values),
     )
     madx_twiss = madx_parser.parse_tfs_file("madx/twiss.file.tfs")
     madx = PKDict(
@@ -345,25 +391,25 @@ def sim_frame_twissAnimation(frame_args):
             ),
             PKDict(
                 label="impactx beta x [m]",
+                strokeWidth=3,
+                opacity=0.7,
                 points=impactx.bx,
             ),
             PKDict(
                 label="impactx beta y [m]",
+                strokeWidth=3,
+                opacity=0.7,
                 points=impactx.by,
             ),
             PKDict(
                 label="madx beta x [m]",
                 points=madx.bx,
-                # strokeWidth=15,
-                # opacity=0.3,
-                dashes="5 5",
+                dashes="5 3",
             ),
             PKDict(
                 label="madx beta y [m]",
                 points=madx.by,
-                # strokeWidth=15,
-                # opacity=0.3,
-                dashes="5 5",
+                dashes="5 3",
             ),
         ],
         model=frame_args,
@@ -377,9 +423,38 @@ def sim_frame_twissAnimation(frame_args):
 
 
 def write_parameters(data, run_dir, is_parallel):
-    pkio.write_text(
+    pykern.pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
+    )
+
+
+def _elegant_p_to_pt(run_dir, values):
+    # read species mass from impactx input file
+    with h5py.File(run_dir.join(INPUT_IMPACTX_BEAM_FILE), "r") as f:
+        pp = pmd_beamphysics.readers.particle_paths(f)
+        d = f[pp[-1]]
+        if "beam" in d:
+            d = d["beam"]
+        mass = d.attrs["mass_ref"]
+    # read final energy value from elegant pCentral
+    f = readSDDS(str(run_dir.join("elegant/run_setup.output.sdds")))
+    f.read()
+    ref = kinematic.Converter(
+        mass=mass,
+        mass_unit="SI",
+        betagamma=f.parameters[0][0]["pCentral"],
+    )()
+    return -(
+        (
+            kinematic.Converter(
+                mass=mass,
+                mass_unit="SI",
+                betagamma=numpy.array(values),
+            )(silent=True)["gamma"]
+            - ref["gamma"]
+        )
+        / ref["betagamma"]
     )
 
 
@@ -397,3 +472,17 @@ def _generate_parameters_file(data):
     ):
         return sirepo.template.impactx.generate_distribution(data, res, v)
     return ""
+
+
+def _trim_duplicate_positions(v, s, k1, k2):
+    s2 = []
+    last_pos = None
+    for idx in reversed(range(len(v[s]))):
+        pos = v[s][idx]
+        if last_pos is not None and last_pos == pos:
+            del v[k1][idx]
+            del v[k2][idx]
+        else:
+            s2.insert(0, pos)
+        last_pos = pos
+    v[s] = s2

@@ -5,6 +5,7 @@
         }
     },
     "constants": {
+        "codes": ["elegant", "madx", "impactx"],
         "particleMassAndCharge": {
             "positron": [0.510998950e-03, 1],
             "electron": [0.510998950e-03, -1],
@@ -58,8 +59,11 @@
             ["y", "y"],
             ["py", "Py"],
             ["t", "t"],
-            ["pt", "Pt"],
-            ["qm", "q"]
+            ["pt", "Pt"]
+        ],
+        "PlotType": [
+            ["heatmap", "Heatmap"],
+            ["3d", "Heatmap with Histograms"]
         ],
         "Species": [
             ["positron", "Positron"],
@@ -74,15 +78,21 @@
         ],
         "bunchAnimation1": [
             "simCode",
-            "histogramBins"
+            "histogramBins",
+            "x",
+            "y"
         ],
         "bunchAnimation2": [
             "simCode",
-            "histogramBins"
+            "histogramBins",
+            "x",
+            "y"
         ],
         "bunchAnimation3": [
             "simCode",
-            "histogramBins"
+            "histogramBins",
+            "x",
+            "y"
         ]
     },
     "localRoutes": {
@@ -111,19 +121,39 @@
         "beamline": {
             "name": ["Name", "ValidatedString"]
         },
+        "bunchAnimation": {
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
+        },
         "bunchAnimation1": {
             "simCode": ["", "String", "elegant"],
-            "histogramBins": ["Histogram Bins", "Integer", 80],
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
         "bunchAnimation2": {
             "simCode": ["", "String", "madx"],
-            "histogramBins": ["Histogram Bins", "Integer", 80],
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
         "bunchAnimation3": {
             "simCode": ["", "String", "impactx"],
-            "histogramBins": ["Histogram Bins", "Integer", 80],
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
         "bunchReport": {
@@ -164,9 +194,9 @@
             "notes": ["Notes", "Text", ""]
         },
         "simulationSettings": {
-            "useElegant": ["elegant", "Boolean", "1"],
-            "useMadx": ["MAD-X", "Boolean", "1"],
-            "useImpactX": ["ImpactX", "Boolean", "1"]
+            "elegant": ["elegant {{ elegantVersion }}", "Boolean", "1"],
+            "madx": ["MAD-X {{ madxVersion }}", "Boolean", "1"],
+            "impactx": ["ImpactX {{ impactxVersion }}", "Boolean", "1"]
         },
         "twissAnimation": {
             "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
@@ -250,26 +280,36 @@
                 "name"
             ]
         },
-        "bunchAnimation1": {
+
+        "bunchAnimation": {
+            "hasDataFile": false,
             "title": "Phase Space",
             "advanced": [
+                "plotType",
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
                 "histogramBins",
+                "colorMap",
                 "notes"
             ]
+        },
+        "bunchAnimation1": {
+            "title": "Phase Space",
+            "advanced": []
         },
         "bunchAnimation2": {
             "title": "Phase Space",
-            "advanced": [
-                "histogramBins",
-                "notes"
-            ]
+            "advanced": []
         },
         "bunchAnimation3": {
             "title": "Phase Space",
-            "advanced": [
-                "histogramBins",
-                "notes"
-            ]
+            "advanced": []
         },
         "bunchReport": {
             "title": "Beam Phase Space",
@@ -323,6 +363,7 @@
             "advanced": []
         },
         "sigmaAnimation": {
+            "hasDataFile": false,
             "title": "Sigma",
             "advanced": [
                 "includeLattice",
@@ -334,13 +375,14 @@
             "basic": [
                 "simulation.visualizationBeamlineId",
                 "*Compare Codes",
-                "useElegant",
-                "useMadx",
-                "useImpactX"
+                "elegant",
+                "madx",
+                "impactx"
             ],
             "advanced": []
         },
         "twissAnimation": {
+            "hasDataFile": false,
             "title": "Twiss",
             "advanced": [
                 "includeLattice",
