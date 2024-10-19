@@ -236,6 +236,22 @@ def read_sdds_pages(filename, column_names, group_by_page_number=False):
     return res
 
 
+def read_sdds_parameter(filename, parameter_name):
+    sdds_index = _next_index()
+    try:
+        assert sdds.sddsdata.InitializeInput(sdds_index, filename) == 1
+        p = sdds.sddsdata.GetParameterNames(sdds_index)
+        if parameter_name in p:
+            if sdds.sddsdata.ReadPage(sdds_index) == 1:
+                return sdds.sddsdata.GetParameter(sdds_index, p.index(parameter_name))
+    finally:
+        try:
+            sdds.sddsdata.Terminate(sdds_index)
+        except Exception:
+            pass
+    return None
+
+
 def twiss_to_madx(elegant_twiss_file, madx_twiss_file):
     outfile = "sdds_output.txt"
     twiss_file = "twiss-with-mu.sdds"

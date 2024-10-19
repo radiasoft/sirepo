@@ -475,6 +475,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     self.outputFileMap = {};
 
     function cleanFilename(fn) {
+        fn = fn.replace(/\-\%.*/, '');
         return fn.replace(/\.(?:sdds|output_file|filename)/g, '');
     }
 

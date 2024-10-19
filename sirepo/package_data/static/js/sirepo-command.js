@@ -4,11 +4,14 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
-    SIREPO.appFieldEditors += [
-        '<div data-ng-switch-when="OutputFile" data-ng-class="fieldClass">',
-          '<div data-output-file-field="field" data-model="model"></div>',
-        '</div>',
-    ].join('');
+    SIREPO.appFieldEditors += `
+        <div data-ng-switch-when="OutputFile" data-ng-class="fieldClass">
+          <div data-output-file-field="field" data-model="model"></div>
+        </div>
+        <div data-ng-switch-when="MultiOutputFile" data-ng-class="fieldClass">
+          <div data-output-file-field="field" data-model="model" data-is-multi="1"></div>
+        </div>
+    `;
 });
 
 SIREPO.app.factory('commandService', function(appState, latticeService, panelState, validationService) {
@@ -444,6 +447,7 @@ SIREPO.app.directive('outputFileField', function(appState, commandService) {
         scope: {
             field: '=outputFileField',
             model: '=',
+            isMulti: '@',
         },
         template: `
             <select class="form-control" data-ng-model="model[field]" data-ng-options="item[0] as item[1] for item in items()"></select>
@@ -471,7 +475,7 @@ SIREPO.app.directive('outputFileField', function(appState, commandService) {
                     prefix = $scope.model._type + (index > 1 ? index : '');
                 }
                 var ext = commandService.commandFileExtension($scope.model);
-                var name = prefix + '.' + $scope.field + ext;
+                var name = prefix + '.' + $scope.field + ($scope.isMulti ? '-%03ld' : '') + ext;
                 if (name != filename) {
                     filename = name;
                     items = [
