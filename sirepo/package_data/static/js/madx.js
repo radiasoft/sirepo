@@ -465,10 +465,11 @@ SIREPO.app.directive('commandConfirmation', function(appState, commandService, l
                 var sim = appState.models.simulation;
                 if (sim.commandTemplate == 'particle') {
                     addCommands([
+                        { _type: 'option', echo: '0', info: '0' },
                         { _type: 'ptc_create_universe', sector_nmul: 10, sector_nmul_max: 10 },
-                        //TODO(pjm): look at adding method: 4, nst: 25
-                        { _type: 'ptc_create_layout' },
-                        { _type: 'ptc_track', element_by_element: '1', file: '1', icase: '6' },
+                        { _type: 'ptc_create_layout', method: 4, nst: 25 },
+                        { _type: 'ptc_track', element_by_element: '1', file: '1', icase: '6',
+                          maxaper: '1,1,1,1,5,1' },
                         { _type: 'ptc_track_end' },
                         { _type: 'ptc_end' },
                     ]);
