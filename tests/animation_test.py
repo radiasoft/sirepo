@@ -115,7 +115,6 @@ def test_srw(fc):
     data = fc.sr_sim_data("Young's Double Slit Experiment")
     data.models.multiElectronAnimation.pkupdate(
         numberOfMacroElectrons=4,
-        watchpointId=7,
     )
     data.models.simulation.sampleFactor = 0.0001
     fc.sr_animation_run(
