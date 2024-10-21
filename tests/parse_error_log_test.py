@@ -1,12 +1,43 @@
-# -*- coding: utf-8 -*-
 """Parsing of an error run.log
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-import pytest
+
 import os
+
+
+def setup_module(module):
+    os.environ.update(
+        # Dev mode has to be false for these tests to pass
+        PYKERN_PKCONFIG_DEV_MODE="0",
+        # Need to set these manually when in non-dev-mode
+        SIREPO_COOKIE_IS_SECURE="0",
+        SIREPO_COOKIE_PRIVATE_KEY="MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=",
+        SIREPO_SMTP_PASSWORD="dev",
+        SIREPO_SMTP_SERVER="dev",
+        SIREPO_SMTP_USER="dev",
+    )
+
+
+def test_parse_python_errors():
+    from sirepo.pkcli import job_cmd
+    from pykern.pkunit import pkeq
+
+    err = """
+Traceback (most recent call last):
+  File "/home/vagrant/src/radiasoft/sirepo/sirepo/pkcli/zgoubi.py", line 120, in _validate_estimate_output_file_size
+    'Estimated FAI output too large.\n'
+AssertionError: Estimated FAI output too large.
+Reduce particle count or number of runs,
+or increase diagnostic interval.
+"""
+    pkeq(
+        job_cmd._parse_python_errors(err),
+        """Estimated FAI output too large.
+Reduce particle count or number of runs,
+or increase diagnostic interval.""",
+    )
 
 
 def test_runError(fc):
@@ -34,23 +65,3 @@ def test_runError(fc):
         d = fc.sr_post("runStatus", d.nextRequest)
     else:
         pkunit.pkfail("Error never returned d={}", d)
-
-
-def test_parse_python_errors():
-    from sirepo.pkcli import job_cmd
-    from pykern.pkunit import pkeq
-
-    err = """
-Traceback (most recent call last):
-  File "/home/vagrant/src/radiasoft/sirepo/sirepo/pkcli/zgoubi.py", line 120, in _validate_estimate_output_file_size
-    'Estimated FAI output too large.\n'
-AssertionError: Estimated FAI output too large.
-Reduce particle count or number of runs,
-or increase diagnostic interval.
-"""
-    pkeq(
-        job_cmd._parse_python_errors(err),
-        "Estimated FAI output too large.\n"
-        "Reduce particle count or number of runs,\n"
-        "or increase diagnostic interval.",
-    )
