@@ -14,6 +14,8 @@ def setup_module(module):
         # Need to set these manually when in non-dev-mode
         SIREPO_COOKIE_IS_SECURE="0",
         SIREPO_COOKIE_PRIVATE_KEY="MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=",
+        # Avoids srw/predefined.json check
+        SIREPO_FEATURE_CONFIG_SIM_TYPES="myapp",
         SIREPO_SMTP_PASSWORD="dev",
         SIREPO_SMTP_SERVER="dev",
         SIREPO_SMTP_USER="dev",
