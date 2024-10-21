@@ -25,6 +25,7 @@ _OUTLINES_FILE = "outlines.json"
 _PREP_SBATCH_PREFIX = "prep-sbatch"
 _VOLUME_INFO_FILE = "volumes.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+_WEIGHT_WINDOWS_FILE = "weight_windows.h5"
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -54,6 +55,13 @@ def get_data_file(run_dir, model, frame, options):
     if model == "openmcAnimation":
         if options.suffix == "log":
             return template_common.text_data_file(template_common.RUN_LOG, run_dir)
+        if options.suffix == "h5":
+            return template_common.JobCmdFile(
+                reply_uri=_format_weight_windows_file_name(
+                    sim_in.models.simulation.name
+                ),
+                reply_path=run_dir.join(_WEIGHT_WINDOWS_FILE),
+            )
         return _statepoint_filename(
             simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
         )
@@ -194,7 +202,7 @@ def sim_frame(frame_args):
 
 def stateful_compute_check_animation_dir(data, **kwargs):
     return PKDict(
-        animationDirExists=simulation_db.simulation_dir("openmc", sid=data.simulationId)
+        animationDirExists=simulation_db.simulation_dir(SIM_TYPE, sid=data.simulationId)
         .join(data.args.modelName)
         .exists()
     )
@@ -210,6 +218,21 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
         "dagmcFile",
     )
     return PKDict()
+
+
+def statefull_compute_save_weight_windows_file_to_lib(data, **kwargs):
+    n = _format_weight_windows_file_name(data.args.name)
+    _SIM_DATA.lib_file_write(
+        _SIM_DATA.lib_file_name_with_model_field(
+            "settings",
+            "weightWindowsFile",
+            n,
+        ),
+        simulation_db.simulation_dir(SIM_TYPE, data.simulationId).join(
+            _WEIGHT_WINDOWS_FILE
+        ),
+    )
+    return PKDict(filename=n)
 
 
 def stateless_compute_validate_material_name(data, **kwargs):
@@ -280,6 +303,7 @@ def write_parameters(data, run_dir, is_parallel):
                 PKDict(
                     cacheDir=sirepo.sim_run.cache_dir(_CACHE_DIR),
                     numThreads=data.models.openmcAnimation.ompThreads,
+                    saveWeightWindowsFile=_generate_save_weight_windows(data),
                 ),
                 "openmc-sbatch.py",
             ),
@@ -620,6 +644,11 @@ def _generate_parameters_file(data, run_dir=None):
         v.isSBATCH = _is_sbatch_run_mode(data)
     v.batchSequence = _batch_sequence(data.models.settings)
     v.weightWindowsMesh = _generate_mesh(data.models.weightWindowsMesh)
+    v.weightWindowsFile = _SIM_DATA.lib_file_name_with_model_field(
+        "settings",
+        "weightWindowsFile",
+        data.models.settings.weightWindowsFile,
+    )
     v.runCommand = _generate_run_mode(data, v)
     v.incomplete_data_msg = ""
     v.materials = _generate_materials(data, v)
@@ -636,6 +665,8 @@ def _generate_parameters_file(data, run_dir=None):
         return (
             f'raise AssertionError("Unable to generate sim: {v.incomplete_data_msg}")'
         )
+    if not v.isSBATCH and not v.isPythonSource:
+        v.saveWeightWindowsFile = _generate_save_weight_windows(data)
     return template_common.render_jinja(
         SIM_TYPE,
         v,
@@ -671,6 +702,22 @@ def _generate_run_mode(data, v):
     if v.isPythonSource:
         return "openmc.run()"
     return f"openmc.run(threads={cores})"
+
+
+def _generate_save_weight_windows(data):
+    if data.models.settings.varianceReduction in (
+        "weight_windows_mesh",
+        "weight_windows_tally",
+    ):
+        return f"""
+import sirepo.sim_data
+sirepo.sim_data.get_class("{ SIM_TYPE }").put_sim_file(
+    "{ data.models.simulation.simulationId }",
+    "{ _WEIGHT_WINDOWS_FILE }",
+    "{ _WEIGHT_WINDOWS_FILE }",
+)
+"""
+    return ""
 
 
 def _generate_source(source):
@@ -908,6 +955,10 @@ def _parse_run_stats(run_dir, out):
                     out.results.append(_get_groups(m, 1, 2, 3))
 
 
+def _format_weight_windows_file_name(name):
+    return name.strip().replace(" ", "-") + ".h5"
+
+
 def _frame_count_for_batch(batch, data):
     settings = data.models.settings
     c = 0
@@ -962,6 +1013,8 @@ def _percent_complete(run_dir, is_running):
     if res.frameCount:
         _cleanup_statepoint_files(run_dir, data, res.frameCount, is_running)
         res.tallies = data.models.settings.tallies
+        if not is_running and run_dir.join(_WEIGHT_WINDOWS_FILE).exists():
+            res.hasWeightWindowsFile = True
     return res
 
 
@@ -1015,6 +1068,8 @@ with openmc.lib.run_in_memory():
     for i in range({ww.iterations}):
         openmc.lib.reset()
         openmc.lib.run()
+        if i == {ww.iterations - 1}:
+            openmc.lib.export_weight_windows(filename="{_WEIGHT_WINDOWS_FILE}")
         wws.update_magic(tally)
         openmc.lib.settings.weight_windows_on = True
 """

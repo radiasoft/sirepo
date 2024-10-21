@@ -58,6 +58,8 @@ def create_settings():
     )
 {% if settings_varianceReduction == "weight_windows_mesh" or settings_varianceReduction == "weight_windows_tally" %}
     settings.max_splits = {{ settings_max_splits }}
+{% elif settings_varianceReduction == "weight_windows_file" %}
+    settings.weight_windows = openmc.hdf5_to_wws("{{ weightWindowsFile }}")
 {% endif %}
     settings.output = dict(
         summary=False,
@@ -105,3 +107,4 @@ import sirepo.template
 sirepo.template.import_module('openmc').write_volume_outlines()
 {% endif %}
 {{ runCommand }}
+{{ saveWeightWindowsFile }}

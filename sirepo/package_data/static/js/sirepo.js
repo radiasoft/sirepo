@@ -3340,19 +3340,6 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         sendWithSimulationFields('analysisJob', appState, callback, data);
     };
 
-    self.sendDownloadRunFile = (appState, routeParams, successCb, errorCb) => {
-        // When other types are requested, we can add them, e.g. blob or txt.
-        if (routeParams.suffix !== "json") {
-            throw new Error("invalid downloadDataFile suffix=" + (routeParams.suffix || ""));
-        }
-        self.sendRequest(
-            self.downloadRunFileUrl(appState, routeParams),
-            successCb,
-            routeParams.suffix === "json" ? {responseType: "json"} : {},
-            errorCb || (reply => {throw new Error(reply.error);})
-        );
-    };
-
     self.sendGlobalResources = function(appState, callback, data, errorCb) {
         sendWithSimulationFields('globalResources', appState, callback, data, errorCb);
     };

@@ -1,9 +1,9 @@
 <div class="container-fluid">
   <div class="row">
-    <div class="col-md-6 col-xl-4">
+    <div class="col-md-6 col-xxl-4">
       <div data-basic-editor-panel="" data-view-name="settings"></div>
     </div>
-    <div class="col-md-6 col-xl-4">
+    <div class="col-md-6 col-xxl-4">
       <div data-simple-panel="simulationStatus">
         <div data-sim-status-panel="visualization.simState" data-start-function="visualization.startSimulation()"></div>
         <div class="row">
@@ -43,6 +43,12 @@
             </tbody>
           </table>
           </div>
+          <div class="col-sm-12" data-ng-if="visualization.hasWeightWindowsFile">
+            <div class="col-sm-12"><a data-ng-attr-href="{{ visualization.weightWindowsFileURL() }}">
+              <span class="glyphicon glyphicon-cloud-download"></span> Computed Weight Windows</a>
+              <buttontype="button" class="btn btn-sm btn-default" data-ng-click="visualization.applyWeightWindows()">Apply Weight Windows</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -54,9 +60,10 @@
     </div>
     <div class="col-sm-4">
       <div data-simple-panel="tallySettings">
-          <div data-tally-settings=""></div>
+          <div data-advanced-editor-pane="" data-view-name="'tallySettings'" data-want-buttons=""
+            data-field-def="basic"></div>
       </div>
-      <div data-ng-if="showEnergyPlot()">
+      <div data-ng-if="visualization.showEnergyPlot()">
         <div data-report-panel="parameter" data-model-name="energyAnimation" data-panel-title="Energy Spectrum">
           <div data-advanced-editor-pane="" data-view-name="'energyAnimation'" data-field-def="basic"></div>
         </div>
@@ -64,3 +71,4 @@
     </div>
   </div>
 </div>
+<div data-apply-weight-window-confirmation=""></div>
