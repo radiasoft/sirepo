@@ -220,7 +220,7 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
     return PKDict()
 
 
-def stateless_compute_save_weight_windows_file_to_lib(data, **kwargs):
+def statefull_compute_save_weight_windows_file_to_lib(data, **kwargs):
     n = _format_weight_windows_file_name(data.args.name)
     _SIM_DATA.lib_file_write(
         _SIM_DATA.lib_file_name_with_model_field(

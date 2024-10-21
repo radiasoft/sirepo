@@ -3321,7 +3321,7 @@ SIREPO.app.directive('applyWeightWindowConfirmation', function(appState, openmcS
         `,
         controller: function($scope) {
             const addFileToLib = (callback) => {
-                requestSender.sendStatelessCompute(
+                requestSender.sendStatefulCompute(
                     appState,
                     (data) => {
                         callback(data.filename);
