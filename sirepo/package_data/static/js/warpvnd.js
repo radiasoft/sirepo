@@ -4480,25 +4480,19 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     // sort the external edges so we'll preferentially pick the left and bottom
                     var externalEdges = vpOutline.externalViewportEdgesForDimension(dim)
                         .sort(edgeSorter(perpScreenDim, ! isHorizontal));
-                    var seg = geometry.bestEdgeAndSectionInBounds(externalEdges, screenRect, dim, false);
+                    var edge = geometry.bestEdgeInBounds(externalEdges, screenRect, dim);
 
-                    if (! seg) {
-                        // all possible axis ends offscreen, so try a centerline
-                        var cl = vpOutline.centerLines[dim];
-                        seg = geometry.bestEdgeAndSectionInBounds([cl], screenRect, dim, false);
-                        if (! seg) {
-                            // don't draw axes
-                            select(axisSelector).style('opacity', 0.0);
-                            select(axisLabelSelector).style('opacity', 0.0);
-                            continue;
-                        }
-                        showAxisEnds = true;
+                    if (! edge) {
+                        // don't draw axes
+                        select(axisSelector).style('opacity', 0.0);
+                        select(axisLabelSelector).style('opacity', 0.0);
+                        continue;
                     }
                     select(axisSelector).style('opacity', 1.0);
 
-                    var fullSeg = seg.full;
-                    var clippedSeg = seg.clipped;
-                    var reverseOnScreen = shouldReverseOnScreen(dim, seg.index, screenDim);
+                    var fullSeg = edge;
+                    var clippedSeg = fullSeg;
+                    var reverseOnScreen = shouldReverseOnScreen(edge, screenDim);
                     var sortedPts = geometry.sortInDimension(clippedSeg.points, screenDim, false);
                     var axisLeft = sortedPts[0].x;
                     var axisTop = sortedPts[0].y;
@@ -4625,8 +4619,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 };
             }
 
-            function shouldReverseOnScreen(dim, index, screenDim) {
-                var currentEdge = vpOutline.viewportEdges()[dim][index];
+            function shouldReverseOnScreen(currentEdge, screenDim) {
                 var currDiff = currentEdge.points[1][screenDim] - currentEdge.points[0][screenDim];
                 return currDiff < 0;
             }
