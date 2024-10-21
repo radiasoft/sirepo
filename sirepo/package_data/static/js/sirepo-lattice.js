@@ -1845,14 +1845,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
             }
 
             //TODO(pjm): will infinitely recurse if beamlines are self-referential
-            function explodeItems(beamline, res, reversed, beamlineIndex) {
+            function explodeItems(beamline, beamlineIndex) {
                 var items = beamline.items;
-                if (! res) {
-                    res = [];
-                }
-                if (reversed) {
-                    items = items.slice().reverse();
-                }
+                const res = [];
                 let isAbsolute = latticeService.isAbsolutePositioning();
                 if (isAbsolute) {
                     if (beamline.z || beamline.x || beamline.theta) {
@@ -1881,7 +1876,8 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         }
                     }
                     else {
-                        explodeItems(item, res, latticeService.isReversed(id), item.beamlineIndex);
+                        const r = explodeItems(item, item.beamlineIndex);
+                        $.merge(res, latticeService.isReversed(id) ? r.reverse() : r);
                     }
                 }
                 return res;
