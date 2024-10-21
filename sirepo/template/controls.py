@@ -1,26 +1,21 @@
 # -*- coding: utf-8 -*-
 """Controls execution template.
 
-:copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
 from pykern import pkio
-from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo.sim_data.controls import AmpConverter
 from sirepo.template import template_common
 from sirepo.template import madx_parser
 from sirepo.template.lattice import LatticeUtil
-import copy
 import csv
-import os
 import re
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.template.madx
-import socket
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _SUMMARY_CSV_FILE = "summary.csv"
@@ -423,6 +418,7 @@ def _generate_parameters(v, data):
     )
     madx = data.models.externalLattice.models
     header = []
+    monitors = PKDict()
     for el in _SIM_DATA.beamline_elements(madx):
         if data.models.controlSettings.operationMode != "DeviceServer":
             if not _is_enabled(data, el):
@@ -436,10 +432,14 @@ def _generate_parameters(v, data):
             _set_opt(el, "k1", c)
         elif el.type == "MONITOR":
             header += [_format_header(el._id, x) for x in ("x", "y")]
+            monitors[el.name] = el.type
         elif el.type == "HMONITOR":
             header += [_format_header(el._id, "x")]
+            monitors[el.name] = el.type
         elif el.type == "VMONITOR":
             header += [_format_header(el._id, "y")]
+            monitors[el.name] = el.type
+    v.monitorNames = ",\n".join([f'    "{k}": "{v}"' for k, v in monitors.items()])
     v.summaryCSVHeader = ",".join(c.header + header + ["cost"])
     v.initialCorrectors = "[{}]".format(",".join([str(x) for x in c.corrector]))
     v.correctorCount = len(c.corrector)
@@ -484,28 +484,19 @@ def _get_ptc_track_columns(run_dir):
 
 def _get_target_info(info_all, frame_args):
     data = frame_args.sim_in
-    idx = data.models[frame_args.frameReport].id
-    elements = frame_args.sim_in.models.externalLattice.models.elements
-    target = -1
-    for i in range(len(elements)):
-        if elements[i].type == "INSTRUMENT":
-            target += 1
-        if idx == i:
-            break
-    if target < 0:
-        raise AssertionError(f"no target={elements[idx]} in info_all={info_all}")
-    count = -1
+    i = data.models[frame_args.frameReport].id
+    name = None
+    for el in frame_args.sim_in.models.externalLattice.models.elements:
+        if el._id == i:
+            name = el.name
+    if not name:
+        raise AssertionError(f"Missing instrument for id: {i}")
     page = -1
-    target_rec = None
     for rec in info_all:
         page += 1
-        if re.search(r"MARKER\d+_INSTRUMENT", rec.name):
-            count += 1
-            if count == target:
-                target_rec = rec
-                break
-    target_rec.name = elements[idx].name
-    return target_rec, page
+        if rec.name == name:
+            return rec, page
+    raise AssertionError(f"Missing instrument for name: {name}")
 
 
 def _has_beamline(model):

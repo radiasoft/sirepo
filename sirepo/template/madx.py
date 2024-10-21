@@ -349,9 +349,9 @@ def file_info(filename, run_dir, file_id):
 def generate_parameters_file(data):
     data = _iterate_and_format_rpns(data, SCHEMA)
     res, v = template_common.generate_parameters_file(data)
-    if data.models.simulation.computeTwissFromParticles == "1":
-        _add_marker_and_observe(data)
     util = LatticeUtil(data, SCHEMA)
+    if data.models.simulation.computeTwissFromParticles == "1":
+        _add_observers(util)
     filename_map = _build_filename_map_from_util(util)
     report = data.get("report", "")
     v.twissOutputFilename = _TWISS_OUTPUT_FILE
@@ -551,56 +551,6 @@ def uniquify_elements(data):
             res.append(el._id)
         return res
 
-    def _insert_items(old_items, new_items, beamline, index):
-        beamline["items"] = old_items[:index] + new_items + old_items[index + 1 :]
-
-    def _reflect_children(
-        id_to_reflect, index, beamline, reflecting_grandchildren=False
-    ):
-        if abs(id_to_reflect) not in beamline_map:
-            # It is an element, we're done.
-            return
-        if id_to_reflect < 0 and reflecting_grandchildren:
-            # TODO(e-carlin): This is may be wrong. The manual says "Sub-lines
-            # of reflected lines are also reflected" but, it doesn't say if a
-            # sub-line of the sub-line is itself reflected then the reflections
-            # cancel eachother out. It seems to work but could be wrong.
-            beamline["items"][index] = abs(id_to_reflect)
-            return
-        n = beamline_map[abs(id_to_reflect)]["items"].copy()
-        n.reverse()
-        _insert_items(beamline["items"], n, beamline_map[beamline.id], index)
-        for i, e in enumerate(n):
-            _reflect_children(e, index + i, b, reflecting_grandchildren=True)
-
-    def _reduce_to_elements_with_reflection(beamline):
-        """Reduce a beamline to just elements while reflecting negative sub-lines
-
-        An item that is negative means it and all of it's sublines
-        need to be reflected (reverse the order of elements).
-        Manual section on "Reflection and Repetition":
-        https://mad.web.cern.ch/mad/webguide/manual.html#Ch13.S3
-        """
-        for i, e in enumerate(beamline["items"].copy()):
-            if e >= 0:
-                if e in beamline_map:
-                    _insert_items(
-                        beamline["items"],
-                        beamline_map[e]["items"],
-                        beamline,
-                        i,
-                    )
-                    break
-                continue
-            _reflect_children(e, i, beamline)
-            break
-        else:
-            return
-        # Need to start over because items have changed out from underneath us
-        _reduce_to_elements_with_reflection(
-            beamline_map[data.models.simulation.visualizationBeamlineId]
-        )
-
     def _remove_unused_elements(items):
         res = []
         for el in data.models.elements:
@@ -620,9 +570,9 @@ def uniquify_elements(data):
         names.add(f"{name}{count}")
         return f"{name}{count}"
 
-    beamline_map = PKDict({b.id: b for b in data.models.beamlines})
-    b = beamline_map[data.models.simulation.visualizationBeamlineId]
-    _reduce_to_elements_with_reflection(b)
+    util = LatticeUtil(data)
+    b = util.id_map[data.models.simulation.visualizationBeamlineId]
+    b["items"] = _explode_beamline(b, util)
     _remove_unused_elements(b["items"])
     b["items"] = _do_unique(b["items"])
     data.models.beamlines = [b]
@@ -673,63 +623,41 @@ def _add_commands(data, util):
     )
 
 
-def _add_marker_and_observe(data):
-    def _add_marker(data):
-        assert (
-            len(data.models.beamlines) == 1
-        ), f"should have only one beamline reduced to elements. beamlines={data.models.beamlines}"
-        beam = data.models.beamlines[0]
-        markers = PKDict()
-        m = LatticeUtil.max_id(data)
-        el_map = PKDict()
-        for el in data.models.elements:
-            el_map[el._id] = el
-        items_copy = beam["items"].copy()
-        bi = 0
-        for i, v in enumerate(items_copy):
-            bi += 1
-            el = el_map[items_copy[i]]
-            if el.type == "INSTRUMENT" or "MONITOR" in el.type:
-                # always include instrument and monitor positions
-                pass
-            elif not el.get("l", 0):
-                continue
-            m += 1
-            beam["items"].insert(bi, m)
-            bi += 1
-            n = f"Marker{m}_{el.type}"
-            markers[m] = n
-            data.models.elements.append(
-                PKDict(
-                    _id=m,
-                    name=n,
-                    type="MARKER",
-                )
-            )
-        return markers, m
-
-    def _add_ptc_observe(markers, max_id):
-        for i, c in enumerate(data.models.commands):
+def _add_observers(util):
+    def _command_index(commands):
+        for i, c in enumerate(commands):
             if c._type == "ptc_create_universe":
                 break
         else:
             raise AssertionError(
-                f"no ptc_create_universe command found in commands={data.models.commands}",
+                f"no ptc_create_universe command found in commands={util.data.models.commands}",
             )
-        d = max_id
-        for m in markers.values():
-            d += 1
-            data.models.commands.insert(
-                i + 1,
-                PKDict(
-                    _id=d,
-                    _type="ptc_observe",
-                    place=m,
-                ),
-            )
+        return i + 1
 
-    uniquify_elements(data)
-    _add_ptc_observe(*_add_marker(data))
+    i = _command_index(util.data.models.commands)
+    name_count = PKDict()
+    oid = util.max_id
+    for bid in _explode_beamline(
+        util.id_map[util.data.models.simulation.visualizationBeamlineId], util
+    ):
+        e = util.id_map[bid]
+        if e.type == "INSTRUMENT" or "MONITOR" in e.type:
+            # always include instrument and monitor positions
+            pass
+        elif not e.get("l", 0):
+            continue
+        oid += 1
+        count = name_count.get(e.name, 0) + 1
+        name_count[e.name] = count
+        util.data.models.commands.insert(
+            i,
+            PKDict(
+                _id=oid,
+                _type="ptc_observe",
+                place=f"{e.name}[{count}]",
+            ),
+        )
+        i += 1
 
 
 def _build_filename_map(data):
@@ -764,6 +692,20 @@ def _calc_bunch_parameters(bunch, beam, variables):
     except AssertionError:
         pass
     return PKDict(command_beam=beam)
+
+
+def _explode_beamline(beamline, util):
+    res = []
+    for bid in beamline["items"]:
+        e = util.id_map[abs(bid)]
+        if util.is_beamline(e):
+            r = _explode_beamline(e, util)
+            if bid < 0:
+                r.reverse()
+            res += r
+        else:
+            res.append(bid)
+    return res
 
 
 def _extract_report_bunchReport(data, run_dir):

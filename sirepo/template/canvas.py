@@ -203,7 +203,7 @@ def sim_frame(frame_args):
                 0,
             )["values"]
             if field == "t":
-                v = -numpy.array(v) * scipy.constants.c
+                v = numpy.array(v) * scipy.constants.c
                 v -= v.mean()
             elif field == "pt":
                 v = _elegant_p_to_pt(frame_args.run_dir, v)
