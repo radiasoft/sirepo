@@ -141,9 +141,13 @@ def api_and_supervisor(pytest_req, fc_args):
         from pykern import pkio
 
         if template.is_sim_type("srw"):
-            pkio.unchecked_remove(
-                resource.file_path("template", "srw", "predefined.json"),
-            )
+            try:
+                pkio.unchecked_remove(
+                    resource.file_path("template", "srw", "predefined.json"),
+                )
+            except Exception as e:
+                if not pkio.exception_is_not_found(e):
+                    raise
             template.import_module("srw").get_predefined_beams()
         yield c
     finally:
