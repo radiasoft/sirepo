@@ -405,7 +405,7 @@
             "stokesParameter": "0",
             "verticalPosition": 0,
             "verticalRange": "0.6",
-            "watchpointId": 0
+            "watchpointId": 14
         },
         "multipole": {
             "distribution": "n",
@@ -1167,6 +1167,5 @@
             "rotateReshape": "1"
         }
     },
-    "report": "initialIntensityReport",
     "simulationType": "srw"
 }

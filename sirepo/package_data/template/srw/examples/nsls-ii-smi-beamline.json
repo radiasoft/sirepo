@@ -373,7 +373,7 @@
             "stokesParameter": "0",
             "verticalPosition": 0,
             "verticalRange": 2,
-            "watchpointId": 0
+            "watchpointId": 19
         },
         "multipole": {
             "distribution": "n",
@@ -383,13 +383,10 @@
         },
         "panelState": {
             "hidden": [
-                "watchpointReport1",
                 "intensityReport",
                 "powerDensityReport",
                 "sourceIntensityReport",
-                "fluxReport",
-                "watchpointReport14",
-                "watchpointReport17"
+                "fluxReport"
             ]
         },
         "postPropagation": [

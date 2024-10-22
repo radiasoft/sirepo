@@ -208,7 +208,7 @@
             "stokesParameter": "0",
             "verticalPosition": 0,
             "verticalRange": 30,
-            "watchpointId": 0
+            "watchpointId": 5
         },
         "multipole": {
             "distribution": "n",
@@ -481,6 +481,5 @@
             "rotateReshape": "1"
         }
     },
-    "report": "powerDensityReport",
     "simulationType": "srw"
 }
