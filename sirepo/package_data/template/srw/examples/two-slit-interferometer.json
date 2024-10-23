@@ -230,7 +230,7 @@
             "stokesParameter": "0",
             "verticalPosition": 0,
             "verticalRange": "1",
-            "watchpointId": 0
+            "watchpointId": 7
         },
         "multipole": {
             "distribution": "n",
@@ -555,19 +555,6 @@
             "verticalInitialPhase": 0,
             "verticalSymmetry": -1
         },
-        "watchpointReport4": {
-            "aspectRatio": "1",
-            "characteristic": 0,
-            "colorMap": "grayscale",
-            "fieldUnits": "1",
-            "intensityPlotsWidth": "0",
-            "notes": "",
-            "plotScale": "linear",
-            "polarization": 6,
-            "precision": 0.01,
-            "rotateAngle": 0,
-            "rotateReshape": "1"
-        },
         "watchpointReport6": {
             "aspectRatio": "1",
             "characteristic": 0,
@@ -593,21 +580,7 @@
             "precision": 0.01,
             "rotateAngle": 0,
             "rotateReshape": "1"
-        },
-        "watchpointReport8": {
-            "aspectRatio": "1",
-            "characteristic": 0,
-            "colorMap": "grayscale",
-            "fieldUnits": "1",
-            "intensityPlotsWidth": "0",
-            "notes": "",
-            "plotScale": "linear",
-            "polarization": 6,
-            "precision": 0.01,
-            "rotateAngle": 0,
-            "rotateReshape": "1"
         }
     },
-    "report": "intensityReport",
     "simulationType": "srw"
 }

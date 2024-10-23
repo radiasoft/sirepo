@@ -226,7 +226,8 @@
             ["None", "None"],
             ["survival_biasing", "Survival Biasing"],
             ["weight_windows_mesh", "MAGIC Method"],
-            ["weight_windows_tally", "MAGIC Method for Tally"]
+            ["weight_windows_tally", "MAGIC Method for Tally"],
+            ["weight_windows_file", "MAGIC Method File"]
         ]
     },
     "dynamicFiles": {
@@ -969,7 +970,8 @@
             "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
             "sbatchCores": ["CPUs per task", "Integer", 16, "", 1],
             "sbatchProject": ["Project", "OptionalString", ""],
-            "ompThreads": ["OMP threads", "Integer", 16, "", 1]
+            "ompThreads": ["OMP threads", "Integer", 16, "", 1],
+            "selectedVolumes": ["", "SelectedTallyVolumes", ""]
         },
         "particle": {
             "value": ["Particle", "FilterParticle"]
@@ -1021,7 +1023,8 @@
             "materialLibrary": ["Material data library", "MaterialLibrary", "ENDFB-8.0-NNDC"],
             "varianceReduction": ["Technique", "VarianceReduction", "None"],
             "max_splits": ["Maximum splits", "Integer", 1000, "Maximum number of particle splits for weight windows"],
-            "outputInterval": ["Output interval", "Integer", 1, "Output interval for active batches", 1]
+            "outputInterval": ["Output interval", "Integer", 1, "Output interval for active batches", 1],
+            "weightWindowsFile": ["File", "InputFile", ""]
         },
         "source": {
             "angle": ["Angular distribution", "UnitSphere", {"_type": "None"}],
@@ -1273,6 +1276,9 @@
                     "tallyReport.axis",
                     "tallyReport.planePos"
                 ]],
+                ["Volumes", [
+                    "selectedVolumes"
+                ]],
                 ["Source", [
                     "showSources",
                     "numSampleSourceParticles",
@@ -1359,7 +1365,8 @@
                     "weightWindowsMesh.upper_right",
                     "weightWindows.particle",
                     "weightWindows.particles",
-                    "max_splits"
+                    "max_splits",
+                    "weightWindowsFile"
                 ]]
             ],
             "advanced": []

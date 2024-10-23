@@ -188,11 +188,13 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, utilit
         },
         link: function(scope, element) {
             $(element).closest('.modal').on('show.bs.modal', scope.resetActivePage);
-            //TODO(pjm): need a generalized case for this
-            $(element).closest('.sr-beamline-editor').on('sr.resetActivePage', scope.resetActivePage);
+            scope.$on('sr.setActivePage', (event, modelName, pageNumber) => {
+                if (scope.modelName === modelName && scope.pages) {
+                    scope.setActivePage(scope.pages[pageNumber]);
+                }
+            });
             scope.$on('$destroy', function() {
                 $(element).closest('.modal').off();
-                $(element).closest('.sr-beamline-editor').off();
             });
         }
     };
@@ -4775,7 +4777,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
               </div>
             </div>
         `,
-        controller: function($scope, authState, sbatchLoginService) {
+        controller: function(authState, sbatchLoginService, $element, $scope) {
 	    const _resetLoginFormText = () => {
 		$scope.otp = '';
 		$scope.password = '';
@@ -4816,7 +4818,9 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 return $scope.password.length < 1 || $scope.username.length < 1 || ! sbatchLoginService.query('showLogin');
             };
 
-
+            $scope.$on('destroy', () => {
+                $($element).off();
+            });
 
             $scope.$on(
                 'sbatchLoginEvent',
@@ -4836,6 +4840,10 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                     }
                 },
             );
+
+            $($element).on('shown.bs.modal', () => {
+                $($element).find('.form-control').first().select();
+            });
         },
     };
 
@@ -4933,8 +4941,8 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             </form>
             <div data-canceled-due-to-timeout-alert="simState"></div>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">
-              <div class="col-sm-12" data-ng-show="simState.getFrameCount() > 0" data-simulation-stopped-status="simState"><br><br></div>
-              <div class="col-sm-12" data-ng-show="simState.getFrameCount() > 0">
+              <div data-ng-show="simState.getFrameCount() > 0" data-simulation-stopped-status="simState"><br><br></div>
+              <div data-ng-show="simState.getFrameCount() > 0">
                 <div class="col-sm-12" data-simulation-status-timer="simState"></div>
               </div>
               <div data-job-settings-sbatch-login-and-start-simulation data-sim-state="simState" data-start-simulation="start()"></div>

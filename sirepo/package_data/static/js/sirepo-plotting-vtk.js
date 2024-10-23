@@ -2976,7 +2976,7 @@ SIREPO.app.directive('objectTable', function(appState, $rootScope) {
     };
 });
 
-SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, requestSender, plotting, vtkAxisService, vtkPlotting, layoutService, utilities, geometry) {
+SIREPO.app.directive('vtkAxes', function(geometry, layoutService, plotting) {
     return {
         restrict: 'A',
         scope: {
@@ -2988,293 +2988,183 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
         template: `
             <svg class="sr-vtk-axes" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}">
             <g class="vtk-axes">
-                <g data-ng-repeat="dim in geometry.basis">
+                <g data-ng-repeat="dim in dimensions">
                     <g class="{{ dim }} axis"></g>
                     <text class="{{ dim }}-axis-label"></text>
-                    <text class="{{ dim }} axis-end low"></text>
-                    <text class="{{ dim }} axis-end high"></text>
                 </g>
-                <g data-ng-repeat="dim in geometry.basis">
+                <g data-ng-repeat="dim in dimensions">
                     <g class="{{ dim }}-axis-central" data-ng-if="axisCfg[dim].showCentral">
-                        <line style="stroke: gray;" stroke-dasharray="5,5" data-ng-attr-x1="{{ centralAxes[dim].x[0] }}" data-ng-attr-y1="{{ centralAxes[dim].y[0] }}" data-ng-attr-x2="{{ centralAxes[dim].x[1] }}" data-ng-attr-y2="{{ centralAxes[dim].y[1] }}" />
+                        <line style="stroke: gray;" stroke-dasharray="5,5"
+                          data-ng-attr-x1="{{ centralAxes[dim].x[0] }}"
+                          data-ng-attr-y1="{{ centralAxes[dim].y[0] }}"
+                          data-ng-attr-x2="{{ centralAxes[dim].x[1] }}"
+                          data-ng-attr-y2="{{ centralAxes[dim].y[1] }}" />
                     </g>
                 </g>
             </g>
             </svg>
         `,
         controller: function($scope, $element) {
-            $scope.axesMargins = {
-                x: { width: 16.0, height: 0.0 },
-                y: { width: 0.0, height: 16.0 }
-            };
-            $scope.centralAxes = {
-                x: { x: [-0.5, 0.5], y: [-0.5, 0.5] },
-                y: { x: [-0.5, 0.5], y: [-0.5, 0.5] },
-                z: { x: [-0.5, 0.5], y: [-0.5, 0.5] },
-            };
-            $scope.geometry = geometry;
-            $scope.margin = {top: 50, right: 23, bottom: 50, left: 75};
+            $scope.dimensions = geometry.basis;
+            $scope.centralAxes = Object.fromEntries(
+                $scope.dimensions.map(d => [d, { x: [-0.5, 0.5], y: [-0.5, 0.5] }]),
+            );
+            const axes = Object.fromEntries(
+                $scope.dimensions.map(d => [d, layoutService.plotAxis({}, d, 'bottom', refresh)]),
+            );
+            let axisCfg, d3self;
 
-            $scope.isDegenerate = function(dim) {
-                return $scope.centralAxes[dim].x[0] === $scope.centralAxes[dim].x[1] &&
-                    $scope.centralAxes[dim].y[0] === $scope.centralAxes[dim].y[1];
-            };
-
-            var axes = {
-                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
-                y: layoutService.plotAxis($scope.margin, 'y', 'bottom', refresh, utilities),
-                z: layoutService.plotAxis($scope.margin, 'z', 'left', refresh, utilities)
-            };
-
-            var axisCfgDefault = {};
-            geometry.basis.forEach(function (dim) {
-                axisCfgDefault[dim] = {};
-                axisCfgDefault[dim].color = '#ff0000';
-                axisCfgDefault[dim].dimLabel = dim;
-                axisCfgDefault[dim].label = dim;
-                axisCfgDefault[dim].max = -0.5;
-                axisCfgDefault[dim].min = 0.5;
-                axisCfgDefault[dim].numPoints = 10;
-                axisCfgDefault[dim].screenDim = dim === 'z' ? 'y' : 'x';
-                axisCfgDefault[dim].showCentral = false;
-            });
-
-            var axisCfg = axisCfgDefault;
-
-            var d3self = select();
-            var lastSize = null;
-
-            function select(selector) {
-                var e = d3.select($element[0]);
-                return selector ? e.select(selector) : e;
+            function axisSelector(dim, suffix) {
+                return `.${dim}.axis${suffix || ''}`;
             }
 
-            function refresh() {
-                let size = [$($element).width(), $($element).height()];
-                if (! size[0] || ! size[1] && lastSize) {
-                    size = lastSize;
-                }
-                const screenRect = new SIREPO.GEOMETRY.Rect(
-                    new SIREPO.GEOMETRY.Point(
-                        $scope.axesMargins.x.width,
-                        $scope.axesMargins.y.height
-                    ),
-                    new SIREPO.GEOMETRY.Point(
-                        size[0] - $scope.axesMargins.x.width,
-                        size[1] - $scope.axesMargins.y.height
-                    )
+            function computeEdgeStats(edge) {
+                const slope = edge.slope();
+                const screenDim = Number.isFinite(slope) && Math.abs(slope) < 3 ? 'x' : 'y';
+                const sortedPts = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
+                    edge.points,
+                    screenDim,
+                    false
                 );
-
-                // If an axis is shorter than this, don't display it -- the ticks will
-                // be cramped and unreadable
-                const minAxisDisplayLen = 50;
-
-                for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
-
-                    const cfg = axisCfg[dim];
-                    const isHorizontal = cfg.screenDim === 'x';
-                    const axisEnds = isHorizontal ? ['◄', '►'] : ['▼', '▲'];
-                    const perpScreenDim = isHorizontal ? 'y' : 'x';
-
-                    let showAxisEnds = false;
-                    const axisSelector = `.${dim}.axis`;
-                    const axisLabelSelector = `.${dim}-axis-label`;
-
-                    // sort the external edges so we'll preferentially pick the left and bottom
-                    const externalEdges = $scope.boundObj.externalViewportEdgesForDimension(dim)
-                        .sort(vtkAxisService.edgeSorter(perpScreenDim, ! isHorizontal));
-                    const seg = geometry.bestEdgeAndSectionInBounds(
-                        externalEdges, screenRect, dim, false
-                    );
-                    const cli = screenRect.boundaryIntersectionsWithSeg(
-                        $scope.boundObj.originLines()[dim]
-                    );
-                    if (cli && cli.length === 2) {
-                        $scope.centralAxes[dim].x = [cli[0].x, cli[1].x];
-                        $scope.centralAxes[dim].y = [cli[0].y, cli[1].y];
+                let radAngle = Math.atan(slope);
+                if (screenDim === 'y') {
+                    radAngle -= Math.PI / 2;
+                    if (radAngle < -Math.PI / 2) {
+                        radAngle += Math.PI;
                     }
-
-                    if (! seg) {
-                        // param to show arrow ends?
-                        /*
-                        // all possible axis ends offscreen, so try a centerline
-                        var cl = $scope.boundObj.vpCenterLineForDimension(dim);
-                        seg = geometry.bestEdgeAndSectionInBounds([cl], $scope.boundObj.boundingRect(), dim, false);
-                        if (! seg) {
-                            // don't draw axes
-                            d3self.select(axisSelector).style('opacity', 0.0);
-                            d3self.select(axisLabelSelector).style('opacity', 0.0);
-                            continue;
-                        }
-                        showAxisEnds = true;
-                        */
-                        d3self.select(axisSelector).style('opacity', 0.0);
-                        d3self.select(axisLabelSelector).style('opacity', 0.0);
-                        continue;
-                    }
-                    d3self.select(axisSelector).style('opacity', 1.0);
-
-                    const fullSeg = seg.full;
-                    const clippedSeg = seg.clipped;
-                    var reverseOnScreen = vtkAxisService.shouldReverseOnScreen(
-                        $scope.boundObj.viewportEdges()[dim][seg.index], cfg.screenDim
-                    );
-                    var sortedPts = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
-                        clippedSeg.points,
-                        cfg.screenDim,
-                        false
-                    );
-                    var axisLeft = sortedPts[0].x;
-                    var axisTop = sortedPts[0].y;
-                    var axisRight = sortedPts[1].x;
-                    var axisBottom = sortedPts[1].y;
-                    //var axisLeft = sortedPts[0].x * dsz[0];
-                    //var axisTop = sortedPts[0].y * dsz[1];
-                    //var axisRight = sortedPts[1].x * dsz[0];
-                    //var axisBottom = sortedPts[1].y * dsz[1];
-
-                    var newRange = Math.min(fullSeg.length(), clippedSeg.length());
-                    var radAngle = Math.atan(clippedSeg.slope());
-                    if (! isHorizontal) {
-                        radAngle -= Math.PI / 2;
-                        if (radAngle < -Math.PI / 2) {
-                            radAngle += Math.PI;
-                        }
-                    }
-                    var angle = (180 * radAngle / Math.PI);
-
-                    const allPts = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
-                        fullSeg.points.concat(clippedSeg.points),
-                        cfg.screenDim,
-                        false
-                    );
-
-                    var limits = reverseOnScreen ? [cfg.max, cfg.min] : [cfg.min, cfg.max];
-                    var newDom = [cfg.min, cfg.max];
-                    // 1st 2, last 2 points
-                    for (var m = 0; m < allPts.length; m += 2) {
-                        // a point may coincide with its successor
-                        var d = allPts[m].dist(allPts[m + 1]);
-                        if (d !== 0) {
-                            var j = Math.floor(m / 2);
-                            var k = reverseOnScreen ? 1 - j : j;
-                            var l1 = limits[j];
-                            var l2 = limits[1 - j];
-                            var part = (l1 - l2) * d / fullSeg.length();
-                            var newLimit = l1 - part;
-                            newDom[k] = newLimit;
-                        }
-                    }
-                    var xform = 'translate(' + axisLeft + ',' + axisTop + ') ' +
-                        'rotate(' + angle + ')';
-
-                    if (axisCfg.doNice) {
-                        axes[dim].scale.domain(newDom).nice();
-                    }
-                    axes[dim].scale.range([reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange]);
-
-                    // this places the axis tick labels on the appropriate side of the axis
-                    var outsideCorner = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
-                        $scope.boundObj.viewPortCorners(),
-                        perpScreenDim,
-                        isHorizontal
-                    )[0];
-                    var bottomOrLeft = outsideCorner.equals(sortedPts[0]) || outsideCorner.equals(sortedPts[1]);
-                    if (isHorizontal) {
-                        axes[dim].svgAxis.orient(bottomOrLeft ? 'bottom' : 'top');
-                    }
-                    else {
-                        axes[dim].svgAxis.orient(bottomOrLeft ? 'left' : 'right');
-                    }
-
-
-                    if (showAxisEnds) {
-                        axes[dim].svgAxis.ticks(0);
-                        d3self.select(axisSelector).call(axes[dim].svgAxis);
-                    }
-                    else {
-                        axes[dim].updateLabelAndTicks({
-                            width: newRange,
-                            height: newRange
-                        }, select);
-                    }
-
-                    d3self.select(axisSelector).attr('transform', xform);
-
-                    var dimLabel = cfg.dimLabel;
-                    d3self.selectAll(axisSelector + '-end')
-                        .style('opacity', showAxisEnds ? 1 : 0);
-
-                    var tf = axes[dim].svgAxis.tickFormat();
-                    if (tf) {
-                        d3self.select(axisSelector + '-end.low')
-                            .text(axisEnds[0] + ' ' + dimLabel + ' ' + tf(reverseOnScreen ? newDom[1] : newDom[0]) + axes[dim].unitSymbol + axes[dim].units)
-                            .attr('x', axisLeft)
-                            .attr('y', axisTop)
-                            .attr('transform', 'rotate(' + (angle) + ', ' + axisLeft + ', ' + axisTop + ')');
-
-                        d3self.select(axisSelector + '-end.high')
-                            .attr('text-anchor', 'end')
-                            .text(tf(reverseOnScreen ? newDom[0] : newDom[1]) + axes[dim].unitSymbol + axes[dim].units + ' ' + dimLabel + ' ' + axisEnds[1])
-                            .attr('x', axisRight)
-                            .attr('y', axisBottom)
-                            .attr('transform', 'rotate(' + (angle) + ', ' + axisRight + ', ' + axisBottom + ')');
-                    }
-
-                    // counter-rotate the tick labels
-                    var labels = d3self.selectAll(axisSelector + ' text');
-                    labels.attr('transform', 'rotate(' + (-angle) + ')');
-                    d3self.select(axisSelector + ' .domain').style({'stroke': 'none'});
-                    d3self.select(axisSelector).style('opacity', newRange < minAxisDisplayLen ? 0 : 1);
-
-                    var labelSpace = 2 * plotting.tickFontSize(d3self.select(axisSelector + '-label'));
-                    var labelSpaceX = (isHorizontal ? Math.sin(radAngle) : Math.cos(radAngle)) * labelSpace;
-                    var labelSpaceY = (isHorizontal ? Math.cos(radAngle) : Math.sin(radAngle)) * labelSpace;
-                    var labelX = axisLeft + (bottomOrLeft ? -1 : 1) * labelSpaceX + (axisRight - axisLeft) / 2.0;
-                    var labelY = axisTop + (bottomOrLeft ? 1 : -1) * labelSpaceY + (axisBottom - axisTop) / 2.0;
-                    var labelXform = 'rotate(' + (isHorizontal ? 0 : -90) + ' ' + labelX + ' ' + labelY + ')';
-
-                    d3self.select('.' + dim + '-axis-label')
-                        .attr('x', labelX)
-                        .attr('y', labelY)
-                        .attr('transform', labelXform)
-                        .style('opacity', (showAxisEnds || newRange < minAxisDisplayLen) ? 0 : 1);
-
-                    // these optional axes go through (0, 0, 0)
-
-
                 }
-                lastSize = size;
+                return {
+                    reverseOnScreen: edge.points[1][screenDim] < edge.points[0][screenDim],
+                    newRange: edge.length(),
+                    isHorizontal: screenDim === 'x',
+                    bottomOrLeft: isBottomOrLeft(screenDim, edge, sortedPts),
+                    axis: {
+                        left: sortedPts[0].x,
+                        top: sortedPts[0].y,
+                        right: sortedPts[1].x,
+                        bottom: sortedPts[1].y,
+                    },
+                    radAngle: radAngle,
+                    angle: SIREPO.GEOMETRY.GeometryUtils.toDegrees(radAngle),
+                };
             }
 
             function init() {
-                for (var dim in axes) {
+                d3self = select();
+                for (const dim in axes) {
                     axes[dim].init();
                     axes[dim].svgAxis.tickSize(0);
                 }
-                rebuildAxes();
+            }
+
+            function isBottomOrLeft(screenDim, edge, sortedPts) {
+                // this places the axis tick labels on the appropriate side of the axis
+                const outsideCorners = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
+                    $scope.boundObj.viewPortCorners(),
+                    screenDim === 'x' ? 'y' : 'x',
+                    screenDim === 'x',
+                );
+                return outsideCorners[0].equals(sortedPts[0]) || outsideCorners[0].equals(sortedPts[1])
+                    || outsideCorners[1].equals(sortedPts[0]) || outsideCorners[1].equals(sortedPts[1]);
             }
 
             function rebuildAxes() {
-                for (var dim in axes) {
-                    var cfg = axisCfg[dim];
-                    axes[dim].values = plotting.linearlySpacedArray(cfg.min, cfg.max, cfg.numPoints);
+                for (const dim in axes) {
+                    const cfg = axisCfg[dim];
                     axes[dim].scale.domain([cfg.min, cfg.max]);
                     axes[dim].parseLabelAndUnits(cfg.label);
                 }
             }
 
+            function refresh() {
+                const screenRect = new SIREPO.GEOMETRY.Rect(
+                    new SIREPO.GEOMETRY.Point(0, 0),
+                    new SIREPO.GEOMETRY.Point($scope.width, $scope.height),
+                );
+
+                for (const dim in axes) {
+                    updateCentralAxis(screenRect, dim);
+                    const edge = geometry.bestEdgeInBounds(
+                        $scope.boundObj.externalViewportEdgesForDimension(dim),
+                        screenRect,
+                    );
+                    if (! edge) {
+                        d3self.select(axisSelector(dim)).style('opacity', 0.0);
+                        d3self.select(`.${dim}-axis-label`).style('opacity', 0.0);
+                        continue;
+                    }
+                    const e = computeEdgeStats(edge);
+                    updateAxis(dim, e);
+                    updateAxisLabels(dim, e);
+                }
+            }
+
+            function select(selector) {
+                const e = d3.select($element[0]);
+                return selector ? e.select(selector) : e;
+            }
+
+            function updateAxis(dim, e) {
+                if (e.isHorizontal) {
+                    axes[dim].svgAxis.orient(e.bottomOrLeft ? 'bottom' : 'top');
+                }
+                else {
+                    axes[dim].svgAxis.orient(e.bottomOrLeft ? 'left' : 'right');
+                }
+                axes[dim].scale.range([e.reverseOnScreen ? e.newRange : 0, e.reverseOnScreen ? 0 : e.newRange]);
+                axes[dim].updateLabelAndTicks({
+                    width: e.newRange,
+                    height: e.newRange
+                }, select);
+
+                d3self.select(axisSelector(dim)).attr(
+                    'transform',
+                    `translate(${e.axis.left}, ${e.axis.top}) rotate(${e.angle})`,
+                );
+            }
+
+            function updateAxisLabels(dim, e) {
+                // If an axis is shorter than this, don't display it -- the ticks will
+                // be cramped and unreadable
+                const minAxisDisplayLen = 75;
+
+                // counter-rotate the tick labels
+                d3self.selectAll(axisSelector(dim, ' text')).attr('transform', `rotate(${-e.angle})`);
+                d3self.select(axisSelector(dim, ' .domain')).style({'stroke': 'none'});
+                d3self.select(axisSelector(dim)).style('opacity', e.newRange < minAxisDisplayLen ? 0 : 1);
+
+                const labelSpace = 3 * plotting.tickFontSize(d3self.select(axisSelector(dim, '-label')));
+                const labelSpaceX = (e.isHorizontal ? Math.sin(e.radAngle) : Math.cos(e.radAngle)) * labelSpace;
+                const labelSpaceY = (e.isHorizontal ? Math.cos(e.radAngle) : Math.sin(e.radAngle)) * labelSpace;
+                const labelX = e.axis.left + (e.bottomOrLeft ? -1 : 1) * labelSpaceX + (e.axis.right - e.axis.left) / 2.0;
+                const labelY = e.axis.top + (e.bottomOrLeft ? 1 : -1) * labelSpaceY + (e.axis.bottom - e.axis.top) / 2.0;
+                d3self.select(`.${dim}-axis-label`)
+                    .attr('x', labelX)
+                    .attr('y', labelY)
+                    .attr('transform', `rotate(${e.isHorizontal ? 0 : -90} ${labelX} ${labelY})`)
+                    .style('opacity', e.newRange < minAxisDisplayLen ? 0 : 1);
+            }
+
+            function updateCentralAxis(screenRect, dim) {
+                const cli = screenRect.boundaryIntersectionsWithSeg(
+                    $scope.boundObj.originLines()[dim]
+                );
+                if (cli && cli.length === 2) {
+                    $scope.centralAxes[dim].x = [cli[0].x, cli[1].x];
+                    $scope.centralAxes[dim].y = [cli[0].y, cli[1].y];
+                }
+            }
+
             $scope.$on('axes.refresh', refresh);
 
-            // may not need this refresh?
-            $scope.$watch('boundObj', function (d) {
-                if (d) {
-                    //refresh();
+            $scope.$watch('width', (width) => {
+                if (width && axisCfg) {
+                    refresh();
                 }
             });
 
-            $scope.$watch('axisCfg', function (d) {
-                if (d) {
+            $scope.$watch('axisCfg', (d) => {
+                if (d && $scope.axisCfg) {
                     axisCfg = $scope.axisCfg;
                     rebuildAxes();
                     refresh();
@@ -3284,35 +3174,6 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
             init();
         },
     };
-});
-
-// will be axis functions
-SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, geometry) {
-
-    var svc = {};
-
-    svc.edgeSorter = function(dim, shouldReverse) {
-        return function(e1, e2) {
-            if (! e1) {
-                if (! e2) {
-                    return 0;
-                }
-                return 1;
-            }
-            if (! e2) {
-                return -1;
-            }
-            var pt1 = geometry.sortInDimension(e1.points, dim, shouldReverse)[0];
-            var pt2 = geometry.sortInDimension(e2.points, dim, shouldReverse)[0];
-            return (shouldReverse ? -1 : 1) * (pt2[dim] - pt1[dim]);
-        };
-    };
-
-    svc.shouldReverseOnScreen = function(edge, screenDim) {
-        return edge.points[1][screenDim] < edge.points[0][screenDim];
-    };
-
-    return svc;
 });
 
 // General-purpose vtk display
@@ -3374,14 +3235,14 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
                 onwheel: utilities.debounce(refresh, 100),
             };
 
+            function asyncRefresh() {
+                $scope.$applyAsync(refresh);
+            }
+
             function ondblclick() {
                 $scope.vtkScene.resetView();
                 refresh();
                 $scope.$apply();
-            }
-
-            function resize() {
-                refresh();
             }
 
             $scope.init = function() {
@@ -3437,7 +3298,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
                     );
                 }
                 $scope.$emit('vtk-init', $scope.vtkScene);
-                resize();
+                refresh();
             };
 
             $scope.canvasGeometry = function() {
@@ -3469,7 +3330,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
 
             $scope.$on('$destroy', function() {
                 $element.off();
-                $($window).off('resize', resize);
+                $($window).off('resize', asyncRefresh);
                 $scope.vtkScene.teardown();
             });
 
@@ -3494,35 +3355,20 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
             });
             $scope.init();
 
+            // ensure the axes update on each resize event
+            $($window).resize(asyncRefresh);
 
-            $($window).resize(resize);
+            $scope.$on('sr-window-resize', () => {
+                // ensure full-screen and exit full-screen resize the renderer
+                $scope.vtkScene.fsRenderer.resize();
+                refresh();
+            });
         },
     };
 });
 
-// general-purpose vtk methods
-SIREPO.app.service('vtkService', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, geometry) {
-    let svc = {};
-    return svc;
-});
-
 SIREPO.app.factory('vtkUtils', function() {
-
     var self = {};
-
-    self.INTERACTION_MODE_MOVE = 'move';
-    self.INTERACTION_MODE_SELECT = 'select';
-    self.INTERACTION_MODES = [self.INTERACTION_MODE_MOVE, self.INTERACTION_MODE_SELECT];
-
-    // Converts vtk colors ranging from 0 -> 255 to 0.0 -> 1.0
-    // can't map, because we will still have a UINT8 array
-    self.rgbToFloat = rgb => {
-        let sc = [];
-        for (let i = 0; i < rgb.length; ++i) {
-            sc.push(rgb[i] / 255.0);
-        }
-        return sc;
-    };
 
     // Converts vtk colors ranging from 0 -> 255 to 0.0 -> 1.0
     // can't map, because we will still have a UINT8 array
