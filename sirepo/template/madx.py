@@ -215,6 +215,45 @@ class MadxOutputFileIterator(lattice.ModelIterator):
             self.model_index[self.model_name] = 1
 
 
+def add_observers(util, etype=None):
+    def _command_index(commands):
+        for i, c in enumerate(commands):
+            if c._type == "ptc_create_universe":
+                break
+        else:
+            raise AssertionError(
+                f"no ptc_create_universe command found in commands={util.data.models.commands}",
+            )
+        return i + 1
+
+    i = _command_index(util.data.models.commands)
+    name_count = PKDict()
+    oid = util.max_id
+    for bid in util.explode_beamline(
+        util.data.models.simulation.visualizationBeamlineId
+    ):
+        e = util.get_item(bid)
+        if etype and e.type != etype:
+            continue
+        if e.type == "INSTRUMENT" or "MONITOR" in e.type:
+            # always include instrument and monitor positions
+            pass
+        elif not e.get("l", 0):
+            continue
+        oid += 1
+        count = name_count.get(e.name, 0) + 1
+        name_count[e.name] = count
+        util.data.models.commands.insert(
+            i,
+            PKDict(
+                _id=oid,
+                _type="ptc_observe",
+                place=f"{e.name}[{count}]",
+            ),
+        )
+        i += 1
+
+
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
         return PKDict(
@@ -234,6 +273,41 @@ def code_var(variables):
         code_variable.PurePythonEval(MADX_CONSTANTS),
         case_insensitive=True,
     )
+
+
+def command_template(name, next_id, beamline_id=None):
+    def _set_defaults(command, state):
+        command._id = state.next_id
+        state.next_id += 1
+        SIM_DATA.update_model_defaults(command, f"command_{command._type}")
+        return command
+
+    if name == "particle":
+        c = [
+            PKDict(_type="option", echo="0", info="0"),
+            PKDict(_type="ptc_create_universe", sector_nmul=10, sector_nmul_max=10),
+            PKDict(_type="ptc_create_layout", method=4, nst=25),
+            PKDict(
+                _type="ptc_track",
+                element_by_element="1",
+                file="1",
+                icase="6",
+                maxaper="1,1,1,1,5,1",
+            ),
+            PKDict(_type="ptc_track_end"),
+            PKDict(_type="ptc_end"),
+        ]
+    elif name == "matching":
+        c = [
+            PKDict(_type="match", sequence=beamline_id),
+            PKDict(_type="vary", step=1e-5),
+            PKDict(_type="lmdif", calls=50, tolerance=1e-8),
+            PKDict(_type="endmatch"),
+        ]
+    state = PKDict(
+        next_id=next_id,
+    )
+    return [_set_defaults(v, state) for v in c]
 
 
 def eval_code_var(data):
@@ -351,7 +425,7 @@ def generate_parameters_file(data):
     res, v = template_common.generate_parameters_file(data)
     util = LatticeUtil(data, SCHEMA)
     if data.models.simulation.computeTwissFromParticles == "1":
-        _add_observers(util)
+        add_observers(util)
     filename_map = _build_filename_map_from_util(util)
     report = data.get("report", "")
     v.twissOutputFilename = _TWISS_OUTPUT_FILE
@@ -488,6 +562,14 @@ def stateless_compute_calculate_bunch_parameters(data, **kwargs):
     )
 
 
+def stateless_compute_command_template(data, **kwargs):
+    return PKDict(
+        commands=command_template(
+            data.args.commandTemplate, data.args.nextId, data.args.beamlineId
+        ),
+    )
+
+
 def stateful_compute_import_file(data, **kwargs):
     if data.args.ext_lower == ".in":
         from sirepo.template.opal import OpalMadxConverter
@@ -531,51 +613,6 @@ def to_floats(values):
 
 def to_string(value):
     return value.replace('"', "")
-
-
-def uniquify_elements(data):
-    def _do_unique(elem_ids):
-        element_map = PKDict({e._id: e for e in data.models.elements})
-        names = set([e.name for e in data.models.elements])
-        max_id = LatticeUtil.max_id(data)
-        res = []
-        for el_id in elem_ids:
-            if el_id not in res:
-                res.append(el_id)
-                continue
-            el = copy.deepcopy(element_map[el_id])
-            el.name = _unique_name(el.name, names)
-            max_id += 1
-            el._id = max_id
-            data.models.elements.append(el)
-            res.append(el._id)
-        return res
-
-    def _remove_unused_elements(items):
-        res = []
-        for el in data.models.elements:
-            if el._id in items:
-                res.append(el)
-        data.models.elements = res
-
-    def _unique_name(name, names):
-        assert name in names
-        count = 2
-        m = re.search(r"(\d+)$", name)
-        if m:
-            count = int(m.group(1))
-            name = re.sub(r"\d+$", "", name)
-        while f"{name}{count}" in names:
-            count += 1
-        names.add(f"{name}{count}")
-        return f"{name}{count}"
-
-    util = LatticeUtil(data)
-    b = util.id_map[data.models.simulation.visualizationBeamlineId]
-    b["items"] = _explode_beamline(b, util)
-    _remove_unused_elements(b["items"])
-    b["items"] = _do_unique(b["items"])
-    data.models.beamlines = [b]
 
 
 def write_parameters(data, run_dir, is_parallel, filename=MADX_INPUT_FILE):
@@ -623,43 +660,6 @@ def _add_commands(data, util):
     )
 
 
-def _add_observers(util):
-    def _command_index(commands):
-        for i, c in enumerate(commands):
-            if c._type == "ptc_create_universe":
-                break
-        else:
-            raise AssertionError(
-                f"no ptc_create_universe command found in commands={util.data.models.commands}",
-            )
-        return i + 1
-
-    i = _command_index(util.data.models.commands)
-    name_count = PKDict()
-    oid = util.max_id
-    for bid in _explode_beamline(
-        util.id_map[util.data.models.simulation.visualizationBeamlineId], util
-    ):
-        e = util.id_map[bid]
-        if e.type == "INSTRUMENT" or "MONITOR" in e.type:
-            # always include instrument and monitor positions
-            pass
-        elif not e.get("l", 0):
-            continue
-        oid += 1
-        count = name_count.get(e.name, 0) + 1
-        name_count[e.name] = count
-        util.data.models.commands.insert(
-            i,
-            PKDict(
-                _id=oid,
-                _type="ptc_observe",
-                place=f"{e.name}[{count}]",
-            ),
-        )
-        i += 1
-
-
 def _build_filename_map(data):
     return _build_filename_map_from_util(LatticeUtil(data, SCHEMA))
 
@@ -692,20 +692,6 @@ def _calc_bunch_parameters(bunch, beam, variables):
     except AssertionError:
         pass
     return PKDict(command_beam=beam)
-
-
-def _explode_beamline(beamline, util):
-    res = []
-    for bid in beamline["items"]:
-        e = util.id_map[abs(bid)]
-        if util.is_beamline(e):
-            r = _explode_beamline(e, util)
-            if bid < 0:
-                r.reverse()
-            res += r
-        else:
-            res.append(bid)
-    return res
 
 
 def _extract_report_bunchReport(data, run_dir):
@@ -973,7 +959,7 @@ def _parse_match_summary(run_dir, filename):
                 else:
                     res += line
             elif state == "node_names":
-                # MAD-X formats the outpus incorrectly when piped to a file
+                # MAD-X formats the outputs incorrectly when piped to a file
                 # need to look after the END MATCH for node names
                 # Global constraint:         dq1          4     0.00000000E+00    -3.04197881E-12     9.25363506E-24
                 if (

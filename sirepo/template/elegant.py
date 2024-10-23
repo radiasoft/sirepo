@@ -1554,7 +1554,7 @@ def _prepare_bunch_simulation(data):
 def _report_output_filename(report):
     if report == "twissReport":
         return "twiss_output.filename.sdds"
-    return "W1.filename.sdds"
+    return "W1.filename-001.sdds"
 
 
 def _sdds_beam_type(column_names):

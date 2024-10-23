@@ -11,6 +11,7 @@ from sirepo.sim_data.controls import AmpConverter
 from sirepo.template import template_common
 from sirepo.template import madx_parser
 from sirepo.template.lattice import LatticeUtil
+import copy
 import csv
 import re
 import sirepo.sim_data
@@ -27,7 +28,7 @@ def background_percent_complete(report, run_dir, is_running):
     if is_running:
         e, mt = read_summary_line(run_dir)
         return PKDict(
-            percentComplete=0,
+            percentComplete=100,
             frameCount=mt if mt else 0,
             elementValues=e,
             ptcTrackColumns=_get_ptc_track_columns(run_dir),
@@ -212,7 +213,7 @@ def stateful_compute_get_external_lattice(data, **kwargs):
     _delete_unused_madx_models(madx)
     sirepo.template.madx.eval_code_var(madx)
     beam = _delete_unused_madx_commands(madx)
-    sirepo.template.madx.uniquify_elements(madx)
+    _uniquify_elements(madx)
     _add_monitor(madx)
     madx.models.simulation.computeTwissFromParticles = "1"
     _SIM_DATA.update_beam_gamma(beam)
@@ -564,6 +565,51 @@ def _log_file_values(models, index, lib_file):
             if f in f_to_e:
                 res[f_to_e[f]] = values[f] * (1e-6 if "b" in f else 1)
         return res
+
+
+def _uniquify_elements(data):
+    def _do_unique(elem_ids):
+        element_map = PKDict({e._id: e for e in data.models.elements})
+        names = set([e.name for e in data.models.elements])
+        max_id = LatticeUtil.max_id(data)
+        res = []
+        for el_id in elem_ids:
+            if el_id not in res:
+                res.append(el_id)
+                continue
+            el = copy.deepcopy(element_map[el_id])
+            el.name = _unique_name(el.name, names)
+            max_id += 1
+            el._id = max_id
+            data.models.elements.append(el)
+            res.append(el._id)
+        return res
+
+    def _remove_unused_elements(items):
+        res = []
+        for el in data.models.elements:
+            if el._id in items:
+                res.append(el)
+        data.models.elements = res
+
+    def _unique_name(name, names):
+        assert name in names
+        count = 2
+        m = re.search(r"(\d+)$", name)
+        if m:
+            count = int(m.group(1))
+            name = re.sub(r"\d+$", "", name)
+        while f"{name}{count}" in names:
+            count += 1
+        names.add(f"{name}{count}")
+        return f"{name}{count}"
+
+    util = LatticeUtil(data, sirepo.sim_data.get_class("madx").schema())
+    b = util.get_item(data.models.simulation.visualizationBeamlineId)
+    b["items"] = util.explode_beamline(b.id)
+    _remove_unused_elements(b["items"])
+    b["items"] = _do_unique(b["items"])
+    data.models.beamlines = [b]
 
 
 def _validate_process_variables(v, data):

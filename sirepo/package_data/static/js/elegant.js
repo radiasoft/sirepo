@@ -155,7 +155,7 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
     }
 
     function commandsChanged() {
-        var cmd = self.findFirstCommand('run_setup');
+        let cmd = self.findFirstCommand('run_setup');
         if (cmd && cmd.use_beamline) {
             appState.models.simulation.visualizationBeamlineId = cmd.use_beamline;
             appState.saveQuietly('simulation');
@@ -168,27 +168,25 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
         }
         appState.models.bunchSource.inputSource = cmd._type;
         appState.saveQuietly('bunchSource');
-        if (cmd._type == 'bunched_beam') {
-            var bunch = appState.models.bunch;
-            updateBunchFromCommand(bunch, cmd);
-
-            // p_central_mev
-            cmd = self.findFirstCommand('run_setup');
-            if (cmd) {
-                if (rpnService.getRpnValue(cmd.p_central_mev) !== 0) {
-                    bunch.p_central_mev = cmd.p_central_mev;
-                }
-                else {
-                    bunch.p_central_mev = rpnService.getRpnValue(cmd.p_central) * SIREPO.APP_SCHEMA.constants.ELEGANT_ME_EV;
-                }
+        cmd = self.findFirstCommand('run_setup');
+        const bunch = appState.models.bunch;
+        if (cmd) {
+            if (rpnService.getRpnValue(cmd.p_central_mev) !== 0) {
+                bunch.p_central_mev = cmd.p_central_mev;
             }
-            // need to update source reports.
-            appState.saveChanges('bunch');
+            else {
+                bunch.p_central_mev = rpnService.getRpnValue(cmd.p_central) * SIREPO.APP_SCHEMA.constants.ELEGANT_ME_EV;
+            }
+        }
+        if (cmd._type == 'bunched_beam') {
+            updateBunchFromCommand(bunch, cmd);
         }
         else {
             appState.models.bunchFile.sourceFile = cmd.input;
             appState.saveQuietly('bunchFile');
         }
+        // need to update source reports.
+        appState.saveChanges('bunch');
     }
 
     function simulationChanged() {

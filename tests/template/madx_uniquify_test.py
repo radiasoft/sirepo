@@ -13,10 +13,10 @@ def test_uniquify_beamline():
     from pykern import pkunit
     from pykern.pkunit import pkeq
     from pykern import pkjson
-    from sirepo.template import madx
+    from sirepo.template import controls
 
     d = pkjson.load_any(pkunit.data_dir().join("in.json"))
-    madx.uniquify_elements(d)
+    controls._uniquify_elements(d)
     pkeq(1, len(d.models.beamlines), "expecting one beamline={}", d.models.beamlines)
     l = d.models.beamlines[0]["items"]
     pkeq(len(list(set(l))), len(l), "expecting all unique items={}", l)

@@ -6,12 +6,12 @@
 
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
-from rsbeams.rsdata.SDDS import readSDDS
 from rsbeams.rsstats import kinematic
 from sirepo.template import code_variable
 from sirepo.template import madx_parser
 from sirepo.template import sdds_util
 from sirepo.template import template_common
+from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
 import h5py
 import impactx
@@ -26,7 +26,6 @@ import scipy.constants
 import sirepo.sim_data
 import sirepo.template.impactx
 import sirepo.template.madx
-import sirepo.template.sdds_util
 import tempfile
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -39,6 +38,7 @@ _PHASE_SPACE_LABEL = PKDict(
     t="t [m]",
     pt="Pt (%)",
 )
+_MADX_TRACK_OUTPUT_FILE = "madx/ptc_track.file.tfs"
 
 
 class CanvasMadxConverter(MadxConverter):
@@ -148,6 +148,8 @@ def background_percent_complete(report, run_dir, is_running):
         f"impactx/{ sirepo.template.impactx.FINAL_DISTRIBUTION_OUTPUT_FILE }"
     ).exists():
         res.frameCount = 1
+        res.bunchAnimationFrameCount = len(_madx_track_info())
+
     return res
 
 
@@ -184,11 +186,29 @@ def save_sequential_report_data(run_dir, data):
     return sirepo.template.impactx.save_sequential_report_data(run_dir, data)
 
 
+def _elegant_filename_for_frame(sim_in, frame_index):
+    if frame_index == 0:
+        return f"{INPUT_IMPACTX_BEAM_FILE}.sdds"
+    c = 0
+    names = PKDict()
+    util = LatticeUtil(sim_in, SIM_TYPE)
+    for bid in util.explode_beamline(util.select_beamline().id):
+        e = util.get_item(bid)
+        if e.type == "MONITOR":
+            n = names.get(e.name, 0) + 1
+            names[e.name] = n
+            c += 1
+            if c == frame_index:
+                return f"{e.name}.filename-{n:03}.sdds"
+    return "end.filename-001.sdds"
+
+
 def sim_frame(frame_args):
 
     def _flip_sign(values):
         return (-numpy.array(values)).tolist()
 
+    title = ""
     if frame_args.simCode == "elegant":
         _ELEGANT_FIELD_MAP = PKDict(
             px="xp",
@@ -197,20 +217,34 @@ def sim_frame(frame_args):
         )
 
         def _to_elegant(field):
+            fn = str(
+                frame_args.run_dir.join(
+                    "elegant/{}".format(
+                        _elegant_filename_for_frame(
+                            frame_args.sim_in, frame_args.frameIndex
+                        )
+                    )
+                )
+            )
+            s = sdds_util.read_sdds_parameter(fn, "s")
+            if s is None:
+                s = 0
             v = sdds_util.extract_sdds_column(
-                str(frame_args.run_dir.join("elegant/run_setup.output.sdds")),
+                fn,
                 _ELEGANT_FIELD_MAP.get(field, field),
                 0,
             )["values"]
             if field == "t":
-                v = numpy.array(v) * scipy.constants.c
-                v -= v.mean()
+                v = -numpy.array(v) * scipy.constants.c
+                if s is not None:
+                    v += s
             elif field == "pt":
                 v = _elegant_p_to_pt(frame_args.run_dir, v)
-            return v
+            return v, s
 
-        x = _to_elegant(frame_args.x)
-        y = _to_elegant(frame_args.y)
+        x, s = _to_elegant(frame_args.x)
+        y, s = _to_elegant(frame_args.y)
+        title = "{:.4g} m".format(s)
     elif frame_args.simCode == "madx":
 
         def _to_madx(particles, field):
@@ -219,21 +253,41 @@ def sim_frame(frame_args):
                 v = _flip_sign(v)
             return v
 
-        p = madx_parser.parse_tfs_file("madx/ptc_track.file.tfs", want_page=1)
+        i = _madx_track_info()[frame_args.frameIndex]
+        title = "{} {:.4g} m".format(i.name, float(i.s))
+        p = madx_parser.parse_tfs_file(
+            _MADX_TRACK_OUTPUT_FILE,
+            want_page=frame_args.frameIndex,
+        )
         x = _to_madx(p, frame_args.x)
         y = _to_madx(p, frame_args.y)
     elif frame_args.simCode == "impactx":
         _IMPACTX_FIELD_MAP = PKDict(
-            x="position_x",
-            px="momentum_x",
-            y="position_y",
-            py="momentum_y",
-            t="position_t",
-            pt="momentum_t",
+            x="position/x",
+            px="momentum/x",
+            y="position/y",
+            py="momentum/y",
+            t="position/t",
+            pt="momentum/t",
         )
-        impactx_particles = pandas.read_hdf("impactx/diags/final_distribution.h5")
-        x = list(impactx_particles[_IMPACTX_FIELD_MAP[frame_args.x]])
-        y = list(impactx_particles[_IMPACTX_FIELD_MAP[frame_args.y]])
+        if frame_args.frameIndex == 0:
+            filename = INPUT_IMPACTX_BEAM_FILE
+            fi = 0
+        else:
+            filename = "impactx/diags/openPMD/monitor.h5"
+            fi = frame_args.frameIndex - 1
+        with h5py.File(filename, "r") as f:
+            pp = pmd_beamphysics.readers.particle_paths(f)
+            pm = PKDict()
+            for p in pp:
+                idx = int(re.search(r"/data/(\d+)/", p)[1])
+                pm[idx] = p
+            v = sorted(pm.keys())
+            d = f[pm[v[fi]]]["beam"]
+            x = list(d[_IMPACTX_FIELD_MAP[frame_args.x]])
+            y = list(d[_IMPACTX_FIELD_MAP[frame_args.y]])
+            # TODO(pjm): share title format across codes
+            title = "{:.4g} m".format(d.attrs["s_ref"])
     else:
         raise AssertionError(f"Unknown simCode: {frame_args.simCode}")
     return template_common.heatmap(
@@ -242,7 +296,7 @@ def sim_frame(frame_args):
         plot_fields=PKDict(
             x_label=_PHASE_SPACE_LABEL[frame_args.x],
             y_label=_PHASE_SPACE_LABEL[frame_args.y],
-            title=frame_args.simCode,
+            title=f"{frame_args.simCode} {title}",
         ),
     )
 
@@ -437,13 +491,12 @@ def _elegant_p_to_pt(run_dir, values):
         if "beam" in d:
             d = d["beam"]
         mass = d.attrs["mass_ref"]
-    # read final energy value from elegant pCentral
-    f = readSDDS(str(run_dir.join("elegant/run_setup.output.sdds")))
-    f.read()
     ref = kinematic.Converter(
         mass=mass,
         mass_unit="SI",
-        betagamma=f.parameters[0][0]["pCentral"],
+        betagamma=sdds_util.read_sdds_parameter(
+            "elegant/run_setup.output.sdds", "pCentral"
+        ),
     )()
     return -(
         (
@@ -465,13 +518,15 @@ def _generate_parameters_file(data):
         or data.models.distribution.distributionType != "File"
         or (
             data.models.distribution.distributionType == "File"
-            and sirepo.template.sdds_util.is_sdds_file(
-                data.models.distribution.distributionFile
-            )
+            and sdds_util.is_sdds_file(data.models.distribution.distributionFile)
         )
     ):
         return sirepo.template.impactx.generate_distribution(data, res, v)
     return ""
+
+
+def _madx_track_info():
+    return madx_parser.parse_tfs_page_info(_MADX_TRACK_OUTPUT_FILE)
 
 
 def _trim_duplicate_positions(v, s, k1, k2):
