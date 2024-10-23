@@ -320,14 +320,20 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         frameCache.setFrameCount(data.frameCount);
     };
 
-    function isCrossSectionModel(modelKey) {
-        return modelKey.includes('instrumentAnimation') && /\d/.test(modelKey);
-    }
-
     function loadHeatmapReports(data) {
         self.instrumentAnimations = [];
-        for (const m in appState.models) {
-            if (isCrossSectionModel(m)) {
+        const all = {};
+        for (let m in appState.models) {
+            if (m.includes('instrumentAnimation') && appState.models[m].id) {
+                all[appState.models[m].id] = m;
+            }
+        }
+        for (const el of controlsService.beamlineElements()) {
+            if (el.type !== 'INSTRUMENT') {
+                continue;
+            }
+            const m = all[el._id];
+            if (m) {
                 appState.models[m].valueList = {
                     x: data.ptcTrackColumns,
                     y1: data.ptcTrackColumns,
@@ -360,33 +366,20 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
 
     function initInstruments() {
         const k  = [];
-        appState.models.externalLattice.models.elements.forEach((e, i) => {
+        for (const e of appState.models.externalLattice.models.elements) {
             if (e.type !== 'INSTRUMENT') {
-                return;
+                continue;
             }
-            const m = 'instrumentAnimation' + i;
-            k.push(m);
-            setAnimationModel(m, 'instrumentAnimation', i);
-        });
-        return k;
-    }
-
-    function setAnimationModel(modelKey, modelViewName, id) {
-        const n = {
-            id: id,
-            viewName: modelViewName,
-        };
-        appState.setModelDefaults(n, modelViewName);
-        appState.models[modelKey] = n;
-    }
-
-    function checkModelSet(model) {
-        for (const m in appState.models) {
-            if (m.includes(model) && m != 'instrumentAnimationAll' && m != 'instrumentAnimationTwiss') {
-                return true;
+            const n = 'instrumentAnimation' + e._id;
+            if (! appState.models[n]) {
+                k.push(n);
+                appState.models[n] = appState.setModelDefaults({
+                    id: e._id,
+                    viewName: 'instrumentAnimation',
+                }, 'instrumentAnimation');
             }
         }
-        return false;
+        return k;
     }
 
     self.hasInstrumentAnimations = () => {
@@ -401,9 +394,7 @@ SIREPO.app.controller('ControlsController', function(appState, controlsService, 
         controlsService.runningMessage = 'Starting Optimization';
         $scope.isRunningOptimizer = true;
         $scope.$broadcast('sr-clearElementValues');
-        const k = checkModelSet('instrumentAnimation')
-              ? []
-              : initInstruments();
+        const k = initInstruments();
         appState.models.controlSettings.simMode = 'optimizer';
         k.push('optimizerSettings', 'externalLattice', 'controlSettings');
         appState.saveChanges(k, self.simState.runSimulation);

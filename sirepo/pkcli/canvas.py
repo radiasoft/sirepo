@@ -33,6 +33,9 @@ _MODEL_FIELD_MAP = PKDict(
     DRIFT=PKDict(
         _fields=["name", "type", "l", "_id"],
     ),
+    MONITOR=PKDict(
+        _fields=["name", "type", "_id"],
+    ),
     QUADRUPOLE=PKDict(
         _fields=["name", "type", "l", "k1", "k1s", "_id"],
     ),
@@ -128,7 +131,7 @@ def _write_elegant(input_file):
         d.models.commands.insert(
             idx,
             elegant.model_defaults("command_sdds_beam").pkupdate(
-                _id=LatticeUtil(d, elegant.schema()).max_id + 1,
+                _id=LatticeUtil.max_id(d) + 1,
                 _type="sdds_beam",
                 input_type="openPMD",
                 input=source_file,
@@ -138,6 +141,14 @@ def _write_elegant(input_file):
         for el in d.models.elements:
             if el.type == "CSBEND":
                 el.n_slices = 20
+            elif el.type == "MONI":
+                el.type = "WATCH"
+                el.filename = f"{el.name}.filename-%03ld.sdds"
+        util = LatticeUtil(d, elegant.schema())
+        _add_last_element(
+            util,
+            PKDict(type="WATCH", name="end", filename=f"end.filename-001.sdds"),
+        )
         return d
 
     s = sirepo.lib.SimData(
@@ -151,6 +162,13 @@ def _write_elegant(input_file):
     sirepo.template.elegant.convert_to_sdds(
         str(pkio.py_path("elegant").join(input_file))
     )
+
+
+def _add_last_element(util, el):
+    i = util.max_id + 1
+    el._id = i
+    util.data.models.elements.append(el)
+    util.select_beamline()["items"].append(i)
 
 
 def _write_impactx(input_file):
@@ -169,6 +187,15 @@ def _write_impactx(input_file):
                     "distribution", "distributionFile", input_file
                 )
             )
+        )
+        # add an "end" monitor
+        util = LatticeUtil(data, impactx.schema())
+        _add_last_element(
+            util,
+            PKDict(
+                type="BEAMMONITOR",
+                name="end",
+            ),
         )
         return data
 
@@ -247,7 +274,6 @@ def _to_madx(data, source_file):
     state = PKDict(
         next_id=util.max_id + 1,
         util=util,
-        visited=set(),
     )
     bunch = PKDict(
         beamDefinition="file",
@@ -258,15 +284,6 @@ def _to_madx(data, source_file):
             beamlines=copy.deepcopy(data.models.beamlines),
             bunch=bunch,
             commands=[
-                _command(
-                    state,
-                    PKDict(
-                        _type="option",
-                        echo="0",
-                        info="0",
-                        twiss_print="0",
-                    ),
-                ),
                 _command(
                     state,
                     PKDict(
@@ -281,45 +298,8 @@ def _to_madx(data, source_file):
                         file="1",
                     ).pkupdate(_beam_settings_from_file(source_file, model="twiss")),
                 ),
-                _command(
-                    state,
-                    PKDict(
-                        _type="ptc_create_universe",
-                        sector_nmul=10,
-                        sector_nmul_max=10,
-                    ),
-                ),
-                _command(
-                    state,
-                    PKDict(
-                        _type="ptc_create_layout",
-                        method=4,
-                        nst=25,
-                    ),
-                ),
-                _command(
-                    state,
-                    PKDict(
-                        _type="ptc_track",
-                        element_by_element="1",
-                        file="1",
-                        icase="6",
-                        maxaper="{1, 1, 1, 1, 5, 1}",
-                    ),
-                ),
-                _command(
-                    state,
-                    PKDict(
-                        _type="ptc_track_end",
-                    ),
-                ),
-                _command(
-                    state,
-                    PKDict(
-                        _type="ptc_end",
-                    ),
-                ),
-            ],
+            ]
+            + sirepo.template.madx.command_template("particle", _next_id(state)),
             elements=[],
             rpnVariables=data.models.rpnVariables,
             simulation=PKDict(
@@ -341,6 +321,7 @@ def _to_madx(data, source_file):
                 _add_dipedges(res, m, state)
             elif e.type == "RFCAVITY":
                 m.lag = e.phase
+    sirepo.template.madx.add_observers(LatticeUtil(res, _MADX.schema()), "MONITOR")
     return res
 
 

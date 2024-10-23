@@ -78,6 +78,10 @@ def _run_simulation(correctors):
         return None, None
     return _check_twiss_success()
 
+_MONITORS = PKDict({
+{{ monitorNames }}
+})
+
 def _update_and_read_results(correctors):
     global finished_sims
     columns, observes = _run_simulation(correctors)
@@ -85,14 +89,14 @@ def _update_and_read_results(correctors):
         readings = []
         finished_sims = True
         for i in range(len(observes)):
-            if '_MONITOR' in observes[i]:
-                readings += [columns['x0'][i], columns['y0'][i]]
-            elif '_HMONITOR' in observes[i]:
-                readings += [columns['x0'][i]]
-            elif '_VMONITOR' in observes[i]:
-                readings += [columns['y0'][i]]
-            else:
-                pass
+            if observes[i] in _MONITORS:
+                t = _MONITORS[observes[i]]
+                if t == "MONITOR":
+                    readings += [columns["x0"][i], columns["y0"][i]]
+                elif t == "HMONITOR":
+                    readings += [columns["x0"][i]]
+                elif t == "VMONITOR":
+                    readings += [columns["y0"][i]]
         _read_cols_and_save_report('ptc_track.file.tfsone', '{{ ptcTrackFile }}', '{{ ptcTrackColumns }}')
         return _update_summary_csv(correctors.tolist(), readings)
     return _failed_sim_results()

@@ -26,8 +26,8 @@
 "SF": SEXT,l=0.15
 "SR": SREFFECTS,coupling=0.1
 "BY": VKICK,kick=1e-009,l=1e-006
-"W1": WATCH,filename="w1.filename.sdds",flush_interval=1000,mode="parameter"
-"W2": WATCH,filename="w2.filename.sdds",interval=1000
+"W1": WATCH,filename="w1.filename-%03ld.sdds",flush_interval=1000,mode="parameter"
+"W2": WATCH,filename="w2.filename-%03ld.sdds",interval=1000
 "BD": LINE=("APERTURE","BDMAG","APERTURE")
 "BF": LINE=("APERTURE","BFMAG","APERTURE")
 "SSF": LINE=("DSE","SF","DSE")

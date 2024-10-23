@@ -146,105 +146,59 @@ D_QUAD2: QUADRUPOLE,k1=5,l=0.05;
 D32: DRIFT,l=0.1;
 I5: INSTRUMENT;
 BPM_5: MONITOR;
-MARKER171_DRIFT: MARKER;
-MARKER172_DRIFT: MARKER;
-MARKER173_DRIFT: MARKER;
-MARKER174_DRIFT: MARKER;
-MARKER175_INSTRUMENT: MARKER;
-MARKER176_MONITOR: MARKER;
-MARKER177_DRIFT: MARKER;
-MARKER178_DRIFT: MARKER;
-MARKER179_DRIFT: MARKER;
-MARKER180_DRIFT: MARKER;
-MARKER181_DRIFT: MARKER;
-MARKER182_DRIFT: MARKER;
-MARKER183_INSTRUMENT: MARKER;
-MARKER184_MONITOR: MARKER;
-MARKER185_DRIFT: MARKER;
-MARKER186_DRIFT: MARKER;
-MARKER187_DRIFT: MARKER;
-MARKER188_QUADRUPOLE: MARKER;
-MARKER189_DRIFT: MARKER;
-MARKER190_DRIFT: MARKER;
-MARKER191_QUADRUPOLE: MARKER;
-MARKER192_DRIFT: MARKER;
-MARKER193_DRIFT: MARKER;
-MARKER194_DRIFT: MARKER;
-MARKER195_DRIFT: MARKER;
-MARKER196_DRIFT: MARKER;
-MARKER197_INSTRUMENT: MARKER;
-MARKER198_MONITOR: MARKER;
-MARKER199_DRIFT: MARKER;
-MARKER200_DRIFT: MARKER;
-MARKER201_DRIFT: MARKER;
-MARKER202_DRIFT: MARKER;
-MARKER203_DRIFT: MARKER;
-MARKER204_DRIFT: MARKER;
-MARKER205_INSTRUMENT: MARKER;
-MARKER206_MONITOR: MARKER;
-MARKER207_DRIFT: MARKER;
-MARKER208_DRIFT: MARKER;
-MARKER209_DRIFT: MARKER;
-MARKER210_QUADRUPOLE: MARKER;
-MARKER211_DRIFT: MARKER;
-MARKER212_DRIFT: MARKER;
-MARKER213_QUADRUPOLE: MARKER;
-MARKER214_DRIFT: MARKER;
-MARKER215_INSTRUMENT: MARKER;
-MARKER216_MONITOR: MARKER;
-LINE: LINE=(D1,MARKER171_DRIFT,D2,MARKER172_DRIFT,HV_KICKER_1,D3,MARKER173_DRIFT,D4,MARKER174_DRIFT,I1,MARKER175_INSTRUMENT,BPM_1,MARKER176_MONITOR,D5,MARKER177_DRIFT,D6,MARKER178_DRIFT,D7,MARKER179_DRIFT,D8,MARKER180_DRIFT,HV_KICKER_2,D9,MARKER181_DRIFT,D10,MARKER182_DRIFT,I2,MARKER183_INSTRUMENT,BPM_2,MARKER184_MONITOR,D11,MARKER185_DRIFT,D12,MARKER186_DRIFT,D13,MARKER187_DRIFT,F_QUAD,MARKER188_QUADRUPOLE,D14,MARKER189_DRIFT,D15,MARKER190_DRIFT,D_QUAD,MARKER191_QUADRUPOLE,D16,MARKER192_DRIFT,D17,MARKER193_DRIFT,D18,MARKER194_DRIFT,HV_KICKER_3,D19,MARKER195_DRIFT,D20,MARKER196_DRIFT,I3,MARKER197_INSTRUMENT,BPM_3,MARKER198_MONITOR,D21,MARKER199_DRIFT,D22,MARKER200_DRIFT,D23,MARKER201_DRIFT,D24,MARKER202_DRIFT,HV_KICKER_4,D25,MARKER203_DRIFT,D26,MARKER204_DRIFT,I4,MARKER205_INSTRUMENT,BPM_4,MARKER206_MONITOR,D27,MARKER207_DRIFT,D28,MARKER208_DRIFT,D29,MARKER209_DRIFT,F_QUAD2,MARKER210_QUADRUPOLE,D30,MARKER211_DRIFT,D31,MARKER212_DRIFT,D_QUAD2,MARKER213_QUADRUPOLE,D32,MARKER214_DRIFT,I5,MARKER215_INSTRUMENT,BPM_5,MARKER216_MONITOR);
+LINE: LINE=(D1,D2,HV_KICKER_1,D3,D4,I1,BPM_1,D5,D6,D7,D8,HV_KICKER_2,D9,D10,I2,BPM_2,D11,D12,D13,F_QUAD,D14,D15,D_QUAD,D16,D17,D18,HV_KICKER_3,D19,D20,I3,BPM_3,D21,D22,D23,D24,HV_KICKER_4,D25,D26,I4,BPM_4,D27,D28,D29,F_QUAD2,D30,D31,D_QUAD2,D32,I5,BPM_5);
 
 
 option,echo=false;
 beam,ex=4.6e-08,ey=4.6e-08,gamma=1958.908474421938,particle=electron,sigt=0.00065;
 use,sequence=LINE;
 ptc_create_universe;
-ptc_observe,place=Marker216_MONITOR;
-ptc_observe,place=Marker215_INSTRUMENT;
-ptc_observe,place=Marker214_DRIFT;
-ptc_observe,place=Marker213_QUADRUPOLE;
-ptc_observe,place=Marker212_DRIFT;
-ptc_observe,place=Marker211_DRIFT;
-ptc_observe,place=Marker210_QUADRUPOLE;
-ptc_observe,place=Marker209_DRIFT;
-ptc_observe,place=Marker208_DRIFT;
-ptc_observe,place=Marker207_DRIFT;
-ptc_observe,place=Marker206_MONITOR;
-ptc_observe,place=Marker205_INSTRUMENT;
-ptc_observe,place=Marker204_DRIFT;
-ptc_observe,place=Marker203_DRIFT;
-ptc_observe,place=Marker202_DRIFT;
-ptc_observe,place=Marker201_DRIFT;
-ptc_observe,place=Marker200_DRIFT;
-ptc_observe,place=Marker199_DRIFT;
-ptc_observe,place=Marker198_MONITOR;
-ptc_observe,place=Marker197_INSTRUMENT;
-ptc_observe,place=Marker196_DRIFT;
-ptc_observe,place=Marker195_DRIFT;
-ptc_observe,place=Marker194_DRIFT;
-ptc_observe,place=Marker193_DRIFT;
-ptc_observe,place=Marker192_DRIFT;
-ptc_observe,place=Marker191_QUADRUPOLE;
-ptc_observe,place=Marker190_DRIFT;
-ptc_observe,place=Marker189_DRIFT;
-ptc_observe,place=Marker188_QUADRUPOLE;
-ptc_observe,place=Marker187_DRIFT;
-ptc_observe,place=Marker186_DRIFT;
-ptc_observe,place=Marker185_DRIFT;
-ptc_observe,place=Marker184_MONITOR;
-ptc_observe,place=Marker183_INSTRUMENT;
-ptc_observe,place=Marker182_DRIFT;
-ptc_observe,place=Marker181_DRIFT;
-ptc_observe,place=Marker180_DRIFT;
-ptc_observe,place=Marker179_DRIFT;
-ptc_observe,place=Marker178_DRIFT;
-ptc_observe,place=Marker177_DRIFT;
-ptc_observe,place=Marker176_MONITOR;
-ptc_observe,place=Marker175_INSTRUMENT;
-ptc_observe,place=Marker174_DRIFT;
-ptc_observe,place=Marker173_DRIFT;
-ptc_observe,place=Marker172_DRIFT;
-ptc_observe,place=Marker171_DRIFT;
+ptc_observe,place=D1[1];
+ptc_observe,place=D2[1];
+ptc_observe,place=D3[1];
+ptc_observe,place=D4[1];
+ptc_observe,place=I1[1];
+ptc_observe,place=BPM_1[1];
+ptc_observe,place=D5[1];
+ptc_observe,place=D6[1];
+ptc_observe,place=D7[1];
+ptc_observe,place=D8[1];
+ptc_observe,place=D9[1];
+ptc_observe,place=D10[1];
+ptc_observe,place=I2[1];
+ptc_observe,place=BPM_2[1];
+ptc_observe,place=D11[1];
+ptc_observe,place=D12[1];
+ptc_observe,place=D13[1];
+ptc_observe,place=F_QUAD[1];
+ptc_observe,place=D14[1];
+ptc_observe,place=D15[1];
+ptc_observe,place=D_QUAD[1];
+ptc_observe,place=D16[1];
+ptc_observe,place=D17[1];
+ptc_observe,place=D18[1];
+ptc_observe,place=D19[1];
+ptc_observe,place=D20[1];
+ptc_observe,place=I3[1];
+ptc_observe,place=BPM_3[1];
+ptc_observe,place=D21[1];
+ptc_observe,place=D22[1];
+ptc_observe,place=D23[1];
+ptc_observe,place=D24[1];
+ptc_observe,place=D25[1];
+ptc_observe,place=D26[1];
+ptc_observe,place=I4[1];
+ptc_observe,place=BPM_4[1];
+ptc_observe,place=D27[1];
+ptc_observe,place=D28[1];
+ptc_observe,place=D29[1];
+ptc_observe,place=F_QUAD2[1];
+ptc_observe,place=D30[1];
+ptc_observe,place=D31[1];
+ptc_observe,place=D_QUAD2[1];
+ptc_observe,place=D32[1];
+ptc_observe,place=I5[1];
+ptc_observe,place=BPM_5[1];
 ptc_create_layout;
 call,file=ptc_particles.madx;
 ptc_track,file="ptc_track.file.tfs",icase=6,onetable=true;
@@ -316,6 +270,14 @@ def _run_simulation(correctors):
         return None, None
     return _check_twiss_success()
 
+_MONITORS = PKDict({
+    "BPM_1": "MONITOR",
+    "BPM_2": "MONITOR",
+    "BPM_3": "MONITOR",
+    "BPM_4": "MONITOR",
+    "BPM_5": "MONITOR"
+})
+
 def _update_and_read_results(correctors):
     global finished_sims
     columns, observes = _run_simulation(correctors)
@@ -323,14 +285,14 @@ def _update_and_read_results(correctors):
         readings = []
         finished_sims = True
         for i in range(len(observes)):
-            if '_MONITOR' in observes[i]:
-                readings += [columns['x0'][i], columns['y0'][i]]
-            elif '_HMONITOR' in observes[i]:
-                readings += [columns['x0'][i]]
-            elif '_VMONITOR' in observes[i]:
-                readings += [columns['y0'][i]]
-            else:
-                pass
+            if observes[i] in _MONITORS:
+                t = _MONITORS[observes[i]]
+                if t == "MONITOR":
+                    readings += [columns["x0"][i], columns["y0"][i]]
+                elif t == "HMONITOR":
+                    readings += [columns["x0"][i]]
+                elif t == "VMONITOR":
+                    readings += [columns["y0"][i]]
         _read_cols_and_save_report('ptc_track.file.tfsone', 'track.tfs', 'ptc_track_columns.txt')
         return _update_summary_csv(correctors.tolist(), readings)
     return _failed_sim_results()

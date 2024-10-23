@@ -122,13 +122,23 @@ class ImpactxMadxConverter(MadxConverter):
             if "nslice" in SCHEMA.model[element_out.type]:
                 element_out.nslice = self.nslice
             if element_in.type == "SBEND":
-                element_out.rc = self.__val(element_out.l) / self.__val(
-                    element_in.angle
-                )
+                if self.__val(element_in.angle) != 0:
+                    element_out.rc = self.__val(element_out.l) / self.__val(
+                        element_in.angle
+                    )
+                else:
+                    element_out.rc = 0
+                if element_out.rc == 0:
+                    element_out.type = "DRIFT"
             elif element_in.type == "DIPEDGE":
-                element_out.rc = 1.0 / self.__val(element_in.h)
+                if self.__val(element_in.h) != 0:
+                    element_out.rc = 1.0 / self.__val(element_in.h)
+                else:
+                    element_out.rc = 0
                 element_out.g = 2 * self.__val(element_in.hgap)
                 element_out.psi = element_in.e1
+                if element_out.rc == 0:
+                    element_out.type = "DRIFT"
             elif element_out.type == "QUAD" and self.__val(element_out.k) == 0:
                 element_out.type = "DRIFT"
             elif element_out.type == "SOL" and self.__val(element_out.ks) == 0:
