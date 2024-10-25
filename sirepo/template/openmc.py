@@ -68,20 +68,6 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError(f"invalid model={model} options={options}")
 
 
-def prepare_for_save(data, qcall):
-    # materialsFile is used only once to setup initial volume materials.
-    # it isn't reusable across simulations
-    if data.models.get("volumes") and data.models.geometryInput.get("materialsFile"):
-        if _SIM_DATA.lib_file_exists(_SIM_DATA.materials_filename(data), qcall=qcall):
-            pkio.unchecked_remove(
-                _SIM_DATA.lib_file_abspath(
-                    _SIM_DATA.materials_filename(data), qcall=qcall
-                )
-            )
-        data.models.geometryInput.materialsFile = ""
-    return data
-
-
 def post_execution_processing(
     compute_model, sim_id, success_exit, is_parallel, run_dir, **kwargs
 ):
@@ -97,6 +83,20 @@ def post_execution_processing(
                 _SIM_DATA.put_sim_file(sim_id, f, f.basename)
         return None
     return _parse_openmc_log(run_dir)
+
+
+def prepare_for_save(data, qcall):
+    # materialsFile is used only once to setup initial volume materials.
+    # it isn't reusable across simulations
+    if data.models.get("volumes") and data.models.geometryInput.get("materialsFile"):
+        if _SIM_DATA.lib_file_exists(_SIM_DATA.materials_filename(data), qcall=qcall):
+            pkio.unchecked_remove(
+                _SIM_DATA.lib_file_abspath(
+                    _SIM_DATA.materials_filename(data), qcall=qcall
+                )
+            )
+        data.models.geometryInput.materialsFile = ""
+    return data
 
 
 def python_source_for_model(data, model, qcall, **kwargs):

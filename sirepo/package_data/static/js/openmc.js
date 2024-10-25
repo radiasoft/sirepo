@@ -445,7 +445,6 @@ SIREPO.app.controller('VisualizationController', function(appState, errorService
         openmcService.invalidateRange('thresholds');
         openmcService.invalidateRange('colorRange');
         r.isEnergySelected = "0";
-        panelState.clear('tallyReport');
         self.simState.saveAndRunSimulation('openmcAnimation');
     };
     self.simState.logFileURL = function() {
@@ -537,6 +536,18 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
         sourceParticles: [],
     };
 
+    function initMesh() {
+        self.mesh = null;
+        const t = openmcService.findTally();
+        for (let k = 1; k <= SIREPO.APP_SCHEMA.constants.maxFilters; k++) {
+            const f = t[`filter${k}`];
+            if (f && f._type === 'meshFilter') {
+                self.mesh = f;
+                return;
+            }
+        }
+    }
+
     function normalizer(score, numParticles) {
         if (numParticles === undefined || ! openmcService.canNormalizeScore(score)) {
             return x => x;
@@ -603,19 +614,6 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
 
     self.getSourceParticles = () => self.sourceParticles;
 
-    self.initMesh = () => {
-        const t = openmcService.findTally();
-        for (let k = 1; k <= SIREPO.APP_SCHEMA.constants.maxFilters; k++) {
-            const f = t[`filter${k}`];
-            if (f && f._type === 'meshFilter') {
-                self.mesh = f;
-                return true;
-            }
-        }
-        self.mesh = null;
-        return false;
-    };
-
     self.setFieldData = (fieldData, min, max, numParticles) => {
         const n = normalizer(appState.models.openmcAnimation.score, numParticles);
         self.fieldData = fieldData.map(n);
@@ -633,6 +631,8 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
                 f.stop,
             ];
         }
+        appState.models.tallyReport.planePos = 0;
+        initMesh();
     };
 
     self.setOutlines = (tally, outlines) => {
@@ -959,6 +959,7 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
         controller: function($scope) {
             $scope.tallyService = tallyService;
             const displayRanges = {};
+            let lastTally = [null, null];
             const sources = openmcService.getSourceVisualizations(
                 {
                     box: space => {
@@ -994,7 +995,7 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
             }
 
             function buildTallyReport() {
-                if (! tallyService.mesh) {
+                if (! tallyService.fieldData) {
                     return;
                 }
                 const [z, x, y] = tallyReportAxes();
@@ -1022,23 +1023,22 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
                     x_range: ranges[l],
                     y_label: `${y} [m]`,
                     y_range: ranges[m],
-                    z_matrix: reorderFieldData(tallyService.mesh.dimension)[fieldIndex(pos, ranges[n], n)],
+                    z_matrix: sliceFieldData(),
                     z_range: ranges[n],
                     overlayData: getOutlines(pos, ranges[n], n),
                     selectedCoords: $scope.energyFilter ? tallyService.getEnergyReportCoords() : null,
                 };
                 panelState.setData('tallyReport', r);
                 $scope.$broadcast('tallyReport.reload', r);
-            }
 
-            function displayRangeIndices() {
-                const r = tallyService.getMeshRanges();
-                return [
-                    displayRanges.x,
-                    displayRanges.y,
-                    displayRanges.z,
-                ]
-                    .map((x, i) => [fieldIndex(x.min, r[i], i), fieldIndex(x.max, r[i], i)]);
+                if (
+                    (lastTally[0] != appState.models.openmcAnimation.tally)
+                    || (lastTally[1] != appState.models.tallyReport.planePos)
+                ) {
+                    const newTally = [appState.models.openmcAnimation.tally, appState.models.tallyReport.planePos];
+                    //console.log('HERE request outlines', lastTally, newTally);
+                    lastTally = newTally;
+                }
             }
 
             function energySumLabel() {
@@ -1168,32 +1168,51 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
                 return outlines;
             }
 
-            function reorderFieldData(dims) {
-                const [n, m, l] = tallyReportAxisIndices();
-                const fd = tallyService.fieldData;
-                const d = SIREPO.UTILS.reshape(fd, dims.slice().reverse());
-                const inds = displayRangeIndices();
-                let N = 1;
-                for (const idx of inds) {
-                    N *= (idx[1] - idx[0] + 1);
-                }
-                const ff = SIREPO.UTILS.reshape(
-                    new Array(N),
-                    [(inds[n][1] - inds[n][0] + 1), (inds[m][1] - inds[m][0] + 1), (inds[l][1] - inds[l][0] + 1)]
+            function sliceFieldData() {
+                const a = appState.models.tallyReport.axis;
+                const [nx, ny, nz] = tallyService.getMeshRanges().map(r => r[2]);
+                const f = tallyService.fieldData;
+                const v = [];
+
+                //TODO(pjm): change tallyReport.planePos to an index
+                const n = SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(a);
+                const slice = fieldIndex(
+                    appState.models.tallyReport.planePos,
+                    tallyService.getMeshRanges()[n],
+                    n,
                 );
 
-                for (let k = 0; k <= (inds[n][1] - inds[n][0]); ++k) {
-                    for (let j = 0; j <= (inds[m][1] - inds[m][0]); ++j) {
-                        for (let i = 0; i <= (inds[l][1] - inds[l][0]); ++i) {
-                            const v = [0, 0, 0];
-                            v[l] = inds[l][0] + i;
-                            v[m] = inds[m][0] + j;
-                            v[n] = inds[n][0] + k;
-                            ff[k][j][i] = d[v[2]][v[1]][v[0]];
+                if (a === 'x') {
+                    const x = slice;
+                    for (let y = 0; y < ny; y++) {
+                        const r = [];
+                        for (let z = 0; z < nz; z++) {
+                            r[z] = f[z * nx * ny + y * nx + x];
                         }
+                        v.push(r);
                     }
                 }
-                return ff;
+                else if (a === 'y') {
+                    const y = slice * nx;
+                    for (let z = 0; z < nz; z++) {
+                        const r = [];
+                        for (let x = 0; x < nx; x++) {
+                            r[x] = f[z * nx * ny + y + x];
+                        }
+                        v.push(r);
+                    }
+                }
+                else if (a === 'z') {
+                    const z = slice * nx * ny;
+                    for (let x = 0; x < nx; x++) {
+                        const r = [];
+                        for (let y = 0; y < ny; y++) {
+                            r[y] = f[z + y * nx + x];
+                        }
+                        v.push(r);
+                    }
+                }
+                return v;
             }
 
             function sourceColor(color) {
@@ -1228,22 +1247,9 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
             }
 
             function updateDisplayRange() {
-                if (! tallyService.initMesh()) {
-                    return;
-                }
                 SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
                     displayRanges[dim] = tallyService.tallyRange(dim);
                 });
-                updateSliceAxis();
-            }
-
-            function updateSliceAxis() {
-                if (! tallyService.fieldData) {
-                    return;
-                }
-                if (! tallyService.initMesh()) {
-                    return ;
-                }
                 buildTallyReport();
             }
 
@@ -1271,14 +1277,14 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
             });
 
             $scope.$on('sr-volume-visibility-toggle-all', buildTallyReport);
-            appState.watchModelFields($scope, ['tallyReport.axis'], updateSliceAxis);
-            appState.watchModelFields($scope, ['openmcAnimation.colorMap', 'openmcAnimation.sourceColorMap'], updateDisplay);
-            appState.watchModelFields($scope, ['tallyReport.planePos', 'openmcAnimation.showSources'], buildTallyReport);
-            $scope.$watch('tallyService.fieldData', (newValue, oldValue) => {
-                if (newValue && newValue !== oldValue) {
-                    updateDisplayRange();
-                }
-            });
+            appState.watchModelFields($scope, [
+                'openmcAnimation.colorMap',
+                'openmcAnimation.showSources',
+                'openmcAnimation.sourceColorMap',
+                'tallyReport.axis',
+                'tallyReport.planePos',
+            ], updateDisplay);
+            $scope.$watch('tallyService.fieldData', updateDisplayRange);
 
             $scope.$on('sr-plotLinked', () => {
                 if (tallyService.fieldData) {
@@ -1445,9 +1451,6 @@ SIREPO.app.directive('geometry3d', function(appState, openmcService, plotting, p
                     vtkScene.removeActor(tallyBundle.actor);
                     picker.deletePickList(tallyBundle.actor);
                     tallyBundle = null;
-                }
-                if (! tallyService.initMesh()) {
-                    return;
                 }
                 const [nx, ny, nz] = tallyService.mesh.dimension;
                 const [wx, wy, wz] = [
@@ -2074,6 +2077,9 @@ SIREPO.app.directive('volumeSelector', function(appState, openmcService, panelSt
                 if (editRowKey && name === 'material') {
                     appState.cancelChanges('volumes');
                     unloadMaterial();
+                }
+                if (name == 'volumes') {
+                    loadRows();
                 }
             });
 
@@ -2839,9 +2845,6 @@ SIREPO.viewLogic('tallyView', function(appState, openmcService, panelState, vali
     }
 
     function validateEnergyFilter(filter) {
-        if (! filter) {
-            return;
-        }
         const rangeFields = ['start', 'stop'];
         if (rangeFields.map(x => filter[x]).some(x => x == null)) {
             return;
@@ -2868,8 +2871,12 @@ SIREPO.viewLogic('tallyView', function(appState, openmcService, panelState, vali
     }
 
     function validateFilter(field) {
-        const f = appState.models[$scope.modelName][field.split('.')[1]];
-        if (f._type === 'None') {
+        const m = appState.models[$scope.modelName];
+        if (! m) {
+            return;
+        }
+        const f = m[field.split('.')[1]];
+        if (! f || f._type === 'None') {
             return;
         }
         if (f._type === 'energyFilter' || f._type === 'energyoutFilter') {
@@ -3172,16 +3179,14 @@ SIREPO.viewLogic('tallySettingsView', function(appState, openmcService, panelSta
             'opacity', ! is2D,
         ]);
 
-        panelState.showFields('tallyReport', [
-            'axis', is2D,
-            'planePos', is2D && tallyService.tallyRange(appState.models.tallyReport.axis, true).steps > 1,
-        ]);
-
         panelState.showField('openmcAnimation', 'energyRangeSum', ! ! openmcService.findFilter('energyFilter'));
         panelState.showField('openmcAnimation', 'sourceNormalization', openmcService.canNormalizeScore(appState.models.openmcAnimation.score));
         panelState.showField('openmcAnimation', 'numSampleSourceParticles', showSources);
         panelState.showField('openmcAnimation', 'sourceColorMap', showSources && appState.models.openmcAnimation.numSampleSourceParticles);
-        updateVisibleAxes();
+        panelState.showFields('tallyReport', [
+            'axis', is2D,
+            'planePos', is2D && tallyService.tallyRange(updateVisibleAxes(), true).steps > 1,
+        ]);
     }
 
     function updateEnergyPlot() {
@@ -3191,7 +3196,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, openmcService, panelSta
 
     function updateVisibleAxes() {
         if (! tallyService.mesh) {
-            return;
+            return appState.models.tallyReport.axis;
         }
         const v = {};
         SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
@@ -3209,6 +3214,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, openmcService, panelSta
                 appState.models.tallyReport.axis = Object.keys(v)[0];
             }
         });
+        return appState.models.tallyReport.axis;
     }
 
     function validateTally() {
@@ -3290,22 +3296,47 @@ SIREPO.app.directive('planePositionSlider', function(appState, panelState, tally
             dim: '<',
         },
         template: `
-          <div data-ng-if="steps">
-            <div data-slider="" data-model="model" data-field="field" data-min="min" data-max="max" data-steps="steps"></div>
+          <div data-ng-if="hasRange()">
+            <div data-slider="" data-model="model" data-field="field" data-min="range.min" data-max="range.max" data-steps="range.steps"></div>
           </div>
         `,
         controller: function($scope) {
             $scope.tallyService = tallyService;
+            let newRange;
+            let oldAxis = appState.models.tallyReport.axis;
 
             function updateRange() {
                 if ($scope.dim) {
-                    const r = tallyService.tallyRange($scope.dim, true);
-                    $scope.min = r.min;
-                    $scope.max = r.max;
-                    $scope.steps = r.steps;
+                    newRange = tallyService.tallyRange($scope.dim, true);
+                    newRange.axis = appState.models.tallyReport.axis;
                 }
             }
+
+            $scope.hasRange = () => {
+                // the slider component has fixed range, so the component needs to get recreated
+                // when the range or axis changes
+                if (newRange) {
+                    if ($scope.range && $scope.range.min === newRange.min
+                        && $scope.range.max === newRange.max
+                        && $scope.range.steps === newRange.steps
+                        && $scope.range.axis === oldAxis
+                       ) {
+                        return true;
+                    }
+                    if (newRange.steps > 1) {
+                        $scope.range = newRange;
+                        if (! appState.models.tallyReport.planePos
+                           || $scope.range.axis !== oldAxis) {
+                            appState.models.tallyReport.planePos = $scope.range.min;
+                            oldAxis = $scope.range.axis;
+                        }
+                    }
+                }
+                return false;
+            };
+
             updateRange();
+            $scope.$watch('dim', updateRange);
             $scope.$watch('tallyService.fieldData', updateRange);
         },
     };
