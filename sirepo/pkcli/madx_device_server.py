@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """DeviceServer stand-in for controls
 
-:copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkio
@@ -17,6 +17,7 @@ import http
 import numpy
 import os
 import re
+import sirepo.const
 import sirepo.lib
 import sirepo.template.madx
 
@@ -157,17 +158,19 @@ def _init_sim():
 def _load_sim(sim_type, sim_id):
     return simulation_db.open_json_file(
         sim_type,
-        path=simulation_db.sim_data_file(
-            sim_type,
-            sim_id,
+        path=simulation_db.user_path_root()
+        .join(
             simulation_db.uid_from_dir_name(
                 simulation_db.find_global_simulation(
                     "controls",
                     sim_id,
                     checked=True,
                 ),
-            ),
-        ),
+            )
+        )
+        .join(sim_type)
+        .join(sim_id)
+        .join(sirepo.const.SIM_DATA_BASENAME),
     )
 
 
@@ -185,16 +188,19 @@ def _position_from_twiss():
     for c in ("beta_x", "beta_y", "alpha_x", "alpha_y"):
         if list(filter(lambda x: numpy.isnan(x), columns[c])):
             _abort("twiss computation failed")
+    monitors = PKDict()
+    for el in app.config["sim"].models.externalLattice.models.elements:
+        if el.type in ("MONITOR", "HMONITOR", "VMONITOR"):
+            monitors[el.name] = el.type
     res = []
     for i in range(len(observes)):
-        if "_MONITOR" in observes[i]:
+        t = monitors.get(observes[i], "")
+        if t == "MONITOR":
             res += [columns["x0"][i] * 1e6, columns["y0"][i] * 1e6]
-        elif "_HMONITOR" in observes[i]:
+        elif t == "HMONITOR":
             res += [columns["x0"][i] * 1e6]
-        elif "_VMONITOR" in observes[i]:
+        elif t == "VMONITOR":
             res += [columns["y0"][i] * 1e6]
-        else:
-            pass
     return res
 
 
