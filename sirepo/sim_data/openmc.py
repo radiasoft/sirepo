@@ -64,6 +64,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "geometry3DReport",
                 "geometryInput",
                 "openmcAnimation",
+                "outlineAnimation",
                 "reflectivePlanes",
                 "settings",
                 "tallyReport",
@@ -134,7 +135,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if analysis_model == "geometry3DReport":
             return "dagmcAnimation"
-        if analysis_model == "energyAnimation":
+        if analysis_model in ("energyAnimation", "outlineAnimation"):
             return "openmcAnimation"
         return analysis_model
 

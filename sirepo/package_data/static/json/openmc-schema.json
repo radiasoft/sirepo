@@ -262,6 +262,10 @@
             "x",
             "y",
             "z"
+        ],
+        "outlineAnimation": [
+            "tally",
+            "axis"
         ]
     },
     "localRoutes": {
@@ -972,6 +976,10 @@
             "sbatchProject": ["Project", "OptionalString", ""],
             "ompThreads": ["OMP threads", "Integer", 16, "", 1],
             "selectedVolumes": ["", "SelectedTallyVolumes", ""]
+        },
+        "outlineAnimation": {
+            "tally": ["", "PlotTallyList"],
+            "axis": ["", "Axis", "y"]
         },
         "particle": {
             "value": ["Particle", "FilterParticle"]

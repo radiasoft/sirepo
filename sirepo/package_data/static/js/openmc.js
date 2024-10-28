@@ -162,7 +162,7 @@ SIREPO.app.factory('openmcService', function(appState, panelState, requestSender
     self.canNormalizeScore = score => ! SIREPO.APP_SCHEMA.constants.unnormalizableScores.includes(score);
 
     self.computeModel = (modelKey) => {
-        if (modelKey === "energyAnimation") {
+        if (['energyAnimation', 'outlineAnimation'].includes(modelKey)) {
             return "openmcAnimation";
         }
         return modelKey;
@@ -532,7 +532,6 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
         fieldData: null,
         minField: 0,
         maxField: 0,
-        outlines: null,
         sourceParticles: [],
     };
 
@@ -558,7 +557,6 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
     self.clearMesh = () => {
         self.mesh = null;
         self.fieldData = null;
-        self.outlines = null;
     };
 
     self.colorScale = modelName => {
@@ -598,20 +596,6 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
         ]);
     };
 
-    self.getOutlines = (volId, dim, index) => {
-        if (! self.outlines) {
-            return [];
-        }
-        const t = self.outlines[appState.applicationState().openmcAnimation.tally];
-        if (t && t[`${volId}`]) {
-            const o = t[`${volId}`][dim];
-            if (o.length) {
-                return o[index];
-            }
-        }
-        return [];
-    };
-
     self.getSourceParticles = () => self.sourceParticles;
 
     self.setFieldData = (fieldData, min, max, numParticles) => {
@@ -631,16 +615,9 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
                 f.stop,
             ];
         }
-        appState.models.tallyReport.planePos = 0;
+        //TODO(pjm): planePos will become an integer with -1 out of range
+        appState.models.tallyReport.planePos = -1;
         initMesh();
-    };
-
-    self.setOutlines = (tally, outlines) => {
-        if (appState.applicationState().openmcAnimation.tally === tally) {
-            self.outlines = {
-                [tally]: outlines,
-            };
-        }
     };
 
     self.setSourceParticles = particles => {
@@ -930,7 +907,6 @@ SIREPO.app.directive('tallyViewer', function(appState, openmcService, plotting, 
                     return;
                 }
                 tallyService.setFieldData(json.field_data, json.min_field, json.max_field, json.num_particles);
-                tallyService.setOutlines(json.summaryData.tally, json.summaryData.outlines || {});
                 tallyService.setSourceParticles(json.summaryData.sourceParticles || []);
             };
 
@@ -947,7 +923,7 @@ SIREPO.app.directive('tallyViewer', function(appState, openmcService, plotting, 
     };
 });
 
-SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState, tallyService) {
+SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService, panelState, tallyService) {
     return {
         restrict: 'A',
         scope: {
@@ -959,7 +935,8 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
         controller: function($scope) {
             $scope.tallyService = tallyService;
             const displayRanges = {};
-            let lastTally = [null, null];
+            let geometryOutlines;
+            let lastTally = [null, null, null];
             const sources = openmcService.getSourceVisualizations(
                 {
                     box: space => {
@@ -995,9 +972,64 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
             }
 
             function buildTallyReport() {
-                if (! tallyService.fieldData) {
+                if (! tallyService.fieldData || appState.models.tallyReport.planePos === -1) {
                     return;
                 }
+                if (
+                    (lastTally[0] != appState.models.openmcAnimation.tally)
+                        || (lastTally[1] != appState.models.tallyReport.axis)
+                        || (lastTally[2] != appState.models.tallyReport.planePos)
+                ) {
+                    const newTally = [
+                        appState.models.openmcAnimation.tally,
+                        appState.models.tallyReport.axis,
+                        appState.models.tallyReport.planePos,
+                    ];
+                    lastTally = newTally;
+                    const o = appState.models.outlineAnimation;
+                    o.tally = appState.models.openmcAnimation.tally;
+                    o.axis = appState.models.tallyReport.axis;
+                    appState.saveQuietly('outlineAnimation');
+
+                    //TODO(pjm): refactor this
+                    const [n, m, l] = tallyReportAxisIndices();
+                    const dimIndex = n;
+                    const ranges = tallyService.getMeshRanges();
+                    const range = ranges[n];
+                    const pos = appState.models.tallyReport.planePos;
+                    
+                    frameCache.getFrame('outlineAnimation', fieldIndex(pos, range, dimIndex), false, function(index, data) {
+                        if (! data.outlines) {
+                            return;
+                        }
+                        const outlines = [];
+                        for (const volId of openmcService.getNonGraveyardVolumes()) {
+                            const v = openmcService.getVolumeById(volId);
+                            if (! v.isVisibleWithTallies) {
+                                continue;
+                            }
+                            const o = data.outlines[volId];
+                            if (o) {
+                                o.forEach((arr, i) => {
+                                    outlines.push({
+                                        name: `${v.name}-${i}`,
+                                        color: v.color,
+                                        data: arr,
+                                    });
+                                });
+                            }
+                        }
+                        geometryOutlines = outlines;
+                        buildTallyReportsWithOutlines();
+                    });
+                    return;
+                }
+                if (geometryOutlines) {
+                    buildTallyReportsWithOutlines();
+                }
+            }
+
+            function buildTallyReportsWithOutlines() {
                 const [z, x, y] = tallyReportAxes();
                 const [n, m, l] = tallyReportAxisIndices();
                 const ranges = tallyService.getMeshRanges();
@@ -1025,20 +1057,11 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
                     y_range: ranges[m],
                     z_matrix: sliceFieldData(),
                     z_range: ranges[n],
-                    overlayData: getOutlines(pos, ranges[n], n),
+                    overlayData: geometryOutlines.concat(getSourceOutlines()),
                     selectedCoords: $scope.energyFilter ? tallyService.getEnergyReportCoords() : null,
                 };
                 panelState.setData('tallyReport', r);
                 $scope.$broadcast('tallyReport.reload', r);
-
-                if (
-                    (lastTally[0] != appState.models.openmcAnimation.tally)
-                    || (lastTally[1] != appState.models.tallyReport.planePos)
-                ) {
-                    const newTally = [appState.models.openmcAnimation.tally, appState.models.tallyReport.planePos];
-                    //console.log('HERE request outlines', lastTally, newTally);
-                    lastTally = newTally;
-                }
             }
 
             function energySumLabel() {
@@ -1054,8 +1077,12 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
                 );
             }
 
-            function getOutlines(pos, range, dimIndex) {
-
+            function getSourceOutlines() {
+                //TODO(pjm): rework this method
+                const [n, m, l] = tallyReportAxisIndices();
+                const dimIndex = n;
+                const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
+                const outlines = [];
                 const particleColors = SIREPO.UTILS.unique(
                     tallyService.getSourceParticles().map(p => particleColor(p))
                 );
@@ -1063,20 +1090,6 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
                 function isPosOutsideMesh(pos, j, k) {
                     const r = tallyService.getMeshRanges();
                     return pos[j] < r[j][0] || pos[j] > r[j][1] || pos[k] < r[k][0] || pos[k]  > r[k][1];
-                }
-
-                function particleColor(p) {
-                    return tallyService.sourceParticleColorScale(
-                        appState.models.openmcAnimation.sourceColorMap
-                    )(p.energy);
-                }
-
-                function particleId(p) {
-                    return particleIdFromColor(particleColor(p));
-                }
-
-                function particleIdFromColor(c) {
-                    return `arrow-${c.slice(1)}`;
                 }
 
                 // we cannot set the color of an instance of a marker ref, so we will
@@ -1094,6 +1107,30 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
                     ds.call(updateMarkers);
                 }
 
+                function particleColor(p) {
+                    return tallyService.sourceParticleColorScale(
+                        appState.models.openmcAnimation.sourceColorMap
+                    )(p.energy);
+                }
+
+                function particleId(p) {
+                    return particleIdFromColor(particleColor(p));
+                }
+
+                function particleIdFromColor(c) {
+                    return `arrow-${c.slice(1)}`;
+                }
+
+                function toReversed(arr) {
+                    // Array.toReversed() is not available in all active browsers
+                    // not using a polyfill due to array iteration bugs
+                    const r = [];
+                    for (let i = (arr.length - 1); i >= 0; --i) {
+                        r.push(arr[i]);
+                    }
+                    return r;
+                }
+
                 function updateMarkers(selection) {
                     selection
                         .attr('id', d => particleIdFromColor(d))
@@ -1107,32 +1144,6 @@ SIREPO.app.directive('geometry2d', function(appState, openmcService, panelState,
                         .attr('fill', d => sourceColor(d));
                 }
 
-                function toReversed(arr) {
-                    // Array.toReversed() is not available in all active browsers
-                    // not using a polyfill due to array iteration bugs
-                    const r = [];
-                    for (let i = (arr.length - 1); i >= 0; --i) {
-                        r.push(arr[i]);
-                    }
-                    return r;
-                }
-
-                const outlines = [];
-                const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
-                for (const volId of openmcService.getNonGraveyardVolumes()) {
-                    const v = openmcService.getVolumeById(volId);
-                    if (! v.isVisibleWithTallies) {
-                        continue;
-                    }
-                    const o = tallyService.getOutlines(volId, dim, fieldIndex(pos, range, dimIndex));
-                    o.forEach((arr, i) => {
-                        outlines.push({
-                            name: `${v.name}-${i}`,
-                            color: v.color,
-                            data: arr,
-                        });
-                    });
-                }
                 sources.forEach((view, i) => {
                     const s = appState.models.settings.sources[i];
                     if (view instanceof SIREPO.VTK.SphereViews) {
@@ -1746,9 +1757,7 @@ SIREPO.app.directive('geometry3d', function(appState, openmcService, plotting, p
 
             $scope.init = () => {};
 
-            $scope.resize = () => {
-                //TODO(pjm): reposition camera?
-            };
+            $scope.resize = () => {};
 
             $scope.sizeStyle = () => {
                 if (hasTallies) {
@@ -3308,10 +3317,11 @@ SIREPO.app.directive('planePositionSlider', function(appState, panelState, tally
             function updateRange() {
                 if ($scope.dim) {
                     newRange = tallyService.tallyRange($scope.dim, true);
-                    newRange.axis = appState.models.tallyReport.axis;
+                    newRange.axis = $scope.dim;
                 }
             }
 
+            //TODO(pjm): update the slider component so the range and axis is dynamic
             $scope.hasRange = () => {
                 // the slider component has fixed range, so the component needs to get recreated
                 // when the range or axis changes
@@ -3320,16 +3330,17 @@ SIREPO.app.directive('planePositionSlider', function(appState, panelState, tally
                         && $scope.range.max === newRange.max
                         && $scope.range.steps === newRange.steps
                         && $scope.range.axis === oldAxis
+                        && newRange.axis === oldAxis
                        ) {
                         return true;
                     }
                     if (newRange.steps > 1) {
                         $scope.range = newRange;
-                        if (! appState.models.tallyReport.planePos
-                           || $scope.range.axis !== oldAxis) {
-                            appState.models.tallyReport.planePos = $scope.range.min;
-                            oldAxis = $scope.range.axis;
-                        }
+                    }
+                    if (appState.models.tallyReport.planePos === -1
+                        || newRange.axis !== oldAxis) {
+                        appState.models.tallyReport.planePos = newRange.min;
+                        oldAxis = newRange.axis;
                     }
                 }
                 return false;

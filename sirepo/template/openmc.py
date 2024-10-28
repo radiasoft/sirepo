@@ -113,6 +113,17 @@ def sim_frame(frame_args):
         return _energy_plot(
             frame_args.run_dir, frame_args.sim_in, frame_args.frameIndex
         )
+    if frame_args.frameReport == "outlineAnimation":
+        res = PKDict()
+        o = simulation_db.read_json(frame_args.run_dir.join(_OUTLINES_FILE))
+        if frame_args.tally in o:
+            for v, d in o[frame_args.tally].items():
+                if frame_args.axis in d:
+                    if frame_args.frameIndex < len(d[frame_args.axis]):
+                        res[v] = d[frame_args.axis][frame_args.frameIndex]
+        return PKDict(
+            outlines=res,
+        )
 
     def _sample_sources(filename, num_samples):
         samples = []
@@ -183,7 +194,6 @@ def sim_frame(frame_args):
 
     # volume normalize copied from openmc.UnstructuredMesh.write_data_to_vtk()
     v /= t.find_filter(openmc.MeshFilter).mesh.volumes.ravel()
-    o = simulation_db.read_json(frame_args.run_dir.join(_OUTLINES_FILE))
     return PKDict(
         field_data=v.tolist(),
         min_field=v.min(),
@@ -191,7 +201,6 @@ def sim_frame(frame_args):
         num_particles=frame_args.sim_in.models.settings.particles,
         summaryData=PKDict(
             tally=frame_args.tally,
-            outlines=o[frame_args.tally] if frame_args.tally in o else {},
             sourceParticles=_sample_sources(
                 _source_filename(frame_args.sim_in),
                 frame_args.numSampleSourceParticles,
