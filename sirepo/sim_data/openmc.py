@@ -140,6 +140,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         return analysis_model
 
     @classmethod
+    def _is_graveyard(cls, name):
+        return name and name.lower() == "graveyard"
+
+    @classmethod
     def _lib_file_basenames(cls, data):
         r = []
         if data.get("report") == "tallyReport":
@@ -170,8 +174,9 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _sim_file_basenames(cls, data):
         res = []
         if data.report == "openmcAnimation":
-            for v in data.models.volumes:
-                res.append(PKDict(basename=f"{data.models.volumes[v].volId}.ply"))
+            for v in data.models.volumes.values():
+                if not cls._is_graveyard(v.name):
+                    res.append(PKDict(basename=f"{v.volId}.ply"))
             d, s = cls.dagmc_and_maybe_step_filename(data)
             if s:
                 res.append(PKDict(basename=d))

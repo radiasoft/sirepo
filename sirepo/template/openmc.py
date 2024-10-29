@@ -19,9 +19,10 @@ import sirepo.mpi
 import sirepo.sim_data
 import sirepo.sim_run
 import subprocess
+import h5py
 
 _CACHE_DIR = "openmc-cache"
-_OUTLINES_FILE = "outlines.json"
+_OUTLINES_FILE = "outlines.h5"
 _PREP_SBATCH_PREFIX = "prep-sbatch"
 _VOLUME_INFO_FILE = "volumes.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -115,12 +116,13 @@ def sim_frame(frame_args):
         )
     if frame_args.frameReport == "outlineAnimation":
         res = PKDict()
-        o = simulation_db.read_json(frame_args.run_dir.join(_OUTLINES_FILE))
-        if frame_args.tally in o:
-            for v, d in o[frame_args.tally].items():
-                if frame_args.axis in d:
-                    if frame_args.frameIndex < len(d[frame_args.axis]):
-                        res[v] = d[frame_args.axis][frame_args.frameIndex]
+        with h5py.File(_OUTLINES_FILE, "r") as f:
+            s = f[frame_args.tally][frame_args.axis][str(frame_args.frameIndex)]
+            points = s["points"]
+            for volId in s["volumes"]:
+                res[volId] = []
+                for idx in s["volumes"][volId]:
+                    res[volId].append(points[idx[0] : idx[0] + idx[1]].tolist())
         return PKDict(
             outlines=res,
         )
@@ -330,8 +332,6 @@ def write_volume_outlines():
     import trimesh
     import dagmc_geometry_slice_plotter
 
-    _MIN_RES = SCHEMA.constants.minTallyResolution
-
     def _center_range(mesh, dim):
         f = (
             0.5
@@ -353,59 +353,61 @@ def write_volume_outlines():
                 if t[f]._type == "meshFilter":
                     yield t.name, t[f]
 
-    def _is_skip_dimension(tally_range, dim1, dim2):
-        return len(tally_ranges[dim1]) < _MIN_RES or len(tally_ranges[dim2]) < _MIN_RES
+    def _is_skip_dimension(tally_range, dim):
+        m = SCHEMA.constants.minTallyResolution
+        d1 = 1 if dim == "x" else 0
+        d2 = 1 if dim == "z" else 2
+        return len(tally_range[d1]) < m or len(tally_range[d2]) < m
 
-    all_outlines = PKDict()
-    for tally_name, tally_mesh in _get_meshes():
-        tally_ranges = [_center_range(tally_mesh, i) for i in range(3)]
-        # don't include outlines of low resolution dimensions
-        skip_dimensions = PKDict(
-            x=_is_skip_dimension(tally_ranges, 1, 2),
-            y=_is_skip_dimension(tally_ranges, 0, 2),
-            z=_is_skip_dimension(tally_ranges, 0, 1),
-        )
-        outlines = PKDict()
-        all_outlines[tally_name] = outlines
-        basis_vects = numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-        rots = [
-            numpy.array([[1, 0], [0, 1]]),
-            numpy.array([[0, -1], [1, 0]]),
-            numpy.array([[0, 1], [-1, 0]]),
+    basis_vects = numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    rots = numpy.array(
+        [
+            [[1, 0], [0, 1]],
+            [[0, -1], [1, 0]],
+            [[0, 1], [-1, 0]],
         ]
-        for mf in pkio.sorted_glob("*.ply"):
-            vol_id = mf.purebasename
-            vol_mesh = None
-            outlines[vol_id] = PKDict(x=[], y=[], z=[])
-            with open(mf, "rb") as f:
-                vol_mesh = trimesh.Trimesh(**trimesh.exchange.ply.load_ply(f))
-            for i, dim in enumerate(outlines[vol_id].keys()):
-                if skip_dimensions[dim]:
-                    outlines[vol_id][dim] = []
+    )
+    scale = SCHEMA.constants.geometryScale
+    vol_meshes = PKDict()
+    for mf in pkio.sorted_glob("*.ply"):
+        vol_id = mf.purebasename
+        with open(mf, "rb") as f:
+            vol_meshes[vol_id] = trimesh.Trimesh(**trimesh.exchange.ply.load_ply(f))
+
+    with h5py.File(_OUTLINES_FILE, "w") as hf:
+        for tally_name, tally_mesh in _get_meshes():
+            tally_grp = hf.create_group(tally_name)
+            tally_ranges = [_center_range(tally_mesh, i) for i in range(3)]
+            for i, dim in enumerate(["x", "y", "z"]):
+                # don't include outlines of low resolution dimensions
+                if _is_skip_dimension(tally_ranges, dim):
                     continue
-                n = basis_vects[i]
-                r = rots[i]
-                for pos in tally_ranges[i]:
-                    coords = []
-                    try:
-                        coords = dagmc_geometry_slice_plotter.get_slice_coordinates(
-                            dagmc_file_or_trimesh_object=vol_mesh,
-                            plane_origin=pos * n,
-                            plane_normal=n,
-                        )
-                        # get_slice_coordinates returns a list of "TrackedArrays",
-                        # arranged for use in matplotlib
-                        ct = []
-                        for c in [
-                            (SCHEMA.constants.geometryScale * x.T) for x in coords
-                        ]:
-                            ct.append([numpy.dot(r, x).tolist() for x in c])
-                        coords = ct
-                    except ValueError:
-                        # no intersection at this plane position
-                        pass
-                    outlines[vol_id][dim].append(coords)
-    simulation_db.write_json(_OUTLINES_FILE, all_outlines)
+                dim_grp = tally_grp.create_group(dim)
+                for sl, pos in enumerate(tally_ranges[i]):
+                    slice_grp = dim_grp.create_group(str(sl))
+                    vol_group = slice_grp.create_group("volumes")
+                    idx = 0
+                    points = []
+                    for vol_id, vol_mesh in vol_meshes.items():
+                        indices = []
+                        try:
+                            polys = dagmc_geometry_slice_plotter.get_slice_coordinates(
+                                dagmc_file_or_trimesh_object=vol_mesh,
+                                plane_origin=pos * basis_vects[i],
+                                plane_normal=basis_vects[i],
+                            )
+                            for poly in [scale * p.T for p in polys]:
+                                pts = [numpy.dot(rots[i], p).tolist() for p in poly]
+                                indices.append([idx, len(pts)])
+                                idx += len(pts)
+                                for pt in pts:
+                                    points.append(pt)
+                        except ValueError:
+                            # no intersection at this plane position
+                            pass
+                        if len(indices):
+                            vol_group.create_dataset(vol_id, data=indices)
+                    slice_grp.create_dataset("points", data=points)
 
 
 def _batch_sequence(settings):
@@ -889,6 +891,10 @@ def _has_graveyard(data):
         if v.name and v.name.lower() == "graveyard":
             return True
     return False
+
+
+def _is_graveyard(name):
+    return name and name.lower() == "graveyard"
 
 
 def _is_sbatch_run_mode(data):

@@ -93,7 +93,7 @@ class _MoabGroupCollector:
         res = PKDict()
         for g in self._groups(mb):
             n, d = self._parse_entity_name_and_density(mb, g)
-            if not n:
+            if not n or self._is_graveyard(n):
                 continue
             v = [h for h in mb.get_entities_by_handle(g)]
             if not v:
@@ -106,6 +106,9 @@ class _MoabGroupCollector:
                 g.name = re.sub(r"\_comp$", "", g.name)
                 g.is_complement = True
         return tuple(res.values())
+
+    def _is_graveyard(self, name):
+        return name and name.lower() == "graveyard"
 
     def _parse_entity_name_and_density(self, mb, group):
         m = re.search(
@@ -166,6 +169,7 @@ class _MoabGroupExtractor:
             self._items.append(
                 _MoabGroupExtractorOp(
                     dagmc_filename=collector.dagmc_filename,
+                    name=g.name,
                     vol_id=g.vol_id,
                     volumes=g.volumes,
                     processor=self,
