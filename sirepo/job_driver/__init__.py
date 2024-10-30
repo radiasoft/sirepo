@@ -395,11 +395,11 @@ class DriverBase(PKDict):
         if n == job.OP_SBATCH_LOGIN:
             return res
         await _alloc_check(
-            op.op_slot.alloc, "Waiting for another simulation to complete await=op_slot"
+            op.op_slot.alloc, "Waiting for another sim op to complete await=op_slot"
         )
         await _alloc_check(
             op.run_dir_slot.alloc,
-            "Waiting for access to simulation state await=run_dir_slot",
+            "Waiting for access to sim state await=run_dir_slot",
         )
         if n not in job.CPU_SLOT_OPS:
             return res

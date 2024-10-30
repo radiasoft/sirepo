@@ -137,13 +137,17 @@ def api_and_supervisor(pytest_req, fc_args):
         time.sleep(0.5)
         _subprocess(("sirepo", "job_supervisor"))
         _ping_supervisor(c.http_prefix + "/job-supervisor-ping")
-        from sirepo import template
+        from sirepo import template, resource
         from pykern import pkio
 
         if template.is_sim_type("srw"):
-            pkio.unchecked_remove(
-                "~/src/radiasoft/sirepo/sirepo/package_data/template/srw/predefined.json"
-            )
+            try:
+                pkio.unchecked_remove(
+                    resource.file_path("template", "srw", "predefined.json"),
+                )
+            except Exception as e:
+                if not pkio.exception_is_not_found(e):
+                    raise
             template.import_module("srw").get_predefined_beams()
         yield c
     finally:
