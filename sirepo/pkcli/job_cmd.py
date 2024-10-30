@@ -302,6 +302,7 @@ def _do_sbatch_status(msg, template):
     pkio.unchecked_remove(s)
     return PKDict(state=job.COMPLETED)
 
+
 def _do_sequential_result(msg, template):
     r = template_common.read_sequential_result(msg.runDir)
     # Read this first: https://github.com/radiasoft/sirepo/issues/2007

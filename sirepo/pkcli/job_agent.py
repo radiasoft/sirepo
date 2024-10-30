@@ -56,6 +56,7 @@ _DEV_PYTHON_PATH = ":".join(
     str(sirepo.const.DEV_SRC_RADIASOFT_DIR.join(p)) for p in ("sirepo", "pykern")
 )
 
+
 def start():
     # TODO(robnagler) commands need their own init hook like the server has
     global _cfg
@@ -63,7 +64,11 @@ def start():
     _cfg = pkconfig.init(
         agent_id=pkconfig.Required(str, "id of this agent"),
         # POSIT: same as job_driver.DriverBase._agent_env
-        dev_source_dirs=(pkconfig.in_dev_mode(), bool, f"set PYTHONPATH={_DEV_PYTHON_PATH}"),
+        dev_source_dirs=(
+            pkconfig.in_dev_mode(),
+            bool,
+            f"set PYTHONPATH={_DEV_PYTHON_PATH}",
+        ),
         fastcgi_sock_dir=(
             pkio.py_path("/tmp"),
             pkio.py_path,
