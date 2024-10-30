@@ -212,6 +212,10 @@ async def terminate():
 
 
 class _Supervisor(PKDict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._must_verify_status = False
+
     def destroy_op(self, op):
         pass
 
@@ -442,8 +446,6 @@ class _ComputeJob(_Supervisor):
     def __init__(self, req):
         super().__init__(
             _active_req_count=0,
-            _must_verify_status=False,
-            is_destroyed=False,
             ops=[],
             run_op=None,
             run_dir_slot_q=SlotQueue(),
