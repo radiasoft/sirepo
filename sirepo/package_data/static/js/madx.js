@@ -423,7 +423,7 @@ SIREPO.app.directive('matchSummaryPanel', function(appState, plotting) {
     };
 });
 
-SIREPO.app.directive('commandConfirmation', function(appState, commandService, latticeService) {
+SIREPO.app.directive('commandConfirmation', function(appState, commandService, latticeService, requestSender) {
     return {
         restrict: 'A',
         scope: {},
@@ -440,14 +440,6 @@ SIREPO.app.directive('commandConfirmation', function(appState, commandService, l
               {{ init() }}
             </div>`,
         controller: function($scope) {
-            function addCommands(commands) {
-                commands.forEach(function(cmd) {
-                    cmd._id = latticeService.nextId();
-                    appState.models.commands.push(appState.setModelDefaults(
-                        cmd,
-                        commandService.commandModelName(cmd._type)));
-                });
-            }
             let isInitialized = false;
 
             $scope.init = () => {
@@ -462,26 +454,26 @@ SIREPO.app.directive('commandConfirmation', function(appState, commandService, l
             };
 
             $scope.useTemplate = () => {
-                var sim = appState.models.simulation;
-                if (sim.commandTemplate == 'particle') {
-                    addCommands([
-                        { _type: 'ptc_create_universe', sector_nmul: 10, sector_nmul_max: 10 },
-                        //TODO(pjm): look at adding method: 4, nst: 25
-                        { _type: 'ptc_create_layout' },
-                        { _type: 'ptc_track', element_by_element: '1', file: '1', icase: '6' },
-                        { _type: 'ptc_track_end' },
-                        { _type: 'ptc_end' },
-                    ]);
+                const t = appState.models.simulation.commandTemplate;
+                if (! ['particle', 'matching'].includes(t)) {
+                    appState.saveChanges('simulation');
+                    return;
                 }
-                else if (sim.commandTemplate == 'matching') {
-                    addCommands([
-                        { _type: 'match', sequence: appState.models.simulation.activeBeamlineId },
-                        { _type: 'vary', step: 1e-5 },
-                        { _type: 'lmdif', calls: 50, tolerance: 1e-8 },
-                        { _type: 'endmatch' },
-                    ]);
-                }
-                appState.saveChanges(['commands', 'simulation']);
+                requestSender.sendStatelessCompute(
+                    appState,
+                    function(data) {
+                        appState.models.commands = appState.models.commands.concat(data.commands);
+                        appState.saveChanges(['commands', 'simulation']);
+                    },
+                    {
+                        method: 'command_template',
+                        args: {
+                            commandTemplate: t,
+                            nextId: latticeService.nextId(),
+                            beamlineId: appState.models.simulation.activeBeamlineId,
+                        }
+                    }
+                );
             };
         },
     };

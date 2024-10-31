@@ -21,6 +21,7 @@ from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
 import copy
+import glob
 import h5py
 import math
 import numpy
@@ -88,6 +89,8 @@ _FIELD_LABEL = PKDict(
     LinearDensityDeriv="LinearDensityDeriv (C/s²)",
     GammaDeriv="GammaDeriv (1/m)",
 )
+
+_MULTIFILE_SUFFIX = "-%03ld"
 
 _OUTPUT_INFO_FILE = "outputInfo.json"
 
@@ -206,11 +209,14 @@ class OutputFileIterator(lattice.ModelIterator):
         if field == lattice.ElementIterator.IS_DISABLED_FIELD or field == "_super":
             return
         self.field_index += 1
-        if field_schema[1] == "OutputFile" and model[field]:
+        if field_schema[1] in ("OutputFile", "MultiOutputFile") and model[field]:
             if self._update_filenames:
+                multi_suffix = (
+                    _MULTIFILE_SUFFIX if field_schema[1] == "MultiOutputFile" else ""
+                )
                 if LatticeUtil.is_command(model):
                     suffix = self._command_file_extension(model)
-                    filename = "{}{}.{}.{}".format(
+                    filename = "{}{}.{}.{}{}".format(
                         model._type,
                         (
                             self.model_index[self.model_name]
@@ -218,10 +224,15 @@ class OutputFileIterator(lattice.ModelIterator):
                             else ""
                         ),
                         field,
+                        multi_suffix,
                         suffix,
                     )
                 else:
-                    filename = "{}.{}.sdds".format(model.name, field)
+                    filename = "{}.{}{}.sdds".format(
+                        model.name,
+                        field,
+                        multi_suffix,
+                    )
             else:
                 filename = model[field]
             k = LatticeUtil.file_id(model._id, self.field_index)
@@ -747,12 +758,14 @@ def extract_report_data(filename, frame_args, page_count=0):
         plot.label = plot.label
         return
 
-    def _title(xfield, yfield, page_index, page_count):
+    def _title(xfield, yfield, page_index, page_count, position):
         title_key = xfield + "-" + yfield
         if title_key in _PLOT_TITLE:
             title = _PLOT_TITLE[title_key]
         else:
             title = "{} / {}".format(xfield, yfield)
+        if position is not None:
+            title += ", {0:.4g} m".format(position)
         if page_count > 1:
             title += ", Plot {} of {}".format(page_index + 1, page_count)
         return title
@@ -766,6 +779,14 @@ def extract_report_data(filename, frame_args, page_count=0):
     )
     _sdds_init()
 
+    position = None
+    if _is_multifile(filename):
+        filename = filename % (frame_args.frameIndex + 1)
+        if pkio.py_path(filename).exists():
+            position = sdds_util.read_sdds_parameter(filename, "s")
+        else:
+            # for old sim output, use non-numbered file
+            filename = re.sub("\-\d+\.sdds", ".sdds", filename)
     if not _is_histogram_file(
         filename,
         sdds_util.extract_sdds_column(filename, frame_args[x_field], 0)["column_names"],
@@ -785,6 +806,7 @@ def extract_report_data(filename, frame_args, page_count=0):
                 frame_args[y_field],
                 plot_attrs.page_index,
                 page_count,
+                position,
             ),
             y_field=y_field,
         )
@@ -811,6 +833,8 @@ def generate_variables(data):
 
 def get_data_file(run_dir, model, frame, options):
     def _sdds(filename):
+        if _is_multifile(filename):
+            filename = filename % (frame + 1)
         path = run_dir.join(filename)
         if not path.check(file=True, exists=True):
             raise AssertionError(f"not found path={path}")
@@ -1134,7 +1158,7 @@ class _Generate(sirepo.lib.GenerateBase):
                 value = _format_rpn_value(
                     value, is_command=LatticeUtil.is_command(model)
                 )
-        elif el_type == "OutputFile":
+        elif el_type in ("OutputFile", "MultiOutputFile"):
             value = state.filename_map[
                 LatticeUtil.file_id(model._id, state.field_index)
             ]
@@ -1337,14 +1361,12 @@ def _output_info(run_dir):
 
         file_path = run_dir.join(filename)
         if not re.search(r".sdds$", filename, re.IGNORECASE):
-            if file_path.exists():
-                return PKDict(
-                    isAuxFile=True,
-                    filename=filename,
-                    id=file_id,
-                    lastUpdateTime=int(os.path.getmtime(str(file_path))),
-                )
-            return None
+            return PKDict(
+                isAuxFile=True,
+                filename=filename,
+                id=file_id,
+                lastUpdateTime=int(os.path.getmtime(str(file_path))),
+            )
         try:
             if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(file_path)) != 1:
                 return None
@@ -1412,6 +1434,7 @@ def _output_info(run_dir):
                 sdds.sddsdata.Terminate(_SDDS_INDEX)
             except Exception:
                 pass
+        return None
 
     # cache outputInfo to file, used later for report frames
     info_file = run_dir.join(_OUTPUT_INFO_FILE)
@@ -1427,9 +1450,15 @@ def _output_info(run_dir):
     filename_map = _build_filename_map(data)
     for k in filename_map.keys_in_order:
         filename = filename_map[k]
-        info = _info(filename, run_dir, k)
+        fn = filename % 1 if _is_multifile(filename) else filename
+        if not run_dir.join(fn).exists():
+            continue
+        info = _info(fn, run_dir, k)
         if info:
             info.modelKey = LatticeUtil.output_model_name(info.id)
+            if _is_multifile(filename):
+                info.filename = filename
+                info.pageCount = _multifile_count(run_dir, filename)
             res.append(info)
     if res:
         res[0]["_version"] = _OUTPUT_INFO_VERSION
@@ -1525,7 +1554,7 @@ def _prepare_bunch_simulation(data):
 def _report_output_filename(report):
     if report == "twissReport":
         return "twiss_output.filename.sdds"
-    return "W1.filename.sdds"
+    return "W1.filename-001.sdds"
 
 
 def _sdds_beam_type(column_names):
@@ -1578,3 +1607,15 @@ def analysis_job_log_to_html(data, run_dir, **kwargs):
             ),
         )
     )
+
+
+def _is_multifile(filename):
+    return "%" in filename
+
+
+def _multifile_count(run_dir, filename):
+    fn = re.sub(r"\%.*?\.", "*.", filename)
+    c = 0
+    for f in glob.glob(str(run_dir.join(fn))):
+        c += 1
+    return c

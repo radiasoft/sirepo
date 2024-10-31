@@ -362,9 +362,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         scope.firstFrame = function() {
             scope.isPlaying = false;
             frameCache.setCurrentFrame(scope.modelName, 0);
-            if (scope.modelChanged) {
-                scope.modelChanged();
-            }
             requestData();
         };
         scope.hasFrames = function() {
@@ -821,9 +818,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 scope.modelName + '.changed',
                 function() {
                     scope.prevFrameIndex = SIREPO.nonDataFileFrame;
-                    if (scope.modelChanged) {
-                        scope.modelChanged();
-                    }
                     panelState.clear(scope.modelName);
                     if (! scope.isClientOnly) {
                         requestData();
@@ -1150,9 +1144,6 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                 scope.modelName + '.changed',
                 function() {
                     scope.prevFrameIndex = SIREPO.nonDataFileFrame;
-                    if (scope.modelChanged) {
-                        scope.modelChanged();
-                    }
                     panelState.clear(scope.modelName);
                     requestData();
                 });
@@ -2996,11 +2987,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 axes.rightX.scale.domain([domain[1], domain[0]]).nice();
                 plotting.initImage({ min: zmin, max: zmax }, heatmap, cacheCanvas, imageData, $scope.modelName, json.threshold);
                 $scope.resize();
-            };
-
-            $scope.modelChanged = function() {
-                // clear lineOuts
-                $scope.clearData();
             };
 
             $scope.resize = function() {

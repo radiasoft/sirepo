@@ -127,6 +127,7 @@
             "plotType": ["Plot Type", "PlotType", "heatmap"],
             "histogramBins": ["Histogram Bins", "Integer", 60],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "selectedFrame": ["", "FrameSlider", 0],
             "notes": ["Notes", "Text", ""]
         },
         "bunchAnimation1": {
