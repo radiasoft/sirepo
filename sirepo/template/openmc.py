@@ -362,9 +362,9 @@ def write_volume_outlines():
     basis_vects = numpy.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
     rots = numpy.array(
         [
-            [[1, 0], [0, 1]],
+            [[0, 1], [1, 0]],
             [[0, -1], [1, 0]],
-            [[0, 1], [-1, 0]],
+            [[-1, 0], [0, 1]],
         ]
     )
     scale = SCHEMA.constants.geometryScale

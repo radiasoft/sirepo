@@ -728,9 +728,13 @@ class VTKScene {
      * @param {[number]} viewUp
      */
     setCam(position = [1, 0, 0], viewUp = [0, 0, 1]) {
+        // set focal point outside of the origin initially to avoid a VTK warning:
+        //  "resetting view-up since view plane normal is parallel"
+        // this happens because the camera is recalculated on each modification
+        this.cam.setFocalPoint(10, 10, 10);
+        this.cam.setViewUp(...viewUp);
         this.cam.setPosition(...position);
         this.cam.setFocalPoint(0, 0, 0);
-        this.cam.setViewUp(...viewUp);
         this.renderer.resetCamera();
         this.cam.yaw(0.6);
         if (this.marker) {
