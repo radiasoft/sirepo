@@ -893,10 +893,6 @@ def _has_graveyard(data):
     return False
 
 
-def _is_graveyard(name):
-    return name and name.lower() == "graveyard"
-
-
 def _is_sbatch_run_mode(data):
     return data.models.openmcAnimation.jobRunMode == "sbatch"
 
