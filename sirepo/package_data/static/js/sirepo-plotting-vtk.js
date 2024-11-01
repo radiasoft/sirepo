@@ -3190,7 +3190,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
             axisObj: '<',
             enableAxes: '=',
             enableSelection: '=',
-            eventHandlers: '<',
             modelName: '@',
             resetDirection: '@',
             resetSide: '@',
@@ -3210,14 +3209,13 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
 
             let didPan = false;
             let hasBodyEvt = false;
-            let hdlrs = {};
             let isDragging = false;
             let isPointerUp = true;
 
             const canvasHolder = $($element).find('.vtk-canvas-holder').eq(0);
 
             // supplement or override these event handlers
-            let eventHandlers = {
+            const eventHandlers = {
                 onpointerdown: function (evt) {
                     isDragging = false;
                     isPointerUp = false;
@@ -3250,50 +3248,18 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
             }
 
             $scope.init = function() {
-                const rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
-                const body = angular.element($($document).find('body'))[0];
-                const view = angular.element($($document).find('.sr-view-content'))[0];
-                hdlrs = $scope.eventHandlers || {};
-
-                // vtk adds keypress event listeners to the BODY of the entire document, not the render
-                // container.
-                hasBodyEvt = Object.keys(hdlrs).some(function (e) {
-                    return ['keypress', 'keydown', 'keyup'].includes(e);
-                });
-                if (hasBodyEvt) {
-                    const bodyAddEvtLsnr = body.addEventListener;
-                    const bodyRmEvtLsnr = body.removeEventListener;
-                    body.addEventListener = (type, listener, opts) => {
-                        bodyAddEvtLsnr(type, hdlrs[type] ? hdlrs[type] : listener, opts);
-                    };
-                    // seem to need to do this so listeners get removed correctly
-                    body.removeEventListener = (type, listener, opts) => {
-                        bodyRmEvtLsnr(type, listener, opts);
-                    };
-                }
-
+                const rw = canvasHolder[0];
                 $scope.vtkScene = new VTKScene(rw, $scope.resetSide, $scope.resetDirection);
-
-                // double click handled separately
-                rw.addEventListener('dblclick', function (evt) {
-                    ondblclick(evt);
-                    if (hdlrs.ondblclick) {
-                        hdlrs.ondblclick(evt);
-                    }
-                });
-                Object.keys(eventHandlers).forEach(function (k) {
-                    const f = function (evt) {
-                        eventHandlers[k](evt);
-                        if (hdlrs[k]) {
-                            hdlrs[k](evt);
-                        }
-                    };
+                // all listeners need to be cleaned up in $destroy
+                rw.addEventListener('dblclick', ondblclick);
+                for (const k in eventHandlers) {
+                    const f = eventHandlers[k];
                     if (k == 'onpointermove') {
-                        view[k] = f;
-                        return;
+                        $('.sr-view-content')[0][k] = f;
+                        continue;
                     }
                     rw[k] = f;
-                });
+                }
                 // remove global VTK key listeners
                 for (const n of ['KeyPress', 'KeyDown', 'KeyUp']) {
                     document.removeEventListener(
@@ -3307,10 +3273,10 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
 
             $scope.canvasGeometry = function() {
                 return {
-                    pos: $(canvasHolder).position(),
+                    pos: canvasHolder.position(),
                     size: {
-                        width: Math.max(0, $(canvasHolder).width()),
-                        height: Math.max(0, $(canvasHolder).height()),
+                        width: Math.max(0, canvasHolder.width()),
+                        height: Math.max(0, canvasHolder.height()),
                     }
                 };
             };
@@ -3333,6 +3299,15 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
             };
 
             $scope.$on('$destroy', function() {
+                const rw = canvasHolder[0];
+                rw.removeEventListener('dblclick', ondblclick);
+                for (const k in eventHandlers) {
+                    if (k == 'onpointermove') {
+                        $('.sr-view-content')[0][k] = null;
+                        continue;
+                    }
+                    rw[k] = null;
+                }
                 $element.off();
                 $($window).off('resize', asyncRefresh);
                 $scope.vtkScene.teardown();

@@ -2236,7 +2236,7 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
         template: `
             <div data-advanced-editor-pane="" data-view-name="modelName" data-want-buttons="true" data-field-def="basic" data-model-data="modelData" data-parent-controller="parentController"></div>
             <div data-ng-transclude="">
-                <div data-vtk-display="" class="vtk-display" data-ng-class="{'col-sm-11': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-event-handlers="eventHandlers" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
+                <div data-vtk-display="" class="vtk-display" data-ng-class="{'col-sm-11': isViewTypeFields()}" style="padding-right: 0" data-show-border="true" data-model-name="{{ modelName }}" data-enable-axes="true" data-axis-cfg="axisCfg" data-axis-obj="axisObj" data-enable-selection="true" data-reset-side="x"></div>
                 <div class="col-sm-1" style="padding-left: 0" data-ng-if="isViewTypeFields()">
                     <div class="colorbar"></div>
                 </div>
@@ -2973,12 +2973,6 @@ SIREPO.app.directive('radiaViewerContent', function(appState, geometry, panelSta
                 panelState.clear('geometryReport');
                 panelState.requestData('geometryReport', setupSceneData, c);
             }
-
-            $scope.eventHandlers = {
-                keypress: function (evt) {
-                    // do nothing?  Stops vtk from changing render based on key presses
-                },
-            };
 
             appState.whenModelsLoaded($scope, function () {
                 $scope.model = appState.models[$scope.modelName];
