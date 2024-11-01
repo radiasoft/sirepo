@@ -1056,3 +1056,7 @@ img.sr-disabled-image {
 .sr-hide-scrollbars {
   overflow: hidden;
 }
+
+.sr-range-slider {
+  background: var(--sr-action) !important;
+}

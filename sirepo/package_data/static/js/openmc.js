@@ -534,6 +534,7 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
         maxField: 0,
         sourceParticles: [],
     };
+    const invalidPlanePosition = -1e16;
 
     function initMesh() {
         self.mesh = null;
@@ -598,14 +599,29 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
 
     self.getSourceParticles = () => self.sourceParticles;
 
+    self.getVisibleAxes = () => {
+        if (! self.mesh) {
+            return SIREPO.GEOMETRY.GeometryUtils.BASIS().slice();
+        }
+        const v = {};
+        SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
+            v[dim] = true;
+            SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim].forEach((bv, bi) => {
+                if (! bv && self.mesh.dimension[bi] < SIREPO.APP_SCHEMA.constants.minTallyResolution) {
+                    delete v[dim];
+                }
+            });
+        });
+        return Object.keys(v);
+    };
+
     self.invalidatePlanePosition = () => {
-        //TODO(pjm): planePos will become an integer with -1 out of range
         //TODO(pjm): only clear planePos if the selected tally domain has changed
-        appState.models.tallyReport.planePos = -1;
+        appState.models.tallyReport.planePos = invalidPlanePosition;
     };
 
     self.isPlanePositionInvalid = () => {
-        return appState.models.tallyReport.planePos === -1;
+        return appState.models.tallyReport.planePos === invalidPlanePosition;
     };
 
     self.setFieldData = (fieldData, min, max, numParticles) => {
@@ -1045,13 +1061,13 @@ SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService,
                         });
                     }
                 }
-                // for now set the aspect ratio to something reasonable even if it distorts the shape
+                // set the aspect ratio to something reasonable even if it distorts the shape
                 const arRange = [0.50, 1.25];
                 let ar = Math.max(
                     arRange[0],
                     Math.min(
                         arRange[1],
-                        Math.abs(ranges[yi][1] - ranges[yi][0]) / Math.abs(ranges[xi][1] - ranges[xi][0])
+                        Math.abs(ranges[yi][1] - ranges[yi][0]) / Math.abs(ranges[xi][1] - ranges[xi][0]),
                     )
                 );
                 const r =  {
@@ -1424,6 +1440,14 @@ SIREPO.app.directive('geometry3d', function(appState, openmcService, plotting, p
                 buildVoxels();
                 addSources();
                 $rootScope.$broadcast('vtk.hideLoader');
+                const a = tallyService.getVisibleAxes();
+                if (a.includes(appState.models.tallyReport.axis)) {
+                    // default to the 2d axis, if visible
+                    vtkScene.showSide(appState.models.tallyReport.axis);
+                    if (appState.models.tallyReport.axis === vtkScene.resetSide){
+                        vtkScene.showSide(appState.models.tallyReport.axis);
+                    }
+                }
                 initAxes();
                 buildAxes();
                 vtkScene.renderer.resetCamera();
@@ -1835,8 +1859,9 @@ SIREPO.app.directive('geometry3d', function(appState, openmcService, plotting, p
                 if (hasTallies && tallyService.fieldData) {
                     addTally(tallyService.fieldData);
                 }
-                vtkScene.resetView();
-
+                if (! hasTallies) {
+                    vtkScene.resetView();
+                }
                 plotToPNG.initVTK($element, vtkScene.renderer);
             });
 
@@ -3122,25 +3147,13 @@ SIREPO.viewLogic('tallySettingsView', function(appState, openmcService, panelSta
     }
 
     function updateVisibleAxes() {
-        if (! tallyService.mesh) {
-            return appState.models.tallyReport.axis;
+        const a = tallyService.getVisibleAxes();
+        SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
+            panelState.showEnum('tallyReport', 'axis', dim, a.includes(dim));
+        });
+        if (! a.includes(appState.models.tallyReport.axis)) {
+            appState.models.tallyReport.axis = a[0];
         }
-        const v = {};
-        SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
-            v[dim] = true;
-            SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim].forEach((bv, bi) => {
-                if (! bv && tallyService.mesh.dimension[bi] < SIREPO.APP_SCHEMA.constants.minTallyResolution) {
-                    delete v[dim];
-                }
-            });
-        });
-        SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
-            const s = ! Object.keys(v).length || dim in v;
-            panelState.showEnum('tallyReport', 'axis', dim, s);
-            if (! s && appState.models.tallyReport.axis === dim) {
-                appState.models.tallyReport.axis = Object.keys(v)[0];
-            }
-        });
         return appState.models.tallyReport.axis;
     }
 
@@ -3229,37 +3242,18 @@ SIREPO.app.directive('planePositionSlider', function(appState, panelState, tally
         `,
         controller: function($scope) {
             $scope.tallyService = tallyService;
-            let newRange;
-            let oldAxis = appState.models.tallyReport.axis;
 
             function updateRange() {
-                if ($scope.dim) {
-                    newRange = tallyService.tallyRange($scope.dim, true);
-                    newRange.axis = $scope.dim;
-                }
+                $scope.range = tallyService.tallyRange($scope.dim, true);
             }
 
-            //TODO(pjm): update the slider component so the range and axis is dynamic
             $scope.hasRange = () => {
-                // the slider component has fixed range, so the component needs to get recreated
-                // when the range or axis changes
-                if (newRange) {
+                if ($scope.range) {
                     if (tallyService.isPlanePositionInvalid()) {
-                        appState.models.tallyReport.planePos = newRange.min;
+                        appState.models.tallyReport.planePos = $scope.range.min;
                     }
-                    if ($scope.range && $scope.range.min === newRange.min
-                        && $scope.range.max === newRange.max
-                        && $scope.range.steps === newRange.steps
-                        && $scope.range.axis === oldAxis
-                        && newRange.axis === oldAxis
-                       ) {
+                    if ($scope.range.steps > 1) {
                         return true;
-                    }
-                    if (newRange.steps > 1) {
-                        $scope.range = newRange;
-                    }
-                    if (newRange.axis !== oldAxis) {
-                        oldAxis = newRange.axis;
                     }
                 }
                 return false;

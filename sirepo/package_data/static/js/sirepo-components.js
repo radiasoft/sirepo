@@ -5755,6 +5755,7 @@ SIREPO.app.directive('slider', function(appState, panelState) {
             let slider = null;
             // don't show labels for simple cases, ex. opacity
             $scope.showLabels = !($scope.min === 0 && $scope.max === 1);
+
             function buildSlider() {
                 const s = $($element).find('.' + sliderClass);
                 if (! s.length) {
@@ -5792,11 +5793,17 @@ SIREPO.app.directive('slider', function(appState, panelState) {
             }
 
             function didChange(newValues, oldValues) {
-                if (Array.isArray(newValues)) {
-                    return newValues.some((x, i) => x !== oldValues[i]) && ! newValues.some(x => x == null);
-                }
                 return newValues != null && newValues !== oldValues;
             }
+
+            function updateRange(newValue, oldValue) {
+                if (slider && didChange(newValue, oldValue)) {
+                    slider.slider('option', 'min', $scope.min);
+                    slider.slider('option', 'max', $scope.max);
+                    slider.slider('option', 'step', ($scope.max - $scope.min) / ($scope.steps - 1));
+                }
+            }
+
 
             $scope.display = (val) => {
                 if (Array.isArray(val)) {
@@ -5821,6 +5828,10 @@ SIREPO.app.directive('slider', function(appState, panelState) {
                     }
                 }
             );
+
+            $scope.$watch('min', updateRange);
+            $scope.$watch('max', updateRange);
+            $scope.$watch('steps', updateRange);
 
             $scope.$on('$destroy', () => {
                 if (slider) {

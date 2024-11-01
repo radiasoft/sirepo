@@ -360,7 +360,7 @@
             "density": ["Density", "Float"],
             "density_units": ["Density units", "DensityUnits", "g/cm3"],
             "depletable": ["Depletable", "Boolean", "0"],
-            "standardType": ["Standard Material", "StandardMaterial", "None"],
+            "standardType": ["Standard material", "StandardMaterial", "None"],
             "volume": ["Volume [$cm^3$] (Optional)", "OptionalFloat"],
             "components": ["", "MaterialComponents"]
         },
@@ -917,7 +917,7 @@
                 }
             ]],
             "name": ["Name", "String", "Steel, Stainless 316"],
-            "standardType": ["Standard Material", "StandardMaterial", "materialStandardSteelStainless316"]
+            "standardType": ["Standard material", "StandardMaterial", "materialStandardSteelStainless316"]
         },
         "materialValue": {
             "value": ["Material", "MaterialValue"]
@@ -953,21 +953,21 @@
         "openmcAnimation": {
             "aspect": ["Aspect", "TallyAspect", "mean"],
             "bgColor": ["Background color", "Color", "#fff9ed"],
-            "colorMap": ["Tally Color Map", "ColorMap", "viridis"],
+            "colorMap": ["Tally color map", "ColorMap", "viridis"],
             "energyRangeSum": ["Sum over energies [MeV]", "EnergyRange", [0, 0]],
-            "numSampleSourceParticles": ["Source Particles to Display", "Integer", 10, "", 0, 100],
+            "numSampleSourceParticles": ["Source particles to display", "Integer", 10, "", 0, 100],
             "opacity": ["Global alpha", "Opacity", 1.0],
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"],
-            "showSources": ["Show Sources", "Boolean", "0"],
-            "sourceColorMap": ["Source Energy Color Map", "ColorMap", "jet"],
+            "showSources": ["Show sources", "Boolean", "0"],
+            "sourceColorMap": ["Source energy color map", "ColorMap", "jet"],
             "tally": ["Tally", "PlotTallyList"],
             "thresholds": ["Threshold", "Threshold", [0, 0], "Tally cells with a value outside this range will not be displayed"],
-            "colorRange": ["Color Range", "Threshold", [0, 0]],
+            "colorRange": ["Color range", "Threshold", [0, 0]],
             "score": ["Score", "PlotScoreList"],
             "sourceNormalization": ["Normalize to particle count", "Float", 1e12, "Per-particle tally scores are normalized to this many source particles (a factor of {{ appState.models.openmcAnimation.sourceNormalization / appState.models.settings.particles }})", 1.0],
             "isEnergySelected": ["", "Boolean", "0"],
-            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "jobRunMode": ["Execution mode", "JobRunMode", "parallel"],
             "tasksPerNode": ["Tasks per node", "Integer", 8, "", 1],
             "sbatchHours": ["Hours", "Float", 0.4],
             "sbatchNodes": ["Nodes", "Integer", 32, "", 1],
@@ -1021,7 +1021,7 @@
         },
         "settings": {
             "batches": ["Number of batches to simulate", "Integer", 1, "", 1],
-            "eigenvalueHistory": ["Eigenvalue History", "Integer", 5],
+            "eigenvalueHistory": ["Eigenvalue history", "Integer", 5],
             "inactive": ["Number of inactive batches", "Integer", 0, "These batches will be used to converge the eigenvalue before calculations begin"],
             "particles": ["Number of particles per generation", "Integer", 5000],
             "photon_transport": ["Photon transport", "Boolean", "0", "Simulate the passage of photons through matter"],
@@ -1042,7 +1042,7 @@
             "space": ["Spatial distribution", "Spatial", {"_type": "None"}],
             "strength": ["Strength", "Float", 1],
             "time": ["Time distribution", "Univariate", {"_type": "None"}],
-            "type": ["Source Settings", "SourceSettings", "manual"]
+            "type": ["Source settings", "SourceSettings", "manual"]
         },
         "sources": [],
         "spatial": {
@@ -1057,7 +1057,7 @@
         },
         "survivalBiasing": {
             "weight": ["Weight", "Float", 0.25, "Weight cutoff below which particle undergo Russian roulette", 0, 1],
-            "weight_avg": ["Weight Average", "Float", 1.0, "Weight assigned to particles that are not killed after Russian roulette", 0, 1]
+            "weight_avg": ["Weight average", "Float", 1.0, "Weight assigned to particles that are not killed after Russian roulette", 0, 1]
         },
         "tabular": {
             "_super": ["_", "model", "univariate"],
@@ -1082,8 +1082,8 @@
             "nuclides": ["Nuclides", "SimpleListEditor", [], "List of nuclides to use when scoring results", "nuclide"]
         },
         "tallyReport": {
-            "axis": ["Slice Axis", "Axis", "y"],
-            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "axis": ["Slice axis", "Axis", "y"],
+            "colorMap": ["Color map", "ColorMap", "viridis"],
             "planePos": ["{{ appState.models.tallyReport.axis }} [m]", "PlanePosition", 0],
             "enableCrosshairs": ["", "Bool", false],
             "enableSelection": ["", "Bool", false],
