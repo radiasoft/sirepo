@@ -7,6 +7,7 @@ SIREPO.PLOTTING_YMIN_ZERO = true;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 SIREPO.SCREEN_DIMS = ['x', 'y'];
 SIREPO.SCREEN_INFO = {x: { direction: 1 },  y: { direction: -1 }};
+SIREPO.ZERO_ARR = [0, 0, 0];
 
 class PlottingUtils {
     static COLOR_MAP() {

@@ -4177,3 +4177,918 @@ SIREPO.viewLogic('simulationView', function(activeSection, appState, panelState,
     });
 
 });
+
+class Elevation {
+
+    static NAMES() {
+        return {
+            x: 'side',
+            y: 'top',
+            z: 'front',
+        };
+    }
+
+    static PLANES() {
+        return {
+            x: 'yz',
+            y: 'zx',
+            z: 'xy',
+        };
+    }
+
+    constructor(axis) {
+        if (! SIREPO.GEOMETRY.GeometryUtils.BASIS().includes(axis)) {
+            throw new Error('Invalid axis: ' + axis);
+        }
+        this.axis = axis;
+        this.class = `.plot-viewport elevation-${axis}`;
+        this.coordPlane = Elevation.PLANES()[this.axis];
+        this.name = Elevation.NAMES()[axis];
+        this.labDimensions = {
+            x: {
+                axis: this.coordPlane[0],
+                axisIndex: SIREPO.GEOMETRY.GeometryUtils.axisIndex(this.coordPlane[0]),
+            },
+            y: {
+                axis: this.coordPlane[1],
+                axisIndex: SIREPO.GEOMETRY.GeometryUtils.axisIndex(this.coordPlane[1]),
+            }
+        };
+    }
+
+    labAxis(dim) {
+        return this.labDimensions[dim].axis;
+    }
+
+    labAxes() {
+        return [this.labAxis('x'), this.labAxis('y')];
+    }
+
+    labAxisIndex(dim) {
+        return this.labDimensions[dim].axisIndex;
+    }
+
+    labAxisIndices() {
+        return [this.labAxisIndex('x'), this.labAxisIndex('y')];
+    }
+}
+
+// elevations tab + vtk tab (or all in 1 tab?)
+// A lot of this is 2d and could be extracted
+SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, panelState, plotting, utilities) {
+    return {
+        restrict: 'A',
+        scope: {
+            cfg: '<',
+            modelName: '@',
+            source: '=controller',
+        },
+        templateUrl: '/static/html/3d-builder.html' + SIREPO.SOURCE_CACHE_KEY,
+        controller: function($scope) {
+            const ASPECT_RATIO = 1.0;
+
+            const ELEVATIONS = {};
+            for (const axis of SIREPO.GEOMETRY.GeometryUtils.BASIS().slice().reverse()) {
+                const e = new Elevation(axis);
+                ELEVATIONS[e.name] = e;
+            }
+
+            // svg shapes
+            const LAYOUT_SHAPES = ['circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'rect'];
+
+            const SCREEN_INFO = {
+                x: {
+                    length: $scope.width / 2
+                },
+                y: {
+                    length: $scope.height / 2
+                },
+            };
+
+            const fitDomainPct = 1.01;
+
+            let screenRect = null;
+            let selectedObject = null;
+            const objectScale = SIREPO.APP_SCHEMA.constants.objectScale || 1.0;
+            const invObjScale = 1.0 / objectScale;
+
+            $scope.alignmentTools = SIREPO.APP_SCHEMA.constants.alignmentTools;
+            $scope.elevations = ELEVATIONS;
+            $scope.isClientOnly = true;
+            $scope.margin = {top: 20, right: 20, bottom: 45, left: 70};
+            $scope.settings = appState.models.threeDBuilder;
+            $scope.snapGridSizes = appState.enumVals('SnapGridSize');
+            $scope.width = $scope.height = 0;
+
+            let didDrag = false;
+            let dragShape, dragInitialShape, zoom;
+            const dragDelta = {x: 0, y: 0};
+            let draggedShape = null;
+            const axisScale = {
+                x: 1.0,
+                y: 1.0,
+                z: 1.0
+            };
+            const axes = {
+                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
+                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
+            };
+
+            const snapSettingsFields = [
+                'threeDBuilder.snapToGrid',
+                'threeDBuilder.snapGridSize',
+            ];
+            const settingsFields = [
+                'threeDBuilder.autoFit',
+                'threeDBuilder.elevation',
+            ].concat(snapSettingsFields);
+
+            function clearDragShadow() {
+                d3.selectAll('.vtk-object-layout-drag-shadow').remove();
+            }
+
+            function getElevation() {
+                return ELEVATIONS[$scope.settings.elevation];
+            }
+
+            function getLabAxis(dim) {
+                return getElevation().labAxis(dim);
+            }
+
+            function resetDrag() {
+                didDrag = false;
+                hideShapeLocation();
+                dragDelta.x = 0;
+                dragDelta.y = 0;
+                draggedShape = null;
+                selectedObject = null;
+            }
+
+            function d3DragShapeEnd(shape) {
+
+                function reset() {
+                    resetDrag();
+                    d3.select(`.plot-viewport ${shapeSelectionId(shape, true)}`).call(updateShapeAttributes);
+                }
+
+                const dragThreshold = 1e-3;
+                if (! didDrag || Math.abs(dragDelta.x) < dragThreshold && Math.abs(dragDelta.y) < dragThreshold) {
+                    reset();
+                    return;
+                }
+                $scope.$applyAsync(() => {
+                    if (isShapeInBounds(shape)) {
+                        const o = $scope.source.getObject(shape.id);
+                        if (! o) {
+                            reset();
+                            return;
+                        }
+                        const e = getElevation();
+                        for (const dim of SIREPO.SCREEN_DIMS) {
+                            o.center[SIREPO.GEOMETRY.GeometryUtils.axisIndex(e.labAxis(dim))] = invObjScale * shape.center[dim];
+                        }
+                        $scope.source.saveObject(shape.id, reset);
+                    }
+                    else {
+                        appState.cancelChanges($scope.modelName);
+                        reset();
+                    }
+                });
+            }
+
+            function canDrag(dim) {
+                const a = d3.event.sourceEvent.shiftKey ?
+                    (Math.abs(dragDelta.x) > Math.abs(dragDelta.y) ? 'x' : 'y') :
+                    null;
+                return ! a || a === dim;
+            }
+
+            function d3DragShape(shape) {
+
+                if (! shape.draggable) {
+                    return;
+                }
+                didDrag = true;
+                draggedShape = shape;
+                SIREPO.SCREEN_DIMS.forEach(dim => {
+                    if (appState.models.threeDBuilder.snapToGrid) {
+                        dragDelta[dim] = snap(shape, dim);
+                        return;
+                    }
+                    dragDelta[dim] = canDrag(dim) ? d3.event[dim] : 0;
+                    const numPixels = scaledPixels(dim, dragDelta[dim]);
+                    shape[dim] = dragInitialShape[dim] + numPixels;
+                    shape.center[dim] = dragInitialShape.center[dim] + numPixels;
+                });
+                d3.select(shapeSelectionId(shape)).call(updateShapeAttributes);
+                showShapeLocation(shape);
+                //TODO(mvk): restore live update of virtual shapes
+                shape.runLinks().forEach(linkedShape => {
+                    d3.select(shapeSelectionId(linkedShape)).call(updateShapeAttributes);
+                });
+            }
+
+            function shapeSelectionId(shape, includeHash=true) {
+                return `${(includeHash ? '#' : '')}shape-${shape.id}`;
+            }
+
+            function d3DragShapeStart(shape) {
+                d3.event.sourceEvent.stopPropagation();
+                dragInitialShape = appState.clone(shape);
+                showShapeLocation(shape);
+            }
+
+            function drawObjects(elevation) {
+                const shapes = $scope.source.getShapes(elevation);
+
+                // need to split the shapes up by type or the data will get mismatched
+                let layouts = {};
+                LAYOUT_SHAPES.forEach(l=> {
+                    layouts[l] = shapes
+                        .filter(s => s.layoutShape === l)
+                        .sort((s1, s2) => s2.z - s1.z)
+                        .sort((s1, s2) => s1.draggable - s2.draggable);
+                });
+
+                for (let l in layouts) {
+                    let ds = d3.select('.plot-viewport').selectAll(`${l}.vtk-object-layout-shape`)
+                        .data(layouts[l]);
+                    ds.exit().remove();
+                    // function must return a DOM object in the SVG namespace
+                    ds.enter()
+                        .append(d => {
+                            return document.createElementNS('http://www.w3.org/2000/svg', d.layoutShape);
+                        })
+                        .on('dblclick', editObject)
+                        .on('dblclick.zoom', null)
+                        .on('click', null);
+                    ds.call(updateShapeAttributes);
+                    ds.call(dragShape);
+                }
+            }
+
+            function drawShapes() {
+                drawObjects(getElevation());
+            }
+
+            function editObject(shape) {
+                d3.event.stopPropagation();
+                if (! shape.draggable) {
+                    return;
+                }
+                $scope.$applyAsync(function() {
+                    $scope.source.editObjectWithId(shape.id);
+                });
+            }
+
+            function formatObjectLength(val) {
+                return utilities.roundToPlaces(invObjScale * val, 4);
+            }
+
+            function getShape(id) {
+                return $scope.shapes.filter(x => x.id === id)[0];
+            }
+
+            function hideShapeLocation() {
+                select('.focus-text').text('');
+            }
+
+            function isMouseInBounds(evt) {
+                d3.event = evt.event;
+                var p = d3.mouse(d3.select('.plot-viewport').node());
+                d3.event = null;
+                return p[0] >= 0 && p[0] < $scope.width && p[1] >= 0 && p[1] < $scope.height
+                     ? p
+                     : null;
+            }
+
+            function isShapeInBounds(shape) {
+                if (! $scope.cfg.fixedDomain) {
+                    return true;
+                }
+                /*
+                var vAxis = shape.elev === ELEVATIONS.front ? axes.y : axes.z;
+                var bounds = {
+                    top: shape.y,
+                    bottom: shape.y - shape.height,
+                    left: shape.x,
+                    right: shape.x + shape.width,
+                };
+                if (bounds.right < axes.x.domain[0] || bounds.left > axes.x.domain[1]
+                    || bounds.top < vAxis.domain[0] || bounds.bottom > vAxis.domain[1]) {
+                    return false;
+                }
+
+                 */
+                return true;
+            }
+
+            function refresh() {
+                if (! axes.x.domain) {
+                    return;
+                }
+                if (layoutService.plotAxis.allowUpdates) {
+                    var elementWidth = parseInt(select('.workspace').style('width'));
+                    if (isNaN(elementWidth)) {
+                        return;
+                    }
+                    [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, elementWidth, ASPECT_RATIO);
+                    SCREEN_INFO.x.length = $scope.width;
+                    SCREEN_INFO.y.length = $scope.height;
+
+                    select('svg')
+                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
+                        .attr('height', $scope.plotHeight());
+                    axes.x.scale.range([0, $scope.width]);
+                    axes.y.scale.range([$scope.height, 0]);
+                    axes.x.grid.tickSize(-$scope.height);
+                    axes.y.grid.tickSize(-$scope.width);
+                }
+                if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
+                    select('.overlay').attr('class', 'overlay mouse-zoom');
+                    axes.y.scale.domain(axes.y.domain);
+                }
+                else {
+                    select('.overlay').attr('class', 'overlay mouse-move-ew');
+                }
+
+                resetZoom();
+                select('.plot-viewport').call(zoom);
+                $.each(axes, function(dim, axis) {
+                    var d = axes[dim].scale.domain();
+                    var r = axes[dim].scale.range();
+                    axisScale[dim] = Math.abs((d[1] - d[0]) / (r[1] - r[0]));
+
+                    axis.updateLabelAndTicks({
+                        width: $scope.width,
+                        height: $scope.height,
+                    }, select);
+                    axis.grid.ticks(
+                        $scope.settings.snapToGrid ?
+                            Math.round(Math.abs(d[1] - d[0]) / ($scope.settings.snapGridSize * objectScale)) :
+                            axis.tickCount
+                    );
+                    select('.' + dim + '.axis.grid').call(axis.grid);
+                });
+
+                screenRect = geometry.rect(
+                    geometry.point(),
+                    geometry.point($scope.width, $scope.height, 0)
+                );
+
+                drawShapes();
+            }
+
+            function replot(doFit=false) {
+                const b = $scope.source.shapeBounds(getElevation());
+                const newDomain = $scope.cfg.initDomian;
+                SIREPO.SCREEN_DIMS.forEach(dim => {
+                    const axis = axes[dim];
+                    const bd = b[dim];
+                    const nd = newDomain[dim];
+                    axis.domain = $scope.cfg.fullZoom ? [-Infinity, Infinity] : nd;
+                    if (($scope.settings.autoFit || doFit)  && bd[0] !== bd[1]) {
+                        nd[0] = fitDomainPct * bd[0];
+                        nd[1] = fitDomainPct * bd[1];
+                        // center
+                        const d = (nd[1] - nd[0]) / 2 - (bd[1] - bd[0]) / 2;
+                        nd[0] -= d;
+                        nd[1] -= d;
+                    }
+                    axis.scale.domain(newDomain[dim]);
+                });
+                $scope.resize();
+            }
+
+            function resetZoom() {
+                zoom = axes.x.createZoom().y(axes.y.scale);
+            }
+
+            function scaledPixels(dim, pixels) {
+                const dom = axes[dim].scale.domain();
+                return pixels * SIREPO.SCREEN_INFO[dim].direction * (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
+            }
+
+            function select(selector) {
+                var e = d3.select($scope.element);
+                return selector ? e.select(selector) : e;
+            }
+
+            function selectObject(d) {
+                //TODO(mvk): allow using shift to select more than one (for alignment etc.)
+                if (! selectedObject || selectedObject.id !== d.id ) {
+                    selectedObject = d;
+                }
+                else {
+                    selectedObject = null;
+                }
+            }
+
+            function shapeColor(hexColor, alpha) {
+                var comp = plotting.colorsFromHexString(hexColor);
+                return 'rgb(' + comp[0] + ', ' + comp[1] + ', ' + comp[2] + ', ' + (alpha || 1.0) + ')';
+            }
+
+            function showShapeLocation(shape) {
+                select('.focus-text').text(
+                    'Center: ' +
+                    formatObjectLength(shape.center.x) + ', ' +
+                    formatObjectLength(shape.center.y) + ', ' +
+                    formatObjectLength(shape.center.z)
+                );
+            }
+
+            function snap(shape, dim) {
+                function roundUnits(val, unit) {
+                    return unit * Math.round(val / unit);
+                }
+
+                if (! canDrag(dim)) {
+                    return 0;
+                }
+
+                const g = parseFloat($scope.settings.snapGridSize) * objectScale;
+                const ctr = dragInitialShape.center[dim];
+                const offset = axes[dim].scale(roundUnits(ctr, g)) - axes[dim].scale(ctr);
+                const gridSpacing = Math.abs(axes[dim].scale(2 * g) - axes[dim].scale(g));
+                const gridUnits = roundUnits(d3.event[dim], gridSpacing);
+                const numPixels = scaledPixels(dim, gridUnits + offset);
+                shape[dim] = roundUnits(dragInitialShape[dim] + numPixels, g);
+                shape.center[dim] = roundUnits(ctr + numPixels, g);
+                return Math.round(gridUnits + offset);
+            }
+
+            // called when dragging a new object, not an existing object
+            function updateDragShadow(o, p) {
+                let r = d3.select('.plot-viewport rect.vtk-object-layout-drag-shadow');
+                if (r.empty()) {
+                    const s = $scope.source.viewShadow(o).getView(getElevation());
+                    r = d3.select('.plot-viewport').append('rect')
+                        .attr('class', 'vtk-object-layout-shape vtk-object-layout-drag-shadow')
+                        .attr('width', shapeSize(s, 'x'))
+                        .attr('height', shapeSize(s, 'y'));
+                }
+                //showShapeLocation(shape);
+                r.attr('x', p[0]).attr('y', p[1]);
+            }
+
+            function shapeOrigin(shape, dim) {
+                return axes[dim].scale(
+                    shape.center[dim] - SIREPO.SCREEN_INFO[dim].direction * shape.size[dim] / 2
+                );
+            }
+
+            function shapePoints(shape) {
+                //TODO(mvk): apply transforms to dx, dy
+                const [dx, dy] = shape.id === (draggedShape || {}).id ? [dragDelta.x, dragDelta.y] : [0, 0];
+                let pts = '';
+                for (const p of shape.points) {
+                    pts += `${dx + axes.x.scale(p.x)},${dy + axes.y.scale(p.y)} `;
+                }
+                return pts;
+            }
+
+            function linePoints(shape) {
+                if (! shape.line || getElevation().coordPlane !== shape.coordPlane) {
+                    return null;
+                }
+
+                const lp = shape.line.points;
+                const labX = getElevation().labAxis('x');
+                const labY = getElevation().labAxis('y');
+
+                // same points in this coord plane
+                if (lp[0][labX] === lp[1][labX] && lp[0][labY] === lp[1][labY]) {
+                    return null;
+                }
+
+                var scaledLine = geometry.lineFromArr(
+                    lp.map(function (p) {
+                        var sp = [];
+                        SIREPO.SCREEN_DIMS.forEach(function (dim) {
+                            sp.push(axes[dim].scale(p[getElevation().labAxis(dim)]));
+                        });
+                        return geometry.pointFromArr(sp);
+                }));
+
+                var pts = screenRect.boundaryIntersectionsWithLine(scaledLine);
+                return pts;
+            }
+
+            function shapeSize(shape, dim) {
+                let c = shape.center[dim] || 0;
+                let s = shape.size[dim] || 0;
+                return Math.abs(axes[dim].scale(c + s / 2) - axes[dim].scale(c - s / 2));
+            }
+
+            //TODO(mvk): set only those attributes that pertain to each svg shape
+            function updateShapeAttributes(selection) {
+                selection
+                    .attr('class', 'vtk-object-layout-shape')
+                    .classed('vtk-object-layout-shape-selected', d => d.id === (selectedObject || {}).id)
+                    .classed('vtk-object-layout-shape-undraggable', d => ! d.draggable)
+                    .attr('id', d =>  shapeSelectionId(d, false))
+                    .attr('href', d => d.href ? `#${d.href}` : '')
+                    .attr('points', d => $.isEmptyObject(d.points || {}) ? null : shapePoints(d))
+                    .attr('x', d => shapeOrigin(d, 'x') - (d.outlineOffset || 0))
+                    .attr('y', d => shapeOrigin(d, 'y') - (d.outlineOffset || 0))
+                    .attr('x1', d => {
+                        const pts = linePoints(d);
+                        return pts ? (pts[0] ? pts[0].coords()[0] : 0) : 0;
+                    })
+                    .attr('x2', d => {
+                        const pts = linePoints(d);
+                        return pts ? (pts[1] ? pts[1].coords()[0] : 0) : 0;
+                    })
+                    .attr('y1', d => {
+                        const pts = linePoints(d);
+                        return pts ? (pts[0] ? pts[0].coords()[1] : 0) : 0;
+                    })
+                    .attr('y2', d => {
+                        const pts = linePoints(d);
+                        return pts ? (pts[1] ? pts[1].coords()[1] : 0) : 0;
+                    })
+                    .attr('marker-end', d => {
+                        if (d.endMark && d.endMark.length) {
+                            return `url(#${d.endMark})`;
+                        }
+                    })
+                    .attr('marker-start', d => {
+                        if (d.endMark && d.endMark.length) {
+                            return `url(#${d.endMark})`;
+                        }
+                    })
+                    .attr('width', d => shapeSize(d, 'x') + 2 * (d.outlineOffset || 0))
+                    .attr('height', d => shapeSize(d, 'y') + 2 * (d.outlineOffset || 0))
+                    .attr('style', d => {
+                        if (d.color) {
+                            const a = d.alpha === 0 ? 0 : (d.alpha || 1.0);
+                            const fill = `fill:${(d.fillStyle ? shapeColor(d.color, a) : 'none')}`;
+                            return `${fill}; stroke: ${shapeColor(d.color)}; stroke-width: ${d.strokeWidth || 1.0}`;
+                        }
+                    })
+                    .attr('stroke-dasharray', d => d.strokeStyle === 'dashed' ? (d.dashes || "5,5") : "");
+                let tooltip = selection.select('title');
+                if (tooltip.empty()) {
+                    tooltip = selection.append('title');
+                }
+                tooltip.text(function(d) {
+                    const ctr = d.getCenterCoords().map(function (c) {
+                        return utilities.roundToPlaces(c * invObjScale, 2);
+                    });
+                    const sz = d.getSizeCoords().map(function (c) {
+                        return utilities.roundToPlaces(c * invObjScale, 2);
+                    });
+                    return `${d.name} center : ${ctr} size: ${sz}`;
+                });
+            }
+
+            $scope.destroy = () => {
+                if (zoom) {
+                    zoom.on('zoom', null);
+                }
+                $('.plot-viewport').off();
+            };
+
+            $scope.dragMove = (o, evt) => {
+                const p = isMouseInBounds(evt);
+                if (p) {
+                    d3.select('.sr-drag-clone').attr('class', 'sr-drag-clone sr-drag-clone-hidden');
+                    updateDragShadow(o, p);
+                }
+                else {
+                    clearDragShadow();
+                    d3.select('.sr-drag-clone').attr('class', 'sr-drag-clone');
+                    hideShapeLocation();
+                }
+            };
+
+            // called when dropping new objects, not existing
+            $scope.dropSuccess = (o, evt) => {
+                clearDragShadow();
+                const p = isMouseInBounds(evt);
+                if (p) {
+                    const labXIdx = geometry.basis.indexOf(getLabAxis('x'));
+                    const labYIdx = geometry.basis.indexOf(getLabAxis('y'));
+                    const ctr = [0, 0, 0];
+                    ctr[labXIdx] = axes.x.scale.invert(p[0]);
+                    ctr[labYIdx] = axes.y.scale.invert(p[1]);
+                    o.center = ctr.map(x => x * invObjScale);
+                    $scope.$emit('layout.object.dropped', o);
+                    drawShapes();
+                }
+            };
+
+            $scope.editObject = $scope.source.editObject;
+
+            $scope.fitToShapes = () => {
+                replot(true);
+            };
+
+            $scope.getElevation = getElevation;
+
+            $scope.getObjects = () => {
+                return (appState.models[$scope.modelName] || {}).objects;
+            };
+
+            $scope.init = () => {
+                $scope.shapes = $scope.source.getShapes(getElevation());
+
+                $scope.$on($scope.modelName + '.changed', function(e, name) {
+                    $scope.shapes = $scope.source.getShapes();
+                    drawShapes();
+                    replot();
+                });
+
+                select('svg').attr('height', plotting.initialHeight($scope));
+
+                $.each(axes, function(dim, axis) {
+                    axis.init();
+                    axis.grid = axis.createAxis();
+                });
+                resetZoom();
+                dragShape = d3.behavior.drag()
+                    .origin(function(d) { return d; })
+                    .on('drag', d3DragShape)
+                    .on('dragstart', d3DragShapeStart)
+                    .on('dragend', d3DragShapeEnd);
+                SIREPO.SCREEN_DIMS.forEach(dim => {
+                    axes[dim].parseLabelAndUnits(`${getLabAxis(dim)} [m]`);
+                });
+                replot();
+            };
+
+            $scope.isDropEnabled = () => $scope.source.isDropEnabled();
+
+            $scope.plotHeight = () => $scope.plotOffset() + $scope.margin.top + $scope.margin.bottom;
+
+            $scope.plotOffset = () => $scope.height;
+
+            $scope.resize = () => {
+                if (select().empty()) {
+                    return;
+                }
+                refresh();
+            };
+
+            $scope.setElevation = elev => {
+                $scope.settings.elevation = elev;
+                SIREPO.SCREEN_DIMS.forEach(dim => {
+                    axes[dim].parseLabelAndUnits(`${getLabAxis(dim)} [m]`);
+                });
+                replot();
+            };
+
+            appState.watchModelFields($scope, settingsFields, () => {
+                appState.saveChanges('threeDBuilder');
+            });
+            appState.watchModelFields($scope, snapSettingsFields, refresh);
+
+            $scope.$on('shapes.loaded', drawShapes);
+
+            $scope.$on('shape.locked', (e, locks) => {
+                let doRefresh = false;
+                for (const l of locks) {
+                    const s = getShape(l.id);
+                    if (s) {
+                        doRefresh = true;
+                        s.draggable = ! l.doLock;
+                    }
+                }
+                if (doRefresh) {
+                    refresh();
+                }
+            });
+
+        },
+        link: function link(scope, element) {
+            plotting.linkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('objectTable', function(appState, $rootScope) {
+    return {
+        restrict: 'A',
+        scope: {
+            elevation: '=',
+            modelName: '@',
+            overlayButtons: '=',
+            source: '=',
+        },
+        template: `
+          <div class="panel panel-info">
+            <div class="panel-heading"><span class="sr-panel-heading">Objects</span></div>
+            <div class="panel-body">
+            <form name="form">
+              <table data-ng-show="getObjects().length" style="width: 100%;  table-layout: fixed" class="table table-striped table-condensed radia-table-dialog">
+                <thead></thead>
+                  <tbody>
+                    <tr data-ng-show="areAllGroupsExpanded(o)" data-ng-attr-id="{{ o.id }}" data-ng-repeat="o in getObjects() track by $index">
+                      <td style="padding-left: {{ nestLevel(o) }}em; cursor: pointer; white-space: nowrap">
+                        <img alt="{{ lockTitle(o) }}" title="{{ lockTitle(o) }}" data-ng-src="/static/svg/lock.svg" data-ng-show="locked[o.id]" data-ng-class="{'sr-disabled-image': ! unlockable[o.id]}" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">
+                        <img alt="{{ lockTitle(o) }}" title="{{ lockTitle(o) }}" data-ng-src="/static/svg/unlock.svg" data-ng-show="! locked[o.id]" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">
+                        <span style="font-size: large; color: {{o.color || '#cccccc'}}; padding-left: 1px;">■</span>
+                        <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-up': expanded[o.id], 'glyphicon-chevron-down': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
+                        <span>{{ o.name }}</span>
+                      </td>
+                        <td style="text-align: right">
+                          <div class="sr-button-bar-parent">
+                            <div class="sr-button-bar sr-button-bar-active">
+                               <button data-ng-disabled="isAlignDisabled(o)" type="button" class="dropdown-toggle btn sr-button-action btn-xs" title="align" data-toggle="dropdown"><span class="glyphicon glyphicon-move"></span></button>
+                               <ul class="dropdown-menu">
+                                 <div class="container col-sm-8">
+                                   <div class="row">
+                                     <li style="display: inline-block">
+                                        <span class="sr-button-bar-parent">
+                                          <button data-ng-repeat="t in overlayButtons" title="{{ t.title }}" data-ng-click="align(o, t.type)"><img alt="{{ t.title }}" data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
+                                        </span>
+                                      </li>
+                                   <div>
+                                 <div>
+                               </ul>
+                               <button type="button" class="btn sr-button-action btn-xs" data-ng-disabled="isMoveDisabled(-1, o)" data-ng-click="moveObject(-1, o)" title="move up"><span class="glyphicon glyphicon-arrow-up"></span></button>
+                               <button type="button" class="btn sr-button-action btn-xs" data-ng-disabled="isMoveDisabled(1, o)" data-ng-click="moveObject(1, o)" title="move down"><span class="glyphicon glyphicon-arrow-down"></span></button>
+                               <button data-ng-disabled="isGroup(o) || locked[o.id]" type="button" class="btn sr-button-action btn-xs" data-ng-click="copyObject(o)" title="copy"><span class="glyphicon glyphicon-duplicate"></span></button>
+                               <button data-ng-disabled="locked[o.id]" data-ng-click="editObject(o)" type="button" class="btn sr-button-action btn-xs" title="edit"><span class="glyphicon glyphicon-pencil"></span></button>
+                               <button data-ng-disabled="locked[o.id]" data-ng-click="deleteObject(o)" type="button" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
+                            </div>
+                          </div>
+                        </td>
+                    </tr>
+                  </tbody>
+                </table>
+            </div>
+          </div>
+          <div data-buttons="" data-model-name="modelName" data-fields="fields"></div>
+          </form>
+        `,
+        controller: function($scope) {
+            $scope.expanded = {};
+            $scope.fields = ['objects'];
+            $scope.locked = {};
+            $scope.unlockable = {};
+
+            const isInGroup = $scope.source.isInGroup;
+            const getGroup = $scope.source.getGroup;
+            const getMemberObjects = $scope.source.getMemberObjects;
+            let areObjectsUnlockable = appState.models.simulation.areObjectsUnlockable;
+
+            function arrange(objects) {
+
+                const arranged = [];
+
+                function addGroup(o) {
+                    const p = getGroup(o);
+                    if (p && ! arranged.includes(p)) {
+                        return;
+                    }
+                    if (! arranged.includes(o)) {
+                        arranged.push(o);
+                    }
+                    for (const m of getMemberObjects(o)) {
+                        if ($scope.isGroup(m)) {
+                            addGroup(m);
+                        }
+                        else {
+                            arranged.push(m);
+                        }
+                    }
+                }
+
+                for (const o of objects) {
+                    if (arranged.includes(o)) {
+                        continue;
+                    }
+                    if (! isInGroup(o)) {
+                        arranged.push(o);
+                    }
+                    if ($scope.isGroup(o)) {
+                        addGroup(o);
+                    }
+                }
+                return arranged;
+            }
+
+            function init() {
+                if (areObjectsUnlockable === undefined) {
+                    areObjectsUnlockable = true;
+                }
+                for (const o of $scope.getObjects()) {
+                    $scope.expanded[o.id] = true;
+                    $scope.unlockable[o.id] = areObjectsUnlockable;
+                    $scope.locked[o.id] = ! areObjectsUnlockable;
+
+                }
+            }
+
+            function setLocked(o, doLock) {
+                $scope.locked[o.id] =  doLock;
+                let ids = [
+                    {
+                        id: o.id,
+                        doLock: doLock
+                    },
+                ];
+                if ($scope.isGroup(o)) {
+                    getMemberObjects(o).forEach(x => {
+                        ids = ids.concat(setLocked(x, doLock));
+                        if (areObjectsUnlockable) {
+                            $scope.unlockable[x.id] = ! doLock;
+                        }
+                    });
+                }
+                return ids;
+            }
+
+            $scope.align = (o, alignType) => {
+                $scope.source.align(o, alignType, $scope.elevation.labAxisIndices());
+            };
+
+            $scope.areAllGroupsExpanded = o => {
+                if (! isInGroup(o)) {
+                    return true;
+                }
+                const p = getGroup(o);
+                if (! $scope.expanded[p.id]) {
+                    return false;
+                }
+                return $scope.areAllGroupsExpanded(p);
+            };
+
+            $scope.copyObject = $scope.source.copyObject;
+
+            $scope.deleteObject = $scope.source.deleteObject;
+
+            $scope.editObject = $scope.source.editObject;
+
+            $scope.getObjects = () => {
+                return arrange((appState.models[$scope.modelName] || {}).objects);
+            };
+
+            $scope.isAlignDisabled = o => $scope.locked[o.id] || ! $scope.isGroup(o) || getMemberObjects(o).length < 2;
+
+            $scope.isGroup = $scope.source.isGroup;
+
+            $scope.isMoveDisabled = (direction, o) => {
+                if ($scope.locked[o.id]) {
+                    return true;
+                }
+                const objects = isInGroup(o) ?
+                    getMemberObjects(getGroup(o)) :
+                    $scope.getObjects().filter(x => ! isInGroup(x));
+                let i = objects.indexOf(o);
+                return direction === -1 ? i === 0 : i === objects.length - 1;
+            };
+
+            $scope.lockTitle = o => {
+                if (! areObjectsUnlockable) {
+                    return 'designer is read-only for this magnet';
+                }
+                if (! $scope.unlockable[o.id]) {
+                    return 'cannot unlock';
+                }
+                return `click to ${$scope.locked[o.id] ? 'unlock' : 'lock'}`;
+            };
+
+            $scope.moveObject = $scope.source.moveObject;
+
+            $scope.nestLevel = o => {
+                let n = 0;
+                if (isInGroup(o)) {
+                    n += (1 + $scope.nestLevel(getGroup(o)));
+                }
+                return n;
+            };
+
+            $scope.toggleExpand = o => {
+                $scope.expanded[o.id] = ! $scope.expanded[o.id];
+            };
+
+            $scope.toggleLock = o => {
+                if (! $scope.unlockable[o.id]) {
+                    return;
+                }
+                $rootScope.$broadcast('shape.locked', setLocked(o, ! $scope.locked[o.id]));
+            };
+
+            init();
+        },
+    };
+});
+
+SIREPO.app.factory('vtkUtils', function() {
+    var self = {};
+
+    // Converts vtk colors ranging from 0 -> 255 to 0.0 -> 1.0
+    // can't map, because we will still have a UINT8 array
+    self.floatToRGB =  f => {
+        const rgb = new window.Uint8Array(f.length);
+        for (let i = 0; i < rgb.length; ++i) {
+            rgb[i] = Math.floor(255 * f[i]);
+        }
+        return rgb;
+    };
+
+    return self;
+});
