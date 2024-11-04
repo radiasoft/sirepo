@@ -7,6 +7,7 @@ SIREPO.PLOTTING_YMIN_ZERO = true;
 SIREPO.DEFAULT_COLOR_MAP = 'viridis';
 SIREPO.SCREEN_DIMS = ['x', 'y'];
 SIREPO.SCREEN_INFO = {x: { direction: 1 },  y: { direction: -1 }};
+SIREPO.ZERO_ARR = [0, 0, 0];
 
 class PlottingUtils {
     static COLOR_MAP() {
@@ -1114,8 +1115,23 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
         // ensures the axis domain fits in the fullDomain
         // returns true if size is reset to full
         trimDomain: function(axisScale, fullDomain) {
-            var dom = axisScale.domain();
-            var zoomSize = dom[1] - dom[0];
+            const dom = axisScale.domain();
+            if (fullDomain[0] > fullDomain[1]) {
+                const zoomSize = dom[0] - dom[1];
+
+                if (zoomSize >= (fullDomain[0] - fullDomain[1])) {
+                    axisScale.domain(fullDomain);
+                    return true;
+                }
+                if (dom[1] < fullDomain[1]) {
+                    axisScale.domain([zoomSize + fullDomain[1], fullDomain[1]]);
+                }
+                if (dom[0] > fullDomain[0]) {
+                    axisScale.domain([fullDomain[0], fullDomain[0] - zoomSize]);
+                }
+                return false;
+            }
+            const zoomSize = dom[1] - dom[0];
 
             if (zoomSize >= (fullDomain[1] - fullDomain[0])) {
                 axisScale.domain(fullDomain);
