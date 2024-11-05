@@ -4757,7 +4757,11 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                     <button data-ng-click="cancel()" type="button" class="close" data-ng-disabled="! sbatchLoginService.query('showLogin')"><span>&times;</span></button>
                     </div>
                     <div class="modal-body">
-                        <form name="sbatchLoginModalForm">
+                        <div data-ng-show="! authState.isPremiumUser()" class="alert alert-warning" role="alert">
+                        <h4 class="alert-heading"><b>Please upgrade</b></h4>
+                        <p>Supercomputer and HPC services are only available with <a data-ng-href="{{ plansUrl }}" target="_blank">one of our paid plans</a>.</p>
+                        </div>
+                        <form name="sbatchLoginModalForm" data-ng-show="authState.isPremiumUser()">
                             <div class="sr-input-warning">{{ warning }}</div>
                             <div class="form-group">
                                 <input type="text" class="form-control" name="username" placeholder="username" autocomplete="username" data-ng-model="username" />
@@ -4793,6 +4797,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
 
 	    _resetLoginFormText();
 	    $scope.authState = authState;
+            $scope.plansUrl = SIREPO.APP_SCHEMA.constants.plansUrl;
 	    $scope.sbatchLoginService = sbatchLoginService;
 
             $scope.cancel = () => {
