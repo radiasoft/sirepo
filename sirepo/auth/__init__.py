@@ -518,11 +518,8 @@ class _Auth(sirepo.quest.Attr):
             raise sirepo.util.Forbidden(f"method={m} is not email for uid={i}")
 
     def require_premium(self):
-        pkdp("called")
         if not self.is_premium_user():
-            pkdp("raise")
             raise sirepo.util.Forbidden(f"not premium user")
-        pkdp("not")
 
     def require_user(self):
         """Asserts whether user is logged in
