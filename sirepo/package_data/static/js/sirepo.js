@@ -305,7 +305,7 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
 
     self.isPremiumUser = function() {
         if (! self.paymentPlan) {
-            throw new Error("isPremiumUser: user not logged in")
+            throw new Error("isPremiumUser: user not logged in");
         }
         // positive test (vs just testing 'basic')
         return ['enterprise', 'premium'].indexOf(self.paymentPlan) >= 0;
