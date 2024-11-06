@@ -452,7 +452,7 @@ class _Cmd(PKDict):
                 f"self.msg.opName={self.msg.opName} must be one of job.SLOT_OPS={job.SLOT_OPS} to create _Cmd"
             )
         self.run_dir = pkio.py_path(self.msg.runDir)
-        self._is_compute = self.msg.jobCmd == "compute"
+        self._is_compute = self.msg.jobCmd == job.CMD_COMPUTE
         if self._is_compute:
             pkio.unchecked_remove(self.run_dir)
             pkio.mkdir_parent(self.run_dir)
@@ -787,7 +787,7 @@ class _SbatchRun(_SbatchCmd):
                 self.destroy()
             return False
 
-        if self.msg.jobCmd == "reattach_compute":
+        if self.msg.jobCmd == job.CMD_REATTACH_COMPUTE:
             if not await _is_running():
                 return
         elif not _queue():
@@ -943,7 +943,7 @@ class _Process(PKDict):
             cmd=cmd,
             _exit=sirepo.tornado.Event(),
         )
-        if self.cmd.msg.jobCmd not in ("prepare_simulation", "compute"):
+        if self.cmd.msg.jobCmd not in ("prepare_simulation", job.CMD_COMPUTE):
             _assert_run_dir_exists(self.cmd.run_dir)
 
     async def exit_ready(self):

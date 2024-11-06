@@ -248,7 +248,7 @@ class _Supervisor(PKDict):
                     # _ComputeJob._run so it looks like the job is running
                     # until the job_agent returns with something.
                     s._reattach_compute()
-               return await getattr(
+                return await getattr(
                     s,
                     "_receive_" + req.content.api,
                 )(req)
@@ -961,6 +961,7 @@ class _ComputeJob(_Supervisor):
                         return False
                     if not self._try_reattach_compute:
                         self.__db_update(status=job.MISSING)
+
                     self._sr_exception_in_run = e
                     return False
                 pkdlog("exception={} op={} stack={}", e, op, pkdexc())
