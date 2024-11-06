@@ -303,6 +303,14 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         controller.warningText = 'Server reported an error, please contact support@radiasoft.net.';
     };
 
+    self.isPremiumUser = function() {
+        if (! self.paymentPlan) {
+            throw new Error("isPremiumUser: user not logged in");
+        }
+        // positive test (vs just testing 'basic')
+        return ['enterprise', 'premium'].indexOf(self.paymentPlan) >= 0;
+    };
+
     self.paymentPlanName = function() {
         return SIREPO.APP_SCHEMA.constants.paymentPlans[self.paymentPlan];
     };

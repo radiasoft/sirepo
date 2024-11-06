@@ -222,7 +222,7 @@
                 "enterprise": "Sirepo Enterprise",
                 "premium": "Sirepo Professional"
             },
-            "plansUrl": "/en/plans.html",
+            "plansUrl": "/plans",
             "simulationSourceExtension": "py"
         },
         "cookies": {
