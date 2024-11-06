@@ -725,7 +725,7 @@ class _SbatchRun(_SbatchCmd):
             self._status_cb = None
         self._start_ready.set()
         if (
-            self._status.state not in self.JOB_CMD_EXIT_STATUSES
+            self._status.state not in self.JOB_CMD_STATE_EXIT_SET
             and not self._terminating
         ):
             self._status_update(job_cmd_state=job.CANCELED)
@@ -912,7 +912,9 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
         if self._status.sbatch_state in ("COMPLETING", "RUNNING"):
             return
         c = self._status.sbatch_state == "COMPLETED"
-        self._status_update(job_cmd_state=job.JOB_CMD_FINAL_STATUS if c else job.ERROR)
+        self._status_update(
+            job_cmd_state=job.JOB_CMD_WRITE_PARALLEL_STATUS if c else job.ERROR
+        )
         if not c:
             _reply_error()
 

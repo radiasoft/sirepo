@@ -101,9 +101,13 @@ EXIT_STATUSES = frozenset((CANCELED, COMPLETED, ERROR))
 #: Valid values for job status
 STATUSES = EXIT_STATUSES.union((PENDING, RUNNING))
 
-#: job_cmd
-JOB_CMD_WRITE_PARALLEL_STATUS = "job_cmd_write_parallel_status"
-JOB_CMD_EXIT_STATUSES = frozenset((job_cmd_write_parallel_status,)) + EXIT_STATUSES
+#: job_cmd states
+JOB_CMD_STATE_WRITE_PARALLEL_STATUS = "write_parallel_status"
+JOB_CMD_STATE_EXIT_SET = frozenset((JOB_CMD_WRITE_PARALLEL_STATUS,)) + EXIT_STATUSES
+
+#: job_cmds
+CMD_COMPUTE = "compute"
+CMD_REATTACH_COMPUTE = "reattach_compute"
 
 #: jobRunMode and kinds; should come from schema
 SEQUENTIAL = "sequential"

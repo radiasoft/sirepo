@@ -204,7 +204,7 @@ def init_module(**imports):
             job.SEQUENTIAL: 1,
         }
     )
-    tornado.ioloop.IOLoop.current().add_callback(_ComputeJob.purge_non_premium)
+    _call_later(0, _ComputeJob.purge_non_premium)
 
 
 async def terminate():
@@ -214,7 +214,7 @@ async def terminate():
 class _Supervisor(PKDict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._must_verify_status = False
+        self._try_reattach_compute = False
 
     def destroy_op(self, op):
         pass
@@ -242,10 +242,13 @@ class _Supervisor(PKDict):
             pkdlog("{}", req)
         try:
             with _Supervisor.get_instance(req) as s:
-                if s._must_verify_status and (r := await s._verify_status(req)):
-                    return r
-                # instance may need to be checked
-                return await getattr(
+                if s._try_reattach_compute:
+                    # We need to ask the external queue manager what the
+                    # status is, and this requires an agent. This starts
+                    # _ComputeJob._run so it looks like the job is running
+                    # until the job_agent returns with something.
+                    s._reattach_compute()
+               return await getattr(
                     s,
                     "_receive_" + req.content.api,
                 )(req)
@@ -296,14 +299,14 @@ class _Supervisor(PKDict):
             if c:
                 c.destroy(internal_error=internal_error)
 
-    def _create_op(self, op_name, req, kind, job_run_mode, **kwargs):
+    def _create_op(self, op_name, req, kind, job_run_mode, **msg_kwargs):
         return _Op(
             _supervisor=self,
             is_destroyed=False,
             kind=kind,
             msg=PKDict(req.copy_content())
             .pksetdefault(jobRunMode=job_run_mode)
-            .pkupdate(**kwargs),
+            .pkupdate(**msg_kwargs),
             op_name=op_name,
         )
 
@@ -465,10 +468,7 @@ class _ComputeJob(_Supervisor):
             del self.instances[self.db.computeJid]
 
     def cache_timeout_set(self):
-        self.timer = tornado.ioloop.IOLoop.current().call_later(
-            _cfg.job_cache_secs,
-            self.cache_timeout,
-        )
+        self.timer = _call_later(_cfg.job_cache_secs, self.cache_timeout)
 
     def destroy_op(self, op):
         if op in self.ops:
@@ -603,10 +603,7 @@ class _ComputeJob(_Supervisor):
         except Exception as e:
             pkdlog("u={} j={} error={} stack={}", u, j, e, pkdexc())
         finally:
-            tornado.ioloop.IOLoop.current().call_later(
-                _cfg.purge_check_interval,
-                cls.purge_non_premium,
-            )
+            _call_later(_cfg.purge_check_interval, cls.purge_non_premium)
         pkdlog("done")
 
     def set_situation(self, op, situation, exception=None):
@@ -629,9 +626,8 @@ class _ComputeJob(_Supervisor):
     def _create(cls, req):
         self = cls.instances[req.content.computeJid] = cls(req)
         if self._is_running_pending():
-            # Easiest place to have special case
             if self.db.jobRunMode == job.SBATCH:
-                self._must_verify_status = True
+                self._try_reattach_compute = True
             else:
                 # TODO(robnagler) when we reconnect with docker
                 # containers at startup, we'll need to change this.
@@ -846,7 +842,7 @@ class _ComputeJob(_Supervisor):
             o = self._create_op(
                 job.OP_RUN,
                 req,
-                jobCmd="compute",
+                jobCmd=job.CMD_COMPUTE,
                 nextRequestSeconds=self.db.nextRequestSeconds,
             )
             t = sirepo.srtime.utc_now_as_int()
@@ -869,13 +865,7 @@ class _ComputeJob(_Supervisor):
             r = self._status_reply(req)
             if not r:
                 raise AssertionError(f"no reply to req={req}")
-            o.run_callback = tornado.ioloop.IOLoop.current().call_later(
-                0,
-                self._run,
-                op=o,
-                curr_db=self.db,
-                prev_db=d,
-            )
+            o.run_callback = _call_later(0, self._run, op=o, curr_db=self.db)
             o = None
             return r
         except Exception as e:
@@ -918,7 +908,7 @@ class _ComputeJob(_Supervisor):
     async def _receive_api_statelessCompute(self, req):
         return await self._send_op_analysis(req, "stateless_compute")
 
-    def _create_op(self, op_name, req, **kwargs):
+    def _create_op(self, op_name, req, **msg_kwargs):
         req.simulationType = self.db.simulationType
         # run mode can change between runs so use req.content.jobRunMode
         # not self.db.jobRunMode
@@ -936,7 +926,7 @@ class _ComputeJob(_Supervisor):
         )
         o = (
             super()
-            ._create_op(op_name, req, job_run_mode=r, **kwargs)
+            ._create_op(op_name, req, job_run_mode=r, **msg_kwargs)
             .pkupdate(task=asyncio.current_task())
         )
         self.ops.append(o)
@@ -948,7 +938,7 @@ class _ComputeJob(_Supervisor):
             or self.db.computeJobSerial == req.content.computeJobSerial
         )
 
-    async def _run(self, op, curr_db, prev_db):
+    async def _run(self, op, curr_db):
         def _is_run_op(msg):
             if op == self.run_op:
                 return True
@@ -969,10 +959,13 @@ class _ComputeJob(_Supervisor):
                     if curr_db.dbUpdateTime != self.db.dbUpdateTime:
                         pkdlog("update collision jid={}, ignoring", curr_db.computeJid)
                         return False
-                    self.__db_update(status=job.MISSING)
+                    if not self._try_reattach_compute:
+                        self.__db_update(status=job.MISSING)
                     self._sr_exception_in_run = e
                     return False
                 pkdlog("exception={} op={} stack={}", e, op, pkdexc())
+                # Possible reattach failed
+                self._try_reattach_compute = False
                 self.__db_update(
                     error="Server error",
                     internalError=op.internal_error or e,
@@ -1000,6 +993,8 @@ class _ComputeJob(_Supervisor):
                     # Checked on 1/24/24 and neither check appears in the logs
                     if not _is_run_op(f"reply={r}"):
                         return
+                    # We got a response that's not an sbatchlogin
+                    self._try_reattach_compute = False
                     self.db.queueState = None
                     # run_dir is in a stable state so don't need to lock
                     op.run_dir_slot.free()
@@ -1109,9 +1104,39 @@ class _ComputeJob(_Supervisor):
             )
         return None
 
-    async def _verify_status(self, req):
-        self.__db_update(status=job.CANCELED)
-        return None
+    def _reattach_compute(self):
+        if self.run_op:
+            # already trying to reattach
+            return
+        o = None
+        try:
+            o = self._create_op(
+                job.OP_RUN,
+                req=PKDict(
+                    content=PKDict(
+                        jobRunMode=self.db.jobRunMode,
+                        isParallel=self.db.isParallel,
+                        jobCmd=job.REATTACH_COMPUTE,
+                        nextRequestSeconds=self.db.nextRequestSeconds,
+                    ),
+                ),
+                jobCmd=job.CMD_REATTACH_COMPUTE,
+                nextRequestSeconds=self.db.nextRequestSeconds,
+            )
+            self.run_op = o
+            o.run_callback = _call_later(0, self._run, op=o, curr_db=self.db)
+            o = None
+        except Exception as e:
+            # We don't know what's going on so just mark as canceled
+            pkdlog(
+                "force status={} due to exception={} stack={}",
+                job.CANCELED,
+                e,
+                pkdexc(),
+            )
+            self.__db_update(status=job.CANCELED)
+            if o:
+                o.destroy(internal_error=f"_verify_status exception={e}")
 
     #
     # rv = await self._send_with_single_reply(
@@ -1225,10 +1250,7 @@ class _Op(PKDict):
             await self._supervisor.op_send_timeout(self)
 
         if self.max_run_secs:
-            self.timer = tornado.ioloop.IOLoop.current().call_later(
-                self.max_run_secs,
-                _timeout,
-            )
+            self.timer = _call_later(self.max_run_secs, _timeout)
         self.driver.send(self)
 
     @contextlib.contextmanager
@@ -1256,6 +1278,11 @@ class _Op(PKDict):
 
     def __hash__(self):
         return hash((self.op_id,))
+
+
+def _call_later(*args, **kwargs):
+    """Simplifies many calls. Probably should be create_task with a delay"""
+    return tornado.ioloop.IOLoop.current().call_later(*args, **kwargs)
 
 
 def _canceled_reply():
