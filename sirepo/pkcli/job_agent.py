@@ -46,7 +46,7 @@ _IN_FILE = "in-{}.json"
 
 _PID_FILE = "job_agent.pid"
 
-_SBATCH_STATUS_FILE =
+_SBATCH_STATUS_FILE = "sbatch_status.json"
 
 _cfg = None
 
@@ -344,7 +344,11 @@ class _Dispatcher(PKDict):
         if msg.jobCmd == "fastcgi":
             self.fastcgi_cmd = p
         self.cmds.append(p)
-        await p.start()
+        try:
+            await p.start()
+        except Exception:
+            if not p._destroying:
+                p.destroy()
         return None
 
     def _fastcgi_accept(self, connection, *args, **kwargs):
@@ -449,7 +453,7 @@ class _Cmd(PKDict):
             )
         self.run_dir = pkio.py_path(self.msg.runDir)
         self._is_compute = self.msg.jobCmd == "compute"
-        if self._is_compute and not self._reattach_compute():
+        if self._is_compute:
             pkio.unchecked_remove(self.run_dir)
             pkio.mkdir_parent(self.run_dir)
         self._in_file = self._create_in_file()
@@ -599,14 +603,6 @@ class _Cmd(PKDict):
         except Exception as e:
             pkdlog("{} text={} error={} stack={}", self, text, e, pkdexc())
 
-    def _reattach_compute(self):
-        """Try to reattach to an existing compute
-
-        Returns:
-            bool: False if there was no existing compute to reattach to
-        """
-        return False
-
 
 class _FastCgiCmd(_Cmd):
     def destroy(self, terminating=False):
@@ -679,7 +675,10 @@ class _SbatchRun(_SbatchCmd):
         super().__init__(*args, **kwargs)
         self.pkupdate(
             _start_time=0,
-            _status=PKDict(sbatch_id=None, job_cmd_state=job.PENDING, sbatch_state="unsubmitted"),
+            _status=PKDict(
+                sbatch_id=None, job_cmd_state=job.PENDING, sbatch_state="unsubmitted"
+            ),
+            _sbatch_status_file=self.run_dir.join(_SBATCH_STATUS_FILE),
             _status_cb=None,
         )
         self.msg.jobCmd = "sbatch_status"
@@ -695,7 +694,7 @@ class _SbatchRun(_SbatchCmd):
         pkdlog(
             "{} sbatch_id={} starting jobCmd={}",
             self,
-            self._sbatch_id,
+            self._status.sbatch_id,
             self.msg.jobCmd,
         )
         await super().start()
@@ -725,7 +724,10 @@ class _SbatchRun(_SbatchCmd):
             self._status_cb.stop()
             self._status_cb = None
         self._start_ready.set()
-        if self._status.state not in self.JOB_CMD_EXIT_STATUSES and not self._terminating:
+        if (
+            self._status.state not in self.JOB_CMD_EXIT_STATUSES
+            and not self._terminating
+        ):
             self._status_update(job_cmd_state=job.CANCELED)
             _scancel(i)
         super().destroy(terminating=terminating)
@@ -756,13 +758,39 @@ class _SbatchRun(_SbatchCmd):
                         ),
                     )
                 )
+                # _cmd()
                 raise ValueError(
                     f"Unable to submit exit={p.returncode} stdout={p.stdout} stderr={p.stderr}"
                 )
-            self._status_update(sbatch_id = m.group(1))
+            self._status_update(sbatch_id=m.group(1))
             return True
 
-        if not (self._status.sbatch_id or _queue())
+        async def _is_running():
+            # Turn on _is_compute so _job_cmd_reply works right
+            self._is_compute = True
+            if not self._sbatch_status_file.exists():
+                s = PKDict(job_cmd_state=job.CANCELED)
+            else:
+                s = pkjson.load_any(self._sbatch_status_file)
+                if s.job_cmd_state not in job.EXIT_STATUSES:
+                    # Maybe JOB_CMD_FINAL_STATUS or running so start sbatch_status
+                    self._status = s
+                    return True
+            await self.dispatcher.send(
+                self.dispatcher.format_op(
+                    self.msg,
+                    job.OP_RUN,
+                    reply=PKDict(state=s.job_cmd_state),
+                )
+            )
+            if not self._destroying:
+                self.destroy()
+            return False
+
+        if self.msg.jobCmd == "reattach_compute":
+            if not await _is_running():
+                return
+        elif not _queue():
             return
         self.msg.pkupdate(sbatchStatusFile=str(self._sbatch_status_file))
         self._status_cb = tornado.ioloop.PeriodicCallback(
@@ -788,18 +816,6 @@ class _SbatchRun(_SbatchCmd):
         )
         await c.start()
         await c._await_exit()
-
-    def _reattach_compute(self):
-        self.pkupdate(_sbatch_status_file=self.run_dir.join(_SBATCH_STATUS_FILE))
-        if not self._sbatch_status_file.exists():
-            return False
-        s = pkjson.load_any(self._sbatch_status_file)
-        if s.status in job.EXIT_STATUSES:
-            return False
-        in the job cmd exit case we need to write parallel status but the job is
-        done so need to check on entry to preriod update.
-        self._status = s
-        return True
 
     def _sbatch_script(self):
         i = self.msg.shifterImage
@@ -847,7 +863,8 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
                     self.msg,
                     job.OP_ERROR,
                     reply=PKDict(
-                        state=job.ERROR, error=f"sbatch state={self._status.sbatch_state}"
+                        state=job.ERROR,
+                        error=f"sbatch state={self._status.sbatch_state}",
                     ),
                 )
             )
@@ -855,7 +872,7 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
 
         def _scontrol_status():
             p = subprocess.run(
-                ("scontrol", "show", "job", self.msg.sbatchId),
+                ("scontrol", "show", "job", self._status.sbatch_id),
                 cwd=str(self.run_dir),
                 close_fds=True,
                 capture_output=True,
@@ -866,7 +883,7 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
                     "{} scontrol error exit={} sbatch={} stderr={} stdout={}",
                     self,
                     p.returncode,
-                    self._sbatch_id,
+                    self._status.sbatch_id,
                     p.stderr,
                     p.stdout,
                 )
@@ -914,6 +931,7 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
         self._status.pkupdate(kwargs)
         pkio.atomic_write(self._status_file, pkjson.dump_pretty(self._status))
 
+
 class _Process(PKDict):
     def __init__(self, cmd):
         super().__init__()
@@ -932,7 +950,7 @@ class _Process(PKDict):
         await self.stderr.stream_closed.wait()
 
     def kill(self):
-        # TODO(e-carlin): Terminate?
+        # If the process is't started
         if "returncode" in self or "_subprocess" not in self:
             return
         p = None
