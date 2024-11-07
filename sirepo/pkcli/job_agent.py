@@ -454,7 +454,7 @@ class _Cmd(PKDict):
         self.run_dir = pkio.py_path(self.msg.runDir)
         self._is_compute = self.msg.jobCmd == job.CMD_COMPUTE
         if self._is_compute:
-            pkio.unchecked_remove(self.run_dir)
+            #            pkio.unchecked_remove(self.run_dir)
             pkio.mkdir_parent(self.run_dir)
         self._in_file = self._create_in_file()
         self._process = _Process(self)
@@ -467,8 +467,8 @@ class _Cmd(PKDict):
     def destroy(self, terminating=False):
         self._destroying = True
         self._terminating = terminating
-        if "_in_file" in self:
-            pkio.unchecked_remove(self.pkdel("_in_file"))
+        #        if "_in_file" in self:
+        #            pkio.unchecked_remove(self.pkdel("_in_file"))
         self._process.kill()
         try:
             self.dispatcher.cmds.remove(self)
@@ -678,18 +678,19 @@ class _SbatchRun(_SbatchCmd):
             _status=PKDict(
                 sbatch_id=None, job_cmd_state=job.PENDING, sbatch_state="unsubmitted"
             ),
-            _sbatch_status_file=self.run_dir.join(_SBATCH_STATUS_FILE),
             _status_cb=None,
+            _status_file=self.run_dir.join(_SBATCH_STATUS_FILE),
         )
         self.msg.jobCmd = "sbatch_status"
-        # pkdel so does not get removed twice (see destroy)
-        self.pkdel("_in_file").remove()
+        pkdp("xxxx")
+        # pkdel so does not get called twice (see destroy)
+
+    #        self.pkdel("_in_file").remove()
 
     async def _await_start_ready(self):
         await self._start_ready.wait()
         if self._destroying:
             return
-        # in_file now contains sbatch_id
         self._in_file = self._create_in_file()
         pkdlog(
             "{} sbatch_id={} starting jobCmd={}",
@@ -725,7 +726,7 @@ class _SbatchRun(_SbatchCmd):
             self._status_cb = None
         self._start_ready.set()
         if (
-            self._status.job_cmd_state not in self.JOB_CMD_STATE_EXIT_SET
+            self._status.job_cmd_state not in job.JOB_CMD_EXIT_SET
             and not self._terminating
         ):
             self._status_update(job_cmd_state=job.CANCELED)
@@ -768,10 +769,10 @@ class _SbatchRun(_SbatchCmd):
         async def _is_running():
             # Turn on _is_compute so _job_cmd_reply works right
             self._is_compute = True
-            if not self._sbatch_status_file.exists():
+            if not self._status_file.exists():
                 s = PKDict(job_cmd_state=job.CANCELED)
             else:
-                s = pkjson.load_any(self._sbatch_status_file)
+                s = pkjson.load_any(self._status_file)
                 if s.job_cmd_state not in job.EXIT_STATUSES:
                     # Maybe JOB_CMD_WRITE_PARALLEL_STATUS or running so start sbatch_status
                     self._status = s
@@ -787,12 +788,13 @@ class _SbatchRun(_SbatchCmd):
                 self.destroy()
             return False
 
+        pkdp("jobCmd={}", self.msg.jobCmd)
         if self.msg.jobCmd == job.CMD_REATTACH_COMPUTE:
             if not await _is_running():
                 return
-        elif not _queue():
+        elif not await _queue():
             return
-        self.msg.pkupdate(sbatchStatusFile=str(self._sbatch_status_file))
+        self.msg.pkupdate(sbatchStatusFile=str(self._status_file))
         self._status_cb = tornado.ioloop.PeriodicCallback(
             self._sbatch_status,
             self.msg.nextRequestSeconds * 1000,
@@ -900,6 +902,7 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
             self._status.sbatch_state = r.group(1)
             return True
 
+        pkdp("jobCmd={}", self.msg.jobCmd)
         if self._destroying:
             return
         if not _scontrol_status():
@@ -931,7 +934,7 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
             )
         )
 
-    def _status_udpate(self, **kwargs):
+    def _status_update(self, **kwargs):
         self._status.pkupdate(kwargs)
         pkio.atomic_write(self._status_file, pkjson.dump_pretty(self._status))
 

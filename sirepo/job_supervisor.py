@@ -84,9 +84,6 @@ class SlotAllocStatus(enum.Enum):
 
 
 class ServerReq(PKDict):
-    def copy_content(self):
-        return copy.deepcopy(self.content)
-
     def pkdebug_str(self):
         if c := self.get("content"):
             return pkdformat("ServerReq({}, {})", c.get("api"), c.get("computeJid"))
@@ -247,7 +244,7 @@ class _Supervisor(PKDict):
                     # status is, and this requires an agent. This starts
                     # _ComputeJob._run so it looks like the job is running
                     # until the job_agent returns with something.
-                    s._reattach_compute()
+                    s._reattach_compute(req)
                 return await getattr(
                     s,
                     "_receive_" + req.content.api,
@@ -304,7 +301,7 @@ class _Supervisor(PKDict):
             _supervisor=self,
             is_destroyed=False,
             kind=kind,
-            msg=PKDict(req.copy_content())
+            msg=copy.deepcopy(req.content)
             .pksetdefault(jobRunMode=job_run_mode)
             .pkupdate(**msg_kwargs),
             op_name=op_name,
@@ -984,6 +981,7 @@ class _ComputeJob(_Supervisor):
             return
         try:
             op.pkdel("run_callback")
+            pkdp(op.msg)
             if not await _send_op():
                 return
             with op.set_job_situation("Entered __create._run"):
@@ -1105,10 +1103,15 @@ class _ComputeJob(_Supervisor):
             )
         return None
 
-    def _reattach_compute(self):
+    def _reattach_compute(self, req):
         if self.run_op:
             # already trying to reattach
             pkdp("trying to reattach but already trying")
+            return
+        if req.content.get("api") == "api_runSimulation":
+            self.__db_update(status=job.CANCELED)
+            pkdp("api_runSimulation")
+            # do not reattach if runSimulation
             return
         o = None
         try:
@@ -1117,10 +1120,15 @@ class _ComputeJob(_Supervisor):
                 job.OP_RUN,
                 req=PKDict(
                     content=PKDict(
-                        jobRunMode=self.db.jobRunMode,
+                        computeJid=self.db.computeJid,
+                        computeModel=self.db.computeModel,
                         isParallel=self.db.isParallel,
-                        jobCmd=job.REATTACH_COMPUTE,
+                        jobRunMode=self.db.jobRunMode,
                         nextRequestSeconds=self.db.nextRequestSeconds,
+                        simulationId=self.db.simulationId,
+                        simulationType=self.db.simulationType,
+                        uid=self.db.uid,
+                        userDir=req.content.userDir,
                     ),
                 ),
                 jobCmd=job.CMD_REATTACH_COMPUTE,
@@ -1140,7 +1148,7 @@ class _ComputeJob(_Supervisor):
             )
             self.__db_update(status=job.CANCELED)
             if o:
-                o.destroy(internal_error=f"_verify_status exception={e}")
+                o.destroy(internal_error=f"_reattach_compute exception={e}")
 
     #
     # rv = await self._send_with_single_reply(

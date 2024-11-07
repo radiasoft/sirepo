@@ -293,7 +293,7 @@ def _do_sbatch_status(msg, template):
         if not status_file.exists():
             return None
         s = pkjson.load_any(status_file)
-        if s.get("job_cmd_state", "") in job.JOB_CMD_EXIT_STATUSES:
+        if s.get("job_cmd_state", "") in job.JOB_CMD_EXIT_SET:
             return s
         return None
 

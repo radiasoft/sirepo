@@ -148,9 +148,13 @@ class SbatchDriver(job_driver.DriverBase):
 
     async def _do_agent_start(self, op):
         # must be saved, because op is only valid before first await
+        pkdp("xxx")
         original_msg = op.msg
         log_file = "job_agent.log"
         agent_start_dir = self._srdb_root
+        if pkconfig.in_dev_mode():
+            pkdlog("agent_log={}/{}", agent_start_dir, log_file)
+        pkdp("xxx")
         script = f"""#!/bin/bash
 {self._agent_start_dev()}
 set -e
