@@ -916,7 +916,7 @@ class _ComputeJob(_Supervisor):
         if r not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
             # happens only when config changes, and only when sbatch is missing
             raise sirepo.util.NotFound("invalid jobRunMode={} req={}", r, req)
-        kwargs.setdefault(
+        msg_kwargs.setdefault(
             "kind",
             (
                 job.PARALLEL
@@ -1108,9 +1108,11 @@ class _ComputeJob(_Supervisor):
     def _reattach_compute(self):
         if self.run_op:
             # already trying to reattach
+            pkdp("trying to reattach but already trying")
             return
         o = None
         try:
+            pkdlog("jid={}", self.db.computeJid)
             o = self._create_op(
                 job.OP_RUN,
                 req=PKDict(
@@ -1130,8 +1132,9 @@ class _ComputeJob(_Supervisor):
         except Exception as e:
             # We don't know what's going on so just mark as canceled
             pkdlog(
-                "force status={} due to exception={} stack={}",
+                "force status={} jid={} due to exception={} stack={}",
                 job.CANCELED,
+                self.db.computeJid,
                 e,
                 pkdexc(),
             )

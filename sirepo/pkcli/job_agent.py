@@ -725,7 +725,7 @@ class _SbatchRun(_SbatchCmd):
             self._status_cb = None
         self._start_ready.set()
         if (
-            self._status.state not in self.JOB_CMD_STATE_EXIT_SET
+            self._status.job_cmd_state not in self.JOB_CMD_STATE_EXIT_SET
             and not self._terminating
         ):
             self._status_update(job_cmd_state=job.CANCELED)
@@ -773,7 +773,7 @@ class _SbatchRun(_SbatchCmd):
             else:
                 s = pkjson.load_any(self._sbatch_status_file)
                 if s.job_cmd_state not in job.EXIT_STATUSES:
-                    # Maybe JOB_CMD_FINAL_STATUS or running so start sbatch_status
+                    # Maybe JOB_CMD_WRITE_PARALLEL_STATUS or running so start sbatch_status
                     self._status = s
                     return True
             await self.dispatcher.send(
@@ -849,7 +849,7 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
         return f
 
     async def _sbatch_status(self):
-        def _reply_error():
+        async def _reply_error():
             # because have to await before calling destroy
             self._destroying = True
             pkdlog(
@@ -909,6 +909,8 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
         if not self._start_ready.is_set():
             self._start_time = int(time.time())
             self._start_ready.set()
+            # Not necessary but good for completeness
+            self.status_update(job_cmd_state=job.RUNNING)
         if self._status.sbatch_state in ("COMPLETING", "RUNNING"):
             return
         c = self._status.sbatch_state == "COMPLETED"
@@ -916,7 +918,7 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
             job_cmd_state=job.JOB_CMD_WRITE_PARALLEL_STATUS if c else job.ERROR
         )
         if not c:
-            _reply_error()
+            await _reply_error()
 
     def _sbatch_time(self):
         return str(
