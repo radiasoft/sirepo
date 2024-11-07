@@ -126,7 +126,7 @@ class SbatchDriver(job_driver.DriverBase):
                 )
             )
             m.runDir = "/".join((m.userDir, m.simulationType, m.computeJid))
-            if op.op_name == job.OP_RUN:
+            if op.op_name == job.OP_RUN and op.msg.jobCmd == job.CMD_COMPUTE:
                 assert m.sbatchHours
                 for f, c in [
                     ["sbatchCores", self.cfg.cores],

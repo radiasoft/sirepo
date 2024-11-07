@@ -674,6 +674,7 @@ class _SbatchRun(_SbatchCmd):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pkupdate(
+            _is_reattach_compute=self.msg.jobCmd == job.CMD_REATTACH_COMPUTE,
             _start_time=0,
             _status=PKDict(
                 sbatch_id=None, job_cmd_state=job.PENDING, sbatch_state="unsubmitted"
@@ -789,7 +790,7 @@ class _SbatchRun(_SbatchCmd):
             return False
 
         pkdp("jobCmd={}", self.msg.jobCmd)
-        if self.msg.jobCmd == job.CMD_REATTACH_COMPUTE:
+        if self._is_reattach_compute:
             if not await _is_running():
                 return
         elif not await _queue():
@@ -858,7 +859,7 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
                 "{} sbatch_id={} unexpected state={}",
                 self,
                 self._status.sbatch_id,
-                self._status.job_cmd_state,
+                self._status.sbatch_state,
             )
             await self.dispatcher.send(
                 self.dispatcher.format_op(
@@ -913,7 +914,7 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
             self._start_time = int(time.time())
             self._start_ready.set()
             # Not necessary but good for completeness
-            self.status_update(job_cmd_state=job.RUNNING)
+            self._status_update(job_cmd_state=job.RUNNING)
         if self._status.sbatch_state in ("COMPLETING", "RUNNING"):
             return
         c = self._status.sbatch_state == "COMPLETED"
