@@ -161,7 +161,7 @@ set -e
 mkdir -p '{agent_start_dir}'
 cd '{self._srdb_root}'
 {self._agent_env(op)}
-(/usr/bin/env; setsid {self.cfg.sirepo_cmd} job_agent start_sbatch) >& {log_file} &
+(/usr/bin/env; setsid {self.cfg.sirepo_cmd} job_agent start_sbatch) &>> {log_file} &
 disown
 """
 
@@ -232,6 +232,7 @@ disown
     def _agent_start_dev(self):
         if not pkconfig.in_dev_mode():
             return ""
+        return ""
         res = """
 scancel -u $USER >& /dev/null || true
 """

@@ -61,10 +61,10 @@ radia_run slurm-dev
         export SIREPO_JOB_SUPERVISOR_SBATCH_POLL_SECS=5
         export SIREPO_SIMULATION_DB_SBATCH_DISPLAY='Vagrant Cluster'
 	# In dev the node goes down randomly. This resets it.
-	sudo scontrol << EOF
-update NodeName=debug State=DOWN Reason="undraining"
-update NodeName=debug State=RESUME
-EOF
+#	sudo scontrol << EOF
+#update NodeName=debug State=DOWN Reason="undraining"
+#update NodeName=debug State=RESUME
+#EOF
         ;;
     *)
         echo 'usage: bash run-supervisor.sh [docker|local|sbatch [slurm host]|nersc proxy-host nersc-user]'

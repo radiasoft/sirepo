@@ -703,6 +703,7 @@ class _SbatchRun(_SbatchCmd):
 
     def destroy(self, terminating=False):
         def _scancel(sbatch_id):
+            pkdlog("sbatch_id={}", sbatch_id)
             p = subprocess.run(
                 ("scancel", "--full", "--quiet", sbatch_id),
                 close_fds=True,
@@ -777,14 +778,20 @@ class _SbatchRun(_SbatchCmd):
                 if s.job_cmd_state not in job.EXIT_STATUSES:
                     # Maybe JOB_CMD_WRITE_PARALLEL_STATUS or running so start sbatch_status
                     self._status = s
+                    pkdlog("trying sbatch_id={}", self._status.sbatch_id)
                     return True
-            await self.dispatcher.send(
-                self.dispatcher.format_op(
-                    self.msg,
-                    job.OP_RUN,
-                    reply=PKDict(state=s.job_cmd_state),
+                pkdlog(
+                    "not trying sbatch_id={} job_cmd_state={}",
+                    s.sbatch_id,
+                    s.job_cmd_state,
                 )
-            )
+                await self.dispatcher.send(
+                    self.dispatcher.format_op(
+                        self.msg,
+                        job.OP_RUN,
+                        reply=PKDict(state=s.job_cmd_state),
+                    )
+                )
             if not self._destroying:
                 self.destroy()
             return False
@@ -909,6 +916,13 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
         if not _scontrol_status():
             return
         if self._status.sbatch_state in ("PENDING", "CONFIGURING"):
+            return
+        if self._status.sbatch_state in ("CANCELLED"):
+            self._status_update(job_cmd_state=job.CANCELED)
+            # TODO(robnagler) this could be a legit cancel by the user, say, so
+            # could tell job_cmd to report as cancel. Seems to be only way to
+            # store cancel.
+            await _reply_error()
             return
         if not self._start_ready.is_set():
             self._start_time = int(time.time())
