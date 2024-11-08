@@ -81,7 +81,7 @@ class _AbruptSocketCloseError(Exception):
 
 def _background_percent_complete(msg, template, is_running):
     return template.background_percent_complete(
-        sirepo.sim_data.get_class(msg.simulationType).parse_model(msg.data),
+        msg.computeModel,
         msg.runDir,
         is_running,
     ).pksetdefault(

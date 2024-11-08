@@ -235,7 +235,7 @@ class _Supervisor(PKDict):
 
     @classmethod
     async def receive(cls, req):
-        if req.content.get("api") != "api_runStatus":
+        if req.content.api != "api_runStatus rjn remove this":
             pkdlog("{}", req)
         try:
             with _Supervisor.get_instance(req) as s:
@@ -244,6 +244,8 @@ class _Supervisor(PKDict):
                     # status is, and this requires an agent. This starts
                     # _ComputeJob._run so it looks like the job is running
                     # until the job_agent returns with something.
+                    check sbatchlogin here and throw exception? and do not start
+                    process of reattachment
                     s._reattach_compute(req)
                 return await getattr(
                     s,
@@ -528,6 +530,7 @@ class _ComputeJob(_Supervisor):
         if op.is_destroyed:
             return
         if self.run_op == op:
+            pkdlog("cancel jid={} {}", self.db.computeJid, op)
             self.__db_update(
                 canceledAfterSecs=op.max_run_secs,
                 status=job.CANCELED,
@@ -629,6 +632,11 @@ class _ComputeJob(_Supervisor):
                 # TODO(robnagler) when we reconnect with docker
                 # containers at startup, we'll need to change this.
                 # See https://github.com/radiasoft/sirepo/issues/6916
+                pkdlog(
+                    "cannot reattach canceling, jid={} {}",
+                    self.db.computeJid,
+                    req.content.api,
+                )
                 self.__db_update(status=job.CANCELED)
         return self
 
@@ -891,6 +899,8 @@ class _ComputeJob(_Supervisor):
         return PKDict(ready=r)
 
     async def _receive_api_sbatchLogin(self, req):
+#        if _sbatch_login_ready():
+#            return ok
         return await self._send_with_single_reply(job.OP_SBATCH_LOGIN, req)
 
     async def _receive_api_simulationFrame(self, req):
@@ -958,7 +968,6 @@ class _ComputeJob(_Supervisor):
                         return False
                     if not self._try_reattach_compute:
                         self.__db_update(status=job.MISSING)
-
                     self._sr_exception_in_run = e
                     return False
                 pkdlog("exception={} op={} stack={}", e, op, pkdexc())
@@ -977,11 +986,12 @@ class _ComputeJob(_Supervisor):
             op.send()
             return True
 
+        pkdp("{} startedByAPI={}", op, op.msg.get("startedByAPI"))
         if not _is_run_op("start"):
             return
         try:
             op.pkdel("run_callback")
-            pkdp(op.msg)
+            pkdp("{}", op)
             if not await _send_op():
                 return
             with op.set_job_situation("Entered __create._run"):
@@ -1104,22 +1114,29 @@ class _ComputeJob(_Supervisor):
         return None
 
     def _reattach_compute(self, req):
+#        if not _sbatch_login_ready():
+#            are you trying to login?
+#            raise not logged in
+        # TODO protect duplicate reattachment but this is
+        # tricky because may not be logged in so have to wait
+        # until logged in, but that is multiple messages and
+        # relying on a resend from an sbatch exception is tricky.
         if self.run_op:
-            # already trying to reattach
-            pkdp("trying to reattach but already trying")
+            pkdlog("already has run_op jid={} {}", self.db.computeJid, req.content.api)
             return
-        if req.content.get("api") == "api_runSimulation":
+        if req.content.api == "api_runSimulation":
             self.__db_update(status=job.CANCELED)
-            pkdp("api_runSimulation")
-            # do not reattach if runSimulation
+            pkdlog("new {}, cancel jid={}", req.content.api, self.db.computeJid)
             return
         o = None
         try:
-            pkdlog("jid={}", self.db.computeJid)
+            pkdlog("jid={} {}", self.db.computeJid, req.content.api)
             o = self._create_op(
                 job.OP_RUN,
                 req=PKDict(
                     content=PKDict(
+                        # TODO remove this
+                        startedByAPI=req.content.api,
                         computeJid=self.db.computeJid,
                         computeModel=self.db.computeModel,
                         isParallel=self.db.isParallel,
