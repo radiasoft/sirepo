@@ -1,6 +1,12 @@
 'use strict';
-SIREPO.srlog = console.log.bind(console);
-SIREPO.srdbg = console.log.bind(console);
+SIREPO.srlog = (...args) => {
+    console.log(
+        (new Date().toISOString()).substring(11, 19)SIREPO.srtimestamp,
+        ' ',
+        ...args,
+    )
+};
+SIREPO.srdbg = SIREPO.srlog;
 SIREPO.traceWS = false;
 
 // No timeout for now (https://github.com/radiasoft/sirepo/issues/317)
@@ -1114,26 +1120,26 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             [_e_authMissing]: _s_creds,
             [_e_authSuccess]: _s_ok,
             [_e_credsCancel]: _s_idle,
-            [_e_loginClicked]: _s_auth,
-            [_e_needNo]: _s_notNeeded,
-            [_e_needYes]: _s_auth,
+            //[_e_loginClicked]: _s_auth,
+            //[_e_needNo]: _s_notNeeded,
+            //[_e_needYes]: _s_auth,
             [_e_unloaded]: _s_initial,
         },
         [_s_creds]: {
-            [_e_authInvalid]: _s_creds,
-            [_e_authMissing]: _s_creds,
-            [_e_authSuccess]: _s_ok,
+            //[_e_authInvalid]: _s_creds,
+            //[_e_authMissing]: _s_creds,
+            //[_e_authSuccess]: _s_ok,
             [_e_credsCancel]: _s_idle,
             [_e_credsConfirm]: _s_auth,
-            [_e_loginClicked]: _s_creds,
-            [_e_needNo]: _s_notNeeded,
-            [_e_needYes]: _s_creds,
+            //[_e_loginClicked]: _s_creds,
+            //[_e_needNo]: _s_notNeeded,
+            //[_e_needYes]: _s_creds,
             [_e_unloaded]: _s_initial,
         },
         [_s_idle]: {
-            [_e_authInvalid]: _s_idle,
-            [_e_authMissing]: _s_idle,
-            [_e_authSuccess]: _s_ok,
+            //[_e_authInvalid]: _s_idle,
+            //[_e_authMissing]: _s_idle,
+            //[_e_authSuccess]: _s_ok,
             [_e_loginClicked]: _s_creds,
             [_e_needNo]: _s_notNeeded,
             [_e_needYes]: _s_status,
@@ -1146,29 +1152,29 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             [_e_unloaded]: _s_initial,
         },
         [_s_notNeeded]: {
-            [_e_authInvalid]: _s_notNeeded,
-            [_e_authMissing]: _s_notNeeded,
-            [_e_authSuccess]: _s_notNeeded,
-            [_e_loginClicked]: _s_notNeeded,
+            //[_e_authInvalid]: _s_notNeeded,
+            //[_e_authMissing]: _s_notNeeded,
+            //[_e_authSuccess]: _s_notNeeded,
+            //[_e_loginClicked]: _s_notNeeded,
             [_e_needNo]: _s_notNeeded,
             [_e_needYes]: _s_status,
             [_e_unloaded]: _s_initial,
         },
         [_s_ok]: {
-            [_e_authInvalid]: _s_idle,
-            [_e_authMissing]: _s_idle,
-            [_e_authSuccess]: _s_ok,
-            [_e_loginClicked]: _s_ok,
+            //[_e_authInvalid]: _s_idle,
+            //[_e_authMissing]: _s_idle,
+            //[_e_authSuccess]: _s_ok,
+            //[_e_loginClicked]: _s_ok,
             [_e_needNo]: _s_notNeeded,
             [_e_needYes]: _s_ok,
             [_e_unloaded]: _s_initial,
         },
         [_s_status]: {
-            [_e_authInvalid]: _s_idle,
-            [_e_authError]: _s_idle,
+            //[_e_authInvalid]: _s_idle,
+            //[_e_authError]: _s_idle,
             [_e_authMissing]: _s_idle,
             [_e_authSuccess]: _s_ok,
-            [_e_loginClicked]: _s_status,
+            //[_e_loginClicked]: _s_status,
             [_e_needNo]: _s_notNeeded,
             [_e_needYes]: _s_status,
             [_e_unloaded]: _s_initial,
@@ -1182,8 +1188,17 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     let _state = _s_initial;
 
     const _STATE_QUERIES = {
+        ignoreSRException: (state) => {
+            return [_s_auth, _s_creds, _s_notNeeded, _s_status, _s_idle].includes(state);
+        },
         isLoggedIn: (state) => {
             return state === _s_ok;
+        },
+        sbatchLoginResponseOK: (state) => {
+            return state === _s_auth;
+        },
+        sbatchLoginStatusResponseOK: (state) => {
+            return state === _s_status;
         },
         showLogin: (state) => {
             return [_s_creds, _s_idle].includes(state);
@@ -1262,7 +1277,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         }
 
         transition() {
-            //DEBUG: (`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
+            //srdbg(`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
             _state = this._newState;
             $rootScope.$broadcast('sbatchLoginEvent', this);
         }
@@ -1304,6 +1319,10 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         if (srException.routeName != 'sbatchLogin') {
             return false;
         }
+        if (self.query('ignoreSRException')) {
+            srlog('sbatchLoginService ignoring srException ', srException);
+            return true;
+        }
         //TODO(robnagler) an alternative is to broadcast an error.
         // there should be some type of global state management
         // here, since requests are all connected to this event.
@@ -1340,10 +1359,12 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             if (response.sbatchLoginServiceSRException) {
                 return;
             }
-            self.event(
-                response.ready || response.loginSuccess ? _e_authSuccess : _e_authMissing,
-                {authResponse: response},
-            );
+            if (self.query(route + 'ResponseOK') {
+                self.event(
+                    response.ready || response.loginSuccess ? _e_authSuccess : _e_authMissing,
+                    {authResponse: response},
+                );
+            }
 	};
 	requestSender.sendRequest(
 	    route,

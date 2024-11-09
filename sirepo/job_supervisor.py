@@ -244,8 +244,6 @@ class _Supervisor(PKDict):
                     # status is, and this requires an agent. This starts
                     # _ComputeJob._run so it looks like the job is running
                     # until the job_agent returns with something.
-                    check sbatchlogin here and throw exception? and do not start
-                    process of reattachment
                     s._reattach_compute(req)
                 return await getattr(
                     s,
@@ -890,17 +888,11 @@ class _ComputeJob(_Supervisor):
         return r
 
     async def _receive_api_sbatchLoginStatus(self, req):
-        r = False
-        o = self._create_op(job.OP_SBATCH_AGENT_READY, req)
-        try:
-            r = o.assign_driver().agent_is_ready_or_starting()
-        finally:
-            o.destroy()
-        return PKDict(ready=r)
+        return PKDict(ready=self._is_sbatch_login_ok(req))
 
     async def _receive_api_sbatchLogin(self, req):
-#        if _sbatch_login_ready():
-#            return ok
+        if self._is_sbatch_login_ok(req):
+            return job.sbatch_login_ok()
         return await self._send_with_single_reply(job.OP_SBATCH_LOGIN, req)
 
     async def _receive_api_simulationFrame(self, req):
@@ -939,6 +931,13 @@ class _ComputeJob(_Supervisor):
         self.ops.append(o)
         return o
 
+    def _is_sbatch_login_ok(self, req):
+        o = self._create_op(job.OP_SBATCH_AGENT_READY, req)
+        try:
+            return o.assign_driver().agent_is_ready_or_starting()
+        finally:
+            o.destroy()
+
     def _req_is_valid(self, req):
         return self.db.computeJobHash == req.content.computeJobHash and (
             not req.content.computeJobSerial
@@ -971,7 +970,7 @@ class _ComputeJob(_Supervisor):
                     self._sr_exception_in_run = e
                     return False
                 pkdlog("exception={} op={} stack={}", e, op, pkdexc())
-                # Possible reattach failed
+                # Reattach failed so no longer trying
                 self._try_reattach_compute = False
                 self.__db_update(
                     error="Server error",
@@ -1002,7 +1001,7 @@ class _ComputeJob(_Supervisor):
                     # Checked on 1/24/24 and neither check appears in the logs
                     if not _is_run_op(f"reply={r}"):
                         return
-                    # We got a response that's not an sbatchlogin
+                    # We got a response so no longer trying
                     self._try_reattach_compute = False
                     self.db.queueState = None
                     # run_dir is in a stable state so don't need to lock
@@ -1026,6 +1025,7 @@ class _ComputeJob(_Supervisor):
         except Exception as e:
             if _is_run_op(f"_run exception={e}"):
                 pkdlog("error={} stack={}", e, pkdexc())
+                self._try_reattach_compute = False
                 self.__db_update(
                     status=job.ERROR,
                     internal_error=f"_run exception={e}",
@@ -1105,7 +1105,10 @@ class _ComputeJob(_Supervisor):
         ):
             return PKDict(state=job.MISSING, reason="computeJobSerial-mismatch")
         if e := self.pkdel("_sr_exception_in_run"):
-            return _exception_reply(e)
+            if self._is_sbatch_login_ok(req):
+                pkdlog("ignoring _sr_exception_in_run, already ok {}", req.content.api)
+            else:
+                return _exception_reply(e)
         if self.db.isParallel or self.db.status != job.COMPLETED:
             return res(
                 state=self.db.status,
@@ -1114,13 +1117,16 @@ class _ComputeJob(_Supervisor):
         return None
 
     def _reattach_compute(self, req):
-#        if not _sbatch_login_ready():
-#            are you trying to login?
-#            raise not logged in
+        #        if not _sbatch_login_ready():
+        #            are you trying to login?
+        #            raise not logged in
         # TODO protect duplicate reattachment but this is
         # tricky because may not be logged in so have to wait
         # until logged in, but that is multiple messages and
         # relying on a resend from an sbatch exception is tricky.
+        if not self._is_sbatch_login_ok(req):
+            # this will throw an exception
+            return
         if self.run_op:
             pkdlog("already has run_op jid={} {}", self.db.computeJid, req.content.api)
             return

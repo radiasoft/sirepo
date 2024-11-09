@@ -331,6 +331,15 @@ def quasi_jid(uid, op_key, method):
     return join_jid(uid, _QUASI_SID_PREFIX + op_key, method)
 
 
+def sbatch_login_ok():
+    """Response for sbatchLogin API
+
+    Returns:
+        PKDict: success response
+    """
+    return PKDict(loginSuccess=True)
+
+
 def split_jid(jid):
     """Split jid into named parts
 

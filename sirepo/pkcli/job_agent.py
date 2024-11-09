@@ -290,6 +290,12 @@ class _Dispatcher(PKDict):
     async def _op_analysis(self, msg):
         return await self._cmd(msg)
 
+    async def _op_begin_session(self, msg):
+        await self.send(
+            self.format_op(msg, job.OP_OK, reply=PKDict(awake=True)),
+        )
+        return None
+
     async def _op_cancel(self, msg):
         await self.send(
             self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED)),
@@ -312,14 +318,8 @@ class _Dispatcher(PKDict):
 
     async def _op_sbatch_login(self, msg):
         await self.send(
-            self.format_op(msg, job.OP_OK, reply=PKDict(loginSuccess=True)),
+            self.format_op(msg, job.OP_OK, reply=job.sbatch_login_ok()),
         )
-
-    async def _op_begin_session(self, msg):
-        await self.send(
-            self.format_op(msg, job.OP_OK, reply=PKDict(awake=True)),
-        )
-        return None
 
     async def _cmd(self, msg, **kwargs):
         try:
