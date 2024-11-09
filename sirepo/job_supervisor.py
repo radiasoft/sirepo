@@ -986,12 +986,10 @@ class _ComputeJob(_Supervisor):
             op.send()
             return True
 
-        pkdp("{} startedByAPI={}", op, op.msg.get("startedByAPI"))
         if not _is_run_op("start"):
             return
         try:
             op.pkdel("run_callback")
-            pkdp("{}", op)
             if not await _send_op():
                 return
             with op.set_job_situation("Entered __create._run"):
@@ -1118,13 +1116,6 @@ class _ComputeJob(_Supervisor):
         return None
 
     def _reattach_compute(self, req):
-        #        if not _sbatch_login_ready():
-        #            are you trying to login?
-        #            raise not logged in
-        # TODO protect duplicate reattachment but this is
-        # tricky because may not be logged in so have to wait
-        # until logged in, but that is multiple messages and
-        # relying on a resend from an sbatch exception is tricky.
         if not self._is_sbatch_login_ok(req):
             # this will throw an exception
             return
@@ -1142,8 +1133,6 @@ class _ComputeJob(_Supervisor):
                 job.OP_RUN,
                 req=PKDict(
                     content=PKDict(
-                        # TODO remove this
-                        startedByAPI=req.content.api,
                         computeJid=self.db.computeJid,
                         computeModel=self.db.computeModel,
                         isParallel=self.db.isParallel,
@@ -1173,19 +1162,6 @@ class _ComputeJob(_Supervisor):
             self.__db_update(status=job.CANCELED)
             if o:
                 o.destroy(internal_error=f"_reattach_compute exception={e}")
-
-    #
-    # rv = await self._send_with_single_reply(
-    #     job.OP_VERIFY_STATUS,
-    #     req,
-    #     kind=job.SEQUENTIAL,
-    # )
-    # just set canceled so can push out a small pr
-    # Need lock on must verify so can check inside lock that still true
-    #        if rv.state in
-    #        rv.
-    #        need lock on job # this is new
-    #        do not always send, ask the driver
 
 
 class _Op(PKDict):

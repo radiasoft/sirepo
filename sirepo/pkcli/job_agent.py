@@ -454,7 +454,8 @@ class _Cmd(PKDict):
         self.run_dir = pkio.py_path(self.msg.runDir)
         self._is_compute = self.msg.jobCmd == job.CMD_COMPUTE
         if self._is_compute:
-            #            pkio.unchecked_remove(self.run_dir)
+            pkio.unchecked_remove(self.run_dir)
+        if not self.run_dir.exists():
             pkio.mkdir_parent(self.run_dir)
         self._in_file = self._create_in_file()
         self._process = _Process(self)
@@ -467,8 +468,8 @@ class _Cmd(PKDict):
     def destroy(self, terminating=False):
         self._destroying = True
         self._terminating = terminating
-        #        if "_in_file" in self:
-        #            pkio.unchecked_remove(self.pkdel("_in_file"))
+        if "_in_file" in self:
+            pkio.unchecked_remove(self.pkdel("_in_file"))
         self._process.kill()
         try:
             self.dispatcher.cmds.remove(self)
@@ -683,10 +684,8 @@ class _SbatchRun(_SbatchCmd):
             _status_file=self.run_dir.join(_SBATCH_STATUS_FILE),
         )
         self.msg.jobCmd = "sbatch_status"
-        pkdp("xxxx")
         # pkdel so does not get called twice (see destroy)
-
-    #        self.pkdel("_in_file").remove()
+        self.pkdel("_in_file").remove()
 
     async def _await_start_ready(self):
         await self._start_ready.wait()
@@ -796,7 +795,6 @@ class _SbatchRun(_SbatchCmd):
                 self.destroy()
             return False
 
-        pkdp("jobCmd={}", self.msg.jobCmd)
         if self._is_reattach_compute:
             if not await _is_running():
                 return
@@ -910,7 +908,6 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
             self._status.sbatch_state = r.group(1)
             return True
 
-        pkdp("jobCmd={}", self.msg.jobCmd)
         if self._destroying:
             return
         if not _scontrol_status():
