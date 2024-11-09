@@ -1,10 +1,9 @@
 'use strict';
 SIREPO.srlog = (...args) => {
     console.log(
-        (new Date().toISOString()).substring(11, 19)SIREPO.srtimestamp,
-        ' ',
+        (new Date().toISOString()).substring(11, 19),
         ...args,
-    )
+    );
 };
 SIREPO.srdbg = SIREPO.srlog;
 SIREPO.traceWS = false;
@@ -1162,7 +1161,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         },
         [_s_ok]: {
             //[_e_authInvalid]: _s_idle,
-            //[_e_authMissing]: _s_idle,
+            [_e_authMissing]: _s_idle,
             //[_e_authSuccess]: _s_ok,
             //[_e_loginClicked]: _s_ok,
             [_e_needNo]: _s_notNeeded,
@@ -1359,7 +1358,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             if (response.sbatchLoginServiceSRException) {
                 return;
             }
-            if (self.query(route + 'ResponseOK') {
+            if (self.query(route + 'ResponseOK')) {
                 self.event(
                     response.ready || response.loginSuccess ? _e_authSuccess : _e_authMissing,
                     {authResponse: response},

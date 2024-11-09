@@ -891,6 +891,7 @@ class _ComputeJob(_Supervisor):
         return PKDict(ready=self._is_sbatch_login_ok(req))
 
     async def _receive_api_sbatchLogin(self, req):
+        # Prevents unnecessary messages, but does not eliminate all
         if self._is_sbatch_login_ok(req):
             return job.sbatch_login_ok()
         return await self._send_with_single_reply(job.OP_SBATCH_LOGIN, req)
