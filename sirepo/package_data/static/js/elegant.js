@@ -155,34 +155,33 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
     }
 
     function commandsChanged() {
-        let cmd = self.findFirstCommand('run_setup');
-        if (cmd && cmd.use_beamline) {
-            appState.models.simulation.visualizationBeamlineId = cmd.use_beamline;
+        const rscmd = self.findFirstCommand('run_setup');
+        if (rscmd && rscmd.use_beamline) {
+            appState.models.simulation.visualizationBeamlineId = rscmd.use_beamline;
             appState.saveQuietly('simulation');
         }
 
         // update bunchSource, bunchFile, bunch models
-        cmd = self.findFirstCommand(['bunched_beam', 'sdds_beam']);
-        if (! cmd) {
+        const bcmd = self.findFirstCommand(['bunched_beam', 'sdds_beam']);
+        if (! bcmd) {
             return;
         }
-        appState.models.bunchSource.inputSource = cmd._type;
+        appState.models.bunchSource.inputSource = bcmd._type;
         appState.saveQuietly('bunchSource');
-        cmd = self.findFirstCommand('run_setup');
         const bunch = appState.models.bunch;
-        if (cmd) {
-            if (rpnService.getRpnValue(cmd.p_central_mev) !== 0) {
-                bunch.p_central_mev = cmd.p_central_mev;
+        if (rscmd) {
+            if (rpnService.getRpnValue(rscmd.p_central_mev) !== 0) {
+                bunch.p_central_mev = rscmd.p_central_mev;
             }
             else {
-                bunch.p_central_mev = rpnService.getRpnValue(cmd.p_central) * SIREPO.APP_SCHEMA.constants.ELEGANT_ME_EV;
+                bunch.p_central_mev = rpnService.getRpnValue(rscmd.p_central) * SIREPO.APP_SCHEMA.constants.ELEGANT_ME_EV;
             }
         }
-        if (cmd._type == 'bunched_beam') {
+        if (bcmd._type == 'bunched_beam') {
             updateBunchFromCommand(bunch, cmd);
         }
         else {
-            appState.models.bunchFile.sourceFile = cmd.input;
+            appState.models.bunchFile.sourceFile = bcmd.input;
             appState.saveQuietly('bunchFile');
         }
         // need to update source reports.
