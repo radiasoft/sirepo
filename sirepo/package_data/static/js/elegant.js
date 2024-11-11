@@ -178,7 +178,7 @@ SIREPO.app.factory('elegantService', function(appState, commandService, requestS
             }
         }
         if (bcmd._type == 'bunched_beam') {
-            updateBunchFromCommand(bunch, cmd);
+            updateBunchFromCommand(bunch, bcmd);
         }
         else {
             appState.models.bunchFile.sourceFile = bcmd.input;

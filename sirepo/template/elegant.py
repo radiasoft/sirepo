@@ -423,12 +423,8 @@ class ElegantMadxConverter(MadxConverter):
             ["RCOL", "l", "x_max=xsize", "y_max=ysize"],
         ],
         [
-            "COLLIMATOR apertype=ELLIPSE",
-            ["ECOL", "l", "x_max=xsize", "y_max=ysize"],
-        ],
-        [
-            "COLLIMATOR apertype=RECTANGLE",
-            ["RCOL", "l", "x_max=xsize", "y_max=ysize"],
+            "COLLIMATOR",
+            ["ECOL", "l"],
         ],
         [
             "RFCAVITY",
@@ -556,6 +552,17 @@ class ElegantMadxConverter(MadxConverter):
             for f in scale:
                 if f in element_out:
                     element_out[f] = f"{element_out[f]} {op} {scale[f]}"
+        if element_in.type == "COLLIMATOR":
+            m = re.search(r"^\{?\s*(.*?),\s*(.*?)\s*\}?$", element_in.aperture)
+            if m:
+                element_out.x_max = float(m.group(1))
+                element_out.y_max = float(m.group(2))
+            if element_in.apertype == "rectangle":
+                element_out.type = "RCOL"
+        elif element_in.type == "RFCAVITY":
+            element_out.phase = self.__val(element_out.phase) * 360 + 180
+            while element_out.phase >= 360:
+                element_out.phase -= 360
 
     def __combine_dipedge(self, data):
         # DIPEDGE elements get converted into a CSBEND with no length
@@ -633,6 +640,9 @@ class ElegantMadxConverter(MadxConverter):
                 + (_var(beam.sigma_s) * _var(beam.momentum_chirp)) ** 2
             )
             # TODO(pjm): determine conversion from momentum_chirp to db_s_coupling
+
+    def __val(self, var_value):
+        return self.vars.eval_var_with_assert(var_value)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -732,7 +742,7 @@ def convert_to_sdds(openpmd_file):
         elegant_p = kinematic.Converter(
             mass=d.attrs["mass_ref"],
             mass_unit="SI",
-            gamma=-numpy.array(d["momentum/t"]) * ref["betagamma"] + ref["gamma"],
+            gamma=numpy.array(d["momentum/t"]) * ref["betagamma"] + ref["gamma"],
         )(silent=True)["betagamma"]
 
         s = writeSDDS()

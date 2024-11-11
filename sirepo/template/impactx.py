@@ -14,11 +14,11 @@ from sirepo.template import template_common
 from sirepo.template.madx_converter import MadxConverter
 import numpy
 import pandas
+import re
 import sirepo.lib
 import sirepo.sim_data
 import sirepo.template.lattice
 import sirepo.template.sdds_util
-
 
 FINAL_DISTRIBUTION_OUTPUT_FILE = "diags/final_distribution.h5"
 # _DEFAULT_NSLICE = 12
@@ -31,12 +31,14 @@ _FIELD_MAPPING = PKDict(
     l="ds",
 )
 _TYPE_TO_CLASS = PKDict(
+    APERTURE="Aperture",
     BEAMMONITOR="BeamMonitor",
     DIPEDGE="DipEdge",
     DRIFT="Drift",
     KICKER="Kicker",
     QUAD="Quad",
     SBEND="Sbend",
+    SHORTRF="ShortRF",
     SOL="Sol",
 )
 
@@ -70,6 +72,10 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
 class ImpactxMadxConverter(MadxConverter):
     _FIELD_MAP = [
         [
+            "COLLIMATOR",
+            ["APERTURE"],
+        ],
+        [
             "DRIFT",
             ["DRIFT", "l"],
         ],
@@ -97,6 +103,10 @@ class ImpactxMadxConverter(MadxConverter):
             "MONITOR",
             ["BEAMMONITOR"],
         ],
+        [
+            "RFCAVITY",
+            ["SHORTRF", "V=volt", "freq", "phase=lag"],
+        ],
     ]
 
     def __init__(self, qcall=None, nslice=1, **kwargs):
@@ -110,6 +120,7 @@ class ImpactxMadxConverter(MadxConverter):
         self.nslice = nslice
 
     def from_madx(self, madx):
+        self.beam = sirepo.template.lattice.LatticeUtil.find_first_command(madx, "beam")
         data = self.fill_in_missing_constants(super().from_madx(madx), PKDict())
         self._remove_zero_drifts(data)
         return data
@@ -130,6 +141,16 @@ class ImpactxMadxConverter(MadxConverter):
                     element_out.rc = 0
                 if element_out.rc == 0:
                     element_out.type = "DRIFT"
+            elif element_in.type == "COLLIMATOR":
+                m = re.search(r"^\{?\s*(.*?),\s*(.*?)\s*\}?$", element_in.aperture)
+                if m:
+                    element_out.xmax = float(m.group(1))
+                    element_out.ymax = float(m.group(2))
+                element_out.shape = (
+                    "rectangular"
+                    if element_in.apertype == "rectangle"
+                    else "elliptical"
+                )
             elif element_in.type == "DIPEDGE":
                 if self.__val(element_in.h) != 0:
                     element_out.rc = 1.0 / self.__val(element_in.h)
@@ -149,6 +170,21 @@ class ImpactxMadxConverter(MadxConverter):
             elif element_in.type == "MONITOR" and self.__val(element_in.l) > 0:
                 # TODO(pjm) add drift
                 pass
+            elif element_in.type == "RFCAVITY" and self.__val(element_in.freq) == 0:
+                if self.__val(element_in.l) > 0:
+                    element_out.l = element_in.l
+                    element_out.type = "DRIFT"
+            elif element_in.type == "RFCAVITY":
+                element_out.phase = -(self.__val(element_out.phase) * 360 + 90)
+                element_out.freq = self.__val(element_out.freq) * 1e6
+                p = "electron"
+                if (
+                    self.beam
+                    and self.beam.particle in SCHEMA.constants.particleMassAndCharge
+                ):
+                    p = self.beam.particle
+                mc = SCHEMA.constants.particleMassAndCharge.get(p)
+                element_out.V = self.__val(element_out.V) / (mc[0] * 1e3)
 
     def __val(self, var_value):
         return self.vars.eval_var_with_assert(var_value)
@@ -338,6 +374,8 @@ def _generate_elements(util):
                 f[1] = cv.eval_var_with_assert(f[1])
                 if f[0] == "nslice":
                     f[1] = int(f[1])
+            elif f[2] in util.schema.enum:
+                f[1] = f'"{f[1]}"'
             fres.append(f"{f[0]}={f[1]}")
         res += ", ".join(fres) + "),\n"
     return res

@@ -124,7 +124,7 @@
         "bunchAnimation": {
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
-            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
             "histogramBins": ["Histogram Bins", "Integer", 60],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "selectedFrame": ["", "FrameSlider", 0],
@@ -134,7 +134,7 @@
             "simCode": ["", "String", "elegant"],
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
-            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
             "histogramBins": ["Histogram Bins", "Integer", 60],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
@@ -143,7 +143,7 @@
             "simCode": ["", "String", "madx"],
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
-            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
             "histogramBins": ["Histogram Bins", "Integer", 60],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
@@ -152,7 +152,7 @@
             "simCode": ["", "String", "impactx"],
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
-            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
             "histogramBins": ["Histogram Bins", "Integer", 60],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
@@ -245,7 +245,7 @@
             "_super": ["", "model", "_ELEMENT"],
             "volt": ["Voltage [V]", "RPNValue", 0],
             "freq": ["Frequency [Hz]", "RPNValue", 0],
-            "phase": ["Phase [rad]", "RPNValue", 0]
+            "phase": ["Phase [deg]", "RPNValue", 0, "RF synchronous phase (phase = 0 corresponds to maximum energy gain, phase = -90 corresponds to zero energy gain for bunching)"]
         },
         "SBEND": {
             "_super": ["", "model", "_ELEMENT"],
