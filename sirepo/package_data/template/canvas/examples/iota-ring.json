@@ -869,25 +869,33 @@
             },
             {
                 "angle": 6.2831853064,
-                "count": 48,
+                "count": 56,
                 "distance": 3.2333211663797826e-09,
                 "id": 376,
                 "items": [
                     367,
+                    377,
                     286,
                     369,
+                    377,
                     287,
                     371,
+                    377,
                     288,
                     373,
+                    377,
                     289,
                     375,
+                    377,
                     290,
                     374,
+                    377,
                     291,
                     372,
+                    377,
                     292,
                     370,
+                    377,
                     293,
                     368
                 ],
@@ -1977,18 +1985,12 @@
             }
         ],
         "bunchAnimation1": {
-            "histogramBins": 80,
-            "notes": "",
             "simCode": "elegant"
         },
         "bunchAnimation2": {
-            "histogramBins": 80,
-            "notes": "",
             "simCode": "madx"
         },
         "bunchAnimation3": {
-            "histogramBins": 80,
-            "notes": "",
             "simCode": "impactx"
         },
         "bunchReport1": {
@@ -2040,7 +2042,7 @@
             "muypy": -3.972798701270233e-07,
             "normalize": 0,
             "normalize_halo": 0,
-            "particleCount": 10000,
+            "particleCount": 5000,
             "species": "electron"
         },
         "elements": [
@@ -2845,6 +2847,16 @@
                 "type": "DRIFT"
             },
             {
+                "_id": 377,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 0,
+                "name": "M1",
+                "psi": 0,
+                "type": "MONITOR"
+            },
+            {
                 "_id": 181,
                 "_super": "_ELEMENT",
                 "dx": 0,
@@ -3454,42 +3466,12 @@
                 "type": "SBEND"
             }
         ],
-        "rpnVariables": [
-            {
-                "name": "pi",
-                "value": 3.141592653589793
-            },
-            {
-                "name": "twopi",
-                "value": "pi * 2"
-            },
-            {
-                "name": "raddeg",
-                "value": "pi / 180"
-            },
-            {
-                "name": "degrad",
-                "value": "180 / pi"
-            }
-        ],
-        "sigmaAnimation": {
-            "includeLattice": "1",
-            "notes": ""
-        },
+        "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 376,
             "folder": "/Examples",
             "name": "IOTA Ring",
             "visualizationBeamlineId": 376
-        },
-        "simulationSettings": {
-            "useElegant": "1",
-            "useImpactX": "1",
-            "useMadx": "1"
-        },
-        "twissAnimation": {
-            "includeLattice": "1",
-            "notes": ""
         }
     },
     "simulationType": "canvas"

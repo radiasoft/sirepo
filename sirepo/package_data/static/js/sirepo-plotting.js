@@ -181,21 +181,6 @@ class AbstractPlotShape2D extends AbstractPlotShape {
     }
 }
 
-class PlotLine extends AbstractPlotShape {
-    constructor(
-        id,
-        name,
-        line
-    ) {
-        super(
-            id,
-            name,
-            'line'
-        );
-        this.line = line;
-    }
-}
-
 class PlotPolygon extends AbstractPlotShape2D {
     constructor(
         id,
@@ -252,32 +237,6 @@ class PlotPolygon extends AbstractPlotShape2D {
         this.points = arr;
     }
 }
-
-class PlotRect extends AbstractPlotShape2D {
-    constructor(
-        id,
-        name,
-        center,
-        size=[1, 1]
-    ) {
-        super(id, name, 'rect', center);
-        this.size = {
-            x: size[0],
-            y: size[1],
-        };
-        this.x = this.center.x + this.size.x / 2;
-        this.y = this.center.y - this.size.y / 2;
-    }
-
-    getSizeCoords() {
-        return this.getCoords(this.size);
-    }
-
-    setSize(coords) {
-        this.setCoords(this.size, coords);
-    }
-}
-
 
 SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope, $window) {
 
@@ -2657,6 +2616,9 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             function adjustZoomToCenter(scale) {
                 // if the domain is almost centered on 0.0 (within 10%) adjust zoom and offset to center
                 var domain = scale.domain();
+                if (SIREPO.PLOTTING_SUMMED_LINEOUTS) {
+                    return;
+                }
                 if (domain[0] < 0 && domain[1] > 0) {
                     var width = domain[1] - domain[0];
                     var diff = (domain[0] + domain[1]) / width;
@@ -4144,8 +4106,6 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
 
 SIREPO.PLOTTING = {
     HeatmapSelectCellEvent: 'heatmapSelectCell',
-    PlotLine: PlotLine,
     PlotPolygon: PlotPolygon,
-    PlotRect: PlotRect,
     Utils: PlottingUtils,
 };

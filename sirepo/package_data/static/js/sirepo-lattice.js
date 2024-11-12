@@ -1434,7 +1434,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         currentLength = x;
                     }
                     var picType = getPicType(item.type);
-                    var length = rpnValue(item.l || item.xmax || 0);
+                    var length = rpnValue(item.l || (item.type == "ALPH" && item.xmax) || 0);
                     if (picType == 'zeroLength') {
                         length = 0;
                     }

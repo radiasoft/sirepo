@@ -27,7 +27,7 @@
             },
             {
                 "angle": 6.283185307179586,
-                "count": 49,
+                "count": 56,
                 "distance": 7.385346623550245e-15,
                 "id": 111,
                 "items": [
@@ -45,10 +45,11 @@
             },
             {
                 "angle": 0.7853981633974483,
-                "count": 6,
+                "count": 7,
                 "distance": 11.642938286447297,
                 "id": 109,
                 "items": [
+                    112,
                     103,
                     103,
                     105,
@@ -69,18 +70,12 @@
             }
         ],
         "bunchAnimation1": {
-            "histogramBins": 80,
-            "notes": "",
             "simCode": "elegant"
         },
         "bunchAnimation2": {
-            "histogramBins": 80,
-            "notes": "",
             "simCode": "madx"
         },
         "bunchAnimation3": {
-            "histogramBins": 80,
-            "notes": "",
             "simCode": "impactx"
         },
         "bunchReport1": {
@@ -132,7 +127,7 @@
             "muypy": -0.6715875410129232,
             "normalize": 0,
             "normalize_halo": 0,
-            "particleCount": 10000,
+            "particleCount": 5000,
             "species": "electron"
         },
         "elements": [
@@ -175,6 +170,16 @@
                 "name": "D4",
                 "psi": 0,
                 "type": "DRIFT"
+            },
+            {
+                "_id": 112,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 0,
+                "name": "M1",
+                "psi": 0,
+                "type": "MONITOR"
             },
             {
                 "_id": 105,
@@ -232,20 +237,8 @@
         ],
         "rpnVariables": [
             {
-                "name": "pi",
-                "value": 3.141592653589793
-            },
-            {
-                "name": "ncell",
-                "value": 8
-            },
-            {
                 "name": "bendangle",
                 "value": "pi/ncell"
-            },
-            {
-                "name": "lbend",
-                "value": 2.6193
             },
             {
                 "name": "bendradius",
@@ -268,40 +261,23 @@
                 "value": 2.1082
             },
             {
+                "name": "lbend",
+                "value": 2.6193
+            },
+            {
                 "name": "lquad",
                 "value": 0.3
             },
             {
-                "name": "twopi",
-                "value": "pi * 2"
-            },
-            {
-                "name": "raddeg",
-                "value": "pi / 180"
-            },
-            {
-                "name": "degrad",
-                "value": "180 / pi"
+                "name": "ncell",
+                "value": 8
             }
         ],
-        "sigmaAnimation": {
-            "includeLattice": "1",
-            "notes": ""
-        },
         "simulation": {
             "activeBeamlineId": 111,
             "folder": "/Examples",
             "name": "BESSY-II-Booster",
             "visualizationBeamlineId": 111
-        },
-        "simulationSettings": {
-            "useElegant": "1",
-            "useImpactX": "1",
-            "useMadx": "1"
-        },
-        "twissAnimation": {
-            "includeLattice": "1",
-            "notes": ""
         }
     },
     "simulationType": "canvas"
