@@ -686,7 +686,7 @@ def _extract_animation(frame_args):
     it_filter = None
     if _particle_count(frame_args.sim_in) <= SCHEMA.constants.maxFilterPlotParticles:
         if frame_args.particleSelector != "all":
-            it_filter = frame_args.particleSelector
+            it_filter = str(frame_args.particleSelector)
 
     count = 0
     el_names = []
@@ -800,7 +800,7 @@ def _extract_spin_3d(frame_args):
     it_idx = int(col_names.index("IT"))
     it_filter = None
     if frame_args.particleSelector != "all":
-        it_filter = frame_args.particleSelector
+        it_filter = str(frame_args.particleSelector)
     for row in all_rows:
         if it_filter and it_filter != row[it_idx]:
             continue

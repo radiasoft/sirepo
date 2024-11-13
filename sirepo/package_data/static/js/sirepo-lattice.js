@@ -618,8 +618,7 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                   <div class="clearfix"></div>
                 </div>
               </div>
-              <div class="sr-lattice-editor-panel">
-              <div data-ng-show="! headerTabInfo || headerTabInfo.selected == headerTabInfo.elementsTabName" data-ng-attr-style="height: {{ editorHeight() }}" class="panel-body" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">
+              <div data-ng-show="! headerTabInfo || headerTabInfo.selected == headerTabInfo.elementsTabName" data-ng-attr-style="height: {{ editorHeight() }}" class="sr-lattice-editor-panel panel-body" data-ng-drop="true" data-ng-drop-success="dropPanel($data)" data-ng-drag-start="dragStart($data)">
                 <p class="lead text-center"><small><em>drag and drop elements here to define the beamline</em><span data-sr-tooltip="{{ tooltip }}"></span></small></p>
                 <div data-ng-repeat="item in beamlineItems track by item.itemId" class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropItem($index, $data)">
                   <div style="display: inline-block;" class="sr-editor-item-hover">
@@ -630,7 +629,6 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
                 <div class="sr-lattice-item-holder" data-ng-drop="true" data-ng-drop-success="dropLast($data)">
                   <div style="visibility: hidden" class="badge sr-lattice-item sr-badge-icon"><span>last</span></div>
                 </div>
-              </div>
               </div>
               <div data-ng-transclude=""></div>
             </div>
@@ -1436,7 +1434,7 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         currentLength = x;
                     }
                     var picType = getPicType(item.type);
-                    var length = rpnValue(item.l || item.xmax || 0);
+                    var length = rpnValue(item.l || (item.type == "ALPH" && item.xmax) || 0);
                     if (picType == 'zeroLength') {
                         length = 0;
                     }

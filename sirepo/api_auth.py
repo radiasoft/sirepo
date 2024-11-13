@@ -33,6 +33,7 @@ def check_api_call(qcall, func):
         a.REQUIRE_COOKIE_SENTINEL,
         a.REQUIRE_USER,
         a.REQUIRE_ADM,
+        a.REQUIRE_PREMIUM,
     ):
         if not qcall.cookie.has_sentinel():
             raise sirepo.util.SRException("missingCookies", None)
@@ -42,6 +43,8 @@ def check_api_call(qcall, func):
             qcall.auth.require_email_user()
         elif expect == a.REQUIRE_ADM:
             qcall.auth.require_adm()
+        elif expect == a.REQUIRE_PREMIUM:
+            qcall.auth.require_premium()
     elif expect == a.ALLOW_VISITOR:
         pass
     elif expect == a.INTERNAL_TEST:

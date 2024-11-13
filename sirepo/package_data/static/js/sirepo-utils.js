@@ -148,28 +148,6 @@ class SirepoUtils {
         return SirepoUtils.arrayMin(arr.map(x => x[i]));
     }
 
-    static reshape(arr, dims) {
-        if (dims.length === 0) {
-            return arr;
-        }
-        const a = Array.from(arr).slice();
-        if (dims.length === 1) {
-            return a;
-        }
-        const n = dims.reduce((p, c) => p * c, 1);
-        if (a.length !== n) {
-            throw new Error(`Product of shape dimensions must equal array length: ${a.length} != ${n}`);
-        }
-        const b = [];
-        const d = dims[0];
-        const m = a.length / d;
-        for (let i = 0; i < d; ++i) {
-            const s = a.slice(m * i, m * (i + 1));
-            b.push(SirepoUtils.reshape(s, dims.slice(1)));
-        }
-        return b;
-    }
-
     static wordSplits(s) {
         const wds = s.split(/(\s+)/);
         return wds.map(function (value, index) {

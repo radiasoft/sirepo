@@ -64,6 +64,7 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "geometry3DReport",
                 "geometryInput",
                 "openmcAnimation",
+                "outlineAnimation",
                 "reflectivePlanes",
                 "settings",
                 "tallyReport",
@@ -134,7 +135,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if analysis_model == "geometry3DReport":
             return "dagmcAnimation"
-        if analysis_model == "energyAnimation":
+        if analysis_model in ("energyAnimation", "outlineAnimation"):
             return "openmcAnimation"
         return analysis_model
 
@@ -169,8 +170,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _sim_file_basenames(cls, data):
         res = []
         if data.report == "openmcAnimation":
-            for v in data.models.volumes:
-                res.append(PKDict(basename=f"{data.models.volumes[v].volId}.ply"))
+            for v in data.models.volumes.values():
+                res.append(PKDict(basename=f"{v.volId}.ply"))
             d, s = cls.dagmc_and_maybe_step_filename(data)
             if s:
                 res.append(PKDict(basename=d))

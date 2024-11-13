@@ -166,6 +166,7 @@ class _MoabGroupExtractor:
             self._items.append(
                 _MoabGroupExtractorOp(
                     dagmc_filename=collector.dagmc_filename,
+                    name=g.name,
                     vol_id=g.vol_id,
                     volumes=g.volumes,
                     processor=self,

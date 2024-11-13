@@ -98,13 +98,14 @@
             },
             {
                 "angle": 3.141592632,
-                "count": 50,
+                "count": 51,
                 "distance": 55.098448214820294,
                 "id": 124,
                 "items": [
                     121,
                     122,
                     123,
+                    128,
                     -123,
                     -122,
                     -121
@@ -114,7 +115,7 @@
             },
             {
                 "angle": 6.283185263999996,
-                "count": 100,
+                "count": 102,
                 "distance": 1.189564123649247e-06,
                 "id": 125,
                 "items": [
@@ -126,18 +127,12 @@
             }
         ],
         "bunchAnimation1": {
-            "histogramBins": 80,
-            "notes": "",
             "simCode": "elegant"
         },
         "bunchAnimation2": {
-            "histogramBins": 80,
-            "notes": "",
             "simCode": "madx"
         },
         "bunchAnimation3": {
-            "histogramBins": 80,
-            "notes": "",
             "simCode": "impactx"
         },
         "bunchReport1": {
@@ -189,7 +184,7 @@
             "muypy": -3.972798687837155e-07,
             "normalize": 0,
             "normalize_halo": 0,
-            "particleCount": 10000,
+            "particleCount": 5000,
             "species": "proton"
         },
         "elements": [
@@ -252,6 +247,16 @@
                 "name": "DS",
                 "psi": 0,
                 "type": "DRIFT"
+            },
+            {
+                "_id": 128,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 0,
+                "name": "M1",
+                "psi": 0,
+                "type": "MONITOR"
             },
             {
                 "_id": 107,
@@ -426,42 +431,12 @@
                 "type": "SEXTUPOLE"
             }
         ],
-        "rpnVariables": [
-            {
-                "name": "pi",
-                "value": 3.141592653589793
-            },
-            {
-                "name": "twopi",
-                "value": "pi * 2"
-            },
-            {
-                "name": "raddeg",
-                "value": "pi / 180"
-            },
-            {
-                "name": "degrad",
-                "value": "180 / pi"
-            }
-        ],
-        "sigmaAnimation": {
-            "includeLattice": "1",
-            "notes": ""
-        },
+        "rpnVariables": [],
         "simulation": {
             "activeBeamlineId": 125,
             "folder": "/Examples",
             "name": "RESR-Storage-Ring",
             "visualizationBeamlineId": 125
-        },
-        "simulationSettings": {
-            "useElegant": "1",
-            "useImpactX": "1",
-            "useMadx": "1"
-        },
-        "twissAnimation": {
-            "includeLattice": "1",
-            "notes": ""
         }
     },
     "simulationType": "canvas"

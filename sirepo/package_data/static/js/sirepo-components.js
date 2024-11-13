@@ -4757,7 +4757,11 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                     <button data-ng-click="cancel()" type="button" class="close" data-ng-disabled="! sbatchLoginService.query('showLogin')"><span>&times;</span></button>
                     </div>
                     <div class="modal-body">
-                        <form name="sbatchLoginModalForm">
+                        <div data-ng-show="! authState.isPremiumUser()" class="alert alert-warning" role="alert">
+                        <h4 class="alert-heading"><b>Please upgrade</b></h4>
+                        <p>Supercomputer and HPC services are only available with <a data-ng-href="{{ plansUrl }}" target="_blank">one of our paid plans</a>.</p>
+                        </div>
+                        <form name="sbatchLoginModalForm" data-ng-show="authState.isPremiumUser()">
                             <div class="sr-input-warning">{{ warning }}</div>
                             <div class="form-group">
                                 <input type="text" class="form-control" name="username" placeholder="username" autocomplete="username" data-ng-model="username" />
@@ -4793,6 +4797,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
 
 	    _resetLoginFormText();
 	    $scope.authState = authState;
+            $scope.plansUrl = SIREPO.APP_SCHEMA.constants.plansUrl;
 	    $scope.sbatchLoginService = sbatchLoginService;
 
             $scope.cancel = () => {
@@ -5755,6 +5760,7 @@ SIREPO.app.directive('slider', function(appState, panelState) {
             let slider = null;
             // don't show labels for simple cases, ex. opacity
             $scope.showLabels = !($scope.min === 0 && $scope.max === 1);
+
             function buildSlider() {
                 const s = $($element).find('.' + sliderClass);
                 if (! s.length) {
@@ -5792,11 +5798,17 @@ SIREPO.app.directive('slider', function(appState, panelState) {
             }
 
             function didChange(newValues, oldValues) {
-                if (Array.isArray(newValues)) {
-                    return newValues.some((x, i) => x !== oldValues[i]) && ! newValues.some(x => x == null);
-                }
                 return newValues != null && newValues !== oldValues;
             }
+
+            function updateRange(newValue, oldValue) {
+                if (slider && didChange(newValue, oldValue)) {
+                    slider.slider('option', 'min', $scope.min);
+                    slider.slider('option', 'max', $scope.max);
+                    slider.slider('option', 'step', ($scope.max - $scope.min) / ($scope.steps - 1));
+                }
+            }
+
 
             $scope.display = (val) => {
                 if (Array.isArray(val)) {
@@ -5821,6 +5833,10 @@ SIREPO.app.directive('slider', function(appState, panelState) {
                     }
                 }
             );
+
+            $scope.$watch('min', updateRange);
+            $scope.$watch('max', updateRange);
+            $scope.$watch('steps', updateRange);
 
             $scope.$on('$destroy', () => {
                 if (slider) {
