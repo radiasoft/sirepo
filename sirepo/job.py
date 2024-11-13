@@ -93,6 +93,7 @@ JOB_RUN_PURGED = "job_run_purged"
 MISSING = "missing"
 PENDING = "pending"
 RUNNING = "running"
+UNKNOWN = "unknown"
 
 
 #: When the job is completed

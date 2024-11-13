@@ -1276,7 +1276,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         }
 
         transition() {
-            //srdbg(`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
+            srdbg(`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
             _state = this._newState;
             $rootScope.$broadcast('sbatchLoginEvent', this);
         }
@@ -1318,8 +1318,17 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         if (srException.routeName != 'sbatchLogin') {
             return false;
         }
-        if (self.query('ignoreSRException')) {
-            srlog('sbatchLoginService ignoring srException ', srException);
+        const r = _REASON_TO_EVENTS[srException.params.reason] || _e_authError;
+        // Need to ignore exceptions that are coming in from separate requests.
+        // Decentralized requests is the problem. Frames are requested as soon as
+        // running comes back, but running isn't valid necessarily (see job_agent) until
+        // the agent is connected. ignoreSRException is broad to avoid conflicts.
+        // _s_auth is special, because it uses exceptions for invalid auth or other
+        // errors. Probably agent could be better coordinate with this. Could just be
+        // a response to the auth request. Has to do with the internals of sbatch.py
+        // which does not coordinate login.
+        if (self.query('ignoreSRException') && _state != _s_auth && r != _e_authMissing) {
+            srlog('sbatchLoginService ignoring srException', srException, 'state', _state);
             return true;
         }
         //TODO(robnagler) an alternative is to broadcast an error.
@@ -1333,10 +1342,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             error: `Please login to ${authState.sbatchHostDisplayName}`,
             sbatchLoginServiceSRException: true,
         });
-        self.event(
-            _REASON_TO_EVENTS[srException.params.reason] || _e_authError,
-            {srException: srException},
-        );
+        self.event(r, {srException: srException});
         return true;
     };
 

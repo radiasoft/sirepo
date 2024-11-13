@@ -1014,9 +1014,9 @@ class _ComputeJob(_Supervisor):
                     if "parallelStatus" in r:
                         self.db.parallelStatus.update(r.parallelStatus)
                         self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
-                    else:
-                        # sequential jobs don't send the time so update with local time
-                        self.db.lastUpdateTime = sirepo.srtime.utc_now_as_int()
+                    else:n
+                        # agent doesn't always send the time
+                        self.db.lastUpdateTime = r.get("lastUpdateTime") or sirepo.srtime.utc_now_as_int()
                     # TODO(robnagler) will need final frame count. Not sent?
                     self.__db_write()
                     if r.state in job.EXIT_STATUSES:
@@ -1246,7 +1246,6 @@ class _Op(PKDict):
 
     async def reply_get(self):
         pkdlog("{} await _reply_q.get()", self)
-
         if (r := await self._reply_q.get()) is None:
             pkdlog("{} no reply", self)
             return None

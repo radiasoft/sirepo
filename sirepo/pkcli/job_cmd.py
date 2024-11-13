@@ -288,7 +288,7 @@ def _do_prepare_simulation(msg, template):
     )
 
 
-def _do_sbatch_status(msg, template):
+def _do_sbatch_parallel_status(msg, template):
     def _should_exit(status_file):
         if not status_file.exists():
             return None
