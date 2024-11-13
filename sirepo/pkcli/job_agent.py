@@ -15,6 +15,7 @@ import datetime
 import os
 import re
 import signal
+import sirepo.const
 import sirepo.feature_config
 import sirepo.modules
 import sirepo.nersc
@@ -45,9 +46,15 @@ _IN_FILE = "in-{}.json"
 
 _PID_FILE = "job_agent.pid"
 
-_PY2_CODES = frozenset(())
+_SBATCH_ID_FILE = "sirepo_sbatch_id"
+
+_SBATCH_STOPPED_FILE = "sbatch_status_stop"
 
 _cfg = None
+
+_DEV_PYTHON_PATH = ":".join(
+    str(sirepo.const.DEV_SRC_RADIASOFT_DIR.join(p)) for p in ("sirepo", "pykern")
+)
 
 
 def start():
@@ -60,7 +67,7 @@ def start():
         dev_source_dirs=(
             pkconfig.in_dev_mode(),
             bool,
-            "add ~/src/radiasoft/{pykern,sirepo} to $PYTHONPATH",
+            f"set PYTHONPATH={_DEV_PYTHON_PATH}",
         ),
         fastcgi_sock_dir=(
             pkio.py_path("/tmp"),
@@ -247,7 +254,7 @@ class _Dispatcher(PKDict):
             self.cmds = []
             for c in x:
                 try:
-                    c.destroy()
+                    c.destroy(terminating=True)
                 except Exception as e:
                     pkdlog("cmd={} error={} stack={}", c, e, pkdexc())
             return None
@@ -449,13 +456,15 @@ class _Cmd(PKDict):
             pkio.mkdir_parent(self.run_dir)
         self._in_file = self._create_in_file()
         self._process = _Process(self)
+        self._destroying = False
         self._terminating = False
         self._start_time = int(time.time())
         self.jid = self.msg.computeJid
         self._uid = job.split_jid(jid=self.jid).uid
 
-    def destroy(self):
-        self._terminating = True
+    def destroy(self, terminating=False):
+        self._destroying = True
+        self._terminating = terminating
         if "_in_file" in self:
             pkio.unchecked_remove(self.pkdel("_in_file"))
         self._process.kill()
@@ -505,7 +514,7 @@ class _Cmd(PKDict):
             pkdlog("{} text={} error={} stack={}", self, text, exc, pkdexc())
 
     async def on_stdout_read(self, text):
-        if self._terminating or not self.send_reply:
+        if self._destroying or not self.send_reply:
             return
         await self._job_cmd_reply(text)
 
@@ -538,7 +547,7 @@ class _Cmd(PKDict):
             e = self._process.stderr.text.decode("utf-8", errors="ignore")
             if e:
                 pkdlog("{} exit={} stderr={}", self, self._process.returncode, e)
-            if self._terminating:
+            if self._destroying:
                 return
             if self._process.returncode != 0:
                 await self.dispatcher.send(
@@ -594,9 +603,9 @@ class _Cmd(PKDict):
 
 
 class _FastCgiCmd(_Cmd):
-    def destroy(self):
+    def destroy(self, terminating=False):
         self.dispatcher.fastcgi_destroy()
-        super().destroy()
+        super().destroy(terminating=terminating)
 
 
 class _SbatchCmd(_Cmd):
@@ -626,8 +635,7 @@ class _SbatchCmd(_Cmd):
         # POSIT: sirepo.mpi cfg sentinel for running in slurm
         e = PKDict(SIREPO_MPI_IN_SLURM=1)
         if _cfg.dev_source_dirs:
-            h = pkio.py_path("~/src/radiasoft")
-            e.PYTHONPATH = "{}:{}".format(h.join("sirepo"), h.join("pykern"))
+            e.PYTHONPATH = _DEV_PYTHON_PATH
         return super().job_cmd_env(e)
 
 
@@ -664,19 +672,22 @@ class _SbatchRun(_SbatchCmd):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pkupdate(
-            _start_time=0,
             _sbatch_id=None,
-            _status_cb=None,
+            _sbatch_id_file=self.run_dir.join(_SBATCH_ID_FILE),
+            _start_time=0,
             _status="PENDING",
-            _stopped_sentinel=self.run_dir.join("sbatch_status_stop"),
+            _status_cb=None,
+            _stopped_sentinel=self.run_dir.join(_SBATCH_STOPPED_FILE),
         )
         self.msg.jobCmd = "sbatch_status"
+        # pkdel so does not get removed twice (see destroy)
         self.pkdel("_in_file").remove()
 
     async def _await_start_ready(self):
         await self._start_ready.wait()
-        if self._terminating:
+        if self._destroying:
             return
+        # in_file now contains sbatch_id
         self._in_file = self._create_in_file()
         pkdlog(
             "{} sbatch_id={} starting jobCmd={}",
@@ -686,12 +697,14 @@ class _SbatchRun(_SbatchCmd):
         )
         await super().start()
 
-    def destroy(self):
+    def destroy(self, terminating=False):
+        self._destroying = True
+        self._terminating = terminating
         if self._status_cb:
             self._status_cb.stop()
             self._status_cb = None
         self._start_ready.set()
-        if self._sbatch_id:
+        if self._sbatch_id and not self._terminating:
             i = self._sbatch_id
             self._sbatch_id = None
             p = subprocess.run(
@@ -710,11 +723,11 @@ class _SbatchRun(_SbatchCmd):
                     p.stderr,
                     p.stdout,
                 )
-        super().destroy()
+        super().destroy(terminating=terminating)
 
     async def start(self):
         await self._prepare_simulation()
-        if self._terminating:
+        if self._destroying:
             return
         p = subprocess.run(
             ("sbatch", self._sbatch_script()),
@@ -741,6 +754,7 @@ class _SbatchRun(_SbatchCmd):
                 f"Unable to submit exit={p.returncode} stdout={p.stdout} stderr={p.stderr}"
             )
         self._sbatch_id = m.group(1)
+        self._sbatch_id_file.write(self._sbatch_id)
         self.msg.pkupdate(
             sbatchId=self._sbatch_id,
             stopSentinel=str(self._stopped_sentinel),
@@ -801,7 +815,7 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
         return f
 
     async def _sbatch_status(self):
-        if self._terminating:
+        if self._destroying:
             return
         p = subprocess.run(
             ("scontrol", "show", "job", self.msg.sbatchId),
@@ -842,7 +856,7 @@ exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
         self._stopped_sentinel.write(job.COMPLETED if c else job.ERROR)
         if not c:
             # because have to await before calling destroy
-            self._terminating = True
+            self._destroying = True
             pkdlog(
                 "{} sbatch_id={} unexpected state={}",
                 self,
@@ -999,4 +1013,5 @@ class _ReadUntilCloseStream(_Stream):
 
 def _terminate(dispatcher):
     dispatcher.terminate()
+    # just in case isn't removed by start_sbatch
     pkio.unchecked_remove(_PID_FILE)

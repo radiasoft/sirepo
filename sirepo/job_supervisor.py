@@ -27,7 +27,6 @@ import sirepo.srtime
 import sirepo.tornado
 import sirepo.util
 import tornado.ioloop
-import tornado.locks
 
 #: where supervisor state is persisted to disk
 _DB_DIR = None
@@ -213,6 +212,10 @@ async def terminate():
 
 
 class _Supervisor(PKDict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._must_verify_status = False
+
     def destroy_op(self, op):
         pass
 
@@ -239,6 +242,9 @@ class _Supervisor(PKDict):
             pkdlog("{}", req)
         try:
             with _Supervisor.get_instance(req) as s:
+                if s._must_verify_status and (r := await s._verify_status(req)):
+                    return r
+                # instance may need to be checked
                 return await getattr(
                     s,
                     "_receive_" + req.content.api,
@@ -291,11 +297,10 @@ class _Supervisor(PKDict):
                 c.destroy(internal_error=internal_error)
 
     def _create_op(self, op_name, req, kind, job_run_mode, **kwargs):
-        req.kind = kind
         return _Op(
             _supervisor=self,
             is_destroyed=False,
-            kind=req.kind,
+            kind=kind,
             msg=PKDict(req.copy_content())
             .pksetdefault(jobRunMode=job_run_mode)
             .pkupdate(**kwargs),
@@ -441,7 +446,6 @@ class _ComputeJob(_Supervisor):
     def __init__(self, req):
         super().__init__(
             _active_req_count=0,
-            is_destroyed=False,
             ops=[],
             run_op=None,
             run_dir_slot_q=SlotQueue(),
@@ -625,10 +629,14 @@ class _ComputeJob(_Supervisor):
     def _create(cls, req):
         self = cls.instances[req.content.computeJid] = cls(req)
         if self._is_running_pending():
-            # TODO(robnagler) when we reconnect with running processes at startup,
-            # we'll need to change this.
-            # See https://github.com/radiasoft/sirepo/issues/6916
-            self.__db_update(status=job.CANCELED)
+            # Easiest place to have special case
+            if self.db.jobRunMode == job.SBATCH:
+                self._must_verify_status = True
+            else:
+                # TODO(robnagler) when we reconnect with docker
+                # containers at startup, we'll need to change this.
+                # See https://github.com/radiasoft/sirepo/issues/6916
+                self.__db_update(status=job.CANCELED)
         return self
 
     @classmethod
@@ -680,7 +688,6 @@ class _ComputeJob(_Supervisor):
             # case use the existing jobRunMode because the
             # request doesn't care about the jobRunMode
             r = prev_db.jobRunMode
-
         db.pkupdate(
             jobRunMode=r,
             nextRequestSeconds=_NEXT_REQUEST_SECONDS[r],
@@ -919,14 +926,17 @@ class _ComputeJob(_Supervisor):
         if r not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
             # happens only when config changes, and only when sbatch is missing
             raise sirepo.util.NotFound("invalid jobRunMode={} req={}", r, req)
-        k = (
-            job.PARALLEL
-            if self.db.isParallel and op_name != job.OP_ANALYSIS
-            else job.SEQUENTIAL
+        kwargs.setdefault(
+            "kind",
+            (
+                job.PARALLEL
+                if self.db.isParallel and op_name != job.OP_ANALYSIS
+                else job.SEQUENTIAL
+            ),
         )
         o = (
             super()
-            ._create_op(op_name, req, k, r, **kwargs)
+            ._create_op(op_name, req, job_run_mode=r, **kwargs)
             .pkupdate(task=asyncio.current_task())
         )
         self.ops.append(o)
@@ -1098,6 +1108,23 @@ class _ComputeJob(_Supervisor):
                 dbUpdateTime=int(self.db.dbUpdateTime),
             )
         return None
+
+    async def _verify_status(self, req):
+        self.__db_update(status=job.CANCELED)
+        return None
+
+    #
+    # rv = await self._send_with_single_reply(
+    #     job.OP_VERIFY_STATUS,
+    #     req,
+    #     kind=job.SEQUENTIAL,
+    # )
+    # just set canceled so can push out a small pr
+    # Need lock on must verify so can check inside lock that still true
+    #        if rv.state in
+    #        rv.
+    #        need lock on job # this is new
+    #        do not always send, ask the driver
 
 
 class _Op(PKDict):

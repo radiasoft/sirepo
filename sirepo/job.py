@@ -29,13 +29,13 @@ OP_ALIVE = "alive"
 OP_RUN = "run"
 OP_SBATCH_AGENT_READY = "sbatch_agent_ready"
 OP_SBATCH_LOGIN = "sbatch_login"
+OP_VERIFY_STATUS = "verify_status"
 OP_BEGIN_SESSION = "begin_session"
-
 
 #: Types of slots required by op types
 CPU_SLOT_OPS = frozenset((OP_ANALYSIS, OP_RUN))
-SLOT_OPS = frozenset().union(*[CPU_SLOT_OPS, (OP_IO,)])
-
+#: All ops that have slots (see job_driver.DriverBase._slots_ready)
+SLOT_OPS = frozenset().union(*[CPU_SLOT_OPS, (OP_IO, OP_VERIFY_STATUS)])
 
 _OK_REPLY = PKDict(state="ok")
 

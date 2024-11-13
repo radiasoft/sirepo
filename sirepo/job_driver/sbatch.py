@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """TODO(e-carlin): Doc
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
@@ -16,6 +15,7 @@ from sirepo import util
 import asyncssh
 import datetime
 import errno
+import sirepo.const
 import sirepo.job_supervisor
 import sirepo.simulation_db
 import sirepo.util
@@ -232,10 +232,13 @@ disown
 scancel -u $USER >& /dev/null || true
 """
         if self.cfg.shifter_image:
-            res += """
-(cd ~/src/radiasoft/sirepo && git pull -q) || true
-(cd ~/src/radiasoft/pykern && git pull -q) || true
-"""
+            res += (
+                "\n".join(
+                    f"(cd {sirepo.const.DEV_SRC_RADIASOFT_DIR.join(p)} && git pull -q || true)"
+                    for p in ("pykern", "sirepo")
+                )
+                + "\n"
+            )
         return res
 
     def _raise_sbatch_login_srexception(self, reason, msg):
