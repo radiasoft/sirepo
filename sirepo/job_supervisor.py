@@ -1014,9 +1014,11 @@ class _ComputeJob(_Supervisor):
                     if "parallelStatus" in r:
                         self.db.parallelStatus.update(r.parallelStatus)
                         self.db.lastUpdateTime = r.parallelStatus.lastUpdateTime
-                    else:n
+                    else:
                         # agent doesn't always send the time
-                        self.db.lastUpdateTime = r.get("lastUpdateTime") or sirepo.srtime.utc_now_as_int()
+                        self.db.lastUpdateTime = (
+                            r.get("lastUpdateTime") or sirepo.srtime.utc_now_as_int()
+                        )
                     # TODO(robnagler) will need final frame count. Not sent?
                     self.__db_write()
                     if r.state in job.EXIT_STATUSES:

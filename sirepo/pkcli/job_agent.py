@@ -689,7 +689,7 @@ class _SbatchRun(_SbatchCmd):
             _scontrol_tries=0,
             _start_time=0,
         )
-        self.msg.jobCmd = "sbatch_paralel_status"
+        self.msg.jobCmd = "sbatch_parallel_status"
         # pkdel so does not get called twice (see destroy)
         self.pkdel("_in_file").remove()
 
