@@ -138,6 +138,7 @@ class MadxConverter:
 
     def _copy_elements(self, data):
         for el in data.models.elements:
+            el = copy.deepcopy(el)
             if el.type not in self.field_map:
                 pkdlog("Unhandled element type: {}", el.type)
                 el.type = self.drift_type
