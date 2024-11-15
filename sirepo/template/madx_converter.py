@@ -121,7 +121,7 @@ class MadxConverter:
                 self.result.models.simulation[f] = data.models.simulation[f]
 
     def _copy_code_variables(self, data):
-        res = data.models.rpnVariables
+        res = copy.deepcopy(data.models.rpnVariables)
         if self.to_class.sim_type() in ("madx", "opal"):
             res = list(filter(lambda x: x.name not in self._MADX_VARIABLES, res))
         else:
@@ -197,7 +197,7 @@ class MadxConverter:
     def __normalize_madx_beam(self, data):
         from sirepo.template import madx
 
-        self.beam = LatticeUtil.find_first_command(data, "beam")
+        self.beam = copy.deepcopy(LatticeUtil.find_first_command(data, "beam"))
         cv = madx.code_var(data.models.rpnVariables)
         for f in ParticleEnergy.ENERGY_PRIORITY.madx:
             self.beam[f] = cv.eval_var_with_assert(self.beam[f])

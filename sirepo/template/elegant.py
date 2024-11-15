@@ -481,7 +481,7 @@ class ElegantMadxConverter(MadxConverter):
         )
         self.__combine_dipedge(data)
         eb = LatticeUtil.find_first_command(data, "bunched_beam")
-        mb = LatticeUtil.find_first_command(madx, "beam")
+        mb = self.beam
         for f in self._BEAM_VARS:
             v = self._find_var(madx, f)
             if v:
@@ -555,8 +555,8 @@ class ElegantMadxConverter(MadxConverter):
         if element_in.type == "COLLIMATOR":
             m = re.search(r"^\{?\s*(.*?),\s*(.*?)\s*\}?$", element_in.aperture)
             if m:
-                element_out.x_max = float(m.group(1))
-                element_out.y_max = float(m.group(2))
+                element_out.x_max = self.__val(m.group(1))
+                element_out.y_max = self.__val(m.group(2))
             if element_in.apertype == "rectangle":
                 element_out.type = "RCOL"
         elif element_in.type == "RFCAVITY":
