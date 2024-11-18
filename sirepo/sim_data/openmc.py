@@ -116,6 +116,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             cls.update_model_defaults(s, "source")
         if "threshold" in dm.openmcAnimation:
             del dm["openmcAnimation"]["threshold"]
+        if dm.openmcAnimation.numSampleSourceParticles < 1:
+            dm.openmcAnimation.numSampleSourceParticles = 1
         for m, f in (
             ("tallyReport", "planePos"),
             ("openmcAnimation", "opacity"),
