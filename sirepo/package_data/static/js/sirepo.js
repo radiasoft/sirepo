@@ -1327,7 +1327,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         // errors. Probably agent could be better coordinate with this. Could just be
         // a response to the auth request. Has to do with the internals of sbatch.py
         // which does not coordinate login.
-        if (self.query('ignoreSRException') && _state != _s_auth && r != _e_authMissing) {
+        if (self.query('ignoreSRException') && !(_state == _s_auth && r == _e_authMissing)) {
             srlog('sbatchLoginService ignoring srException', srException, 'state', _state);
             return true;
         }

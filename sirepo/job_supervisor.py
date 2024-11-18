@@ -986,19 +986,25 @@ class _ComputeJob(_Supervisor):
             op.send()
             return True
 
-        if not _is_run_op("start"):
-            return
         try:
+            pkdp("yyyyyyyyyy")
+            if not _is_run_op("start"):
+                pkdp("yyyyyyyyyy")
+                return
             op.pkdel("run_callback")
             if not await _send_op():
+                pkdp("yyyyyyyyyy")
                 return
             with op.set_job_situation("Entered __create._run"):
                 while True:
+                    pkdp("yyyyyyyyyy")
                     if (r := await op.reply_get()) is None:
+                        pkdp("yyyyyyyyyy")
                         return
                     # TODO(robnagler) is this ever true?
                     # Checked on 1/24/24 and neither check appears in the logs
                     if not _is_run_op(f"reply={r}"):
+                        pkdp("yyyyyyyyyy")
                         return
                     # We got a response so no longer trying
                     self._try_reattach_compute = False
@@ -1034,6 +1040,7 @@ class _ComputeJob(_Supervisor):
                 )
         finally:
             op.destroy()
+            pkdp("xxxxxxxxxxxx")
 
     async def _send_op_analysis(self, req, jobCmd):
         pkdlog(
@@ -1119,7 +1126,6 @@ class _ComputeJob(_Supervisor):
 
     def _reattach_compute(self, req):
         if not self._is_sbatch_login_ok(req):
-            # this will throw an exception
             return
         if self.run_op:
             pkdlog("already has run_op jid={} {}", self.db.computeJid, req.content.api)
