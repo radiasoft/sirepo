@@ -645,17 +645,17 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             <div style="display:none">
             <div data-ng-class="::popoverInfo.modifyBeamline.class">
               <div class="text-center">
-                <button class="btn btn-default" data-ng-click="unpackBeamline()">Unpack</button>
-                 <button class="btn btn-default" data-ng-if=":: canReverseBeamline()" data-ng-click="reverseBeamline()">Reverse</button>
-                 <button class="btn btn-default" data-ng-click="clearPopover()">Cancel</button>
+                <button type="button" class="btn btn-default" data-ng-click="unpackBeamline()">Unpack</button>
+                <button type="button" class="btn btn-default" data-ng-if=":: canReverseBeamline()" data-ng-click="reverseBeamline()">Reverse</button>
+                <button type="button" class="btn btn-default" data-ng-click="clearPopover()">Cancel</button>
               </div>
             </div>
             <div data-ng-class="::popoverInfo.elementPosition.class">
                 <input data-rpn-value="" data-ng-model="popoverInfo.elementPosition.elemedge" class="form-control" data-lpignore="true" required />
                 <div data-rpn-static="" field="\'elemedge\'" data-model="popoverInfo.elementPosition" style="margin-left: 2em;"></div>
               <div class="text-center">
-                <button class="btn btn-primary sr-button-save-cancel" data-ng-click="setElementPosition()">Save</button>
-                <button class="btn btn-default sr-button-save-cancel" data-ng-click="clearPopover()">Cancel</button>
+                <button type="button" class="btn btn-primary sr-button-save-cancel" data-ng-click="setElementPosition()">Save</button>
+                <button type="button" class="btn btn-default sr-button-save-cancel" data-ng-click="clearPopover()">Cancel</button>
               </div>
             </div>
             </div>
@@ -1217,23 +1217,23 @@ SIREPO.app.directive('elementPicker', function(latticeService) {
                       <br />
                       <div data-ng-if="activeTab == \'basic\'" class="row">
                         <div data-ng-repeat="name in controller.basicNames" class="col-sm-4">
-                          <button style="width: 100%; margin-bottom: 1ex;" class="btn btn-default" type="button" data-ng-click="createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>
+                          <button type="button" style="width: 100%; margin-bottom: 1ex;" class="btn btn-default" type="button" data-ng-click="createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>
                         </div>
                       </div>
                       <div data-ng-if="activeTab == \'advanced\'" class="row">
                         <div data-ng-repeat="name in controller.advancedNames" class="{{ smallElementClass }}">
-                          <button style="width: 100%; margin-bottom: 1ex; overflow: hidden;" class="btn btn-default btn-sm" type="button" data-ng-click="createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>
+                          <button type="button" style="width: 100%; margin-bottom: 1ex; overflow: hidden;" class="btn btn-default btn-sm" type="button" data-ng-click="createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>
                         </div>
                       </div>
                       <div data-ng-if="activeTab == \'all\'" class="row">
                         <div data-ng-repeat="name in allNames" class="{{ smallElementClass }}">
-                          <button style="width: 100%; margin-bottom: 1ex; overflow: hidden" class="btn btn-default btn-sm" type="button" data-ng-click="createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>
+                          <button type="button" style="width: 100%; margin-bottom: 1ex; overflow: hidden" class="btn btn-default btn-sm" type="button" data-ng-click="createElement(name)" data-ng-attr-title="{{ controller.titleForName(name) }}">{{ name }}</button>
                         </div>
                       </div>
                       <br />
                       <div class="row">
                         <div class="col-sm-offset-6 col-sm-3">
-                          <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+                          <button type="button" data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
                         </div>
                       </div>
                     </div>
@@ -2251,11 +2251,11 @@ SIREPO.app.directive('latticeBeamlineTable', function(appState, latticeService, 
                     <span data-ng-if="beamlineBend(beamline)">&deg;</span>
                     <div class="sr-button-bar-parent">
                         <div class="sr-button-bar" data-ng-class="{\'sr-button-bar-active\': isActiveBeamline(beamline)}" >
-                            <button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyBeamline(beamline)">Copy</button>
+                            <button type="button" class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyBeamline(beamline)">Copy</button>
                             <span data-ng-show="! isActiveBeamline(beamline)" >
-                             <button class="btn btn-info btn-xs sr-hover-button" data-ng-disabled="wouldBeamlineSelfNest(beamline)" data-ng-click="latticeService.addToBeamline(beamline)">Add to Beamline</button>
-                             <button data-ng-click="latticeService.editBeamline(beamline)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
-                             <button data-ng-show="! isActiveBeamline(beamline)" data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
+                             <button type="button" class="btn btn-info btn-xs sr-hover-button" data-ng-disabled="wouldBeamlineSelfNest(beamline)" data-ng-click="latticeService.addToBeamline(beamline)">Add to Beamline</button>
+                             <button type="button" data-ng-click="latticeService.editBeamline(beamline)" class="btn btn-info btn-xs sr-hover-button">Edit</button>
+                             <button type="button" data-ng-show="! isActiveBeamline(beamline)" data-ng-click="deleteBeamline(beamline)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button>
                             </span>
                         </div>
                     <div>
@@ -2406,7 +2406,7 @@ SIREPO.app.directive('latticeElementPanels', function(latticeService) {
                   <div class="panel panel-info" style="margin-bottom: 0">
                     <div class="panel-heading"><span class="sr-panel-heading">Beamlines</span></div>
                     <div class="panel-body" style="padding-bottom: 0">
-                      <button class="btn btn-info btn-xs pull-right" accesskey="b" data-ng-click="latticeService.newBeamline()"><span class="glyphicon glyphicon-plus"></span> New <u>B</u>eamline</button>
+                      <button type="button" class="btn btn-info btn-xs pull-right" accesskey="b" data-ng-click="latticeService.newBeamline()"><span class="glyphicon glyphicon-plus"></span> New <u>B</u>eamline</button>
                       <div data-lattice-beamline-table=""></div>
                     </div>
                   </div>
@@ -2434,11 +2434,11 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
         scope: {},
         template: `
             <div class="sr-sticky-heading">
-                <button style="min-width: 7em" data-ng-click="toggleCollapseElems()" class="btn btn-info btn-xs">{{ areAllExpanded ? 'Collapse' : 'Expand'}} All</button>
+                <button type="button" style="min-width: 7em" data-ng-click="toggleCollapseElems()" class="btn btn-info btn-xs">{{ areAllExpanded ? 'Collapse' : 'Expand'}} All</button>
                 <input style="display: inline; width: 15em" class="form-control input-sm" data-ng-change="findElement(searchVar)" data-ng-model="searchVar" placeholder="Search Elements" />
                 <div class="pull-right" style="padding-top: 4px">
-                  <button data-ng-if=":: latticeService.wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button>
-                  <button class="btn btn-info btn-xs" data-ng-click="latticeService.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>
+                  <button type="button" data-ng-if=":: latticeService.wantRpnVariables" class="btn btn-info btn-xs" data-ng-click="latticeService.showRpnVariables()"><span class="glyphicon glyphicon-list-alt"></span> Variables</button>
+                  <button type="button" class="btn btn-info btn-xs" data-ng-click="latticeService.newElement()" accesskey="e"><span class="glyphicon glyphicon-plus"></span> New <u>E</u>lement</button>
                 </div>
             </div>
             <table style="width: 100%; table-layout: fixed; margin-bottom: 0" class="table table-hover">
@@ -2470,7 +2470,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
                   </td>
                   <td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ element.description }}</span></td>
                   <td style="text-align: right">{{ elementLength(element) }}</td>
-                  <td style="text-align: right">{{ element.bend || \'&nbsp;\' }}<span data-ng-if="element.isBend">&deg;</span><div class="sr-button-bar-parent"><div class="sr-button-bar"><button class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyElement(element)">Copy</button> <button data-ng-show="latticeService.activeBeamlineId" class="btn btn-info btn-xs sr-hover-button" data-ng-click="latticeService.addToBeamline(element)">Add to Beamline</button> <button data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>
+                  <td style="text-align: right">{{ element.bend || \'&nbsp;\' }}<span data-ng-if="element.isBend">&deg;</span><div class="sr-button-bar-parent"><div class="sr-button-bar"><button type="button" class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyElement(element)">Copy</button> <button type="button" data-ng-show="latticeService.activeBeamlineId" class="btn btn-info btn-xs sr-hover-button" data-ng-click="latticeService.addToBeamline(element)">Add to Beamline</button> <button type="button" data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button type="button" data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>
                 </tr>
               </tbody>
             </table>
@@ -2712,7 +2712,7 @@ SIREPO.app.directive('latticeTab', function(latticeService, panelState, utilitie
                       <br />
                       <div class="row">
                         <div class="col-sm-offset-6 col-sm-3">
-                          <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+                          <button type="button" data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
                         </div>
                       </div>
                     </div>
@@ -2942,7 +2942,7 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                                 <td><div class="col-sm-12" data-rpn-static="" data-model="var" data-field="\'value\'"></div></td>
                                 <td style="vertical-align: middle">
                                    <div data-disable-after-click="">
-                                    <button class="btn btn-danger btn-xs" data-ng-click="deleteVar($index)" title="Delete Variable"><span class="glyphicon glyphicon-remove"></span></button>
+                                    <button type="button" class="btn btn-danger btn-xs" data-ng-click="deleteVar($index)" title="Delete Variable"><span class="glyphicon glyphicon-remove"></span></button>
                                   </div>
                                 </td>
                               </tr>
@@ -2957,7 +2957,7 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                                 </td>
                                 <td><div class="col-sm-12" data-rpn-static="" data-model="newVar" data-field="\'value\'"></div></td>
                                 <td>
-                                  <button class="btn btn-primary btn-xs" data-ng-disabled="! hasNewVar()" data-ng-click="addVar()" title="Add Variable"><span class="glyphicon glyphicon-plus"></span></button>
+                                  <button type="button" class="btn btn-primary btn-xs" data-ng-disabled="! hasNewVar()" data-ng-click="addVar()" title="Add Variable"><span class="glyphicon glyphicon-plus"></span></button>
                                 </td>
                               </tr>
                             </tbody>
@@ -2965,7 +2965,7 @@ SIREPO.app.directive('varEditor', function(appState, latticeService, requestSend
                         </div>
                         <div class="row">
                           <div class="col-sm-6 pull-right">
-                            <button data-ng-click="saveChanges()" class="btn btn-primary sr-button-save-cancel" data-ng-disabled="! form.$valid">Save</button>
+                            <button type="submit" data-ng-click="saveChanges()" class="btn btn-primary sr-button-save-cancel" data-ng-disabled="! form.$valid">Save</button>
                             <button data-ng-click="cancelChanges()" class="btn btn-default">Cancel</button>
                           </div>
                         </div>
