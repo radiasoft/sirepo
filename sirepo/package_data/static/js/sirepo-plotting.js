@@ -3147,8 +3147,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 const n = fp ? 0 : 1;
                 const dx = Math.abs((xRange[1] - xRange[0])) / (heatmap[0].length - n);
                 const dy = Math.abs((yRange[1] - yRange[0])) / (heatmap.length - n);
-                let i = (x - xRange[0]) / dx;
-                let j = (y - yRange[0]) / dy;
+                let i = Math.abs((x - xRange[0]) / dx);
+                let j = Math.abs((y - yRange[0]) / dy);
                 return [
                     fp ? Math.max(0, Math.floor(i)) : Math.round(i),
                     fp ? Math.max(0, Math.floor(j)) : Math.round(j),

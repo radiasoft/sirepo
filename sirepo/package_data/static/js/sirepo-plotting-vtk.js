@@ -405,12 +405,13 @@ class VTKVectorFormula {
         };
     }
 
-    constructor(vectors, colorMapName='jet') {
+    constructor(scalars, vectors, colorMapName='jet') {
+        this.scalars = scalars;
         this.vectors = vectors;
         this.colorMapName = colorMapName;
         this.colorMap = SIREPO.PLOTTING.Utils.COLOR_MAP()[colorMapName];
 
-        this.magnitudes = this.vectors.map(x => Math.hypot(...x));
+        this.magnitudes = this.scalars;
         this.directions = this.vectors.map((x, i) => x.map(y => y / this.magnitudes[i]));
         this.norms = SIREPO.UTILS.normalize(this.magnitudes);
 
@@ -993,6 +994,7 @@ class VectorFieldBundle extends ActorBundle {
      * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
      */
     constructor(
+        scalars,
         vectors,
         positions,
         scaleFactor = 1.0,
@@ -1006,7 +1008,7 @@ class VectorFieldBundle extends ActorBundle {
             transform,
             actorProperties
         );
-        this.formula = new VTKVectorFormula(vectors, colormapName);
+        this.formula = new VTKVectorFormula(scalars, vectors, colormapName);
         this.polyData = vtk.Common.DataModel.vtkPolyData.newInstance();
         this.polyData.getPoints().setData(
             new window.Float32Array(positions.flat()),
@@ -1120,8 +1122,8 @@ class CoordMapper {
      * @param {string} colormapName - name of a color map for the arrows
      * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
      */
-    buildVectorField(vectors, positions, scaleFactor=1.0, useTailAsOrigin=false, colormapName='jet', actorProperties={}) {
-        return new VectorFieldBundle(vectors, positions, scaleFactor, useTailAsOrigin, colormapName, this.transform, actorProperties);
+    buildVectorField(scalars, vectors, positions, scaleFactor, useTailAsOrigin=false, colormapName='jet', actorProperties={}) {
+        return new VectorFieldBundle(scalars, vectors, positions, scaleFactor, useTailAsOrigin, colormapName, this.transform, actorProperties);
     }
 }
 
