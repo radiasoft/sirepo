@@ -120,7 +120,6 @@ class ImpactxMadxConverter(MadxConverter):
         self.nslice = nslice
 
     def from_madx(self, madx):
-        self.beam = sirepo.template.lattice.LatticeUtil.find_first_command(madx, "beam")
         data = self.fill_in_missing_constants(super().from_madx(madx), PKDict())
         self._remove_zero_drifts(data)
         return data
@@ -144,8 +143,8 @@ class ImpactxMadxConverter(MadxConverter):
             elif element_in.type == "COLLIMATOR":
                 m = re.search(r"^\{?\s*(.*?),\s*(.*?)\s*\}?$", element_in.aperture)
                 if m:
-                    element_out.xmax = float(m.group(1))
-                    element_out.ymax = float(m.group(2))
+                    element_out.xmax = self.__val(m.group(1))
+                    element_out.ymax = self.__val(m.group(2))
                 element_out.shape = (
                     "rectangular"
                     if element_in.apertype == "rectangle"
