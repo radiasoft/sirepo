@@ -124,7 +124,7 @@ def test_srw(fc):
             multiElectronAnimation=PKDict(
                 # Prevents "Memory Error" because SRW uses computeJobStart as frameCount
                 frame_index=0,
-                expect_title="Intensity After W60, 60 m \(E=4.24 keV\)",
+                expect_title="Intensity at W60, 60 m \(E=4.24 keV\)",
             ),
         ),
         timeout=20,
