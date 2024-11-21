@@ -111,6 +111,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="SelectedTallyVolumes">
           <div data-tally-volume-picker=""></div>
         </div>
+        <div data-ng-switch-when="StandardMaterial" class="col-sm-5">
+          <div data-standard-material="" data-model-name="modelName" data-model="model" data-field="field"></div>
+        </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
         'geometryInput-dagmcFile': '.h5m,.stp',
@@ -120,6 +123,7 @@ SIREPO.app.config(() => {
 
 SIREPO.app.factory('openmcService', function(appState, panelState, requestSender, $rootScope) {
     const self = {};
+    let standardMaterialNames;
     appState.setAppService(self);
 
     function findFilter(tallies, tally, type) {
@@ -228,6 +232,39 @@ SIREPO.app.factory('openmcService', function(appState, panelState, requestSender
     self.isRangeValid = (field) => {
         const m = appState.models.openmcAnimation;
         return m[field] && (m[field][0] || m[field][1]);
+    };
+
+    self.loadStandardMaterial = (name, wantElements, callback) => {
+        requestSender.sendStatefulCompute(
+            appState,
+            (data) => {
+                callback(data.material);
+            },
+            {
+                method: 'get_standard_material',
+                args: {
+                    name: name,
+                    wantElements: wantElements,
+                },
+            }
+        );
+    };
+
+    self.loadStandardMaterialNames = (callback) => {
+        if (standardMaterialNames) {
+            callback(standardMaterialNames);
+            return;
+        }
+        requestSender.sendStatefulCompute(
+            appState,
+            (data) => {
+                standardMaterialNames = data.names;
+                callback(data.names);
+            },
+            {
+                method: 'get_standard_material_names',
+            }
+        );
     };
 
     self.selectVarianceReductionTab = () => {
@@ -2978,43 +3015,6 @@ SIREPO.viewLogic('tallyView', function(appState, openmcService, panelState, vali
     ];
 });
 
-SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
-
-    let name = null;
-
-    $scope.whenSelected = () => {
-        $scope.appState = appState;
-        name = model().name;
-    };
-
-    function isStd() {
-        return model() && model().standardType !== 'None';
-    }
-
-    function model() {
-        return appState.models[$scope.modelName];
-    }
-
-    function updateMaterial() {
-        if (! model()) {
-            return;
-        }
-        if (isStd()) {
-            // don't change the name as it came from the loaded volume
-            appState.models[$scope.modelName] = appState.setModelDefaults({name: name}, model().standardType);
-        }
-    }
-
-    // only update when the user makes a change, not on the initial model load
-    $scope.$watch(`appState.models['${$scope.modelName}']['standardType']`, (newVal, oldVal) => {
-        if (oldVal === undefined || oldVal === newVal) {
-            return;
-        }
-        updateMaterial();
-    });
-
-});
-
 SIREPO.app.directive('simpleListEditor', function(panelState) {
     return {
         restrict: 'A',
@@ -3252,6 +3252,48 @@ SIREPO.app.directive('energyRangeSlider', function(appState, openmcService, pane
                 if (newValue !== oldValue) {
                     updateRange();
                 }
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('standardMaterial', function(appState, openmcService, panelState) {
+    return {
+        restrict: 'A',
+        scope: {
+            field: '<',
+            model: '=',
+            modelName: '<',
+        },
+        template: `
+            <select class="form-control" data-ng-model="model[field]" data-ng-options="n for n in names track by n"></select>
+        `,
+        controller: function($scope) {
+            const NONE = 'None';
+            $scope.appState = appState;
+
+            function isNone() {
+                return $scope.model && $scope.model[$scope.field] === NONE;
+            }
+
+            function updateMaterial() {
+                if ($scope.model && ! isNone()) {
+                    openmcService.loadStandardMaterial($scope.model[$scope.field], true, (m) => {
+                        Object.assign($scope.model, m);
+                    });
+                }
+            }
+
+            $scope.$watch(`appState.models.${$scope.modelName}.${$scope.field}`, (newVal, oldVal) => {
+                if (oldVal === undefined || oldVal === newVal) {
+                    return;
+                }
+                updateMaterial();
+            });
+
+            openmcService.loadStandardMaterialNames((names) => {
+                $scope.names = appState.clone(names);
+                $scope.names.unshift(NONE);
             });
         },
     };
