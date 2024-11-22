@@ -111,7 +111,7 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="SelectedTallyVolumes">
           <div data-tally-volume-picker=""></div>
         </div>
-        <div data-ng-switch-when="StandardMaterial" class="col-sm-5">
+        <div data-ng-switch-when="StandardMaterial" class="col-sm-7">
           <div data-standard-material="" data-model-name="modelName" data-model="model" data-field="field"></div>
         </div>
     `;
@@ -3257,7 +3257,8 @@ SIREPO.app.directive('energyRangeSlider', function(appState, openmcService, pane
     };
 });
 
-SIREPO.app.directive('standardMaterial', function(appState, openmcService, panelState) {
+SIREPO.app.directive('standardMaterial', function(openmcService, panelState, utilities) {
+    const searchClass = 'sr-material-search';
     return {
         restrict: 'A',
         scope: {
@@ -3266,34 +3267,54 @@ SIREPO.app.directive('standardMaterial', function(appState, openmcService, panel
             modelName: '<',
         },
         template: `
-            <select class="form-control" data-ng-model="model[field]" data-ng-options="n for n in names track by n"></select>
+            <div data-ng-if="list" class="input-group input-group-sm">
+              <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
+              <input class="${searchClass} form-control" placeholder="Search Material Compendium" />
+              <span class="input-group-btn">
+                <button class="btn" data-ng-class="{'btn-primary': wantElement}" type="button" data-ng-click="selectSearchType(true)">Element</button>
+                <button class="btn" data-ng-class="{'btn-primary': ! wantElement}" type="button" data-ng-click="selectSearchType(false)">Nuclide</button>
+              </span>
+            </div>
         `,
-        controller: function($scope) {
-            const NONE = 'None';
-            $scope.appState = appState;
+        controller: function($scope, $element) {
+            let lastSelected = '';
+            $scope.wantElement = true;
 
-            function isNone() {
-                return $scope.model && $scope.model[$scope.field] === NONE;
-            }
-
-            function updateMaterial() {
-                if ($scope.model && ! isNone()) {
-                    openmcService.loadStandardMaterial($scope.model[$scope.field], true, (m) => {
-                        Object.assign($scope.model, m);
-                    });
+            $scope.selectSearchType = (wantElement) => {
+                $scope.wantElement = wantElement;
+                if (lastSelected) {
+                    $(`.${searchClass}`).val(lastSelected);
+                    $scope.onSelect()(lastSelected);
                 }
-            }
+            };
 
-            $scope.$watch(`appState.models.${$scope.modelName}.${$scope.field}`, (newVal, oldVal) => {
-                if (oldVal === undefined || oldVal === newVal) {
-                    return;
-                }
-                updateMaterial();
-            });
+            $scope.onSelect = () => {
+                return (value) => {
+                    if ($scope.model) {
+                        lastSelected = value;
+                        openmcService.loadStandardMaterial(value, $scope.wantElement, (m) => {
+                            Object.assign($scope.model, m);
+                        });
+                    }
+                };
+            };
 
             openmcService.loadStandardMaterialNames((names) => {
-                $scope.names = appState.clone(names);
-                $scope.names.unshift(NONE);
+                $scope.list = [];
+                for (const n of names) {
+                    $scope.list.push({
+                        label: n,
+                        value: n,
+                    });
+                }
+                panelState.waitForUI(() => {
+                    utilities.buildSearch($scope, $element, searchClass);
+                });
+            });
+
+            $scope.$on('cancelChanges', () => {
+                $(`.${searchClass}`).val('');
+                lastSelected = '';
             });
         },
     };
