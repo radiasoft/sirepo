@@ -1615,6 +1615,9 @@ SIREPO.app.directive('modalDialog', function(appState, panelState) {
         },
         //TODO(pjm): move link items to controller?
         link: function(scope, element) {
+            $(element).on('show.bs.modal', () => {
+                $(element).addClass('sr-modal-shown');
+            });
             $(element).on('shown.bs.modal', function() {
                 $('#' + scope.editorId + ' .form-control').first().select();
                 if (scope.parentController && scope.parentController.handleModalShown) {
@@ -1624,6 +1627,7 @@ SIREPO.app.directive('modalDialog', function(appState, panelState) {
                 }
             });
             $(element).on('hidden.bs.modal', function(o) {
+                $(element).removeClass('sr-modal-shown');
                 // ensure that a dismissed modal doesn't keep changes
                 // ok processing will have already saved data before the modal is hidden
                 var viewInfo = appState.viewInfo(scope.viewName);
