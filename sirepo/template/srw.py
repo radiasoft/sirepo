@@ -93,7 +93,7 @@ _OUTPUT_FOR_MODEL = PKDict(
         units=["m", "m", "m"],
     ),
     multiElectronAnimation=PKDict(
-        title="Intensity After {name}, {position} (E={photonEnergyWithUnits})",
+        title="Intensity {name}, {position} (E={photonEnergyWithUnits})",
         filename="res_int_pr_me.dat",
         dimensions=3,
     ),
@@ -115,7 +115,7 @@ _OUTPUT_FOR_MODEL = PKDict(
         dimensions=2,
     ),
     watchpointReport=PKDict(
-        title="Intensity After {name}, {position} (E={photonEnergyWithUnits})",
+        title="Intensity {name}, {position} (E={photonEnergyWithUnits})",
         subtitle="{characteristic}",
         filename="res_int_pr_se.dat",
         dimensions=3,
@@ -1517,7 +1517,12 @@ def _element_name(sim_in, watchpoint_id):
         watchpoint_id = sim_in.models.multiElectronAnimation.get("watchpointId", 0)
     for e in sim_in.models.beamline:
         if e.id == watchpoint_id:
-            return e.title
+            # use "at {title}" unless the watchpoint name contains a common preposition
+            if re.search(
+                r"\b(after|at|before|in|near)\b", e.title, re.IGNORECASE
+            ) or re.search(r"\b(pre|post)", e.title, re.IGNORECASE):
+                return e.title
+            return f"at {e.title}"
     return ""
 
 

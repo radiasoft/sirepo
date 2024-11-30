@@ -211,7 +211,7 @@ class API(sirepo.quest.API):
         # runStatus receives models when an animation status if first queried
         return await self._request_api(_request_content=self._request_content(PKDict()))
 
-    @sirepo.quest.Spec("require_user")
+    @sirepo.quest.Spec("require_premium")
     async def api_sbatchLogin(self):
         r = self._request_content(
             PKDict(computeJobHash="unused", jobRunMode=sirepo.job.SBATCH),
@@ -221,7 +221,7 @@ class API(sirepo.quest.API):
         r.pkdel("data")
         return await self._request_api(_request_content=r)
 
-    @sirepo.quest.Spec("require_user")
+    @sirepo.quest.Spec("require_premium")
     async def api_sbatchLoginStatus(self):
         return await self._request_api(
             _request_content=self._request_content(

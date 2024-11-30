@@ -30,22 +30,25 @@ _IMPACTX_RUN_FILE = "run.py"
 _MADX = sirepo.sim_data.get_class("madx")
 _MADX_INPUT_FILE = "in.madx"
 _MODEL_FIELD_MAP = PKDict(
+    APERTURE=PKDict(
+        _type="COLLIMATOR",
+        _fields=["name", "l", "_id"],
+    ),
     DRIFT=PKDict(
-        _fields=["name", "type", "l", "_id"],
+        _fields=["name", "l", "_id"],
     ),
     MONITOR=PKDict(
-        _fields=["name", "type", "_id"],
+        _fields=["name", "_id"],
     ),
     QUADRUPOLE=PKDict(
-        _fields=["name", "type", "l", "k1", "k1s", "_id"],
+        _fields=["name", "l", "k1", "k1s", "_id"],
     ),
     RFCAVITY=PKDict(
-        _fields=["name", "type", "l", "volt", "freq", "_id"],
+        _fields=["name", "l", "volt", "freq", "_id"],
     ),
     SBEND=PKDict(
         _fields=[
             "name",
-            "type",
             "l",
             "angle",
             "fint",
@@ -56,7 +59,7 @@ _MODEL_FIELD_MAP = PKDict(
         ],
     ),
     SEXTUPOLE=PKDict(
-        _fields=["name", "type", "l", "k2", "k2s", "_id"],
+        _fields=["name", "l", "k2", "k2s", "_id"],
     ),
 )
 
@@ -270,7 +273,11 @@ def _to_madx(data, source_file):
         m._id = _next_id(state)
         return m
 
+    def _val(cv, var_value):
+        return cv.eval_var_with_assert(var_value)
+
     util = LatticeUtil(data, _SCHEMA)
+    cv = sirepo.template.canvas.code_var(data.models.rpnVariables)
     state = PKDict(
         next_id=util.max_id + 1,
         util=util,
@@ -312,15 +319,21 @@ def _to_madx(data, source_file):
     for e in data.models.elements:
         assert e.type in _MODEL_FIELD_MAP, f"Missing type handler: {e.type}"
         if e.type in _MODEL_FIELD_MAP:
-            m = _MADX.model_defaults(e.type)
+            t = _MODEL_FIELD_MAP[e.type].get("_type", e.type)
+            m = _MADX.model_defaults(t).pkupdate(type=t)
             for f in _MODEL_FIELD_MAP[e.type]._fields:
                 m[f] = e[f]
             res.models.elements.append(m)
             if e.type == "SBEND":
-                m.hgap = e.gap / 2
+                m.hgap = _val(cv, e.gap) / 2
                 _add_dipedges(res, m, state)
             elif e.type == "RFCAVITY":
-                m.lag = e.phase
+                m.lag = -(_val(cv, e.phase) + 90) / 360
+                m.volt = _val(cv, m.volt) * 1e-6
+                m.freq = _val(cv, m.freq) * 1e-6
+            elif e.type == "APERTURE":
+                m.apertype = "rectangle" if e.shape == "rectangular" else "ellipse"
+                m.aperture = f"{{{e.xmax},{e.ymax}}}"
     sirepo.template.madx.add_observers(LatticeUtil(res, _MADX.schema()), "MONITOR")
     return res
 

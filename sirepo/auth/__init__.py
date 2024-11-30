@@ -517,6 +517,10 @@ class _Auth(sirepo.quest.Attr):
         if m != METHOD_EMAIL:
             raise sirepo.util.Forbidden(f"method={m} is not email for uid={i}")
 
+    def require_premium(self):
+        if not self.is_premium_user():
+            raise sirepo.util.Forbidden(f"not premium user")
+
     def require_user(self):
         """Asserts whether user is logged in
 

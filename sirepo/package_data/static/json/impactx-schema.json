@@ -395,7 +395,7 @@
             "_super": ["_", "model", "_ELEMENT_WITH_ERROR"],
             "V": ["V","RPNValue",null,"Normalized RF voltage V = maximum energy gain/(m*c²)"],
             "freq": ["FREQ","RPNValue",null,"RF frequency in Hz"],
-            "phase": ["PHASE [deg]","RPNValue",-90.0,"RF synchronous phase (phase = 0 corresponds to maximum energy gain, phase = -90 corresponds go zero energy gain for bunching)"]
+            "phase": ["PHASE [deg]","RPNValue",-90.0,"RF synchronous phase (phase = 0 corresponds to maximum energy gain, phase = -90 corresponds to zero energy gain for bunching)"]
         },
         "SOFTQUADRUPOLE": {
             "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],

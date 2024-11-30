@@ -955,7 +955,7 @@
             "bgColor": ["Background color", "Color", "#fff9ed"],
             "colorMap": ["Tally color map", "ColorMap", "viridis"],
             "energyRangeSum": ["Sum over energies [MeV]", "EnergyRange", [0, 0]],
-            "numSampleSourceParticles": ["Source particles to display", "Integer", 10, "", 0, 100],
+            "numSampleSourceParticles": ["Source particles to display", "Integer", 10, "", 1, 100],
             "opacity": ["Global alpha", "Opacity", 1.0],
             "showEdges": ["Show edges", "Boolean", "0"],
             "showMarker": ["Show axis marker", "Boolean", "1"],

@@ -697,6 +697,7 @@ class _SbatchRun(_SbatchCmd):
         await self._sbatch_running.wait()
         if self._destroying:
             return
+        # in_file now contains sbatch_id
         self._in_file = self._create_in_file()
         pkdlog(
             "{} sbatch_id={} starting jobCmd={}",

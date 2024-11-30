@@ -32,6 +32,8 @@ class APIPerm(aenum.Flag):
     REQUIRE_USER = aenum.auto()
     #: only usable on internal test systems
     INTERNAL_TEST = aenum.auto()
+    #: a user with a a premium subscription is required
+    REQUIRE_PREMIUM = aenum.auto()
 
 
 #: A user can access APIs decorated with these permissions even if they don't have the role

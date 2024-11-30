@@ -534,6 +534,7 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
         maxField: 0,
         sourceParticles: [],
     };
+    let lastTallyView = {};
     const invalidPlanePosition = -1e16;
 
     function initMesh() {
@@ -616,7 +617,14 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
     };
 
     self.invalidatePlanePosition = () => {
-        //TODO(pjm): only clear planePos if the selected tally domain has changed
+        const tallyView = {
+            axis: appState.models.tallyReport.axis,
+            mesh: self.mesh,
+        };
+        if (appState.deepEquals(lastTallyView, tallyView)) {
+            return;
+        }
+        lastTallyView = tallyView;
         appState.models.tallyReport.planePos = invalidPlanePosition;
     };
 
@@ -641,8 +649,8 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
                 f.stop,
             ];
         }
-        self.invalidatePlanePosition();
         initMesh();
+        self.invalidatePlanePosition();
     };
 
     self.setSourceParticles = particles => {
@@ -961,7 +969,7 @@ SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService,
             $scope.tallyService = tallyService;
             const displayRanges = {};
             let geometryOutlines;
-            let lastTally = [null, null, null];
+            let lastTally = {};
             const sources = openmcService.getSourceVisualizations(
                 {
                     box: space => {
@@ -1000,17 +1008,14 @@ SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService,
                 if (! tallyService.fieldData || tallyService.isPlanePositionInvalid()) {
                     return;
                 }
+                const newTally = {...appState.models.openmcAnimation, ...appState.models.tallyReport};
                 if (
-                    (lastTally[0] != appState.models.openmcAnimation.tally)
-                        || (lastTally[1] != appState.models.tallyReport.axis)
-                        || (lastTally[2] != appState.models.tallyReport.planePos)
+                    (lastTally.tally !== newTally.tally)
+                        || (lastTally.axis !== newTally.axis)
+                        || (lastTally.planePos !== newTally.planePos)
+                        || (lastTally.numSampleSourceParticles !== newTally.numSampleSourceParticles)
                 ) {
                     geometryOutlines = null;
-                    const newTally = [
-                        appState.models.openmcAnimation.tally,
-                        appState.models.tallyReport.axis,
-                        appState.models.tallyReport.planePos,
-                    ];
                     lastTally = newTally;
                     const o = appState.models.outlineAnimation;
                     o.tally = appState.models.openmcAnimation.tally;
@@ -1107,14 +1112,6 @@ SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService,
                 if (appState.models.openmcAnimation.showSources === '0') {
                     return [];
                 }
-                //TODO(pjm): rework this method
-                const [n, m, l] = tallyReportAxisIndices();
-                const dimIndex = n;
-                const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
-                const outlines = [];
-                const particleColors = SIREPO.UTILS.unique(
-                    tallyService.getSourceParticles().map(p => particleColor(p))
-                );
 
                 function isPosOutsideMesh(pos, j, k) {
                     const r = tallyService.getMeshRanges();
@@ -1124,30 +1121,43 @@ SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService,
                 // we cannot set the color of an instance of a marker ref, so we will
                 // have to create them on the fly
                 function placeMarkers() {
-                    const ns = 'http://www.w3.org/2000/svg';
                     let ds = d3.select('svg.sr-plot defs')
                         .selectAll('marker')
-                        .data(particleColors);
+                        .data(SIREPO.UTILS.unique(tallyService.getSourceParticles().map(p => p.energy)));
                     ds.exit().remove();
                     ds.enter()
-                        .append(d => document.createElementNS(ns, 'marker'))
+                        .append(d => document.createElementNS('http://www.w3.org/2000/svg', 'marker'))
                         .append('path')
                         .attr('d', 'M0,0 L0,4 L9,2 z');
                     ds.call(updateMarkers);
                 }
 
-                function particleColor(p) {
+                function particleColor(energy) {
                     return tallyService.sourceParticleColorScale(
                         appState.models.openmcAnimation.sourceColorMap
-                    )(p.energy);
+                    )(energy);
                 }
 
                 function particleId(p) {
-                    return particleIdFromColor(particleColor(p));
+                    return particleIdFromColor(particleColor(p.energy));
                 }
 
                 function particleIdFromColor(c) {
                     return `arrow-${c.slice(1)}`;
+                }
+
+                function particleRange(dim) {
+                    const d = tallyService.tallyRange(dim);
+                    const w = Math.abs((d.max - d.min) / d.steps) / 2;
+                    const p = appState.models.tallyReport.planePos;
+                    return [
+                        p - w,
+                        p + w,
+                    ];
+                }
+
+                function sourceColor(color) {
+                    return appState.models.openmcAnimation.showSources === '1' ? color : 'none';
                 }
 
                 function toReversed(arr) {
@@ -1162,7 +1172,7 @@ SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService,
 
                 function updateMarkers(selection) {
                     selection
-                        .attr('id', d => particleIdFromColor(d))
+                        .attr('id', d => particleIdFromColor(particleColor(d)))
                         .attr('markerHeight', 8)
                         .attr('markerWidth', 8)
                         .attr('refX', 4)
@@ -1170,25 +1180,27 @@ SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService,
                         .attr('orient', 'auto')
                         .attr('markerUnits', 'strokeWidth')
                         .select('path')
-                        .attr('fill', d => sourceColor(d));
+                        .attr('fill', d => sourceColor(particleColor(d)));
                 }
 
-                sources.forEach((view, i) => {
-                    const s = appState.models.settings.sources[i];
-                    if (view instanceof SIREPO.VTK.SphereViews) {
-                        view.setRadius(25 * vectorScaleFactor());
-                    }
-                    outlines.push({
-                        name: `source-${s.particle}-${s.space._type}-${i}`,
-                        color: sourceColor('#ff0000'),
-                        data: view.shapePoints(dim).map(p => toReversed(p)),
-                        doClose: true,
-                    });
-                });
+                //TODO(pjm): rework this method
+                const dimIndex = tallyReportAxisIndices()[0];
+                const dim = SIREPO.GEOMETRY.GeometryUtils.BASIS()[dimIndex];
+                const outlines = [];
+
                 placeMarkers();
                 const r = vectorScaleFactor();
-                const [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
+                let [j, k] = SIREPO.GEOMETRY.GeometryUtils.nextAxisIndices(dim);
+                if (dim === 'x') {
+                    //TODO(pjm): nextAxisIndices() is not correct for x dim for this app
+                    [j, k] = [2, 1];
+                }
+                const pr = particleRange(dim);
                 tallyService.getSourceParticles().forEach((p, n) => {
+                    const p0 = p.position[dimIndex] * openmcService.GEOMETRY_SCALE;
+                    if (p0 < pr[0] || p0 > pr[1]) {
+                        return;
+                    }
                     const p1 = [p.position[j], p.position[k]].map(x => x * openmcService.GEOMETRY_SCALE);
                     // ignore sources outside the plotting range
                     if (isPosOutsideMesh(p1, j, k)) {
@@ -1196,15 +1208,38 @@ SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService,
                     }
                     // normalize in the plane and check if perpendicular
                     const d = Math.hypot(p.direction[j], p.direction[k]);
-                    const p2 = d ? [p1[0] + r * p.direction[j] / d, p1[1] + r * p.direction[k] / d] : p1;
+                    const ds = 1 - Math.abs(p.direction[dimIndex]);
+                    const p2 = d ? [p1[0] + r * p.direction[j] / d * ds, p1[1] + r * p.direction[k] / d * ds] : p1;
+                    let points = [p1, p2];
+                    if (dim === 'x' || dim === 'y') {
+                        points = points.map(p => toReversed(p));
+                    }
                     outlines.push({
                         name: `${p.type}-${p.energy}eV-${n}`,
-                        color: sourceColor(particleColor(p)),
+                        color: sourceColor(particleColor(p.energy)),
                         dashes: p.type === 'PHOTON' ? '6 2' : '',
-                        data: [p1, p2].map(p => toReversed(p)),
+                        data: points,
                         marker: particleId(p),
                     });
                 });
+                if (outlines.length) {
+                    sources.forEach((view, i) => {
+                        const s = appState.models.settings.sources[i];
+                        if (view instanceof SIREPO.VTK.SphereViews) {
+                            view.setRadius(25 * vectorScaleFactor());
+                        }
+                        let points = view.shapePoints(dim);
+                        if (dim === 'y') {
+                            points = points.map(p => toReversed(p));
+                        }
+                        outlines.push({
+                            name: `source-${s.particle}-${s.space._type}-${i}`,
+                            color: sourceColor('#ff0000'),
+                            data: points,
+                            doClose: true,
+                        });
+                    });
+                }
                 return outlines;
             }
 
@@ -1255,10 +1290,6 @@ SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService,
                 return v;
             }
 
-            function sourceColor(color) {
-                return appState.models.openmcAnimation.showSources === '1' ? color : 'none';
-            }
-
             function sumDisplay(val) {
                 const sumRange = appState.models.openmcAnimation.energyRangeSum;
                 if ($scope.energyFilter.space === 'log' && $scope.energyFilter.start > 0) {
@@ -1286,11 +1317,8 @@ SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService,
             }
 
             function updateDisplay() {
-                const axisChanged = appState.models.tallyReport.axis !== appState.applicationState().tallyReport.axis;
                 tallyService.updateTallyDisplay();
-                if (axisChanged) {
-                    tallyService.invalidatePlanePosition();
-                }
+                tallyService.invalidatePlanePosition();
                 buildTallyReport();
             }
 
@@ -1424,6 +1452,7 @@ SIREPO.app.directive('geometry3d', function(appState, openmcService, plotting, p
                 pointer: null,
                 THICKNESS: 30,
             };
+            let firstRender = true;
             let tallyBundle = null;
             let tallyPolyData = null;
             const voxelPoly = [
@@ -1441,7 +1470,8 @@ SIREPO.app.directive('geometry3d', function(appState, openmcService, plotting, p
                 addSources();
                 $rootScope.$broadcast('vtk.hideLoader');
                 const a = tallyService.getVisibleAxes();
-                if (a.includes(appState.models.tallyReport.axis)) {
+                if (firstRender && a.includes(appState.models.tallyReport.axis)) {
+                    firstRender = false;
                     // default to the 2d axis, if visible
                     vtkScene.showSide(appState.models.tallyReport.axis);
                     if (appState.models.tallyReport.axis === vtkScene.resetSide){
@@ -1473,6 +1503,7 @@ SIREPO.app.directive('geometry3d', function(appState, openmcService, plotting, p
                     const particles = tallyService.getSourceParticles();
                     if (particles.length) {
                         particleBundle = coordMapper.buildVectorField(
+                            particles.map(p => p.energy),
                             particles.map(p => p.direction.map(x => p.energy * x)),
                             particles.map(p => p.position),
                             vectorScaleFactor(),
@@ -3134,7 +3165,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, openmcService, panelSta
         panelState.showField('openmcAnimation', 'energyRangeSum', ! ! openmcService.findFilter('energyFilter'));
         panelState.showField('openmcAnimation', 'sourceNormalization', openmcService.canNormalizeScore(appState.models.openmcAnimation.score));
         panelState.showField('openmcAnimation', 'numSampleSourceParticles', showSources);
-        panelState.showField('openmcAnimation', 'sourceColorMap', showSources && appState.models.openmcAnimation.numSampleSourceParticles);
+        panelState.showField('openmcAnimation', 'sourceColorMap', showSources);
         panelState.showFields('tallyReport', [
             'axis', is2D,
             'planePos', is2D && tallyService.tallyRange(updateVisibleAxes(), true).steps > 1,
@@ -3180,7 +3211,6 @@ SIREPO.viewLogic('tallySettingsView', function(appState, openmcService, panelSta
             'tallyReport.selectedGeometry',
             'openmcAnimation.score',
             'openmcAnimation.showSources',
-            'openmcAnimation.numSampleSourceParticles',
         ], showFields,
         [
             'openmcAnimation.tally',

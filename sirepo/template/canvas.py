@@ -44,6 +44,10 @@ _MADX_TRACK_OUTPUT_FILE = "madx/ptc_track.file.tfs"
 class CanvasMadxConverter(MadxConverter):
     _FIELD_MAP = [
         [
+            "COLLIMATOR",
+            ["APERTURE", "l"],
+        ],
+        [
             "DRIFT",
             ["DRIFT", "l"],
         ],
@@ -87,12 +91,25 @@ class CanvasMadxConverter(MadxConverter):
         if self.from_class.sim_type() == SIM_TYPE:
             pass
         else:
+            if element_in.type == "COLLIMATOR":
+                element_out.shape = (
+                    "rectangular"
+                    if element_in.apertype == "rectangle"
+                    else "elliptical"
+                )
+                m = re.search(r"^\{?\s*(.*?),\s*(.*?)\s*\}?$", element_in.aperture)
+                if m:
+                    element_out.xmax = float(m.group(1))
+                    element_out.ymax = float(m.group(2))
             if element_in.type == "DIPEDGE":
                 self.dipedges[element_out._id] = element_in
             elif element_in.type == "SBEND":
                 element_out.gap = self.__val(element_in.hgap) * 2
                 if element_out.fintx == -1:
                     element_out.fintx = element_out.fint
+            elif element_in.type == "RFCAVITY":
+                element_out.volt = self.__val(element_out.volt) * 1e6
+                element_out.phase = self.__val(element_out.phase) * -180
 
     def __merge_dipedges(self, data):
         # dipedge in: {'e1': 0.048345620280243, 'fint': 0.0, 'h': 0.096653578905433, 'hgap': 0.0, }
@@ -237,7 +254,7 @@ def sim_frame(frame_args):
             if field == "t":
                 v = -numpy.array(v) * scipy.constants.c
                 if s is not None:
-                    v += s
+                    v -= v.mean()
             elif field == "pt":
                 v = _elegant_p_to_pt(frame_args.run_dir, v)
             return v, s
@@ -498,17 +515,16 @@ def _elegant_p_to_pt(run_dir, values):
             "elegant/run_setup.output.sdds", "pCentral"
         ),
     )()
-    return -(
-        (
-            kinematic.Converter(
-                mass=mass,
-                mass_unit="SI",
-                betagamma=numpy.array(values),
-            )(silent=True)["gamma"]
-            - ref["gamma"]
-        )
-        / ref["betagamma"]
-    )
+    return (
+        kinematic.Converter(
+            mass=mass,
+            mass_unit="SI",
+            betagamma=numpy.array(values),
+        )(
+            silent=True
+        )["gamma"]
+        - ref["gamma"]
+    ) / ref["betagamma"]
 
 
 def _generate_parameters_file(data):

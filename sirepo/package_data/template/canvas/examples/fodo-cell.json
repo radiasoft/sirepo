@@ -19,18 +19,12 @@
             }
         ],
         "bunchAnimation1": {
-            "histogramBins": 80,
-            "notes": "",
             "simCode": "elegant"
         },
         "bunchAnimation2": {
-            "histogramBins": 80,
-            "notes": "",
             "simCode": "madx"
         },
         "bunchAnimation3": {
-            "histogramBins": 80,
-            "notes": "",
             "simCode": "impactx"
         },
         "bunchReport1": {
@@ -123,28 +117,12 @@
                 "type": "QUADRUPOLE"
             }
         ],
-        "panelState": {
-            "hidden": []
-        },
         "rpnVariables": [],
-        "sigmaAnimation": {
-            "includeLattice": "1",
-            "notes": ""
-        },
         "simulation": {
             "activeBeamlineId": 2,
             "folder": "/Examples",
             "name": "FODO Cell",
             "visualizationBeamlineId": 2
-        },
-        "simulationSettings": {
-            "useElegant": "1",
-            "useImpactX": "1",
-            "useMadx": "1"
-        },
-        "twissAnimation": {
-            "includeLattice": "1",
-            "notes": ""
         }
     },
     "simulationType": "canvas"
