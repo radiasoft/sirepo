@@ -929,6 +929,8 @@ class _ComputeJob(_Supervisor):
 
     async def _receive_api_runStatus(self, req):
         async def _ask_agent():
+            need to handle srexception for login(?)
+            when agent terminates how does run_status_op get cleared?
             r = await self._send_with_reply(
                 job.OP_RUN_STATUS,
                 req=PKDict(
