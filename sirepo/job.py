@@ -27,17 +27,35 @@ OP_OK = "ok"
 #: Agent indicates it is ready
 OP_ALIVE = "alive"
 OP_RUN = "run"
+OP_RUN_STATUS = "run_status"
 OP_SBATCH_AGENT_READY = "sbatch_agent_ready"
 OP_SBATCH_LOGIN = "sbatch_login"
-OP_VERIFY_STATUS = "verify_status"
 OP_BEGIN_SESSION = "begin_session"
+
+#: Ops which don't need slot allocations or supervisor does not send
+OPS_WITHOUT_SLOTS = frozenset(
+    (
+        OP_ALIVE,
+        OP_BEGIN_SESSION,
+        OP_CANCEL,
+        OP_ERROR,
+        OP_KILL,
+        OP_OK,
+        OP_RUN_STATUS,
+        OP_SBATCH_AGENT_READY,
+        OP_SBATCH_LOGIN,
+    )
+)
 
 #: Types of slots required by op types
 CPU_SLOT_OPS = frozenset((OP_ANALYSIS, OP_RUN))
 #: All ops that have slots (see job_driver.DriverBase._slots_ready)
-SLOT_OPS = frozenset().union(*[CPU_SLOT_OPS, (OP_IO, OP_VERIFY_STATUS)])
+SLOT_OPS = frozenset().union(*[CPU_SLOT_OPS, (OP_IO,)])
 
-_OK_REPLY = PKDict(state="ok")
+#: state value (other states are implicit statuses)
+STATE_OK = "ok"
+
+_OK_REPLY = PKDict(state=STATE_OK)
 
 #: path supervisor registers to receive messages from agent
 AGENT_URI = "/job-agent-websocket"

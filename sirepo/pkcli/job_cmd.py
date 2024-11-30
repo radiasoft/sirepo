@@ -302,7 +302,7 @@ def _do_sbatch_parallel_status(msg, template):
     while not (s := _should_exit(f)):
         p = _write_parallel_status(p, msg, template, True)
         # Not asyncio.sleep: not in coroutine
-        time.sleep(msg.nextRequestSeconds)
+        time.sleep(msg.runStatusPollSeconds)
     if s.job_cmd_state != job.JOB_CMD_WRITE_PARALLEL_STATUS:
         # told to stop for an error or otherwise
         return None

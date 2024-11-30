@@ -288,7 +288,7 @@ class DriverBase(PKDict):
                 c.reply = PKDict(state="error", error="no reply")
             if i in self._prepared_sends:
                 # SECURITY: only ops known to this driver can be replied to
-                self._prepared_sends[i].reply_put(c.reply)
+                self._prepared_sends[i].reply_put(c.opName, c.reply)
             else:
                 pkdlog(
                     "{} not in prepared_sends opName={} o={:.4} content={}",
@@ -390,9 +390,7 @@ class DriverBase(PKDict):
 
         n = op.op_name
         res = job_supervisor.SlotAllocStatus.DID_NOT_AWAIT
-        if n in (job.OP_CANCEL, job.OP_KILL, job.OP_BEGIN_SESSION):
-            return res
-        if n == job.OP_SBATCH_LOGIN:
+        if n in job.OPS_WITHOUT_SLOTS:
             return res
         await _alloc_check(
             op.op_slot.alloc, "Waiting for another sim op to complete await=op_slot"

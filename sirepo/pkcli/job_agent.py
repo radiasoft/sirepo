@@ -11,6 +11,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdc, pkdformat
 from sirepo import job
 from sirepo.template import template_common
+import copy
 import datetime
 import os
 import re
@@ -394,7 +395,7 @@ class _Dispatcher(PKDict):
         if msg.runDir:
             _assert_run_dir_exists(pkio.py_path(msg.runDir))
         if not self.fastcgi_cmd:
-            m = msg.copy()
+            m = copy.deepcopy(msg)
             m.jobCmd = "fastcgi"
             self._fastcgi_file = _cfg.fastcgi_sock_dir.join(
                 f"sirepo_job_cmd-{_cfg.agent_id:8}.sock",
@@ -526,6 +527,7 @@ class _Cmd(PKDict):
 
     async def start(self):
         if self._is_compute and self._start_time:
+            this retruned after process start since synchronous
             await self.dispatcher.send(
                 self.dispatcher.format_op(
                     self.msg,
@@ -802,7 +804,7 @@ class _SbatchRun(_SbatchCmd):
         self.msg.pkupdate(sbatchStatusFile=str(self._sbatch_status_file))
         self._sbatch_status_cb = tornado.ioloop.PeriodicCallback(
             self._sbatch_poll_scontrol,
-            self.msg.nextRequestSeconds * 1000,
+            self.msg.runStatusPollSeconds * 1000,
         )
         self._sbatch_running = sirepo.tornado.Event()
         self._sbatch_status_cb.start()
@@ -814,7 +816,7 @@ class _SbatchRun(_SbatchCmd):
     async def _prepare_simulation(self):
         c = _SbatchPrepareSimulationCmd(
             dispatcher=self.dispatcher,
-            msg=self.msg.copy().pkupdate(
+            msg=copy.deepcopy(self.msg).pkupdate(
                 jobCmd="prepare_simulation",
                 # sequential job
                 opName=job.OP_ANALYSIS,
