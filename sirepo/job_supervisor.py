@@ -296,20 +296,12 @@ class _Supervisor(PKDict):
             if c:
                 c.destroy(internal_error=internal_error)
 
-<<<<<<< HEAD
     def _create_op(self, op_name, req, kind, job_run_mode, **msg_kwargs):
-=======
-    def _create_op(self, op_name, req, kind, job_run_mode, **kwargs):
->>>>>>> master
         return _Op(
             _supervisor=self,
             is_destroyed=False,
             kind=kind,
-<<<<<<< HEAD
             msg=copy.deepcopy(req.content)
-=======
-            msg=PKDict(req.copy_content())
->>>>>>> master
             .pksetdefault(jobRunMode=job_run_mode)
             .pkupdate(**msg_kwargs),
             op_name=op_name,
@@ -632,26 +624,17 @@ class _ComputeJob(_Supervisor):
     def _create(cls, req):
         self = cls.instances[req.content.computeJid] = cls(req)
         if self._is_running_pending():
-<<<<<<< HEAD
             if self.db.jobRunMode == job.SBATCH:
                 self._try_reattach_compute = True
-=======
-            # Easiest place to have special case
-            if self.db.jobRunMode == job.SBATCH:
-                self._must_verify_status = True
->>>>>>> master
             else:
                 # TODO(robnagler) when we reconnect with docker
                 # containers at startup, we'll need to change this.
                 # See https://github.com/radiasoft/sirepo/issues/6916
-<<<<<<< HEAD
                 pkdlog(
                     "cannot reattach canceling, jid={} {}",
                     self.db.computeJid,
                     req.content.api,
                 )
-=======
->>>>>>> master
                 self.__db_update(status=job.CANCELED)
         return self
 
@@ -933,11 +916,7 @@ class _ComputeJob(_Supervisor):
         if r not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
             # happens only when config changes, and only when sbatch is missing
             raise sirepo.util.NotFound("invalid jobRunMode={} req={}", r, req)
-<<<<<<< HEAD
         msg_kwargs.setdefault(
-=======
-        kwargs.setdefault(
->>>>>>> master
             "kind",
             (
                 job.PARALLEL
@@ -947,11 +926,7 @@ class _ComputeJob(_Supervisor):
         )
         o = (
             super()
-<<<<<<< HEAD
             ._create_op(op_name, req, job_run_mode=r, **msg_kwargs)
-=======
-            ._create_op(op_name, req, job_run_mode=r, **kwargs)
->>>>>>> master
             .pkupdate(task=asyncio.current_task())
         )
         self.ops.append(o)
@@ -1149,7 +1124,6 @@ class _ComputeJob(_Supervisor):
             )
         return None
 
-<<<<<<< HEAD
     def _reattach_compute(self, req):
         if not self._is_sbatch_login_ok(req):
             return
@@ -1196,24 +1170,6 @@ class _ComputeJob(_Supervisor):
             self.__db_update(status=job.CANCELED)
             if o:
                 o.destroy(internal_error=f"_reattach_compute exception={e}")
-=======
-    async def _verify_status(self, req):
-        self.__db_update(status=job.CANCELED)
-        return None
-
-    #
-    # rv = await self._send_with_single_reply(
-    #     job.OP_VERIFY_STATUS,
-    #     req,
-    #     kind=job.SEQUENTIAL,
-    # )
-    # just set canceled so can push out a small pr
-    # Need lock on must verify so can check inside lock that still true
-    #        if rv.state in
-    #        rv.
-    #        need lock on job # this is new
-    #        do not always send, ask the driver
->>>>>>> master
 
 
 class _Op(PKDict):
