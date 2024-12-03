@@ -452,6 +452,7 @@ class _ComputeJob(_Supervisor):
         if self._active_req_count > 0 or self.ops:
             self.cache_timeout_set()
         else:
+            # No ops or reqs so nothing to destroy
             del self.instances[self.db.computeJid]
 
     def cache_timeout_set(self):
@@ -529,8 +530,12 @@ class _ComputeJob(_Supervisor):
     @classmethod
     async def purge_non_premium(cls):
         def _purge_job(jid, too_old, qcall):
-            d = cls.__db_load(jid)
-            if d is None:
+            if jid in _ComputeJob.instances:
+                pkdlog(
+                    "jid=[} in _ComputeJob.instances; should not happen, ignoring", jid
+                )
+                return
+            if (d := cls.__db_load(jid)) is None:
                 return
             if d.lastUpdateTime > too_old:
                 return
@@ -929,8 +934,6 @@ class _ComputeJob(_Supervisor):
 
     async def _receive_api_runStatus(self, req):
         async def _ask_agent():
-            need to handle srexception for login(?)
-            when agent terminates how does run_status_op get cleared?
             r = await self._send_with_reply(
                 job.OP_RUN_STATUS,
                 req=PKDict(
@@ -947,18 +950,28 @@ class _ComputeJob(_Supervisor):
                 ),
                 runStatusPollSeconds=self.db.nextRequestSeconds,
             )
-            # Some other op got in earlier
-            if self._run_status_op:
-                pkdlog(
-                    "_run_status_op={} exists for jid={}",
-                    self._run_status_op,
-                    self.db.computeJid,
-                )
-            elif r.reply is not None:
+            if _op_is_still_in_control() and r.reply is not None:
                 self.db.status = r.reply.state
                 self.__db_write()
                 if self._is_running_pending():
                     self._run_status_op = r.op
+
+        def _op_is_still_in_control():
+            if self._run_status_op:
+                pkdlog(
+                    "_run_status_op={} exists jid={}",
+                    self._run_status_op,
+                    self.db.computeJid,
+                )
+            elif not self._is_running_pending():
+                pkdlog(
+                    "not _is_running_pending jid={}",
+                    self._run_status_op,
+                    self.db.computeJid,
+                )
+            else:
+                return True
+            return False
 
         if self._is_running_pending() and not self._run_status_op:
             await _ask_agent()
