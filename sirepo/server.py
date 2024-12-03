@@ -10,6 +10,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import simulation_db
+import datetime
 import os.path
 import re
 import sirepo.const
@@ -434,8 +435,9 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("allow_visitor")
     async def api_securityTxt(self):
-        d = sirepo.srtime.utc_now()
-        d = d.replace(year=d.year + 1, hour=0, minute=0, second=0, microsecond=0)
+        d = sirepo.srtime.utc_now().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ) + datetime.timedelta(days=365)
         return self.reply(
             content="".join(
                 [
