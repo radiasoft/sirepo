@@ -435,7 +435,7 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("allow_visitor")
     async def api_securityTxt(self):
         d = sirepo.srtime.utc_now()
-        d = d.replace(year=d.year + 1, hour=0, minute=0, second=0, microsecond=0)
+        d = d.replace(year=d.year + 1, day=1, hour=0, minute=0, second=0, microsecond=0)
         return self.reply(
             content="".join(
                 [
