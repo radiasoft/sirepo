@@ -204,6 +204,16 @@ def init_module(**imports):
     _call_later(0, _ComputeJob.purge_non_premium)
 
 
+def job_error_from_agent(jid, reply):
+    """job_agent sent an error not bound to an op
+
+    Args:
+        jid (str): job in error
+        reply (str): reply content
+    """
+    _ComputeJob.job_error_from_agent(jid, reply)
+
+
 async def terminate():
     await job_driver.terminate()
 
@@ -212,29 +222,15 @@ class _Supervisor(PKDict):
     def destroy_op(self, op):
         pass
 
-    @classmethod
-    @contextlib.contextmanager
-    def get_instance(cls, req):
-        if "computeJid" not in req.content:
-            yield _Supervisor()
-        else:
-            with _ComputeJob.get_instance(req) as rv:
-                yield rv
-
-    def pkdebug_str(self):
-        c = self.pkunchecked_nested_get("req.content") or self
-        return pkdformat(
-            "_Supervisor(api={} uid={})",
-            c.get("api"),
-            c.get("uid"),
-        )
+    async def op_send_timeout(self, op):
+        pass
 
     @classmethod
     async def receive(cls, req):
-        if req.content.api != "api_runStatus rjn remove this":
+        if req.content.api != "api_runStatus":
             pkdlog("{}", req)
         try:
-            with _Supervisor.get_instance(req) as s:
+            with _Supervisor._process_request(req) as s:
                 return await getattr(
                     s,
                     "_receive_" + req.content.api,
@@ -245,8 +241,13 @@ class _Supervisor(PKDict):
                 return _exception_reply(e)
             raise
 
-    async def op_send_timeout(self, op):
-        pass
+    def pkdebug_str(self):
+        c = self.pkunchecked_nested_get("req.content") or self
+        return pkdformat(
+            "_Supervisor(api={} uid={})",
+            c.get("api"),
+            c.get("uid"),
+        )
 
     async def _cancel_op(self, to_cancel):
         def _create_op():
@@ -401,6 +402,15 @@ class _Supervisor(PKDict):
 
         return PKDict(header=_get_header(), jobs=_get_jobs())
 
+    @classmethod
+    @contextlib.contextmanager
+    def _process_request(cls, req):
+        if "computeJid" not in req.content:
+            yield _Supervisor()
+        else:
+            with _ComputeJob.process_request(req) as rv:
+                yield rv
+
     async def _receive_api_admJobs(self, req):
         return self._get_running_pending_jobs()
 
@@ -475,8 +485,40 @@ class _ComputeJob(_Supervisor):
         ) - self.db.computeJobStart
 
     @classmethod
+    def job_error_from_agent(cls, jid, reply):
+        if self := cls.instances.get(jid):
+            self._process_run_status_reply(reply)
+        else:
+            # This should not happen unless the job is purged
+            pkdlog("inactive jid={} reply={}", jid, reply)
+
+    async def op_send_timeout(self, op):
+        if op.is_destroyed:
+            return
+        if self._run_status_op == op:
+            pkdlog("cancel jid={} {}", self.db.computeJid, op)
+            self.__db_update(
+                canceledAfterSecs=op.max_run_secs,
+                status=job.CANCELED,
+                queuedState=None,
+            )
+        await self._cancel_op(op)
+
+    def pkdebug_str(self):
+        d = self.get("db")
+        if not d:
+            return "_ComputeJob()"
+        return pkdformat(
+            "_ComputeJob({} u={} {} {})",
+            d.get("computeJid"),
+            d.get("uid"),
+            d.get("status"),
+            self.ops,
+        )
+
+    @classmethod
     @contextlib.contextmanager
-    def get_instance(cls, req):
+    def process_request(cls, req):
         def _authenticate(self):
             # SECURITY: must only return instances for authorized user
             if req.content.uid != self.db.uid:
@@ -502,30 +544,6 @@ class _ComputeJob(_Supervisor):
         finally:
             if self:
                 self._active_req_count -= 1
-
-    def pkdebug_str(self):
-        d = self.get("db")
-        if not d:
-            return "_ComputeJob()"
-        return pkdformat(
-            "_ComputeJob({} u={} {} {})",
-            d.get("computeJid"),
-            d.get("uid"),
-            d.get("status"),
-            self.ops,
-        )
-
-    async def op_send_timeout(self, op):
-        if op.is_destroyed:
-            return
-        if self._run_status_op == op:
-            pkdlog("cancel jid={} {}", self.db.computeJid, op)
-            self.__db_update(
-                canceledAfterSecs=op.max_run_secs,
-                status=job.CANCELED,
-                queuedState=None,
-            )
-        await self._cancel_op(op)
 
     @classmethod
     async def purge_non_premium(cls):
@@ -609,24 +627,7 @@ class _ComputeJob(_Supervisor):
                 reply,
             )
             return
-        if self.db.isParallel:
-            self.db.queueState = None
-        self.db.status = reply.state
-        self.db.alert = reply.get("alert")
-        if self.db.status == job.ERROR:
-            self.db.error = reply.get("error", "<unknown error>")
-        if "computeJobStart" in reply:
-            self.db.computeJobStart = reply.computeJobStart
-        if "parallelStatus" in reply:
-            self.db.parallelStatus.update(reply.parallelStatus)
-            self.db.lastUpdateTime = reply.parallelStatus.lastUpdateTime
-        else:
-            # agent doesn't always send the time
-            self.db.lastUpdateTime = (
-                reply.get("lastUpdateTime") or sirepo.srtime.utc_now_as_int()
-            )
-        # TODO(robnagler) will need final frame count. Not sent?
-        self.__db_write()
+        self._process_run_status_reply(reply)
         if reply.state in job.EXIT_STATUSES:
             self._run_status_op.destroy()
 
@@ -814,6 +815,27 @@ class _ComputeJob(_Supervisor):
         )
         return PKDict(state=self.db.status)
 
+    def _process_run_status_reply(self, reply):
+        """Process msg from agent about job"""
+        if self.db.isParallel:
+            self.db.queueState = None
+        self.db.status = reply.state
+        self.db.alert = reply.get("alert")
+        if self.db.status == job.ERROR:
+            self.db.error = reply.get("error", "<unknown error>")
+        if "computeJobStart" in reply:
+            self.db.computeJobStart = reply.computeJobStart
+        if "parallelStatus" in reply:
+            self.db.parallelStatus.update(reply.parallelStatus)
+            self.db.lastUpdateTime = reply.parallelStatus.lastUpdateTime
+        else:
+            # agent doesn't always send the time
+            self.db.lastUpdateTime = (
+                reply.get("lastUpdateTime") or sirepo.srtime.utc_now_as_int()
+            )
+        # TODO(robnagler) will need final frame count. Not sent?
+        self.__db_write()
+
     def _raise_if_purged_or_missing(self, req):
         if self.db.status in (job.MISSING, job.JOB_RUN_PURGED):
             raise sirepo.util.NotFound("purged or missing {}", req)
@@ -843,6 +865,8 @@ class _ComputeJob(_Supervisor):
         """
 
         def _find_op():
+            # TODO(robnagler) probably not possible in reality, but
+            # run_status might not be sent until
             rv = [o for o in self.ops if o.op_name == job.OP_RUN_STATUS]
             if not rv:
                 return None
@@ -950,11 +974,15 @@ class _ComputeJob(_Supervisor):
                 ),
                 runStatusPollSeconds=self.db.nextRequestSeconds,
             )
-            if _op_is_still_in_control() and r.reply is not None:
-                self.db.status = r.reply.state
-                self.__db_write()
-                if self._is_running_pending():
-                    self._run_status_op = r.op
+            try:
+                if r.reply is not None and _op_is_still_in_control():
+                    self.db.status = r.reply.state
+                    self.__db_write()
+                    if self._is_running_pending():
+                        self._run_status_op = r.op
+            except Exception:
+                r.op.destroy()
+                raise
 
         def _op_is_still_in_control():
             if self._run_status_op:
@@ -1029,7 +1057,7 @@ class _ComputeJob(_Supervisor):
         return await self._send_with_single_reply(job.OP_ANALYSIS, req, jobCmd=jobCmd)
 
     async def _send_with_reply(self, op_name, req, **kwargs):
-        def _send(op):
+        async def _send(op):
             if not await op.prepare_send() or op.is_destroyed:
                 return None, False
             op.send()

@@ -276,16 +276,16 @@ class DriverBase(PKDict):
         if ("opName" not in c or c.opName == job.OP_ERROR) or (
             "reply" in c and c.reply.get("state") == job.ERROR
         ):
+            # Log allerror message
             pkdlog("{} error msg={}", self, c)
-        elif c.opName == job.OP_JOB_CMD_STDERR:
-            pkdlog("{} stderr from job_cmd msg={}", self, c)
-            return
         else:
             pkdlog("{} opName={} o={:.4}", self, c.opName, i)
         if i:
             if "reply" not in c:
                 pkdlog("{} no reply={}", self, c)
-                c.reply = PKDict(state="error", error="no reply")
+                c.reply = PKDict(
+                    state=job.ERROR, error="invalid message from job_agent"
+                )
             if i in self._prepared_sends:
                 # SECURITY: only ops known to this driver can be replied to
                 self._prepared_sends[i].reply_put(c.opName, c.reply)
@@ -316,8 +316,19 @@ class DriverBase(PKDict):
         self._start_idle_timeout()
 
     def _agent_receive_error(self, msg):
-        # TODO(robnagler) what does this mean? Just a way of logging? Document this.
-        pkdlog("{} msg={}", self, msg)
+        """Received an error not bound to an op"""
+        if j := msg.content.get("computeJid"):
+            # SECURITY: assert agent can access to this uid
+            if job.split_jid(j).uid == self.uid:
+                job_supervisor.job_error_from_agent(j, msg.reply.content)
+            else:
+                pkdlog("{} jid={} for another user; msg={}", self, j, msg)
+        else:
+            pkdlog("{} msg={}", self, msg)
+
+    def _agent_receive_job_cmd_stderr(self, msg):
+        """Log stderr from job_cmd"""
+        pkdlog("{} stderr from job_cmd msg={}", self, msg.get("content"))
 
     async def _agent_start(self, op):
         if self._websocket_ready_timeout:

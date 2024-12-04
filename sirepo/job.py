@@ -120,13 +120,13 @@ EXIT_STATUSES = frozenset((CANCELED, COMPLETED, ERROR))
 #: Valid values for job status
 STATUSES = EXIT_STATUSES.union((PENDING, RUNNING))
 
-#: job_cmd states
-JOB_CMD_SBATCH_RUN_STATUS_STOP = "sbatch_run_status_stop"
-JOB_CMD_EXIT_SET = EXIT_STATUSES.union((JOB_CMD_SBATCH_RUN_STATUS_STOP,))
+#: For communication between job_agent and job_cmd
+JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP = "sbatch_run_status_stop"
+JOB_CMD_STATE_EXITS = EXIT_STATUSES.union((JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP,))
 
 #: job_cmds
 CMD_COMPUTE = "compute"
-CMD_REATTACH_COMPUTE = "reattach_compute"
+CMD_SBATCH_PREPARE_SIMULATION = "sbatch_prepare_simulation"
 
 #: jobRunMode and kinds; should come from schema
 SEQUENTIAL = "sequential"
