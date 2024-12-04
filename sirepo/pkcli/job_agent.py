@@ -305,16 +305,17 @@ class _Dispatcher(PKDict):
         return None
 
     async def _op_cancel(self, msg):
+        def _to_destroy():
+            # if a jid is canceled, all cmds associated are canceled
+            return set((c for c in list(self.cmds) if c.op_id in msg.opIdsToCancel or c.jid in msg.jidsToCancel))
+
         await self.send(
             self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED)),
         )
-        opIdsToCancel is a problem because it cancels run, not run_status
-        for c in list(self.cmds):
-            if c.op_id in msg.opIdsToCancel:
+        for c in _to_destroy():
+            if c in x:
                 pkdlog("cmd={}", c)
                 c.destroy()
-        rjn add a list of jids here and cancel those
-        _Cmd() does too much?
         return None
 
     async def _op_io(self, msg):
