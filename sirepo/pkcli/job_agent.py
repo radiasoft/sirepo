@@ -299,24 +299,17 @@ class _Dispatcher(PKDict):
         return await self._cmd(msg)
 
     async def _op_begin_session(self, msg):
-        await self.send(
-            self.format_op(msg, job.OP_OK, reply=PKDict(awake=True)),
-        )
-        return None
+        return self.format_op(msg, job.OP_OK, reply=PKDict(awake=True))
 
     async def _op_cancel(self, msg):
         def _to_destroy():
             # if a jid is canceled, all cmds associated are canceled
             return set((c for c in list(self.cmds) if c.op_id in msg.opIdsToCancel or c.jid in msg.jidsToCancel))
 
-        await self.send(
-            self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED)),
-        )
         for c in _to_destroy():
-            if c in x:
-                pkdlog("cmd={}", c)
-                c.destroy()
-        return None
+            pkdlog("cmd={}", c)
+            c.destroy()
+        return self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED))
 
     async def _op_io(self, msg):
         return await self._cmd(msg)
@@ -335,9 +328,7 @@ class _Dispatcher(PKDict):
         return await self._cmd(msg)
 
     async def _op_sbatch_login(self, msg):
-        await self.send(
-            self.format_op(msg, job.OP_OK, reply=job.sbatch_login_ok()),
-        )
+        return self.format_op(msg, job.OP_OK, reply=job.sbatch_login_ok())
 
     async def _cmd(self, msg, **kwargs):
         try:
@@ -363,7 +354,9 @@ class _Dispatcher(PKDict):
             self.fastcgi_cmd = p
         self.cmds.append(p)
         try:
-            await p.start()
+            m = await p.start()
+            if m:
+                self.send(m)
         except Exception as e:
             pkdlog("start exception={} stack={}", e, pkdexc())
             if not p._destroying:
@@ -550,8 +543,6 @@ class _Cmd(PKDict):
         rjn transition to running when?
         rjn computeJobStart=self._start_time),
         rjn store state of processes separately
-
-        self._compute_jobs[self.msg.computeJid] = PKDict()
         r = PKDict(state=job.STATE_OK)
         try:
             self._process.start()
@@ -560,7 +551,7 @@ class _Cmd(PKDict):
         m = self.dispatcher.format_op(self.msg, job.OP_OK, reply=r)
         self.msg.opId = None
         tornado.ioloop.IOLoop.current().add_callback(self._await_exit)
-        await self.dispatcher.send(m)
+        return m
 
     def pkdebug_str(self):
         return pkdformat(
@@ -710,21 +701,6 @@ class _SbatchRun(_SbatchCmd):
         # pkdel so does not get called twice (see destroy)
         self.pkdel("_in_file").remove()
 
-    async def _await_sbatch_running(self):
-        await self._sbatch_running.wait()
-        if self._destroying:
-            return
-        # in_file now contains sbatch_id
-        self._in_file = self._create_in_file()
-        pkdlog(
-            "{} sbatch_id={} starting jobCmd={}",
-            self,
-            self._sbatch_status.sbatch_id,
-            self.msg.jobCmd,
-        )
-        starts the parallel status but only start that on sbatch_parallel_status
-        await super().start()
-
     def destroy(self, terminating=False):
         def _scancel(sbatch_id):
             pkdlog("sbatch_id={}", sbatch_id)
@@ -762,9 +738,6 @@ class _SbatchRun(_SbatchCmd):
 
     async def start(self):
         async def _queue():
-            await self._prepare_simulation()
-            if self._destroying:
-                return False
             p = subprocess.run(
                 ("sbatch", self._sbatch_script()),
                 close_fds=True,
@@ -784,78 +757,14 @@ class _SbatchRun(_SbatchCmd):
                 )
             return True
 
-        async def _is_running():
-            # Turn on _is_compute so _job_cmd_reply works right
-            self._is_compute = True
-            if not self._sbatch_status_file.exists():
-                s = PKDict(job_cmd_state=job.ERROR, error="missing sbatch status file")
-            else:
-                try:
-                    s = pkjson.load_any(self._sbatch_status_file)
-                except Exception as e:
-                    pkdlog("file={} exception={}", self._sbatch_status_file, e)
-                    s = PKDict(
-                        job_cmd_state=job.ERROR,
-                        error=f"sbatch status file parsing exception={e}",
-                    )
-                else:
-                    if s.job_cmd_state not in job.EXIT_STATUSES:
-                        # Maybe JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP or running so start sbatch_run_status
-                        self._sbatch_status = s
-                        pkdlog("reattaching to sbatch_id={}", s.sbatch_id)
-                        return True
-                    pkdlog(
-                        "not trying to reattach to sbatch_id={} job_cmd_state={}",
-                        s.sbatch_id,
-                        s.job_cmd_state,
-                    )
-            await self._reply_and_maybe_destroy(s.job_cmd_state, error=s.get("error"))
-            return False
-
-        if self._is_reattach_compute:
-            if not await _is_running():
-                return
-        elif not await _queue():
+        if not await _queue():
             return
         self.msg.pkupdate(sbatchStatusFile=str(self._sbatch_status_file))
-        self._sbatch_status_cb = tornado.ioloop.PeriodicCallback(
-            self._sbatch_poll_scontrol,
-            self.msg.runStatusPollSeconds * 1000,
-        )
-        self._sbatch_running = sirepo.tornado.Event()
         self._sbatch_status_cb.start()
         # Starting an sbatch job may involve a long wait in the queue
         # so release back to agent loop so we can process other ops
         # while we wait for the job to start running
         tornado.ioloop.IOLoop.current().add_callback(self._await_sbatch_running)
-
-    async def _prepare_simulation(self):
-        c = _SbatchPrepareSimulationCmd(
-            dispatcher=self.dispatcher,
-            msg=copy.deepcopy(self.msg).pkupdate(
-                jobCmd=job.CMD_SBATCH_PREPARE_SIMULATION,
-                # sequential job
-                opName=job.OP_ANALYSIS,
-            ),
-            op_id=self.msg.opId,
-        )
-        await c.start()
-        await c._await_exit()
-
-    async def _reply_and_maybe_destroy(state, error=None):
-        d = self.dispatcher
-        r = PKDict()
-        if error:
-            r.error = error
-        self._sbatch_status_update(
-            job_cmd_state=job.JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP,
-            **r,
-        )
-        r.state = state
-        m = d.format_op(self.msg, job.OP_OK, reply=r)
-        if state in job.EXIT_STATUSES:
-            self.destroy()
-        await d.send(m)
 
     def _sbatch_script(self):
         i = self.msg.shifterImage
@@ -883,75 +792,22 @@ class _SbatchRun(_SbatchCmd):
 {o}
 {self.job_cmd_env()}
 {self.job_cmd_source_bashrc()}
+python <<'EOF'
+import sirepo.simulation_db
+import pykern.pkjson
+
+# returns the python command, but too complicated to couple
+simulation_db.prepare_simulation(
+    # python serialization does not work
+    pykern.pkjson.load_any('''{pkjson.dump_str(self.msg.data)}''',
+    'self.msg.runDir',
+)
+EOF
+# POSIT: same as return value of prepare_simulation
 exec srun {s} python {template_common.PARAMETERS_PYTHON_FILE}
 """
         )
         return f
-
-    async def _sbatch_poll_scontrol(self):
-        def _scontrol():
-            self._sbatch_status.scontrol_state = None
-            p = subprocess.run(
-                ("scontrol", "show", "job", self._sbatch_status.sbatch_id),
-                cwd=str(self.run_dir),
-                close_fds=True,
-                capture_output=True,
-                text=True,
-            )
-            if p.returncode != 0:
-                pkdlog(
-                    "{} scontrol error exit={} sbatch={} stderr={} stdout={}",
-                    self,
-                    p.returncode,
-                    self._sbatch_status.sbatch_id,
-                    p.stderr,
-                    p.stdout,
-                )
-                return None
-            r = re.search(r"(?<=JobState=)(\S+)(?= Reason)", p.stdout)
-            if not r:
-                pkdlog(
-                    "{} failed to find JobState in stderr={} stdout={}",
-                    self,
-                    p.stderr,
-                    p.stdout,
-                )
-                return None
-            self._sbatch_status.scontrol_state = r.group(1)
-            return self._sbatch_status.scontrol_state
-
-        def _state(s):
-            if not (s := _scontrol()):
-                self._scontrol_tries += 1
-                return job.ERROR if self._scontrol_tries > _MAX_SCONTROL_TRIES else None
-            self._scontrol_tries = 0
-            if self._sbatch_status.scontrol_state in ("PENDING", "CONFIGURING"):
-                return job.PENDING
-            if self._sbatch_status.scontrol_state in ("CANCELLED"):
-                return job.CANCELED
-            if not self._sbatch_running.is_set():
-                self._start_time = int(time.time())
-                self._sbatch_running.set()
-            if self._sbatch_status.scontrol_state in ("COMPLETING", "RUNNING"):
-                return job.RUNNING
-            if c := self._sbatch_status.scontrol_state == "COMPLETED":
-                self._sbatch_status_update(
-                    job_cmd_state=job.JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP,
-                )
-                # Do not reply; final parallel status will reply.
-                return None
-            return job.ERROR
-
-        if self._destroying:
-            return
-        if s := _state(_scontrol()):
-            e = None
-            if s == job.ERROR:
-                e = f"unexpected scontrol_state={self._sbatch_status.scontrol_state}"
-                pkdlog(
-                    "{} sbatch_id={} {}", self, self._sbatch_status.sbatch_id, r.error
-                )
-            await _reply_and_maybe_destroy(s, error=e)
 
     def _sbatch_status_update(self, **kwargs):
         p = self._sbatch_status.copy()
@@ -1015,7 +871,8 @@ class _SbatchRunStatus(_SbatchCmd):
             self._sbatch_status.sbatch_id,
             self.msg.jobCmd,
         )
-        starts the parallel status but only start that on sbatch_parallel_status
+        rjn run status keeps running
+        rjn starts the parallel status but only start that on sbatch_parallel_status
         await super().start()
 
     def destroy(self, terminating=False):
@@ -1207,8 +1064,6 @@ class _Process(PKDict):
             cmd=cmd,
             _exit=sirepo.tornado.Event(),
         )
-        if self.cmd.msg.jobCmd not in (job.CMD_SBATCH_PREPARE_SIMULATION, job.CMD_COMPUTE):
-            _assert_run_dir_exists(self.cmd.run_dir)
 
     async def exit_ready(self):
         await self._exit.wait()

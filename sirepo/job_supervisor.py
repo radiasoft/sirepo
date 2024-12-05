@@ -263,12 +263,15 @@ class _Supervisor(PKDict):
                 op_name=job.OP_CANCEL,
                 uid=self.db.uid,
             )
+
         def _eval_args_and_destroy():
             rv = PKDict(opIdsToCancel=[], jidsToCancel=[])
             d = PKDict(status=job.CANCELED, queuedState=None)
             if timed_out_op:
                 if timed_out_op.is_destroyed:
-                    raise AssertionError("already destroyed timed_out_op={}", timed_out_op)
+                    raise AssertionError(
+                        "already destroyed timed_out_op={}", timed_out_op
+                    )
                 if timed_out_op == self.run_status_op:
                     d.canceledAfterSecs = timed_out_op.max_run_secs
                 rv.opIdsToCancel.append(timed_out_op.op_id)
@@ -299,7 +302,7 @@ class _Supervisor(PKDict):
             # no need to check return, but need to get the reply.
             await c.reply_get()
         except Exception as e:
-            internal_error = f"_cancel_op exception={e}"
+            internal_error = f"_cancel_op_or_job exception={e}"
             pkdlog("exception={} stack={}", e, pkdexc())
         finally:
             if c:
