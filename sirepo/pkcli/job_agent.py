@@ -79,7 +79,7 @@ def start():
         global_resources_server_token=pkconfig.Required(
             str,
             "credential for global resources server",
-        ),
+v        ),
         global_resources_server_uri=pkconfig.Required(
             str,
             "how to connect to global resources",
@@ -171,6 +171,7 @@ class _Dispatcher(PKDict):
     def __init__(self):
         super().__init__(
             cmds=[],
+            external_jobs=[],
             fastcgi_cmd=None,
             fastcgi_error_count=0,
         )
@@ -257,6 +258,7 @@ class _Dispatcher(PKDict):
     def terminate(self):
         try:
             x = self.cmds
+            # external_jobs do not hold active state
             self.cmds = []
             for c in x:
                 try:
@@ -621,9 +623,9 @@ class _FastCgiCmd(_Cmd):
 
 
 class _SbatchCmd(_Cmd):
-    async def exited(self):
-        await self._process.exit_ready()
-
+rjn this is not a cmd, it is a SbatchJob which
+is stored in dispatcher under external_jobs.
+class _SbatchRun(_SbatchCmd):
     def job_cmd_source_bashrc(self):
         if not self.msg.get("shifterImage"):
             return super().job_cmd_source_bashrc()
@@ -651,38 +653,7 @@ class _SbatchCmd(_Cmd):
         return super().job_cmd_env(e)
 
 
-class _SbatchPrepareSimulationCmd(_SbatchCmd):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, send_reply=False, **kwargs)
 
-    async def _await_exit(self):
-        await self._process.exit_ready()
-        s = job.ERROR
-        o = None
-        if "stdout" in self:
-            o = pkjson.load_any(self.stdout)
-            s = o.get("state")
-        if s != job.COMPLETED:
-            raise AssertionError(
-                pkdformat(
-                    "unexpected state={} from result of cmd={} stdout={}",
-                    s,
-                    self,
-                    o,
-                )
-            )
-
-    async def on_stderr_read(self, text):
-        pkdlog("self={} stderr={}", self, text)
-
-    async def on_stdout_read(self, text):
-        if self._destroying:
-            return
-        self.stdout = text
-        pkdlog("self={} stdout={}", self, self.stdout)
-
-
-class _SbatchRun(_SbatchCmd):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pkupdate(
@@ -747,7 +718,7 @@ class _SbatchRun(_SbatchCmd):
             )
             m = re.search(r"Submitted batch job (\d+)", p.stdout)
             # TODO(robnagler) if the guy is out of hours, will fail
-            if not m or not self._sbatch_status_update(sbatch_id=m.group(1)):
+            if not m:
                 await self._reply_and_maybe_destroy(
                     job.ERROR,
                     error=f"error submitting sbatch job error={p.stderr}",
@@ -756,15 +727,16 @@ class _SbatchRun(_SbatchCmd):
                     f"Unable to submit exit={p.returncode} stdout={p.stdout} stderr={p.stderr} or _sbatch_status_update failed"
                 )
             return True
+            if not self._sbatch_status_update(sbatch_id=m.group(1)):
+                rjn something is really wrong, need to cancel the job
 
         if not await _queue():
             return
-        self.msg.pkupdate(sbatchStatusFile=str(self._sbatch_status_file))
-        self._sbatch_status_cb.start()
-        # Starting an sbatch job may involve a long wait in the queue
-        # so release back to agent loop so we can process other ops
-        # while we wait for the job to start running
-        tornado.ioloop.IOLoop.current().add_callback(self._await_sbatch_running)
+        rjn this is not cmd, because just starts sbatch and forgets
+        rjn however needs to be a command to hold jid so can be canceled
+        rjn cancel needs to have a jid somehow, maybe that is just a list
+        rjn that gets looked up. better to have a cmd that does not
+        rjn actually run anything(?)
 
     def _sbatch_script(self):
         i = self.msg.shifterImage
@@ -799,7 +771,7 @@ import pykern.pkjson
 # returns the python command, but too complicated to couple
 simulation_db.prepare_simulation(
     # python serialization does not work
-    pykern.pkjson.load_any('''{pkjson.dump_str(self.msg.data)}''',
+    pykern.pkjson.load_any('''{pkjson.dump_pretty(self.msg.data)}''',
     'self.msg.runDir',
 )
 EOF
