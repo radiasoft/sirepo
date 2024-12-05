@@ -264,8 +264,8 @@ class _Supervisor(PKDict):
                 uid=self.db.uid,
             )
 
-        def _eval_args_and_destroy():
-            rv = PKDict(opIdsToCancel=[], jidsToCancel=[])
+        def _eval_args_and_destroy_op():
+            rv = PKDict()
             d = PKDict(status=job.CANCELED, queuedState=None)
             if timed_out_op:
                 if timed_out_op.is_destroyed:
@@ -274,15 +274,17 @@ class _Supervisor(PKDict):
                     )
                 if timed_out_op == self.run_status_op:
                     d.canceledAfterSecs = timed_out_op.max_run_secs
-                rv.opIdsToCancel.append(timed_out_op.op_id)
+                rv.opId = timed_out_op.op_id
+                if timed_out_op.op_name == job.OP_RUN:
+                    rv.jid = self.db.computeJid
                 timed_out_op.destroy()
             elif is_run_cancel:
                 if timed_out_op:
                     raise AssertionError("too many args")
                 if self.run_status_op:
                     rv.opIdsToCancel.append(self.run_status_op.op_id)
-                    rv.jidsToCancel.append(self.db.computeJid)
                     self.run_status_op.destroy()
+                rv.jid = self.db.computeJid
             else:
                 raise AssertionError("too few args")
             self.__db_update(d)
@@ -291,7 +293,7 @@ class _Supervisor(PKDict):
 
         c = None
         internal_error = None
-        m = _eval_args_and_destroy()
+        m = _eval_args_and_destroy_op()
         try:
             c = _create_op(m)
             if not await c.prepare_send() or c.is_destroyed:

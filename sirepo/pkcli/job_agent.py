@@ -171,7 +171,7 @@ class _Dispatcher(PKDict):
     def __init__(self):
         super().__init__(
             cmds=[],
-            external_jobs=[],
+            compute_jobs=[],
             fastcgi_cmd=None,
             fastcgi_error_count=0,
         )
@@ -258,7 +258,7 @@ class _Dispatcher(PKDict):
     def terminate(self):
         try:
             x = self.cmds
-            # external_jobs do not hold active state
+            # compute_jobs are passive
             self.cmds = []
             for c in x:
                 try:
@@ -304,13 +304,15 @@ class _Dispatcher(PKDict):
         return self.format_op(msg, job.OP_OK, reply=PKDict(awake=True))
 
     async def _op_cancel(self, msg):
-        def _to_destroy():
-            # if a jid is canceled, all cmds associated are canceled
-            return set((c for c in list(self.cmds) if c.op_id in msg.opIdsToCancel or c.jid in msg.jidsToCancel))
-
-        for c in _to_destroy():
-            pkdlog("cmd={}", c)
-            c.destroy()
+        for x in list(self.jobs):
+            for x.jid == msg.jid:
+                pkdlog("{}", x)
+                x.cancel_requested()
+                rjn should kill all cmds associated with job
+        for x in list(self.cmds):
+            if x.opId == msg.opId:
+                pkdlog("{}", x)
+                x.cancel_requested()
         return self.format_op(msg, job.OP_OK, reply=PKDict(state=job.CANCELED))
 
     async def _op_io(self, msg):
@@ -343,6 +345,7 @@ class _Dispatcher(PKDict):
                 and msg.jobCmd != "fastcgi"
             ):
                 return await self._fastcgi_op(msg)
+            kwargs.setdefault("send_reply", True)
             p = self._get_cmd_type(msg)(
                 msg=msg, dispatcher=self, op_id=msg.opId, **kwargs
             )
@@ -458,37 +461,22 @@ class _Dispatcher(PKDict):
                 s.close()
 
 
-class _Cmd(PKDict):
-    def __init__(self, *args, send_reply=True, **kwargs):
-        super().__init__(*args, send_reply=send_reply, **kwargs)
+class _Job(PKDict):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         if self.msg.opName not in job.SLOT_OPS:
             raise AssertionError(
                 f"self.msg.opName={self.msg.opName} must be one of job.SLOT_OPS={job.SLOT_OPS} to create _Cmd"
             )
         self.run_dir = pkio.py_path(self.msg.runDir)
         self._is_compute = self.msg.jobCmd == job.CMD_COMPUTE
+        self.start_time = int(time.time())
         if self._is_compute:
             pkio.unchecked_remove(self.run_dir)
         if not self.run_dir.exists():
             pkio.mkdir_parent(self.run_dir)
-        self._in_file = self._create_in_file()
-        self._process = _Process(self)
-        self._destroying = False
-        self._terminating = False
-        self._start_time = int(time.time())
         self.jid = self.msg.computeJid
         self._uid = job.split_jid(jid=self.jid).uid
-
-    def destroy(self, terminating=False):
-        self._destroying = True
-        self._terminating = terminating
-        if "_in_file" in self:
-            pkio.unchecked_remove(self.pkdel("_in_file"))
-        self._process.kill()
-        try:
-            self.dispatcher.cmds.remove(self)
-        except ValueError:
-            pass
 
     def job_cmd_cmd(self):
         return ("sirepo", "job_cmd", self._in_file)
@@ -518,6 +506,41 @@ class _Cmd(PKDict):
             return ""
         return "source $HOME/.bashrc"
 
+    def pkdebug_str(self):
+        return pkdformat(
+            "{}(a={:.4} jid={} o={:.4} job_cmd={} run_dir={})",
+            self.__class__.__name__,
+            _cfg.agent_id,
+            self.jid,
+            self.get("op_id"),
+            self.msg.get("jobCmd"),
+            self.run_dir,
+        )
+
+
+class _Cmd(PKDict):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.job = _Job(**kwargs)
+        self._destroying = False
+        self._in_file = self._create_in_file()
+        self._process = _Process(self)
+        self._terminating = False
+
+    def cancel_requested(self):
+        self.destroy()
+
+    def destroy(self, terminating=False):
+        self._destroying = True
+        self._terminating = terminating
+        if "_in_file" in self:
+            pkio.unchecked_remove(self.pkdel("_in_file"))
+        self._process.kill()
+        try:
+            self.dispatcher.cmds.remove(self)
+        except ValueError:
+            pass
+
     async def on_stderr_read(self, text):
         try:
             await self.dispatcher.send(
@@ -541,30 +564,28 @@ class _Cmd(PKDict):
         except Exception as e:
             pkdlog("{} text={} error={} stack={}", self, text, e, pkdexc())
 
-    async def start(self):
-        rjn transition to running when?
-        rjn computeJobStart=self._start_time),
-        rjn store state of processes separately
-        r = PKDict(state=job.STATE_OK)
-        try:
-            self._process.start()
-        except Exception as e:
-            r.pkudpate(state=job.ERROR, error="failed to start process")
-        m = self.dispatcher.format_op(self.msg, job.OP_OK, reply=r)
-        self.msg.opId = None
-        tornado.ioloop.IOLoop.current().add_callback(self._await_exit)
-        return m
-
     def pkdebug_str(self):
         return pkdformat(
             "{}(a={:.4} jid={} o={:.4} job_cmd={} run_dir={})",
             self.__class__.__name__,
             _cfg.agent_id,
-            self.jid,
-            self.op_id,
-            self.msg.jobCmd,
+            self.job.jid,
+            self.get("op_id"),
+            self.msg.get("jobCmd"),
             self.run_dir,
         )
+
+    async def start(self):
+        r = PKDict(state=job.STATE_OK)
+        try:
+            self._process.start()
+        except Exception as e:
+            pkdlog("{} exception={} stack={}", self, e, pkdexc())
+            r.pkudpate(state=job.ERROR, error="failed to start process")
+        m = self.dispatcher.format_op(self.msg, job.OP_OK, reply=r)
+        self.msg.opId = None
+        tornado.ioloop.IOLoop.current().add_callback(self._await_exit)
+        return m
 
     async def _await_exit(self):
         try:
@@ -582,7 +603,7 @@ class _Cmd(PKDict):
                         error=e,
                         reply=PKDict(
                             state=job.ERROR,
-                            error=f"process exit={self._process.returncode} jid={self.jid}",
+                            error=f"process exit={self._process.returncode} jid={self.job.jid}",
                         ),
                     )
                 )
@@ -622,10 +643,13 @@ class _FastCgiCmd(_Cmd):
         super().destroy(terminating=terminating)
 
 
-class _SbatchCmd(_Cmd):
-rjn this is not a cmd, it is a SbatchJob which
-is stored in dispatcher under external_jobs.
-class _SbatchRun(_SbatchCmd):
+class _SbatchExternalJob(PKDict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(
+            sbatch_id=None,
+            _start_time=0,
+        )
+
     def job_cmd_source_bashrc(self):
         if not self.msg.get("shifterImage"):
             return super().job_cmd_source_bashrc()
@@ -653,24 +677,6 @@ class _SbatchRun(_SbatchCmd):
         return super().job_cmd_env(e)
 
 
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.pkupdate(
-            _is_reattach_compute=self.msg.jobCmd == job.CMD_REATTACH_COMPUTE,
-            _sbatch_status=PKDict(
-                sbatch_id=None,
-                job_cmd_state=None,
-                scontrol_state=None,
-            ),
-            _sbatch_status_cb=None,
-            _sbatch_status_file=self.run_dir.join(_SBATCH_STATUS_FILE),
-            _scontrol_tries=0,
-            _start_time=0,
-        )
-        self.msg.jobCmd = JOB_CMD_
-        # pkdel so does not get called twice (see destroy)
-        self.pkdel("_in_file").remove()
 
     def destroy(self, terminating=False):
         def _scancel(sbatch_id):
@@ -1065,7 +1071,7 @@ class _Process(PKDict):
     def start(self):
         # SECURITY: msg must not contain agentId
         assert not self.cmd.msg.get("agentId")
-        c, s, e = self.cmd.job_cmd_cmd_stdin_env()
+        c, s, e = self.cmd.job.job_cmd_cmd_stdin_env()
         pkdlog("cmd={} stdin={}", c, s.read())
         s.seek(0)
         self._subprocess = tornado.process.Subprocess(
