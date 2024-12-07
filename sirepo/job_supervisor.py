@@ -61,8 +61,20 @@ _PARALLEL_STATUS_FIELDS = frozenset(
         "frameCount",
         "lastUpdateTime",
         "percentComplete",
+        # TODO(robnagler) probably should be better labeled: what queue?
         "queueState",
     )
+)
+
+_RUN_STATUS_FIELDS = (
+    "computeJid",
+    "computeJobSerial",
+    "computeModel",
+    "isParallel",
+    "jobRunMode",
+    "simulationId",
+    "simulationType",
+    "uid",
 )
 
 _cfg = None
@@ -282,7 +294,7 @@ class _Supervisor(PKDict):
                 rv.jid = self.db.computeJid
             else:
                 raise AssertionError("too few args")
-            self.__db_status_update(d)
+            self.__db_status_update(**d)
             pkdlog("{} cancel args={}", self, rv)
             return rv
 
@@ -478,11 +490,14 @@ class _ComputeJob(_Supervisor):
 
     @classmethod
     def agent_receive(cls, msg):
-        if self := cls.instances.get(msg.computeJid):
-            self._process_run_status_reply(msg)
+        if (j := msg.get("computeJid")) and (self := cls.instances.get(j)):
+            if msg.opName in (job.OP_ERROR, job.OP_RUN_STATUS_UPDATE):
+                self._process_run_status_update(msg)
+            else:
+                pkdlog("unhandled opName={} msg={} {}", msg.opName, msg, self)
         else:
             # This should not happen unless the job is purged
-            pkdlog("inactive job jid={} msg={}", msg.computeJid, msg)
+            pkdlog("inactive job jid={} msg={}", j, msg)
 
     def cache_timeout(self):
         if self._active_req_count > 0 or self.ops:
@@ -626,7 +641,6 @@ class _ComputeJob(_Supervisor):
             _call_later(_cfg.purge_check_interval, cls.purge_non_premium)
         pkdlog("done")
 
-
     def set_situation(self, op, situation, exception=None):
         if op.op_name != job.OP_RUN:
             return
@@ -652,7 +666,7 @@ class _ComputeJob(_Supervisor):
             # containers at startup, we'll need to change this.
             # See https://github.com/radiasoft/sirepo/issues/6916
             pkdlog(
-                "cannot reattach canceling, jid={} {}",
+                "canceling after reload jid={} {}",
                 self.db.computeJid,
                 req.content.api,
             )
@@ -752,7 +766,24 @@ class _ComputeJob(_Supervisor):
 
     @classmethod
     def __db_load(cls, compute_jid):
-        v = None
+        def _fixup(old):
+            old.pksetdefault(
+                # Simple cases of missing defaults
+                computeModel=lambda: sirepo.job.split_jid(compute_jid).compute_model,
+                queueState=None,
+            )
+            if "dbUpdateTime" not in values:
+                values.dbUpdateTime = float(p.mtime())
+            elif isinstance(old.dbUpdateTime, int):
+                # make type compatible
+                old.dbUpdateTime = float(old.dbUpdateTime)
+            if "cancelledAfterSecs" in old:
+                # correct spelling
+                old.canceledAfterSecs = old.pkdel("cancelledAfterSecs", default=None)
+                for h in old.history:
+                    h.canceledAfterSecs = old.pkdel("cancelledAfterSecs", default=None)
+            return old
+
         p = cls.__db_file(compute_jid)
         try:
             d = p.read_binary()
@@ -769,26 +800,17 @@ class _ComputeJob(_Supervisor):
             "jobStatusMessage",
             "internalError",
         ]:
-            d.setdefault(k, v)
+            d.setdefault(k, None)
             for h in d.history:
-                h.setdefault(k, v)
-        d.pksetdefault(
-            computeModel=lambda: sirepo.job.split_jid(compute_jid).compute_model,
-            # No need for async, because upgrading old files
-            dbUpdateTime=lambda: float(p.mtime()),
-        )
-        if isinstance(d.dbUpdateTime, int):
-            # Fixup so type compatible
-            d.dbUpdateTime = float(d.dbUpdateTime)
-        if "cancelledAfterSecs" in d:
-            # update spelling
-            d.canceledAfterSecs = d.pkdel("cancelledAfterSecs", default=v)
-            for h in d.history:
-                h.canceledAfterSecs = d.pkdel("cancelledAfterSecs", default=v)
-        return d
+                h.setdefault(k, None)
+        return _fixup(d)
 
     def __db_status_update(self, **kwargs):
-        if not ("status" in kwargs and self._is_running_pending(kwargs["status"]) and self._is_running_pending):
+        if not (
+            "status" in kwargs
+            and self._is_running_pending(kwargs["status"])
+            and self._is_running_pending
+        ):
             # Need to ask the agent for status
             self._run_status_active = False
         self.__db_update(**kwargs)
@@ -802,6 +824,11 @@ class _ComputeJob(_Supervisor):
         kwargs.dbUpdateTime = sirepo.srtime.utc_now_as_float()
         sirepo.util.json_dump(db, path=cls.__db_file(db.computeJid))
 
+    def __db_copy_to_dest(self, dest, fields):
+        for f in fields:
+            dest[f] = self.db[f]
+        return dest
+
     def _is_running_pending(self, status=None):
         return (status or self.db.status) in (job.RUNNING, job.PENDING)
 
@@ -812,8 +839,16 @@ class _ComputeJob(_Supervisor):
             raise AssertionError(f"expecting missing status={self.db.status}")
         return PKDict(state=self.db.status)
 
-    def _process_run_status_reply(self, reply):
+    def _process_run_status_update(self, reply):
         """Process msg from agent about job"""
+        if self.db.computeJobSerial != reply.computeJobSerial:
+            pkdlog(
+                "{} db.computeJobSerial={} does not match reply={}, ignoring",
+                self,
+                self.db.computeJobSerial,
+                reply.computeJobSerial,
+            )
+            return
         d = PKDict(status=reply.state, alert=reply.get("alert"))
         if self.db.isParallel:
             # TODO(robnagler) document: tells the UI it is no longer queued in slurm
@@ -872,6 +907,7 @@ class _ComputeJob(_Supervisor):
     async def _receive_api_runSimulation(self, req, recursing=False):
         def _update_db():
             self.__db_init(req, prev_db=self.db)
+            t = sirepo.srtime.utc_now_as_int()
             self.__db_status_update(
                 computeJobQueued=t,
                 computeJobSerial=t,
@@ -934,26 +970,48 @@ class _ComputeJob(_Supervisor):
             d = self.db.dbUpdateTime
             r = await self._send_with_reply(
                 job.OP_RUN_STATUS,
-                req=PKDict(
-                    content=PKDict(
-                        computeJid=self.db.computeJid,
-                        computeModel=self.db.computeModel,
-                        isParallel=self.db.isParallel,
-                        jobRunMode=self.db.jobRunMode,
-                        # Note: overriden by drivers sometimes so no point in keeping in db
-                        runDir=req.content.runDir,
-                        simulationId=self.db.simulationId,
-                        simulationType=self.db.simulationType,
-                        uid=self.db.uid,
-                        userDir=req.content.userDir,
-                    ),
+                req=_req(),
+            )
+            if self.db.dbUpdateTime == d:
+                # db has not been modified since request
+                _update(r.reply)
+            r.op.destroy()
+
+        def _req():
+            return PKDict(
+                content=self.__db_copy_to_dest(PKDict, _RUN_STATUS_FIELDS).pkupdate(
+                    # Note: overriden by drivers sometimes so not kept in db
+                    runDir=req.content.runDir,
+                    userDir=req.content.userDir,
                 ),
                 runStatusPollSeconds=self.db.nextRequestSeconds,
             )
-            if r.reply is not None and self.db.dbUpdateTime == d and r.reply.state != job.UNKNOWN:
-                # Reply only includes state and maybe error
-                self.__db_status_update(status=r.reply.state)
-            r.op.destroy()
+
+        def _update_status(reply):
+            # Can modify the db
+            if r is None:
+                # Unclear what the status is so just retry
+                self._run_status_active = False
+                return
+            # unknown means driver is still querying service
+            if reply.state == job.UNKNOWN:
+                if e := reply.get("error"):
+                    self._run_status_active = False
+                    pkdlog("{} run_status error={}, ignoring", self, e)
+                # else normal case of indeterminate state and run_status will continue
+                return
+            if reply.computeJobSerial != self.db.computeJobSerial:
+                # TODO(robnagler) probably need to kill job if reply.status is running?
+                self._run_status_active = False
+                pkdlog(
+                    "{} db.computeJobSerial={} does not match reply={}",
+                    self,
+                    self.db.computeJobSerial,
+                    reply,
+                )
+                return
+            # Reply only includes state at this point; OP_RUN_STATUS_UPDATE handles that
+            self.__db_status_update(status=reply.state)
 
         if self._is_running_pending() and not self._run_status_active:
             await _ask_agent()
@@ -1054,43 +1112,45 @@ class _ComputeJob(_Supervisor):
             )
             if self.db.canceledAfterSecs is not None:
                 r.canceledAfterSecs = self.db.canceledAfterSecs
+            # TODO(robnagler) could always be set?
             if self.db.error:
                 r.error = self.db.error
             if self.db.alert:
                 r.alert = self.db.alert
             if self.db.isParallel:
                 r.update(self.db.parallelStatus)
-                # TODO(robnagler) why are these not included in all cases?
-                r.computeJobHash = self.db.computeJobHash
-                r.computeJobSerial = self.db.computeJobSerial
-                r.computeModel = self.db.computeModel
-                r.elapsedTime = self.elapsed_time()
-                # TODO(robnagler) probably should be better labeled: what queue?
-                r.queueState = self.db.get("queueState")
-            if self._is_running_pending():
-                r.update(
-                    jobStatusMessage=self.db.jobStatusMessage,
-                    nextRequestSeconds=self.db.nextRequestSeconds,
-                    nextRequest=PKDict(
-                        computeJobHash=self.db.computeJobHash,
-                        computeJobSerial=self.db.computeJobSerial,
-                        computeJobStart=self.db.computeJobStart,
-                        # TODO(robnagler) is this value necessary?
-                        report=req.content.analysisModel,
-                        simulationId=self.db.simulationId,
-                        simulationType=self.db.simulationType,
+                self.__db_copy_to_dest(
+                    # TODO(robnagler) why are these not included in all cases?
+                    r,
+                    (
+                        "computeJobHash",
+                        "computeJobSerial",
+                        "computeModel",
+                        "queueState",
                     ),
+                )
+                r.elapsedTime = self.elapsed_time()
+            if self._is_running_pending():
+                # TODO(robnagler) why are there two copies of nextRequestSeconds?
+                self.__db_copy_to_dest(r, ("jobStatusMessage", "nextRequestSeconds"))
+                r.nextRequest = self.__db_copy_to_dest(
+                    PKDict(), _RUN_STATUS_FIELDS
+                ).pkupdate(
+                    # TODO(robnagler) is this value necessary?
+                    report=req.content.analysisModel,
                 )
             return r
 
-        if self.db.computeJobHash != req.content.computeJobHash:
-            return PKDict(state=job.MISSING, reason="computeJobHash-mismatch")
-        if (
-            req.content.computeJobSerial
-            and self.db.computeJobSerial != req.content.computeJobSerial
-        ):
-            return PKDict(state=job.MISSING, reason="computeJobSerial-mismatch")
-        return _result()
+        if self._req_is_valid():
+            return _result()
+        return PKDict(
+            state=job.MISSING,
+            reason=(
+                "computeJobSerial-mismatch"
+                if self.db.computeJobHash == req.content.computeJobHash
+                else "computeJobHash-mismatch"
+            ),
+        )
 
 
 class _Op(PKDict):
@@ -1127,7 +1187,7 @@ class _Op(PKDict):
             for x in "cpu_slot", "op_slot", "run_dir_slot":
                 if y := self.pkdel(x):
                     y.free()
-            for x in "run_callback", "timer":
+            for x in ("timer",):
                 if y := self.pkdel(x):
                     tornado.ioloop.IOLoop.current().remove_timeout(y)
             self._supervisor.destroy_op(self)

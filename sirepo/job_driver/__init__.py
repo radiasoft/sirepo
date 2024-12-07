@@ -318,6 +318,10 @@ class DriverBase(PKDict):
         self._websocket.sr_driver_set(self)
         self._start_idle_timeout()
 
+    def _agent_receive_job_cmd_stderr(self, msg):
+        """Log stderr from job_cmd"""
+        pkdlog("{} stderr from job_cmd msg={}", self, msg.get("content"))
+
     def _agent_receive_supervisor(self, msg):
         """Received an error not bound to an op"""
         if j := msg.content.get("computeJid"):
@@ -328,10 +332,6 @@ class DriverBase(PKDict):
                 pkdlog("{} jid={} not for this uid={}; msg={}", self, j, self.uid, msg)
         else:
             pkdlog("{} msg={}", self, msg)
-
-    def _agent_receive_job_cmd_stderr(self, msg):
-        """Log stderr from job_cmd"""
-        pkdlog("{} stderr from job_cmd msg={}", self, msg.get("content"))
 
     async def _agent_start(self, op):
         if self._websocket_ready_timeout:

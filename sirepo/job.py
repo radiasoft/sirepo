@@ -128,7 +128,7 @@ JOB_CMD_STATE_EXITS = EXIT_STATUSES.union((JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP,
 #: job_cmds
 CMD_COMPUTE = "compute"
 CMD_DOWNLOAD_RUN_FILE = "download_run_file"
-CMD_SBATCH_PREPARE_SIMULATION = "sbatch_prepare_simulation"
+CMD_SBATCH_RUN_STATUS = "sbatch_run_status"
 
 #: jobRunMode and kinds; should come from schema
 SEQUENTIAL = "sequential"

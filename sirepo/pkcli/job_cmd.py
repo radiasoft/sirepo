@@ -300,13 +300,13 @@ def _do_sbatch_run_status(msg, template):
     f = pkio.py_path(msg.sbatchStatusFile)
     p = None
     while not (s := _should_exit(f)):
-        p = _write_parallel_status(p, msg, template, True)
+        p = _write_parallel_status(p, msg, template, is_running=True)
         # Not asyncio.sleep: not in coroutine
         time.sleep(msg.runStatusPollSeconds)
     if s.job_cmd_state != job.JOB_CMD_WRITE_PARALLEL_STATUS:
         # told to stop for an error or otherwise
         return None
-    _write_parallel_status(p, msg, template, False)
+    _write_parallel_status(p, msg, template, is_running=False)
     s.job_cmd_state = job.COMPLETED
     pkio.atomic_write(f, s)
     return PKDict(state=job.COMPLETED)

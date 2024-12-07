@@ -188,9 +188,7 @@ class _Dispatcher(PKDict):
     def format_op(self, msg, op_name, **kwargs):
         if msg:
             kwargs["opId"] = msg.get("opId")
-        return pkjson.dump_bytes(
-            PKDict(agentId=_cfg.agent_id, opName=op_name).pksetdefault(**kwargs),
-        )
+        return _OpMsg(agentId=_cfg.agent_id, opName=op_name).pksetdefault(**kwargs)
 
     async def job_cmd_reply(self, msg, op_name, text):
         try:
@@ -203,11 +201,12 @@ class _Dispatcher(PKDict):
                 stdout=text,
             )
         try:
-            # TODO(robnagler) need
             k = PKDict(reply=r)
             if msg.opName == job.OP_RUN:
-                op_name = job.OP_RUN_STATUS
+                # Even on errors, we force the op_name
+                op_name = job.OP_RUN_STATUS_UPDATE
                 k.computeJid = msg.computeJid
+                k.computeJobSerial = msg.computeJobSerial
             await self.send(self.format_op(msg, op_name, **k))
         except Exception as e:
             pkdlog("reply={} error={} stack={}", r, e, pkdexc())
@@ -253,10 +252,12 @@ class _Dispatcher(PKDict):
         if not self._websocket:
             return False
         try:
-            await self._websocket.write_message(msg)
+            if not isinstance(msg, _OpMsg):
+                raise AssertionError("expected _OpMsg type={} msg={}", type(msg), msg)
+            await self._websocket.write_message(pkjson.dump_bytes(msg))
             return True
         except Exception as e:
-            pkdlog("msg={} error={}", msg, e)
+            pkdlog("exception={} msg={} stack={}", e, msg, pkdexc())
             return False
 
     def terminate(self):
@@ -457,13 +458,23 @@ class _Dispatcher(PKDict):
     async def _op_run_status(self, msg):
         for c in list(self.cmds):
             if c.jid == msg.computeJid and r := c.get("job_state"):
-                return self.format_op(msg, job.OP_OK, reply=PKDict(state=r))
+                if c.computeJobSerial != msg.computeJobSerial:
+                    return self.format_op(
+                        msg,
+                        job.OP_ERROR,
+                        reply=PKDict(state=job.UNKNOWN, error="run_status computeJobSerial mismatch"),
+                    )
+                return self.format_op(
+                    msg,
+                    job.OP_OK,
+                    reply=PKDict(state=r, computeJobSerial=msg.computeJobSerial),
+                )
         if msg.jobRunMode == job.SBATCH:
             return _SbatchRunStatus.sbatch_status_request(msg=msg, dispatcher=self, op_id=msg.opId)
         return self.format_canceled(msg)
 
     async def _op_sbatch_login(self, msg):
-        return self.format_canceled(msg)
+        return self.format_op(msg, job.OP_OK, reply=PKDict(loginSuccess=True))
 
 
 class _Cmd(PKDict):
@@ -473,6 +484,7 @@ class _Cmd(PKDict):
         if self.msg.get("runDir"):
             self.run_dir = pkio.py_path(self.msg.runDir)
             if self.msg.opName == job.OP_RUN:
+                self.computeJobSerial = self.msg.computeJobSerial
                 self.job_state = job.PENDING
                 self.start_time = int(time.time())
                 pkio.unchecked_remove(self.run_dir)
@@ -654,8 +666,136 @@ class _Cmd(PKDict):
 
 class _FastCgiCmd(_Cmd):
     def destroy(self, terminating=False):
+        if self._destroying:
+            return
         self.dispatcher.fastcgi_destroy()
         super().destroy(terminating=terminating)
+
+
+class _OpMsg(PKDict):
+    pass
+
+class _Process(PKDict):
+    def __init__(self, cmd):
+        super().__init__()
+        self.update(
+            stderr=None,
+            stdout=None,
+            cmd=cmd,
+            _exit=sirepo.tornado.Event(),
+        )
+
+    async def exit_ready(self):
+        await self._exit.wait()
+        await self.stdout.stream_closed.wait()
+        await self.stderr.stream_closed.wait()
+
+    def kill(self):
+        # If the process is't started
+        if "returncode" in self or "_subprocess" not in self:
+            return
+        p = None
+        try:
+            pkdlog("{}", self)
+            p = self.pkdel("_subprocess").proc.pid
+            os.killpg(p, signal.SIGKILL)
+        except Exception as e:
+            pkdlog("{} error={}", self, e)
+
+    def pkdebug_str(self):
+        return pkdformat(
+            "{}(pid={} cmd={})",
+            self.__class__.__name__,
+            self._subprocess.proc.pid if self.get("_subprocess") else None,
+            self.cmd,
+        )
+
+    def start(self):
+        # SECURITY: msg must not contain agentId
+        assert not self.cmd.msg.get("agentId")
+        c, s, e = self.cmd.job_cmd_cmd_stdin_env()
+        pkdlog("cmd={} stdin={}", c, s.read())
+        s.seek(0)
+        self._subprocess = tornado.process.Subprocess(
+            c,
+            close_fds=True,
+            cwd=str(self.cmd.run_dir),
+            env=e,
+            start_new_session=True,
+            stdin=s,
+            stdout=tornado.process.Subprocess.STREAM,
+            stderr=tornado.process.Subprocess.STREAM,
+        )
+        s.close()
+        self.stdout = _ReadJsonlStream(self._subprocess.stdout, self.cmd)
+        self.stderr = _ReadUntilCloseStream(self._subprocess.stderr, self.cmd)
+        self._subprocess.set_exit_callback(self._on_exit)
+        return self
+
+    def _on_exit(self, returncode):
+        self.returncode = returncode
+        self._exit.set()
+
+
+class _RunDirNotFound(Exception):
+    pass
+
+
+class _Stream(PKDict):
+    def __init__(self, stream, cmd):
+        super().__init__(
+            cmd=cmd,
+            stream_closed=sirepo.tornado.Event(),
+            text=bytearray(),
+            _stream=stream,
+        )
+        _call_later_0(self._begin_read_stream)
+
+    async def _begin_read_stream(self):
+        try:
+            while True:
+                await self._read_stream()
+        except tornado.iostream.StreamClosedError as e:
+            assert e.real_error is None, "real_error={}".format(e.real_error)
+        finally:
+            self._stream.close()
+            self.stream_closed.set()
+
+    async def _read_stream(self):
+        raise NotImplementedError()
+
+
+class _ReadJsonlStream(_Stream):
+    def __init__(self, *args):
+        self.proceed_with_read = tornado.locks.Condition()
+        self.read_occurred = tornado.locks.Condition()
+        super().__init__(*args)
+
+    async def _read_stream(self):
+        self.text = await self._stream.read_until(b"\n", job.cfg().max_message_bytes)
+        pkdc("cmd={} stdout={}", self.cmd, self.text[:1000])
+        await self.cmd.on_stdout_read(self.text)
+
+
+class _ReadUntilCloseStream(_Stream):
+    def __init__(self, *args):
+        super().__init__(*args)
+
+    async def _read_stream(self):
+        t = await self._stream.read_bytes(
+            job.cfg().max_message_bytes - len(self.text),
+            partial=True,
+        )
+        pkdlog("cmd={} stderr={}", self.cmd, t)
+        await self.cmd.on_stderr_read(t)
+        l = len(self.text) + len(t)
+        assert (
+            l < job.cfg().max_message_bytes
+        ), "len(bytes)={} greater than max_message_size={}".format(
+            l,
+            job.cfg().max_message_bytes,
+        )
+        self.text.extend(t)
 
 
 class _SbatchCmd(_Cmd):
@@ -718,6 +858,7 @@ class _SbatchRun(_SbatchCmd):
         )
         m = re.search(r"Submitted batch job (\d+)", p.stdout)
         # Failure might be out of hours or batch system down
+        rv = None
         if m:
             if self._sbatch_status_update(sbatch_id=m.group(1)):
                 rv = self.format_op(op_name=job.OK, reply=PKDict(state=job.OK))
@@ -729,8 +870,16 @@ class _SbatchRun(_SbatchCmd):
             rv = self.format_op(
                 error=f"error submitting sbatch job error={p.stderr}",
             )
+        if not rv:
+            rv = _SbatchRunStatus.sbatch_status_request(
+                msg=self.msg.copy().pkupdate(opId=None),
+                dispatcher=self.dispatcher,
+                op_id=None,
+            )
+            if rv.opName == job.OP_OK and rv.reply.state == job.UNKNOWN:
+                # sbatch_status_request replies UNKNOWN when normal state
+                rv = self.format_op_reply(state=job.OK)
         self.destroy()
-        rjn always start SBatchRunStatus
         return rv
 
     def _sbatch_script(self):
@@ -806,7 +955,6 @@ class _SbatchRunStatus(_SbatchCmd):
             _scontrol_tries=0,
         )
         self.msg.jobCmd = "sbatch_parallel_status"
-        rjn always need to write at the end, but this should always happen
 
     @classmethod
     def sbatch_status_request(cls, **kwargs):
@@ -821,6 +969,7 @@ class _SbatchRunStatus(_SbatchCmd):
         self._sbatch_status._scontrol_state = s
         self.start()
         # can't answer the question yet
+        # POSIT: expected by _SbatchRun.start
         return self.format_op_reply(state=job.UNKNOWN)
 
     def start(self):
@@ -983,6 +1132,8 @@ class _SbatchRunStatus(_SbatchCmd):
                     p.stdout,
                 )
 
+        if self._destroying:
+            return
         self._destroying = True
         self._terminating = terminating
         if self._sbatch_status_cb:
@@ -998,127 +1149,6 @@ class _SbatchRunStatus(_SbatchCmd):
             _scancel(self._sbatch_status.sbatch_id)
         super().destroy(terminating=terminating)
 
-class _Process(PKDict):
-    def __init__(self, cmd):
-        super().__init__()
-        self.update(
-            stderr=None,
-            stdout=None,
-            cmd=cmd,
-            _exit=sirepo.tornado.Event(),
-        )
-
-    async def exit_ready(self):
-        await self._exit.wait()
-        await self.stdout.stream_closed.wait()
-        await self.stderr.stream_closed.wait()
-
-    def kill(self):
-        # If the process is't started
-        if "returncode" in self or "_subprocess" not in self:
-            return
-        p = None
-        try:
-            pkdlog("{}", self)
-            p = self.pkdel("_subprocess").proc.pid
-            os.killpg(p, signal.SIGKILL)
-        except Exception as e:
-            pkdlog("{} error={}", self, e)
-
-    def pkdebug_str(self):
-        return pkdformat(
-            "{}(pid={} cmd={})",
-            self.__class__.__name__,
-            self._subprocess.proc.pid if self.get("_subprocess") else None,
-            self.cmd,
-        )
-
-    def start(self):
-        # SECURITY: msg must not contain agentId
-        assert not self.cmd.msg.get("agentId")
-        c, s, e = self.cmd.job_cmd_cmd_stdin_env()
-        pkdlog("cmd={} stdin={}", c, s.read())
-        s.seek(0)
-        self._subprocess = tornado.process.Subprocess(
-            c,
-            close_fds=True,
-            cwd=str(self.cmd.run_dir),
-            env=e,
-            start_new_session=True,
-            stdin=s,
-            stdout=tornado.process.Subprocess.STREAM,
-            stderr=tornado.process.Subprocess.STREAM,
-        )
-        s.close()
-        self.stdout = _ReadJsonlStream(self._subprocess.stdout, self.cmd)
-        self.stderr = _ReadUntilCloseStream(self._subprocess.stderr, self.cmd)
-        self._subprocess.set_exit_callback(self._on_exit)
-        return self
-
-    def _on_exit(self, returncode):
-        self.returncode = returncode
-        self._exit.set()
-
-
-class _RunDirNotFound(Exception):
-    pass
-
-
-class _Stream(PKDict):
-    def __init__(self, stream, cmd):
-        super().__init__(
-            cmd=cmd,
-            stream_closed=sirepo.tornado.Event(),
-            text=bytearray(),
-            _stream=stream,
-        )
-        _call_later_0(self._begin_read_stream)
-
-    async def _begin_read_stream(self):
-        try:
-            while True:
-                await self._read_stream()
-        except tornado.iostream.StreamClosedError as e:
-            assert e.real_error is None, "real_error={}".format(e.real_error)
-        finally:
-            self._stream.close()
-            self.stream_closed.set()
-
-    async def _read_stream(self):
-        raise NotImplementedError()
-
-
-class _ReadJsonlStream(_Stream):
-    def __init__(self, *args):
-        self.proceed_with_read = tornado.locks.Condition()
-        self.read_occurred = tornado.locks.Condition()
-        super().__init__(*args)
-
-    async def _read_stream(self):
-        self.text = await self._stream.read_until(b"\n", job.cfg().max_message_bytes)
-        pkdc("cmd={} stdout={}", self.cmd, self.text[:1000])
-        await self.cmd.on_stdout_read(self.text)
-
-
-class _ReadUntilCloseStream(_Stream):
-    def __init__(self, *args):
-        super().__init__(*args)
-
-    async def _read_stream(self):
-        t = await self._stream.read_bytes(
-            job.cfg().max_message_bytes - len(self.text),
-            partial=True,
-        )
-        pkdlog("cmd={} stderr={}", self.cmd, t)
-        await self.cmd.on_stderr_read(t)
-        l = len(self.text) + len(t)
-        assert (
-            l < job.cfg().max_message_bytes
-        ), "len(bytes)={} greater than max_message_size={}".format(
-            l,
-            job.cfg().max_message_bytes,
-        )
-        self.text.extend(t)
 
 def _call_later_0(*args, **kwargs):
     return tornado.ioloop.IOLoop.current().call_later(0, *args, **kwargs)
