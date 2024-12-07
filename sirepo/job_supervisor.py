@@ -855,12 +855,12 @@ class _ComputeJob(_Supervisor):
             d.queueState = None
         if self.db.status == job.ERROR:
             d.error = reply.get("error", "<unknown error>")
-        if "computeJobStart" in reply:
-            d.computeJobStart = reply.computeJobStart
-        if "parallelStatus" in reply:
+        if x := reply.get("computeJobStart"):
+            d.computeJobStart = x
+        if x := reply.get("parallelStatus"):
             # TODO(robnagler) Need to pass this, but may be nested
-            self.db.parallelStatus.update(reply.parallelStatus)
-            d.lastUpdateTime = reply.parallelStatus.lastUpdateTime
+            self.db.parallelStatus.update(x)
+            d.lastUpdateTime = x.lastUpdateTime
         else:
             # agent doesn't always send the time
             d.lastUpdateTime = (
