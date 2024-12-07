@@ -22,6 +22,7 @@ import sirepo.util
 import tornado.gen
 import tornado.ioloop
 
+_RUN_DIR_OPS = job.SLOT_OPS.union((job.OP_RUN_STATUS,))
 
 class SbatchDriver(job_driver.DriverBase):
     cfg = None
@@ -107,6 +108,17 @@ class SbatchDriver(job_driver.DriverBase):
         return True
 
     async def prepare_send(self, op):
+        def _add_dirs(msg):
+            msg.userDir = "/".join(
+                (
+                    str(self._srdb_root),
+                    sirepo.simulation_db.USER_ROOT_DIR,
+                    self.uid,
+                )
+            )
+            msg.runDir = "/".join((msg.userDir, msg.simulationType, msg.computeJid))
+            return msg
+
         m = op.msg
         c = m.pkdel("sbatchCredentials")
         if self._srdb_root is None or c:
@@ -117,15 +129,8 @@ class SbatchDriver(job_driver.DriverBase):
             self._srdb_root = self.cfg.srdb_root.format(
                 sbatch_user=self._creds.username,
             )
-        if op.op_name in job.SLOT_OPS:
-            m.userDir = "/".join(
-                (
-                    str(self._srdb_root),
-                    sirepo.simulation_db.USER_ROOT_DIR,
-                    self.uid,
-                )
-            )
-            m.runDir = "/".join((m.userDir, m.simulationType, m.computeJid))
+        if op.op_name in _RUN_DIR_OPS:
+            _add_dirs(m)
             if op.op_name == job.OP_RUN and op.msg.jobCmd == job.CMD_COMPUTE:
                 assert m.sbatchHours
                 for f, c in [

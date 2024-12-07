@@ -204,14 +204,13 @@ def init_module(**imports):
     _call_later(0, _ComputeJob.purge_non_premium)
 
 
-def job_error_from_agent(jid, reply):
-    """job_agent sent an error not bound to an op
+def agent_receive(msg):
+    """job_agent sent an async update
 
     Args:
-        jid (str): job in error
-        reply (str): reply content
+        msg (str): msg content
     """
-    _ComputeJob.job_error_from_agent(jid, reply)
+    _ComputeJob.agent_receive(msg)
 
 
 async def terminate():
@@ -272,22 +271,18 @@ class _Supervisor(PKDict):
                     raise AssertionError(
                         "already destroyed timed_out_op={}", timed_out_op
                     )
-                if timed_out_op == self.run_status_op:
-                    d.canceledAfterSecs = timed_out_op.max_run_secs
                 rv.opId = timed_out_op.op_id
                 if timed_out_op.op_name == job.OP_RUN:
+                    d.canceledAfterSecs = timed_out_op.max_run_secs
                     rv.jid = self.db.computeJid
                 timed_out_op.destroy()
             elif is_run_cancel:
                 if timed_out_op:
                     raise AssertionError("too many args")
-                if self.run_status_op:
-                    rv.opIdsToCancel.append(self.run_status_op.op_id)
-                    self.run_status_op.destroy()
                 rv.jid = self.db.computeJid
             else:
                 raise AssertionError("too few args")
-            self.__db_update(d)
+            self.__db_status_update(d)
             pkdlog("{} cancel args={}", self, rv)
             return rv
 
@@ -471,15 +466,23 @@ class _ComputeJob(_Supervisor):
             _active_req_count=0,
             ops=[],
             run_dir_slot_q=SlotQueue(),
-            _run_status_op=None,
+            _run_status_active=False,
         )
         # At start we don't know anything about the run_dir so assume ready
         if d := self.__db_load(req.content.computeJid):
             self.db = d
         else:
             self.__db_init(req)
-            self.__db_write()
+            self.__db_status_update()
         self.cache_timeout_set()
+
+    @classmethod
+    def agent_receive(cls, msg):
+        if self := cls.instances.get(msg.computeJid):
+            self._process_run_status_reply(msg)
+        else:
+            # This should not happen unless the job is purged
+            pkdlog("inactive job jid={} msg={}", msg.computeJid, msg)
 
     def cache_timeout(self):
         if self._active_req_count > 0 or self.ops:
@@ -494,8 +497,6 @@ class _ComputeJob(_Supervisor):
     def destroy_op(self, op):
         if op in self.ops:
             self.ops.remove(op)
-        if self._run_status_op == op:
-            self._run_status_op = None
         super().destroy_op(op)
 
     def elapsed_time(self):
@@ -506,14 +507,6 @@ class _ComputeJob(_Supervisor):
             if self._is_running_pending()
             else int(self.db.dbUpdateTime)
         ) - self.db.computeJobStart
-
-    @classmethod
-    def job_error_from_agent(cls, jid, reply):
-        if self := cls.instances.get(jid):
-            self._process_run_status_reply(reply)
-        else:
-            # This should not happen unless the job is purged
-            pkdlog("inactive jid={} reply={}", jid, reply)
 
     async def op_send_timeout(self, op):
         if op.is_destroyed:
@@ -633,19 +626,6 @@ class _ComputeJob(_Supervisor):
             _call_later(_cfg.purge_check_interval, cls.purge_non_premium)
         pkdlog("done")
 
-    def reply_put_run_status(self, op, reply):
-        # Cannot get srexception, because async reply.
-        if not self._run_status_op != op:
-            pkdlog(
-                "op={} not _run_status_op={}, ignoring reply={}",
-                op,
-                self._run_status_op,
-                reply,
-            )
-            return
-        self._process_run_status_reply(reply)
-        if reply.state in job.EXIT_STATUSES:
-            self._run_status_op.destroy()
 
     def set_situation(self, op, situation, exception=None):
         if op.op_name != job.OP_RUN:
@@ -676,7 +656,7 @@ class _ComputeJob(_Supervisor):
                 self.db.computeJid,
                 req.content.api,
             )
-            self.__db_update(status=job.CANCELED)
+            self.__db_status_update(status=job.CANCELED)
         return self
 
     def _create_op(self, op_name, req, **msg_kwargs):
@@ -807,50 +787,52 @@ class _ComputeJob(_Supervisor):
                 h.canceledAfterSecs = d.pkdel("cancelledAfterSecs", default=v)
         return d
 
+    def __db_status_update(self, **kwargs):
+        if not ("status" in kwargs and self._is_running_pending(kwargs["status"]) and self._is_running_pending):
+            # Need to ask the agent for status
+            self._run_status_active = False
+        self.__db_update(**kwargs)
+
     def __db_update(self, **kwargs):
         self.db.pkupdate(**kwargs)
-        return self.__db_write()
-
-    def __db_write(self):
-        self.db.dbUpdateTime = sirepo.srtime.utc_now_as_float()
         self.__db_write_file(self.db)
-        return self
 
     @classmethod
     def __db_write_file(cls, db):
+        kwargs.dbUpdateTime = sirepo.srtime.utc_now_as_float()
         sirepo.util.json_dump(db, path=cls.__db_file(db.computeJid))
 
-    def _is_running_pending(self):
-        return self.db.status in (job.RUNNING, job.PENDING)
+    def _is_running_pending(self, status=None):
+        return (status or self.db.status) in (job.RUNNING, job.PENDING)
 
     def _init_db_missing_response(self, req):
         self.__db_init(req, prev_db=self.db)
-        self.__db_write()
-        assert self.db.status == job.MISSING, "expecting missing status={}".format(
-            self.db.status
-        )
+        self.__db_status_update()
+        if self.db.status != job.MISSING:
+            raise AssertionError(f"expecting missing status={self.db.status}")
         return PKDict(state=self.db.status)
 
     def _process_run_status_reply(self, reply):
         """Process msg from agent about job"""
+        d = PKDict(status=reply.state, alert=reply.get("alert"))
         if self.db.isParallel:
-            self.db.queueState = None
-        self.db.status = reply.state
-        self.db.alert = reply.get("alert")
+            # TODO(robnagler) document: tells the UI it is no longer queued in slurm
+            d.queueState = None
         if self.db.status == job.ERROR:
-            self.db.error = reply.get("error", "<unknown error>")
+            d.error = reply.get("error", "<unknown error>")
         if "computeJobStart" in reply:
-            self.db.computeJobStart = reply.computeJobStart
+            d.computeJobStart = reply.computeJobStart
         if "parallelStatus" in reply:
+            # TODO(robnagler) Need to pass this, but may be nested
             self.db.parallelStatus.update(reply.parallelStatus)
-            self.db.lastUpdateTime = reply.parallelStatus.lastUpdateTime
+            d.lastUpdateTime = reply.parallelStatus.lastUpdateTime
         else:
             # agent doesn't always send the time
-            self.db.lastUpdateTime = (
+            d.lastUpdateTime = (
                 reply.get("lastUpdateTime") or sirepo.srtime.utc_now_as_int()
             )
         # TODO(robnagler) will need final frame count. Not sent?
-        self.__db_write()
+        self.__db_status_update(d)
 
     def _raise_if_purged_or_missing(self, req):
         if self.db.status in (job.MISSING, job.JOB_RUN_PURGED):
@@ -867,7 +849,7 @@ class _ComputeJob(_Supervisor):
         return await self._send_with_single_reply(
             job.OP_IO,
             req,
-            jobCmd="download_run_file",
+            jobCmd=job.CMD_DOWNLOAD_RUN_FILE,
         )
 
     async def _receive_api_runCancel(self, req, timed_out_op=None):
@@ -890,7 +872,7 @@ class _ComputeJob(_Supervisor):
     async def _receive_api_runSimulation(self, req, recursing=False):
         def _update_db():
             self.__db_init(req, prev_db=self.db)
-            self.__db_update(
+            self.__db_status_update(
                 computeJobQueued=t,
                 computeJobSerial=t,
                 computeModel=req.content.computeModel,
@@ -902,7 +884,6 @@ class _ComputeJob(_Supervisor):
             self._purged_jids_cache.discard(
                 self.__db_file(self.db.computeJid).purebasename
             )
-            return self.db.dbUpdateTime
 
         def _validate(force_run):
             if self._is_running_pending():
@@ -932,21 +913,11 @@ class _ComputeJob(_Supervisor):
                     # this case.
                     return await self._receive_api_runSimulation(req, recursing=True)
                 return r
-            if self._run_status_op:
-                pkdlog(
-                    "existing run_status_op={} so error on new req={}",
-                    self._run_status_op,
-                    req,
-                )
-                return PKDict(
-                    state=job.ERROR,
-                    error="simulation is already running",
-                )
             return None
 
         if r := _validate(req.content.data.get("forceRun")):
             return r
-        t = _update_db(self, sirepo.srtime.utc_now_as_int(), self.db)
+        _update_db(self, sirepo.srtime.utc_now_as_int(), self.db)
         r = await self._send_with_single_reply(
             job.OP_RUN,
             req,
@@ -959,6 +930,8 @@ class _ComputeJob(_Supervisor):
 
     async def _receive_api_runStatus(self, req):
         async def _ask_agent():
+            self._run_status_active = True
+            d = self.db.dbUpdateTime
             r = await self._send_with_reply(
                 job.OP_RUN_STATUS,
                 req=PKDict(
@@ -967,6 +940,8 @@ class _ComputeJob(_Supervisor):
                         computeModel=self.db.computeModel,
                         isParallel=self.db.isParallel,
                         jobRunMode=self.db.jobRunMode,
+                        # Note: overriden by drivers sometimes so no point in keeping in db
+                        runDir=req.content.runDir,
                         simulationId=self.db.simulationId,
                         simulationType=self.db.simulationType,
                         uid=self.db.uid,
@@ -975,34 +950,12 @@ class _ComputeJob(_Supervisor):
                 ),
                 runStatusPollSeconds=self.db.nextRequestSeconds,
             )
-            try:
-                if r.reply is not None and _op_is_still_in_control():
-                    self.db.status = r.reply.state
-                    self.__db_write()
-                    if self._is_running_pending():
-                        self._run_status_op = r.op
-            except Exception:
-                r.op.destroy()
-                raise
+            if r.reply is not None and self.db.dbUpdateTime == d and r.reply.state != job.UNKNOWN:
+                # Reply only includes state and maybe error
+                self.__db_status_update(status=r.reply.state)
+            r.op.destroy()
 
-        def _op_is_still_in_control():
-            if self._run_status_op:
-                pkdlog(
-                    "_run_status_op={} exists jid={}",
-                    self._run_status_op,
-                    self.db.computeJid,
-                )
-            elif not self._is_running_pending():
-                pkdlog(
-                    "not _is_running_pending jid={}",
-                    self._run_status_op,
-                    self.db.computeJid,
-                )
-            else:
-                return True
-            return False
-
-        if self._is_running_pending() and not self._run_status_op:
+        if self._is_running_pending() and not self._run_status_active:
             await _ask_agent()
         r = self._status_reply(req)
         if self.db.isParallel or r.status != job.COMPLETED:
@@ -1096,6 +1049,7 @@ class _ComputeJob(_Supervisor):
         def _result(**kwargs):
             r = PKDict(
                 state=self.db.status,
+                # End users don't see float
                 dbUpdateTime=int(self.db.dbUpdateTime),
             )
             if self.db.canceledAfterSecs is not None:
@@ -1228,11 +1182,7 @@ class _Op(PKDict):
         return r
 
     def reply_put(self, reply_op_name, reply_content):
-        if reply_op_name == job.OP_RUN_STATUS:
-            # POSIT: RUN_STATUS reply is asynchronous
-            self._supervisor.reply_put_run_status(self, reply_content)
-        else:
-            self._reply_q.put_nowait(reply_content)
+        self._reply_q.put_nowait(reply_content)
 
     def send(self):
         async def _timeout():

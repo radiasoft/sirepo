@@ -298,7 +298,10 @@ class DriverBase(PKDict):
                     c,
                 )
         else:
-            getattr(self, "_agent_receive_" + c.opName)(msg)
+            # TODO(robnagler) probably fine but maybe better to validate
+            getattr(self, "_agent_receive_" + c.opName, "_agent_receive_supervisor")(
+                msg
+            )
 
     def _agent_receive_alive(self, msg):
         """Receive an ALIVE message from our agent
@@ -315,14 +318,14 @@ class DriverBase(PKDict):
         self._websocket.sr_driver_set(self)
         self._start_idle_timeout()
 
-    def _agent_receive_error(self, msg):
+    def _agent_receive_supervisor(self, msg):
         """Received an error not bound to an op"""
         if j := msg.content.get("computeJid"):
             # SECURITY: assert agent can access to this uid
             if job.split_jid(j).uid == self.uid:
-                job_supervisor.job_error_from_agent(j, msg.reply.content)
+                job_supervisor.agent_receive(msg.content)
             else:
-                pkdlog("{} jid={} for another user; msg={}", self, j, msg)
+                pkdlog("{} jid={} not for this uid={}; msg={}", self, j, self.uid, msg)
         else:
             pkdlog("{} msg={}", self, msg)
 

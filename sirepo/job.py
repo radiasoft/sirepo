@@ -28,6 +28,7 @@ OP_OK = "ok"
 OP_ALIVE = "alive"
 OP_RUN = "run"
 OP_RUN_STATUS = "run_status"
+OP_RUN_STATUS_UPDATE = "run_status_update"
 OP_SBATCH_AGENT_READY = "sbatch_agent_ready"
 OP_SBATCH_LOGIN = "sbatch_login"
 OP_BEGIN_SESSION = "begin_session"
@@ -126,6 +127,7 @@ JOB_CMD_STATE_EXITS = EXIT_STATUSES.union((JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP,
 
 #: job_cmds
 CMD_COMPUTE = "compute"
+CMD_DOWNLOAD_RUN_FILE = "download_run_file"
 CMD_SBATCH_PREPARE_SIMULATION = "sbatch_prepare_simulation"
 
 #: jobRunMode and kinds; should come from schema
