@@ -49,15 +49,10 @@ def default_command(in_file):
     try:
         f = pkio.py_path(in_file)
         msg = pkjson.load_any(f)
-        # TODO(e-carlin): find common place to serialize/deserialize paths
-        msg.runDir = pkio.py_path(msg.runDir)
         f.remove()
-        res = globals()["_do_" + msg.jobCmd](
-            msg, sirepo.template.import_module(msg.simulationType)
-        )
-        if res is None:
+        # None is only used in fast_cgi case
+        if (r := _process_msg(msg, allow_none=True)) is None:
             return
-        r = PKDict(res).pksetdefault(state=job.COMPLETED)
     except Exception as e:
         pkdlog(
             "exception={} jobCmd={} simType={} stack={}",
@@ -133,6 +128,10 @@ def _dispatch_compute(msg, template):
         return _maybe_parse_user_alert(e)
 
 
+def _do_analysis_job(msg, template):
+    return _dispatch_compute(msg, template)
+
+
 def _do_cancel(msg, template):
     if hasattr(template, "remove_last_frame"):
         template.remove_last_frame(msg.runDir)
@@ -140,48 +139,78 @@ def _do_cancel(msg, template):
 
 
 def _do_compute(msg, template):
-    msg.runDir = pkio.py_path(msg.runDir)
-    with msg.runDir.join(template_common.RUN_LOG).open("w") as run_log:
-        p = subprocess.Popen(
-            _do_prepare_simulation(msg, template).cmd,
-            stdout=run_log,
-            stderr=run_log,
+
+    def _exit_reply(exit_code):
+        try:
+            return _success_exit() if exit_code == 0 else _failure_exit()
+        except Exception as e:
+            return PKDict(state=job.ERROR, error=e, stack=pkdexc())
+
+
+    def _failure_exit():
+        a = _post_processing()
+        if not a:
+            f = msg.runDir.join(template_common.RUN_LOG)
+            if f.exists():
+                a = _parse_python_errors(pkio.read_text(f))
+        if not a:
+            a = "non-zero exit code"
+        return PKDict(state=job.ERROR, error=a)
+
+    def _post_processing():
+        if not hasattr(template, "post_execution_processing"):
+            return None
+        return template.post_execution_processing(
+            compute_model=msg.computeModel,
+            is_parallel=msg.isParallel,
+            run_dir=msg.runDir,
+            sim_id=msg.simulationId,
+            success_exit=False,
         )
 
+    def _success_exit():
+        return PKDict(
+            state=job.COMPLETED,
+            alert=_post_processing(success_exit=True),
+        )
+
+    def _start():
+        rv = PKDict(run_log=msg.runDir.join(template_common.RUN_LOG))
+        with rv.run_log.open("w") as f:
+            return rv.pkupdate(
+                process=subprocess.Popen(
+                    _do_prepare_simulation(msg, template).cmd,
+                    stdout=f,
+                    stderr=f,
+                ),
+            )
+
+    # TODO(robnagler) ParallelStatus object to simplify the code here
+    s = _start()
+    s.parallel_status = None
+    s.exit_code = None
     if _in_pkunit():
-        sys.stderr.write(pkio.read_text(msg.runDir.join(template_common.RUN_LOG)))
-    status = None
+        sys.stderr.write(pkio.read_text(s.run_log))
     while True:
-        for j in range(20):
+        # TODO(robnagler) should be based on
+        for _ in range(20):
             # Not asyncio.sleep: not in coroutine
             time.sleep(0.1)
-            r = p.poll()
-            i = r is None
-            if not i:
-                if r == -signal.SIGKILL:
-                    return PKDict(
-                        state=job.ERROR,
-                        error="Terminated Process. Possibly ran out of memory",
-                    )
-                break
+            s.exit_code = s.process.poll():
+            if s.exit_code is None:
+                continue
+            if s.exit_code == -signal.SIGKILL:
+                return PKDict(
+                    state=job.ERROR,
+                    error="Terminated Process. Possibly ran out of memory",
+                )
+            break
         if msg.isParallel:
-            # TODO(e-carlin): This has a potential to fail. We likely
-            # don't want the job to fail in this case
-            status = _write_parallel_status(status, msg, template, i)
-        if i:
-            continue
-        return _on_do_compute_exit(
-            r == 0,
-            msg.isParallel,
-            template,
-            msg.runDir,
-            msg.computeModel,
-            msg.simulationId,
-        )
-
-
-def _do_analysis_job(msg, template):
-    return _dispatch_compute(msg, template)
+            # TODO(robnagler) If an exception, job continues, but this function
+            # stops but not the compute process.
+            s.parallel_status = _write_parallel_status(parallel_status, msg, template, is_running=s.exit_code is None)
+        if not s.is_running:
+            return _exit_reply(s.process.returncode)
 
 
 def _do_download_data_file(msg, template):
@@ -210,18 +239,6 @@ def _do_download_run_file(msg, template):
 def _do_fastcgi(msg, template):
     import socket
 
-    @contextlib.contextmanager
-    def _update_run_dir_and_maybe_chdir(msg):
-        msg.runDir = pkio.py_path(msg.runDir) if msg.runDir else None
-        with (
-            pkio.save_chdir(
-                msg.runDir,
-            )
-            if msg.runDir
-            else contextlib.nullcontext()
-        ):
-            yield
-
     def _recv():
         m = b""
         while True:
@@ -246,18 +263,7 @@ def _do_fastcgi(msg, template):
             m = _recv()
             if not m:
                 return
-            with _update_run_dir_and_maybe_chdir(m):
-                r = globals()["_do_" + m.jobCmd](
-                    m, sirepo.template.import_module(m.simulationType)
-                )
-            if isinstance(r, dict):
-                # Backwards compatibility
-                r = PKDict(r)
-            if isinstance(r, PKDict):
-                r.setdefault("state", job.COMPLETED)
-            else:
-                pkdlog("func={} failed to return a PKDict", m.jobCmd)
-                r = PKDict(state=job.ERROR, error="invalid return value")
+            r = _process_msg(msg, allow_none=False)
             c = 0
         except _AbruptSocketCloseError:
             return
@@ -288,14 +294,27 @@ def _do_prepare_simulation(msg, template):
     )
 
 
-def _do_sbatch_run_status(msg, template):
+def _do_sbatch_parallel_status(msg, template):
+    def _final(parallel_status, status_file):
+        pkio.atomic_write(
+            status_file,
+            pkjson.dump_pretty(
+                pkjson.load_any(status_file).pkupdate(
+                    job_cmd_state=job.COMPLETED,
+                    parallelStatus=parallel_status,
+                ),
+            ),
+        )
+
     def _should_exit(status_file):
-        if not status_file.exists():
+        try:
+            s = pkjson.load_any(status_file)
+            if s.job_cmd_state in job.JOB_CMD_EXIT_SET:
+                return s.job_cmd_state
             return None
-        s = pkjson.load_any(status_file)
-        if s.get("job_cmd_state", "") in job.JOB_CMD_EXIT_SET:
-            return s
-        return None
+        except Exception as e:
+            pkdlog("unable to read file={} exception={} stack={}", status_file, e, pkdexc())
+            return job.ERROR
 
     f = pkio.py_path(msg.sbatchStatusFile)
     p = None
@@ -303,13 +322,10 @@ def _do_sbatch_run_status(msg, template):
         p = _write_parallel_status(p, msg, template, is_running=True)
         # Not asyncio.sleep: not in coroutine
         time.sleep(msg.runStatusPollSeconds)
-    if s.job_cmd_state != job.JOB_CMD_WRITE_PARALLEL_STATUS:
-        # told to stop for an error or otherwise
-        return None
-    _write_parallel_status(p, msg, template, is_running=False)
-    s.job_cmd_state = job.COMPLETED
-    pkio.atomic_write(f, s)
-    return PKDict(state=job.COMPLETED)
+    if s == job.JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP:
+        # Only time can update the file when given request to stop
+        _final(_write_parallel_status(p, msg, template, is_running=False), f)
+    return None
 
 
 def _do_sequential_result(msg, template):
@@ -368,40 +384,6 @@ def _maybe_parse_user_alert(exception, error=None):
     return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
 
-def _on_do_compute_exit(
-    success_exit, is_parallel, template, run_dir, compute_model, sim_id
-):
-    # locals() must be called before anything else so we only get the function
-    # arguments
-    kwargs = locals()
-
-    def _failure_exit():
-        a = _post_processing()
-        if not a:
-            f = run_dir.join(template_common.RUN_LOG)
-            if f.exists():
-                a = _parse_python_errors(pkio.read_text(f))
-        if not a:
-            a = "non-zero exit code"
-        return PKDict(state=job.ERROR, error=a)
-
-    def _post_processing():
-        if hasattr(template, "post_execution_processing"):
-            return template.post_execution_processing(**kwargs)
-        return None
-
-    def _success_exit():
-        return PKDict(
-            state=job.COMPLETED,
-            alert=_post_processing(),
-        )
-
-    try:
-        return _success_exit() if success_exit else _failure_exit()
-    except Exception as e:
-        return PKDict(state=job.ERROR, error=e, stack=pkdexc())
-
-
 def _parse_python_errors(text):
     if _in_pkunit():
         return text
@@ -414,6 +396,34 @@ def _parse_python_errors(text):
         return re.sub(r"\nTraceback.*$", "", m.group(1), flags=re.S).strip()
     return ""
 
+def _process_msg(msg, allow_none):
+    @contextlib.contextmanager
+    def _update_run_dir_and_maybe_chdir(msg):
+        if msg.get("runDir"):
+            # TODO(e-carlin): find common place to serialize/deserialize paths
+            msg.runDir = pkio.py_path(msg.runDir)
+            with pkio.save_chdir(msg.runDir):
+                yield
+        else:
+            with contextlib.nullcontext():
+                yield
+
+    with _update_run_dir_and_maybe_chdir(msg):
+        r = globals()["_do_" + msg.jobCmd](
+            msg, sirepo.template.import_module(msg.simulationType)
+        )
+    if isinstance(r, dict):
+        # Backwards compatibility
+        r = PKDict(r)
+    if isinstance(r, PKDict):
+        r.setdefault("state", job.COMPLETED)
+    elif r is None and allow_none:
+        return r
+    else:
+        pkdlog("func={} failed to return a PKDict", msg.jobCmd)
+        r = PKDict(state=job.ERROR, error="invalid return value")
+    return r
+
 
 def _validate_msg_and_jsonl(msg):
     m = pkjson.dump_bytes(msg)
@@ -422,18 +432,14 @@ def _validate_msg_and_jsonl(msg):
     return m + b"\n"
 
 
+
 def _write_parallel_status(prev_res, msg, template, is_running):
     if prev_res is None:
         prev_res = PKDict(py=None, json=None)
     res = PKDict(py=_background_percent_complete(msg, template, is_running))
     if prev_res.py == res.py:
         return prev_res
-    res.json = pkjson.dump_str(
-        PKDict(
-            state=job.RUNNING if is_running else job.PENDING,
-            parallelStatus=res.py,
-        ),
-    )
+    res.json = pkjson.dump_str(PKDict(parallelStatus=res.py))
     if prev_res.json != res.json:
         sys.stdout.write(res.json + "\n")
     return res

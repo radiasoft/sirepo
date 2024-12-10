@@ -284,7 +284,8 @@ class _Supervisor(PKDict):
                         "already destroyed timed_out_op={}", timed_out_op
                     )
                 rv.opId = timed_out_op.op_id
-                if timed_out_op.op_name == job.OP_RUN:
+                # Either of these cases causes the job stop
+                if timed_out_op.op_name in (job.OP_RUN, job.OP_RUN_STATUS):
                     d.canceledAfterSecs = timed_out_op.max_run_secs
                     rv.jid = self.db.computeJid
                 timed_out_op.destroy()
@@ -478,7 +479,7 @@ class _ComputeJob(_Supervisor):
             _active_req_count=0,
             ops=[],
             run_dir_slot_q=SlotQueue(),
-            _run_status_active=False,
+            _run_status_op=None,
         )
         # At start we don't know anything about the run_dir so assume ready
         if d := self.__db_load(req.content.computeJid):
@@ -512,6 +513,8 @@ class _ComputeJob(_Supervisor):
     def destroy_op(self, op):
         if op in self.ops:
             self.ops.remove(op)
+        if self._run_status_op == op:
+            self._run_status_op = None
         super().destroy_op(op)
 
     def elapsed_time(self):
@@ -761,7 +764,13 @@ class _ComputeJob(_Supervisor):
         if prev_db is None:
             return []
         return prev_db.history + [
-            PKDict(((k, v) for k, v in prev_db.items() if k in _HISTORY_FIELDS)),
+            PKDict(
+                (
+                    (k, copy.deepcopy(v))
+                    for k, v in prev_db.items()
+                    if k in _HISTORY_FIELDS
+                )
+            ),
         ]
 
     @classmethod
@@ -806,13 +815,8 @@ class _ComputeJob(_Supervisor):
         return _fixup(d)
 
     def __db_status_update(self, **kwargs):
-        if not (
-            "status" in kwargs
-            and self._is_running_pending(kwargs["status"])
-            and self._is_running_pending
-        ):
-            # Need to ask the agent for status
-            self._run_status_active = False
+        if not self._is_running_pending(kwargs["status"]) and self._run_status_op:
+            self._run_status_op.destroy()
         self.__db_update(**kwargs)
 
     def __db_update(self, **kwargs):
@@ -834,37 +838,36 @@ class _ComputeJob(_Supervisor):
 
     def _init_db_missing_response(self, req):
         self.__db_init(req, prev_db=self.db)
-        self.__db_status_update()
-        if self.db.status != job.MISSING:
-            raise AssertionError(f"expecting missing status={self.db.status}")
+        self.__db_status_update(status=job.MISSING)
         return PKDict(state=self.db.status)
 
-    def _process_run_status_update(self, reply):
+    def _process_run_status_update(self, msg):
         """Process msg from agent about job"""
-        if self.db.computeJobSerial != reply.computeJobSerial:
+        if self.db.computeJobSerial != msg.computeJobSerial:
             pkdlog(
-                "{} db.computeJobSerial={} does not match reply={}, ignoring",
+                "{} db.computeJobSerial={} does not match msg={}, ignoring",
                 self,
                 self.db.computeJobSerial,
-                reply.computeJobSerial,
+                msg.computeJobSerial,
             )
             return
-        d = PKDict(status=reply.state, alert=reply.get("alert"))
-        if self.db.isParallel:
+        d = PKDict(status=msg.state, alert=msg.get("alert"))
+        if self.db.isParallel and d.status != job.PENDING:
             # TODO(robnagler) document: tells the UI it is no longer queued in slurm
+            # Not clear exactly when this changed
             d.queueState = None
         if self.db.status == job.ERROR:
-            d.error = reply.get("error", "<unknown error>")
-        if x := reply.get("computeJobStart"):
+            d.error = msg.get("error", "<unknown error>")
+        if x := msg.get("computeJobStart"):
             d.computeJobStart = x
-        if x := reply.get("parallelStatus"):
+        if x := msg.get("parallelStatus"):
             # TODO(robnagler) Need to pass this, but may be nested
             self.db.parallelStatus.update(x)
             d.lastUpdateTime = x.lastUpdateTime
         else:
             # agent doesn't always send the time
             d.lastUpdateTime = (
-                reply.get("lastUpdateTime") or sirepo.srtime.utc_now_as_int()
+                msg.get("lastUpdateTime") or sirepo.srtime.utc_now_as_int()
             )
         # TODO(robnagler) will need final frame count. Not sent?
         self.__db_status_update(d)
@@ -951,70 +954,33 @@ class _ComputeJob(_Supervisor):
                 return r
             return None
 
+        if self._run_status_op:
+            raise AssertionError(f"_run_status_op already set job={self}")
         if r := _validate(req.content.data.get("forceRun")):
             return r
-        _update_db(self, sirepo.srtime.utc_now_as_int(), self.db)
-        r = await self._send_with_single_reply(
+        _update_db()
+        r = await self._send_with_reply(
             job.OP_RUN,
             req,
+            is_run_status_op=True,
             jobCmd=job.CMD_COMPUTE,
             nextRequestSeconds=self.db.nextRequestSeconds,
         )
-        if r.state != job.STATE_OK:
-            return r
+        if r.reply.state != job.STATE_OK:
+            if self._run_status_op == r.op:
+                self._run_status_op.destroy()
+            return r.reply
+        if self._run_status_op != r.op:
+            pkdlog(
+                "{} _run_status_op changed during call to agent, ignoring state", self
+            )
+            # No longer have control, just reply
+            return r.reply
         return await self._receive_api_runStatus(req)
 
     async def _receive_api_runStatus(self, req):
-        async def _ask_agent():
-            self._run_status_active = True
-            d = self.db.dbUpdateTime
-            r = await self._send_with_reply(
-                job.OP_RUN_STATUS,
-                req=_req(),
-            )
-            if self.db.dbUpdateTime == d:
-                # db has not been modified since request
-                _update(r.reply)
-            r.op.destroy()
-
-        def _req():
-            return PKDict(
-                content=self.__db_copy_to_dest(PKDict, _RUN_STATUS_FIELDS).pkupdate(
-                    # Note: overriden by drivers sometimes so not kept in db
-                    runDir=req.content.runDir,
-                    userDir=req.content.userDir,
-                ),
-                runStatusPollSeconds=self.db.nextRequestSeconds,
-            )
-
-        def _update_status(reply):
-            # Can modify the db
-            if r is None:
-                # Unclear what the status is so just retry
-                self._run_status_active = False
-                return
-            # unknown means driver is still querying service
-            if reply.state == job.UNKNOWN:
-                if e := reply.get("error"):
-                    self._run_status_active = False
-                    pkdlog("{} run_status error={}, ignoring", self, e)
-                # else normal case of indeterminate state and run_status will continue
-                return
-            if reply.computeJobSerial != self.db.computeJobSerial:
-                # TODO(robnagler) probably need to kill job if reply.status is running?
-                self._run_status_active = False
-                pkdlog(
-                    "{} db.computeJobSerial={} does not match reply={}",
-                    self,
-                    self.db.computeJobSerial,
-                    reply,
-                )
-                return
-            # Reply only includes state at this point; OP_RUN_STATUS_UPDATE handles that
-            self.__db_status_update(status=reply.state)
-
-        if self._is_running_pending() and not self._run_status_active:
-            await _ask_agent()
+        if self._is_running_pending() and not self._run_status_op:
+            await self._start_run_status_op()
         r = self._status_reply(req)
         if self.db.isParallel or r.status != job.COMPLETED:
             return r
@@ -1068,7 +1034,7 @@ class _ComputeJob(_Supervisor):
         )
         return await self._send_with_single_reply(job.OP_ANALYSIS, req, jobCmd=jobCmd)
 
-    async def _send_with_reply(self, op_name, req, **kwargs):
+    async def _send_with_reply(self, op_name, req, is_run_status_op, **kwargs):
         async def _send(op):
             if not await op.prepare_send() or op.is_destroyed:
                 return None, False
@@ -1079,6 +1045,7 @@ class _ComputeJob(_Supervisor):
             # will call _send_with_single_reply() and this will
             # properly format the reply
             if r.get("runDirNotFound"):
+                # TODO(robnagler) make sure computeJobSerial is the same
                 return self._init_db_missing_response(req), False
             return r, True
 
@@ -1086,11 +1053,14 @@ class _ComputeJob(_Supervisor):
         internal_error = None
         try:
             o = self._create_op(op_name, req, **kwargs)
-            r, k = _send(o)
-            rv = PKDict(reply=r, op=o)
+            rv = PKDict(op=o)
+            if is_run_status_op:
+                # POSIT: ensures _start_run_status_op can update atomically
+                self._run_status_op = o
+            r, k = await _send(o)
             if k:
                 o = None
-            return rv
+            return rv.pkupdate(reply=r)
         except Exception as e:
             internal_error = f"_send_with_reply exception={e}"
             raise
@@ -1099,9 +1069,57 @@ class _ComputeJob(_Supervisor):
                 o.destroy(internal_error=internal_error)
 
     async def _send_with_single_reply(self, op_name, req, **kwargs):
-        r = await self._send_with_reply(op_name, req, **kwargs)
-        r.op.destroy()
+        r = await self._send_with_reply(op_name, req, is_run_status_op=False, **kwargs)
         return _canceled_reply() if r.reply is None else r.reply
+
+    async def _start_run_status_op(self):
+        def _req():
+            return PKDict(
+                content=self.__db_copy_to_dest(PKDict, _RUN_STATUS_FIELDS).pkupdate(
+                    # Note: overriden by drivers sometimes so not kept in db
+                    runDir=req.content.runDir,
+                    userDir=req.content.userDir,
+                ),
+                runStatusPollSeconds=self.db.nextRequestSeconds,
+            )
+
+        def _update_db(reply):
+            # unknown means driver is still querying service
+            if reply.state != job.UNKNOWN:
+                # computeJobSerial is checked by agent so do not need to check here, since
+                # already know the db is in sync from when request was sent.
+                # Reply only includes state at this point; OP_RUN_STATUS_UPDATE handles parallelStatus
+                self.__db_status_update(status=reply.state)
+            if not (e := reply.get("error")):
+                # normal sbatch case of indeterminate state and _run_status_op continues
+                return
+            self._run_status_op.destroy()
+            if self._is_running_pending():
+                # cannot be running or pending
+                self.__db_status_update(status=job.ERROR)
+                pkdlog("{} agent does not know status, error={}, ", self, e)
+            # else leave status alone, likely supervisor knows more than agent
+
+        d = self.db.dbUpdateTime
+        r = await self._send_with_reply(
+            job.OP_RUN_STATUS,
+            req=_req(),
+            # POSIT: _send_with_reply updates _run_status_op atomically
+            is_run_status_op=True,
+        )
+        if r is None:
+            return
+        if r.op != self._run_status_op:
+            # No longer in control. Let another request initiate a new run_status
+            pkdlog("{} run_status_op changed during request, ignoring reply={}", self, r)
+            return
+        if self.db.dbUpdateTime == d:
+            # db has not been modified since request so should we update?
+            _update_db(r)
+        else:
+            # No longer in control. Let another request initiate a new run_status
+            pkdlog("{} db updated during run_status, ignoring reply={}", self, r)
+            r.op.destroy()
 
     def _status_reply(self, req):
         def _result(**kwargs):
@@ -1245,6 +1263,10 @@ class _Op(PKDict):
         self._reply_q.put_nowait(reply_content)
 
     def send(self):
+        # TODO(robnagler) needs to work with reattached _run_status_op
+        # just so happens that sbatch doesn't have max_run_secs so works
+        # for that, but other ops won't work for. possibly the agent needs
+        # to track this. means trusting the agent.
         async def _timeout():
             pkdlog("{} max_run_secs={}", self, self.max_run_secs)
             await self._supervisor.op_send_timeout(self)
