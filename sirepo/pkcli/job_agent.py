@@ -210,9 +210,13 @@ class _Dispatcher(PKDict):
             return rv
 
         try:
-            await self.send(_self.format_op(**_fixup(
-                PKDict() if text is None else self.parse_cmd_stdout(text),
-            )))
+            await self.send(
+                _self.format_op(
+                    **_fixup(
+                        PKDict() if text is None else self.parse_cmd_stdout(text),
+                    )
+                )
+            )
         except Exception as e:
             pkdlog("reply={} error={} stack={}", r, e, pkdexc())
             # something is really wrong, because format_op is messed up
@@ -541,8 +545,6 @@ class _Cmd(PKDict):
         self.dispatcher.cmds.append(self)
 
     def cancel_request(self):
-        if self.job:
-            await self.job.cancel_request()
         self.destroy()
 
     def destroy(self, terminating=False):
@@ -570,7 +572,7 @@ class _Cmd(PKDict):
 
     def format_op_reply(self, **reply_kwargs):
         return self.dispatcher.format_op(
-            op_name=job.OK,
+            op_name=job.OP_OK,
             msg=self.msg,
             reply=PKDict(reply_kwargs),
         )
@@ -622,7 +624,9 @@ class _Cmd(PKDict):
             pkdlog("{} unexpected stdout={}", self, text)
             return
         try:
-            await self.dispatcher.job_cmd_reply(self.msg, job.OP_OK, text=text, cmd=self)
+            await self.dispatcher.job_cmd_reply(
+                self.msg, job.OP_OK, text=text, cmd=self
+            )
         except Exception as e:
             pkdlog("{} text={} error={} stack={}", self, text, e, pkdexc())
 
@@ -846,7 +850,7 @@ class _ReadUntilCloseStream(_Stream):
 
 class _SbatchCmd(_Cmd):
     def __init__(self, **kwargs):
-        super.__init__(**kwargs)
+        super().__init__(**kwargs)
         if "job_state" not in self:
             return
         self.pkupdate(
@@ -937,7 +941,7 @@ class _SbatchRun(_SbatchCmd):
             if self._sbatch_status_update(sbatch_id=m.group(1)):
                 # Start the status watcher
                 _SbatchRunStatus(msg=msg, dispatcher=self.dispatcher).start()
-                rv = self.format_op_reply(state=job.OK)
+                rv = self.format_op_reply(state=job.STATE_OK)
             else:
                 rv = self.format_op(error="unable to write sbatch state file")
                 # TODO(robnagler) need to cancel job, because no way to attach
@@ -1051,7 +1055,6 @@ class _SbatchRunStatus(_SbatchCmd):
         if self._sbatch_status_cb:
             self._sbatch_status_cb.stop()
             self._sbatch_status_cb = None
-        self._sbatch_running.set()
         if (
             self._sbatch_status.job_cmd_state not in job.JOB_CMD_STATE_EXITS
             and self._sbatch_status.sbatch_id
@@ -1201,11 +1204,16 @@ class _SbatchRunStatus(_SbatchCmd):
             return False
 
         def _transition_state(prev, curr):
-            if prev == curr or (curr == job.COMPLETED and prev == job.JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP):
+            if prev == curr or (
+                curr == job.COMPLETED
+                and prev == job.JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP
+            ):
                 return False
             rv = True
             if prev == job.PENDING and curr in (job.RUNNING, job.COMPLETED):
-                self._sbatch_status.pksetdefault(computeJobStart=lambda: int(time.time()))
+                self._sbatch_status.pksetdefault(
+                    computeJobStart=lambda: int(time.time())
+                )
             if curr == job.COMPLETED:
                 curr = job.JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP
                 # waits for parallelStatus from job_cmd to send COMPLETED
@@ -1231,7 +1239,13 @@ class _SbatchRunStatus(_SbatchCmd):
                     rv[f] = x
             return rv
 
-        await self.job_cmd_reply(msg=self.msg, op_name=job.OP_RUN_STATUS_UPDATE, text=text, cmd=self, msg_items=_optional())
+        await self.job_cmd_reply(
+            msg=self.msg,
+            op_name=job.OP_RUN_STATUS_UPDATE,
+            text=text,
+            cmd=self,
+            msg_items=_optional(),
+        )
         if s.job_cmd_state in job.EXIT_STATUSES:
             self.destroy()
 

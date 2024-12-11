@@ -153,13 +153,11 @@ class SbatchDriver(job_driver.DriverBase):
 
     async def _do_agent_start(self, op):
         # must be saved, because op is only valid before first await
-        pkdp("xxx")
         original_msg = op.msg
         log_file = "job_agent.log"
         agent_start_dir = self._srdb_root
         if pkconfig.in_dev_mode():
             pkdlog("agent_log={}/{}", agent_start_dir, log_file)
-        pkdp("xxx")
         script = f"""#!/bin/bash
 {self._agent_start_dev()}
 set -e
@@ -185,7 +183,7 @@ disown
                 if not before_start:
                     await tornado.gen.sleep(self.cfg.agent_log_read_sleep)
                 async with connection.create_process(
-                    f"/bin/cat {agent_start_dir}/{log_file}"
+                    f"/bin/test -e {agent_start_dir}/{log_file} && /bin/cat {agent_start_dir}/{log_file}"
                 ) as p:
                     o, e = await p.communicate()
                     write_to_log(

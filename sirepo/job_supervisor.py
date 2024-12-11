@@ -247,7 +247,8 @@ class _Supervisor(PKDict):
                     "_receive_" + req.content.api,
                 )(req)
         except Exception as e:
-            pkdlog("{} error={} stack={}", req, e, pkdexc())
+            # Stack is not useful except in case of errors (raise)
+            pkdlog("{} error={}", req, e)
             if isinstance(e, sirepo.util.ReplyExc):
                 return _exception_reply(e)
             raise
@@ -486,7 +487,8 @@ class _ComputeJob(_Supervisor):
             self.db = d
         else:
             self.__db_init(req)
-            self.__db_status_update()
+            # db_status_update takes action based on status so fake
+            self.__db_status_update(status=self.db.status)
         self.cache_timeout_set()
 
     @classmethod
@@ -825,7 +827,7 @@ class _ComputeJob(_Supervisor):
 
     @classmethod
     def __db_write_file(cls, db):
-        kwargs.dbUpdateTime = sirepo.srtime.utc_now_as_float()
+        db.dbUpdateTime = sirepo.srtime.utc_now_as_float()
         sirepo.util.json_dump(db, path=cls.__db_file(db.computeJid))
 
     def __db_copy_to_dest(self, dest, fields):
@@ -870,7 +872,7 @@ class _ComputeJob(_Supervisor):
                 msg.get("lastUpdateTime") or sirepo.srtime.utc_now_as_int()
             )
         # TODO(robnagler) will need final frame count. Not sent?
-        self.__db_status_update(d)
+        self.__db_status_update(**d)
 
     def _raise_if_purged_or_missing(self, req):
         if self.db.status in (job.MISSING, job.JOB_RUN_PURGED):
@@ -924,7 +926,7 @@ class _ComputeJob(_Supervisor):
                 self.__db_file(self.db.computeJid).purebasename
             )
 
-        def _validate(force_run):
+        async def _valid_or_reply(force_run):
             if self._is_running_pending():
                 if force_run or not self._req_is_valid(req):
                     return PKDict(
@@ -956,9 +958,11 @@ class _ComputeJob(_Supervisor):
 
         if self._run_status_op:
             raise AssertionError(f"_run_status_op already set job={self}")
-        if r := _validate(req.content.data.get("forceRun")):
+        # Reply case yields, but does not modify global state
+        if r := await _valid_or_reply(req.content.data.get("forceRun")):
             return r
-        _update_db()
+        #TODO(robnagler) consolidate _start_run_status_op
+        d = self.db.dbUpdateTime
         r = await self._send_with_reply(
             job.OP_RUN,
             req,
@@ -966,21 +970,29 @@ class _ComputeJob(_Supervisor):
             jobCmd=job.CMD_COMPUTE,
             nextRequestSeconds=self.db.nextRequestSeconds,
         )
+        if r.reply is None:
+            # Unable to send means this op is destroyed
+            return _canceled_reply()
         if r.reply.state != job.STATE_OK:
-            if self._run_status_op == r.op:
-                self._run_status_op.destroy()
+            r.op.destroy()
             return r.reply
         if self._run_status_op != r.op:
             pkdlog(
                 "{} _run_status_op changed during call to agent, ignoring state", self
             )
-            # No longer have control, just reply
-            return r.reply
+            # No longer have control, so reply with canceled
+            r.op.destroy()
+            return _canceled_reply()
+        if self.db.dbUpdateTime == d:
+            _update_db()
+        else:
+            # No longer in control. Let another request initiate a new run_status
+            pkdlog("{} db updated during op_run, ignoring reply={}", self, r.reply)
         return await self._receive_api_runStatus(req)
 
     async def _receive_api_runStatus(self, req):
         if self._is_running_pending() and not self._run_status_op:
-            await self._start_run_status_op()
+            await self._start_run_status_op(req)
         r = self._status_reply(req)
         if self.db.isParallel or r.status != job.COMPLETED:
             return r
@@ -1070,36 +1082,40 @@ class _ComputeJob(_Supervisor):
 
     async def _send_with_single_reply(self, op_name, req, **kwargs):
         r = await self._send_with_reply(op_name, req, is_run_status_op=False, **kwargs)
+        r.op.destroy()
         return _canceled_reply() if r.reply is None else r.reply
 
-    async def _start_run_status_op(self):
+    async def _start_run_status_op(self, originating_req):
         def _req():
             return PKDict(
-                content=self.__db_copy_to_dest(PKDict, _RUN_STATUS_FIELDS).pkupdate(
+                content=self.__db_copy_to_dest(PKDict(), _RUN_STATUS_FIELDS).pkupdate(
                     # Note: overriden by drivers sometimes so not kept in db
-                    runDir=req.content.runDir,
-                    userDir=req.content.userDir,
+                    runDir=originating_req.content.runDir,
+                    userDir=originating_req.content.userDir,
                 ),
                 runStatusPollSeconds=self.db.nextRequestSeconds,
             )
 
-        def _update_db(reply):
+        def _update_db(reply, op):
             # unknown means driver is still querying service
             if reply.state != job.UNKNOWN:
                 # computeJobSerial is checked by agent so do not need to check here, since
                 # already know the db is in sync from when request was sent.
                 # Reply only includes state at this point; OP_RUN_STATUS_UPDATE handles parallelStatus
                 self.__db_status_update(status=reply.state)
-            if not (e := reply.get("error")):
-                # normal sbatch case of indeterminate state and _run_status_op continues
+                op.destroy()
                 return
-            self._run_status_op.destroy()
+            if not (e := reply.get("error")):
+                # normal sbatch case of UKNOWN state and _run_status_op continues
+                return
+            op.destroy()
             if self._is_running_pending():
-                # cannot be running or pending
-                self.__db_status_update(status=job.ERROR)
+                # Only set status in running/pending case, otherwise already in exit state
+                self.__db_status_update(status=job.ERROR, error=e)
                 pkdlog("{} agent does not know status, error={}, ", self, e)
             # else leave status alone, likely supervisor knows more than agent
 
+        #TODO(robnagler) consolidate _receive_api_runSimulation
         d = self.db.dbUpdateTime
         r = await self._send_with_reply(
             job.OP_RUN_STATUS,
@@ -1107,18 +1123,21 @@ class _ComputeJob(_Supervisor):
             # POSIT: _send_with_reply updates _run_status_op atomically
             is_run_status_op=True,
         )
-        if r is None:
+        if r.reply is None:
+            # Could not send, already logged
             return
         if r.op != self._run_status_op:
             # No longer in control. Let another request initiate a new run_status
-            pkdlog("{} run_status_op changed during request, ignoring reply={}", self, r)
-            return
-        if self.db.dbUpdateTime == d:
+            pkdlog(
+                "{} run_status_op changed during request, ignoring reply={}", self, r.reply
+            )
+            r.op.destroy()
+        elif self.db.dbUpdateTime == d:
             # db has not been modified since request so should we update?
-            _update_db(r)
+            _update_db(**r)
         else:
             # No longer in control. Let another request initiate a new run_status
-            pkdlog("{} db updated during run_status, ignoring reply={}", self, r)
+            pkdlog("{} db updated during run_status, ignoring reply={}", self, r.reply)
             r.op.destroy()
 
     def _status_reply(self, req):
@@ -1159,7 +1178,7 @@ class _ComputeJob(_Supervisor):
                 )
             return r
 
-        if self._req_is_valid():
+        if self._req_is_valid(req):
             return _result()
         return PKDict(
             state=job.MISSING,
