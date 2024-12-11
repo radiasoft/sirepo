@@ -188,7 +188,10 @@ class _Dispatcher(PKDict):
     def format_op(self, msg, op_name, **kwargs):
         if msg:
             kwargs["opId"] = msg.get("opId")
-        return _OpMsg(agentId=_cfg.agent_id, opName=op_name).pksetdefault(**kwargs)
+        rv = _OpMsg(agentId=_cfg.agent_id, opName=op_name).pksetdefault(**kwargs)
+        if not rv.get("opName"):
+            raise AssertionError("missing opName in msg")
+        return rv
 
     async def job_cmd_reply(self, msg, op_name, text=None, cmd=None, msg_items=None):
         def _fixup(reply):
@@ -958,7 +961,7 @@ class _SbatchRun(_SbatchCmd):
                 error=f"error submitting sbatch job error={p.stderr}",
             )
         self.destroy()
-        return rv
+        return pkdp(rv)
 
     def _sbatch_script(self):
         def _nodes_tasks():

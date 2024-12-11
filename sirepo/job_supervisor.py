@@ -150,6 +150,15 @@ class SlotQueue(sirepo.tornado.Queue):
         return SlotProxy(_op=op, _q=self)
 
 
+def agent_receive(msg):
+    """job_agent sent an async update
+
+    Args:
+        msg (str): msg content
+    """
+    _ComputeJob.agent_receive(msg)
+
+
 def init_module(**imports):
     global _cfg, _DB_DIR, _NEXT_REQUEST_SECONDS
 
@@ -214,15 +223,6 @@ def init_module(**imports):
         }
     )
     _call_later(0, _ComputeJob.purge_non_premium)
-
-
-def agent_receive(msg):
-    """job_agent sent an async update
-
-    Args:
-        msg (str): msg content
-    """
-    _ComputeJob.agent_receive(msg)
 
 
 async def terminate():
@@ -493,6 +493,7 @@ class _ComputeJob(_Supervisor):
 
     @classmethod
     def agent_receive(cls, msg):
+        pkdp(msg)
         if (j := msg.get("computeJid")) and (self := cls.instances.get(j)):
             if msg.opName in (job.OP_ERROR, job.OP_RUN_STATUS_UPDATE):
                 self._process_run_status_update(msg)
@@ -845,6 +846,7 @@ class _ComputeJob(_Supervisor):
 
     def _process_run_status_update(self, msg):
         """Process msg from agent about job"""
+        pkdp(msg)
         if self.db.computeJobSerial != msg.computeJobSerial:
             pkdlog(
                 "{} db.computeJobSerial={} does not match msg={}, ignoring",
@@ -853,7 +855,16 @@ class _ComputeJob(_Supervisor):
                 msg.computeJobSerial,
             )
             return
-        d = PKDict(status=msg.state, alert=msg.get("alert"))
+        d = PKDict(alert=msg.get("alert"))
+        if self.db.status not in job.EXIT_STATUSES:
+            d.status = msg.state
+        else:
+            pkdlog(
+                "ignoring state={} already in exit state={} msg={}",
+                msg.state,
+                self.db.status,
+                msg,
+            )
         if self.db.isParallel and d.status != job.PENDING:
             # TODO(robnagler) document: tells the UI it is no longer queued in slurm
             # Not clear exactly when this changed
@@ -962,6 +973,7 @@ class _ComputeJob(_Supervisor):
         if r := await _valid_or_reply(req.content.data.get("forceRun")):
             return r
         # TODO(robnagler) consolidate _start_run_status_op
+        _update_db()
         d = self.db.dbUpdateTime
         r = await self._send_with_reply(
             job.OP_RUN,
@@ -970,10 +982,18 @@ class _ComputeJob(_Supervisor):
             jobCmd=job.CMD_COMPUTE,
             nextRequestSeconds=self.db.nextRequestSeconds,
         )
+        pkdp("xxxxxxx")
+        pkdp(r)
         if r.reply is None:
             # Unable to send means this op is destroyed
             return _canceled_reply()
         if r.reply.state != job.STATE_OK:
+            if self.db.dbUpdateTime == d:
+                self._db_status_update(status=r.reply.state)
+            else:
+                pkdlog(
+                    "{} db updated during op_run, not saving reply={}", self, r.reply
+                )
             r.op.destroy()
             return r.reply
         if self._run_status_op != r.op:
@@ -983,11 +1003,6 @@ class _ComputeJob(_Supervisor):
             # No longer have control, so reply with canceled
             r.op.destroy()
             return _canceled_reply()
-        if self.db.dbUpdateTime == d:
-            _update_db()
-        else:
-            # No longer in control. Let another request initiate a new run_status
-            pkdlog("{} db updated during op_run, ignoring reply={}", self, r.reply)
         return await self._receive_api_runStatus(req)
 
     async def _receive_api_runStatus(self, req):

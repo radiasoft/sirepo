@@ -273,8 +273,10 @@ class DriverBase(PKDict):
     def _agent_receive(self, msg):
         c = msg.content
         i = c.get("opId")
-        if ("opName" not in c or c.opName == job.OP_ERROR) or (
-            "reply" in c and c.reply.get("state") == job.ERROR
+        if (
+            "opName" not in c
+            or c.opName == job.OP_ERROR
+            or ("reply" in c and c.reply.get("state") == job.ERROR)
         ):
             # Log allerror message
             pkdlog("{} error msg={}", self, c)
@@ -299,7 +301,7 @@ class DriverBase(PKDict):
                 )
         else:
             # TODO(robnagler) probably fine but maybe better to validate
-            getattr(self, "_agent_receive_" + c.opName, "_agent_receive_supervisor")(
+            getattr(self, "_agent_receive_" + c.opName, self._agent_receive_supervisor)(
                 msg
             )
 
