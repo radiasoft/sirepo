@@ -24,6 +24,7 @@ import tornado.ioloop
 
 _RUN_DIR_OPS = job.SLOT_OPS.union((job.OP_RUN_STATUS,))
 
+
 class SbatchDriver(job_driver.DriverBase):
     cfg = None
 
@@ -152,6 +153,47 @@ class SbatchDriver(job_driver.DriverBase):
         )
 
     async def _do_agent_start(self, op):
+
+        def _creds():
+            return PKDict(
+                known_hosts=self._KNOWN_HOSTS,
+                password=(
+                    self._creds.password + self._creds.otp
+                    if "nersc" in self.cfg.host
+                    else self._creds.password
+                ),
+                username=self._creds.username,
+            )
+
+        async def _get_agent_log(connection, before_start=True):
+            try:
+                if not before_start:
+                    await tornado.gen.sleep(self.cfg.agent_log_read_sleep)
+                async with connection.create_process(
+                    f"/bin/test -e {agent_start_dir}/{log_file} && /bin/cat {agent_start_dir}/{log_file}"
+                ) as p:
+                    o, e = await p.communicate()
+                    _write_to_log(
+                        o, e, f"remote-{'before' if before_start else 'after'}-start"
+                    )
+            except Exception as e:
+                pkdlog(
+                    "{} e={} stack={}",
+                    self,
+                    e,
+                    pkdexc(),
+                )
+
+        def _write_to_log(stdout, stderr, filename):
+            p = pkio.py_path(self._local_user_dir).join("agent-sbatch", self.cfg.host)
+            pkio.mkdir_parent(p)
+            f = p.join(
+                f'{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}-{filename}.log'
+            )
+            r = pkjson.dump_pretty(PKDict(stdout=stdout, stderr=stderr, filename=f), f)
+            if pkconfig.in_dev_mode():
+                pkdlog(r)
+
         # must be saved, because op is only valid before first await
         original_msg = op.msg
         log_file = "job_agent.log"
@@ -167,57 +209,18 @@ cd '{self._srdb_root}'
 (/usr/bin/env; setsid {self.cfg.sirepo_cmd} job_agent start_sbatch) &>> {log_file} &
 disown
 """
-
-        def write_to_log(stdout, stderr, filename):
-            p = pkio.py_path(self._local_user_dir).join("agent-sbatch", self.cfg.host)
-            pkio.mkdir_parent(p)
-            f = p.join(
-                f'{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}-{filename}.log'
-            )
-            r = pkjson.dump_pretty(PKDict(stdout=stdout, stderr=stderr, filename=f), f)
-            if pkconfig.in_dev_mode():
-                pkdlog(r)
-
-        async def get_agent_log(connection, before_start=True):
-            try:
-                if not before_start:
-                    await tornado.gen.sleep(self.cfg.agent_log_read_sleep)
-                async with connection.create_process(
-                    f"/bin/test -e {agent_start_dir}/{log_file} && /bin/cat {agent_start_dir}/{log_file}"
-                ) as p:
-                    o, e = await p.communicate()
-                    write_to_log(
-                        o, e, f"remote-{'before' if before_start else 'after'}-start"
-                    )
-            except Exception as e:
-                pkdlog(
-                    "{} e={} stack={}",
-                    self,
-                    e,
-                    pkdexc(),
-                )
-
         try:
-            async with asyncssh.connect(
-                self.cfg.host,
-                username=self._creds.username,
-                password=(
-                    self._creds.password + self._creds.otp
-                    if "nersc" in self.cfg.host
-                    else self._creds.password
-                ),
-                known_hosts=self._KNOWN_HOSTS,
-            ) as c:
+            async with asyncssh.connect(self.cfg.host, **_creds()) as c:
                 async with c.create_process("/bin/bash --noprofile --norc -l") as p:
-                    await get_agent_log(c, before_start=True)
+                    await _get_agent_log(c, before_start=True)
                     o, e = await p.communicate(input=script)
                     if o or e:
-                        write_to_log(o, e, "start")
+                        _write_to_log(o, e, "start")
                 self.driver_details.pkupdate(
                     host=self.cfg.host,
                     username=self._creds.username,
                 )
-                await get_agent_log(c, before_start=False)
+                await _get_agent_log(c, before_start=False)
         except Exception as e:
             pkdlog("error={} stack={}", e, pkdexc())
             self._srdb_root = None
