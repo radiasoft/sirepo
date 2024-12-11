@@ -146,9 +146,8 @@ def _do_compute(msg, template):
         except Exception as e:
             return PKDict(state=job.ERROR, error=e, stack=pkdexc())
 
-
     def _failure_exit():
-        a = _post_processing()
+        a = _post_processing(success_exit=False)
         if not a:
             f = msg.runDir.join(template_common.RUN_LOG)
             if f.exists():
@@ -157,7 +156,7 @@ def _do_compute(msg, template):
             a = "non-zero exit code"
         return PKDict(state=job.ERROR, error=a)
 
-    def _post_processing():
+    def _post_processing(success_exit):
         if not hasattr(template, "post_execution_processing"):
             return None
         return template.post_execution_processing(
@@ -165,7 +164,7 @@ def _do_compute(msg, template):
             is_parallel=msg.isParallel,
             run_dir=msg.runDir,
             sim_id=msg.simulationId,
-            success_exit=False,
+            success_exit=success_exit,
         )
 
     def _success_exit():
@@ -196,7 +195,7 @@ def _do_compute(msg, template):
         for _ in range(20):
             # Not asyncio.sleep: not in coroutine
             time.sleep(0.1)
-            s.exit_code = s.process.poll():
+            s.exit_code = s.process.poll()
             if s.exit_code is None:
                 continue
             if s.exit_code == -signal.SIGKILL:
@@ -209,8 +208,8 @@ def _do_compute(msg, template):
             # TODO(robnagler) If an exception, job continues, but this function
             # stops but not the compute process.
             s.parallel_status = _write_parallel_status(parallel_status, msg, template, is_running=s.exit_code is None)
-        if not s.is_running:
-            return _exit_reply(s.process.returncode)
+        if s.exit_code is not None:
+            return _exit_reply(s.exit_code)
 
 
 def _do_download_data_file(msg, template):
@@ -324,7 +323,10 @@ def _do_sbatch_parallel_status(msg, template):
         time.sleep(msg.runStatusPollSeconds)
     if s == job.JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP:
         # Only time can update the file when given request to stop
-        _final(_write_parallel_status(p, msg, template, is_running=False), f)
+        # TODO(robnagler) completed_hack ensures we write COMPLETED to the file.
+        # in sbatch, we don't know if the process exited with errors.
+        # TODO(robnagler) need to handle post processing.
+        _final(_write_parallel_status(p, msg, template, is_running=False, completed_hack=True), f)
     return None
 
 
@@ -433,13 +435,16 @@ def _validate_msg_and_jsonl(msg):
 
 
 
-def _write_parallel_status(prev_res, msg, template, is_running):
+def _write_parallel_status(prev_res, msg, template, is_running, completed_hack=False):
     if prev_res is None:
         prev_res = PKDict(py=None, json=None)
     res = PKDict(py=_background_percent_complete(msg, template, is_running))
     if prev_res.py == res.py:
         return prev_res
-    res.json = pkjson.dump_str(PKDict(parallelStatus=res.py))
+    r = PKDict(parallelStatus=res.py)
+    if completed_hack:
+        r.state = job.COMPLETED
+    res.json = pkjson.dump_str(r)
     if prev_res.json != res.json:
         sys.stdout.write(res.json + "\n")
     return res
