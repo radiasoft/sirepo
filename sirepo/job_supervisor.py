@@ -296,7 +296,7 @@ class _Supervisor(PKDict):
                 rv.jid = self.db.computeJid
             else:
                 raise AssertionError("too few args")
-            self.__db_status_update(**d)
+            self._db_status_update(**d)
             pkdlog("{} cancel args={}", self, rv)
             return rv
 
@@ -483,12 +483,12 @@ class _ComputeJob(_Supervisor):
             _run_status_op=None,
         )
         # At start we don't know anything about the run_dir so assume ready
-        if d := self.__db_load(req.content.computeJid):
+        if d := self._db_load(req.content.computeJid):
             self.db = d
         else:
-            self.__db_init(req)
+            self._db_init(req)
             # db_status_update takes action based on status so fake
-            self.__db_status_update(status=self.db.status)
+            self._db_status_update(status=self.db.status)
         self.cache_timeout_set()
 
     @classmethod
@@ -582,7 +582,7 @@ class _ComputeJob(_Supervisor):
                     "jid=[} in _ComputeJob.instances; should not happen, ignoring", jid
                 )
                 return
-            if (d := cls.__db_load(jid)) is None:
+            if (d := cls._db_load(jid)) is None:
                 return
             if d.lastUpdateTime > too_old:
                 return
@@ -601,9 +601,9 @@ class _ComputeJob(_Supervisor):
                     jid,
                 )
                 return
-            n = cls.__db_init_new(d, d)
+            n = cls._db_init_new(d, d)
             n.status = job.JOB_RUN_PURGED
-            cls.__db_write_file(n)
+            cls._db_write_file(n)
             pkdlog("jid={}", jid)
 
         async def _uids_to_jids(too_old, qcall):
@@ -660,7 +660,7 @@ class _ComputeJob(_Supervisor):
             if not str(exception):
                 exception = repr(exception)
             situation = f"{p}{exception}, while {s}"
-        self.__db_update(jobStatusMessage=situation)
+        self._db_update(jobStatusMessage=situation)
 
     @classmethod
     def _create(cls, req):
@@ -675,7 +675,7 @@ class _ComputeJob(_Supervisor):
                 self.db.computeJid,
                 req.content.api,
             )
-            self.__db_status_update(status=job.CANCELED)
+            self._db_status_update(status=job.CANCELED)
         return self
 
     def _create_op(self, op_name, req, **msg_kwargs):
@@ -703,18 +703,18 @@ class _ComputeJob(_Supervisor):
         return o
 
     @classmethod
-    def __db_file(cls, computeJid):
+    def _db_file(cls, computeJid):
         return _DB_DIR.join(
             sirepo.simulation_db.assert_sim_db_basename(computeJid)
             + sirepo.const.JSON_SUFFIX,
         )
 
-    def __db_init(self, req, prev_db=None):
-        self.db = self.__db_init_new(req.content, prev_db)
+    def _db_init(self, req, prev_db=None):
+        self.db = self._db_init_new(req.content, prev_db)
         return self.db
 
     @classmethod
-    def __db_init_new(cls, data, prev_db=None):
+    def _db_init_new(cls, data, prev_db=None):
         db = PKDict(
             alert=None,
             queueState="queued",
@@ -729,7 +729,7 @@ class _ComputeJob(_Supervisor):
             dbUpdateTime=sirepo.srtime.utc_now_as_float(),
             driverDetails=PKDict(),
             error=None,
-            history=cls.__db_init_history(prev_db),
+            history=cls._db_init_history(prev_db),
             isParallel=data.isParallel,
             isPremiumUser=data.get("isPremiumUser"),
             jobStatusMessage=None,
@@ -745,7 +745,7 @@ class _ComputeJob(_Supervisor):
             assert (
                 data.api != "api_runSimulation"
             ), "api_runSimulation must have a jobRunMode content={}".format(data)
-            # __db_init() will be called when runDirNotFound.
+            # _db_init() will be called when runDirNotFound.
             # The api_* that initiated the request may not have
             # a jobRunMode (ex api_downloadDataFile). In that
             # case use the existing jobRunMode because the
@@ -762,7 +762,7 @@ class _ComputeJob(_Supervisor):
         return db
 
     @classmethod
-    def __db_init_history(cls, prev_db):
+    def _db_init_history(cls, prev_db):
         if prev_db is None:
             return []
         return prev_db.history + [
@@ -776,7 +776,7 @@ class _ComputeJob(_Supervisor):
         ]
 
     @classmethod
-    def __db_load(cls, compute_jid):
+    def _db_load(cls, compute_jid):
         def _fixup(old):
             old.pksetdefault(
                 # Simple cases of missing defaults
@@ -795,7 +795,7 @@ class _ComputeJob(_Supervisor):
                     h.canceledAfterSecs = old.pkdel("cancelledAfterSecs", default=None)
             return old
 
-        p = cls.__db_file(compute_jid)
+        p = cls._db_file(compute_jid)
         try:
             d = p.read_binary()
         except Exception as e:
@@ -816,21 +816,21 @@ class _ComputeJob(_Supervisor):
                 h.setdefault(k, None)
         return _fixup(d)
 
-    def __db_status_update(self, **kwargs):
+    def _db_status_update(self, **kwargs):
         if not self._is_running_pending(kwargs["status"]) and self._run_status_op:
             self._run_status_op.destroy()
-        self.__db_update(**kwargs)
+        self._db_update(**kwargs)
 
-    def __db_update(self, **kwargs):
+    def _db_update(self, **kwargs):
         self.db.pkupdate(**kwargs)
-        self.__db_write_file(self.db)
+        self._db_write_file(self.db)
 
     @classmethod
-    def __db_write_file(cls, db):
+    def _db_write_file(cls, db):
         db.dbUpdateTime = sirepo.srtime.utc_now_as_float()
-        sirepo.util.json_dump(db, path=cls.__db_file(db.computeJid))
+        sirepo.util.json_dump(db, path=cls._db_file(db.computeJid))
 
-    def __db_copy_to_dest(self, dest, fields):
+    def _db_copy_to_dest(self, dest, fields):
         for f in fields:
             dest[f] = self.db[f]
         return dest
@@ -839,8 +839,8 @@ class _ComputeJob(_Supervisor):
         return (status or self.db.status) in (job.RUNNING, job.PENDING)
 
     def _init_db_missing_response(self, req):
-        self.__db_init(req, prev_db=self.db)
-        self.__db_status_update(status=job.MISSING)
+        self._db_init(req, prev_db=self.db)
+        self._db_status_update(status=job.MISSING)
         return PKDict(state=self.db.status)
 
     def _process_run_status_update(self, msg):
@@ -872,7 +872,7 @@ class _ComputeJob(_Supervisor):
                 msg.get("lastUpdateTime") or sirepo.srtime.utc_now_as_int()
             )
         # TODO(robnagler) will need final frame count. Not sent?
-        self.__db_status_update(**d)
+        self._db_status_update(**d)
 
     def _raise_if_purged_or_missing(self, req):
         if self.db.status in (job.MISSING, job.JOB_RUN_PURGED):
@@ -911,9 +911,9 @@ class _ComputeJob(_Supervisor):
 
     async def _receive_api_runSimulation(self, req, recursing=False):
         def _update_db():
-            self.__db_init(req, prev_db=self.db)
+            self._db_init(req, prev_db=self.db)
             t = sirepo.srtime.utc_now_as_int()
-            self.__db_status_update(
+            self._db_status_update(
                 computeJobQueued=t,
                 computeJobSerial=t,
                 computeModel=req.content.computeModel,
@@ -923,7 +923,7 @@ class _ComputeJob(_Supervisor):
                 status=job.PENDING,
             )
             self._purged_jids_cache.discard(
-                self.__db_file(self.db.computeJid).purebasename
+                self._db_file(self.db.computeJid).purebasename
             )
 
         async def _valid_or_reply(force_run):
@@ -961,7 +961,7 @@ class _ComputeJob(_Supervisor):
         # Reply case yields, but does not modify global state
         if r := await _valid_or_reply(req.content.data.get("forceRun")):
             return r
-        #TODO(robnagler) consolidate _start_run_status_op
+        # TODO(robnagler) consolidate _start_run_status_op
         d = self.db.dbUpdateTime
         r = await self._send_with_reply(
             job.OP_RUN,
@@ -1088,7 +1088,7 @@ class _ComputeJob(_Supervisor):
     async def _start_run_status_op(self, originating_req):
         def _req():
             return PKDict(
-                content=self.__db_copy_to_dest(PKDict(), _RUN_STATUS_FIELDS).pkupdate(
+                content=self._db_copy_to_dest(PKDict(), _RUN_STATUS_FIELDS).pkupdate(
                     # Note: overriden by drivers sometimes so not kept in db
                     runDir=originating_req.content.runDir,
                     userDir=originating_req.content.userDir,
@@ -1102,7 +1102,7 @@ class _ComputeJob(_Supervisor):
                 # computeJobSerial is checked by agent so do not need to check here, since
                 # already know the db is in sync from when request was sent.
                 # Reply only includes state at this point; OP_RUN_STATUS_UPDATE handles parallelStatus
-                self.__db_status_update(status=reply.state)
+                self._db_status_update(status=reply.state)
                 op.destroy()
                 return
             if not (e := reply.get("error")):
@@ -1111,11 +1111,11 @@ class _ComputeJob(_Supervisor):
             op.destroy()
             if self._is_running_pending():
                 # Only set status in running/pending case, otherwise already in exit state
-                self.__db_status_update(status=job.ERROR, error=e)
+                self._db_status_update(status=job.ERROR, error=e)
                 pkdlog("{} agent does not know status, error={}, ", self, e)
             # else leave status alone, likely supervisor knows more than agent
 
-        #TODO(robnagler) consolidate _receive_api_runSimulation
+        # TODO(robnagler) consolidate _receive_api_runSimulation
         d = self.db.dbUpdateTime
         r = await self._send_with_reply(
             job.OP_RUN_STATUS,
@@ -1129,7 +1129,9 @@ class _ComputeJob(_Supervisor):
         if r.op != self._run_status_op:
             # No longer in control. Let another request initiate a new run_status
             pkdlog(
-                "{} run_status_op changed during request, ignoring reply={}", self, r.reply
+                "{} run_status_op changed during request, ignoring reply={}",
+                self,
+                r.reply,
             )
             r.op.destroy()
         elif self.db.dbUpdateTime == d:
@@ -1156,7 +1158,7 @@ class _ComputeJob(_Supervisor):
                 r.alert = self.db.alert
             if self.db.isParallel:
                 r.update(self.db.parallelStatus)
-                self.__db_copy_to_dest(
+                self._db_copy_to_dest(
                     # TODO(robnagler) why are these not included in all cases?
                     r,
                     (
@@ -1169,8 +1171,8 @@ class _ComputeJob(_Supervisor):
                 r.elapsedTime = self.elapsed_time()
             if self._is_running_pending():
                 # TODO(robnagler) why are there two copies of nextRequestSeconds?
-                self.__db_copy_to_dest(r, ("jobStatusMessage", "nextRequestSeconds"))
-                r.nextRequest = self.__db_copy_to_dest(
+                self._db_copy_to_dest(r, ("jobStatusMessage", "nextRequestSeconds"))
+                r.nextRequest = self._db_copy_to_dest(
                     PKDict(), _RUN_STATUS_FIELDS
                 ).pkupdate(
                     # TODO(robnagler) is this value necessary?

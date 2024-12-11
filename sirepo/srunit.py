@@ -173,6 +173,7 @@ class _TestClient:
 
     def iter_sleep(self, kind, op_desc):
         import time
+        from pykern import pkunit
 
         def _setup():
             rv = PKDict(_ITER_SLEEP[kind])
@@ -185,7 +186,7 @@ class _TestClient:
             if i > 0:
                 time.sleep(s.sleep_secs)
         else:
-            pkfail(
+            pkunit.pkfail(
                 "timeout secs={} kind={} op_desc={}",
                 s.sleep_secs * s.count,
                 kind,

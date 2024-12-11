@@ -282,7 +282,7 @@ class DriverBase(PKDict):
             pkdlog("{} opName={} o={:.4}", self, c.opName, i)
         if i:
             if "reply" not in c:
-                pkdlog("{} no reply={}", self, c)
+                pkdlog("{} no reply in msg={}", self, c)
                 c.reply = PKDict(
                     state=job.ERROR, error="invalid message from job_agent"
                 )
