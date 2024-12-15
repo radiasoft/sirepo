@@ -327,16 +327,31 @@ def json_filename(filename, run_dir=None):
 
     Args:
         filename (py.path or str): to convert
-        run_dir (py.path): which directory to join
+        run_dir (py.path): which directory to join (only if filename is str)
     Returns:
         py.path: filename.json
     """
-    filename = str(filename)
-    if not filename.endswith(sirepo.const.JSON_SUFFIX):
-        filename += sirepo.const.JSON_SUFFIX
-    if run_dir and not os.path.isabs(filename):
-        filename = run_dir.join(filename)
-    return pkio.py_path(path=filename)
+
+    def _path():
+        if not isinstance(filename, str):
+            if run_dir:
+                raise AssertionError(
+                    f"filename={filename} is a py.path, cannot join run_dir={run_dir}"
+                )
+            return filename
+        if not run_dir:
+            return pkio.py_path(filename)
+        if os.path.isabs(filename):
+            raise AssertionError(
+                f"filename={filename} is absolute, cannot join run_dir={run_dir}"
+            )
+        return run_dir.join(filename)
+
+    p = _path()
+    if p.ext == sirepo.const.JSON_SUFFIX:
+        return p
+    # Do not replace using new, because may already have suffix
+    return p + sirepo.const.JSON_SUFFIX
 
 
 def json_load(*args, **kwargs):
@@ -474,6 +489,7 @@ def prepare_simulation(data, run_dir):
     sim_type = data.simulationType
     template = sirepo.template.import_module(data)
     s = sim_data.get_class(sim_type)
+    assert not isinstance(run_dir, str)
     s.support_files_to_run_dir(data, run_dir)
     update_rsmanifest(data)
     write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)

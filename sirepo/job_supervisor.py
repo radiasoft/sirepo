@@ -261,64 +261,6 @@ class _Supervisor(PKDict):
             c.get("uid"),
         )
 
-    async def _cancel_op_or_job(self, timed_out_op=None, is_run_cancel=None):
-        def _create_op(msg):
-            # _create_op does too much and expects a request
-            return _Op(
-                _supervisor=_Supervisor(),
-                api="cancel_or_timeout",
-                driver=to_cancel.driver,
-                is_destroyed=False,
-                kind=to_cancel.kind,
-                max_run_secs=None,
-                msg=msg,
-                op_name=job.OP_CANCEL,
-                uid=self.db.uid,
-            )
-
-        def _eval_args_and_destroy_op():
-            rv = PKDict()
-            d = PKDict(status=job.CANCELED, queuedState=None)
-            if timed_out_op:
-                if timed_out_op.is_destroyed:
-                    raise AssertionError(
-                        "already destroyed timed_out_op={}", timed_out_op
-                    )
-                rv.opId = timed_out_op.op_id
-                # Either of these cases causes the job stop
-                if timed_out_op.op_name in (job.OP_RUN, job.OP_RUN_STATUS):
-                    d.canceledAfterSecs = timed_out_op.max_run_secs
-                    rv.jid = self.db.computeJid
-                timed_out_op.destroy()
-            elif is_run_cancel:
-                if timed_out_op:
-                    raise AssertionError("too many args")
-                rv.jid = self.db.computeJid
-            else:
-                raise AssertionError("too few args")
-            self._db_status_update(**d)
-            pkdlog("{} cancel args={}", self, rv)
-            return rv
-
-        c = None
-        internal_error = None
-        m = _eval_args_and_destroy_op()
-        try:
-            c = _create_op(m)
-            if not await c.prepare_send() or c.is_destroyed:
-                pkdlog("{} prepare_send failed op={}", self, c)
-                return
-            c.send()
-            # state of "c" is irrelevant here, cancel always "succeeds".
-            # no need to check return, but need to get the reply.
-            await c.reply_get()
-        except Exception as e:
-            internal_error = f"_cancel_op_or_job exception={e}"
-            pkdlog("exception={} stack={}", e, pkdexc())
-        finally:
-            if c:
-                c.destroy(internal_error=internal_error)
-
     def _create_op(self, op_name, req, kind, job_run_mode, **msg_kwargs):
         return _Op(
             _supervisor=self,
@@ -663,6 +605,70 @@ class _ComputeJob(_Supervisor):
             situation = f"{p}{exception}, while {s}"
         self._db_update(jobStatusMessage=situation)
 
+    async def _cancel_op_or_job(self, timed_out_op=None, run_cancel_req=None):
+        def _create_op(msg):
+            if "opId" not in msg:
+                # Gets appropriate driver
+                return self._create_op(op_name=job.OP_CANCEL, req=run_cancel_req)
+            # Goes back to same driver/kind as op
+            return _Op(
+                _supervisor=_Supervisor(),
+                api="cancel_or_timeout",
+                driver=timed_out_op.driver,
+                is_destroyed=False,
+                kind=timed_out_op.kind,
+                max_run_secs=None,
+                msg=msg,
+                op_name=job.OP_CANCEL,
+                uid=self.db.uid,
+            )
+
+        def _eval_args_and_destroy_op():
+            rv = PKDict()
+            d = PKDict(status=job.CANCELED, queuedState=None)
+            if timed_out_op:
+                if timed_out_op.is_destroyed:
+                    raise AssertionError(
+                        "already destroyed timed_out_op={}", timed_out_op
+                    )
+                rv.opId = timed_out_op.op_id
+                # Either of these cases causes the job stop.
+                # TODO(robnagler) run status needs to have a max job secs like run
+                if timed_out_op.op_name in (job.OP_RUN, job.OP_RUN_STATUS):
+                    d.canceledAfterSecs = timed_out_op.max_run_secs
+                    rv.jid = self.db.computeJid
+                timed_out_op.destroy()
+            elif run_cancel_req:
+                # Do not need to cancel run_status_op, since all ops associated with jid
+                # will be canceled by agent. _db_status_update destroys run_status_op on job exit
+                if timed_out_op:
+                    raise AssertionError("too many args")
+                rv.jid = self.db.computeJid
+            else:
+                raise AssertionError("too few args")
+            self._db_status_update(**d)
+            pkdlog("{} cancel args={}", self, rv)
+            return rv
+
+        c = None
+        internal_error = None
+        m = _eval_args_and_destroy_op()
+        try:
+            c = _create_op(m)
+            if not await c.prepare_send() or c.is_destroyed:
+                pkdlog("{} prepare_send failed op={}", self, c)
+                return
+            c.send()
+            # state of "c" is irrelevant here, cancel always "succeeds".
+            # no need to check return, but need to get the reply.
+            await c.reply_get()
+        except Exception as e:
+            internal_error = f"_cancel_op_or_job exception={e}"
+            pkdlog("exception={} stack={}", e, pkdexc())
+        finally:
+            if c:
+                c.destroy(internal_error=internal_error)
+
     @classmethod
     def _create(cls, req):
         self = cls.instances[req.content.computeJid] = cls(req)
@@ -801,7 +807,6 @@ class _ComputeJob(_Supervisor):
             d = p.read_binary()
         except Exception as e:
             if pykern.pkio.exception_is_not_found(e):
-                pkdlog("disappeared path={}", p)
                 return None
             raise
         d = pkjson.load_any(d)
@@ -849,7 +854,7 @@ class _ComputeJob(_Supervisor):
         pkdp(msg)
         if self.db.computeJobSerial != msg.computeJobSerial:
             pkdlog(
-                "{} db.computeJobSerial={} does not match msg={}, ignoring",
+                "{} db.computeJobSerial={} does not match msg.computeJobSerial={}, ignoring",
                 self,
                 self.db.computeJobSerial,
                 msg.computeJobSerial,
@@ -903,12 +908,11 @@ class _ComputeJob(_Supervisor):
             jobCmd=job.CMD_DOWNLOAD_RUN_FILE,
         )
 
-    async def _receive_api_runCancel(self, req, timed_out_op=None):
+    async def _receive_api_runCancel(self, req):
         """Cancel a run
 
         Args:
             req (ServerReq): The cancel request
-            timed_out_op (_Op, Optional): the op that was timed out, which needs to be canceled
         Returns:
             PKDict: Message with state=canceled
         """
@@ -917,7 +921,7 @@ class _ComputeJob(_Supervisor):
             pkdlog("{} ignoring cancel, not running req_is_invalid", self)
             # job is not relevant, but let the user know it isn't running
             return _canceled_reply()
-        await self._cancel_op_or_job(is_run_cancel=True)
+        await self._cancel_op_or_job(run_cancel_req=req)
         return _canceled_reply()
 
     async def _receive_api_runSimulation(self, req, recursing=False):
@@ -936,6 +940,7 @@ class _ComputeJob(_Supervisor):
             self._purged_jids_cache.discard(
                 self._db_file(self.db.computeJid).purebasename
             )
+            return t
 
         async def _valid_or_reply(force_run):
             if self._is_running_pending():
@@ -944,6 +949,7 @@ class _ComputeJob(_Supervisor):
                         state=job.ERROR,
                         error="another browser is running the simulation",
                     )
+                pkdp("xxx")
                 # Not _receive_api_runStatus, because runStatus should have been
                 # called before this function is called.
                 return self._status_reply(req)
@@ -952,12 +958,14 @@ class _ComputeJob(_Supervisor):
                 and self._req_is_valid(req)
                 and self.db.status == job.COMPLETED
             ):
+                pkdp("yyy")
                 # TODO(robnagler) simplify after https://github.com/radiasoft/sirepo/issues/7386
 
                 # Valid, completed, sequential simulation
                 # Read this first https://github.com/radiasoft/sirepo/issues/2007
                 r = await self._receive_api_runStatus(req)
                 if r.state == job.MISSING:
+                    pkdp("yyy")
                     # happens when the run dir is deleted (ex purge_non_premium)
                     if recursing:
                         raise AssertionError(f"already called from self req={req}")
@@ -971,17 +979,29 @@ class _ComputeJob(_Supervisor):
             raise AssertionError(f"_run_status_op already set job={self}")
         # Reply case yields, but does not modify global state
         if r := await _valid_or_reply(req.content.data.get("forceRun")):
+            pkdp(r)
             return r
         # TODO(robnagler) consolidate _start_run_status_op
-        _update_db()
+        req.content.computeJobSerial = _update_db()
         d = self.db.dbUpdateTime
-        r = await self._send_with_reply(
-            job.OP_RUN,
-            req,
-            is_run_status_op=True,
-            jobCmd=job.CMD_COMPUTE,
-            nextRequestSeconds=self.db.nextRequestSeconds,
-        )
+        try:
+            r = await self._send_with_reply(
+                job.OP_RUN,
+                req,
+                is_run_status_op=True,
+                jobCmd=job.CMD_COMPUTE,
+                nextRequestSeconds=self.db.nextRequestSeconds,
+            )
+        except Exception as e:
+            if self.db.dbUpdateTime == d:
+                # Likely case is sbatch login exception, which is actually normal operation
+                pkdlog("{} exception={}", self, e)
+                self._db_status_update(
+                    status=job.ERROR, error="exception during send", queuedState=None
+                )
+            else:
+                pkdlog("{} db updated during send with exception={}", self, e)
+            raise
         pkdp("xxxxxxx")
         pkdp(r)
         if r.reply is None:
@@ -1150,7 +1170,6 @@ class _ComputeJob(_Supervisor):
             )
             r.op.destroy()
         elif self.db.dbUpdateTime == d:
-            # db has not been modified since request so should we update?
             _update_db(**r)
         else:
             # No longer in control. Let another request initiate a new run_status

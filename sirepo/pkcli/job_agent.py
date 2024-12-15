@@ -260,7 +260,7 @@ class _Dispatcher(PKDict):
                     s = await self._op(r)
             except Exception as e:
                 if not isinstance(e, tornado.iostream.StreamClosedError):
-                    pkdlog("retry websocket; error={} stack={}", e, pkdexc())
+                    pkdlog("retrying, websocket; error={} stack={}", e, pkdexc())
                 await tornado.gen.sleep(_RETRY_SECS)
             finally:
                 if self._websocket:
@@ -466,10 +466,10 @@ class _Dispatcher(PKDict):
         return self.format_op(msg, job.OP_OK, reply=PKDict(awake=True))
 
     async def _op_cancel(self, msg):
-        def _matches():
-            return set(c for c in self.cmds if c.op_id == msg.opId or c.jid == msg.jid)
+        def _matches(op_id, jid):
+            return set(c for c in self.cmds if c.op_id == op_id or c.jid == jid)
 
-        for c in _matches():
+        for c in _matches(msg.get("opId", "no match"), msg.get("jid", "no match")):
             c.cancel_request()
         return self.format_canceled(msg)
 
@@ -525,8 +525,10 @@ class _Cmd(PKDict):
             self.computeJobSerial = self.msg.computeJobSerial
             self.job_state = job.PENDING
             self.computeJobStart = int(time.time())
-            pkio.unchecked_remove(self.run_dir)
-            pkio.mkdir_parent(self.run_dir)
+            if self.msg.opName == job.OP_RUN:
+                pkdlog("remove {}", self.msg.opId)
+                # pkio.unchecked_remove(self.run_dir)
+                pkio.mkdir_parent(self.run_dir)
 
         super().__init__(**kwargs)
         self.pksetdefault(
@@ -948,8 +950,11 @@ class _SbatchRun(_SbatchCmd):
                 job_cmd_state=job.PENDING, sbatch_id=m.group(1)
             ):
                 # Start the status watcher
+                m = copy.deepcopy(self.msg)
+                m.opName = job.OP_RUN_STATUS
+                m.opId = None
                 _SbatchRunStatus(
-                    msg=self.msg, dispatcher=self.dispatcher, sbatch_run=self
+                    msg=m, dispatcher=self.dispatcher, sbatch_run=self
                 ).start()
                 rv = self.format_op_reply(state=job.STATE_OK)
             else:
@@ -970,15 +975,16 @@ class _SbatchRun(_SbatchCmd):
             return f"#SBATCH --ntasks={self.msg.sbatchCores}"
 
         def _prepare_simulation():
-            return """python <<'EOF'
-import sirepo.simulation_db
+            # python serialization does not work so use json
+            return f"""python <<'EOF'
+import pykern.pkio
 import pykern.pkjson
+import sirepo.simulation_db
 
 # returns the python command, but too complicated to couple
-simulation_db.prepare_simulation(
-    # python serialization does not work
-    pykern.pkjson.load_any('''{pkjson.dump_pretty(self.msg.data)}''',
-    'self.msg.runDir',
+sirepo.simulation_db.prepare_simulation(
+    data=pykern.pkjson.load_any('''{pkjson.dump_pretty(self.msg.data)}'''),
+    run_dir=pykern.pkio.py_path('{self.run_dir}'),
 )
 EOF"""
 
