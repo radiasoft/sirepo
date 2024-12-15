@@ -467,8 +467,11 @@ class _Dispatcher(PKDict):
 
     async def _op_cancel(self, msg):
         def _matches(op_id, jid):
-            return set(c for c in self.cmds if c.op_id == op_id or c.jid == jid)
+            return pkdp(
+                list(c for c in pkdp(self.cmds) if c.op_id == op_id or c.jid == jid)
+            )
 
+        pkdp(msg)
         for c in _matches(msg.get("opId", "no match"), msg.get("jid", "no match")):
             c.cancel_request()
         return self.format_canceled(msg)

@@ -605,23 +605,23 @@ class _ComputeJob(_Supervisor):
             situation = f"{p}{exception}, while {s}"
         self._db_update(jobStatusMessage=situation)
 
-    async def _cancel_op_or_job(self, timed_out_op=None, run_cancel_req=None):
+    async def _cancel_op_or_job(self, timed_out_op=None, is_run_cancel=False):
         def _create_op(msg):
-            if "opId" not in msg:
-                # Gets appropriate driver
-                return self._create_op(op_name=job.OP_CANCEL, req=run_cancel_req)
-            # Goes back to same driver/kind as op
-            return _Op(
-                _supervisor=_Supervisor(),
-                api="cancel_or_timeout",
-                driver=timed_out_op.driver,
-                is_destroyed=False,
-                kind=timed_out_op.kind,
-                max_run_secs=None,
-                msg=msg,
+            # _ComputeJob._create_op assumes a req, which we may not have
+            rv = _Supervisor()._create_op(
                 op_name=job.OP_CANCEL,
+                kind=(
+                    timed_out_op.kind
+                    if timed_out_op
+                    else (job.PARALLEL if self.db.isParallel else job.SEQUENTIAL)
+                ),
+                req=PKDict(content=msg),
+                job_run_mode=self.db.jobRunMode,
                 uid=self.db.uid,
             )
+            if timed_out_op:
+                rv.driver = timed_out_op.driver
+            return rv
 
         def _eval_args_and_destroy_op():
             rv = PKDict()
@@ -638,7 +638,7 @@ class _ComputeJob(_Supervisor):
                     d.canceledAfterSecs = timed_out_op.max_run_secs
                     rv.jid = self.db.computeJid
                 timed_out_op.destroy()
-            elif run_cancel_req:
+            elif is_run_cancel:
                 # Do not need to cancel run_status_op, since all ops associated with jid
                 # will be canceled by agent. _db_status_update destroys run_status_op on job exit
                 if timed_out_op:
@@ -921,7 +921,7 @@ class _ComputeJob(_Supervisor):
             pkdlog("{} ignoring cancel, not running req_is_invalid", self)
             # job is not relevant, but let the user know it isn't running
             return _canceled_reply()
-        await self._cancel_op_or_job(run_cancel_req=req)
+        await self._cancel_op_or_job(is_run_cancel=True)
         return _canceled_reply()
 
     async def _receive_api_runSimulation(self, req, recursing=False):
