@@ -799,8 +799,8 @@ class _ComputeJob(_Supervisor):
                 computeModel=lambda: sirepo.job.split_jid(compute_jid).compute_model,
                 queueState=None,
             )
-            if "dbUpdateTime" not in values:
-                values.dbUpdateTime = float(p.mtime())
+            if "dbUpdateTime" not in old:
+                old.dbUpdateTime = float(p.mtime())
             elif isinstance(old.dbUpdateTime, int):
                 # make type compatible
                 old.dbUpdateTime = float(old.dbUpdateTime)
