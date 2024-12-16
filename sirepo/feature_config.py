@@ -203,7 +203,7 @@ def _init():
         schema_common=dict(
             hide_guest_warning=_dev("Hide the guest warning in the UI"),
             support_email=(
-                "support@radiasoft.net",
+                "support@sirepo.com",
                 str,
                 "Support email address",
             ),
