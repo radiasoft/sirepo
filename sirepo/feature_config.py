@@ -204,11 +204,6 @@ def _init():
             hide_guest_warning=_dev("Hide the guest warning in the UI"),
         ),
         sim_types=(set(), set, "simulation types (codes) to be imported"),
-        slack_uri=(
-            "https://slack.com/",
-            str,
-            "Link to Sirepo Slack workspace; uid will be appended",
-        ),
         srw=dict(
             app_url=("/en/xray-beamlines.html", str, "URL for SRW link"),
             mask_in_toolbar=_test("Show the mask element in toolbar"),

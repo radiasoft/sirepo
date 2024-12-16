@@ -653,11 +653,6 @@ class _Auth(sirepo.quest.Attr):
         return res
 
     def _auth_state(self):
-        def _get_slack_uri():
-            return sirepo.feature_config.cfg().slack_uri + (
-                self._qcall_bound_user() or ""
-            )
-
         s = self._qcall_bound_state()
         v = pkcollections.Dict(
             avatarUrl=None,
@@ -671,7 +666,6 @@ class _Auth(sirepo.quest.Attr):
             method=self._qcall_bound_method(),
             needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
             roles=[],
-            slackUri=_get_slack_uri(),
             userName=None,
             uiWebSocket=sirepo.feature_config.cfg().ui_websocket,
             visibleMethods=visible_methods,

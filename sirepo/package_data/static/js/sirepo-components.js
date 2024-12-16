@@ -2605,14 +2605,11 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                 <li data-ng-transclude="appHeaderRightSimListSlot"></li>
               </ul>
               <ul class="nav navbar-nav sr-navbar-right">
-                <li>
-                  <a href="{{ slackUri }}" target="_blank" style="padding: 11px 0px 10px 0px;">
-                    <span><img class="sr-slack-img" width="70" src="/static/svg/slack.svg" title="Join us on Slack"/></span>
-                  </a>
-                </li>
                 <li class=dropdown><a href class="dropdown-toggle" data-toggle="dropdown"><span
                         class="glyphicon glyphicon-question-sign"></span> <span class="caret"></span></a>
                   <ul class="dropdown-menu">
+                    <li><a href="mailto:support@radiasoft.net" target="_blank"><span
+                            class="glyphicon glyphicon-envelope"></span> Contact Support</a></li>
                     <li><a href="https://github.com/radiasoft/sirepo/issues" target="_blank"><span
                             class="glyphicon glyphicon-exclamation-sign"></span> Report a Bug</a></li>
                     <li data-help-link="helpUserManualURL" data-title="User Manual" data-icon="list-alt"></li>
@@ -2639,7 +2636,6 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
         },
         controller: function($scope, stringsService) {
             $scope.authState = authState;
-            $scope.slackUri = $scope.authState.slackUri;
 	    $scope.SIREPO = SIREPO;
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
