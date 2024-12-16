@@ -275,7 +275,6 @@ class _Dispatcher(PKDict):
         for c in list(self.cmds):
             if c.jid == jid:
                 c.destroy()
-        # TODO(robnagler) should we reply? Or is this simply state mismatch with supervisor?
 
     async def send(self, msg):
         if not self._websocket:
@@ -519,10 +518,8 @@ class _Cmd(PKDict):
             self.dispatcher.new_run_maybe_destroy_old(self.msg.computeJid)
             self.computeJobSerial = self.msg.computeJobSerial
             self.job_state = job.PENDING
-            self.computeJobStart = int(time.time())
             if self.msg.opName == job.OP_RUN:
-                pkdlog("remove {}", self.msg.opId)
-                # pkio.unchecked_remove(self.run_dir)
+                pkio.unchecked_remove(self.run_dir)
                 pkio.mkdir_parent(self.run_dir)
 
         super().__init__(**kwargs)
@@ -664,10 +661,19 @@ class _Cmd(PKDict):
             return rv
 
         _call_later_0(self._await_exit)
-        if "job_state" not in self:
+        if self.msg.opName != job.OP_RUN:
             return None
         self.job_state = job.RUNNING
-        return self.format_op_reply(state=job.STATE_OK)
+        self.computeJobStart = int(time.time())
+        rv = self.format_op_reply(state=job.STATE_OK)
+        self.msg.opId = None
+        _call_later_0(
+            self.dispatcher.job_cmd_reply,
+            msg=self.msg,
+            op_name=job.OP_RUN_STATUS_UPDATE,
+            cmd=self,
+        )
+        return rv
 
     async def _await_exit(self):
         try:
@@ -841,7 +847,7 @@ class _ReadUntilCloseStream(_Stream):
             partial=True,
         )
         pkdlog("cmd={} stderr={}", self.cmd, t)
-        # rjn        await self.cmd.on_stderr_read(t)
+        await self.cmd.on_stderr_read(t)
         l = len(self.text) + len(t)
         assert (
             l < job.cfg().max_message_bytes

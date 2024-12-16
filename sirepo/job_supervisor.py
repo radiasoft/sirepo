@@ -895,7 +895,6 @@ class _ComputeJob(_Supervisor):
             d.lastUpdateTime = (
                 msg.get("lastUpdateTime") or sirepo.srtime.utc_now_as_int()
             )
-        # TODO(robnagler) will need final frame count. Not sent?
         self._db_status_update(**d)
 
     def _raise_if_purged_or_missing(self, req):
