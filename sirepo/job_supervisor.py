@@ -71,8 +71,8 @@ _NEXT_REQUEST_FIELDS = (
     "computeJobHash",
     "computeJobStart",
     "computeJobSerial",
-#TODO(robnagler) figure out better way to copy
-#    "report",
+    # TODO(robnagler) figure out better way to copy
+    #    "report",
     "simulationId",
     "simulationType",
 )
@@ -275,6 +275,7 @@ class _Supervisor(PKDict):
             _supervisor=self,
             is_destroyed=False,
             kind=kind,
+            max_run_secs=None,
             msg=copy.deepcopy(req.content)
             .pksetdefault(jobRunMode=job_run_mode)
             .pkupdate(**msg_kwargs),

@@ -71,7 +71,7 @@ def test_myapp_analysis(fc):
 
     d = fc.sr_sim_data()
     # If a machine is slow, this might timeout on getting the heightWeightReport
-    # in analysis when we want the timeout below.
+    # in analysis when we want to get to the too large error (413) below.
     r = fc.sr_run_sim(d, "heightWeightReport", expect_completed=True)
     r = fc.sr_get(
         "downloadRunFile",

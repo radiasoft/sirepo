@@ -131,7 +131,7 @@ def _dispatch_compute(msg, template):
 
 
 def _do_analysis_job(msg, template):
-    pkdp("here")
+    pkdp("xxxxxxxxxxxxxxxxxxxxxxhere")
     return _dispatch_compute(pkdp(msg), template)
 
 
@@ -249,10 +249,7 @@ def _do_fastcgi(msg, template):
             r = s.recv(_MAX_FASTCGI_MSG)
             pkdp(r)
             if not r:
-                pkdlog(
-                    "job_cmd should be killed before socket is closed msg={}",
-                    msg,
-                )
+                pkdlog("job_cmd should be killed before socket is closed")
                 raise _AbruptSocketCloseError()
             if len(m) + len(r) > _MAX_FASTCGI_MSG:
                 raise RuntimeError("message larger than {} bytes", _MAX_FASTCGI_MSG)
@@ -262,6 +259,8 @@ def _do_fastcgi(msg, template):
 
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.connect(msg.fastcgiFile)
+    # No longer need the msg, and confuses with "m" below
+    msg = None
     c = 0
     while True:
         try:
@@ -269,12 +268,11 @@ def _do_fastcgi(msg, template):
             # TODO(robnagler) does not happen afaict
             if not m:
                 return
-            if msg.jobCmd == "fastcgi":
-                pkdlog("fastcgi called within fastcgi msg={}", msg)
+            if m.jobCmd == "fastcgi":
+                pkdlog("fastcgi called within fastcgi msg={}", m)
                 raise AssertionError("fastcgi called within fastcgi")
-                c = 0
             else:
-                r = _process_msg(msg, allow_none=False)
+                r = _process_msg(m, allow_none=False)
                 c = 0
         except _AbruptSocketCloseError:
             return
@@ -282,7 +280,9 @@ def _do_fastcgi(msg, template):
             raise
         except Exception as e:
             if c >= _MAX_FASTCGI_EXCEPTIONS:
-                raise AssertionError(f"too many fastgci exceptions count={c}. Most recent error={e}")
+                raise AssertionError(
+                    f"too many fastgci exceptions count={c}. Most recent error={e}"
+                )
             c += 1
             r = _maybe_parse_user_alert(e)
         s.sendall(_validate_msg_and_jsonl(r))
@@ -351,12 +351,17 @@ def _do_sbatch_parallel_status(msg, template):
 
 
 def _do_sequential_result(msg, template):
+    pkdp("yyyyyyyyyyyyy")
     r = template_common.read_sequential_result(msg.runDir)
+    pkdp("yyyyyyyyyyyyy")
     # Read this first: https://github.com/radiasoft/sirepo/issues/2007
     if hasattr(template, "prepare_sequential_output_file") and "models" in msg.data:
+        pkdp("yyyyyyyyyyyyy")
         template.prepare_sequential_output_file(msg.runDir, msg.data)
+        pkdp("yyyyyyyyyyyyy")
         r = template_common.read_sequential_result(msg.runDir)
-    return r
+    pkdp("yyyyyyyyyyyyy")
+    return pkdp(r)
 
 
 def _do_stateful_compute(msg, template):
@@ -431,10 +436,10 @@ def _process_msg(msg, allow_none):
             with contextlib.nullcontext():
                 yield
 
-    pkdp("here")
+    pkdp(msg)
     try:
         with _update_run_dir_and_maybe_chdir(msg):
-            r = globals()["_do_" + msg.jobCmd](
+            r = globals()["_do_" + pkdp(msg.jobCmd)](
                 msg, pkdp(sirepo.template.import_module(msg.simulationType))
             )
         if isinstance(r, dict):

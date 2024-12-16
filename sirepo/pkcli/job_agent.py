@@ -195,8 +195,6 @@ class _Dispatcher(PKDict):
 
     async def job_cmd_reply(self, msg, op_name, text=None, cmd=None, msg_items=None):
         def _fixup(reply):
-            if reply and "op_name" in reply:
-                op_name = reply.pkdel("op_name")
             rv = PKDict(**msg_items) if msg_items else PKDict()
             if msg.opName in (job.OP_RUN, job.OP_RUN_STATUS):
                 cmd.process_job_cmd_reply(reply)
@@ -213,9 +211,7 @@ class _Dispatcher(PKDict):
                 # Allow reply to override these things
                 rv.pkupdate(reply)
             else:
-                rv.msg = msg
-                rv.reply = reply
-                rv.op_name = op_name
+                rv.pkupdate(msg=msg, reply=reply, op_name=op_name)
             return rv
 
         def _parse_text():
@@ -344,7 +340,7 @@ class _Dispatcher(PKDict):
     def _fastcgi_accept(self, connection, *args, **kwargs):
         # Impedence mismatch: _fastcgi_accept cannot be async, because
         # bind_unix_socket doesn't await the callable.
-        _call_later_0(self._fastcgi_read, connection)
+        _call_later_0(self._fastcgi_loop, connection)
 
     async def _fastcgi_handle_error(self, msg, error, stack=None):
         async def _reply_error(msg):
@@ -411,7 +407,7 @@ class _Dispatcher(PKDict):
         self.fastcgi_cmd.op_id = msg.opId
         return None
 
-    async def _fastcgi_read(self, connection):
+    async def _fastcgi_loop(self, connection):
         s = None
         m = None
         try:
@@ -857,7 +853,7 @@ class _ReadUntilCloseStream(_Stream):
             partial=True,
         )
         pkdlog("cmd={} stderr={}", self.cmd, t)
-        await self.cmd.on_stderr_read(t)
+        # rjn        await self.cmd.on_stderr_read(t)
         l = len(self.text) + len(t)
         assert (
             l < job.cfg().max_message_bytes
