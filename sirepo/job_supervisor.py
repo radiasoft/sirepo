@@ -445,7 +445,6 @@ class _ComputeJob(_Supervisor):
 
     @classmethod
     def agent_receive(cls, msg):
-        pkdp(msg)
         if (j := msg.get("computeJid")) and (self := cls.instances.get(j)):
             if msg.opName in (job.OP_ERROR, job.OP_RUN_STATUS_UPDATE):
                 self._process_run_status_update(msg)
@@ -861,7 +860,6 @@ class _ComputeJob(_Supervisor):
 
     def _process_run_status_update(self, msg):
         """Process msg from agent about job"""
-        pkdp(msg)
         if self.db.computeJobSerial != msg.computeJobSerial:
             pkdlog(
                 "{} db.computeJobSerial={} does not match msg.computeJobSerial={}, ignoring",
@@ -959,7 +957,6 @@ class _ComputeJob(_Supervisor):
                         state=job.ERROR,
                         error="another browser is running the simulation",
                     )
-                pkdp("xxx")
                 # Not _receive_api_runStatus, because runStatus should have been
                 # called before this function is called.
                 return self._status_reply(req)
@@ -968,14 +965,12 @@ class _ComputeJob(_Supervisor):
                 and self._req_is_valid(req)
                 and self.db.status == job.COMPLETED
             ):
-                pkdp("yyy")
                 # TODO(robnagler) simplify after https://github.com/radiasoft/sirepo/issues/7386
 
                 # Valid, completed, sequential simulation
                 # Read this first https://github.com/radiasoft/sirepo/issues/2007
                 r = await self._receive_api_runStatus(req)
                 if r.state == job.MISSING:
-                    pkdp("yyy")
                     # happens when the run dir is deleted (ex purge_non_premium)
                     if recursing:
                         raise AssertionError(f"already called from self req={req}")
@@ -989,7 +984,6 @@ class _ComputeJob(_Supervisor):
             raise AssertionError(f"_run_status_op already set job={self}")
         # Reply case yields, but does not modify global state
         if r := await _valid_or_reply(req.content.data.get("forceRun")):
-            pkdp(r)
             return r
         # TODO(robnagler) consolidate _start_run_status_op
         req.content.computeJobSerial = _update_db()
@@ -1012,8 +1006,6 @@ class _ComputeJob(_Supervisor):
             else:
                 pkdlog("{} db updated during send with exception={}", self, e)
             raise
-        pkdp("xxxxxxx")
-        pkdp(r)
         if r.reply is None:
             # Unable to send means this op is destroyed
             return _canceled_reply()

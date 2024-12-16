@@ -116,7 +116,6 @@ def _dispatch_compute(msg, template):
         return _file_reply(r, msg)
 
     try:
-        pkdp("xxxxxxxxxxx")
         x = sirepo.sim_data.get_class(
             template.SIM_TYPE,
         ).does_api_reply_with_file(msg.api, msg.data.method)
@@ -126,13 +125,11 @@ def _dispatch_compute(msg, template):
         else:
             return _op(expect_file=x)
     except Exception as e:
-        pkdp(e)
         return _maybe_parse_user_alert(e)
 
 
 def _do_analysis_job(msg, template):
-    pkdp("xxxxxxxxxxxxxxxxxxxxxxhere")
-    return _dispatch_compute(pkdp(msg), template)
+    return _dispatch_compute(msg, template)
 
 
 def _do_cancel(msg, template):
@@ -247,7 +244,6 @@ def _do_fastcgi(msg, template):
         m = b""
         while True:
             r = s.recv(_MAX_FASTCGI_MSG)
-            pkdp(r)
             if not r:
                 pkdlog("job_cmd should be killed before socket is closed")
                 raise _AbruptSocketCloseError()
@@ -351,17 +347,12 @@ def _do_sbatch_parallel_status(msg, template):
 
 
 def _do_sequential_result(msg, template):
-    pkdp("yyyyyyyyyyyyy")
     r = template_common.read_sequential_result(msg.runDir)
-    pkdp("yyyyyyyyyyyyy")
     # Read this first: https://github.com/radiasoft/sirepo/issues/2007
     if hasattr(template, "prepare_sequential_output_file") and "models" in msg.data:
-        pkdp("yyyyyyyyyyyyy")
         template.prepare_sequential_output_file(msg.runDir, msg.data)
-        pkdp("yyyyyyyyyyyyy")
         r = template_common.read_sequential_result(msg.runDir)
-    pkdp("yyyyyyyyyyyyy")
-    return pkdp(r)
+    return r
 
 
 def _do_stateful_compute(msg, template):
@@ -436,26 +427,21 @@ def _process_msg(msg, allow_none):
             with contextlib.nullcontext():
                 yield
 
-    pkdp(msg)
-    try:
-        with _update_run_dir_and_maybe_chdir(msg):
-            r = globals()["_do_" + pkdp(msg.jobCmd)](
-                msg, pkdp(sirepo.template.import_module(msg.simulationType))
-            )
-        if isinstance(r, dict):
-            # Backwards compatibility
-            r = PKDict(r)
-        if isinstance(r, PKDict):
-            r.setdefault("state", job.COMPLETED)
-        elif r is None and allow_none:
-            return pkdp(r)
-        else:
-            pkdlog("func={} failed to return a PKDict", msg.jobCmd)
-            r = PKDict(state=job.ERROR, error="invalid return value")
-        return pkdp(r)
-    except Exception as e:
-        pkdp(e)
-        raise
+    with _update_run_dir_and_maybe_chdir(msg):
+        r = globals()["_do_" + msg.jobCmd](
+            msg, sirepo.template.import_module(msg.simulationType)
+        )
+    if isinstance(r, dict):
+        # Backwards compatibility
+        r = PKDict(r)
+    if isinstance(r, PKDict):
+        r.setdefault("state", job.COMPLETED)
+    elif r is None and allow_none:
+        return r
+    else:
+        pkdlog("func={} failed to return a PKDict", msg.jobCmd)
+        r = PKDict(state=job.ERROR, error="invalid return value")
+    return r
 
 
 def _validate_msg_and_jsonl(msg):

@@ -320,7 +320,6 @@ class _Dispatcher(PKDict):
                 )
                 and msg.jobCmd != "fastcgi"
             ):
-                pkdp("fastcgi={}", msg)
                 return await self._fastcgi_op(msg)
             c = self._get_cmd_type(msg)(msg=msg, dispatcher=self, **kwargs)
         except _RunDirNotFound:
@@ -376,7 +375,6 @@ class _Dispatcher(PKDict):
     async def _fastcgi_op(self, msg):
         if msg.runDir:
             _assert_run_dir_exists(pkio.py_path(msg.runDir))
-        pkdp("here")
         if not self.fastcgi_cmd:
             m = copy.deepcopy(msg)
             m.jobCmd = "fastcgi"
@@ -396,9 +394,7 @@ class _Dispatcher(PKDict):
                 self._fastcgi_accept,
             )
             # last thing, because of await: start fastcgi process
-            pkdp("await cmd fastcgi")
             await self._cmd(m, send_reply=False)
-        pkdp("put no wait")
         if msg.jobCmd == "fastcgi":
             raise AssertionError("fastcgi called within fastcgi")
         self._fastcgi_msg_q.put_nowait(msg)
@@ -417,21 +413,16 @@ class _Dispatcher(PKDict):
             )
             while True:
                 m = await self._fastcgi_msg_q.get()
-                pkdp(m)
                 # Avoid issues with exceptions. We don't use q.join()
                 # so not an issue to call before work is done.
                 self._fastcgi_msg_q.task_done()
                 await s.write(pkjson.dump_bytes(m) + b"\n")
-                pkdp("sent")
-                pkdp(
-                    await self.job_cmd_reply(
-                        m,
-                        job.OP_OK,
-                        text=pkdp(
-                            await s.read_until(b"\n", job.cfg().max_message_bytes)
-                        ),
-                    )
+                await self.job_cmd_reply(
+                    m,
+                    job.OP_OK,
+                    text=await s.read_until(b"\n", job.cfg().max_message_bytes),
                 )
+
         except Exception as e:
             pkdlog("msg={} error={} stack={}", m, e, pkdexc())
             # If self.fastcgi_cmd is None we initiated the kill so not an error
@@ -471,11 +462,8 @@ class _Dispatcher(PKDict):
 
     async def _op_cancel(self, msg):
         def _matches(op_id, jid):
-            return pkdp(
-                list(c for c in pkdp(self.cmds) if c.op_id == op_id or c.jid == jid)
-            )
+            return list(c for c in self.cmds if c.op_id == op_id or c.jid == jid)
 
-        pkdp(msg)
         for c in _matches(msg.get("opId", "no match"), msg.get("jid", "no match")):
             c.cancel_request()
         return self.format_canceled(msg)
@@ -973,7 +961,7 @@ class _SbatchRun(_SbatchCmd):
                 error=f"error submitting sbatch job error={p.stderr}",
             )
         self.destroy()
-        return pkdp(rv)
+        return rv
 
     def _sbatch_script(self):
         def _nodes_tasks():
@@ -1195,7 +1183,6 @@ class _SbatchRunStatus(_SbatchCmd):
 
         if not (s := _show_job()):
             return None
-        pkdp("scontrol state={}", s)
         if s in ("PENDING", "CONFIGURING"):
             return job.PENDING
         if s in ("COMPLETING", "RUNNING"):
@@ -1287,7 +1274,6 @@ class _SbatchRunStatus(_SbatchCmd):
                     rv[f] = x
             return rv
 
-        pkdp(text)
         await self.dispatcher.job_cmd_reply(
             msg=self.msg,
             op_name=job.OP_RUN_STATUS_UPDATE,
