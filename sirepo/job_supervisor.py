@@ -882,7 +882,7 @@ class _ComputeJob(_Supervisor):
             # TODO(robnagler) document: tells the UI it is no longer queued in slurm
             # Not clear exactly when this changed
             d.queueState = None
-        if self.db.status == job.ERROR:
+        if d.get("status") == job.ERROR:
             d.error = msg.get("error", "<unknown error>")
         if x := msg.get("computeJobStart"):
             d.computeJobStart = x
