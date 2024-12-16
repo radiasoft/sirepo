@@ -197,7 +197,7 @@ class _Dispatcher(PKDict):
         def _fixup(reply):
             if reply and "op_name" in reply:
                 op_name = reply.pkdel("op_name")
-            rv = PKDict(**msg_items)
+            rv = PKDict(**msg_items) if msg_items else PKDict()
             if msg.opName in (job.OP_RUN, job.OP_RUN_STATUS):
                 cmd.process_job_cmd_reply(reply)
                 rv.pkupdate(
@@ -218,16 +218,25 @@ class _Dispatcher(PKDict):
                 rv.op_name = op_name
             return rv
 
-        try:
-            await self.send(
-                self.format_op(
-                    **_fixup(
-                        PKDict() if text is None else self.parse_cmd_stdout(text),
-                    )
+        def _parse_text():
+            if text is None:
+                return PKDict()
+            try:
+                return pkjson.load_any(text)
+            except Exception:
+                return PKDict(
+                    state=job.ERROR,
+                    error="unable to parse job_cmd output",
+                    stdout=text,
+                    op_name=job.ERROR,
                 )
-            )
+
+        try:
+            await self.send(self.format_op(**_fixup(_parse_text())))
         except Exception as e:
-            pkdlog("reply={} error={} stack={}", r, e, pkdexc())
+            pkdlog(
+                "text={} msg_items={} error={} stack={}", text, msg_items, e, pkdexc()
+            )
             # something is really wrong, because format_op is messed up
             raise
 
@@ -272,17 +281,6 @@ class _Dispatcher(PKDict):
                 c.destroy()
         # TODO(robnagler) should we reply? Or is this simply state mismatch with supervisor?
 
-    def parse_cmd_stdout():
-        try:
-            return pkjson.load_any(text)
-        except Exception:
-            return PKDict(
-                state=job.ERROR,
-                error="unable to parse job_cmd output",
-                stdout=text,
-                op_name=job.ERROR,
-            )
-
     async def send(self, msg):
         if not self._websocket:
             return False
@@ -314,8 +312,6 @@ class _Dispatcher(PKDict):
             return _SbatchRun if msg.opName == job.OP_RUN else _SbatchCmd
         if msg.jobCmd == "fastcgi":
             return _FastCgiCmd
-        if msg.opName == job.OP_RUN:
-            return _RunCmd
         return _Cmd
 
     async def _cmd(self, msg, **kwargs):
@@ -328,6 +324,7 @@ class _Dispatcher(PKDict):
                 )
                 and msg.jobCmd != "fastcgi"
             ):
+                pkdp("fastcgi={}", msg)
                 return await self._fastcgi_op(msg)
             c = self._get_cmd_type(msg)(msg=msg, dispatcher=self, **kwargs)
         except _RunDirNotFound:
@@ -382,7 +379,8 @@ class _Dispatcher(PKDict):
 
     async def _fastcgi_op(self, msg):
         if msg.runDir:
-            _assert_run_dir_exists(pkio.msg.runDir)
+            _assert_run_dir_exists(pkio.py_path(msg.runDir))
+        pkdp("here")
         if not self.fastcgi_cmd:
             m = copy.deepcopy(msg)
             m.jobCmd = "fastcgi"
@@ -402,7 +400,11 @@ class _Dispatcher(PKDict):
                 self._fastcgi_accept,
             )
             # last thing, because of await: start fastcgi process
+            pkdp("await cmd fastcgi")
             await self._cmd(m, send_reply=False)
+        pkdp("put no wait")
+        if msg.jobCmd == "fastcgi":
+            raise AssertionError("fastcgi called within fastcgi")
         self._fastcgi_msg_q.put_nowait(msg)
         # For better logging, msg.opId is used in format_op (reply)
         # Also used in op_cancel so a cancel, cancels the fastcgi process
@@ -419,14 +421,20 @@ class _Dispatcher(PKDict):
             )
             while True:
                 m = await self._fastcgi_msg_q.get()
+                pkdp(m)
                 # Avoid issues with exceptions. We don't use q.join()
                 # so not an issue to call before work is done.
                 self._fastcgi_msg_q.task_done()
                 await s.write(pkjson.dump_bytes(m) + b"\n")
-                await self.job_cmd_reply(
-                    m,
-                    job.OP_OK,
-                    text=await s.read_until(b"\n", job.cfg().max_message_bytes),
+                pkdp("sent")
+                pkdp(
+                    await self.job_cmd_reply(
+                        m,
+                        job.OP_OK,
+                        text=pkdp(
+                            await s.read_until(b"\n", job.cfg().max_message_bytes)
+                        ),
+                    )
                 )
         except Exception as e:
             pkdlog("msg={} error={} stack={}", m, e, pkdexc())
@@ -675,7 +683,7 @@ class _Cmd(PKDict):
         if "job_state" not in self:
             return None
         self.job_state = job.RUNNING
-        return PKDict(state=job.STATE_OK)
+        return self.format_op_reply(state=job.STATE_OK)
 
     async def _await_exit(self):
         try:
@@ -1095,7 +1103,6 @@ class _SbatchRunStatus(_SbatchCmd):
 
     @classmethod
     def sbatch_status_request(cls, **kwargs):
-
         self = cls(**kwargs)
         if s := self._sbatch_is_not_running():
             rv = self.format_op_reply(state=s)
@@ -1108,6 +1115,7 @@ class _SbatchRunStatus(_SbatchCmd):
         return self.format_op_reply(state=job.UNKNOWN)
 
     def start(self):
+        super().start()
         self._sbatch_status_cb = tornado.ioloop.PeriodicCallback(
             self._sbatch_poll_scontrol,
             min(_MIN_SBATCH_POLL_SECS, self.msg.nextRequestSeconds) * 1000,
@@ -1283,6 +1291,7 @@ class _SbatchRunStatus(_SbatchCmd):
                     rv[f] = x
             return rv
 
+        pkdp(text)
         await self.dispatcher.job_cmd_reply(
             msg=self.msg,
             op_name=job.OP_RUN_STATUS_UPDATE,

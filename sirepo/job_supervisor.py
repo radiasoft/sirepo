@@ -66,14 +66,23 @@ _PARALLEL_STATUS_FIELDS = frozenset(
     )
 )
 
+#: replied to client
+_NEXT_REQUEST_FIELDS = (
+    "computeJobHash",
+    "computeJobStart",
+    "computeJobSerial",
+#TODO(robnagler) figure out better way to copy
+#    "report",
+    "simulationId",
+    "simulationType",
+)
+
+#: sent to agent
 _RUN_STATUS_FIELDS = (
     "computeJid",
     "computeJobSerial",
-    "computeModel",
     "isParallel",
     "jobRunMode",
-    "simulationId",
-    "simulationType",
     "uid",
 )
 
@@ -1029,7 +1038,7 @@ class _ComputeJob(_Supervisor):
         if self._is_running_pending() and not self._run_status_op:
             await self._start_run_status_op(req)
         r = self._status_reply(req)
-        if self.db.isParallel or r.status != job.COMPLETED:
+        if self.db.isParallel or r.state != job.COMPLETED:
             return r
         r = await self._send_op_analysis(req, "sequential_result")
         # TODO(robnagler) do we need to check global state?
@@ -1207,7 +1216,7 @@ class _ComputeJob(_Supervisor):
                 # TODO(robnagler) why are there two copies of nextRequestSeconds?
                 self._db_copy_to_dest(r, ("jobStatusMessage", "nextRequestSeconds"))
                 r.nextRequest = self._db_copy_to_dest(
-                    PKDict(), _RUN_STATUS_FIELDS
+                    PKDict(), _NEXT_REQUEST_FIELDS
                 ).pkupdate(
                     # TODO(robnagler) is this value necessary?
                     report=req.content.analysisModel,

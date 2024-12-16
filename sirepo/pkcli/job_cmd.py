@@ -116,6 +116,7 @@ def _dispatch_compute(msg, template):
         return _file_reply(r, msg)
 
     try:
+        pkdp("xxxxxxxxxxx")
         x = sirepo.sim_data.get_class(
             template.SIM_TYPE,
         ).does_api_reply_with_file(msg.api, msg.data.method)
@@ -125,11 +126,13 @@ def _dispatch_compute(msg, template):
         else:
             return _op(expect_file=x)
     except Exception as e:
+        pkdp(e)
         return _maybe_parse_user_alert(e)
 
 
 def _do_analysis_job(msg, template):
-    return _dispatch_compute(msg, template)
+    pkdp("here")
+    return _dispatch_compute(pkdp(msg), template)
 
 
 def _do_cancel(msg, template):
@@ -207,7 +210,9 @@ def _do_compute(msg, template):
         if msg.isParallel:
             # TODO(robnagler) If an exception, job continues, but this function
             # stops but not the compute process.
-            s.parallel_status = _write_parallel_status(parallel_status, msg, template, is_running=s.exit_code is None)
+            s.parallel_status = _write_parallel_status(
+                s.parallel_status, msg, template, is_running=s.exit_code is None
+            )
         if s.exit_code is not None:
             return _exit_reply(s.exit_code)
 
@@ -242,6 +247,7 @@ def _do_fastcgi(msg, template):
         m = b""
         while True:
             r = s.recv(_MAX_FASTCGI_MSG)
+            pkdp(r)
             if not r:
                 pkdlog(
                     "job_cmd should be killed before socket is closed msg={}",
@@ -260,16 +266,23 @@ def _do_fastcgi(msg, template):
     while True:
         try:
             m = _recv()
+            # TODO(robnagler) does not happen afaict
             if not m:
                 return
-            r = _process_msg(msg, allow_none=False)
-            c = 0
+            if msg.jobCmd == "fastcgi":
+                pkdlog("fastcgi called within fastcgi msg={}", msg)
+                raise AssertionError("fastcgi called within fastcgi")
+                c = 0
+            else:
+                r = _process_msg(msg, allow_none=False)
+                c = 0
         except _AbruptSocketCloseError:
             return
+        except AssertionError:
+            raise
         except Exception as e:
-            assert (
-                c < _MAX_FASTCGI_EXCEPTIONS
-            ), "too many fastgci exceptions {}. Most recent error={}".format(c, e)
+            if c >= _MAX_FASTCGI_EXCEPTIONS:
+                raise AssertionError(f"too many fastgci exceptions count={c}. Most recent error={e}")
             c += 1
             r = _maybe_parse_user_alert(e)
         s.sendall(_validate_msg_and_jsonl(r))
@@ -312,7 +325,9 @@ def _do_sbatch_parallel_status(msg, template):
                 return s.job_cmd_state
             return None
         except Exception as e:
-            pkdlog("unable to read file={} exception={} stack={}", status_file, e, pkdexc())
+            pkdlog(
+                "unable to read file={} exception={} stack={}", status_file, e, pkdexc()
+            )
             return job.ERROR
 
     f = pkio.py_path(msg.sbatchStatusFile)
@@ -326,7 +341,12 @@ def _do_sbatch_parallel_status(msg, template):
         # TODO(robnagler) completed_hack ensures we write COMPLETED to the file.
         # in sbatch, we don't know if the process exited with errors.
         # TODO(robnagler) need to handle post processing.
-        _final(_write_parallel_status(p, msg, template, is_running=False, completed_hack=True), f)
+        _final(
+            _write_parallel_status(
+                p, msg, template, is_running=False, completed_hack=True
+            ),
+            f,
+        )
     return None
 
 
@@ -398,6 +418,7 @@ def _parse_python_errors(text):
         return re.sub(r"\nTraceback.*$", "", m.group(1), flags=re.S).strip()
     return ""
 
+
 def _process_msg(msg, allow_none):
     @contextlib.contextmanager
     def _update_run_dir_and_maybe_chdir(msg):
@@ -410,21 +431,26 @@ def _process_msg(msg, allow_none):
             with contextlib.nullcontext():
                 yield
 
-    with _update_run_dir_and_maybe_chdir(msg):
-        r = globals()["_do_" + msg.jobCmd](
-            msg, sirepo.template.import_module(msg.simulationType)
-        )
-    if isinstance(r, dict):
-        # Backwards compatibility
-        r = PKDict(r)
-    if isinstance(r, PKDict):
-        r.setdefault("state", job.COMPLETED)
-    elif r is None and allow_none:
-        return r
-    else:
-        pkdlog("func={} failed to return a PKDict", msg.jobCmd)
-        r = PKDict(state=job.ERROR, error="invalid return value")
-    return r
+    pkdp("here")
+    try:
+        with _update_run_dir_and_maybe_chdir(msg):
+            r = globals()["_do_" + msg.jobCmd](
+                msg, pkdp(sirepo.template.import_module(msg.simulationType))
+            )
+        if isinstance(r, dict):
+            # Backwards compatibility
+            r = PKDict(r)
+        if isinstance(r, PKDict):
+            r.setdefault("state", job.COMPLETED)
+        elif r is None and allow_none:
+            return pkdp(r)
+        else:
+            pkdlog("func={} failed to return a PKDict", msg.jobCmd)
+            r = PKDict(state=job.ERROR, error="invalid return value")
+        return pkdp(r)
+    except Exception as e:
+        pkdp(e)
+        raise
 
 
 def _validate_msg_and_jsonl(msg):
@@ -432,7 +458,6 @@ def _validate_msg_and_jsonl(msg):
     if r := _error_if_response_too_large(m):
         m = pkjson.dump_bytes(r)
     return m + b"\n"
-
 
 
 def _write_parallel_status(prev_res, msg, template, is_running, completed_hack=False):
