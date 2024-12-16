@@ -202,6 +202,11 @@ def _init():
         ),
         schema_common=dict(
             hide_guest_warning=_dev("Hide the guest warning in the UI"),
+            support_email=(
+                "support@radiasoft.net",
+                str,
+                "Support email address",
+            ),
         ),
         sim_types=(set(), set, "simulation types (codes) to be imported"),
         srw=dict(

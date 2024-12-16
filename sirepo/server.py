@@ -441,7 +441,7 @@ class API(sirepo.quest.API):
         return self.reply(
             content="".join(
                 [
-                    "Contact: mailto:support@radiasoft.net\n",
+                    f"Contact: mailto:{sirepo.feature_config.cfg().schema_common.support_email}\n",
                     f"Expires: {d.isoformat()}Z\n",
                 ]
             ),
