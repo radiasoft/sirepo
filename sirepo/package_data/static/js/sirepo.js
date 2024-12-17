@@ -300,7 +300,10 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
             return;
         }
         controller.showWarning = true;
-        controller.warningText = 'Server reported an error, please contact support@radiasoft.net.';
+        controller.warningText = `
+            Server reported an error, please contact
+            ${SIREPO.APP_SCHEMA.feature_config.support_email}.
+        `;
     };
 
     self.isPremiumUser = function() {
@@ -1256,7 +1259,11 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
                     return null;
                 }
             }
-            return `There was a problem connecting to ${authState.sbatchHostDisplayName}. Please try again. If the issue persists contact support@sirepo.com.`;
+            return `
+                There was a problem connecting to ${authState.sbatchHostDisplayName}.
+                Please try again. If the issue persists contact
+                ${SIREPO.APP_SCHEMA.feature_config.support_email}.
+            `;
         }
 
         query(name) {
@@ -3937,7 +3944,11 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
                 if (e) {
                     let m = e.split(/[\n\r]+/)[0];
                     if (m.toLowerCase().includes('504')){
-                        return 'Timeout Error. Please contact support@radiasoft.net if the problem persists';
+                        return `
+                            Timeout Error. Please contact
+                            ${SIREPO.APP_SCHEMA.feature_config.support_email}
+                            if the problem persists
+                        `;
                     }
                     return 'Error: ' + m;
                 }
