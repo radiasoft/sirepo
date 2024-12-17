@@ -531,7 +531,7 @@ class _ComputeJob(_Supervisor):
         def _purge_job(jid, too_old, qcall):
             if jid in _ComputeJob.instances:
                 pkdlog(
-                    "jid=[} in _ComputeJob.instances; should not happen, ignoring", jid
+                    "jid={} in _ComputeJob.instances; should not happen, ignoring", jid
                 )
                 return
             if (d := cls._db_load(jid)) is None:
