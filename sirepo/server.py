@@ -10,6 +10,7 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
 from sirepo import simulation_db
+import datetime
 import os.path
 import re
 import sirepo.const
@@ -19,6 +20,7 @@ import sirepo.resource
 import sirepo.sim_data
 import sirepo.sim_run
 import sirepo.srschema
+import sirepo.srtime
 import sirepo.uri
 import sirepo.util
 import urllib
@@ -32,7 +34,6 @@ if any(
 ):
     import h5py
 
-_ROBOTS_TXT = None
 
 #: Global app value (only here so instance not lost)
 _app = None
@@ -393,20 +394,20 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("allow_visitor")
     async def api_robotsTxt(self):
         """Disallow the app (dev, prod) or / (alpha, beta)"""
-        global _ROBOTS_TXT
-        if not _ROBOTS_TXT:
-            # We include dev so we can test
-            if pkconfig.channel_in("prod", "dev"):
-                u = [
-                    self.uri_for_app_root(x)
-                    for x in sorted(sirepo.feature_config.cfg().sim_types)
-                ]
-            else:
-                u = ["/"]
-            _ROBOTS_TXT = "".join(
+        # We include dev so we can test
+        if pkconfig.channel_in("prod", "dev"):
+            u = [
+                self.uri_for_app_root(x)
+                for x in sorted(sirepo.feature_config.cfg().sim_types)
+            ]
+        else:
+            u = ["/"]
+        return self.reply(
+            content="".join(
                 ["User-agent: *\n"] + ["Disallow: {}\n".format(x) for x in u],
-            )
-        return self.reply(content=_ROBOTS_TXT, content_type="text/plain")
+            ),
+            content_type="text/plain",
+        )
 
     @sirepo.quest.Spec("allow_visitor", path_info="PathInfo")
     async def api_root(self, path_info=None):
@@ -430,6 +431,21 @@ class API(sirepo.quest.API):
             simulation_db.save_simulation_json(
                 req.req_data, fixup=True, modified=True, qcall=self
             ),
+        )
+
+    @sirepo.quest.Spec("allow_visitor")
+    async def api_securityTxt(self):
+        d = sirepo.srtime.utc_now().replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ) + datetime.timedelta(days=365)
+        return self.reply(
+            content="".join(
+                [
+                    f"Contact: mailto:{sirepo.feature_config.cfg().schema_common.support_email}\n",
+                    f"Expires: {d.isoformat()}Z\n",
+                ]
+            ),
+            content_type="text/plain",
         )
 
     @sirepo.quest.Spec(
