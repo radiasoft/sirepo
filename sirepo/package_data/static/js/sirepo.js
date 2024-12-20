@@ -1,10 +1,9 @@
 'use strict';
-SIREPO.srlog = (...args) => {
-    console.log(
-        (new Date().toISOString()).substring(11, 19),
-        ...args,
-    );
-};
+// needs to be here so test.sh doesn't see it
+SIREPO.srlog = (...args) => {console.log(
+    (new Date().toISOString()).substring(11, 19),
+    ...args,
+);};
 SIREPO.srdbg = SIREPO.srlog;
 SIREPO.traceWS = false;
 
@@ -1288,7 +1287,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         }
 
         transition() {
-            srdbg(`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
+            // debug (`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
             _state = this._newState;
             $rootScope.$broadcast('sbatchLoginEvent', this);
         }
