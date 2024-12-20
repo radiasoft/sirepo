@@ -81,6 +81,7 @@ _NEXT_REQUEST_FIELDS = (
 _RUN_STATUS_FIELDS = (
     "computeJid",
     "computeJobSerial",
+    "computeModel",
     "isParallel",
     "jobRunMode",
     "uid",
