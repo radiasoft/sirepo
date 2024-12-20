@@ -53,7 +53,7 @@ SIM_DATA_BASENAME = "sirepo-data" + JSON_SUFFIX
 
 SRUNIT_USER_AGENT = "srunit/1.0"
 
-TEST_PORT_RANGE = range(10000, 11000)
+TEST_PORT_RANGE = range(10000, 20000)
 
 #: hardwired root of development src tree
 DEV_SRC_RADIASOFT_DIR = pykern.pkio.py_path("~/src/radiasoft/")

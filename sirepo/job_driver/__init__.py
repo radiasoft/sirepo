@@ -273,22 +273,24 @@ class DriverBase(PKDict):
     def _agent_receive(self, msg):
         c = msg.content
         i = c.get("opId")
-        if ("opName" not in c or c.opName == job.OP_ERROR) or (
-            "reply" in c and c.reply.get("state") == job.ERROR
+        if (
+            "opName" not in c
+            or c.opName == job.OP_ERROR
+            or ("reply" in c and c.reply.get("state") == job.ERROR)
         ):
+            # Log allerror message
             pkdlog("{} error msg={}", self, c)
-        elif c.opName == job.OP_JOB_CMD_STDERR:
-            pkdlog("{} stderr from job_cmd msg={}", self, c)
-            return
         else:
             pkdlog("{} opName={} o={:.4}", self, c.opName, i)
         if i:
             if "reply" not in c:
-                pkdlog("{} no reply={}", self, c)
-                c.reply = PKDict(state="error", error="no reply")
+                pkdlog("{} no reply in msg={}", self, c)
+                c.reply = PKDict(
+                    state=job.ERROR, error="invalid message from job_agent"
+                )
             if i in self._prepared_sends:
                 # SECURITY: only ops known to this driver can be replied to
-                self._prepared_sends[i].reply_put(c.reply)
+                self._prepared_sends[i].reply_put(c.opName, c.reply)
             else:
                 pkdlog(
                     "{} not in prepared_sends opName={} o={:.4} content={}",
@@ -298,7 +300,10 @@ class DriverBase(PKDict):
                     c,
                 )
         else:
-            getattr(self, "_agent_receive_" + c.opName)(msg)
+            # TODO(robnagler) probably fine but maybe better to validate
+            getattr(self, "_agent_receive_" + c.opName, self._agent_receive_supervisor)(
+                msg
+            )
 
     def _agent_receive_alive(self, msg):
         """Receive an ALIVE message from our agent
@@ -315,9 +320,20 @@ class DriverBase(PKDict):
         self._websocket.sr_driver_set(self)
         self._start_idle_timeout()
 
-    def _agent_receive_error(self, msg):
-        # TODO(robnagler) what does this mean? Just a way of logging? Document this.
-        pkdlog("{} msg={}", self, msg)
+    def _agent_receive_job_cmd_stderr(self, msg):
+        """Log stderr from job_cmd"""
+        pkdlog("{} stderr from job_cmd msg={}", self, msg.get("content"))
+
+    def _agent_receive_supervisor(self, msg):
+        """Received an error not bound to an op"""
+        if j := msg.content.get("computeJid"):
+            # SECURITY: assert agent can access to this uid
+            if job.split_jid(j).uid == self.uid:
+                job_supervisor.agent_receive(msg.content)
+            else:
+                pkdlog("{} jid={} not for this uid={}; msg={}", self, j, self.uid, msg)
+        else:
+            pkdlog("{} msg={}", self, msg)
 
     async def _agent_start(self, op):
         if self._websocket_ready_timeout:
@@ -390,9 +406,7 @@ class DriverBase(PKDict):
 
         n = op.op_name
         res = job_supervisor.SlotAllocStatus.DID_NOT_AWAIT
-        if n in (job.OP_CANCEL, job.OP_KILL, job.OP_BEGIN_SESSION):
-            return res
-        if n == job.OP_SBATCH_LOGIN:
+        if n in job.OPS_WITHOUT_SLOTS:
             return res
         await _alloc_check(
             op.op_slot.alloc, "Waiting for another sim op to complete await=op_slot"

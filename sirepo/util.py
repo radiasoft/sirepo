@@ -235,7 +235,8 @@ def assert_sim_type(sim_type):
     Returns:
         str: validated sim_type
     """
-    assert is_sim_type(sim_type), f"invalid simulation type={sim_type}"
+    if not is_sim_type(sim_type):
+        raise AssertionError(f"invalid simulation type={sim_type}")
     return sim_type
 
 
