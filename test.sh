@@ -33,11 +33,8 @@ import timeit;
 print(round(100 * timeit.timeit("str().join(str(i) for i in range(1000000))", number=2)))
 EOF
     )
-    echo 'SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=1'
     export PYKERN_PKCLI_TEST_MAX_PROCS=4
-    SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=1 pykern ci run
-    echo 'SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=0'
-    SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=0 pykern test
+    pykern ci run
 }
 
 _msg() {
