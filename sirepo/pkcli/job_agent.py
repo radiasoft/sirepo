@@ -56,7 +56,8 @@ _MAX_SCONTROL_TRIES = 5
 _cfg = None
 
 _DEV_PYTHON_PATH = ":".join(
-    str(pkio.py_path(sirepo.const.DEV_SRC_RADIASOFT_DIR).join(p)) for p in ("sirepo", "pykern")
+    str(pkio.py_path(sirepo.const.DEV_SRC_RADIASOFT_DIR).join(p))
+    for p in ("sirepo", "pykern")
 )
 
 
@@ -520,7 +521,8 @@ class _Cmd(PKDict):
             self.job_state = job.PENDING
             if self.msg.opName == job.OP_RUN:
                 pkio.unchecked_remove(self.run_dir)
-                pkio.mkdir_parent(self.run_dir)
+            # Needs to exist for run_status so in_file can be created
+            pkio.mkdir_parent(self.run_dir)
 
         super().__init__(**kwargs)
         self.pksetdefault(
