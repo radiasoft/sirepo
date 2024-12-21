@@ -1002,7 +1002,7 @@ EOF"""
             # POSIT: job_api has validated values
             if not self.msg.get("shifterImage"):
                 return ""
-            return f"""#SBATCH --image={i}
+            return f"""#SBATCH --image={self.msg.shifterImage}
 #SBATCH --constraint=cpu
 #SBATCH --qos={self.msg.sbatchQueue}
 #SBATCH --tasks-per-node={self.msg.tasksPerNode}
