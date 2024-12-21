@@ -84,6 +84,7 @@ _RUN_STATUS_FIELDS = (
     "computeModel",
     "isParallel",
     "jobRunMode",
+    "simulationId",
     "uid",
 )
 

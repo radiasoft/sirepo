@@ -56,7 +56,7 @@ _MAX_SCONTROL_TRIES = 5
 _cfg = None
 
 _DEV_PYTHON_PATH = ":".join(
-    str(sirepo.const.DEV_SRC_RADIASOFT_DIR.join(p)) for p in ("sirepo", "pykern")
+    str(pkio.py_path(sirepo.const.DEV_SRC_RADIASOFT_DIR).join(p)) for p in ("sirepo", "pykern")
 )
 
 

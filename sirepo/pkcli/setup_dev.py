@@ -20,7 +20,7 @@ def default_command():
     )
     cfg = pkconfig.init(
         proprietary_code_uri=(
-            f"file://{sirepo.const.DEV_SRC_RADIASOFT_DIR.join('rsconf/proprietary')}",
+            f"file://{pkio.py_path(sirepo.const.DEV_SRC_RADIASOFT_DIR).join('rsconf/proprietary')}",
             str,
             "root uri of proprietary codes files location",
         ),

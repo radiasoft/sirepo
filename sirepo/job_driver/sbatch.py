@@ -154,6 +154,20 @@ class SbatchDriver(job_driver.DriverBase):
 
     async def _do_agent_start(self, op):
 
+        def _agent_start_dev():
+            if not pkconfig.in_dev_mode():
+                return ""
+            res = ""
+            if self.cfg.shifter_image:
+                res += (
+                    "\n".join(
+                        f"(cd {sirepo.const.DEV_SRC_RADIASOFT_DIR}/{p} && git pull -q || true)"
+                        for p in ("pykern", "sirepo")
+                    )
+                    + "\n"
+                )
+            return res
+
         def _creds():
             return PKDict(
                 known_hosts=self._KNOWN_HOSTS,
@@ -170,7 +184,8 @@ class SbatchDriver(job_driver.DriverBase):
                 if not before_start:
                     await tornado.gen.sleep(self.cfg.agent_log_read_sleep)
                 async with connection.create_process(
-                    f"/bin/test -e {agent_start_dir}/{log_file} && /bin/cat {agent_start_dir}/{log_file}"
+                    # test is a shell-builtin
+                    f"test -e {agent_start_dir}/{log_file} && /bin/cat {agent_start_dir}/{log_file}"
                 ) as p:
                     o, e = await p.communicate()
                     _write_to_log(
@@ -201,12 +216,12 @@ class SbatchDriver(job_driver.DriverBase):
         if pkconfig.in_dev_mode():
             pkdlog("agent_log={}/{}", agent_start_dir, log_file)
         script = f"""#!/bin/bash
-{self._agent_start_dev()}
-set -e
+set -euo pipefail
+{_agent_start_dev()}
 mkdir -p '{agent_start_dir}'
 cd '{self._srdb_root}'
 {self._agent_env(op)}
-(/usr/bin/env; setsid {self.cfg.sirepo_cmd} job_agent start_sbatch) &>> {log_file} &
+(setsid {self.cfg.sirepo_cmd} job_agent start_sbatch) &>> {log_file} &
 disown
 """
         try:
@@ -234,24 +249,6 @@ disown
             )
         finally:
             self.pkdel("_creds")
-
-    def _agent_start_dev(self):
-        if not pkconfig.in_dev_mode():
-            return ""
-        res = ""
-        # not valid with sbatch reattach_compute
-        #        res = """
-        # scancel -u $USER >& /dev/null || true
-        # """
-        if self.cfg.shifter_image:
-            res += (
-                "\n".join(
-                    f"(cd {sirepo.const.DEV_SRC_RADIASOFT_DIR.join(p)} && git pull -q || true)"
-                    for p in ("pykern", "sirepo")
-                )
-                + "\n"
-            )
-        return res
 
     def _raise_sbatch_login_srexception(self, reason, msg):
         raise util.SRException(

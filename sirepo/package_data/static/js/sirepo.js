@@ -1195,7 +1195,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
 
     const _STATE_QUERIES = {
         ignoreSRException: (state) => {
-            return [_s_auth, _s_creds, _s_notNeeded, _s_status, _s_idle].includes(state);
+            return [_s_creds, _s_notNeeded, _s_status, _s_idle].includes(state);
         },
         isLoggedIn: (state) => {
             return state === _s_ok;
@@ -1287,7 +1287,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         }
 
         transition() {
-            // debug (`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
+            srdbg(`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
             _state = this._newState;
             $rootScope.$broadcast('sbatchLoginEvent', this);
         }
@@ -1338,8 +1338,9 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         // errors. Probably agent could be better coordinate with this. Could just be
         // a response to the auth request. Has to do with the internals of sbatch.py
         // which does not coordinate login.
-        if (self.query('ignoreSRException') && !(_state == _s_auth && r == _e_authMissing)) {
-            srlog('sbatchLoginService ignoring srException', srException, 'state', _state);
+        // TODO(robnagler) may need this !(_state == _s_auth && [_e_authMissing, _e_authError])
+        if (self.query('ignoreSRException')) {
+            srlog('sbatchLoginService ignoring srException', srException, 'state', _state, 'reason', r);
             return true;
         }
         //TODO(robnagler) an alternative is to broadcast an error.
