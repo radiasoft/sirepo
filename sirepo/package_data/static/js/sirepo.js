@@ -1167,6 +1167,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             [_e_unloaded]: _s_initial,
         },
         [_s_ok]: {
+            [_e_authError]: _s_idle,
             //[_e_authInvalid]: _s_idle,
             [_e_authMissing]: _s_idle,
             //[_e_authSuccess]: _s_ok,
@@ -1287,7 +1288,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         }
 
         transition() {
-            srdbg(`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
+            // DEBUG (`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
             _state = this._newState;
             $rootScope.$broadcast('sbatchLoginEvent', this);
         }

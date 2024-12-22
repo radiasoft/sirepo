@@ -85,6 +85,7 @@ _RUN_STATUS_FIELDS = (
     "isParallel",
     "jobRunMode",
     "simulationId",
+    "simulationType",
     "uid",
 )
 
@@ -1131,7 +1132,7 @@ class _ComputeJob(_Supervisor):
                     runDir=originating_req.content.runDir,
                     userDir=originating_req.content.userDir,
                 ),
-                runStatusPollSeconds=self.db.nextRequestSeconds,
+                nextRequestSeconds=self.db.nextRequestSeconds,
             )
 
         def _update_db(reply, op):

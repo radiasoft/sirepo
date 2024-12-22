@@ -125,8 +125,7 @@ class SbatchDriver(job_driver.DriverBase):
         if self._srdb_root is None or c:
             if c:
                 self._creds = c
-            if not self.get("_creds") or "username" not in self._creds:
-                self._raise_sbatch_login_srexception("no-creds", m)
+            self._assert_creds(m)
             self._srdb_root = self.cfg.srdb_root.format(
                 sbatch_user=self._creds.username,
             )
@@ -152,6 +151,10 @@ class SbatchDriver(job_driver.DriverBase):
             ),
         )
 
+    def _assert_creds(self, msg):
+        if not self.get("_creds") or "username" not in self._creds:
+            self._raise_sbatch_login_srexception("no-creds", msg)
+
     async def _do_agent_start(self, op):
 
         def _agent_start_dev():
@@ -169,6 +172,7 @@ class SbatchDriver(job_driver.DriverBase):
             return res
 
         def _creds():
+            self._assert_creds(op.msg)
             return PKDict(
                 known_hosts=self._KNOWN_HOSTS,
                 password=(
@@ -184,7 +188,7 @@ class SbatchDriver(job_driver.DriverBase):
                 if not before_start:
                     await tornado.gen.sleep(self.cfg.agent_log_read_sleep)
                 async with connection.create_process(
-                    # test is a shell-builtin
+                    # test is a shell-builtin so no abs path
                     f"test -e {agent_start_dir}/{log_file} && /bin/cat {agent_start_dir}/{log_file}"
                 ) as p:
                     o, e = await p.communicate()
@@ -221,7 +225,7 @@ set -euo pipefail
 mkdir -p '{agent_start_dir}'
 cd '{self._srdb_root}'
 {self._agent_env(op)}
-(setsid {self.cfg.sirepo_cmd} job_agent start_sbatch) &>> {log_file} &
+(/usr/bin/env; setsid {self.cfg.sirepo_cmd} job_agent start_sbatch) &>> {log_file} &
 disown
 """
         try:
