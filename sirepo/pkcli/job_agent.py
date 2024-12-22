@@ -953,12 +953,8 @@ class _SbatchRun(_SbatchCmd):
                 job_cmd_state=job.PENDING, sbatch_id=m.group(1)
             ):
                 # Start the status watcher
-                m = copy.deepcopy(self.msg)
-                m.opName = job.OP_RUN_STATUS
-                m.opId = None
-                m.jobCmd = "sbatch_parallel_status"
                 _SbatchRunStatus(
-                    msg=m, dispatcher=self.dispatcher, sbatch_run=self
+                    msg=copy.deepcopy(self.msg), dispatcher=self.dispatcher, sbatch_run=self
                 ).start()
                 rv = self.format_op_reply(state=job.STATE_OK)
             else:
@@ -1040,6 +1036,12 @@ exec srun {_shifter_cmd()} python {template_common.PARAMETERS_PYTHON_FILE}
 
 class _SbatchRunStatus(_SbatchCmd):
     def __init__(self, **kwargs):
+        kwargs["msg"].pkupdate(
+            jobCmd="sbatch_parallel_status",
+            opId=None,
+            opName=job.OP_RUN_STATUS,
+            sbatchStatusFile=str(kwargs["sbatch_run"]._sbatch_status_file),
+        )
         super().__init__(**kwargs)
         self.pkdel("computeJobStart")
         self.pkupdate(
