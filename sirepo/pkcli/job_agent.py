@@ -1340,6 +1340,7 @@ class _SbatchRunStatus(_SbatchCmd):
             # parallelStatus only happens in the case we are at the end
             rv = PKDict()
             for f in "error", "parallelStatus", "computeJobStart":
+                # Will be overwritten if in "text"
                 if x := self._sbatch_status.get(f):
                     rv[f] = x
             return rv

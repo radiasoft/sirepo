@@ -874,24 +874,26 @@ class _ComputeJob(_Supervisor):
             )
             return
         d = PKDict(alert=msg.get("alert"))
-        if self.db.status not in job.EXIT_STATUSES:
-            if self.db.status != msg.state:
-                pkdlog("new status={} {}", msg.state, self)
-            # must be set because _db_status_update requires it
-            d.status = msg.state
-        else:
+        if self.db.status in job.EXIT_STATUSES:
             pkdlog(
                 "ignoring state={} already in exit state={} msg={}",
                 msg.state,
                 self.db.status,
                 msg,
             )
+            # keep same, but continue in case there's an update to other fields
+            d.status = self.db.status
+        else:
+            if d.get("status") == job.ERROR:
+                d.error = msg.get("error", "<unknown error>")
+            if self.db.status != msg.state:
+                pkdlog("new status={} {}", msg.state, self)
+            # must be set because _db_status_update requires it
+            d.status = msg.state
         if self.db.isParallel and d.status != job.PENDING:
             # TODO(robnagler) document: tells the UI it is no longer queued in slurm
             # Not clear exactly when this changed
             d.queueState = None
-        if d.get("status") == job.ERROR:
-            d.error = msg.get("error", "<unknown error>")
         if x := msg.get("computeJobStart"):
             d.computeJobStart = x
         if x := msg.get("parallelStatus"):
@@ -959,10 +961,15 @@ class _ComputeJob(_Supervisor):
 
         async def _valid_or_reply(force_run):
             if self._is_running_pending():
-                if force_run or not self._req_is_valid(req):
+                if self._req_is_valid(req):
                     return PKDict(
                         state=job.ERROR,
                         error="another browser is running the simulation",
+                    )
+                if force_run:
+                    return PKDict(
+                        state=job.ERROR,
+                        error="a simulation is already running, refresh the browser",
                     )
                 # Not _receive_api_runStatus, because runStatus should have been
                 # called before this function is called.
@@ -1151,7 +1158,8 @@ class _ComputeJob(_Supervisor):
                 op.destroy()
                 return
             if not (e := reply.get("error")):
-                # normal sbatch case of UKNOWN state and _run_status_op continues
+                # normal sbatch case of UKNOWN state and _run_status_op continues.
+                # if is_running_pending, the ui will request frames, but that's ok.
                 return
             op.destroy()
             if self._is_running_pending():
