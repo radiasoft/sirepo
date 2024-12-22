@@ -324,7 +324,9 @@ class DriverBase(PKDict):
         if self._websocket:
             if self._websocket != msg.handler:
                 self._websocket = None
-                raise AssertionError(pkdformat("unexpected incoming msg.content={}", msg.content))
+                raise AssertionError(
+                    pkdformat("unexpected incoming msg.content={}", msg.content)
+                )
         else:
             self._websocket = msg.handler
         self._websocket_ready.set()

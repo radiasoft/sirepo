@@ -70,7 +70,6 @@ class SbatchDriver(job_driver.DriverBase):
         except Exception as e:
             pkdlog("{} error={} stack={}", self, e, pkdexc())
 
-
     @classmethod
     def get_instance(cls, op):
         u = op.msg.uid
