@@ -33,6 +33,8 @@ _MAX_FASTCGI_EXCEPTIONS = 3
 _MAX_FASTCGI_MSG = int(1e8)
 
 
+_MAX_SBATCH_STATUS_RETRIES = 5
+
 def default_command(in_file):
     """Reads `in_file` passes to `msg.jobCmd`
 
@@ -315,17 +317,26 @@ def _do_sbatch_parallel_status(msg, template):
         )
 
     def _should_exit(status_file):
+        #TODO(robnagler) should be an class
+        nonlocal should_exit_tries
         try:
             s = pkjson.load_any(status_file)
+            should_exit_tries = 0
             if s.job_cmd_state in job.JOB_CMD_STATE_EXITS:
                 return s.job_cmd_state
             return None
         except Exception as e:
+            if pkio.exception_is_not_found(e):
+                should_exit_tries += 1
+                if should_exit_tries <= _MAX_SBATCH_STATUS_RETRIES:
+                    pkdlog("not found file={}, trying again", status_file)
+                    return None
             pkdlog(
                 "unable to read file={} exception={} stack={}", status_file, e, pkdexc()
             )
             return job.ERROR
 
+    should_exit_tries = 0
     f = pkio.py_path(msg.sbatchStatusFile)
     p = None
     while not (s := _should_exit(f)):

@@ -51,7 +51,7 @@ _SBATCH_STATUS_FILE = "sbatch_status.json"
 
 _MIN_SBATCH_POLL_SECS = 5
 
-_MAX_SCONTROL_TRIES = 5
+_MAX_JOB_STATE_TRIES = 5
 
 _cfg = None
 
@@ -479,6 +479,12 @@ class _Dispatcher(PKDict):
         return await self._cmd(msg)
 
     async def _op_run_status(self, msg):
+        def _find():
+            for c in list(self.cmds):
+                if c.jid == msg.computeJid and c.get("job_state"):
+                    return _reply(c)
+            return None
+
         def _reply(cmd):
             if cmd.computeJobSerial != msg.computeJobSerial:
                 pkdlog(
@@ -499,14 +505,17 @@ class _Dispatcher(PKDict):
                 reply=PKDict(state=cmd.job_state),
             )
 
-        for c in list(self.cmds):
-            if c.jid == msg.computeJid and c.get("job_state"):
-                return _found(c)
-        if msg.jobRunMode == job.SBATCH:
-            # Try to ask scontrol for status of the job
-            return _SbatchRunStatus.sbatch_status_request(msg=msg, dispatcher=self)
-        # did not find job so assumed canceled, e.g. server restart
-        return self.format_canceled(msg)
+
+        if rv := _find():
+            pass
+        elif msg.jobRunMode == job.SBATCH:
+            # Try to ask job_state for status of the job
+            rv = _SbatchRunStatus.sbatch_status_request(msg=msg, dispatcher=self)
+        else:
+            # did not find job so assumed canceled, e.g. server restart
+            rv = self.format_canceled(msg)
+        pkdlog("reply={} computeJid={}", rv, msg.computeJid)
+        return rv
 
     async def _op_sbatch_login(self, msg):
         return self.format_op(msg, job.OP_OK, reply=PKDict(loginSuccess=True))
@@ -835,7 +844,6 @@ class _ReadJsonlStream(_Stream):
     async def _read_stream(self):
         self.text = await self._stream.read_until(b"\n", job.cfg().max_message_bytes)
         pkdc("cmd={} stdout={}", self.cmd, self.text[:1000])
-
         await self.cmd.on_stdout_read(self.text)
 
 
@@ -978,7 +986,7 @@ class _SbatchRun(_SbatchCmd):
 
         def _prepare_simulation():
             # python serialization does not work so use json
-            return f"""python <<'EOF'
+            return f"""{_python()} <<'EOF'
 import pykern.pkio
 import pykern.pkjson
 import sirepo.simulation_db
@@ -990,12 +998,10 @@ sirepo.simulation_db.prepare_simulation(
 )
 EOF"""
 
-        def _shifter_cmd():
+        def _python():
             return (
-                "--cpu-bind=cores shifter --entrypoint"
-                if self.msg.get("shifterImage")
-                else ""
-            )
+                "shifter --entrypoint " if self.msg.get("shifterImage") else ""
+            ) + "python"
 
         def _shifter_header():
             # POSIT: job_api has validated values
@@ -1006,6 +1012,11 @@ EOF"""
 #SBATCH --qos={self.msg.sbatchQueue}
 #SBATCH --tasks-per-node={self.msg.tasksPerNode}
 {sirepo.nersc.sbatch_project_option(self.msg.sbatchProject)}"""
+
+        def _srun():
+            return "srun" + (
+                " --cpu-bind=cores" if self.msg.get("shifterImage") else ""
+            )
 
         def _time():
             return str(
@@ -1030,7 +1041,7 @@ EOF"""
 {self.job_cmd_source_bashrc()}
 {_prepare_simulation()}
 # POSIT: same as return value of prepare_simulation
-exec srun {_shifter_cmd()} python {template_common.PARAMETERS_PYTHON_FILE}
+exec {_srun()} {_python()} {template_common.PARAMETERS_PYTHON_FILE}
 """
         )
         return f
@@ -1040,14 +1051,13 @@ class _SbatchRunStatus(_SbatchCmd):
     def __init__(self, **kwargs):
         kwargs["msg"].pkupdate(
             jobCmd="sbatch_parallel_status",
-            opId=None,
             opName=job.OP_RUN_STATUS,
         )
         super().__init__(**kwargs)
         self.pkdel("computeJobStart")
         self.pkupdate(
             _sbatch_status_cb=None,
-            _sbatch_scontrol_tries=0,
+            _sbatch_job_state_tries=0,
         )
 
     def destroy(self, terminating=False):
@@ -1094,6 +1104,12 @@ class _SbatchRunStatus(_SbatchCmd):
         except Exception as e:
             pkdlog("{} text={} error={} stack={}", self, text, e, pkdexc())
 
+    def process_job_cmd_reply(self, reply):
+        super().process_job_cmd_reply(reply)
+        if "parallelStatus" in reply:
+            # Keep file state consistent
+            self._sbatch_status.parallelStatus = reply.parallelStatus
+
     @classmethod
     def sbatch_status_request(cls, **kwargs):
         self = cls(**kwargs)
@@ -1101,21 +1117,23 @@ class _SbatchRunStatus(_SbatchCmd):
             rv = self.format_op_reply(state=s)
             self.destroy()
             return rv
+        # can't answer the question yet
+        rv = self.format_op_reply(state=job.UNKNOWN)
         # running, possibly completed, but needs to write parallel status
         self.start()
-        # can't answer the question yet
-        # POSIT: expected by _SbatchRun.start
-        return self.format_op_reply(state=job.UNKNOWN)
+        return rv
 
     def start(self):
+        # Detach from op_run_status or op_run
+        self.op_id = self.msg.opId = None
         super().start()
         self._sbatch_status_cb = tornado.ioloop.PeriodicCallback(
-            self._sbatch_poll_scontrol,
+            self._sbatch_poll_job_state,
             min(_MIN_SBATCH_POLL_SECS, self.msg.nextRequestSeconds) * 1000,
         )
         self._sbatch_status_cb.start()
         # So happens right away
-        _call_later_0(self._sbatch_poll_scontrol)
+        _call_later_0(self._sbatch_poll_job_state)
         return None
 
     def _sbatch_is_not_running(self):
@@ -1160,8 +1178,45 @@ class _SbatchRunStatus(_SbatchCmd):
         self._sbatch_status_update(want_write=False, **s)
         return None
 
-    def _sbatch_scontrol(self):
-        def _show_job():
+    def _sbatch_job_state(self):
+        def _sacct():
+            # Invalid job id specified (not running)
+            p = subprocess.run(
+                ("sacct", f"--jobs={self._sbatch_status.sbatch_id}", "--format=State"),
+                cwd=str(self.run_dir),
+                close_fds=True,
+                capture_output=True,
+                text=True,
+            )
+            if p.returncode != 0:
+                pkdlog(
+                    "{} sacct error exit={} sbatch={} stderr={} stdout={}",
+                    self,
+                    p.returncode,
+                    self._sbatch_status.sbatch_id,
+                    p.stderr,
+                    p.stdout,
+                )
+                if "disabled" in p.stderr:
+                    # Only in dev: saccount is not configured and job not running, assume canceled
+                    return "CANCELLED"
+                # Job never ran?
+                return "FAILED"
+            # sacct outputs state for each part of the job (shifter, external, etc.) so be pessimistic.
+            rv = set()
+            for l in re.split(r"\s+", p.stdout):
+                if len(l) and not l.startswith("-") and l != "State":
+                    rv.add(l)
+            if len(rv) == 1:
+                # Normal case
+                return next(iter(rv))
+            elif len(rv) > 1 and "CANCELLED" in rv:
+                return "CANCELLED"
+            pkdlog("{} sacct parse failed words={} stdout={}", self, rv, p.stdout)
+            return "FAILED"
+
+        def _scontrol():
+            # try scontrol first, because that's the normal case and easier to parse
             p = subprocess.run(
                 ("scontrol", "show", "job", self._sbatch_status.sbatch_id),
                 cwd=str(self.run_dir),
@@ -1170,6 +1225,10 @@ class _SbatchRunStatus(_SbatchCmd):
                 text=True,
             )
             if p.returncode != 0:
+                # Invalid job id will happen on NERSC. No jobs in dev
+                if re.search("Invalid job id|No jobs", p.stderr):
+                    pkdlog("sbatch={} not in system, trying sacct", self._sbatch_status.sbatch_id)
+                    return _sacct()
                 pkdlog(
                     "{} scontrol error exit={} sbatch={} stderr={} stdout={}",
                     self,
@@ -1190,7 +1249,7 @@ class _SbatchRunStatus(_SbatchCmd):
                 return None
             return r.group(1)
 
-        if not (s := _show_job()):
+        if not (s := _scontrol()):
             return None
         if s in ("PENDING", "CONFIGURING"):
             return job.PENDING
@@ -1203,26 +1262,26 @@ class _SbatchRunStatus(_SbatchCmd):
         if s == "FAILED":
             return job.ERROR
         pkdlog(
-            "{} sbatch_id={} unexpected scontrol_state={}",
+            "{} sbatch_id={} unexpected sbatch job_state={}",
             self,
             self._sbatch_status.sbatch_id,
             s,
         )
         return job.ERROR
 
-    async def _sbatch_poll_scontrol(self):
+    async def _sbatch_poll_job_state(self):
 
-        async def _scontrol_try_count_ok():
-            if self._sbatch_scontrol_tries < _MAX_SCONTROL_TRIES:
+        async def _job_state_try_count_ok():
+            if self._sbatch_job_state_tries < _MAX_JOB_STATE_TRIES:
                 return True
             pkdlog(
-                "{} scontrol failed after tries={} sbatch_id={}",
+                "{} job_state failed after tries={} sbatch_id={}",
                 self,
-                self._sbatch_scontrol_tries,
+                self._sbatch_job_state_tries,
                 self._sbatch_status.sbatch_id,
             )
             self._sbatch_status_update(
-                job_cmd_state=job.ERROR, error="scontrol unavailable or invalid output"
+                job_cmd_state=job.ERROR, error="job_state unavailable or invalid output"
             )
             await self._sbatch_send_update()
             return False
@@ -1248,13 +1307,13 @@ class _SbatchRunStatus(_SbatchCmd):
         try:
             if self._destroying:
                 return
-            self._sbatch_scontrol_tries += 1
+            self._sbatch_job_state_tries += 1
             if (
-                not (s := self._sbatch_scontrol())
-                and not await _scontrol_try_count_ok()
+                not (s := self._sbatch_job_state())
+                and not await _job_state_try_count_ok()
             ):
                 return
-            self._sbatch_scontrol_tries = 0
+            self._sbatch_job_state_tries = 0
             if _transition_state(self._sbatch_status.job_cmd_state, s):
                 await self._sbatch_send_update()
         except Exception as e:
