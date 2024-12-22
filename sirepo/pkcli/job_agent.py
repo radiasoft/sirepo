@@ -956,6 +956,7 @@ class _SbatchRun(_SbatchCmd):
                 m = copy.deepcopy(self.msg)
                 m.opName = job.OP_RUN_STATUS
                 m.opId = None
+                m.jobCmd = "sbatch_parallel_status"
                 _SbatchRunStatus(
                     msg=m, dispatcher=self.dispatcher, sbatch_run=self
                 ).start()
@@ -1040,9 +1041,6 @@ exec srun {_shifter_cmd()} python {template_common.PARAMETERS_PYTHON_FILE}
 class _SbatchRunStatus(_SbatchCmd):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Always simulate OP_RUN, because default case is that way.
-        # opName is used as condition in job_cmd_reply
-        self.msg.jobCmd = "sbatch_parallel_status"
         self.pkdel("computeJobStart")
         self.pkupdate(
             _sbatch_status_cb=None,
