@@ -505,7 +505,6 @@ class _Dispatcher(PKDict):
                 reply=PKDict(state=cmd.job_state),
             )
 
-
         if rv := _find():
             pass
         elif msg.jobRunMode == job.SBATCH:
@@ -1227,7 +1226,10 @@ class _SbatchRunStatus(_SbatchCmd):
             if p.returncode != 0:
                 # Invalid job id will happen on NERSC. No jobs in dev
                 if re.search("Invalid job id|No jobs", p.stderr):
-                    pkdlog("sbatch={} not in system, trying sacct", self._sbatch_status.sbatch_id)
+                    pkdlog(
+                        "sbatch={} not in system, trying sacct",
+                        self._sbatch_status.sbatch_id,
+                    )
                     return _sacct()
                 pkdlog(
                     "{} scontrol error exit={} sbatch={} stderr={} stdout={}",

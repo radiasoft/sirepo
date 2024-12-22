@@ -35,6 +35,7 @@ _MAX_FASTCGI_MSG = int(1e8)
 
 _MAX_SBATCH_STATUS_RETRIES = 5
 
+
 def default_command(in_file):
     """Reads `in_file` passes to `msg.jobCmd`
 
@@ -317,7 +318,7 @@ def _do_sbatch_parallel_status(msg, template):
         )
 
     def _should_exit(status_file):
-        #TODO(robnagler) should be an class
+        # TODO(robnagler) should be an class
         nonlocal should_exit_tries
         try:
             s = pkjson.load_any(status_file)

@@ -84,6 +84,7 @@ _RUN_STATUS_FIELDS = (
     "computeModel",
     "isParallel",
     "jobRunMode",
+    "nextRequestSeconds",
     "simulationId",
     "simulationType",
     "uid",
@@ -136,9 +137,10 @@ class SlotProxy(PKDict):
             self._value = self._q.get_nowait()
             return SlotAllocStatus.DID_NOT_AWAIT
         except tornado.queues.QueueEmpty:
-            pkdlog("{} situation={}", self._op, situation)
+            pkdlog("{} enter={} {}", self._op, situation, self._op._supervisor)
             with self._op.set_job_situation(situation):
                 self._value = await self._q.get()
+                pkdlog("{} exit={} {}", self._op, situation, self._op._supervisor)
                 if self._op.is_destroyed:
                     self.free()
                     return SlotAllocStatus.OP_IS_DESTROYED
@@ -873,6 +875,9 @@ class _ComputeJob(_Supervisor):
             return
         d = PKDict(alert=msg.get("alert"))
         if self.db.status not in job.EXIT_STATUSES:
+            if self.db.status != msg.state:
+                pkdlog("new status={} {}", msg.state, self)
+            # must be set because _db_status_update requires it
             d.status = msg.state
         else:
             pkdlog(
@@ -1109,6 +1114,8 @@ class _ComputeJob(_Supervisor):
                 # POSIT: ensures _start_run_status_op can update atomically
                 self._run_status_op = o
             r, k = await _send(o)
+            if is_run_status_op and self._run_status_op == o:
+                o.run_dir_slot.free()
             if k:
                 o = None
             return rv.pkupdate(reply=r)
@@ -1132,7 +1139,6 @@ class _ComputeJob(_Supervisor):
                     runDir=originating_req.content.runDir,
                     userDir=originating_req.content.userDir,
                 ),
-                nextRequestSeconds=self.db.nextRequestSeconds,
             )
 
         def _update_db(reply, op):
