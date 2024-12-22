@@ -317,7 +317,7 @@ def _do_sbatch_parallel_status(msg, template):
     def _should_exit(status_file):
         try:
             s = pkjson.load_any(status_file)
-            if s.job_cmd_state in job.JOB_CMD_EXIT_SET:
+            if s.job_cmd_state in job.JOB_CMD_STATE_EXITS:
                 return s.job_cmd_state
             return None
         except Exception as e:
@@ -331,7 +331,7 @@ def _do_sbatch_parallel_status(msg, template):
     while not (s := _should_exit(f)):
         p = _write_parallel_status(p, msg, template, is_running=True)
         # Not asyncio.sleep: not in coroutine
-        time.sleep(msg.runStatusPollSeconds)
+        time.sleep(msg.nextRequestSeconds)
     if s == job.JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP:
         # Only time can update the file when given request to stop
         # TODO(robnagler) completed_hack ensures we write COMPLETED to the file.
