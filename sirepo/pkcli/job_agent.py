@@ -545,7 +545,6 @@ class _Cmd(PKDict):
             # POSIT: same as fast_cgi
             # Use agent's runDir.
             self.run_dir = pkio.py_path()
-        self._in_file = self._create_in_file()
         self._process = _Process(self)
         self.dispatcher.cmds.append(self)
 
@@ -653,6 +652,7 @@ class _Cmd(PKDict):
 
     def start(self):
         try:
+            self._in_file = self._create_in_file()
             self._process.start()
         except Exception as e:
             pkdlog("{} exception={} stack={}", self, e, pkdexc())
@@ -866,6 +866,7 @@ class _SbatchCmd(_Cmd):
         if "job_state" not in self:
             return
         self._sbatch_status_file = self.run_dir.join(_SBATCH_STATUS_FILE)
+        self.msg.sbatchStatusFile = str(self._sbatch_status_file)
         # Only exists when _SbatchRun starts _SbatchRunStatus
         if r := self.pkdel("sbatch_run"):
             self._sbatch_status = r._sbatch_status.copy()
@@ -952,9 +953,10 @@ class _SbatchRun(_SbatchCmd):
             if self._sbatch_status_update(
                 job_cmd_state=job.PENDING, sbatch_id=m.group(1)
             ):
-                # Start the status watcher
                 _SbatchRunStatus(
-                    msg=copy.deepcopy(self.msg), dispatcher=self.dispatcher, sbatch_run=self
+                    msg=copy.deepcopy(self.msg),
+                    dispatcher=self.dispatcher,
+                    sbatch_run=self,
                 ).start()
                 rv = self.format_op_reply(state=job.STATE_OK)
             else:
@@ -1040,7 +1042,6 @@ class _SbatchRunStatus(_SbatchCmd):
             jobCmd="sbatch_parallel_status",
             opId=None,
             opName=job.OP_RUN_STATUS,
-            sbatchStatusFile=str(kwargs["sbatch_run"]._sbatch_status_file),
         )
         super().__init__(**kwargs)
         self.pkdel("computeJobStart")
