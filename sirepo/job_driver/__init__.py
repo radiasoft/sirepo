@@ -175,12 +175,21 @@ class DriverBase(PKDict):
         pkdlog("unknown agent, sending kill; msg={}", msg)
         try:
             msg.handler.write_message(PKDict(opName=job.OP_KILL))
+        except tornado.websocket.WebSocketClosedError:
+            pkdlog("websocket closed {} from unknown agent", self)
         except Exception as e:
             pkdlog("error={} stack={}", e, pkdexc())
 
     def send(self, op):
         pkdlog("{} {} runDir={}", self, op, op.msg.get("runDir"))
-        self._websocket.write_message(pkjson.dump_bytes(op.msg))
+        try:
+            self._websocket.write_message(pkjson.dump_bytes(op.msg))
+            return True
+        except tornado.websocket.WebSocketClosedError:
+            pkdlog("websocket closed op={}", op)
+        except Exception as e:
+            pkdlog("error={} op={} stack={}", e, op, pkdexc())
+        return False
 
     @classmethod
     async def terminate(cls):
@@ -194,6 +203,7 @@ class DriverBase(PKDict):
 
     def websocket_on_close(self):
         pkdlog("{}", self)
+        self._websocket = None
         self._start_free_resources(caller="websocket_on_close")
 
     def _websocket_ready_timeout_cancel(self):
@@ -313,7 +323,8 @@ class DriverBase(PKDict):
         self._websocket_ready_timeout_cancel()
         if self._websocket:
             if self._websocket != msg.handler:
-                raise AssertionError(pkdformat("incoming msg.content={}", msg.content))
+                self._websocket = None
+                raise AssertionError(pkdformat("unexpected incoming msg.content={}", msg.content))
         else:
             self._websocket = msg.handler
         self._websocket_ready.set()

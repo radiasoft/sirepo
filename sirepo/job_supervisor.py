@@ -672,10 +672,10 @@ class _ComputeJob(_Supervisor):
             if not await c.prepare_send() or c.is_destroyed:
                 pkdlog("{} prepare_send failed op={}", self, c)
                 return
-            c.send()
-            # state of "c" is irrelevant here, cancel always "succeeds".
-            # no need to check return, but need to get the reply.
-            await c.reply_get()
+            if c.send():
+                # state of "c" is irrelevant here, cancel always "succeeds".
+                # no need to check return, but need to get the reply.
+                await c.reply_get()
         except Exception as e:
             internal_error = f"_cancel_op_or_job exception={e}"
             pkdlog("exception={} stack={}", e, pkdexc())
@@ -884,7 +884,7 @@ class _ComputeJob(_Supervisor):
             # keep same, but continue in case there's an update to other fields
             d.status = self.db.status
         else:
-            if d.get("status") == job.ERROR:
+            if msg.state == job.ERROR:
                 d.error = msg.get("error", "<unknown error>")
             if self.db.status != msg.state:
                 pkdlog("new status={} {}", msg.state, self)
@@ -1101,7 +1101,8 @@ class _ComputeJob(_Supervisor):
         async def _send(op):
             if not await op.prepare_send() or op.is_destroyed:
                 return None, False
-            op.send()
+            if not op.send():
+                return None, False
             if (r := await op.reply_get()) is None:
                 return None, False
             # POSIT: any api_* that could run into runDirNotFound
@@ -1121,10 +1122,10 @@ class _ComputeJob(_Supervisor):
                 # POSIT: ensures _start_run_status_op can update atomically
                 self._run_status_op = o
             r, k = await _send(o)
-            if is_run_status_op and self._run_status_op == o:
-                o.run_dir_slot.free()
             if k:
                 o = None
+                if is_run_status_op and self._run_status_op == o:
+                    o.run_dir_slot.free()
             return rv.pkupdate(reply=r)
         except Exception as e:
             internal_error = f"_send_with_reply exception={e}"
@@ -1346,7 +1347,7 @@ class _Op(PKDict):
 
         if self.max_run_secs:
             self.timer = _call_later(self.max_run_secs, _timeout)
-        self.driver.send(self)
+        return self.driver.send(self)
 
     @contextlib.contextmanager
     def set_job_situation(self, situation):

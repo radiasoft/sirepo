@@ -21,6 +21,7 @@ import sirepo.simulation_db
 import sirepo.util
 import tornado.gen
 import tornado.ioloop
+import tornado.websocket
 
 _RUN_DIR_OPS = job.SLOT_OPS.union((job.OP_RUN_STATUS,))
 
@@ -63,8 +64,12 @@ class SbatchDriver(job_driver.DriverBase):
         try:
             # hopefully the agent is nice and listens to the kill
             self._websocket.write_message(PKDict(opName=job.OP_KILL))
+        except tornado.websocket.WebSocketClosedError:
+            self._websocket = None
+            pkdlog("websocket closed {}", self)
         except Exception as e:
             pkdlog("{} error={} stack={}", self, e, pkdexc())
+
 
     @classmethod
     def get_instance(cls, op):
