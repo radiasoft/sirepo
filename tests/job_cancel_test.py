@@ -43,13 +43,20 @@ def _t2(fc, sim_data):
     import time
     from pykern import pkunit
 
-    for _ in range(5):
-        time.sleep(1)
-        if fc.sr_post("runStatus", sim_data).state == "pending":
-            break
-    else:
-        pkunit.pkfail("job did not start running")
-    # Help ensure that t1 sees pending
+    _state_eq(fc, sim_data, "pending")
+    # Help ensure that t1 sees pending, too
     time.sleep(1)
     fc.sr_post("runCancel", sim_data)
     pkunit.pkeq("canceled", fc.sr_post("runStatus", sim_data).state)
+
+def _state_eq(fc, req, expect):
+    import time
+    from pykern import pkunit
+
+    for _ in range(5):
+        time.sleep(1)
+        r = fc.sr_post("runStatus", req)
+        if r.state == expect:
+            return r
+    else:
+        pkunit.pkfail("expect={} != actual={}", expect, r.state)
