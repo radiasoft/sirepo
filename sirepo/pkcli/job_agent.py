@@ -49,9 +49,11 @@ _PID_FILE = "job_agent.pid"
 
 _SBATCH_STATUS_FILE = "sbatch_status.json"
 
+_LOOP_SLEEP_SECS = .5
+
 _MIN_SBATCH_POLL_SECS = 5
 
-_MAX_JOB_STATE_TRIES = 5
+_MAX_SBATCH_QUERY_TRIES = 5
 
 _cfg = None
 
@@ -165,11 +167,6 @@ def start_sbatch():
         pkio.unchecked_remove(_PID_FILE)
 
 
-def _assert_run_dir_exists(run_dir):
-    if not run_dir.exists():
-        raise _RunDirNotFound()
-
-
 class _Dispatcher(PKDict):
     def __init__(self):
         super().__init__(
@@ -254,6 +251,7 @@ class _Dispatcher(PKDict):
                     )
                 except ConnectionError as e:
                     pkdlog("unable to connect to supervisor exception={}", e)
+                    time.sleep(_LOOP_SLEEP_SECS)
                     continue
                 s = self.format_op(None, job.OP_ALIVE)
                 while True:
@@ -503,10 +501,13 @@ class _Dispatcher(PKDict):
                         state=job.UNKNOWN, error="run_status computeJobSerial mismatch"
                     ),
                 )
+
             return self.format_op(
                 msg,
                 job.OP_OK,
-                reply=PKDict(state=cmd.job_state),
+                reply=_copy_truthy(
+                    cmd, PKDict(state=cmd.job_state), ("parallelStatus", "error")
+                ),
             )
 
         if rv := _find():
@@ -659,8 +660,7 @@ class _Cmd(PKDict):
         if "job_state" not in self:
             pkdlog("{} unexpected reply={}", self, reply)
             raise AssertionError("unexpected process_job_cmd_reply")
-        if "state" in reply:
-            self.job_state = reply.state
+        _copy_truthy(reply, self, ("state", "parallelStatus", "error"))
 
     def start(self):
         try:
@@ -922,8 +922,11 @@ class _SbatchCmd(_Cmd):
                 s := self._sbatch_status.job_cmd_state
             ) != job.JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP:
                 self.job_state = s
-            if t := self._sbatch_status.get("computeJobStart"):
-                self.computeJobStart = t
+            _copy_truthy(
+                self._sbatch_status,
+                self,
+                ("computeJobStart", "parallelStatus", "error"),
+            )
 
         p = self._sbatch_status.copy()
         self._sbatch_status.pkupdate(kwargs)
@@ -1061,7 +1064,7 @@ class _SbatchRunStatus(_SbatchCmd):
         self.pkdel("computeJobStart")
         self.pkupdate(
             _sbatch_status_cb=None,
-            _sbatch_job_state_tries=0,
+            _sbatch_query_tries=0,
         )
 
     def destroy(self, terminating=False):
@@ -1110,15 +1113,19 @@ class _SbatchRunStatus(_SbatchCmd):
 
     def process_job_cmd_reply(self, reply):
         super().process_job_cmd_reply(reply)
-        if "parallelStatus" in reply:
-            # Keep file state consistent
-            self._sbatch_status.parallelStatus = reply.parallelStatus
+        if v := _copy_truthy(reply, PKDict(), ("parallelStatus", "error")):
+            # job_cmd writes the final state so don't write again
+            self._sbatch_status_update(
+                want_write, reply.get("state") != job.COMPLETED, **v
+            )
 
     @classmethod
     def sbatch_status_request(cls, **kwargs):
         self = cls(**kwargs)
         if s := self._sbatch_is_not_running():
             rv = self.format_op_reply(state=s)
+            if x := self._sbatch_status.get("parallelStatus"):
+                rv.parallelStatus = x
             self.destroy()
             return rv
         # can't answer the question yet
@@ -1132,12 +1139,12 @@ class _SbatchRunStatus(_SbatchCmd):
         self.op_id = self.msg.opId = None
         super().start()
         self._sbatch_status_cb = tornado.ioloop.PeriodicCallback(
-            self._sbatch_poll_job_state,
+            self._sbatch_poll_query,
             min(_MIN_SBATCH_POLL_SECS, self.msg.nextRequestSeconds) * 1000,
         )
         self._sbatch_status_cb.start()
         # So happens right away
-        _call_later_0(self._sbatch_poll_job_state)
+        _call_later_0(self._sbatch_poll_query)
         return None
 
     def _sbatch_is_not_running(self):
@@ -1176,13 +1183,78 @@ class _SbatchRunStatus(_SbatchCmd):
             if not pkconfig.in_dev_mode():
                 pkio.unchecked_remove(self._sbatch_status_file)
             return job.CANCELED
+        # save for start() and sbatch_status_request()
+        self._sbatch_status_update(want_write=False, **s)
         if s.job_cmd_state in job.EXIT_STATUSES:
             return s.job_cmd_state
-        # save state for start()
-        self._sbatch_status_update(want_write=False, **s)
         return None
 
-    def _sbatch_job_state(self):
+    async def _sbatch_poll_query(self):
+
+        async def _sbatch_query_try_count_ok():
+            if self._sbatch_query_tries < _MAX_SBATCH_QUERY_TRIES:
+                return True
+            pkdlog(
+                "{} sbatch_query failed after tries={} sbatch_id={}",
+                self,
+                self._sbatch_query_tries,
+                self._sbatch_status.sbatch_id,
+            )
+            self._sbatch_status_update(
+                job_cmd_state=job.ERROR,
+                error="sbatch_query unavailable or invalid output",
+            )
+            await self._sbatch_send_update()
+            return False
+
+        def _transition_state(prev, curr):
+            if prev == curr or (
+                curr == job.COMPLETED
+                and prev == job.JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP
+            ):
+                return False
+            rv = True
+            if prev == job.PENDING and curr in (job.RUNNING, job.COMPLETED):
+                self._sbatch_status.pksetdefault(
+                    computeJobStart=lambda: int(time.time())
+                )
+            if curr == job.COMPLETED:
+                curr = job.JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP
+                # waits for parallelStatus from job_cmd to send COMPLETED
+                rv = False
+            self._sbatch_status_update(job_cmd_state=curr)
+            return rv
+
+        try:
+            if self._destroying:
+                return
+            self._sbatch_query_tries += 1
+            if (
+                not (s := self._sbatch_query())
+                and not await _sbatch_query_try_count_ok()
+            ):
+                return
+            self._sbatch_query_tries = 0
+            if _transition_state(self._sbatch_status.job_cmd_state, s):
+                await self._sbatch_send_update()
+        except Exception as e:
+            pkdlog("program error, stopping exception={} stack={}", e, pkdexc())
+            try:
+                await self.dispatcher.send(
+                    self.dispatcher.format_op(
+                        op_name=job.OP_RUN_STATUS_UPDATE,
+                        msg=None,
+                        computeJid=self.jid,
+                        computeJobSerial=self.computeJobSerial,
+                        error=f"_SbatchRunStatus exception={e}",
+                        state=job.ERROR,
+                    ),
+                )
+            except Exception as e:
+                pkdlog("unable to send, stopping exception={} stack={}", e, pkdexc())
+            self.destroy()
+
+    def _sbatch_query(self):
         def _sacct():
             # Invalid job id specified (not running)
             p = subprocess.run(
@@ -1269,76 +1341,12 @@ class _SbatchRunStatus(_SbatchCmd):
         if s == "FAILED":
             return job.ERROR
         pkdlog(
-            "{} sbatch_id={} unexpected sbatch job_state={}",
+            "{} sbatch_id={} unexpected sbatch query state={}",
             self,
             self._sbatch_status.sbatch_id,
             s,
         )
         return job.ERROR
-
-    async def _sbatch_poll_job_state(self):
-
-        async def _job_state_try_count_ok():
-            if self._sbatch_job_state_tries < _MAX_JOB_STATE_TRIES:
-                return True
-            pkdlog(
-                "{} job_state failed after tries={} sbatch_id={}",
-                self,
-                self._sbatch_job_state_tries,
-                self._sbatch_status.sbatch_id,
-            )
-            self._sbatch_status_update(
-                job_cmd_state=job.ERROR, error="job_state unavailable or invalid output"
-            )
-            await self._sbatch_send_update()
-            return False
-
-        def _transition_state(prev, curr):
-            if prev == curr or (
-                curr == job.COMPLETED
-                and prev == job.JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP
-            ):
-                return False
-            rv = True
-            if prev == job.PENDING and curr in (job.RUNNING, job.COMPLETED):
-                self._sbatch_status.pksetdefault(
-                    computeJobStart=lambda: int(time.time())
-                )
-            if curr == job.COMPLETED:
-                curr = job.JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP
-                # waits for parallelStatus from job_cmd to send COMPLETED
-                rv = False
-            self._sbatch_status_update(job_cmd_state=curr)
-            return rv
-
-        try:
-            if self._destroying:
-                return
-            self._sbatch_job_state_tries += 1
-            if (
-                not (s := self._sbatch_job_state())
-                and not await _job_state_try_count_ok()
-            ):
-                return
-            self._sbatch_job_state_tries = 0
-            if _transition_state(self._sbatch_status.job_cmd_state, s):
-                await self._sbatch_send_update()
-        except Exception as e:
-            pkdlog("program error, stopping exception={} stack={}", e, pkdexc())
-            try:
-                await self.dispatcher.send(
-                    self.dispatcher.format_op(
-                        op_name=job.OP_RUN_STATUS_UPDATE,
-                        msg=None,
-                        computeJid=self.jid,
-                        computeJobSerial=self.computeJobSerial,
-                        error=f"_SbatchRunStatus exception={e}",
-                        state=job.ERROR,
-                    ),
-                )
-            except Exception as e:
-                pkdlog("unable to send, stopping exception={} stack={}", e, pkdexc())
-            self.destroy()
 
     async def _sbatch_send_update(self, text=None):
         def _optional():
@@ -1361,8 +1369,20 @@ class _SbatchRunStatus(_SbatchCmd):
             self.destroy()
 
 
+def _assert_run_dir_exists(run_dir):
+    if not run_dir.exists():
+        raise _RunDirNotFound()
+
+
 def _call_later_0(*args, **kwargs):
     return tornado.ioloop.IOLoop.current().call_later(0, *args, **kwargs)
+
+
+def _copy_truthy(src, dst, keys):
+    for x in keys:
+        if y := src.get(x):
+            dst[x] = y
+    return dst
 
 
 def _terminate(dispatcher):

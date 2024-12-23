@@ -1125,9 +1125,10 @@ class _ComputeJob(_Supervisor):
                 self._run_status_op = o
             r, k = await _send(o)
             if k:
-                o = None
                 if is_run_status_op and self._run_status_op == o:
+                    pkdp("free run_dir_slot {}", o)
                     o.run_dir_slot.free()
+                o = None
             return rv.pkupdate(reply=r)
         except Exception as e:
             internal_error = f"_send_with_reply exception={e}"
@@ -1158,9 +1159,13 @@ class _ComputeJob(_Supervisor):
                 # already know the db is in sync from when request was sent.
                 # Reply only includes state at this point; OP_RUN_STATUS_UPDATE handles parallelStatus
                 pkdlog("{} status change reply={}", self, reply)
-                self._db_status_update(status=reply.state)
+                self._db_status_update(
+                    status=reply.state,
+                    **_copy_truthy(reply, PKDict(), ("parallelStatus", "error")),
+                )
                 op.destroy()
                 return
+            # UNKNOWN can get error
             if not (e := reply.get("error")):
                 pkdlog("{} normal sbatch case reply={}", self, reply)
                 # normal sbatch case of UKNOWN state and _run_status_op continues.
@@ -1394,6 +1399,13 @@ def _call_later(*args, **kwargs):
 
 def _canceled_reply():
     return PKDict(state=job.CANCELED)
+
+
+def _copy_truthy(src, dst, keys):
+    for x in keys:
+        if y := src.get(x):
+            dst[x] = y
+    return dst
 
 
 def _exception_reply(exc):
