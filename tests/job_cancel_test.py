@@ -27,6 +27,7 @@ def test_myapp(fc):
     fc.sr_thread_start("t1", _t1, sim_data=x)
     fc.sr_thread_start("t2", _t2, sim_data=x)
     fc.sr_thread_join()
+    # t2 already asserts canceled so must be true
     pkunit.pkeq("canceled", fc.sr_post("runStatus", x).state)
     r = fc.sr_run_sim(d, _REPORT)
     p = r.get("plots")
@@ -37,17 +38,18 @@ def _t1(fc, sim_data):
     from pykern import pkunit
 
     fc.sr_post("runSimulation", sim_data)
-    pkunit.pkeq("pending", fc.sr_post("runStatus", sim_data).state)
+    # t2 is operating asynchronously so just allow any of these
+    _state_eq(fc, sim_data, ["pending", "running", "canceled"])
 
 
 def _t2(fc, sim_data):
     import time
     from pykern import pkunit
 
-    _state_eq(fc, sim_data, "pending")
-    # Help ensure that t1 sees pending, too
-    time.sleep(1)
+    # Make sure pending or running before canceling
+    _state_eq(fc, sim_data, ["pending", "running"])
     fc.sr_post("runCancel", sim_data)
+    # runCancel changes job state immediately
     pkunit.pkeq("canceled", fc.sr_post("runStatus", sim_data).state)
 
 
@@ -58,7 +60,7 @@ def _state_eq(fc, req, expect):
     for _ in range(5):
         time.sleep(1)
         r = fc.sr_post("runStatus", req)
-        if r.state == expect:
+        if r.state in expect:
             return r
     else:
         pkunit.pkfail("expect={} != actual={}", expect, r.state)
