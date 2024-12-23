@@ -888,6 +888,8 @@ class _ComputeJob(_Supervisor):
                 d.error = msg.get("error", "<unknown error>")
             if self.db.status != msg.state:
                 pkdlog("new status={} {}", msg.state, self)
+            else:
+                pkdlog("same status={} {}", msg.state, self)
             # must be set because _db_status_update requires it
             d.status = msg.state
         if self.db.isParallel and d.status != job.PENDING:
@@ -1155,10 +1157,12 @@ class _ComputeJob(_Supervisor):
                 # computeJobSerial is checked by agent so do not need to check here, since
                 # already know the db is in sync from when request was sent.
                 # Reply only includes state at this point; OP_RUN_STATUS_UPDATE handles parallelStatus
+                pkdlog("{} status change reply={}", self, reply)
                 self._db_status_update(status=reply.state)
                 op.destroy()
                 return
             if not (e := reply.get("error")):
+                pkdlog("{} normal sbatch case reply={}", self, reply)
                 # normal sbatch case of UKNOWN state and _run_status_op continues.
                 # if is_running_pending, the ui will request frames, but that's ok.
                 return
@@ -1166,8 +1170,15 @@ class _ComputeJob(_Supervisor):
             if self._is_running_pending():
                 # Only set status in running/pending case, otherwise already in exit state
                 self._db_status_update(status=job.ERROR, error=e)
-                pkdlog("{} agent does not know status, error={}, ", self, e)
-            # else leave status alone, likely supervisor knows more than agent
+                pkdlog(
+                    "{} agent does not know status state={}, reply={}, ",
+                    self,
+                    job.ERROR,
+                    reply,
+                )
+            else:
+                # leave status alone, likely supervisor knows more than agent
+                pkdlog("{} leave status unchanged, not running reply={}, ", self, reply)
 
         # TODO(robnagler) consolidate _receive_api_runSimulation
         d = self.db.dbUpdateTime

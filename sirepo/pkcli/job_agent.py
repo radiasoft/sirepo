@@ -241,16 +241,20 @@ class _Dispatcher(PKDict):
         while True:
             self._websocket = None
             try:
-                self._websocket = await tornado.websocket.websocket_connect(
-                    tornado.httpclient.HTTPRequest(
-                        connect_timeout=_CONNECT_SECS,
-                        url=_cfg.supervisor_uri,
-                        validate_cert=job.cfg().verify_tls,
-                    ),
-                    max_message_size=job.cfg().max_message_bytes,
-                    ping_interval=job.cfg().ping_interval_secs,
-                    ping_timeout=job.cfg().ping_timeout_secs,
-                )
+                try:
+                    self._websocket = await tornado.websocket.websocket_connect(
+                        tornado.httpclient.HTTPRequest(
+                            connect_timeout=_CONNECT_SECS,
+                            url=_cfg.supervisor_uri,
+                            validate_cert=job.cfg().verify_tls,
+                        ),
+                        max_message_size=job.cfg().max_message_bytes,
+                        ping_interval=job.cfg().ping_interval_secs,
+                        ping_timeout=job.cfg().ping_timeout_secs,
+                    )
+                except ConnectionError as e:
+                    pkdlog("unable to connect to supervisor exception={}", e)
+                    continue
                 s = self.format_op(None, job.OP_ALIVE)
                 while True:
                     if s and not await self.send(s):
@@ -803,6 +807,7 @@ class _Process(PKDict):
 
     def _on_exit(self, returncode):
         self.returncode = returncode
+        pkdlog("{} returncode={}", self, returncode)
         self._exit.set()
 
 
