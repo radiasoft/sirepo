@@ -97,7 +97,6 @@ def test_elegant_no_frame_after_purge(auth_fc):
     fc.sr_email_login(user_free)
     d = fc.sr_sim_data(sim_name="Compact Storage Ring", sim_type="elegant")
     r = fc.sr_run_sim(d, "animation")
-    pkdp(r.state)
     with fc.sr_adjust_time(_PURGE_FREE_AFTER_DAYS + 1):
         time.sleep(_CACHE_AND_SIM_PURGE_PERIOD + 3)
         s = _state_eq(
