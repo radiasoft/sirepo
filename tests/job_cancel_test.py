@@ -9,6 +9,7 @@ _REPORT = "heightWeightReport"
 
 def test_myapp(fc):
     from pykern import pkunit
+
     from pykern.pkdebug import pkdc, pkdp, pkdlog
     from pykern.pkcollections import PKDict
 
@@ -48,6 +49,7 @@ def _t2(fc, sim_data):
     time.sleep(1)
     fc.sr_post("runCancel", sim_data)
     pkunit.pkeq("canceled", fc.sr_post("runStatus", sim_data).state)
+
 
 def _state_eq(fc, req, expect):
     import time
