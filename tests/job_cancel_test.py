@@ -43,7 +43,13 @@ def _t2(fc, sim_data):
     import time
     from pykern import pkunit
 
-    # this is very sensitive
-    time.sleep(2)
+    for _ in range(5):
+        time.sleep(1)
+        if fc.sr_post("runStatus", sim_data).state == "pending":
+            break
+    else:
+        pkunit.pkfail("job did not start running")
+    # Help ensure that t1 sees pending
+    time.sleep(1)
     fc.sr_post("runCancel", sim_data)
     pkunit.pkeq("canceled", fc.sr_post("runStatus", sim_data).state)
