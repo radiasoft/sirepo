@@ -384,7 +384,7 @@ class _Dispatcher(PKDict):
     async def _fastcgi_op(self, msg):
         if msg.runDir:
             _assert_run_dir_exists(pkio.py_path(msg.runDir))
-        pkdp([msg, self.fastcgi_cmd, self._fastcgi_msg_q])
+        pkdp([msg, self.fastcgi_cmd])
         if not self.fastcgi_cmd:
             m = copy.deepcopy(msg)
             m.jobCmd = "fastcgi"
@@ -405,7 +405,7 @@ class _Dispatcher(PKDict):
             )
             # last thing, because of await: start fastcgi process
             await self._cmd(m, send_reply=False)
-            pkdp([msg, self.fastcgi_cmd])
+            pkdp([self.fastcgi_cmd])
             if not self._fastcgi_msg_q:
                 pkdp([msg, self.fastcgi_cmd])
                 return self.format_op(

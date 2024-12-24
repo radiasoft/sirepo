@@ -971,7 +971,7 @@ class _ComputeJob(_Supervisor):
                 if force_run:
                     return PKDict(
                         state=job.ERROR,
-                        error="a simulation is already running, refresh the browser",
+                        error="simulation state unknown, refresh the browser",
                     )
                 # Not _receive_api_runStatus, because runStatus should have been
                 # called before this function is called.
