@@ -1126,7 +1126,6 @@ class _ComputeJob(_Supervisor):
             r, k = await _send(o)
             if k:
                 if is_run_status_op and self._run_status_op == o:
-                    pkdp("free run_dir_slot {}", o)
                     o.run_dir_slot.free()
                 o = None
             return rv.pkupdate(reply=r)
@@ -1306,9 +1305,9 @@ class _Op(PKDict):
 
     def pkdebug_str(self):
         def _internal_error():
-            if not self.get("internal_error"):
-                return ""
-            return ", internal_error={self.internal_error}"
+            if e := self.get("internal_error"):
+                return f", internal_error={e}"
+            return ""
 
         return pkdformat(
             "_Op({}{}, {:.4}{})",
