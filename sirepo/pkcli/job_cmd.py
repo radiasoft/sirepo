@@ -35,7 +35,6 @@ _MAX_FASTCGI_MSG = int(1e8)
 
 _MAX_SBATCH_STATUS_RETRIES = 5
 
-
 def default_command(in_file):
     """Reads `in_file` passes to `msg.jobCmd`
 

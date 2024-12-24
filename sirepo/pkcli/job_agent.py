@@ -202,7 +202,6 @@ class _Dispatcher(PKDict):
                     computeJobSerial=msg.computeJobSerial,
                     state=cmd.job_state,
                 )
-                pkdp(rv)
                 if t := cmd.get("computeJobStart"):
                     rv.computeJobStart = t
                 # Allow reply to override these things
@@ -300,14 +299,14 @@ class _Dispatcher(PKDict):
         finally:
             tornado.ioloop.IOLoop.current().stop()
 
-    def _get_cmd_type(self, msg):
-        if msg.jobRunMode == job.SBATCH:
-            return _SbatchRun if msg.opName == job.OP_RUN else _SbatchCmd
-        if msg.jobCmd == "fastcgi":
-            return _FastCgiCmd
-        return _Cmd
-
     async def _cmd(self, msg, **kwargs):
+        def _class(msg):
+            if msg.jobRunMode == job.SBATCH:
+                return _SbatchRun if msg.opName == job.OP_RUN else _SbatchCmd
+            if msg.jobCmd == "fastcgi":
+                return _FastCgiCmd
+            return _Cmd
+
         try:
             if (
                 msg.opName
@@ -318,7 +317,8 @@ class _Dispatcher(PKDict):
                 and msg.jobCmd != "fastcgi"
             ):
                 return await self._fastcgi_op(msg)
-            c = self._get_cmd_type(msg)(msg=msg, dispatcher=self, **kwargs)
+#rjn op_di shouldn't be necessary
+            c = _class(msg)(msg=msg, dispatcher=self, op_id=msg.opId, **kwargs)
         except _RunDirNotFound:
             return self.format_op(
                 msg,
@@ -357,24 +357,13 @@ class _Dispatcher(PKDict):
             except Exception as e:
                 pkdlog("msg={} error={} stack={}", msg, e, pkdexc())
 
-        pkdp("error={}", error)
-        pkdp("{}", self.fastcgi_cmd)
-        if self.fastcgi_cmd and (p := self.fastcgi_cmd.get("_process")):
-            pkdp("{}", p)
-            if p := p.get("_subprocess"):
-                pkdp("{} {}", p, p.returncode)
         # destroy _fastcgi state first, then send replies to avoid
         # asynchronous modification of _fastcgi state.
         self.fastcgi_error_count += 1
-        pkdp(self)
         self._fastcgi_remove_handler()
-        pkdp(self._fastcgi_msg_q)
         q = self._fastcgi_msg_q
-        pkdp(self)
         self._fastcgi_msg_q = None
-        pkdp(q)
         self.fastcgi_cmd.destroy()
-        pkdp(self.fastcgi_cmd)
         if msg:
             await _reply_error(msg)
         while q.qsize() > 0:
@@ -384,7 +373,6 @@ class _Dispatcher(PKDict):
     async def _fastcgi_op(self, msg):
         if msg.runDir:
             _assert_run_dir_exists(pkio.py_path(msg.runDir))
-        pkdp([msg.get("job_cmd"), self.fastcgi_cmd, self.get("_fastcgi_msg_q")])
         if not self.fastcgi_cmd:
             m = copy.deepcopy(msg)
             m.jobCmd = "fastcgi"
@@ -405,18 +393,14 @@ class _Dispatcher(PKDict):
             )
             # last thing, because of await: start fastcgi process
             await self._cmd(m, send_reply=False)
-            pkdp([self.fastcgi_cmd, self.get("_fastcgi_msg_q")])
             if not self._fastcgi_msg_q:
-                pkdp([self.fastcgi_cmd])
                 return self.format_op(
                     msg,
                     job.ERROR,
                     PKDict(state=job.ERROR, error="fastcgi process got an error"),
                 )
-        pkdp([self.fastcgi_cmd, self._fastcgi_msg_q])
         if msg.jobCmd == "fastcgi":
             raise AssertionError("fastcgi called within fastcgi")
-        pkdp([self.fastcgi_cmd, self._fastcgi_msg_q])
         self._fastcgi_msg_q.put_nowait(msg)
         # For better logging, msg.opId is used in format_op (reply)
         # Also used in op_cancel so a cancel, cancels the fastcgi process
@@ -439,7 +423,8 @@ class _Dispatcher(PKDict):
                 await s.write(pkjson.dump_bytes(m) + b"\n")
                 await self.job_cmd_reply(
                     m,
-                    job.OP_OK,
+#rjn why is this not ok                   job.OP_OK,
+                    job.OP_ANALYSIS,
                     text=await s.read_until(b"\n", job.cfg().max_message_bytes),
                 )
 
@@ -587,9 +572,10 @@ class _Cmd(PKDict):
         self.destroy()
 
     def destroy(self, terminating=False):
-        pkdp(self)
         if self._destroying:
             return
+        if self.dispatcher.fastcgi_cmd == self:
+            self.dispatcher.fastcgi_destroy()
         self._destroying = True
         self._terminating = terminating
         if "_in_file" in self:
@@ -684,7 +670,6 @@ class _Cmd(PKDict):
             pkdlog("{} unexpected reply={}", self, reply)
             raise AssertionError("unexpected process_job_cmd_reply")
         _copy_truthy(reply, self, ("state", "parallelStatus", "error"))
-        pkdp(self.get("parallelStatus"))
 
     def start(self):
         try:
@@ -705,10 +690,10 @@ class _Cmd(PKDict):
         self.computeJobStart = int(time.time())
         rv = self.format_op_reply(state=job.STATE_OK)
         self.msg.opId = None
+        self.msg.opName = job.OP_RUN_STATUS
         _call_later_0(
             self.dispatcher.job_cmd_reply,
             msg=self.msg,
-            op_name=job.OP_RUN_STATUS_UPDATE,
             cmd=self,
         )
         return rv
@@ -761,12 +746,7 @@ class _Cmd(PKDict):
 
 
 class _FastCgiCmd(_Cmd):
-    def destroy(self, terminating=False):
-        pkdp("destroying {}", self)
-        if self._destroying:
-            return
-        self.dispatcher.fastcgi_destroy()
-        super().destroy(terminating=terminating)
+    pass
 
 
 class _OpMsg(PKDict):
@@ -786,16 +766,12 @@ class _Process(PKDict):
         )
 
     async def exit_ready(self):
-        pkdp(self)
         await self._exit.wait()
-        pkdp(self)
         await self.stdout.stream_closed.wait()
-        pkdp(self)
         #rjn await self.stderr.stream_closed.wait()
 
     def kill(self):
         # If the process is't started
-        pkdp(self)
         if "returncode" in self or "_subprocess" not in self:
             return
         p = None
@@ -1160,8 +1136,6 @@ class _SbatchRunStatus(_SbatchCmd):
             self._sbatch_status_update(
                 want_write=reply.get("state") != job.COMPLETED, **v
             )
-        pkdp(v)
-        pkdp(self.pkunchecked_nested_get("parallelStatus.particleNumber"))
 
     @classmethod
     def sbatch_status_request(cls, **kwargs):
