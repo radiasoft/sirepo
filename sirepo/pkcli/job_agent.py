@@ -384,7 +384,7 @@ class _Dispatcher(PKDict):
     async def _fastcgi_op(self, msg):
         if msg.runDir:
             _assert_run_dir_exists(pkio.py_path(msg.runDir))
-        pkdp([msg, self.fastcgi_cmd])
+        pkdp([msg.get("job_cmd"), self.fastcgi_cmd, self.get("_fastcgi_msg_q")])
         if not self.fastcgi_cmd:
             m = copy.deepcopy(msg)
             m.jobCmd = "fastcgi"
@@ -405,18 +405,18 @@ class _Dispatcher(PKDict):
             )
             # last thing, because of await: start fastcgi process
             await self._cmd(m, send_reply=False)
-            pkdp([self.fastcgi_cmd])
+            pkdp([self.fastcgi_cmd, self.get("_fastcgi_msg_q")])
             if not self._fastcgi_msg_q:
-                pkdp([msg, self.fastcgi_cmd])
+                pkdp([self.fastcgi_cmd])
                 return self.format_op(
                     msg,
                     job.ERROR,
                     PKDict(state=job.ERROR, error="fastcgi process got an error"),
                 )
-        pkdp([msg, self.fastcgi_cmd, self._fastcgi_msg_q])
+        pkdp([self.fastcgi_cmd, self._fastcgi_msg_q])
         if msg.jobCmd == "fastcgi":
             raise AssertionError("fastcgi called within fastcgi")
-        pkdp([msg, self.fastcgi_cmd, self._fastcgi_msg_q])
+        pkdp([self.fastcgi_cmd, self._fastcgi_msg_q])
         self._fastcgi_msg_q.put_nowait(msg)
         # For better logging, msg.opId is used in format_op (reply)
         # Also used in op_cancel so a cancel, cancels the fastcgi process
@@ -1133,15 +1133,13 @@ class _SbatchRunStatus(_SbatchCmd):
 
         if self._destroying:
             return
-        self._destroying = True
-        self._terminating = terminating
         if self._sbatch_status_cb:
             self._sbatch_status_cb.stop()
             self._sbatch_status_cb = None
         if (
             self._sbatch_status.job_cmd_state not in job.JOB_CMD_STATE_EXITS
             and self._sbatch_status.sbatch_id
-            and not self._terminating
+            and not terminating
         ):
             self._sbatch_status_update(job_cmd_state=job.CANCELED)
             _scancel(self._sbatch_status.sbatch_id)
