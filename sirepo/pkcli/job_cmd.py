@@ -49,7 +49,6 @@ def default_command(in_file):
         str: json output of command, e.g. status msg
     """
     # must delete, because subprocesses will reopen it
-    del os.environ["PYKERN_PKDEBUG_OUTPUT"]
     msg = None
     try:
         f = pkio.py_path(in_file)

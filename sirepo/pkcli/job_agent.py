@@ -237,21 +237,16 @@ class _Dispatcher(PKDict):
         while True:
             self._websocket = None
             try:
-                try:
-                    self._websocket = await tornado.websocket.websocket_connect(
-                        tornado.httpclient.HTTPRequest(
-                            connect_timeout=_CONNECT_SECS,
-                            url=_cfg.supervisor_uri,
-                            validate_cert=job.cfg().verify_tls,
-                        ),
-                        max_message_size=job.cfg().max_message_bytes,
-                        ping_interval=job.cfg().ping_interval_secs,
-                        ping_timeout=job.cfg().ping_timeout_secs,
-                    )
-                except ConnectionError as e:
-                    pkdlog("unable to connect to supervisor exception={}", e)
-                    time.sleep(_LOOP_RETRY_SECS)
-                    continue
+                self._websocket = await tornado.websocket.websocket_connect(
+                    tornado.httpclient.HTTPRequest(
+                        connect_timeout=_CONNECT_SECS,
+                        url=_cfg.supervisor_uri,
+                        validate_cert=job.cfg().verify_tls,
+                    ),
+                    max_message_size=job.cfg().max_message_bytes,
+                    ping_interval=job.cfg().ping_interval_secs,
+                    ping_timeout=job.cfg().ping_timeout_secs,
+                )
                 s = self.format_op(None, job.OP_ALIVE)
                 while True:
                     if s and not await self.send(s):
@@ -267,7 +262,7 @@ class _Dispatcher(PKDict):
                     s = await self._op(r)
 
             except Exception as e:
-                if not isinstance(e, tornado.simple_httpclient.HTTPStreamClosedError):
+                if not isinstance(e, (ConnectionError, tornado.simple_httpclient.HTTPStreamClosedError, tornado.iostream.StreamClosedError)):
                     pkdlog("retrying, websocket; error={} stack={}", e, pkdexc())
                 await tornado.gen.sleep(_LOOP_RETRY_SECS)
             finally:
@@ -362,13 +357,24 @@ class _Dispatcher(PKDict):
             except Exception as e:
                 pkdlog("msg={} error={} stack={}", msg, e, pkdexc())
 
+        pkdp("error={}", error)
+        pkdp("{}", self.fastcgi_cmd)
+        if self.fastcgi_cmd and (p := self.fastcgi_cmd.get("_process")):
+            pkdp("{}", p)
+            if p := p.get("_subprocess"):
+                pkdp("{} {}", p, p.returncode)
         # destroy _fastcgi state first, then send replies to avoid
         # asynchronous modification of _fastcgi state.
         self.fastcgi_error_count += 1
+        pkdp(self)
         self._fastcgi_remove_handler()
+        pkdp(self._fastcgi_msg_q)
         q = self._fastcgi_msg_q
+        pkdp(self)
         self._fastcgi_msg_q = None
+        pkdp(q)
         self.fastcgi_cmd.destroy()
+        pkdp(self.fastcgi_cmd)
         if msg:
             await _reply_error(msg)
         while q.qsize() > 0:
@@ -378,6 +384,7 @@ class _Dispatcher(PKDict):
     async def _fastcgi_op(self, msg):
         if msg.runDir:
             _assert_run_dir_exists(pkio.py_path(msg.runDir))
+        pkdp([msg, self.fastcgi_cmd, self._fastcgi_msg_q])
         if not self.fastcgi_cmd:
             m = copy.deepcopy(msg)
             m.jobCmd = "fastcgi"
@@ -398,14 +405,18 @@ class _Dispatcher(PKDict):
             )
             # last thing, because of await: start fastcgi process
             await self._cmd(m, send_reply=False)
-            if not self._fastcgi_cmd:
+            pkdp([msg, self.fastcgi_cmd])
+            if not self._fastcgi_msg_q:
+                pkdp([msg, self.fastcgi_cmd])
                 return self.format_op(
                     msg,
                     job.ERROR,
                     PKDict(state=job.ERROR, error="fastcgi process got an error"),
                 )
+        pkdp([msg, self.fastcgi_cmd, self._fastcgi_msg_q])
         if msg.jobCmd == "fastcgi":
             raise AssertionError("fastcgi called within fastcgi")
+        pkdp([msg, self.fastcgi_cmd, self._fastcgi_msg_q])
         self._fastcgi_msg_q.put_nowait(msg)
         # For better logging, msg.opId is used in format_op (reply)
         # Also used in op_cancel so a cancel, cancels the fastcgi process
@@ -434,7 +445,8 @@ class _Dispatcher(PKDict):
 
         except Exception as e:
             if isinstance(e, tornado.iostream.StreamClosedError):
-                pkdlog("msg={} stream closed unexpectedly exception={}", m, e)
+                x = getattr(e, "real_error", None)
+                pkdlog("msg={} stream closed unexpectedly exception={} real_error={}", m, e, x)
             else:
                 pkdlog("msg={} error={} stack={}", m, e, pkdexc())
             # If self.fastcgi_cmd is None we initiated the kill so not an error
@@ -575,6 +587,7 @@ class _Cmd(PKDict):
         self.destroy()
 
     def destroy(self, terminating=False):
+        pkdp(self)
         if self._destroying:
             return
         self._destroying = True
@@ -703,9 +716,9 @@ class _Cmd(PKDict):
     async def _await_exit(self):
         try:
             await self._process.exit_ready()
-            e = self._process.stderr.text.decode("utf-8", errors="ignore")
-            if e:
-                pkdlog("{} exit={} stderr={}", self, self._process.returncode, e)
+            #rjn e = self._process.stderr.text.decode("utf-8", errors="ignore")
+            #if e:
+            #    pkdlog("{} exit={} stderr={}", self, self._process.returncode, e)
             if self._destroying:
                 return
             if self._process.returncode != 0:
@@ -749,6 +762,7 @@ class _Cmd(PKDict):
 
 class _FastCgiCmd(_Cmd):
     def destroy(self, terminating=False):
+        pkdp("destroying {}", self)
         if self._destroying:
             return
         self.dispatcher.fastcgi_destroy()
@@ -758,6 +772,8 @@ class _FastCgiCmd(_Cmd):
 class _OpMsg(PKDict):
     pass
 
+
+pid = 1
 
 class _Process(PKDict):
     def __init__(self, cmd):
@@ -770,12 +786,16 @@ class _Process(PKDict):
         )
 
     async def exit_ready(self):
+        pkdp(self)
         await self._exit.wait()
+        pkdp(self)
         await self.stdout.stream_closed.wait()
-        await self.stderr.stream_closed.wait()
+        pkdp(self)
+        #rjn await self.stderr.stream_closed.wait()
 
     def kill(self):
         # If the process is't started
+        pkdp(self)
         if "returncode" in self or "_subprocess" not in self:
             return
         p = None
@@ -800,19 +820,31 @@ class _Process(PKDict):
         c, s, e = self.cmd.job_cmd_cmd_stdin_env()
         pkdlog("cmd={} stdin={}", c, s.read())
         s.seek(0)
+        global pid
+        f = self.cmd.run_dir.join(f"job_cmd.log{pid}").open("a")
+        from pykern import pkcompat
+        f.write(pkcompat.from_bytes(s.read()))
+        f.write("\n")
+        f.write(pkcompat.from_bytes(pkjson.dump_pretty(e)))
+        f.write("\n")
+        f.write(pkcompat.from_bytes(self.cmd._in_file.read()))
+        f.flush()
+        s.seek(0)
         self._subprocess = tornado.process.Subprocess(
             c,
             close_fds=True,
             cwd=str(self.cmd.run_dir),
-            env=e.pkupdate(PYKERN_PKDEBUG_OUTPUT="job_cmd.log"),
+            env=e,
             start_new_session=True,
             stdin=s,
             stdout=tornado.process.Subprocess.STREAM,
-            stderr=tornado.process.Subprocess.STREAM,
+#rjn            stderr=tornado.process.Subprocess.STREAM,
+            stderr=f,
         )
+        pid += 1
         s.close()
         self.stdout = _ReadJsonlStream(self._subprocess.stdout, self.cmd)
-        self.stderr = _ReadUntilCloseStream(self._subprocess.stderr, self.cmd)
+#rjn        self.stderr = _ReadUntilCloseStream(self._subprocess.stderr, self.cmd)
         self._subprocess.set_exit_callback(self._on_exit)
         return self
 
