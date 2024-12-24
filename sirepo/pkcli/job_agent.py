@@ -703,6 +703,7 @@ class _Cmd(PKDict):
         _call_later_0(
             self.dispatcher.job_cmd_reply,
             msg=self.msg,
+            op_name=job.OP_RUN_STATUS_UPDATE,
             cmd=self,
         )
         return rv
