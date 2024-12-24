@@ -5,7 +5,7 @@ SIREPO.srlog = (...args) => {console.log(
     ...args,
 );};
 SIREPO.srdbg = SIREPO.srlog;
-SIREPO.traceWS = false;
+SIREPO.traceWS = true;
 
 // No timeout for now (https://github.com/radiasoft/sirepo/issues/317)
 SIREPO.http_timeout = 0;
@@ -1288,7 +1288,7 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         }
 
         transition() {
-            // DEBUG (`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
+            srdbg(`${this._oldState} ${this._event} => ${this._newState}`, this._arg);
             _state = this._newState;
             $rootScope.$broadcast('sbatchLoginEvent', this);
         }

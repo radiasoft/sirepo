@@ -963,7 +963,7 @@ class _ComputeJob(_Supervisor):
 
         async def _valid_or_reply(force_run):
             if self._is_running_pending():
-                if self._req_is_valid(req):
+                if not self._req_is_valid(req):
                     return PKDict(
                         state=job.ERROR,
                         error="another browser is running the simulation",

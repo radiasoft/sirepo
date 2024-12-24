@@ -281,6 +281,13 @@ class DriverBase(PKDict):
         return True
 
     def _agent_receive(self, msg):
+        def _error(content):
+            if "error" in content:
+                pkdlog("{} agent error msg={}", self, c)
+                return "internal error in job_agent"
+            pkdlog("{} no 'reply' in msg={}", self, c)
+            return "invalid message from job_agent"
+
         c = msg.content
         i = c.get("opId")
         if (
@@ -288,16 +295,13 @@ class DriverBase(PKDict):
             or c.opName == job.OP_ERROR
             or ("reply" in c and c.reply.get("state") == job.ERROR)
         ):
-            # Log allerror message
+            # Log all errors
             pkdlog("{} error msg={}", self, c)
         else:
             pkdlog("{} opName={} o={:.4}", self, c.opName, i)
         if i:
             if "reply" not in c:
-                pkdlog("{} no reply in msg={}", self, c)
-                c.reply = PKDict(
-                    state=job.ERROR, error="invalid message from job_agent"
-                )
+                c.reply = PKDict(state=job.ERROR, error=_error(c))
             if i in self._prepared_sends:
                 # SECURITY: only ops known to this driver can be replied to
                 self._prepared_sends[i].reply_put(c.opName, c.reply)

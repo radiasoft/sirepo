@@ -2575,11 +2575,10 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 </div>
               </div>
               <div data-ng-show="simState.isStopped() && ! isFluxWithApproximateMethod()">
-                <div data-ng-if="normalCompletion()" data-simulation-stopped-status="simState"></div>
-                <div class="col-sm-12" data-ng-if="! normalCompletion()">Simulation Cancelled</div>
-                  <div class="col-sm-12" data-ng-show="showFrameCount()">
-                    Completed {{ runStepName }}: {{ particleNumber }} / {{ particleCount}}
-                  </div>
+                <div data-simulation-stopped-status="simState"></div>
+                <div class="col-sm-12" data-ng-show="showFrameCount()">
+                  Completed {{ runStepName }}: {{ particleNumber }} / {{ particleCount}}
+                </div>
                 <div class="col-sm-12" data-simulation-status-timer="simState"></div>
                 <div data-job-settings-sbatch-login-and-start-simulation data-sim-state="simState" data-start-simulation="startSimulation()"></div>
               </div>
@@ -2623,12 +2622,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 }
             }
 
-            $scope.normalCompletion = () => {
-                var d = Math.abs($scope.particleCount - $scope.particleNumber);
-                var a = appState.models.multiElectronAnimation;
-                return d < a.numberOfMacroElectronsAvg * a.savingPeriodicity;
-            };
-
             $scope.logFileURL = () => {
                 if (! appState.isLoaded()) {
                     return '';
@@ -2657,9 +2650,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                             ? 'mode' : 'macro-electrons';
                     }
                     $scope.particleCount = data.particleCount;
-                    if ($scope.simState.isStateCompleted() && $scope.normalCompletion()){
-                        $scope.particleNumber = $scope.particleCount;
-                    }
                 }
                 if (data.frameCount) {
                     if (data.frameCount != frameCache.getFrameCount($scope.model)) {
