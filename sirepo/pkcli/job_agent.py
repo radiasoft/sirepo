@@ -261,7 +261,14 @@ class _Dispatcher(PKDict):
                     s = await self._op(r)
 
             except Exception as e:
-                if not isinstance(e, (ConnectionError, tornado.simple_httpclient.HTTPStreamClosedError, tornado.iostream.StreamClosedError)):
+                if not isinstance(
+                    e,
+                    (
+                        ConnectionError,
+                        tornado.simple_httpclient.HTTPStreamClosedError,
+                        tornado.iostream.StreamClosedError,
+                    ),
+                ):
                     pkdlog("retrying, websocket; error={} stack={}", e, pkdexc())
                 await tornado.gen.sleep(_LOOP_RETRY_SECS)
             finally:
@@ -317,8 +324,7 @@ class _Dispatcher(PKDict):
                 and msg.jobCmd != "fastcgi"
             ):
                 return await self._fastcgi_op(msg)
-#rjn op_di shouldn't be necessary
-            c = _class(msg)(msg=msg, dispatcher=self, op_id=msg.opId, **kwargs)
+            c = _class(msg)(msg=msg, dispatcher=self, **kwargs)
         except _RunDirNotFound:
             return self.format_op(
                 msg,
@@ -423,15 +429,18 @@ class _Dispatcher(PKDict):
                 await s.write(pkjson.dump_bytes(m) + b"\n")
                 await self.job_cmd_reply(
                     m,
-#rjn why is this not ok                   job.OP_OK,
-                    job.OP_ANALYSIS,
+                    job.OP_OK,
                     text=await s.read_until(b"\n", job.cfg().max_message_bytes),
                 )
 
         except Exception as e:
             if isinstance(e, tornado.iostream.StreamClosedError):
-                x = getattr(e, "real_error", None)
-                pkdlog("msg={} stream closed unexpectedly exception={} real_error={}", m, e, x)
+                pkdlog(
+                    "msg={} stream closed unexpectedly exception={} real_error={}",
+                    m,
+                    e,
+                    getattr(e, "real_error", None),
+                )
             else:
                 pkdlog("msg={} error={} stack={}", m, e, pkdexc())
             # If self.fastcgi_cmd is None we initiated the kill so not an error
@@ -701,9 +710,9 @@ class _Cmd(PKDict):
     async def _await_exit(self):
         try:
             await self._process.exit_ready()
-            #rjn e = self._process.stderr.text.decode("utf-8", errors="ignore")
-            #if e:
-            #    pkdlog("{} exit={} stderr={}", self, self._process.returncode, e)
+            e = self._process.stderr.text.decode("utf-8", errors="ignore")
+            if e:
+                pkdlog("{} exit={} stderr={}", self, self._process.returncode, e)
             if self._destroying:
                 return
             if self._process.returncode != 0:
@@ -753,8 +762,6 @@ class _OpMsg(PKDict):
     pass
 
 
-pid = 1
-
 class _Process(PKDict):
     def __init__(self, cmd):
         super().__init__()
@@ -768,7 +775,7 @@ class _Process(PKDict):
     async def exit_ready(self):
         await self._exit.wait()
         await self.stdout.stream_closed.wait()
-        #rjn await self.stderr.stream_closed.wait()
+        await self.stderr.stream_closed.wait()
 
     def kill(self):
         # If the process is't started
@@ -796,16 +803,6 @@ class _Process(PKDict):
         c, s, e = self.cmd.job_cmd_cmd_stdin_env()
         pkdlog("cmd={} stdin={}", c, s.read())
         s.seek(0)
-        global pid
-        f = self.cmd.run_dir.join(f"job_cmd.log{pid}").open("a")
-        from pykern import pkcompat
-        f.write(pkcompat.from_bytes(s.read()))
-        f.write("\n")
-        f.write(pkcompat.from_bytes(pkjson.dump_pretty(e)))
-        f.write("\n")
-        f.write(pkcompat.from_bytes(self.cmd._in_file.read()))
-        f.flush()
-        s.seek(0)
         self._subprocess = tornado.process.Subprocess(
             c,
             close_fds=True,
@@ -814,13 +811,11 @@ class _Process(PKDict):
             start_new_session=True,
             stdin=s,
             stdout=tornado.process.Subprocess.STREAM,
-#rjn            stderr=tornado.process.Subprocess.STREAM,
-            stderr=f,
+            stderr=tornado.process.Subprocess.STREAM,
         )
-        pid += 1
         s.close()
         self.stdout = _ReadJsonlStream(self._subprocess.stdout, self.cmd)
-#rjn        self.stderr = _ReadUntilCloseStream(self._subprocess.stderr, self.cmd)
+        self.stderr = _ReadUntilCloseStream(self._subprocess.stderr, self.cmd)
         self._subprocess.set_exit_callback(self._on_exit)
         return self
 
