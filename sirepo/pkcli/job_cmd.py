@@ -48,6 +48,8 @@ def default_command(in_file):
     Returns:
         str: json output of command, e.g. status msg
     """
+    # must delete, because subprocesses will reopen it
+    del os.environ["PYKERN_PKDEBUG_OUTPUT"]
     msg = None
     try:
         f = pkio.py_path(in_file)
@@ -57,6 +59,13 @@ def default_command(in_file):
         if (r := _process_msg(msg, allow_none=True)) is None:
             return
     except Exception as e:
+        try:
+            pkio.write_text(
+                "job_cmd.err",
+                pkjson.dump_pretty(msg) + "\n" + pkdexc(),
+            )
+        except Exception:
+            pass
         pkdlog(
             "exception={} jobCmd={} simType={} stack={}",
             e,
@@ -467,7 +476,7 @@ def _write_parallel_status(prev_res, msg, template, is_running, completed_hack=F
     if prev_res is None:
         prev_res = PKDict(py=None, json=None)
     res = PKDict(py=_background_percent_complete(msg, template, is_running))
-    if prev_res.py == res.py:
+    if not completed_hack and prev_res.py == res.py:
         return prev_res
     r = PKDict(parallelStatus=res.py)
     if completed_hack:

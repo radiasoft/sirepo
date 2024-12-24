@@ -38,7 +38,7 @@ import tornado.websocket
 _TERMINATE_SECS = 3
 
 #: How often to poll in loop()
-_RETRY_SECS = 1
+_LOOP_RETRY_SECS = 1
 
 #: Reasonable over the Internet connection
 _CONNECT_SECS = 10
@@ -48,8 +48,6 @@ _IN_FILE = "in-{}.json"
 _PID_FILE = "job_agent.pid"
 
 _SBATCH_STATUS_FILE = "sbatch_status.json"
-
-_LOOP_SLEEP_SECS = .5
 
 _MIN_SBATCH_POLL_SECS = 5
 
@@ -204,6 +202,7 @@ class _Dispatcher(PKDict):
                     computeJobSerial=msg.computeJobSerial,
                     state=cmd.job_state,
                 )
+                pkdp(rv)
                 if t := cmd.get("computeJobStart"):
                     rv.computeJobStart = t
                 # Allow reply to override these things
@@ -251,7 +250,7 @@ class _Dispatcher(PKDict):
                     )
                 except ConnectionError as e:
                     pkdlog("unable to connect to supervisor exception={}", e)
-                    time.sleep(_LOOP_SLEEP_SECS)
+                    time.sleep(_LOOP_RETRY_SECS)
                     continue
                 s = self.format_op(None, job.OP_ALIVE)
                 while True:
@@ -266,10 +265,11 @@ class _Dispatcher(PKDict):
                         )
                         raise tornado.iostream.StreamClosedError()
                     s = await self._op(r)
+
             except Exception as e:
-                if not isinstance(e, tornado.iostream.StreamClosedError):
+                if not isinstance(e, tornado.simple_httpclient.HTTPStreamClosedError):
                     pkdlog("retrying, websocket; error={} stack={}", e, pkdexc())
-                await tornado.gen.sleep(_RETRY_SECS)
+                await tornado.gen.sleep(_LOOP_RETRY_SECS)
             finally:
                 if self._websocket:
                     self._websocket.close()
@@ -355,6 +355,7 @@ class _Dispatcher(PKDict):
                             state=job.ERROR,
                             error="internal error",
                             fastCgiErrorCount=self.fastcgi_error_count,
+                            stack=stack,
                         ),
                     )
                 )
@@ -397,6 +398,12 @@ class _Dispatcher(PKDict):
             )
             # last thing, because of await: start fastcgi process
             await self._cmd(m, send_reply=False)
+            if not self._fastcgi_cmd:
+                return self.format_op(
+                    msg,
+                    job.ERROR,
+                    PKDict(state=job.ERROR, error="fastcgi process got an error"),
+                )
         if msg.jobCmd == "fastcgi":
             raise AssertionError("fastcgi called within fastcgi")
         self._fastcgi_msg_q.put_nowait(msg)
@@ -426,7 +433,10 @@ class _Dispatcher(PKDict):
                 )
 
         except Exception as e:
-            pkdlog("msg={} error={} stack={}", m, e, pkdexc())
+            if isinstance(e, tornado.iostream.StreamClosedError):
+                pkdlog("msg={} stream closed unexpectedly exception={}", m, e)
+            else:
+                pkdlog("msg={} error={} stack={}", m, e, pkdexc())
             # If self.fastcgi_cmd is None we initiated the kill so not an error
             if not self.fastcgi_cmd:
                 return
@@ -661,6 +671,7 @@ class _Cmd(PKDict):
             pkdlog("{} unexpected reply={}", self, reply)
             raise AssertionError("unexpected process_job_cmd_reply")
         _copy_truthy(reply, self, ("state", "parallelStatus", "error"))
+        pkdp(self.get("parallelStatus"))
 
     def start(self):
         try:
@@ -793,7 +804,7 @@ class _Process(PKDict):
             c,
             close_fds=True,
             cwd=str(self.cmd.run_dir),
-            env=e,
+            env=e.pkupdate(PYKERN_PKDEBUG_OUTPUT="job_cmd.log"),
             start_new_session=True,
             stdin=s,
             stdout=tornado.process.Subprocess.STREAM,
@@ -830,7 +841,8 @@ class _Stream(PKDict):
             while True:
                 await self._read_stream()
         except tornado.iostream.StreamClosedError as e:
-            assert e.real_error is None, "real_error={}".format(e.real_error)
+            if x := getattr(e, "real_error", None):
+                raise AssertionError(f"real_error={x}")
         finally:
             self._stream.close()
             self.stream_closed.set()
@@ -1116,8 +1128,10 @@ class _SbatchRunStatus(_SbatchCmd):
         if v := _copy_truthy(reply, PKDict(), ("parallelStatus", "error")):
             # job_cmd writes the final state so don't write again
             self._sbatch_status_update(
-                want_write, reply.get("state") != job.COMPLETED, **v
+                want_write=reply.get("state") != job.COMPLETED, **v
             )
+        pkdp(v)
+        pkdp(self.pkunchecked_nested_get("parallelStatus.particleNumber"))
 
     @classmethod
     def sbatch_status_request(cls, **kwargs):
@@ -1183,7 +1197,7 @@ class _SbatchRunStatus(_SbatchCmd):
             if not pkconfig.in_dev_mode():
                 pkio.unchecked_remove(self._sbatch_status_file)
             return job.CANCELED
-        # save for start() and sbatch_status_request()
+        # save in self for start() and sbatch_status_request()
         self._sbatch_status_update(want_write=False, **s)
         if s.job_cmd_state in job.EXIT_STATUSES:
             return s.job_cmd_state
