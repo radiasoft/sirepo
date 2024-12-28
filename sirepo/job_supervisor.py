@@ -1348,7 +1348,7 @@ class _Op(PKDict):
         self._reply_q.task_done()
         return r
 
-    def reply_put(self, reply_op_name, reply_content):
+    def reply_put(self, reply_content):
         self._reply_q.put_nowait(reply_content)
 
     def send(self):

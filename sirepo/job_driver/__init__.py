@@ -110,11 +110,7 @@ class DriverBase(PKDict):
                 await self.kill()
                 self._websocket_ready_timeout_cancel()
                 self._websocket_ready.clear()
-                w = self._websocket
-                self._websocket = None
-                if w:
-                    # Will not call websocket_on_close()
-                    w.sr_close()
+                self._websocket_close()
                 e = f"job_driver.free_resources caller={caller}"
                 for o in list(self._prepared_sends.values()):
                     o.destroy(internal_error=e)
@@ -201,6 +197,13 @@ class DriverBase(PKDict):
                 # If one kill fails still try to kill the rest
                 pkdlog("error={} stack={}", e, pkdexc())
 
+    def _websocket_close(self):
+        w = self._websocket
+        self._websocket = None
+        if w:
+            # Will not call websocket_on_close()
+            w.sr_close()
+
     def websocket_on_close(self):
         pkdlog("{}", self)
         self._websocket = None
@@ -281,6 +284,21 @@ class DriverBase(PKDict):
         return True
 
     def _agent_receive(self, msg):
+        def _default_unbound(msg):
+            """Received msg unbound to op"""
+            if j := msg.content.get("computeJid"):
+                # SECURITY: assert agent can access to this uid
+                if job.split_jid(j).uid == self.uid:
+                    job_supervisor.agent_receive(msg.content)
+                else:
+                    pkdlog(
+                        "{} jid={} not for this uid={}; msg={}", self, j, self.uid, msg
+                    )
+            else:
+                pkdlog(
+                    "{} missing computeJid, ignoring protocol error; msg={}", self, msg
+                )
+
         def _error(content):
             if "error" in content:
                 pkdlog("{} agent error msg={}", self, c)
@@ -288,51 +306,63 @@ class DriverBase(PKDict):
             pkdlog("{} no 'reply' in msg={}", self, c)
             return "invalid message from job_agent"
 
-        c = msg.content
-        i = c.get("opId")
-        if (
-            "opName" not in c
-            or c.opName == job.OP_ERROR
-            or ("reply" in c and c.reply.get("state") == job.ERROR)
-        ):
-            # Log all errors
-            pkdlog("{} error msg={}", self, c)
-        else:
-            pkdlog("{} opName={} o={:.4}", self, c.opName, i)
-        if i:
-            if "reply" not in c:
-                c.reply = PKDict(state=job.ERROR, error=_error(c))
-            if i in self._prepared_sends:
+        def _log(content, op_id):
+            if (
+                "opName" not in content
+                or content.opName == job.OP_ERROR
+                or ("reply" in content and content.reply.get("state") == job.ERROR)
+            ):
+                # Log all errors, even without op_id
+                pkdlog("{} error msg={}", self, content)
+            else:
+                pkdlog("{} opName={} o={:.4}", self, content.opName, op_id)
+
+        def _reply(content, op_id):
+            if "reply" not in content:
+                # A protocol error but pass the state on
+                content.reply = PKDict(state=job.ERROR, error=_error(content))
+            if op_id in self._prepared_sends:
                 # SECURITY: only ops known to this driver can be replied to
-                self._prepared_sends[i].reply_put(c.opName, c.reply)
+                self._prepared_sends[i].reply_put(content.reply)
             else:
                 pkdlog(
-                    "{} not in prepared_sends opName={} o={:.4} content={}",
+                    "{} op not in prepared_sends opName={} o={:.4} content={}",
                     self,
-                    c.opName,
-                    i,
-                    c,
+                    content.opName,
+                    op_id,
+                    content,
                 )
+
+        c = msg.content
+        i = c.get("opId")
+        _log(c, i)
+        if i:
+            _reply(c, i)
         else:
-            # TODO(robnagler) probably fine but maybe better to validate
-            getattr(self, "_agent_receive_" + c.opName, self._agent_receive_supervisor)(
-                msg
-            )
+            getattr(self, "_agent_receive_" + c.opName, _default_unbound)(msg)
 
     def _agent_receive_alive(self, msg):
         """Receive an ALIVE message from our agent
 
         Save the websocket and register self with the websocket
         """
-        self._websocket_ready_timeout_cancel()
-        if self._websocket:
+
+        def _ignore():
             if self._websocket != msg.handler:
-                self._websocket = None
-                raise AssertionError(
-                    pkdformat("unexpected incoming msg.content={}", msg.content)
-                )
-        else:
-            self._websocket = msg.handler
+                pkdlog("{} reconnected to new websocket, closing old", self)
+                self._websocket_close()
+                return False
+            if self._websocket_ready.is_set():
+                # extra alive message is fine
+                return True
+            # TODO(robnagler) does this happen?
+            pkdlog("{} websocket already set but not ready", self)
+            return False
+
+        self._websocket_ready_timeout_cancel()
+        if self._websocket and _ignore():
+            return
+        self._websocket = msg.handler
         self._websocket_ready.set()
         self._websocket.sr_driver_set(self)
         self._start_idle_timeout()
@@ -340,17 +370,6 @@ class DriverBase(PKDict):
     def _agent_receive_job_cmd_stderr(self, msg):
         """Log stderr from job_cmd"""
         pkdlog("{} stderr from job_cmd msg={}", self, msg.get("content"))
-
-    def _agent_receive_supervisor(self, msg):
-        """Received an error not bound to an op"""
-        if j := msg.content.get("computeJid"):
-            # SECURITY: assert agent can access to this uid
-            if job.split_jid(j).uid == self.uid:
-                job_supervisor.agent_receive(msg.content)
-            else:
-                pkdlog("{} jid={} not for this uid={}; msg={}", self, j, self.uid, msg)
-        else:
-            pkdlog("{} msg={}", self, msg)
 
     async def _agent_start(self, op):
         if self._websocket_ready_timeout:
