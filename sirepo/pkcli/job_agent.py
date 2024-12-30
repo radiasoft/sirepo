@@ -286,7 +286,7 @@ class _Dispatcher(PKDict):
         try:
             if not isinstance(msg, _OpMsg):
                 raise AssertionError("expected _OpMsg type={} msg={}", type(msg), msg)
-            await self._websocket.write_message(pkjson.dump_bytes(msg))
+            await self._websocket.write_message(pkjson.dump_bytes(msg), binary=True)
             return True
         except Exception as e:
             pkdlog("exception={} msg={} stack={}", e, msg, pkdexc())

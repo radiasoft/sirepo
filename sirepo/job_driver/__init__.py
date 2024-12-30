@@ -170,7 +170,7 @@ class DriverBase(PKDict):
             return
         pkdlog("unknown agent, sending kill; msg={}", msg)
         try:
-            msg.handler.write_message(PKDict(opName=job.OP_KILL))
+            msg.handler.write_message(PKDict(opName=job.OP_KILL), binary=True)
         except tornado.websocket.WebSocketClosedError:
             pkdlog("websocket closed {} from unknown agent", self)
         except Exception as e:
@@ -179,7 +179,7 @@ class DriverBase(PKDict):
     def send(self, op):
         pkdlog("{} {} runDir={}", self, op, op.msg.get("runDir"))
         try:
-            self._websocket.write_message(pkjson.dump_bytes(op.msg))
+            self._websocket.write_message(pkjson.dump_bytes(op.msg), binary=True)
             return True
         except tornado.websocket.WebSocketClosedError:
             pkdlog("websocket closed op={}", op)
