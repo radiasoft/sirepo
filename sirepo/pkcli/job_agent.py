@@ -285,7 +285,7 @@ class _Dispatcher(PKDict):
             return False
         try:
             if not isinstance(msg, _OpMsg):
-                raise AssertionError("expected _OpMsg type={} msg={}", type(msg), msg)
+                raise AssertionError(f"expected _OpMsg not msg type={type(msg)}")
             await self._websocket.write_message(pkjson.dump_bytes(msg), binary=True)
             return True
         except Exception as e:
@@ -403,7 +403,7 @@ class _Dispatcher(PKDict):
                 return self.format_op(
                     msg,
                     job.ERROR,
-                    PKDict(state=job.ERROR, error="fastcgi process got an error"),
+                    reply=PKDict(state=job.ERROR, error="fastcgi process got an error"),
                 )
         if msg.jobCmd == "fastcgi":
             raise AssertionError("fastcgi called within fastcgi")
@@ -1300,7 +1300,7 @@ class _SbatchRunStatus(_SbatchCmd):
             if len(rv) == 1:
                 # Normal case
                 return next(iter(rv))
-            elif len(rv) > 1 and "CANCELLED" in rv:
+            if len(rv) > 1 and "CANCELLED" in rv:
                 return "CANCELLED"
             pkdlog("{} sacct parse failed words={} stdout={}", self, rv, p.stdout)
             return "FAILED"
