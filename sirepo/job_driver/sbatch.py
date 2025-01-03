@@ -142,9 +142,7 @@ class SbatchDriver(job_driver.DriverBase):
                     ["sbatchNodes", self.cfg.nodes],
                 ]:
                     if f in m and c:
-                        pkdp([m[f], c])
                         m[f] = min(m[f], c)
-                pkdp("cores={}", m.sbatchCores)
                 m.mpiCores = m.sbatchCores
             m.shifterImage = self.cfg.shifter_image
         return await super().prepare_send(op)
