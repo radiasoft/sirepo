@@ -390,7 +390,6 @@ class API(sirepo.quest.API):
                     continue
                 assert m[f] > 0, f"{f}={m[f]} must be greater than 0"
                 c[f] = m[f]
-            pkdp("cores={}", c.sbatchCores)
             return request_content
 
         d = kwargs.pkdel("req_data")
