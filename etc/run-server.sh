@@ -6,7 +6,7 @@ export SIREPO_SMTP_PASSWORD='n/a'
 # POSIT: same as sirepo.smtp.DEV_SMTP_SERVER
 export SIREPO_SMTP_SERVER='dev'
 export SIREPO_SMTP_USER='n/a'
-export SIREPO_MPI_CORES=2
+export SIREPO_MPI_CORES=${SIREPO_MPI_CORES:-2}
 case ${1:-} in
     docker)
         # POSIT: run-supervisor.sh

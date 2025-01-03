@@ -69,9 +69,6 @@ _REL_LIB_DIR = "../" + _LIB_DIR
 #: Older than any other version
 _OLDEST_VERSION = "20140101.000001"
 
-#: Absolute path of rsmanifest file
-_RSMANIFEST_PATH = pkio.py_path("/rsmanifest" + sirepo.const.JSON_SUFFIX)
-
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = PKDict()
 
@@ -212,7 +209,7 @@ def fixup_old_data(data, force=False, path=None, qcall=None):
         for p in pkio.sorted_glob(
             # POSIT: same format as simulation_run_dir
             json_filename(
-                template_common.INPUT_BASE_NAME, run_dir=path.dirpath().join("*")
+                sirepo.const.SIM_RUN_INPUT_BASENAME, run_dir=path.dirpath().join("*")
             ),
         ):
             if p.mtime() > m:
@@ -469,46 +466,6 @@ def parse_sim_ser(data):
             return int(data["models"]["simulation"]["simulationSerial"])
         except KeyError:
             return None
-
-
-def prepare_simulation(data, run_dir):
-    """Create and install files, update parameters, and generate command.
-
-    Copies files into the simulation directory (``run_dir``)
-    Updates the parameters in ``data`` and save.
-    Generate the pkcli command.
-
-    Args:
-        data (dict): report and model parameters
-        run_dir (py.path.local): dir simulation will be run in
-    Returns:
-        list, py.path: pkcli command, simulation directory
-    """
-    from sirepo import sim_data
-
-    sim_type = data.simulationType
-    template = sirepo.template.import_module(data)
-    s = sim_data.get_class(sim_type)
-    assert not isinstance(run_dir, str)
-    s.support_files_to_run_dir(data, run_dir)
-    update_rsmanifest(data)
-    write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
-    # TODO(robnagler) encapsulate in template
-    is_p = s.is_parallel(data)
-    c = template.write_parameters(
-        data,
-        run_dir=run_dir,
-        is_parallel=is_p,
-    )
-    if c:
-        return c, run_dir
-    cmd = [
-        pkinspect.root_package(template),
-        pkinspect.module_basename(template),
-        "run-background" if is_p else "run",
-        str(run_dir),
-    ]
-    return cmd, run_dir
 
 
 def process_simulation_list(res, path, data):
@@ -800,15 +757,6 @@ def uid_from_dir_name(dir_name):
         r.pattern,
     )
     return m.group(1)
-
-
-def update_rsmanifest(data):
-    try:
-        data.rsmanifest = read_json(_RSMANIFEST_PATH)
-    except Exception as e:
-        if pkio.exception_is_not_found(e):
-            return
-        raise
 
 
 def user_create():

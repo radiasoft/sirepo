@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Common execution template.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
@@ -25,7 +25,7 @@ import types
 DEFAULT_INTENSITY_DISTANCE = 20
 
 #: Input json file
-INPUT_BASE_NAME = "in"
+INPUT_BASE_NAME = sirepo.const.SIM_RUN_INPUT_BASENAME
 
 #: Test if value is numeric text
 NUMERIC_RE = re.compile(r"^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$")

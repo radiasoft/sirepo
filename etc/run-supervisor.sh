@@ -1,6 +1,6 @@
 #!/bin/bash
 export PYKERN_PKDEBUG_WANT_PID_TIME=1
-export SIREPO_MPI_CORES=2
+export SIREPO_MPI_CORES=${SIREPO_MPI_CORES:-2}
 docker_image="radiasoft/sirepo:dev"
 case ${1:-} in
     docker)
@@ -43,8 +43,8 @@ radia_run redhat-docker
     sbatch)
         export SIREPO_JOB_DRIVER_MODULES=local:sbatch
         export SIREPO_JOB_DRIVER_SBATCH_HOST=${2:-localhost}
-        export SIREPO_JOB_DRIVER_SBATCH_CORES=2
-        export SIREPO_JOB_DRIVER_SBATCH_NODES=1
+        export SIREPO_JOB_DRIVER_SBATCH_CORES=${SIREPO_JOB_DRIVER_SBATCH_CORES:-2}
+        export SIREPO_JOB_DRIVER_SBATCH_NODES=${SIREPO_JOB_DRIVER_SBATCH_NODES:-1}
         if [[ $SIREPO_JOB_DRIVER_SBATCH_HOST =~ ^(localhost|$(hostname --fqdn)) ]]; then
             if [[ $(type -t sbatch) == '' ]]; then
                 echo 'slurm not installed. You need to run:
@@ -53,8 +53,6 @@ radia_run slurm-dev
 '
                 exit 1
             fi
-        else
-            export SIREPO_JOB_DRIVER_SBATCH_CORES=4
         fi
         export SIREPO_JOB_DRIVER_SBATCH_SIREPO_CMD=$(pyenv which sirepo)
         export SIREPO_JOB_DRIVER_SBATCH_SRDB_ROOT='/var/tmp/{sbatch_user}/sirepo'

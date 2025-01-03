@@ -178,6 +178,11 @@ def _do_compute(msg, template):
             success_exit=success_exit,
         )
 
+    def _prepare():
+        return sirepo.sim_data.get_class(template.SIM_TYPE).sim_run_dir_prepare(
+            msg.runDir
+        )
+
     def _success_exit():
         return PKDict(
             state=job.COMPLETED,
@@ -188,11 +193,7 @@ def _do_compute(msg, template):
         rv = PKDict(run_log=msg.runDir.join(template_common.RUN_LOG))
         with rv.run_log.open("w") as f:
             return rv.pkupdate(
-                process=subprocess.Popen(
-                    _do_prepare_simulation(msg, template).cmd,
-                    stdout=f,
-                    stderr=f,
-                ),
+                process=subprocess.Popen(_prepare(), stdout=f, stderr=f),
             )
 
     # TODO(robnagler) ParallelStatus object to simplify the code here
@@ -302,15 +303,6 @@ def _do_get_simulation_frame(msg, template):
         )
     except Exception as e:
         return _maybe_parse_user_alert(e, error="report not generated")
-
-
-def _do_prepare_simulation(msg, template):
-    return PKDict(
-        cmd=simulation_db.prepare_simulation(
-            msg.data,
-            msg.runDir,
-        )[0],
-    )
 
 
 def _do_sbatch_parallel_status(msg, template):

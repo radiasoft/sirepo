@@ -146,5 +146,4 @@ def _mpiexec_cmd():
 _cfg = pkconfig.init(
     cores=(1, int, "cores to use per run"),
     in_slurm=(False, bool, "True if being run by slurm"),
-    slaves=pkconfig.ReplacedBy("sirepo.mpi.cores"),
 )

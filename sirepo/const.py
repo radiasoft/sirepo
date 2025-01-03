@@ -50,6 +50,9 @@ SCHEMA_COMMON = PKDict(
 #: Simulation file name saved both in sim db and run directory
 SIM_DATA_BASENAME = "sirepo-data" + JSON_SUFFIX
 
+#: Simulation file name saved both in sim db and run directory
+SIM_RUN_INPUT_BASENAME = "in" + JSON_SUFFIX
+
 SRUNIT_USER_AGENT = "srunit/1.0"
 
 TEST_PORT_RANGE = range(10000, 20000)

@@ -142,7 +142,9 @@ class SbatchDriver(job_driver.DriverBase):
                     ["sbatchNodes", self.cfg.nodes],
                 ]:
                     if f in m and c:
+                        pkdp([m[f], c])
                         m[f] = min(m[f], c)
+                pkdp("cores={}", m.sbatchCores)
                 m.mpiCores = m.sbatchCores
             m.shifterImage = self.cfg.shifter_image
         return await super().prepare_send(op)
@@ -191,9 +193,10 @@ class SbatchDriver(job_driver.DriverBase):
             try:
                 if not before_start:
                     await tornado.gen.sleep(self.cfg.agent_log_read_sleep)
+                f = f"{agent_start_dir}/{log_file}"
                 async with connection.create_process(
                     # test is a shell-builtin so no abs path
-                    f"test -e {agent_start_dir}/{log_file} && /bin/cat {agent_start_dir}/{log_file}"
+                    f"test -e {f} && /bin/tail --lines=200 {f}"
                 ) as p:
                     o, e = await p.communicate()
                     _write_to_log(

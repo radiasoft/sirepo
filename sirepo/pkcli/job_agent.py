@@ -550,8 +550,13 @@ class _Cmd(PKDict):
             self.job_state = job.PENDING
             if self.msg.opName == job.OP_RUN:
                 pkio.unchecked_remove(self.run_dir)
-            # Needs to exist for run_status so in_file can be created
-            pkio.mkdir_parent(self.run_dir)
+                pkio.mkdir_parent(self.run_dir)
+                sirepo.sim_data.get_class(
+                    self.msg.data.simulationType
+                ).sim_run_input_to_run_dir(self.msg.data, self.run_dir)
+            else:
+                # Needs to exist for run_status so in_file can be created
+                pkio.mkdir_parent(self.run_dir)
 
         super().__init__(**kwargs)
         self.pksetdefault(
@@ -1007,17 +1012,13 @@ class _SbatchRun(_SbatchCmd):
                 return f"#SBATCH --nodes={n}\n#SBATCH --cpus-per-task={self.msg.sbatchCores}"
             return f"#SBATCH --ntasks={self.msg.sbatchCores}"
 
-        def _prepare_simulation():
+        def _sim_run_dir_prepare():
             # python serialization does not work so use json
             return f"""{_python()} <<'EOF'
-import pykern.pkio
-import pykern.pkjson
-import sirepo.simulation_db
+import sirepo.sim_data
 
-# returns the python command, but too complicated to couple
-sirepo.simulation_db.prepare_simulation(
-    data=pykern.pkjson.load_any('''{pkjson.dump_pretty(self.msg.data)}'''),
-    run_dir=pykern.pkio.py_path('{self.run_dir}'),
+sirepo.sim_data.get_class('{self.msg.data.simulationType}').sim_run_dir_prepare(
+    '{self.run_dir}',
 )
 EOF"""
 
@@ -1062,8 +1063,8 @@ EOF"""
 {_shifter_header()}
 {self.job_cmd_env()}
 {self.job_cmd_source_bashrc()}
-{_prepare_simulation()}
-# POSIT: same as return value of prepare_simulation
+{_sim_run_dir_prepare()}
+# POSIT: same as return value of sim_run_dir_prepare
 exec {_srun()} {_python()} {template_common.PARAMETERS_PYTHON_FILE}
 """
         )

@@ -52,6 +52,9 @@ _FRAME_ID_KEYS = (
 
 _TEMPLATE_RESOURCE_DIR = "template"
 
+#: Absolute path of rsmanifest file
+_RSMANIFEST_PATH = pkio.py_path("/rsmanifest" + sirepo.const.JSON_SUFFIX)
+
 
 def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
     """Add/removes proprietary files based on a user's roles
@@ -852,6 +855,106 @@ class SimDataBase(object):
                 run_dir,
                 is_exe=b.get("is_exe", False),
             )
+
+    @classmethod
+    def sim_run_dir_prepare(cls, run_dir, data=None):
+        """Create and install files, update parameters, and generate command.
+
+        Copies files into the simulation directory (``run_dir``)
+        Updates the parameters in ``data`` and save.
+        Generate the pkcli command.
+
+        Args:
+            run_dir (py.path.local or str): dir simulation will be run in
+            data (PKDict): optional, will read from run_dir
+        Returns:
+            list: pkcli command to execute
+        """
+        from sirepo import sim_data
+
+        def _cmd(run_dir, data, template):
+            p = cls.is_parallel(data)
+            if rv := template.write_parameters(data, run_dir=run_dir, is_parallel=p):
+                return rv
+            return [
+                pkinspect.root_package(template),
+                pkinspect.module_basename(template),
+                "run-background" if p else "run",
+                str(run_dir),
+            ]
+
+        def _data(run_dir, data):
+            if rv := cls.sim_run_input(run_dir, checked=False):
+                return rv
+            if data:
+                cls.sim_run_input_to_run_dir(data, run_dir)
+                return data
+            raise FileNotFoundError(f"path={cls.sim_run_input_path(run_dir)}")
+
+        r = pkio.py_path(run_dir)
+        d = _data(r, data)
+        cls.support_files_to_run_dir(data=d, run_dir=r)
+        return _cmd(r, d, sirepo.template.import_module(cls.sim_type()))
+
+    @classmethod
+    def sim_run_input(cls, run_dir, checked=True):
+        """Read input from run dir
+
+        Args:
+            run_dir (py.path): directory containing input file
+            checked (bool): raise if not found [True]
+        Returns:
+            PKDict: sim input data or None if not checked
+        """
+        try:
+            return pkjson.load_any(run_dir.join(sirepo.const.SIM_RUN_INPUT_BASENAME))
+        except Exception as e:
+            if not checked and pkio.exception_is_not_found(e):
+                return None
+            raise
+
+    @classmethod
+    def sim_run_input_path(cls, run_dir):
+        """Generate path from run_dir
+
+        Args:
+            run_dir (py.path): directory containing input file
+        Returns:
+            py.path: path to run input
+        """
+        return run_dir.join(sirepo.const.SIM_RUN_INPUT_BASENAME)
+
+    @classmethod
+    def sim_run_input_fixup(cls, data):
+        """Fixup data for simulation input
+
+        Args:
+            data (PKDict): for a run or whole sim data
+        Returns:
+            PKDict: fixed up data
+        """
+        try:
+            data.rsmanifest = pkjson.load_any(_RSMANIFEST_PATH)
+        except Exception as e:
+            if not pkio.exception_is_not_found(e):
+                raise
+        return data
+
+    @classmethod
+    def sim_run_input_to_run_dir(cls, data, run_dir):
+        """Read input from run dir
+
+        Args:
+            data (PKDict): for a run or whole sim data
+            run_dir (py.path): directory read from
+        Returns:
+            PKDict: fixed up sim input data
+        """
+        pkjson.dump_pretty(
+            cls.sim_run_input_fixup(data),
+            filename=cls.sim_run_input_path(run_dir),
+        )
+        return data
 
     @classmethod
     def sim_type(cls):

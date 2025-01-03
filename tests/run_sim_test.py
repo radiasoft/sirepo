@@ -84,7 +84,7 @@ def test_myapp_sim(fc):
     )
     for _ in range(10):
         pkdlog(r)
-        pkunit.pkok(r.state != "error", "expected error state: {}")
+        pkunit.pkok(r.state != "error", "expected error state: {}", r.state)
         if r.state == "completed":
             break
         time.sleep(r.nextRequestSeconds)
