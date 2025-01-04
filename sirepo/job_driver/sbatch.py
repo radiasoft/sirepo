@@ -193,8 +193,9 @@ class SbatchDriver(job_driver.DriverBase):
                     await tornado.gen.sleep(self.cfg.agent_log_read_sleep)
                 f = f"{agent_start_dir}/{log_file}"
                 async with connection.create_process(
-                    # test is a shell-builtin so no abs path
-                    f"test -e {f} && /bin/tail --lines=200 {f}"
+                    # test is a shell-builtin so no abs path. tail varies in
+                    # location. can trust that it will be in the path
+                    f"test -e {f} && tail --lines=200 {f}"
                 ) as p:
                     o, e = await p.communicate()
                     _write_to_log(
