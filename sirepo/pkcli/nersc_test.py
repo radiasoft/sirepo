@@ -57,11 +57,12 @@ class _Sequential(PKDict):
         self.user = sirepo.const.MOCK_UID
         # job_cmd_file must be first, because used by _render_resource
         self.job_cmd_file = self._job_cmd_file()
-        d = pykern.pkjson.load_any(self.job_cmd_file).data
-        sirepo.sim_data.get_class(d.simulationType).sim_run_input_to_run_dir(
-            d,
-            self.run_dir,
-        )
+        if not self.pkunit_deviance:
+            d = pykern.pkjson.load_any(self.job_cmd_file).data
+            sirepo.sim_data.get_class(d.simulationType).sim_run_input_to_run_dir(
+                d,
+                self.run_dir,
+            )
         self.run_file = self._render_resource(self.RUN_FILE)
 
     def execute(self):
