@@ -41,7 +41,8 @@ def test_myapp_free_user_sim_purged(auth_fc):
     def _make_invalid_job():
         d = srdb.supervisor_dir()
         d.ensure(dir=True)
-        # This will be the first file found and cause purge_non_premium to raise
+        # This will be the first file found, but job_supervisor won't see a valid sim type
+        # so it will ignore.
         pkunit.data_dir().join("00000001-JzccRZNg-heightWeightReport.json").copy(d)
 
     def _make_user_premium(uid):
@@ -65,9 +66,6 @@ def test_myapp_free_user_sim_purged(auth_fc):
         r.update(data)
         return r
 
-    def _status_eq(next_req, status):
-        pkunit.pkeq(status, fc.sr_post("runStatus", next_req).state)
-
     fc = auth_fc
     user_free = "free@b.c"
     user_premium = "premium@x.y"
@@ -79,11 +77,11 @@ def test_myapp_free_user_sim_purged(auth_fc):
     fc.sr_email_login(user_free)
     next_req_free = _run_sim(fc.sr_sim_data())
     with fc.sr_adjust_time(_PURGE_FREE_AFTER_DAYS + 1):
-        time.sleep(_CACHE_AND_SIM_PURGE_PERIOD + 1)
-        _status_eq(next_req_free, "job_run_purged")
+        time.sleep(_CACHE_AND_SIM_PURGE_PERIOD + 3)
+        _state_eq(fc, next_req_free, "job_run_purged")
         _check_run_dir(should_exist=0)
         fc.sr_email_login(user_premium)
-        _status_eq(next_req_premium, "completed")
+        _state_eq(fc, next_req_premium, "completed")
         _check_run_dir(should_exist=6)
 
 
@@ -100,9 +98,9 @@ def test_elegant_no_frame_after_purge(auth_fc):
     d = fc.sr_sim_data(sim_name="Compact Storage Ring", sim_type="elegant")
     r = fc.sr_run_sim(d, "animation")
     with fc.sr_adjust_time(_PURGE_FREE_AFTER_DAYS + 1):
-        time.sleep(_CACHE_AND_SIM_PURGE_PERIOD + 1)
-        s = fc.sr_post(
-            "runStatus",
+        time.sleep(_CACHE_AND_SIM_PURGE_PERIOD + 3)
+        s = _state_eq(
+            auth_fc,
             PKDict(
                 computeJobHash=r.computeJobHash,
                 models=d.models,
@@ -110,9 +108,17 @@ def test_elegant_no_frame_after_purge(auth_fc):
                 simulationId=d.models.simulation.simulationId,
                 simulationType=d.simulationType,
             ),
+            "job_run_purged",
         )
-        pkunit.pkeq("job_run_purged", s.state)
-        pkunit.pkeq(
-            0,
-            s.frameCount,
-        )
+        pkunit.pkeq(0, s.frameCount)
+
+
+def _state_eq(fc, req, expect):
+    import time
+    from pykern import pkunit, pkdebug
+
+    # Cannot do a loop here, because runStatus puts the job back
+    # in instances, and the job_supervisor won't purge jobs in instances.
+    r = fc.sr_post("runStatus", req)
+    pkunit.pkeq(expect, r.state)
+    return r

@@ -27,17 +27,36 @@ OP_OK = "ok"
 #: Agent indicates it is ready
 OP_ALIVE = "alive"
 OP_RUN = "run"
+OP_RUN_STATUS = "run_status"
+OP_RUN_STATUS_UPDATE = "run_status_update"
 OP_SBATCH_AGENT_READY = "sbatch_agent_ready"
 OP_SBATCH_LOGIN = "sbatch_login"
-OP_VERIFY_STATUS = "verify_status"
 OP_BEGIN_SESSION = "begin_session"
+
+#: Ops which don't need slot allocations or supervisor does not send
+OPS_WITHOUT_SLOTS = frozenset(
+    (
+        OP_ALIVE,
+        OP_BEGIN_SESSION,
+        OP_CANCEL,
+        OP_ERROR,
+        OP_KILL,
+        OP_OK,
+        OP_RUN_STATUS,
+        OP_SBATCH_AGENT_READY,
+        OP_SBATCH_LOGIN,
+    )
+)
 
 #: Types of slots required by op types
 CPU_SLOT_OPS = frozenset((OP_ANALYSIS, OP_RUN))
 #: All ops that have slots (see job_driver.DriverBase._slots_ready)
-SLOT_OPS = frozenset().union(*[CPU_SLOT_OPS, (OP_IO, OP_VERIFY_STATUS)])
+SLOT_OPS = frozenset().union(*[CPU_SLOT_OPS, (OP_IO,)])
 
-_OK_REPLY = PKDict(state="ok")
+#: state value (other states are implicit statuses)
+STATE_OK = "ok"
+
+_OK_REPLY = PKDict(state=STATE_OK)
 
 #: path supervisor registers to receive messages from agent
 AGENT_URI = "/job-agent-websocket"
@@ -93,12 +112,23 @@ JOB_RUN_PURGED = "job_run_purged"
 MISSING = "missing"
 PENDING = "pending"
 RUNNING = "running"
+UNKNOWN = "unknown"
+
 
 #: When the job is completed
 EXIT_STATUSES = frozenset((CANCELED, COMPLETED, ERROR))
 
 #: Valid values for job status
 STATUSES = EXIT_STATUSES.union((PENDING, RUNNING))
+
+#: For communication between job_agent and job_cmd
+JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP = "sbatch_run_status_stop"
+JOB_CMD_STATE_EXITS = EXIT_STATUSES.union((JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP,))
+
+#: job_cmds
+CMD_COMPUTE = "compute"
+CMD_DOWNLOAD_RUN_FILE = "download_run_file"
+CMD_SBATCH_RUN_STATUS = "sbatch_run_status"
 
 #: jobRunMode and kinds; should come from schema
 SEQUENTIAL = "sequential"
@@ -320,6 +350,15 @@ def quasi_jid(uid, op_key, method):
     """
     assert len(op_key) == _QUASI_SID_OP_KEY_LEN
     return join_jid(uid, _QUASI_SID_PREFIX + op_key, method)
+
+
+def sbatch_login_ok():
+    """Response for sbatchLogin API
+
+    Returns:
+        PKDict: success response
+    """
+    return PKDict(loginSuccess=True)
 
 
 def split_jid(jid):

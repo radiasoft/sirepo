@@ -6,7 +6,6 @@
 
 import asyncio
 from pykern.pkcollections import PKDict
-import pykern.pkio
 
 ASYNC_CANCELED_ERROR = asyncio.CancelledError
 
@@ -51,9 +50,12 @@ SCHEMA_COMMON = PKDict(
 #: Simulation file name saved both in sim db and run directory
 SIM_DATA_BASENAME = "sirepo-data" + JSON_SUFFIX
 
+#: Simulation file name saved both in sim db and run directory
+SIM_RUN_INPUT_BASENAME = "in" + JSON_SUFFIX
+
 SRUNIT_USER_AGENT = "srunit/1.0"
 
-TEST_PORT_RANGE = range(10000, 11000)
+TEST_PORT_RANGE = range(10000, 20000)
 
-#: hardwired root of development src tree
-DEV_SRC_RADIASOFT_DIR = pykern.pkio.py_path("~/src/radiasoft/")
+#: hardwired root of development src tree; Not a py.path, because must defer tilde evaluation
+DEV_SRC_RADIASOFT_DIR = "~/src/radiasoft/"

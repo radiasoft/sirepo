@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Runs job supervisor tornado server
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
@@ -144,7 +144,8 @@ class _ServerReq(_JsonPostRequestHandler):
         pass
 
     async def post(self):
-        self.write(await _incoming(self.request.body, self))
+        if (r := await _incoming(self.request.body, self)) is not None:
+            self.write(r)
 
     def sr_on_exception(self):
         self.send_error()
@@ -179,7 +180,8 @@ async def _incoming(content, handler):
             handler.sr_on_exception()
         except Exception as e:
             pkdlog("sr_on_exception: exception={}", e)
-        return PKDict(state=sirepo.job.ERROR, error="unexpected error")
+        # sr_on_exception writes error
+        return None
 
 
 def _sigterm(signum, frame):

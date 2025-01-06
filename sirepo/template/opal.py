@@ -19,6 +19,7 @@ from sirepo.template.madx_converter import MadxConverter
 import math
 import numpy as np
 import re
+import sirepo.const
 import sirepo.lib
 import sirepo.sim_data
 import os.path
@@ -432,11 +433,11 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=0,
     )
     if is_running:
-        data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        data = _SIM_DATA.sim_run_input(run_dir)
         # TODO(pjm): determine total frame count and set percentComplete
         res.frameCount = read_frame_count(run_dir) - 1
         return res
-    if run_dir.join("{}.json".format(template_common.INPUT_BASE_NAME)).exists():
+    if _SIM_DATA.sim_run_input(run_dir, checked=False):
         res.frameCount = read_frame_count(run_dir)
         if res.frameCount > 0:
             res.percentComplete = 100
@@ -1098,7 +1099,7 @@ def _iterate_hdf5_steps_from_handle(h5file, callback, state):
 
 def _output_info(run_dir):
     # TODO(pjm): cache to file with version, similar to template.elegant
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    data = _SIM_DATA.sim_run_input(run_dir)
     files = LatticeUtil(data, SCHEMA).iterate_models(OpalOutputFileIterator()).result
     res = []
     for k in files.keys_in_order:

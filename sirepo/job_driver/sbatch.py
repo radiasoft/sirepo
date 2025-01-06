@@ -21,6 +21,9 @@ import sirepo.simulation_db
 import sirepo.util
 import tornado.gen
 import tornado.ioloop
+import tornado.websocket
+
+_RUN_DIR_OPS = job.SLOT_OPS.union((job.OP_RUN_STATUS,))
 
 
 class SbatchDriver(job_driver.DriverBase):
@@ -61,6 +64,9 @@ class SbatchDriver(job_driver.DriverBase):
         try:
             # hopefully the agent is nice and listens to the kill
             self._websocket.write_message(PKDict(opName=job.OP_KILL))
+        except tornado.websocket.WebSocketClosedError:
+            self._websocket = None
+            pkdlog("websocket closed {}", self)
         except Exception as e:
             pkdlog("{} error={} stack={}", self, e, pkdexc())
 
@@ -107,26 +113,29 @@ class SbatchDriver(job_driver.DriverBase):
         return True
 
     async def prepare_send(self, op):
-        m = op.msg
-        c = m.pkdel("sbatchCredentials")
-        if self._srdb_root is None or c:
-            if c:
-                self._creds = c
-            if not self.get("_creds") or "username" not in self._creds:
-                self._raise_sbatch_login_srexception("no-creds", m)
-            self._srdb_root = self.cfg.srdb_root.format(
-                sbatch_user=self._creds.username,
-            )
-        if op.op_name in job.SLOT_OPS:
-            m.userDir = "/".join(
+        def _add_dirs(msg):
+            msg.userDir = "/".join(
                 (
                     str(self._srdb_root),
                     sirepo.simulation_db.USER_ROOT_DIR,
                     self.uid,
                 )
             )
-            m.runDir = "/".join((m.userDir, m.simulationType, m.computeJid))
-            if op.op_name == job.OP_RUN:
+            msg.runDir = "/".join((msg.userDir, msg.simulationType, msg.computeJid))
+            return msg
+
+        m = op.msg
+        c = m.pkdel("sbatchCredentials")
+        if self._srdb_root is None or c:
+            if c:
+                self._creds = c
+            self._assert_creds(m)
+            self._srdb_root = self.cfg.srdb_root.format(
+                sbatch_user=self._creds.username,
+            )
+        if op.op_name in _RUN_DIR_OPS:
+            _add_dirs(m)
+            if op.op_name == job.OP_RUN and op.msg.jobCmd == job.CMD_COMPUTE:
                 assert m.sbatchHours
                 for f, c in [
                     ["sbatchCores", self.cfg.cores],
@@ -146,40 +155,50 @@ class SbatchDriver(job_driver.DriverBase):
             ),
         )
 
+    def _assert_creds(self, msg):
+        if not self.get("_creds") or "username" not in self._creds:
+            self._raise_sbatch_login_srexception("no-creds", msg)
+
     async def _do_agent_start(self, op):
-        # must be saved, because op is only valid before first await
-        original_msg = op.msg
-        log_file = "job_agent.log"
-        agent_start_dir = self._srdb_root
-        script = f"""#!/bin/bash
-{self._agent_start_dev()}
-set -e
-mkdir -p '{agent_start_dir}'
-cd '{self._srdb_root}'
-{self._agent_env(op)}
-(/usr/bin/env; setsid {self.cfg.sirepo_cmd} job_agent start_sbatch) >& {log_file} &
-disown
-"""
 
-        def write_to_log(stdout, stderr, filename):
-            p = pkio.py_path(self._local_user_dir).join("agent-sbatch", self.cfg.host)
-            pkio.mkdir_parent(p)
-            f = p.join(
-                f'{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}-{filename}.log'
+        def _agent_start_dev():
+            if not pkconfig.in_dev_mode():
+                return ""
+            res = ""
+            if self.cfg.shifter_image:
+                res += (
+                    "\n".join(
+                        f"(cd {sirepo.const.DEV_SRC_RADIASOFT_DIR}/{p} && git pull -q || true)"
+                        for p in ("pykern", "sirepo")
+                    )
+                    + "\n"
+                )
+            return res
+
+        def _creds():
+            self._assert_creds(op.msg)
+            return PKDict(
+                known_hosts=self._KNOWN_HOSTS,
+                password=(
+                    self._creds.password + self._creds.otp
+                    if "nersc" in self.cfg.host
+                    else self._creds.password
+                ),
+                username=self._creds.username,
             )
-            r = pkjson.dump_pretty(PKDict(stdout=stdout, stderr=stderr, filename=f), f)
-            if pkconfig.in_dev_mode():
-                pkdlog(r)
 
-        async def get_agent_log(connection, before_start=True):
+        async def _get_agent_log(connection, before_start=True):
             try:
                 if not before_start:
                     await tornado.gen.sleep(self.cfg.agent_log_read_sleep)
+                f = f"{agent_start_dir}/{log_file}"
                 async with connection.create_process(
-                    f"/bin/cat {agent_start_dir}/{log_file}"
+                    # test is a shell-builtin so no abs path. tail varies in
+                    # location. can trust that it will be in the path
+                    f"test -e {f} && tail --lines=200 {f}"
                 ) as p:
                     o, e = await p.communicate()
-                    write_to_log(
+                    _write_to_log(
                         o, e, f"remote-{'before' if before_start else 'after'}-start"
                     )
             except Exception as e:
@@ -190,27 +209,43 @@ disown
                     pkdexc(),
                 )
 
+        def _write_to_log(stdout, stderr, filename):
+            p = pkio.py_path(self._local_user_dir).join("agent-sbatch", self.cfg.host)
+            pkio.mkdir_parent(p)
+            f = p.join(
+                f'{datetime.datetime.now().strftime("%Y%m%d%H%M%S")}-{filename}.log'
+            )
+            r = pkjson.dump_pretty(PKDict(stdout=stdout, stderr=stderr, filename=f), f)
+            if pkconfig.in_dev_mode():
+                pkdlog(r)
+
+        # must be saved, because op is only valid before first await
+        original_msg = op.msg
+        log_file = "job_agent.log"
+        agent_start_dir = self._srdb_root
+        if pkconfig.in_dev_mode():
+            pkdlog("agent_log={}/{}", agent_start_dir, log_file)
+        script = f"""#!/bin/bash
+set -euo pipefail
+{_agent_start_dev()}
+mkdir -p '{agent_start_dir}'
+cd '{self._srdb_root}'
+{self._agent_env(op)}
+(/usr/bin/env; setsid {self.cfg.sirepo_cmd} job_agent start_sbatch) &>> {log_file} &
+disown
+"""
         try:
-            async with asyncssh.connect(
-                self.cfg.host,
-                username=self._creds.username,
-                password=(
-                    self._creds.password + self._creds.otp
-                    if "nersc" in self.cfg.host
-                    else self._creds.password
-                ),
-                known_hosts=self._KNOWN_HOSTS,
-            ) as c:
+            async with asyncssh.connect(self.cfg.host, **_creds()) as c:
                 async with c.create_process("/bin/bash --noprofile --norc -l") as p:
-                    await get_agent_log(c, before_start=True)
+                    await _get_agent_log(c, before_start=True)
                     o, e = await p.communicate(input=script)
                     if o or e:
-                        write_to_log(o, e, "start")
+                        _write_to_log(o, e, "start")
                 self.driver_details.pkupdate(
                     host=self.cfg.host,
                     username=self._creds.username,
                 )
-                await get_agent_log(c, before_start=False)
+                await _get_agent_log(c, before_start=False)
         except Exception as e:
             pkdlog("error={} stack={}", e, pkdexc())
             self._srdb_root = None
@@ -224,22 +259,6 @@ disown
             )
         finally:
             self.pkdel("_creds")
-
-    def _agent_start_dev(self):
-        if not pkconfig.in_dev_mode():
-            return ""
-        res = """
-scancel -u $USER >& /dev/null || true
-"""
-        if self.cfg.shifter_image:
-            res += (
-                "\n".join(
-                    f"(cd {sirepo.const.DEV_SRC_RADIASOFT_DIR.join(p)} && git pull -q || true)"
-                    for p in ("pykern", "sirepo")
-                )
-                + "\n"
-            )
-        return res
 
     def _raise_sbatch_login_srexception(self, reason, msg):
         raise util.SRException(
