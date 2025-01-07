@@ -60,9 +60,11 @@ def genesis_to_pmd(sim):
 
 
 def prep_run_dir(run_dir, data):
-    sirepo.simulation_db.prepare_simulation(data, run_dir)
+    sirepo.sim_data.get_class(data.simulationType).sim_run_dir_prepare(
+        run_dir=run_dir,
+        data=data,
+    )
     return pkio.save_chdir(run_dir)
-
 
 def read_sim(sim_type, sim_id):
     return sirepo.sim_data.get_class(sim_type).sim_db_read_sim(sim_id)

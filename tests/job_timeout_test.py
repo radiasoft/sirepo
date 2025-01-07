@@ -18,50 +18,15 @@ def setup_module(module):
 
 
 def test_srw(fc):
-    from pykern.pkcollections import PKDict
-    from pykern import pkunit, pkcompat
-    from pykern.pkdebug import pkdlog, pkdexc
-    import time
+    from pykern import pkunit
 
-    m = "multiElectronAnimation"
-    data = fc.sr_sim_data("Young's Double Slit Experiment")
-    try:
-        r = fc.sr_post(
-            "runSimulation",
-            PKDict(
-                models=data.models,
-                report=m,
-                simulationId=data.models.simulation.simulationId,
-                simulationType=data.simulationType,
-            ),
-        )
-        if r.state == "completed":
-            return r
-        cancel = r.get("nextRequest")
-        for _ in range(20):
-            if r.state == "canceled":
-                pkunit.pkeq(
-                    int(_MAX_SECS_PARALLEL_PREMIUM),
-                    r.canceledAfterSecs,
-                )
-                cancel = None
-                break
-            r = fc.sr_post("runStatus", r.nextRequest)
-            time.sleep(1)
-        else:
-            pkunit.pkfail("did not cancel in time")
-    finally:
-        if cancel:
-            fc.sr_post("runCancel", cancel)
-        import subprocess
-
-        o = pkcompat.from_bytes(
-            subprocess.check_output(["ps", "axww"], stderr=subprocess.STDOUT),
-        )
-        o = list(filter(lambda x: "mpiexec" in x, o.split("\n")))
-        if o:
-            pkdlog('found "mpiexec" after cancel in ps={}', "\n".join(o))
-            raise AssertionError("cancel failed")
+    r = fc.sr_run_sim(
+        fc.sr_sim_data("Young's Double Slit Experiment"),
+        "multiElectronAnimation",
+        expect_completed=False,
+        timeout=20,
+    )
+    pkunit.pkeq("canceled", r.state)
 
 
 def test_myapp_analysis(fc):
@@ -71,7 +36,7 @@ def test_myapp_analysis(fc):
 
     d = fc.sr_sim_data()
     # If a machine is slow, this might timeout on getting the heightWeightReport
-    # in analysis when we want the timeout below.
+    # in analysis when we want to get to the too large error (413) below.
     r = fc.sr_run_sim(d, "heightWeightReport", expect_completed=True)
     r = fc.sr_get(
         "downloadRunFile",

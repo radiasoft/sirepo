@@ -159,12 +159,7 @@ def copy_related_sims(data, qcall=None):
 def get_data_file(run_dir, model, frame, options):
     def _particle_file_and_sim_info():
         i = int(re.search(r"Animation(\d+)\-", model).groups(1)[0])
-        s = _sim_info(
-            simulation_db.read_json(
-                run_dir.join(template_common.INPUT_BASE_NAME)
-            ).models,
-            i - 1,
-        )
+        s = _sim_info(_SIM_DATA.sim_run_input(run_dir).models, i - 1)
         return (pkio.py_path(f"run{i}").join(_SUCCESS_OUTPUT_FILE[s.sim_type]), s)
 
     def _particle_group(sim_type, particle_file):
@@ -181,9 +176,7 @@ def get_data_file(run_dir, model, frame, options):
                     ),
                 )
         elif sim_type == "genesis":
-            dm = simulation_db.read_json(
-                particle_file.dirpath().join(template_common.INPUT_BASE_NAME + ".json")
-            ).models
+            dm = _SIM_DATA.sim_run_input(particle_file.dirpath()).models
             v = numpy.fromfile(
                 particle_file.dirpath().join(particle_file.purebasename + ".dpa"),
                 dtype=numpy.float64,
@@ -222,7 +215,7 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
                 m = re.search(r"^AssertionError: (.*)", line)
                 if m:
                     return m.group(1)
-    dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
+    dm = _SIM_DATA.sim_run_input(run_dir).models
     for idx in reversed(range(len(dm.simWorkflow.coupledSims))):
         s = _sim_info(dm, idx)
         if not s.sim_type or not s.sid:
@@ -255,9 +248,7 @@ def sim_frame(frame_args):
         int(frame_args.simCount) - 1
     ].simulationType
     frame_args.run_dir = _sim_dir(frame_args.run_dir, frame_args.simCount)
-    frame_args.sim_in = simulation_db.read_json(
-        frame_args.run_dir.join(template_common.INPUT_BASE_NAME)
-    )
+    frame_args.sim_in = _SIM_DATA.sim_run_input(frame_args)
     if "Phase" in frame_args.frameReport:
         return _plot_phase(sim_type, frame_args)
     if "Beam" in frame_args.frameReport:
@@ -394,9 +385,7 @@ def _is_genesis(run_dir, index):
     return (
         "genesis"
         == _sim_info(
-            simulation_db.read_json(
-                run_dir.join(template_common.INPUT_BASE_NAME)
-            ).models,
+            _SIM_DATA.sim_run_input(run_dir).models,
             index,
         ).sim_type
     )
@@ -418,9 +407,7 @@ def _plot_beam(sim_type, frame_args):
     if sim_type == "elegant":
         return _extract_elegant_beam_plot(frame_args)
     if sim_type == "genesis":
-        frame_args.sim_in = simulation_db.read_json(
-            frame_args.run_dir.join(template_common.INPUT_BASE_NAME)
-        )
+        frame_args.sim_in = _SIM_DATA.sim_run_input(run_dir)
         return _template_for_sim_type(sim_type).sim_frame_parameterAnimation(frame_args)
 
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))

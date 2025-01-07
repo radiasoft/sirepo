@@ -202,13 +202,13 @@ def _init():
         ),
         schema_common=dict(
             hide_guest_warning=_dev("Hide the guest warning in the UI"),
+            support_email=(
+                "support@sirepo.com",
+                str,
+                "Support email address",
+            ),
         ),
         sim_types=(set(), set, "simulation types (codes) to be imported"),
-        slack_uri=(
-            "https://slack.com/",
-            str,
-            "Link to Sirepo Slack workspace; uid will be appended",
-        ),
         srw=dict(
             app_url=("/en/xray-beamlines.html", str, "URL for SRW link"),
             mask_in_toolbar=_test("Show the mask element in toolbar"),
@@ -222,7 +222,7 @@ def _init():
             "Trust Bash env to run Python and agents",
         ),
         ui_websocket=(
-            pkconfig.in_dev_mode(),
+            True,
             bool,
             "whether the UI should use a websocket",
         ),

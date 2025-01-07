@@ -1614,6 +1614,9 @@ SIREPO.app.directive('modalDialog', function(appState, panelState) {
         },
         //TODO(pjm): move link items to controller?
         link: function(scope, element) {
+            $(element).on('show.bs.modal', () => {
+                $(element).addClass('sr-modal-shown');
+            });
             $(element).on('shown.bs.modal', function() {
                 $('#' + scope.editorId + ' .form-control').first().select();
                 if (scope.parentController && scope.parentController.handleModalShown) {
@@ -1623,6 +1626,7 @@ SIREPO.app.directive('modalDialog', function(appState, panelState) {
                 }
             });
             $(element).on('hidden.bs.modal', function(o) {
+                $(element).removeClass('sr-modal-shown');
                 // ensure that a dismissed modal doesn't keep changes
                 // ok processing will have already saved data before the modal is hidden
                 var viewInfo = appState.viewInfo(scope.viewName);
@@ -2600,14 +2604,11 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
                 <li data-ng-transclude="appHeaderRightSimListSlot"></li>
               </ul>
               <ul class="nav navbar-nav sr-navbar-right">
-                <li>
-                  <a href="{{ slackUri }}" target="_blank" style="padding: 11px 0px 10px 0px;">
-                    <span><img class="sr-slack-img" width="70" src="/static/svg/slack.svg" title="Join us on Slack"/></span>
-                  </a>
-                </li>
                 <li class=dropdown><a href class="dropdown-toggle" data-toggle="dropdown"><span
                         class="glyphicon glyphicon-question-sign"></span> <span class="caret"></span></a>
                   <ul class="dropdown-menu">
+                    <li><a data-ng-href="mailto:{{:: SIREPO.APP_SCHEMA.feature_config.support_email }}">
+                      <span class="glyphicon glyphicon-envelope"></span> Contact Support</a></li>
                     <li><a href="https://github.com/radiasoft/sirepo/issues" target="_blank"><span
                             class="glyphicon glyphicon-exclamation-sign"></span> Report a Bug</a></li>
                     <li data-help-link="helpUserManualURL" data-title="User Manual" data-icon="list-alt"></li>
@@ -2634,7 +2635,6 @@ SIREPO.app.directive('appHeaderRight', function(appDataService, authState, appSt
         },
         controller: function($scope, stringsService) {
             $scope.authState = authState;
-            $scope.slackUri = $scope.authState.slackUri;
 	    $scope.SIREPO = SIREPO;
             $scope.modeIsDefault = function () {
                 return appDataService.isApplicationMode('default');
@@ -3594,7 +3594,10 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                 }
                 else {
                     $scope.showWarning = true;
-                    $scope.warningText = 'Server reported an error, please contact support@sirepo.com.';
+                    $scope.warningText = `
+                        Server reported an error, please contact
+                        ${SIREPO.APP_SCHEMA.feature_config.support_email}.
+                    `;
                 }
             }
 
@@ -3686,7 +3689,10 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
                     showWarning(data.form_error);
                 }
                 else {
-                    showWarning('Server reported an error, please contact support@sirepo.com.');
+                    showWarning(`
+                        Server reported an error, please contact
+                        ${SIREPO.APP_SCHEMA.feature_config.support_email}.
+                    `);
                 }
             }
 
@@ -4381,12 +4387,12 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
     };
 });
 
-SIREPO.app.directive('moderationPending', function(appState, panelState) {
+SIREPO.app.directive('moderationPending', function() {
     return {
         restrict: 'A',
         template: `
           <div>Your request to access {{ appName }} has been received. For additional information, contact
-            <a href="mailto:support@radiasoft.net">support@radiasoft.net</a>.
+            <span data-support-email=""></span>.
           </div>
         `,
         controller: function(requestSender, $scope) {
@@ -5843,6 +5849,17 @@ SIREPO.app.directive('slider', function(appState, panelState) {
                     slider = null;
                 }
             });
+        },
+    };
+});
+
+SIREPO.app.directive('supportEmail', function() {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: '<a data-ng-href="mailto:{{:: supportEmail }}">{{:: supportEmail }}</a>',
+        controller: function($scope) {
+            $scope.supportEmail = SIREPO.APP_SCHEMA.feature_config.support_email;
         },
     };
 });

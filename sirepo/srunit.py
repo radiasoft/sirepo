@@ -173,6 +173,7 @@ class _TestClient:
 
     def iter_sleep(self, kind, op_desc):
         import time
+        from pykern import pkunit
 
         def _setup():
             rv = PKDict(_ITER_SLEEP[kind])
@@ -185,7 +186,7 @@ class _TestClient:
             if i > 0:
                 time.sleep(s.sleep_secs)
         else:
-            pkfail(
+            pkunit.pkfail(
                 "timeout secs={} kind={} op_desc={}",
                 s.sleep_secs * s.count,
                 kind,
@@ -448,7 +449,29 @@ class _TestClient:
     def sr_run_sim(self, data, model, expect_completed=True, timeout=20, **post_args):
         from pykern import pkunit
         from pykern.pkdebug import pkdlog, pkdexc
+        from sirepo import job
         import time
+
+        # Needs to be specific
+        def _assert_no_mpiexec():
+            """Ensure mpiexec is not running in work_dir"""
+            import subprocess
+
+            o = pkcompat.from_bytes(
+                subprocess.check_output(["ps", "axwwe"], stderr=subprocess.STDOUT),
+            )
+            d = str(pkunit.work_dir())
+            o = list(
+                filter(
+                    # regex is problematic because "d" may have specials so just do this
+                    lambda x: "mpiexec" in x and d in x,
+                    o.split("\n"),
+                ),
+            )
+            if o:
+                pkdlog('found "mpiexec" after cancel in ps={}', "\n".join(o))
+                # this exception won't be seen because in finally
+                raise AssertionError("cancel failed")
 
         cancel = None
         try:
@@ -469,18 +492,17 @@ class _TestClient:
                 r,
             )
             cancel = r.nextRequest
-            for i in range(timeout):
-                if i != 0:
-                    pkunit.pkok(
-                        "nextRequest" in r,
-                        "nextRequest missing from reply={}",
-                        r,
-                    )
-                    r = self.sr_post("runStatus", r.nextRequest)
-                pkdlog("reply.state={}", r.get("state"))
-                if r.state in ("completed", "error"):
+            for _ in range(timeout):
+                r = self.sr_post("runStatus", r.nextRequest)
+                if r.state in job.EXIT_STATUSES:
                     cancel = None
                     break
+                pkunit.pkok(
+                    "nextRequest" in r,
+                    "nextRequest missing from reply={}",
+                    r,
+                )
+                pkdlog("reply.state={}", r.get("state"))
                 # not asyncio.sleep: in a synchronous unit test
                 time.sleep(1)
             else:
@@ -492,16 +514,7 @@ class _TestClient:
             if cancel:
                 pkdlog("runCancel")
                 self.sr_post("runCancel", cancel)
-            import subprocess
-
-            o = pkcompat.from_bytes(
-                subprocess.check_output(["ps", "axww"], stderr=subprocess.STDOUT),
-            )
-            o = list(filter(lambda x: "mpiexec" in x, o.split("\n")))
-            if o:
-                pkdlog('found "mpiexec" after cancel in ps={}', "\n".join(o))
-                # this exception won't be seen because in finally
-                raise AssertionError("cancel failed")
+            _assert_no_mpiexec()
 
     def sr_sbatch_animation_run(self, sim_name, compute_model, reports, **kwargs):
         self.sr_sbatch_login(compute_model, sim_name)
