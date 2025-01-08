@@ -39,6 +39,8 @@ def check_api_call(qcall, func):
             raise sirepo.util.SRException("missingCookies", None)
         if expect == a.REQUIRE_USER:
             qcall.auth.require_user()
+        elif expect == a.REQUIRE_SUBSCRIPTION:
+            qcall.auth.require_subscription()
         elif expect == a.ALLOW_SIM_TYPELESS_REQUIRE_EMAIL_USER:
             qcall.auth.require_email_user()
         elif expect == a.REQUIRE_ADM:
