@@ -220,7 +220,6 @@
             "oneDayMillis": 86400000,
             "paymentPlans": {
                 "basic": "Sirepo Community",
-                "enterprise": "Sirepo Enterprise",
                 "premium": "Sirepo Professional"
             },
             "plansUrl": "/plans",
