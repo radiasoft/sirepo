@@ -31,6 +31,7 @@ _SIM_TYPE = "jupyterhublogin"
 
 
 class API(sirepo.quest.API):
+    # TODO(e-carlin): need to handle
     @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
     async def api_checkAuthJupyterHub(self):
         # TODO(rorour) do this role check at a higher level
@@ -44,6 +45,7 @@ class API(sirepo.quest.API):
             u = create_user(self)
         return self.reply_ok(PKDict(username=u))
 
+    # TODO(e-carlin): need to handle
     @sirepo.quest.Spec("require_user", sim_type=f"SimType const={_SIM_TYPE}")
     async def api_redirectJupyterHub(self):
         # TODO(rorour) do this role check at a higher level

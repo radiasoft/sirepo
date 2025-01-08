@@ -20,6 +20,7 @@ _SIM_TYPE = "flash"
 
 
 class API(sirepo.quest.API):
+    # TODO(e-carlin): need to handle
     @sirepo.quest.Spec("require_user")
     async def api_simOauthFlashAuthorized(self):
         o, _ = sirepo.oauth.check_authorized_callback(self)

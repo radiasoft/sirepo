@@ -54,12 +54,12 @@ class API(sirepo.quest.API):
             _request_content=self._parse_post_just_data(),
         )
 
-    @sirepo.quest.Spec("require_user")
+    @sirepo.quest.Spec("require_subscription")
     async def api_analysisJob(self):
         # TODO(robnagler): computeJobHash has to be checked
         return await self._request_api()
 
-    @sirepo.quest.Spec("require_user")
+    @sirepo.quest.Spec("require_subscription")
     async def api_beginSession(self):
         """Starts beginSession request asynchronously
 
@@ -71,8 +71,10 @@ class API(sirepo.quest.API):
             _request_content=self._parse_post_just_data(),
         )
 
+    # TODO(e-carlin): what api does export use? We want people to be able
+    # to export their data from the sim list
     @sirepo.quest.Spec(
-        "require_user",
+        "require_subscription",
         sid="SimId",
         model="AnalysisModel",
         frame="DataFileIndex",
@@ -87,7 +89,7 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec(
-        "require_user",
+        "require_subscription",
         sid="SimId",
         model="AnalysisModel",
         frame="DataFileIndex",
@@ -148,7 +150,7 @@ class API(sirepo.quest.API):
                 f"frame={frame} not found sid={req.id} sim_type={req.type}",
             )
 
-    @sirepo.quest.Spec("require_user")
+    @sirepo.quest.Spec("require_subscription")
     async def api_globalResources(self):
         assert (
             sirepo.feature_config.cfg().enable_global_resources
@@ -184,13 +186,13 @@ class API(sirepo.quest.API):
             e = "unexpected exception"
         return PKDict(state="error", error=e)
 
-    @sirepo.quest.Spec("require_user")
+    @sirepo.quest.Spec("require_subscription")
     async def api_ownJobs(self):
         return await self._request_api(
             _request_content=self._parse_post_just_data(),
         )
 
-    @sirepo.quest.Spec("require_user")
+    @sirepo.quest.Spec("require_subscription")
     async def api_runCancel(self):
         try:
             return await self._request_api()
@@ -199,14 +201,14 @@ class API(sirepo.quest.API):
         # Always true from the client's perspective
         return self.reply_dict({"state": "canceled"})
 
-    @sirepo.quest.Spec("require_user")
+    @sirepo.quest.Spec("require_subscription")
     async def api_runSimulation(self):
         r = self._request_content(PKDict())
         if r.isParallel:
             r.isPremiumUser = self.auth.is_premium_user()
         return await self._request_api(_request_content=r)
 
-    @sirepo.quest.Spec("require_user")
+    @sirepo.quest.Spec("require_subscription")
     async def api_runStatus(self):
         # runStatus receives models when an animation status if first queried
         return await self._request_api(_request_content=self._request_content(PKDict()))
@@ -229,7 +231,7 @@ class API(sirepo.quest.API):
             )
         )
 
-    @sirepo.quest.Spec("require_user", frame_id="SimFrameId")
+    @sirepo.quest.Spec("require_subscription", frame_id="SimFrameId")
     async def api_simulationFrame(self, frame_id):
         return await template_common.sim_frame(
             frame_id,
@@ -243,11 +245,11 @@ class API(sirepo.quest.API):
             self,
         )
 
-    @sirepo.quest.Spec("require_user")
+    @sirepo.quest.Spec("require_subscription")
     async def api_statefulCompute(self):
         return await self._request_compute(op_key="stful")
 
-    @sirepo.quest.Spec("require_user")
+    @sirepo.quest.Spec("require_subscription")
     async def api_statelessCompute(self):
         return await self._request_compute(op_key="stlss")
 

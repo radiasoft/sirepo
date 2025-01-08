@@ -40,7 +40,8 @@ _app = None
 
 
 class API(sirepo.quest.API):
-    @sirepo.quest.Spec("require_user", sid="SimId")
+    # TODO(e-carlin): this was require_user not sure what we want here...
+    @sirepo.quest.Spec("require_subscription", sid="SimId")
     async def api_copyNonSessionSimulation(self):
         req = self.parse_post(id=True, template=True)
         src = pkio.py_path(
@@ -70,7 +71,11 @@ class API(sirepo.quest.API):
         return self._save_with_related(req, data)
 
     @sirepo.quest.Spec(
-        "require_user", sid="SimId", folder="SimFolderName", name="SimName"
+        # TODO(e-carlin): again, was require_user. not sure what's best
+        "require_subscription",
+        sid="SimId",
+        folder="SimFolderName",
+        name="SimName",
     )
     async def api_copySimulation(self):
         """Takes the specified simulation and returns a newly named copy with the suffix ( X)"""
@@ -84,12 +89,16 @@ class API(sirepo.quest.API):
         )
         return self._save_new_and_reply(req, d)
 
-    @sirepo.quest.Spec("require_user", filename="SimFileName", file_type="SimFileType")
+    @sirepo.quest.Spec(
+        "require_subscription", filename="SimFileName", file_type="SimFileType"
+    )
     async def api_deleteFile(self):
         """Deprecated - use `api_deleteLibFile`"""
         return await self.api_deleteLibFile()
 
-    @sirepo.quest.Spec("require_user", filename="SimFileName", file_type="SimFileType")
+    @sirepo.quest.Spec(
+        "require_subscription", filename="SimFileName", file_type="SimFileType"
+    )
     async def api_deleteLibFile(self):
         req = self.parse_post(filename=True, file_type=True)
         e = _simulations_using_file(req)
@@ -107,18 +116,20 @@ class API(sirepo.quest.API):
         pkio.unchecked_remove(_lib_file_write_path(req))
         return self.reply_ok()
 
-    @sirepo.quest.Spec("require_user", sid="SimId")
+    @sirepo.quest.Spec("require_subscription", sid="SimId")
     async def api_deleteSimulation(self):
         req = self.parse_post(id=True)
         simulation_db.delete_simulation(req.type, req.id, qcall=self)
         return self.reply_ok()
 
-    @sirepo.quest.Spec("require_user", filename="SimFileName")
+    # TODO(e-carlin): might need to be change back to require_user for export
+    @sirepo.quest.Spec("require_subscription", filename="SimFileName")
     async def api_downloadFile(self, simulation_type, simulation_id, filename):
         """Deprecated - use `api_downloadLibFile`"""
         return await self.api_downloadLibFile(simulation_type, filename)
 
-    @sirepo.quest.Spec("require_user", filename="SimFileName")
+    # TODO(e-carlin): might need to be change back to require_user for export
+    @sirepo.quest.Spec("require_subscription", filename="SimFileName")
     async def api_downloadLibFile(self, simulation_type, filename):
         req = self.parse_params(type=simulation_type, filename=filename)
         return self.reply_attachment(
@@ -143,6 +154,7 @@ class API(sirepo.quest.API):
             pkdlog("ip={}: error parsing javascript exception={} input={}", ip, e, b)
         return self.reply_ok()
 
+    # TODO(e-carlin): I think this is the main one to stay require_user
     @sirepo.quest.Spec(
         "require_user", simulation_id="SimId", filename="SimExportFileName"
     )
@@ -174,7 +186,8 @@ class API(sirepo.quest.API):
         raise sirepo.util.Forbidden("app forced forbidden")
 
     @sirepo.quest.Spec(
-        "require_user",
+        # TODO(e-carlin): this right?
+        "require_subscription",
         file_type="LibFileType",
     )
     async def api_listFiles(self):
@@ -198,7 +211,10 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec(
-        "require_user", application_mode="AppMode", simulation_name="SimName"
+        # TODO(e-carlin): this right?
+        "require_subscription",
+        application_mode="AppMode",
+        simulation_name="SimName",
     )
     async def api_findByNameWithAuth(
         self, simulation_type, application_mode, simulation_name
@@ -249,7 +265,7 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec(
-        "require_user",
+        "require_subscription",
         file="ImportFile",
         folder="SimFolderPath",
         sid="SimId",
@@ -349,7 +365,7 @@ class API(sirepo.quest.API):
             "staticFile", kwargs=PKDict(path_info="en/" + (path_info or "landing.html"))
         )
 
-    @sirepo.quest.Spec("require_user", folder="FolderName", name="SimName")
+    @sirepo.quest.Spec("require_subscription", folder="FolderName", name="SimName")
     async def api_newSimulation(self):
         req = self.parse_post(template=True, folder=True, name=True)
         d = simulation_db.default_data(req.type)
@@ -369,7 +385,8 @@ class API(sirepo.quest.API):
         raise sirepo.util.NotFound("app forced not found (uri parsing error)")
 
     @sirepo.quest.Spec(
-        "require_user",
+        # TODO(e-carlin): this right?
+        "require_subscription",
         simulation_id="SimId",
         model="ComputeModelName optional",
         title="DownloadNamePostfix optional",
@@ -422,7 +439,7 @@ class API(sirepo.quest.API):
             return self.reply_redirect(u)
         raise sirepo.util.NotFound(f"unknown path={path_info}")
 
-    @sirepo.quest.Spec("require_user", sid="SimId", data="SimData all_input")
+    @sirepo.quest.Spec("require_subscription", sid="SimId", data="SimData all_input")
     async def api_saveSimulationData(self):
         # do not fixup_old_data yet
         req = self.parse_post(id=True, template=True)
@@ -449,7 +466,11 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec(
-        "require_user", simulation_id="SimId", pretty="Bool optional", section="Section"
+        # TODO(e-carlin): this right?
+        "require_subscription",
+        simulation_id="SimId",
+        pretty="Bool optional",
+        section="Section",
     )
     async def api_simulationData(
         self, simulation_type, simulation_id, pretty=False, section=None
@@ -490,6 +511,8 @@ class API(sirepo.quest.API):
         except sirepo.util.SPathNotFound:
             return _not_found(req)
 
+    # TODO(e-carlin): I think this one stays require_user so they can
+    # get the sim list
     @sirepo.quest.Spec("require_user", search="SearchSpec")
     async def api_listSimulations(self):
         req = self.parse_post()
@@ -505,7 +528,8 @@ class API(sirepo.quest.API):
             )
         )
 
-    @sirepo.quest.Spec("require_user")
+    # TODO(e-carlin): ???? when is this called
+    @sirepo.quest.Spec("require_subscription")
     async def api_simulationRedirect(self, simulation_type, local_route, simulation_id):
         return self.reply_redirect_for_local_route(
             sim_type=simulation_type,
@@ -544,6 +568,7 @@ class API(sirepo.quest.API):
             return self.reply_html(p)
         return self.reply_file(p)
 
+    # TODO(e-carlin): I think this need to stay require_user
     @sirepo.quest.Spec("require_user", oldName="SimFolderPath", newName="SimFolderPath")
     async def api_updateFolder(self):
         # TODO(robnagler) Folder should have a serial, or should it be on data
@@ -580,7 +605,7 @@ class API(sirepo.quest.API):
         return self.reply_ok()
 
     @sirepo.quest.Spec(
-        "require_user",
+        "require_subscription",
         file="LibFile",
         file_type="LibFileType",
         simulation_id="SimId",
@@ -591,7 +616,7 @@ class API(sirepo.quest.API):
         return await self.api_uploadLibFile(simulation_type, simulation_id, file_type)
 
     @sirepo.quest.Spec(
-        "require_user",
+        "require_subscription",
         file="LibFile",
         file_type="LibFileType",
         simulation_id="SimId",
