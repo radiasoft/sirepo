@@ -10,8 +10,8 @@ import aenum
 import sirepo.feature_config
 
 ROLE_ADM = "adm"
-ROLE_FREE_TRIAL = "free_trial"
 ROLE_PAYMENT_PLAN_PREMIUM = "premium"
+ROLE_TRIAL = "trial"
 ROLE_USER = "user"
 PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM,)
 _SIM_TYPE_ROLE_PREFIX = "sim_type_"
@@ -59,8 +59,8 @@ def get_all():
         for_sim_type(t) for t in sirepo.feature_config.auth_controlled_sim_types()
     ] + [
         ROLE_ADM,
-        ROLE_FREE_TRIAL,
         ROLE_PAYMENT_PLAN_PREMIUM,
+        ROLE_TRIAL,
         ROLE_USER,
     ]
 
