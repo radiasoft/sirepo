@@ -398,11 +398,11 @@ SIREPO.app.directive('canceledDueToTimeoutAlert', function(authState) {
         template: `
             <div data-ng-if="showAlert()" class="alert alert-warning" role="alert">
               <h4 class="alert-heading"><b>Canceled: Maximum runtime exceeded</b></h4>
-              <p>Your runtime limit is {{getTime()}}. To increase your maximum runtime, please upgrade to ${authState.upgradePlanLink()}.</p>
+              <p>Your runtime limit is {{getTime()}}. To increase your maximum runtime, <span data-plans-link="" link-text="{{ upgradeToLink }}"></span>.</p>
             </div>
         `,
         controller: function($scope, appState) {
-            $scope.authState = authState;
+            $scope.upgradeToLink = `please upgrade to a ${authState.upgradeToPlan} plan`;
 
             $scope.getTime = function() {
                 return appState.formatTime($scope.simState.getCanceledAfterSecs());
@@ -1788,6 +1788,20 @@ SIREPO.app.directive('pendingLinkToSimulations', function() {
             $scope.showJobsList = function() {
                 $('#' + panelState.modalId('jobsListModal')).modal('show');
             };
+        },
+    };
+});
+
+
+SIREPO.app.directive('plansLink', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            linkText: '@',
+        },
+        template: '<a data-ng-href="{{ plansUrl }}" target="_blank">{{ linkText }}</a>',
+        controller: function($scope) {
+            $scope.plansUrl = SIREPO.APP_SCHEMA.constants.plansUrl;
         },
     };
 });
@@ -4765,7 +4779,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                     <div class="modal-body">
                         <div data-ng-show="! authState.isPremiumUser()" class="alert alert-warning" role="alert">
                         <h4 class="alert-heading"><b>Please upgrade</b></h4>
-                        <p>Supercomputer and HPC services are only available with <a data-ng-href="{{ plansUrl }}" target="_blank">one of our paid plans</a>.</p>
+                        <p>Supercomputer and HPC services are only available with <span data-plans-link="" link-text="one of our paid plans"></span>.</p>
                         </div>
                         <form name="sbatchLoginModalForm" data-ng-show="authState.isPremiumUser()">
                             <div class="sr-input-warning">{{ warning }}</div>
@@ -4803,7 +4817,6 @@ SIREPO.app.directive('sbatchLoginModal', function() {
 
 	    _resetLoginFormText();
 	    $scope.authState = authState;
-            $scope.plansUrl = SIREPO.APP_SCHEMA.constants.plansUrl;
 	    $scope.sbatchLoginService = sbatchLoginService;
 
             $scope.cancel = () => {

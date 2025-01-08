@@ -8,9 +8,11 @@ from pykern import pkinspect, pkio, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import contextlib
+import datetime
 import shutil
 import sirepo.auth_db
 import sirepo.auth_role
+import sirepo.feature_config
 import sirepo.file_lock
 import sirepo.job
 import sirepo.quest
@@ -100,6 +102,26 @@ def _20240524_add_role_user(qcall):
         f"INSERT INTO user_role_t (uid, role, expiration)"
         + f'SELECT uid, "{sirepo.auth_role.ROLE_USER}", NULL from user_registration_t'
     )
+
+
+def _20250114_add_role_trial(qcall):
+    """Give all existing users a trial with expiration"""
+    import sirepo.pkcli.roles
+    import sirepo.auth_role
+
+    for u in qcall.auth_db.all_uids():
+        sirepo.pkcli.roles.add(
+            u,
+            sirepo.auth_role.ROLE_TRIAL,
+            expiration=int(
+                (
+                    datetime.datetime.now()
+                    + datetime.timedelta(
+                        days=sirepo.feature_config.cfg().trial_expiration_days
+                    )
+                ).timestamp()
+            ),
+        )
 
 
 @contextlib.contextmanager

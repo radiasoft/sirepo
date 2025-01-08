@@ -569,11 +569,11 @@ class _SReply(sirepo.quest.Attr):
     def _gen_exception_reply_Error(self, args):
         return self.from_kwargs(content=_Error(args))
 
-    def _gen_exception_reply_Forbidden(self, args):
-        return self._gen_http_exception(403)
-
     def _gen_exception_reply_NotFound(self, args):
         return self._gen_http_exception(404)
+
+    def _gen_exception_reply_PlanRequired(self, args):
+        return self._gen_http_exception(402)
 
     def _gen_exception_reply_Redirect(self, args):
         return self.gen_redirect(args.uri)
@@ -596,6 +596,9 @@ class _SReply(sirepo.quest.Attr):
             args.params = PKDict()
         args.pksetdefault(sim_type=lambda: self.qcall.sim_type_uget())
         return self.from_kwargs(content=_SRException(args))
+
+    def _gen_exception_reply_Forbidden(self, args):
+        return self._gen_http_exception(403)
 
     def _gen_exception_reply_Unauthorized(self, args):
         return self._gen_http_exception(401)

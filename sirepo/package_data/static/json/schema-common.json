@@ -160,6 +160,7 @@
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
         "ownJobs": "/own-jobs",
+        "planRequired": "/plan-required",
         "proxyError": "/proxy-error",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
         "redirectJupyterHub": "/redirect-jupyterhub",
@@ -453,6 +454,12 @@
                   "templateUrl": "/static/html/copy-session.html"
                 }
             },
+            "planRequired": {
+                "route": "/plan-required",
+                "config": {
+                  "templateUrl": "/static/html/http-plan-required.html"
+                }
+            },
             "proxyError": {
                 "route": "/proxy-error",
                 "config": {
@@ -557,6 +564,11 @@
         }
     },
     "customErrors": {
+        "402": {
+            "url": "http-plan-required.html",
+            "msg": "Plan Required",
+            "route": "planRequired"
+        },
         "403": {
             "url": "http-forbidden.html",
             "msg": "Forbidden",

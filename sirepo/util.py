@@ -113,6 +113,12 @@ class NotFound(ReplyExc):
     pass
 
 
+class PlanRequired(ReplyExc):
+    """API requires and active plan"""
+
+    pass
+
+
 class Redirect(OKReplyExc):
     """Raised to redirect
 

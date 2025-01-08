@@ -5,18 +5,20 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkconfig
-from pykern.pkdebug import pkdexc, pkdp, pkdlog
-from pykern.pkcollections import PKDict
 from pykern import pkjinja
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdexc, pkdp, pkdlog
 import datetime
-import sirepo.quest
+import getpass
 import sirepo.auth_role
 import sirepo.feature_config
+import sirepo.quest
 import sirepo.simulation_db
 import sirepo.smtp
 import sirepo.uri
 import sirepo.uri_router
 import sqlalchemy
+import sqlalchemy.exc
 
 _STATUS_TO_SUBJECT = PKDict(
     approve="Access Request Approved",
@@ -45,11 +47,13 @@ class API(sirepo.quest.API):
         def _send_moderation_status_email(info):
             sirepo.smtp.send(
                 recipient=info.user_name,
-                subject=f"Sirepo {info.app_name}: {_STATUS_TO_SUBJECT[info.status]}",
+                subject=f"Sirepo {info.role_friendly_name}: {_STATUS_TO_SUBJECT[info.status]}",
                 body=pkjinja.render_resource(
                     f"auth_role_moderation/{info.status}_email",
                     PKDict(
+                        additional_text=info.get("additional_text"),
                         app_name=info.app_name,
+                        role_friendly_name=info.role_friendly_name,
                         display_name=info.display_name,
                         link=self.absolute_uri(
                             self.uri_for_app_root(
@@ -62,7 +66,9 @@ class API(sirepo.quest.API):
 
         def _set_moderation_status(info):
             if info.status == "approve":
-                self.auth_db.model("UserRole").add_roles(roles=[info.role])
+                self.auth_db.model("UserRole").add_roles(
+                    roles=[info.role], expiration=info.get("expiration")
+                )
             self.auth_db.model("UserRoleModeration").set_status(
                 role=info.role,
                 status=info.status,
@@ -88,9 +94,20 @@ class API(sirepo.quest.API):
                 req.req_data.role,
             )
         p = PKDict(
-            app_name=sirepo.simulation_db.SCHEMA_COMMON.appInfo[
+            role_friendly_name="Trial",
+            app_name="Sirepo",
+            expiration=datetime.datetime.now()
+            + datetime.timedelta(
+                days=sirepo.feature_config.cfg().trial_expiration_days
+            ),
+            additional_text=f"Your trial is active for {sirepo.feature_config.cfg().trial_expiration_days} days.",
+        )
+        if not i.role == sirepo.auth_role.ROLE_TRIAL:
+            a = sirepo.simulation_db.SCHEMA_COMMON.appInfo[
                 sirepo.auth_role.sim_type(i.role)
-            ].longName,
+            ].longName
+            p = PKDict(role_friendly_name=a, app_name=a)
+        p.pkupdate(
             role=i.role,
             status=req.req_data.status,
             moderator_uid=self.auth.logged_in_user(),
@@ -153,9 +170,18 @@ class API(sirepo.quest.API):
 
         req = self.parse_post()
         u = self.auth.logged_in_user()
-        r = sirepo.auth_role.for_sim_type(req.type)
-        if self.auth_db.model("UserRole").has_role(role=r):
+        r = sirepo.auth_role.ROLE_TRIAL
+        # SECURITY: type has been validated to be a known sim type. If it is
+        # not in moderated_sim_types then we know the user is just requesting
+        # access to start using Sirepo (ROLE_TRIAL).
+        if req.type in sirepo.feature_config.cfg().moderated_sim_types:
+            r = sirepo.auth_role.for_sim_type(req.type)
+        if self.auth_db.model("UserRole").has_active_role(role=r):
             raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
+        if self.auth_db.model("UserRole").has_expired_role(role=r):
+            raise AssertionError(
+                f"uid={u} trying to request moderation for expired role={r}"
+            )
         try:
             self.auth_db.model(
                 "UserRoleModeration",
@@ -183,7 +209,7 @@ class API(sirepo.quest.API):
                 email_addr=self.auth.logged_in_user_name(),
                 link=l,
                 reason=req.req_data.reason,
-                role=sirepo.auth_role.for_sim_type(req.type),
+                role=r,
                 sim_type=req.type,
                 uid=u,
             ).pkupdate(self.user_agent_headers())
@@ -200,6 +226,10 @@ def _datetime_to_str(rows):
 
 
 def raise_control_for_user(qcall, uid, role):
+    if qcall.auth_db.model("UserRole").has_expired_role(role):
+        if role == sirepo.auth_role.ROLE_TRIAL:
+            raise sirepo.util.PlanRequired(f"uid={uid} role={role} expired")
+        raise sirepo.util.Forbidden(f"uid={uid} role={role} expired")
     s = qcall.auth_db.model("UserRoleModeration").get_status(uid=uid, role=role)
     if s in _ACTIVE:
         raise sirepo.util.SRException("moderationPending", None)
@@ -214,8 +244,10 @@ def init_apis(*args, **kwargs):
     global _cfg
 
     _cfg = pkconfig.init(
-        moderator_email=pkconfig.Required(
-            str, "The email address to send moderation emails to"
+        moderator_email=pkconfig.RequiredUnlessDev(
+            f"{getpass.getuser()}+moderator@localhost.localdomain",
+            str,
+            "The email address to send moderation emails to",
         ),
     )
     x = frozenset(_STATUS_TO_SUBJECT.keys())
