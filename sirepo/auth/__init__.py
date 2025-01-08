@@ -48,11 +48,9 @@ _COOKIE_USER = "srau"
 _GUEST_USER_DISPLAY_NAME = "Guest User"
 
 _PAYMENT_PLAN_BASIC = "basic"
-_PAYMENT_PLAN_ENTERPRISE = sirepo.auth_role.ROLE_PAYMENT_PLAN_ENTERPRISE
 _PAYMENT_PLAN_PREMIUM = sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM
 _ALL_PAYMENT_PLANS = (
     _PAYMENT_PLAN_BASIC,
-    _PAYMENT_PLAN_ENTERPRISE,
     _PAYMENT_PLAN_PREMIUM,
 )
 
@@ -765,12 +763,9 @@ class _Auth(sirepo.quest.Attr):
 
     def _plan(self, data):
         r = data.roles
-        if sirepo.auth_role.ROLE_PAYMENT_PLAN_ENTERPRISE in r:
-            data.paymentPlan = _PAYMENT_PLAN_ENTERPRISE
-            data.upgradeToPlan = None
-        elif sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM in r:
+        if sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM in r:
             data.paymentPlan = _PAYMENT_PLAN_PREMIUM
-            data.upgradeToPlan = _PAYMENT_PLAN_ENTERPRISE
+            data.upgradeToPlan = None
         else:
             data.paymentPlan = _PAYMENT_PLAN_BASIC
             data.upgradeToPlan = _PAYMENT_PLAN_PREMIUM
