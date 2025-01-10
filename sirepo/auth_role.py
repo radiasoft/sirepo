@@ -13,6 +13,7 @@ ROLE_ADM = "adm"
 ROLE_PAYMENT_PLAN_PREMIUM = "premium"
 ROLE_TRIAL = "trial"
 ROLE_USER = "user"
+# TODO(e-carlin): where is this used? Shoul role_trial be in it?
 PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM,)
 _SIM_TYPE_ROLE_PREFIX = "sim_type_"
 
@@ -48,6 +49,10 @@ def for_proprietary_oauth_sim_types():
     return [
         for_sim_type(s) for s in sirepo.feature_config.cfg().proprietary_oauth_sim_types
     ]
+
+
+def for_subscriptions():
+    return {ROLE_TRIAL, *PAID_USER_ROLES}
 
 
 def for_sim_type(sim_type):

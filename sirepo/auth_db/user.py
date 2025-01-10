@@ -71,6 +71,10 @@ class UserRole(sirepo.auth_db.UserDbBase):
     def get_roles(self):
         return self.search_all_for_column("role", uid=self.logged_in_user())
 
+    # TODO(e-carlin): now get rid of has_role?
+    def has_active_role(role):
+        return self.has_role(role) and not self.is_expired(role)
+
     def has_role(self, role, uid=None):
         return bool(
             self.unchecked_search_by(uid=uid or self.logged_in_user(), role=role)

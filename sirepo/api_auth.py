@@ -32,6 +32,7 @@ def check_api_call(qcall, func):
         a.ALLOW_SIM_TYPELESS_REQUIRE_EMAIL_USER,
         a.REQUIRE_COOKIE_SENTINEL,
         a.REQUIRE_USER,
+        a.REQUIRE_SUBSCRIPTION,
         a.REQUIRE_ADM,
         a.REQUIRE_PREMIUM,
     ):
