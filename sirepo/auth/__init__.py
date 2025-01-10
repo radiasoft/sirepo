@@ -517,7 +517,16 @@ class _Auth(sirepo.quest.Attr):
 
     def require_premium(self):
         if not self.is_premium_user():
-            raise sirepo.util.Forbidden(f"not premium user")
+            raise sirepo.util.Forbidden("not premium user")
+
+    def require_subscription(self):
+        self.require_user()
+        for r in sirepo.auth_role.for_subscriptions():
+            if self.qcall.auth_db.model("UserRole").has_active_role(r):
+                return
+        # TODO(e-carlin): raise something like SubscriptionExpired() and
+        # create a page to display a friendly message.
+        raise sirepo.util.Forbidden("not premium user")
 
     def require_user(self):
         """Asserts whether user is logged in
