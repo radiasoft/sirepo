@@ -526,7 +526,7 @@ class _Auth(sirepo.quest.Attr):
                 return
         # TODO(e-carlin): raise something like SubscriptionExpired() and
         # create a page to display a friendly message.
-        raise sirepo.util.Forbidden("not premium user")
+        raise sirepo.util.Forbidden("no active subscription")
 
     def require_user(self):
         """Asserts whether user is logged in
