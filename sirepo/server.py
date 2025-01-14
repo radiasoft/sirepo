@@ -40,7 +40,6 @@ _app = None
 
 
 class API(sirepo.quest.API):
-    # TODO(e-carlin): this was require_user not sure what we want here...
     @sirepo.quest.Spec("require_subscription", sid="SimId")
     async def api_copyNonSessionSimulation(self):
         req = self.parse_post(id=True, template=True)
@@ -71,7 +70,6 @@ class API(sirepo.quest.API):
         return self._save_with_related(req, data)
 
     @sirepo.quest.Spec(
-        # TODO(e-carlin): again, was require_user. not sure what's best
         "require_subscription",
         sid="SimId",
         folder="SimFolderName",
@@ -122,13 +120,11 @@ class API(sirepo.quest.API):
         simulation_db.delete_simulation(req.type, req.id, qcall=self)
         return self.reply_ok()
 
-    # TODO(e-carlin): might need to be change back to require_user for export
     @sirepo.quest.Spec("require_subscription", filename="SimFileName")
     async def api_downloadFile(self, simulation_type, simulation_id, filename):
         """Deprecated - use `api_downloadLibFile`"""
         return await self.api_downloadLibFile(simulation_type, filename)
 
-    # TODO(e-carlin): might need to be change back to require_user for export
     @sirepo.quest.Spec("require_subscription", filename="SimFileName")
     async def api_downloadLibFile(self, simulation_type, filename):
         req = self.parse_params(type=simulation_type, filename=filename)
@@ -154,7 +150,6 @@ class API(sirepo.quest.API):
             pkdlog("ip={}: error parsing javascript exception={} input={}", ip, e, b)
         return self.reply_ok()
 
-    # TODO(e-carlin): I think this is the main one to stay require_user
     @sirepo.quest.Spec(
         "require_user", simulation_id="SimId", filename="SimExportFileName"
     )
@@ -186,7 +181,6 @@ class API(sirepo.quest.API):
         raise sirepo.util.Forbidden("app forced forbidden")
 
     @sirepo.quest.Spec(
-        # TODO(e-carlin): this right?
         "require_subscription",
         file_type="LibFileType",
     )
@@ -211,7 +205,6 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec(
-        # TODO(e-carlin): this right?
         "require_subscription",
         application_mode="AppMode",
         simulation_name="SimName",
@@ -385,8 +378,7 @@ class API(sirepo.quest.API):
         raise sirepo.util.NotFound("app forced not found (uri parsing error)")
 
     @sirepo.quest.Spec(
-        # TODO(e-carlin): this right?
-        "require_subscription",
+        "require_user",
         simulation_id="SimId",
         model="ComputeModelName optional",
         title="DownloadNamePostfix optional",
@@ -466,7 +458,6 @@ class API(sirepo.quest.API):
         )
 
     @sirepo.quest.Spec(
-        # TODO(e-carlin): this right?
         "require_subscription",
         simulation_id="SimId",
         pretty="Bool optional",
@@ -511,8 +502,6 @@ class API(sirepo.quest.API):
         except sirepo.util.SPathNotFound:
             return _not_found(req)
 
-    # TODO(e-carlin): I think this one stays require_user so they can
-    # get the sim list
     @sirepo.quest.Spec("require_user", search="SearchSpec")
     async def api_listSimulations(self):
         req = self.parse_post()
@@ -528,7 +517,6 @@ class API(sirepo.quest.API):
             )
         )
 
-    # TODO(e-carlin): ???? when is this called
     @sirepo.quest.Spec("require_subscription")
     async def api_simulationRedirect(self, simulation_type, local_route, simulation_id):
         return self.reply_redirect_for_local_route(
@@ -568,8 +556,9 @@ class API(sirepo.quest.API):
             return self.reply_html(p)
         return self.reply_file(p)
 
-    # TODO(e-carlin): I think this need to stay require_user
-    @sirepo.quest.Spec("require_user", oldName="SimFolderPath", newName="SimFolderPath")
+    @sirepo.quest.Spec(
+        "require_subscription", oldName="SimFolderPath", newName="SimFolderPath"
+    )
     async def api_updateFolder(self):
         # TODO(robnagler) Folder should have a serial, or should it be on data
         req = self.parse_post()
@@ -594,7 +583,6 @@ class API(sirepo.quest.API):
                 qcall=self,
             ):
                 f = r.models.simulation.folder
-                l = o.lower()
                 if f.lower() == o.lower():
                     r.models.simulation.folder = n
                 elif f.lower().startswith(o.lower() + "/"):
