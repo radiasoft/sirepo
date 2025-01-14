@@ -36,9 +36,9 @@ class UserRole(sirepo.auth_db.UserDbBase):
         u = self.logged_in_user()
         for r in roles:
             try:
-                # Check here, because sqlite doesn't through IntegrityErrors
+                # Check here, because sqlite doesn't throw IntegrityErrors
                 # at the point of the new() operation.
-                if not self.has_role(r, uid=u):
+                if not self._has_role(r, uid=u):
                     self.new(uid=u, role=r, expiration=expiration).save()
             except sqlalchemy.exc.IntegrityError:
                 # role already exists
@@ -46,7 +46,7 @@ class UserRole(sirepo.auth_db.UserDbBase):
         sim_data.audit_proprietary_lib_files(qcall=self.auth_db.qcall)
 
     def add_role_or_update_expiration(self, role, expiration):
-        if not self.has_role(role):
+        if not self._has_role(role):
             self.add_roles(roles=[role], expiration=expiration)
             return
         r = self.search_by(uid=self.logged_in_user(), role=role)
@@ -77,18 +77,12 @@ class UserRole(sirepo.auth_db.UserDbBase):
             for r in self.query().filter_by(uid=self.logged_in_user())
         ]
 
-    # TODO(e-carlin): now get rid of has_role?
-    def has_active_role(self, role):
-        return self.has_role(role) and not self.is_expired(role)
-
-    def has_role(self, role, uid=None):
-        return bool(
-            self.unchecked_search_by(uid=uid or self.logged_in_user(), role=role)
-        )
+    def has_active_role(self, role, uid=None):
+        return self._has_role(role) and not self.is_expired(role)
 
     def is_expired(self, role):
         u = self.logged_in_user()
-        assert self.has_role(role=role), f"No role for uid={u} and role={role}"
+        assert self._has_role(role=role), f"No role for uid={u} and role={role}"
         r = self.search_by(uid=u, role=role)
         if not r.expiration:
             # Roles with no expiration can't expire
@@ -112,6 +106,11 @@ class UserRole(sirepo.auth_db.UserDbBase):
             .distinct()
             .all()
         ]
+
+    def _has_role(self, role, uid=None):
+        return bool(
+            self.unchecked_search_by(uid=uid or self.logged_in_user(), role=role)
+        )
 
 
 class UserRoleModeration(sirepo.auth_db.UserDbBase):

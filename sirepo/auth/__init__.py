@@ -172,7 +172,7 @@ class _Auth(sirepo.quest.Attr):
             return
         u = self.logged_in_user()
         r = sirepo.auth_role.for_sim_type(t)
-        if self.qcall.auth_db.model("UserRole").has_role(
+        if self.qcall.auth_db.model("UserRole").has_active_role(
             role=r
         ) and not self.qcall.auth_db.model("UserRole").is_expired(role=r):
             return
@@ -184,7 +184,7 @@ class _Auth(sirepo.quest.Attr):
 
     def _assert_role_user(self):
         u = self.logged_in_user()
-        if not self.qcall.auth_db.model("UserRole").has_role(
+        if not self.qcall.auth_db.model("UserRole").has_active_role(
             role=sirepo.auth_role.ROLE_USER,
         ):
             raise sirepo.util.Forbidden(
@@ -274,7 +274,7 @@ class _Auth(sirepo.quest.Attr):
         return s in (_STATE_COMPLETE_REGISTRATION, _STATE_LOGGED_IN)
 
     def is_premium_user(self):
-        return self.qcall.auth_db.model("UserRole").has_role(
+        return self.qcall.auth_db.model("UserRole").has_active_role(
             role=sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
         )
 
@@ -493,7 +493,7 @@ class _Auth(sirepo.quest.Attr):
 
     def require_adm(self):
         u = self.require_user()
-        if not self.qcall.auth_db.model("UserRole").has_role(
+        if not self.qcall.auth_db.model("UserRole").has_active_role(
             role=sirepo.auth_role.ROLE_ADM,
         ):
             raise sirepo.util.Forbidden(

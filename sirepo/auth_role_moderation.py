@@ -154,8 +154,9 @@ class API(sirepo.quest.API):
         req = self.parse_post()
         u = self.auth.logged_in_user()
         r = sirepo.auth_role.for_sim_type(req.type)
-        if self.auth_db.model("UserRole").has_role(role=r):
+        if self.auth_db.model("UserRole").has_active_role(role=r):
             raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
+        # TODO(e-carlin): Handle user who has been moderated but role expired.
         try:
             self.auth_db.model(
                 "UserRoleModeration",

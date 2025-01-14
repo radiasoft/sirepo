@@ -105,7 +105,7 @@ def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
         assert d.exists(), f"{d} proprietary_code_dir must exist" + (
             "; run: sirepo setup_dev" if pkconfig.in_dev_mode() else ""
         )
-        r = qcall.auth_db.model("UserRole").has_role(
+        r = qcall.auth_db.model("UserRole").has_active_role(
             role=sirepo.auth_role.for_sim_type(t),
         )
         if r:
