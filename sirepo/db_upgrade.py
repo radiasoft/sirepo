@@ -99,29 +99,17 @@ def _20240524_add_role_user(qcall):
     )
     qcall.auth_db.drop_table("user_role_invite_t")
     qcall.auth_db.execute_sql(
-        f"INSERT INTO user_role_t (uid, role, expiration)"
+        "INSERT INTO user_role_t (uid, role, expiration)"
         + f'SELECT uid, "{sirepo.auth_role.ROLE_USER}", NULL from user_registration_t'
     )
 
 
 def _20250114_add_role_trial(qcall):
     """Give all existing users a trial with expiration"""
-    import sirepo.pkcli.roles
-    import sirepo.auth_role
-
-    for u in qcall.auth_db.all_uids():
-        sirepo.pkcli.roles.add(
-            u,
-            sirepo.auth_role.ROLE_TRIAL,
-            expiration=int(
-                (
-                    datetime.datetime.now()
-                    + datetime.timedelta(
-                        days=sirepo.feature_config.cfg().trial_expiration_days
-                    )
-                ).timestamp()
-            ),
-        )
+    qcall.auth_db.execute_sql(
+        "INSERT INTO user_role_t (uid, role, expiration)"
+        + f'SELECT uid, "{sirepo.auth_role.ROLE_TRIAL}", NULL from user_registration_t'
+    )
 
 
 @contextlib.contextmanager

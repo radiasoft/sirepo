@@ -125,11 +125,16 @@ def test_srw_user_see_only_own_jobs(auth_fc):
         pkunit.pkeq(r[0], uid, "Expected same uid as user")
 
     def _register_both_users():
+        from sirepo.pkcli import roles
+        import sirepo.auth_role
+
         fc.sr_email_login(adm_user, sim_type=t)
+        roles.add(adm_user, auth_role.ROLE_TRIAL)
         u = fc.sr_uid
         fc.sr_logout()
         _make_user_adm(u)
         fc.sr_email_login(non_adm_user, sim_type=t)
+        roles.add(non_adm_user, auth_role.ROLE_TRIAL)
 
     fc = auth_fc
     t = "srw"
