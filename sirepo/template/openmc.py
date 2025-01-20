@@ -216,9 +216,13 @@ def sim_frame(frame_args):
     )
 
 
-def stateful_compute_check_animation_dir(data, **kwargs):
+def stateful_compute_verify_geometry(data, **kwargs):
+    """Ensures the standard material db is available and returns the state of the
+    geometry animation directory.
+    """
+    _prep_standard_material_cache()
     return PKDict(
-        animationDirExists=simulation_db.simulation_dir(SIM_TYPE, sid=data.simulationId)
+        hasGeometry=simulation_db.simulation_dir(SIM_TYPE, sid=data.simulationId)
         .join(data.args.modelName)
         .exists()
     )
@@ -1096,9 +1100,17 @@ def _prep_standard_material_cache():
         STANDARD_MATERIALS_DB
     )
     if not m.exists():
-        with gzip.open(
-            str(_SIM_DATA.lib_file_abspath(f"{STANDARD_MATERIALS_DB}.gz")), "rb"
-        ) as f_in:
+        n = f"{STANDARD_MATERIALS_DB}.gz"
+        if not _SIM_DATA.lib_file_exists(n):
+            c = _SIM_DATA.sim_db_client()
+            c.save_from_url(
+                "{}/{}".format(
+                    sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
+                    n,
+                ),
+                c.uri(_SIM_DATA.LIB_DIR, n),
+            )
+        with gzip.open(str(_SIM_DATA.lib_file_abspath(n)), "rb") as f_in:
             with open(str(m), "wb") as f_out:
                 shutil.copyfileobj(f_in, f_out)
     return str(m)

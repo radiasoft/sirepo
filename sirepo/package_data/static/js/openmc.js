@@ -358,12 +358,12 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
             appState,
             (data) => {
                 // don't initialize simulation until geometry is known
-                hasGeometry = data.animationDirExists;
+                hasGeometry = data.hasGeometry;
                 self.simState = persistentSimulation.initSimulationState(self);
                 self.simState.errorMessage = () => self.errorMessage;
             },
             {
-                method: 'check_animation_dir',
+                method: 'verify_geometry',
                 args: {
                     modelName: 'dagmcAnimation',
                 },
