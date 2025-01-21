@@ -80,13 +80,16 @@ class _MoabGroupCollector:
             n, d = self._parse_entity_name_and_density(g.name)
             if not n:
                 continue
+            if not g.name.startswith("mat:"):
+                continue
             v = g.volumes
             if not v:
                 continue
             res[n] = PKDict(
                 name=n,
-                volume_count=len(v),
+                full_name=g.name,
                 density=d,
+                volume_count=len(v),
                 # for historical reasons the vol_id for the group is the last volume's id
                 vol_id=str(v[-1].id),
             )
@@ -97,12 +100,10 @@ class _MoabGroupCollector:
         return tuple(res.values())
 
     def _parse_entity_name_and_density(self, name):
-        # m = re.search(r"^mat:(.*?)(?:/rho:(.*))?$", name)
-        # if m:
-        #     return m.group(1), m.group(2)
-        # return None, None
-        # TODO(pjm): parse density
-        return name, None
+        m = re.search(r"^mat:(.*?)(?:/rho:(.*))?$", name)
+        if m:
+            return m.group(1), m.group(2)
+        return None, None
 
 
 class _MoabGroupExtractor:
@@ -152,6 +153,7 @@ class _MoabGroupExtractor:
                     vol_id=g.vol_id,
                     volume_count=g.volume_count,
                     name=g.name,
+                    full_name=g.full_name,
                     processor=self,
                 )
             )
@@ -191,7 +193,7 @@ class _MoabGroupExtractor:
     def _extract_moab_vertices_and_triangles(self, item):
         t, v = (
             dagmc.DAGModel(item.dagmc_filename)
-            .groups_by_name[item.name]
+            .groups_by_name[item.full_name]
             .get_triangle_conn_and_coords(True)
         )
         return (v, t)
