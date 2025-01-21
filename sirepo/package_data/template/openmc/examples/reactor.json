@@ -154,9 +154,8 @@
         },
         "settings": {
             "batches": 5,
-            "dataLibrary": "ENDFB-7.1-NNDC",
             "inactive": 0,
-            "materialLibrary": "ENDFB-7.1-NNDC",
+            "materialLibrary": "ENDFB-8.0-NNDC",
             "particles": 5000,
             "photon_transport": "0",
             "run_mode": "fixed source",

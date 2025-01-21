@@ -3271,8 +3271,8 @@ SIREPO.app.directive('standardMaterial', function(openmcService, panelState, uti
               <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
               <input class="${searchClass} form-control" placeholder="Search Material Compendium" />
               <span class="input-group-btn">
-                <button class="btn" data-ng-class="{'btn-primary': wantElement}" type="button" data-ng-click="selectSearchType(true)">Element</button>
-                <button class="btn" data-ng-class="{'btn-primary': ! wantElement}" type="button" data-ng-click="selectSearchType(false)">Nuclide</button>
+                <button class="btn" data-ng-class="{'btn-primary': wantElement}" type="button" data-ng-disabled="! hasSelection()" data-ng-click="selectSearchType(true)">Element</button>
+                <button class="btn" data-ng-class="{'btn-primary': ! wantElement}" type="button" data-ng-disabled="! hasSelection()" data-ng-click="selectSearchType(false)">Nuclide</button>
               </span>
             </div>
         `,
@@ -3280,13 +3280,7 @@ SIREPO.app.directive('standardMaterial', function(openmcService, panelState, uti
             let lastSelected = '';
             $scope.wantElement = true;
 
-            $scope.selectSearchType = (wantElement) => {
-                $scope.wantElement = wantElement;
-                if (lastSelected) {
-                    $(`.${searchClass}`).val(lastSelected);
-                    $scope.onSelect()(lastSelected);
-                }
-            };
+            $scope.hasSelection = () => lastSelected ? true : false;
 
             $scope.onSelect = () => {
                 return (value) => {
@@ -3297,6 +3291,14 @@ SIREPO.app.directive('standardMaterial', function(openmcService, panelState, uti
                         });
                     }
                 };
+            };
+
+            $scope.selectSearchType = (wantElement) => {
+                $scope.wantElement = wantElement;
+                if (lastSelected) {
+                    $(`.${searchClass}`).val(lastSelected);
+                    $scope.onSelect()(lastSelected);
+                }
             };
 
             openmcService.loadStandardMaterialNames((names) => {
