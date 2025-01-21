@@ -1,43 +1,54 @@
   <div ng-class="{'sr-plot-loading': isLoading(), 'sr-plot-cleared': dataCleared}" data-ng-attr-id="{{ ::reportId }}">
-    <div class="latex-title"></div>
-    <div><svg class="sr-plot" xmlns:xlink="http://www.w3.org/1999/xlink">
-      <text class="y-base" x="5" ng-attr-y="{{ margin.top - 10 }}"></text>
-      <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
-        <text class="focus-hint" text-anchor="start" x="0" y="-10" dy=".35em"></text>
-        <text class="focus-text" text-anchor="end" ng-attr-x="{{ width }}" y="-10" dy=".35em"></text>
-        <g class="x axis" ng-attr-transform="translate(0, {{ height }})"></g>
-        <g class="x axis grid" ng-attr-transform="translate(0, {{ height }})"></g>
-        <g class="y axis"></g>
-        <g class="y axis grid"></g>
-        <g data-ng-if="wantColorbar" class="colorbar" ng-attr-transform="translate({{ margin.left + width }}, 0)">
-          <text class="frequency-label" ng-attr-x="{{ -margin.right / 2 + 15 }}" y="-5"></text>
+    <div style="position: absolute; height: 0">
+      <div data-ng-attr-style="transform: rotate(-90deg); position: relative; left: -{{ height / 2 - 12 }}px; top:{{ height / 2 + margin.top - 10 }}px; width: {{ height }}px;">
+        <div class="y-axis-label text-center"></div>
+      </div>
+    </div>
+    <div style="position: absolute; height: 0">
+      <div data-ng-attr-style="transform: rotate(-90deg); position: relative; left: {{ width - height / 2 + margin.left + margin.right - 12 }}px; top:{{ height / 2 + margin.top - 10 }}px; width: {{ height }}px;">
+        <div class="y2-axis-label text-center"></div>
+      </div>
+    </div>
+    <div style="position: relative">
+      <div data-ng-if="focusPoints" data-popup-report="" data-plots="plots" data-model-name="{{ modelName }}" data-focus-points="focusPoints" style="overflow: hidden; pointer-events: none; position: absolute; top: {{ margin.top }}px; left: {{ margin.left }}px; width: {{ width }}px; height: {{ height }}px;" data-ng-drop="true"></div>
+      <svg class="sr-plot" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <text class="y-base" x="5" ng-attr-y="{{ margin.top - 10 }}"></text>
+        <g ng-attr-transform="translate({{ margin.left }},{{ margin.top }})">
+          <text class="focus-hint" text-anchor="start" x="0" y="-10" dy=".35em"></text>
+          <text class="focus-text" text-anchor="end" ng-attr-x="{{ width }}" y="-10" dy=".35em"></text>
+          <g class="x axis" ng-attr-transform="translate(0, {{ height }})"></g>
+          <g class="x axis grid" ng-attr-transform="translate(0, {{ height }})"></g>
+          <g class="y axis"></g>
+          <g class="y axis grid"></g>
+          <g ng-attr-transform="translate({{ width }}, 0)">
+            <g class="y2 axis"></g>
+          </g>
+          <g data-ng-if="wantColorbar" class="colorbar" ng-attr-transform="translate({{ margin.left + width }}, 0)">
+            <text class="frequency-label" ng-attr-x="{{ -margin.right / 2 + 15 }}" y="-5"></text>
+          </g>
+          <text class="main-title" ng-attr-x="{{ width / 2 }}" ng-attr-y="-{{ margin.top / 2 }}"></text>
+          <text class="sub-title" ng-attr-x="{{ width / 2 }}" y="0" dy="-.5em"></text>
+          <text class="x-base" text-anchor="end" ng-attr-x="{{ width + margin.right - 5 }}" ng-attr-y="{{ height + 40 }}"></text>
+            <g ng-repeat="fp in focusPoints" class="focus" style="display: none;" data-focus-circle="" data-focus-point="fp"><circle r="6"></circle></g>
+          <svg class="plot-viewport" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
+            <rect style="fill: none; pointer-events: all;" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"></rect>
+            <path class="line line-0"></path>
+            <path class="line line-1"></path>
+            <path class="line line-2"></path>
+            <path class="line line-3"></path>
+            <path class="line line-4"></path>
+            <path class="line line-5"></path>
+            <path class="line line-6"></path>
+            <path class="line line-7"></path>
+            <path class="line line-8"></path>
+            <path class="line line-9"></path>
+            <path class="line line-10"></path>
+          </svg>
+          <rect class="overlay mouse-zoom" data-interactive-overlay="" data-report-id="reportId" data-focus-points="focusPoints" data-focus-strategy="focusStrategy" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}"></rect>
         </g>
-        <text class="y-axis-label" transform="rotate(-90)" ng-attr-x="{{ - height / 2 }}" ng-attr-y="-{{ margin.left }}" dy="1em"></text>
-        <text class="x-axis-label" ng-attr-x="{{ width / 2 }}" ng-attr-y="{{ height + 26 }}" dy="1em"></text>
-        <text class="main-title" ng-attr-x="{{ width / 2 }}" ng-attr-y="-{{ margin.top / 2 }}"></text>
-        <text class="sub-title" ng-attr-x="{{ width / 2 }}" y="0" dy="-.5em"></text>
-        <text class="x-base" text-anchor="end" ng-attr-x="{{ width + margin.right - 5 }}" ng-attr-y="{{ height + 40 }}"></text>
-          <g ng-repeat="fp in focusPoints" class="focus" style="display: none;" data-focus-circle="" data-focus-point="fp"><circle r="6"></circle></g>
-        <svg class="plot-viewport" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}">
-          <rect style="fill: none; pointer-events: all;" ng-attr-width="{{ width }}" ng-attr-height="{{ height }}"></rect>
-          <path class="line line-0"></path>
-          <path class="line line-1"></path>
-          <path class="line line-2"></path>
-          <path class="line line-3"></path>
-          <path class="line line-4"></path>
-          <path class="line line-5"></path>
-          <path class="line line-6"></path>
-          <path class="line line-7"></path>
-          <path class="line line-8"></path>
-          <path class="line line-9"></path>
-          <path class="line line-10"></path>
-        </svg>
-        <rect class="overlay mouse-zoom" data-interactive-overlay="" data-report-id="reportId" data-focus-points="focusPoints" data-focus-strategy="focusStrategy" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}"></rect>
-        <svg data-popup-report="" class="popup-report" data-focus-points="focusPoints" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}" data-ng-drop="true">
-        </svg>
-      </g>
-      <g data-ng-if="wantLegend" class="sr-plot-legend" ng-attr-transform="translate(0, {{ margin.top + height + 45 }})">
-      </g>
-    </svg></div>
+      </svg>
+      <div class="x-axis-label text-center"></div>
+      <div data-plot-legend="" data-plots="plots" data-toggle-plot="togglePlot(pIndex)" data-dynamic-y-label="dynamicYLabel"></div>
+    </div>
     <div data-animation-buttons=""></div>
   </div>

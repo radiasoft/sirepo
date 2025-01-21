@@ -13,7 +13,8 @@ _err() {
 
 _js() {
     local jsfiles=( sirepo/package_data/static/js/*.js )
-    _no_prints '\s(srdbg|console.log|console.trace)\(' "${jsfiles[@]}"
+    _no_prints "${jsfiles[@]}"
+    _no_smart_quotes "${jsfiles[@]}"
     jshint --config=etc/jshint.conf "${jsfiles[@]}"
     if [[ ! ${sirepo_test_no_karma:-} ]]; then
         declare r=$(karma start etc/karma-conf.js 2>&1 || true)
@@ -32,10 +33,9 @@ import timeit;
 print(round(100 * timeit.timeit("str().join(str(i) for i in range(1000000))", number=2)))
 EOF
     )
-    echo 'SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=1'
-    SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=1 pykern ci run
-    echo 'SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=0'
-    SIREPO_FEATURE_CONFIG_UI_WEBSOCKET=0 pykern test
+    export PYKERN_PKCLI_TEST_MAX_PROCS=4
+    export SIREPO_MPI_CORES=2
+    pykern ci run
 }
 
 _msg() {
@@ -43,14 +43,14 @@ _msg() {
 }
 
 _no_h5py() {
-    local f=( $(find sirepo -name \*.py | egrep -v '/(package_data|activait|flash|omega|opal|radia|silas|warp|server.py|hdf5_util)') )
+    local f=( $(find sirepo -name \*.py | egrep -v '/(package_data|activait|flash|omega|opal|radia|silas|warp|server.py|hdf5_util|madx|canvas|elegant|openmc)') )
     local r=$(grep -l '^import.*h5py' "${f[@]}")
     if [[ $r ]]; then
         _err "import h5py found in: $r"
     fi
 }
 
-_no_prints() {
+_no_pattern() {
     local pat=$1
     shift
     local f=( $@ )
@@ -58,6 +58,14 @@ _no_prints() {
     if [[ $r ]]; then
         _err "$pat found in: $r"
     fi
+}
+
+_no_prints() {
+    _no_pattern '\s(srdbg|console.log|console.trace)\(' $@
+}
+
+_no_smart_quotes() {
+    _no_pattern '(“|”|‘|’)' $@
 }
 
 _main "$@"

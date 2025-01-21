@@ -1,0 +1,1476 @@
+{
+    "appModes": {
+        "default": {
+            "localRoute": "geometry"
+        }
+    },
+    "constants": {
+        "geometryScale": 0.01,
+        "helpUserManualURL": "https://docs.openmc.org/en/stable/",
+        "helpUserForumURL": "https://openmc.discourse.group/",
+        "inProgressText": "Working",
+        "minTallyResolution": 5,
+        "maxFilters": 5,
+        "sbatch": {
+            "fields": ["sbatchHours", "sbatchNodes"],
+            "nersc": ["sbatchQueue", "sbatchProject"]
+        },
+        "scoreUnits": {
+            "damage-energy": "eV",
+            "decay-rate": "$s^{-1}$",
+            "fission-q-prompt": "eV",
+            "fission-q-recoverable": "eV",
+            "flux": "cm",
+            "heating": "eV",
+            "heating-local": "eV",
+            "inverse-velocity": "cm/s",
+            "kappa-fission": "eV"
+        },
+        "unnormalizableScores": [
+            "decay-rate",
+            "inverse-velocity"
+        ],
+        "volumeProperties": ["color", "opacity"]
+    },
+    "enum": {
+        "Axis": [
+            ["x", "x"],
+            ["y", "y"],
+            ["z", "z"]
+        ],
+        "BinSpace": [
+            ["linear", "Linear"],
+            ["log", "Logarithmic"]
+        ],
+        "DensityUnits": [
+            ["g/cm3", "g/cm3"],
+            ["g/cc", "g/cc"],
+            ["kg/m3", "kg/m3"],
+            ["atom/b-cm", "atom/b-cm"],
+            ["atom/cm3", "atom/cm3"],
+            ["sum", "sum"],
+            ["macro", "macro"]
+        ],
+        "EnrichmentType": [
+            ["none", ""],
+            ["ao", "ao"],
+            ["wo", "wo"]
+        ],
+        "FilterParticle": [
+            ["neutron", "Neutron"],
+            ["photon", "Photon"],
+            ["electron", "Electron"],
+            ["positron", "Positron"]
+        ],
+        "Interpolation": [
+            ["histogram", "Histogram"],
+            ["linear-linear", "Linear-Linear"],
+            ["linear-log", "Linear-Log"],
+            ["log-linear", "Log-Linear"],
+            ["log-log", "Log-Log"]
+        ],
+        "MaterialComponent": [
+            ["add_element", "Element"],
+            ["add_elements_from_formula", "Elements from Formula"],
+            ["add_macroscopic", "Macroscopic"],
+            ["add_nuclide", "Nuclide"],
+            ["add_s_alpha_beta", "S alpha beta"]
+        ],
+        "MaterialLibrary": [
+            ["ENDFB-7.1-NNDC", "ENDFB-7.1-NNDC"],
+            ["ENDFB-8.0-NNDC", "ENDFB-8.0-NNDC"],
+            ["FENDL-3.1d", "FENDL-3.1d"],
+            ["TENDL-2019", "TENDL-2019"]
+        ],
+        "Particle": [
+            ["neutron", "Neutron"],
+            ["photon", "Photon"]
+        ],
+        "PercentType": [
+            ["ao", "ao"],
+            ["wo", "wo"]
+        ],
+        "ProbabilityDistribution": [
+            ["None", "None"],
+            ["discrete", "Discrete"],
+            ["legendre", "Legendre"],
+            ["maxwell", "Maxwell"],
+            ["muir", "Muir"],
+            ["normal", "Normal"],
+            ["powerLaw", "PowerLaw"],
+            ["tabular", "Tabular"],
+            ["tabularFromFile", "From File"],
+            ["uniform", "Uniform"],
+            ["watt", "Watt"]
+        ],
+        "RunMode": [
+            ["eigenvalue", "eigenvalue"],
+            ["fixed source", "fixed source"]
+        ],
+        "SourceSettings": [
+            ["manual", "Manual"],
+            ["file", "From File"]
+        ],
+        "SpatialDistribution": [
+            ["None", "None"],
+            ["box", "Box"],
+            ["cartesianIndependent", "CartesianIndependent"],
+            ["cylindricalIndependent", "CylindricalIndependent"],
+            ["point", "Point"],
+            ["sphericalIndependent", "SphericalIndependent"]
+        ],
+        "StandardMaterial": [
+            ["None", "None"],
+            ["materialStandardConcreteHanford", "Concrete, Hanford Dry"],
+            ["materialStandardConcreteLosAlamos", "Concrete, Los Alamos (MCNP)"],
+            ["materialStandardConcreteOrdinary", "Concrete, Ordinary (NIST)"],
+            ["materialStandardPolyethylene", "Polyethylene"],
+            ["materialStandardPolyethyleneBorated", "Polyethylene, Borated"],
+            ["materialStandardSteelStainless304", "Steel, Stainless 304"],
+            ["materialStandardSteelStainless316", "Steel, Stainless 316"]
+        ],
+        "UnitSphereDistribution": [
+            ["None", "None"],
+            ["isotropic", "Isotropic"],
+            ["monodirectional", "Monodirectional"],
+            ["polarAzimuthal", "PolarAzimuthal"]
+        ],
+        "TallyAspect": [
+            ["mean", "Mean"],
+            ["std_dev", "Standard Deviation"],
+            ["sum", "Sum"],
+            ["sum_sq", "Sum of Squares"]
+        ],
+        "TallyFilter": [
+            ["None", "None"],
+            ["materialFilter", "MaterialFilter"],
+            ["meshFilter", "MeshFilter"],
+            ["energyFilter", "EnergyFilter"],
+            ["energyoutFilter", "EnergyoutFilter"],
+            ["particleFilter", "ParticleFilter"]
+        ],
+        "TallyGeometry": [
+            ["2D", "2D"],
+            ["3D", "3D"]
+        ],
+        "TallyScore": [
+            ["flux", "flux: Total flux"],
+
+            ["absorption", "absorption: Total absorption rate"],
+            ["elastic", "elastic: Elastic scattering reaction rate"],
+            ["fission", "fission: Total fission reaction rate"],
+            ["scatter", "scatter: Total scattering rate"],
+            ["total", "total: Total reaction rate"],
+            ["(n,2nd)", "(n,2nd) reaction rate"],
+            ["(n,2n)", "(n,2n) reaction rate"],
+            ["(n,3n)", "(n,3n) reaction rate"],
+            ["(n,na)", "(n,nα) reaction rate"],
+            ["(n,n3a)", "(n,n3α) reaction rate"],
+            ["(n,2na)", "(n,2nα) reaction rate"],
+            ["(n,3na)", "(n,3nα) reaction rate"],
+            ["(n,np)", "(n,np) reaction rate"],
+            ["(n,n2a)", "(n,n2α) reaction rate"],
+            ["(n,2n2a)", "(n,2n2α) reaction rate"],
+            ["(n,nd)", "(n,nd) reaction rate"],
+            ["(n,nt)", "(n,nt) reaction rate"],
+            ["(n,n3He)", "(n,n3He) reaction rate"],
+            ["(n,nd2a)", "(n,nd2α) reaction rate"],
+            ["(n,nt2a)", "(n,nt2α) reaction rate"],
+            ["(n,4n)", "(n,4n) reaction rate"],
+            ["(n,2np)", "(n,2np) reaction rate"],
+            ["(n,3np)", "(n,3np) reaction rate"],
+            ["(n,n2p)", "(n,n2p) reaction rate"],
+            ["(n,nc)", "(n,nc) Continuum level inelastic scattering reaction rate"],
+            ["(n,gamma)", "(n,gamma) Radiative capture reaction rate"],
+            ["(n,p)", "(n,p) reaction rate"],
+            ["(n,d)", "(n,d) reaction rate"],
+            ["(n,t)", "(n,t) reaction rate"],
+            ["(n,3He)", "(n,3He) reaction rate"],
+            ["(n,a)", "(n,α) reaction rate"],
+            ["(n,2a)", "(n,2α) reaction rate"],
+            ["(n,3a)", "(n,3α) reaction rate"],
+            ["(n,2p)", "(n,2p) reaction rate"],
+            ["(n,pa)", "(n,pα) reaction rate"],
+            ["(n,t2a)", "(n,t2α) reaction rate"],
+            ["(n,d2a)", "(n,d2α) reaction rate"],
+            ["(n,pd)", "(n,pd) reaction rate"],
+            ["(n,pt)", "(n,pt) reaction rate"],
+            ["(n,da)", "(n,dα) reaction rate"],
+            ["coherent-scatter", "coherent-scatter: Coherent (Rayleigh) scattering reaction rate"],
+            ["incoherent-scatter", "incoherent-scatter: Incoherent (Compton) scattering reaction rate"],
+            ["photoelectric", "photoelectric: Photoelectric absorption reaction rate"],
+            ["pair-production", "pair-production: Pair production reaction rate"],
+
+            ["delayed-nu-fission", "delayed-nu-fission: Total production of delayed neutrons due to fission"],
+            ["prompt-nu-fission", "prompt-nu-fission: Total production of prompt neutrons due to fission"],
+            ["nu-fission", "nu-fission: Total production of neutrons due to fission"],
+            ["nu-scatter", "nu-scatter: Nu scatter score"],
+            ["H1-production", "H1-production: Total production of H1"],
+            ["H2-production", "H2-production: Total production of H2 (deuterium)"],
+            ["H3-production", "H3-production: Total production of H3 (tritium)"],
+            ["He3-production", "He3-production: Total production of He3"],
+            ["He4-production", "He4-production: Total production of He4 (alpha particles)"],
+
+            ["current", "current: Partial currents on the cell boundaries"],
+            ["events", "events: Number of scoring events"],
+            ["inverse-velocity", "inverse-velocity: Flux-weighted inverse velocity"],
+            ["heating", "heating: Total nuclear heating"],
+            ["heating-local", "heating-local: Total nuclear heating assuming energy is deposited locally"],
+            ["kappa-fission", "kappa-fission: Recoverable energy production rate"],
+            ["fission-q-prompt", "fission-q-prompt: Prompt fission energy production rate"],
+            ["fission-q-recoverable", "fission-q-recoverable: Recoverable fission energy production rate"],
+            ["decay-rate", "decay-rate: Delayed-nu-fission-weighted decay rate"],
+            ["damage-energy", "damage-energy: Damage energy production"]
+        ],
+        "VarianceReduction": [
+            ["None", "None"],
+            ["survival_biasing", "Survival Biasing"],
+            ["weight_windows_mesh", "MAGIC Method"],
+            ["weight_windows_tally", "MAGIC Method for Tally"],
+            ["weight_windows_file", "MAGIC Method File"]
+        ]
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "vtk.js"
+            ]
+        },
+        "sirepoLibs": {
+            "css": [
+                "openmc.css",
+                "vtk.css"
+            ],
+            "js": [
+                "openmc.js",
+                "sirepo-geometry.js",
+                "sirepo-plotting-vtk.js"
+            ]
+        }
+    },
+    "frameIdFields": {
+        "openmcAnimation": [
+            "tally",
+            "score",
+            "aspect",
+            "energyRangeSum",
+            "numSampleSourceParticles"
+        ],
+        "energyAnimation": [
+            "tally",
+            "score",
+            "x",
+            "y",
+            "z"
+        ],
+        "outlineAnimation": [
+            "tally",
+            "axis"
+        ]
+    },
+    "localRoutes": {
+        "geometry": {
+            "route": "/geometry/:simulationId",
+            "config": {
+                "controller": "GeometryController as geometry",
+                "templateUrl": "/static/html/openmc-geometry.html"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "VisualizationController as visualization",
+                "templateUrl": "/static/html/openmc-visualization.html"
+            }
+        }
+    },
+    "model": {
+        "box": {
+            "_super": ["_", "model", "spatial"],
+            "lower_left": ["Lower left [cm]", "Point3D", [0, 0, 0], "Lower-left coordinates of cuboid"],
+            "upper_right": ["Upper right [cm]", "Point3D", [0, 0, 0], "Upper-right coordinates of cuboid"],
+            "only_fissionable": ["Only fissionable", "Boolean", "0", "Whether spatial sites should only be accepted if they occur in fissionable materials"]
+        },
+        "dagmcAnimation": {},
+        "discrete": {
+            "_super": ["_", "model", "univariate"],
+            "probabilityValue": ["", "ModelArray", ""]
+        },
+        "cartesianIndependent": {
+            "_super": ["_", "model", "spatial"],
+            "x": ["X distribution", "Univariate", {"_type": "None"}],
+            "y": ["Y distribution", "Univariate", {"_type": "None"}],
+            "z": ["Z distribution", "Univariate", {"_type": "None"}]
+        },
+        "coefficient": {
+            "coefficient": ["Expansion coefficients", "FloatArray", "", "Probability density given by a Legendre polynomial expansion $\\sum\\limits_{\\ell=0}^N \\frac{2\\ell + 1}{2} a_\\ell P_\\ell(\\mu)$. $\\newline$ Expansion coefficients $a_\\ell$. Note that the $(2\\ell + 1)/2$ factor should not be included"]
+        },
+        "cylindricalIndependent": {
+            "_super": ["_", "model", "spatial"],
+            "r": ["R distribution", "Univariate", {"_type": "None"}],
+            "phi": ["Phi distribution", "Univariate", {"_type": "None"}, "Distribution of phi-coordinates (azimuthal angle) in a reference frame specified by the origin parameter"],
+            "z": ["Z distribution", "Univariate", {"_type": "None"}],
+            "origin": ["Origin [cm]", "Point3D", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the cylindrical reference frame for the source."]
+        },
+        "energyFilter": {
+            "_super": ["_", "model", "filter"],
+            "space": ["Space", "BinSpace", "linear"],
+            "start": ["Start [MeV]", "Float", 0, "A logarithmic space treats 0 as $10^{-307}$", 0],
+            "stop": ["Stop [MeV]", "Float", 25],
+            "num": ["Number of samples", "Integer", 5, "", 2]
+        },
+        "energyoutFilter": {
+            "_super": ["_", "model", "filter"],
+            "space": ["Space", "BinSpace", "linear"],
+            "start": ["Start [MeV]", "Float", 0],
+            "stop": ["Stop [MeV]", "Float", 1],
+            "num": ["Number of samples", "Integer", 5]
+        },
+        "energyAnimation": {
+            "tally": ["Tally", "PlotTallyList"],
+            "x": ["x [m]", "XPlanePosition", 0],
+            "y": ["y [m]", "YPlanePosition", 0],
+            "z": ["z [m]", "ZPlanePosition", 0]
+        },
+        "filter": {
+            "_type": ["", "TallyFilter"]
+        },
+        "geometryInput": {
+            "dagmcFile": ["Model file", "InputFile", "", "A DAGMC (.h5m) or Step (.stp) file"],
+            "materialsFile": ["Materials XML file (optional)", "InputFile", "", "An OpenMC materials.xml mapping from names to volume properties", false],
+            "exampleURL": ["", "String", ""]
+        },
+        "geometry3DReport": {
+            "bgColor": ["Background color", "Color", "#fff9ed"],
+            "opacity": ["Global alpha", "Opacity", 1.0],
+            "showEdges": ["Show edges", "Boolean", "0"],
+            "showMarker": ["Show axis marker", "Boolean", "1"]
+        },
+        "isotropic": {
+            "_super": ["_", "model", "unitSphere"]
+        },
+        "legendre": {
+            "_super": ["_", "model", "univariate"],
+            "coefficient": ["", "ModelArray", ""]
+        },
+        "material": {
+            "name": ["Name", "String", ""],
+            "temperature": ["Temperature [K] (Optional)", "OptionalFloat"],
+            "density_with_units": ["Density", "DensityWithUnits"],
+            "density": ["Density", "Float"],
+            "density_units": ["Density units", "DensityUnits", "g/cm3"],
+            "depletable": ["Depletable", "Boolean", "0"],
+            "standardType": ["Standard material", "StandardMaterial", "None"],
+            "volume": ["Volume [$cm^3$] (Optional)", "OptionalFloat"],
+            "components": ["", "MaterialComponents"]
+        },
+        "materialComponent": {
+            "component": ["Component", "MaterialComponent", "add_element"],
+            "name": ["Name", "ComponentName", ""],
+            "percent_with_type": ["Percent", "PercentWithType", "", "Atom weight (ao) or Weight percent (wo)"],
+            "percent": ["Percent", "Float", 1.0],
+            "percent_type": ["Percent type", "PercentType", "ao"],
+            "enrichment_with_type": ["Enrichment", "EnrichmentWithType", "", "Atom weight (ao) or Weight percent (wo)"],
+            "enrichment": ["Enrichment", "OptionalFloat"],
+            "enrichment_type": ["Enrichment type", "EnrichmentType", "none"],
+            "enrichment_target": ["Enrichment target", "OptionalString"],
+            "fraction": ["Fraction", "Float", 1.0, "The fraction of relevant nuclei that are affected by the $S(\\alpha, \\beta)$ table."]
+        },
+        "materialFilter": {
+            "_super": ["_", "model", "filter"],
+            "bins": ["Cells", "SimpleListEditor", [], "", "materialValue"]
+        },
+        "materialStandard": {
+            "_super": ["_", "model", "material"]
+        },
+        "materialStandardConcreteHanford": {
+            "_super": ["_", "model", "materialStandard"],
+            "density": ["Density", "Float", 2.18],
+            "components": ["", "MaterialComponents", [
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "H",
+                    "percent": 0.004000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "O",
+                    "percent": 0.482102,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Na",
+                    "percent": 0.002168,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Mg",
+                    "percent": 0.014094,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Al",
+                    "percent": 0.069387,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Si",
+                    "percent": 0.277549,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "K",
+                    "percent": 0.013010,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Ca",
+                    "percent": 0.080229,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Fe",
+                    "percent": 0.057461,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                }
+            ]],
+            "name": ["Name", "String", "Concrete, Hanford Dry"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardConcreteHanford"]
+        },
+        "materialStandardConcreteLosAlamos": {
+            "_super": ["_", "model", "materialStandard"],
+            "density": ["Density", "Float", 2.25],
+            "components": ["", "MaterialComponents", [
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "H",
+                    "percent": 0.004530,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "O",
+                    "percent": 0.512600,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Na",
+                    "percent": 0.015270,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Al",
+                    "percent": 0.035550,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Si",
+                    "percent": 0.360360,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Ca",
+                    "percent": 0.057910,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Fe",
+                    "percent": 0.013780,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                }
+            ]],
+            "name": ["Name", "String", "Concrete, Los Alamos (MCNP)"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardConcreteLosAlamos"]
+        },
+        "materialStandardConcreteOrdinary": {
+            "_super": ["_", "model", "materialStandard"],
+            "density": ["Density", "Float", 2.18],
+            "components": ["", "MaterialComponents", [
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "H",
+                    "percent": 0.022100,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "C",
+                    "percent": 0.002484,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "O",
+                    "percent": 0.574930,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Na",
+                    "percent": 0.015208,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Mg",
+                    "percent": 0.001266,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Al",
+                    "percent": 0.019953,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Si",
+                    "percent": 0.304627,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "K",
+                    "percent": 0.010045,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Ca",
+                    "percent": 0.042951,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Fe",
+                    "percent": 0.006435,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                }
+            ]],
+            "name": ["Name", "String", "Concrete, Ordinary (NIST)"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardConcreteOrdinary"]
+        },
+        "materialStandardPolyethylene": {
+            "_super": ["_", "model", "materialStandard"],
+            "density": ["Density", "Float", 0.93],
+            "components": ["", "MaterialComponents", [
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "H",
+                    "percent": 0.143716,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "C",
+                    "percent": 0.856284,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                }
+            ]],
+            "name": ["Name", "String", "Polyethylene"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardPolyethylene"]
+        },
+        "materialStandardPolyethyleneBorated": {
+            "_super": ["_", "model", "materialStandard"],
+            "density": ["Density", "Float", 1.0],
+            "components": ["", "MaterialComponents", [
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "H",
+                    "percent": 0.125355,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "B",
+                    "percent": 0.100000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "C",
+                    "percent": 0.774645,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                }
+            ]],
+            "name": ["Name", "String", "Polyethylene, Borated"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardPolyethyleneBorated"]
+        },
+        "materialStandardSteelStainless304": {
+            "_super": ["_", "model", "materialStandard"],
+            "density": ["Density", "Float", 8.0],
+            "components": ["", "MaterialComponents", [
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "C",
+                    "percent": 0.000400,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Si",
+                    "percent": 0.005000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "P",
+                    "percent": 0.000230,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "S",
+                    "percent": 0.000150,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Cr",
+                    "percent": 0.190000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Mn",
+                    "percent": 0.010000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Fe",
+                    "percent": 0.701730,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Ni",
+                    "percent": 0.092500,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                }
+            ]],
+            "name": ["Name", "String", "Steel, Stainless 304"],
+            "standardType": ["Standard Material", "StandardMaterial", "materialStandardSteelStainless304"]
+        },
+        "materialStandardSteelStainless316": {
+            "_super": ["_", "model", "materialStandard"],
+            "density": ["Density", "Float", 8.0],
+            "components": ["", "MaterialComponents", [
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "C",
+                    "percent": 0.000410,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Si",
+                    "percent": 0.005070,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "P",
+                    "percent": 0.000230,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "S",
+                    "percent": 0.000150,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Cr",
+                    "percent": 0.170000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Mn",
+                    "percent": 0.010140,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Fe",
+                    "percent": 0.669000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Ni",
+                    "percent": 0.120000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                },
+                {
+                    "component": "add_element",
+                    "enrichment_type": "none",
+                    "enrichment_with_type": "",
+                    "fraction": 1,
+                    "name": "Mo",
+                    "percent": 0.025000,
+                    "percent_type": "wo",
+                    "percent_with_type": ""
+                }
+            ]],
+            "name": ["Name", "String", "Steel, Stainless 316"],
+            "standardType": ["Standard material", "StandardMaterial", "materialStandardSteelStainless316"]
+        },
+        "materialValue": {
+            "value": ["Material", "MaterialValue"]
+        },
+        "maxwell": {
+            "_super": ["_", "model", "univariate"],
+            "theta": ["Theta", "Float", "", "The Maxwellian distribution in energy is characterized by a single parameter $\\theta$ and has a density function $p(E) dE = c \\sqrt{E} e^{-E/\\theta} dE$"]
+        },
+        "meshFilter": {
+            "_super": ["_", "model", "filter"],
+            "dimension": ["Mesh cell count", "Point3D", [10, 10, 10]],
+            "lower_left": ["Mesh lower left [cm]", "Point3D", [-5.0, -5.0, -5.0]],
+            "upper_right": ["Mesh upper right [cm]", "Point3D", [5.0, 5.0, 5.0]]
+        },
+        "monodirectional": {
+            "_super": ["_", "model", "unitSphere"],
+            "reference_uvw": ["Polar angle direction", "Point3D", [1, 0, 0]]
+        },
+        "muir": {
+            "_super": ["_", "model", "univariate"],
+            "e0": ["Mean energy [eV]", "Float", 14.08e6, "The Muir energy spectrum is a Gaussian spectrum, but for convenience reasons allows the user 3 parameters to define the distribution, the mean energy of particles, the mass of reactants, and the ion temperature"],
+            "m_rat": ["Mass of reactants", "Float", 5, "Ratio of the sum of the masses of the reaction inputs to an AMU"],
+            "kt": ["Ion temperature [eV]", "Float", 20000]
+        },
+        "normal": {
+            "_super": ["_", "model", "univariate"],
+            "mean_value": ["Mean value", "Float"],
+            "std_dev": ["Standard deviation", "Float"]
+        },
+        "nuclide": {
+            "nuclide": ["Nuclide", "OptionalString"]
+        },
+        "openmcAnimation": {
+            "aspect": ["Aspect", "TallyAspect", "mean"],
+            "bgColor": ["Background color", "Color", "#fff9ed"],
+            "colorMap": ["Tally color map", "ColorMap", "viridis"],
+            "energyRangeSum": ["Sum over energies [MeV]", "EnergyRange", [0, 0]],
+            "numSampleSourceParticles": ["Source particles to display", "Integer", 10, "", 1, 100],
+            "opacity": ["Global alpha", "Opacity", 1.0],
+            "showEdges": ["Show edges", "Boolean", "0"],
+            "showMarker": ["Show axis marker", "Boolean", "1"],
+            "showSources": ["Show sources", "Boolean", "0"],
+            "sourceColorMap": ["Source energy color map", "ColorMap", "jet"],
+            "tally": ["Tally", "PlotTallyList"],
+            "thresholds": ["Threshold", "Threshold", [0, 0], "Tally cells with a value outside this range will not be displayed"],
+            "colorRange": ["Color range", "Threshold", [0, 0]],
+            "score": ["Score", "PlotScoreList"],
+            "sourceNormalization": ["Normalize to particle count", "Float", 1e12, "Per-particle tally scores are normalized to this many source particles (a factor of {{ appState.models.openmcAnimation.sourceNormalization / appState.models.settings.particles }})", 1.0],
+            "isEnergySelected": ["", "Boolean", "0"],
+            "jobRunMode": ["Execution mode", "JobRunMode", "parallel"],
+            "tasksPerNode": ["Tasks per node", "Integer", 8, "", 1],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchNodes": ["Nodes", "Integer", 32, "", 1],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchCores": ["CPUs per task", "Integer", 16, "", 1],
+            "sbatchProject": ["Project", "OptionalString", ""],
+            "ompThreads": ["OMP threads", "Integer", 16, "", 1],
+            "selectedVolumes": ["", "SelectedTallyVolumes", ""]
+        },
+        "outlineAnimation": {
+            "tally": ["", "PlotTallyList"],
+            "axis": ["", "Axis", "y"]
+        },
+        "particle": {
+            "value": ["Particle", "FilterParticle"]
+        },
+        "particleFilter": {
+            "_super": ["_", "model", "filter"],
+            "bins": ["Particle", "SimpleListEditor", [], "", "particle"]
+        },
+        "point": {
+            "_super": ["_", "model", "spatial"],
+            "xyz": ["X, Y, Z [cm]", "Point3D", [0, 0, 0]]
+        },
+        "polarAzimuthal": {
+            "_super": ["_", "model", "unitSphere"],
+            "mu": ["Polar angle distribution", "Univariate", {"_type": "None"}, "Distribution of the cosine of the polar angle"],
+            "phi": ["Azimuthal angle distribution [rad]", "Univariate", {"_type": "None"}, "Distribution of the azimuthal angle in radians"],
+            "reference_uvw": ["Polar angle direction", "Point3D", [0, 0, 1]]
+        },
+        "powerLaw": {
+            "_super": ["_", "model", "univariate"],
+            "a": ["Lower bound", "Float", 0, "The power law distribution has density function $p(x) dx = c x^n dx$"],
+            "b": ["Upper bound", "Float", 1],
+            "n": ["Exponent", "Float", 0, "Power law exponent. Defaults to zero, which is equivalent to a uniform distribution"]
+        },
+        "probabilityValue": {
+            "x": ["Value", "Float"],
+            "p": ["Probability", "Float"]
+        },
+        "reflectivePlanes": {
+            "useReflectivePlanes": ["Use reflective planes", "Boolean", "0", "Add reflective planes for sector models."],
+            "planesList": ["", "PlanesList", []]
+        },
+        "plane": {
+            "A": ["A", "Float", 0],
+            "B": ["B", "Float", 0],
+            "C": ["C", "Float", 0],
+            "D": ["D", "Float", 0],
+            "inside": ["Inside", "Boolean", "0", "Indicates whether the region is inside of the surface."]
+        },
+        "settings": {
+            "batches": ["Number of batches to simulate", "Integer", 1, "", 1],
+            "eigenvalueHistory": ["Eigenvalue history", "Integer", 5],
+            "inactive": ["Number of inactive batches", "Integer", 0, "These batches will be used to converge the eigenvalue before calculations begin"],
+            "particles": ["Number of particles per generation", "Integer", 5000],
+            "photon_transport": ["Photon transport", "Boolean", "0", "Simulate the passage of photons through matter"],
+            "sources": ["", "SourcesOrTallies", []],
+            "tallies": ["", "SourcesOrTallies", []],
+            "run_mode": ["Run mode", "RunMode", "fixed source", "The type of calculation to perform"],
+            "materialLibrary": ["Material data library", "MaterialLibrary", "ENDFB-8.0-NNDC"],
+            "varianceReduction": ["Technique", "VarianceReduction", "None"],
+            "max_splits": ["Maximum splits", "Integer", 1000, "Maximum number of particle splits for weight windows"],
+            "outputInterval": ["Output interval", "Integer", 1, "Output interval for active batches", 1],
+            "weightWindowsFile": ["File", "InputFile", ""]
+        },
+        "source": {
+            "angle": ["Angular distribution", "UnitSphere", {"_type": "None"}],
+            "energy": ["Energy distribution", "Univariate", {"_type": "None"}],
+            "file": ["File", "InputFile", "", "openmc source file in hdf5 format", false],
+            "particle": ["Particle", "Particle", "neutron"],
+            "space": ["Spatial distribution", "Spatial", {"_type": "None"}],
+            "strength": ["Strength", "Float", 1],
+            "time": ["Time distribution", "Univariate", {"_type": "None"}],
+            "type": ["Source settings", "SourceSettings", "manual"]
+        },
+        "sources": [],
+        "spatial": {
+            "_type": ["", "SpatialDistribution"]
+        },
+        "sphericalIndependent": {
+            "_super": ["_", "model", "spatial"],
+            "r": ["R distribution", "Univariate", {"_type": "None"}],
+            "theta": ["Theta distribution", "Univariate", {"_type": "None"}, "Distribution of theta-coordinates (angle relative to the z-axis) in a reference frame specified by the origin parameter"],
+            "phi": ["Phi distribution", "Univariate", {"_type": "None"}, "Distribution of phi-coordinates (azimuthal angle) in a reference frame specified by the origin parameter"],
+            "origin": ["Origin [cm]", "Point3D", [0, 0, 0], "Coordinates (x0, y0, z0) of the center of the spherical reference frame for the source"]
+        },
+        "survivalBiasing": {
+            "weight": ["Weight", "Float", 0.25, "Weight cutoff below which particle undergo Russian roulette", 0, 1],
+            "weight_avg": ["Weight average", "Float", 1.0, "Weight assigned to particles that are not killed after Russian roulette", 0, 1]
+        },
+        "tabular": {
+            "_super": ["_", "model", "univariate"],
+            "probabilityValue": ["", "ModelArray", ""],
+            "interpolation": ["Interpolation", "Interpolation", "linear-linear"],
+            "ignore_negative": ["Ignore negative probabilities", "Boolean", "0"]
+        },
+        "tabularFromFile": {
+            "_super": ["_", "model", "univariate"],
+            "file": ["File", "InputFile", "", "", false],
+            "interpolation": ["Interpolation", "Interpolation", "linear-linear"],
+            "ignore_negative": ["Ignore negative probabilities", "Boolean", "0"]
+        },
+        "tally": {
+            "name": ["Name", "String"],
+            "filter1": ["Filter", "Filter", {"_type": "None"}],
+            "filter2": ["Filter", "Filter", {"_type": "None"}],
+            "filter3": ["Filter", "Filter", {"_type": "None"}],
+            "filter4": ["Filter", "Filter", {"_type": "None"}],
+            "filter5": ["Filter", "Filter", {"_type": "None"}],
+            "scores": ["Scores", "SimpleListEditor", [], "", "tallyScore"],
+            "nuclides": ["Nuclides", "SimpleListEditor", [], "List of nuclides to use when scoring results", "nuclide"]
+        },
+        "tallyReport": {
+            "axis": ["Slice axis", "Axis", "y"],
+            "colorMap": ["Color map", "ColorMap", "viridis"],
+            "planePos": ["{{ appState.models.tallyReport.axis }} [m]", "PlanePosition", 0],
+            "enableCrosshairs": ["", "Bool", false],
+            "enableSelection": ["", "Bool", false],
+            "selectedGeometry": ["", "TallyGeometry", "2D"]
+        },
+        "tallyScore": {
+            "score": ["Score", "TallyScoreWithGrouping", ""]
+        },
+        "uniform": {
+            "_super": ["_", "model", "univariate"],
+            "a": ["Lower bound", "Float", 0],
+            "b": ["Upper bound", "Float", 1]
+        },
+        "unitSphere": {
+            "_type": ["", "UnitSphereDistribution"]
+        },
+        "univariate": {
+            "_type": ["", "ProbabilityDistribution"]
+        },
+        "volumes": {},
+        "watt": {
+            "_super": ["_", "model", "univariate"],
+            "a": ["a", "Float", 0.988e6, "The Watt fission energy spectrum is characterized by two parameters $a$ and $b$ and has density function $p(E) dE = c e^{-E/a} \\sinh \\sqrt{b \\, E} dE$"],
+            "b": ["b", "Float", 2.249e-6]
+        },
+        "weightWindows": {
+            "tally": ["Tally", "SettingsTallyList"],
+            "iterations": ["Number of iterations", "Integer", 5, "", 2],
+            "particle": ["Particle", "Particle", "neutron"],
+            "particles": ["Number of particles per iteration", "Integer", 500]
+        },
+        "weightWindowsMesh": {
+            "_super": ["_", "model", "meshFilter"]
+        }
+    },
+    "strings": {
+        "completionState": ": {frameCount} batches",
+        "dagmcAnimation": {
+            "typeOfSimulation": "Volume Extraction"
+        }
+    },
+    "view": {
+        "box": {
+            "advanced": [
+                "lower_left",
+                "upper_right",
+                "only_fissionable"
+            ]
+        },
+        "cartesianIndependent": {
+            "advanced": [
+                "x",
+                "y",
+                "z"
+            ]
+        },
+        "coefficient": {
+            "maxRows": 20,
+            "advanced": [
+                "coefficient"
+            ]
+        },
+        "cylindricalIndependent": {
+            "advanced": [
+                "r",
+                "phi",
+                "z",
+                "origin"
+            ]
+        },
+        "discrete": {
+            "advanced": [
+                "probabilityValue"
+            ]
+        },
+        "energyFilter": {
+            "advanced": [
+                "space",
+                "start",
+                "stop",
+                "num"
+            ]
+        },
+        "energyoutFilter": {
+            "advanced": [
+                "space",
+                "start",
+                "stop",
+                "num"
+            ]
+        },
+        "energyAnimation": {
+            "title": "Energy Spectrum",
+            "basic": [
+                "x",
+                "y",
+                "z"
+            ],
+            "advanced": []
+        },
+        "geometryInput": {
+            "title": "Geometry Input",
+            "basic": [
+                "dagmcFile",
+                "materialsFile"
+            ],
+            "advanced": []
+        },
+        "geometry3DReport": {
+            "title": "DAGMC Geometry",
+            "is3d": true,
+            "advanced": [
+                "opacity",
+                "bgColor",
+                "showEdges",
+                "showMarker"
+            ]
+        },
+        "isotropic": {
+            "advanced": []
+        },
+        "legendre": {
+            "advanced": [
+                "coefficient"
+            ]
+        },
+        "material": {
+            "title": "Material",
+            "advanced": [
+                "name",
+                "standardType",
+                "density_with_units",
+                "depletable",
+                "temperature",
+                "volume",
+                "components"
+            ]
+        },
+        "materialFilter": {
+            "advanced": [
+                "bins"
+            ]
+        },
+        "materialValue": {
+            "advanced": [
+                "value"
+            ]
+        },
+        "maxwell": {
+            "advanced": [
+                "theta"
+            ]
+        },
+        "meshFilter": {
+            "advanced": [
+                "dimension",
+                "lower_left",
+                "upper_right"
+            ]
+        },
+        "monodirectional": {
+            "advanced": [
+                "reference_uvw"
+            ]
+        },
+        "muir": {
+            "advanced": [
+                "e0",
+                "m_rat",
+                "kt"
+            ]
+        },
+        "normal": {
+            "advanced": [
+                "mean_value",
+                "std_dev"
+            ]
+        },
+        "nuclide": {
+            "advanced": [
+                "nuclide"
+            ]
+        },
+        "tallySettings": {
+            "title": "Tally Settings",
+            "model": "openmcAnimation",
+            "basic": [
+                ["Tally", [
+                    "tally",
+                    "score",
+                    "aspect",
+                    "sourceNormalization",
+                    "energyRangeSum",
+                    "colorMap",
+                    "thresholds",
+                    "colorRange",
+                    "opacity",
+                    "tallyReport.axis",
+                    "tallyReport.planePos"
+                ]],
+                ["Volumes", [
+                    "selectedVolumes"
+                ]],
+                ["Source", [
+                    "showSources",
+                    "numSampleSourceParticles",
+                    "sourceColorMap"
+                ]]
+            ],
+            "advanced": []
+        },
+        "openmcAnimation": {
+            "title": "Tally Results",
+            "is3d": true,
+            "advanced": [
+                "bgColor",
+                "showMarker"
+            ]
+        },
+        "particle": {
+            "advanced": [
+                "value"
+            ]
+        },
+        "particleFilter": {
+            "advanced": [
+                "bins"
+            ]
+        },
+        "point": {
+            "advanced": [
+                "xyz"
+            ]
+        },
+        "polarAzimuthal": {
+            "advanced": [
+                "mu",
+                "phi",
+                "reference_uvw"
+            ]
+        },
+        "powerLaw": {
+            "advanced": [
+                "a",
+                "b",
+                "n"
+            ]
+        },
+        "probabilityValue": {
+            "maxRows": 20,
+            "advanced": [
+                "x",
+                "p"
+            ]
+        },
+        "settings": {
+            "title": "Settings",
+            "basic": [
+                ["Main", [
+                    "batches",
+                    "inactive",
+                    "particles",
+                    "run_mode",
+                    "outputInterval",
+                    "materialLibrary",
+                    "photon_transport"
+                ]],
+                ["Sources", [
+                    "sources"
+                ]],
+                ["Reflective Planes", [
+                    "reflectivePlanes.useReflectivePlanes",
+                    "*Plane Formula: $Ax + By + Cz = D$",
+                    "reflectivePlanes.planesList"
+                ]],
+                ["Tallies", [
+                    "tallies"
+                ]],
+                ["Variance Reduction", [
+                    "varianceReduction",
+                    "survivalBiasing.weight",
+                    "survivalBiasing.weight_avg",
+                    "weightWindows.tally",
+                    "weightWindows.iterations",
+                    "weightWindowsMesh.dimension",
+                    "weightWindowsMesh.lower_left",
+                    "weightWindowsMesh.upper_right",
+                    "weightWindows.particle",
+                    "weightWindows.particles",
+                    "max_splits",
+                    "weightWindowsFile"
+                ]]
+            ],
+            "advanced": []
+        },
+        "source": {
+            "title": "Source",
+            "advanced": [
+                ["Type", [
+                    "type",
+                    "file"
+                ]],
+                ["Space", [
+                    "space"
+                ]],
+                ["Angle and Energy", [
+                    "angle",
+                    "energy"
+                ]],
+                ["Other", [
+                    "strength",
+                    "particle",
+                    "time"
+                ]]
+            ]
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": [
+                "settings.eigenvalueHistory"
+            ]
+        },
+        "sphericalIndependent": {
+            "advanced": [
+                "r",
+                "theta",
+                "phi",
+                "origin"
+            ]
+        },
+        "tabular": {
+            "advanced": [
+                "interpolation",
+                "ignore_negative",
+                "probabilityValue"
+            ]
+        },
+        "tabularFromFile": {
+            "advanced": [
+                "file",
+                "interpolation",
+                "ignore_negative"
+            ]
+        },
+        "tally": {
+            "title": "Tally",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "scores"
+                ]],
+                ["Filters", [
+                    "filter1",
+                    "filter2",
+                    "filter3",
+                    "filter4",
+                    "filter5"
+                ]],
+                ["Nuclides", [
+                    "nuclides"
+                ]]
+            ]
+        },
+        "tallyReport": {
+            "advanced": [],
+            "basic": []
+        },
+        "tallyScore": {
+            "advanced": [
+                "score"
+            ]
+        },
+        "uniform": {
+            "advanced": [
+                "a",
+                "b"
+            ]
+        },
+        "volumes": {
+            "title": "Volumes",
+            "advanced": []
+        },
+        "watt": {
+            "advanced": [
+                "a",
+                "b"
+            ]
+        }
+    }
+}

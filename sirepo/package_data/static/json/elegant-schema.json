@@ -29,7 +29,7 @@
     },
     "enum": {
         "BunchInputSource": [
-            ["sdds_beam", "SDDS Input File"],
+            ["sdds_beam", "Input File"],
             ["bunched_beam", "Twiss Parameters"]
         ],
         "FramesPerSecond": [
@@ -132,7 +132,8 @@
         ],
         "SddsBeamInputType": [
             ["elegant", "Elegant"],
-            ["spiffe", "Spiffe"]
+            ["spiffe", "Spiffe"],
+            ["openPMD", "openPMD"]
         ],
         "SimulationMode": [
             ["serial", "Serial"],
@@ -541,7 +542,7 @@
             "randomize_order": ["Randomize Order", "RandomizeStringArray", "0, 0, 0", "Allows randomizing the order of assigned coordinates for the pairs (x, x'), (y, y'), and (t,p). 0 means no randomization; 1 means randomize (x, x', y, y', t, p) values independently, which destroys any x-x', y-y', and t-p correlations; 2 means randomize (x, x'), (y, y'), and (t, p) in pair-wise fashion. This is used with Halton sequences to remove banding. It is suggested that that the user employ sddsanalyzebeam to verify that the beam properties when randomization is used.", "X, Y, Z"]
         },
         "bunchFile": {
-            "sourceFile": ["Beam File", "InputFile", ""]
+            "sourceFile": ["Beam File", "InputFile", "", "SDDS (.sdds) or openPMD (.h5)"]
         },
         "bunchReport": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
@@ -1557,11 +1558,11 @@
             "ZDist": ["Zdist", "OptionalString", "", ""],
             "TranDist": ["Trandist", "OptionalString", "", ""],
             "FullDist": ["Fulldist", "OptionalString", "", ""],
-            "bunch": ["Bunch", "OptionalString", "", ""],
-            "loss": ["Loss", "OptionalString", "", ""],
-            "distribution": ["Distribution", "OptionalString", "", ""],
-            "initial": ["Initial", "OptionalString", "", ""],
-            "output": ["Output", "OptionalString", "", ""],
+            "bunch": ["Bunch", "MultiOutputFile", "", ""],
+            "loss": ["Loss", "MultiOutputFile", "", ""],
+            "distribution": ["Distribution", "MultiOutputFile", "", ""],
+            "initial": ["Initial", "MultiOutputFile", "", ""],
+            "output": ["Output", "MultiOutputFile", "", ""],
             "nbins": ["Nbins", "RPNValue", 100, ""],
             "sbin_step": ["Sbin Step", "RPNValue", 1, ""],
             "n_simulated": ["N Simulated", "RPNValue", 5000000, ""],
@@ -2694,7 +2695,7 @@
         },
         "HISTOGRAM": {
             "name": ["Name", "ValidatedString"],
-            "filename": ["FILENAME", "OutputFile", "", "filename for histogram output, possibly incomplete (see below)"],
+            "filename": ["FILENAME", "MultiOutputFile", "", "filename for histogram output, possibly incomplete (see below)"],
             "interval": ["INTERVAL", "RPNValue", 1, "interval in passes between output"],
             "start_pass": ["START PASS", "RPNValue", 0, "starting pass for output"],
             "bins": ["BINS", "RPNValue", 50, "number of bins"],
@@ -4468,7 +4469,7 @@
             "interval": ["INTERVAL", "RPNValue", 1, "interval for data output (in turns)"],
             "start_pass": ["START PASS", "RPNValue", 0, "pass on which to start"],
             "end_pass": ["END PASS", "RPNValue", -1, "pass on which to end (inclusive). Ignored if negative."],
-            "filename": ["FILENAME", "OutputFile", "", "output filename, possibly incomplete (see below)"],
+            "filename": ["FILENAME", "MultiOutputFile", "", "output filename, possibly incomplete (see below)"],
             "label": ["LABEL", "OptionalString", "", "output label"],
             "mode": ["MODE", "WatchMode", "coordinate", ""],
             "x_data": ["X DATA", "RPNBoolean", "1", "include x data in coordinate mode?"],
@@ -4577,7 +4578,7 @@
     },
     "strings": {
         "completionState": "",
-        "importText": "Import an elegant command (.ele) or lattice (.lte or .madx) file"
+        "importText": "Import a lattice file (.ele, .lte, .in, .madx, or .seq)"
     },
     "view": {
         "beamlineReport": {

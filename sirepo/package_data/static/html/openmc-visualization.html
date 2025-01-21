@@ -1,0 +1,77 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-sm-12 col-xxl-4">
+      <div class="row">
+        <div class="col-sm-6 col-xxl-12">
+          <div data-basic-editor-panel="" data-view-name="settings"></div>
+        </div>
+        <div class="col-sm-6 col-xxl-12">
+          <div data-simple-panel="simulationStatus">
+            <div data-sim-status-panel="visualization.simState" data-start-function="visualization.startSimulation()"></div>
+            <div class="row">
+              <div class="col-md-offset-2 col-md-8" data-ng-show="visualization.eigenvalue.length">
+                <table class="table">
+                  <caption style="text-align: center; font-weight: bold;">Eigenvalues</caption>
+                  <thead>
+                    <th>Batch</th>
+                    <th>k</th>
+                    <th>&lt;k&gt;</th>
+                    <th>σ</th>
+                  </thead>
+                  <tbody>
+                    <tr data-ng-repeat="e in visualization.eigenvalue.slice(-visualization.eigenvalueHistory()) track by $index">
+                      <td>{{ e.batch }}</td>
+                      <td>{{ e.val[0] }}</td>
+                      <td>{{ e.val[1] || 'N/A' }}</td>
+                      <td>{{ e.val[2] || 'N/A' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="col-md-offset-2 col-md-8" data-ng-show="visualization.results.length">
+                <table class="table">
+                  <caption style="text-align: center; font-weight: bold;">Results</caption>
+                  <thead>
+                    <th>Quantity</th>
+                    <th>Value</th>
+                    <th>σ</th>
+                  </thead>
+                  <tbody>
+                    <tr data-ng-repeat="r in visualization.results track by $index">
+                      <td>{{ r[0] }}</td>
+                      <td>{{ r[1] }}</td>
+                      <td>{{ r[2] }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="col-sm-12" data-ng-if="visualization.hasWeightWindowsFile">
+                <div class="col-sm-12"><a data-ng-attr-href="{{ visualization.weightWindowsFileURL() }}">
+                  <span class="glyphicon glyphicon-cloud-download"></span> Computed Weight Windows</a>
+                  <buttontype="button" class="btn btn-sm btn-default" data-ng-click="visualization.applyWeightWindows()">Apply Weight Windows</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div data-ng-if="visualization.simState.hasFrames()">
+      <div class="col-md-8 col-lg-7 col-xl-6 col-xxl-4">
+        <div data-report-panel="tallyViewer" data-model-name="openmcAnimation" data-panel-title="{{visualization.tallyTitle()}}"></div>
+      </div>
+      <div class="col-md-4 col-lg-5 col-xl-6 col-xxl-3">
+        <div data-simple-panel="tallySettings">
+            <div data-advanced-editor-pane="" data-view-name="'tallySettings'" data-want-buttons=""
+              data-field-def="basic"></div>
+        </div>
+        <div data-ng-if="visualization.showEnergyPlot()">
+          <div data-report-panel="parameter" data-model-name="energyAnimation" data-panel-title="Energy Spectrum">
+            <div data-advanced-editor-pane="" data-view-name="'energyAnimation'" data-field-def="basic"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div data-apply-weight-window-confirmation=""></div>

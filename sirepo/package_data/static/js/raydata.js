@@ -5,12 +5,6 @@ var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
     SIREPO.appFieldEditors += `
-        <div data-ng-switch-when="DateTimePicker" class="col-sm-7">
-          <div data-date-time-picker="" data-model="model" data-field="field"></div>
-        </div>
-        <div data-ng-switch-when="PresetTimePicker" class="col-sm-7">
-          <div class="text-right" data-preset-time-picker="" data-model="model" data-model-name="modelName"></div>
-        </div>
         <div data-ng-switch-when="RecentlyExecutedScansTable" class="col-sm-12">
           <div data-scans-table="" data-model-name="modelName" data-analysis-status="recentlyExecuted"></div>
         </div>
@@ -52,6 +46,7 @@ SIREPO.app.factory('raydataService', function(appState, $rootScope) {
     self.ANALYSIS_STATUS_COMPLETED = "completed";
     self.ANALYSIS_STATUS_NONE = "none";
     self.ANALYSIS_STATUS_PENDING = "pending";
+    self.UPDATE_DATA_PERIOD_MS = 5000;
 
     self.detailScan = null;
 
@@ -102,8 +97,14 @@ SIREPO.app.factory('columnsService', function(appState, requestSender, $rootScop
         );
     }
 
-    self.defaultColumns = (analysisStatus) => {
-        const res = ['status', 'start', 'stop', 'suid'];
+    self.defaultColumns = (analysisStatus, appState) => {
+        const res = [
+	    'status',
+	    'start',
+	    'stop',
+	    'suid',
+	    ...(SIREPO.APP_SCHEMA.constants.defaultColumns[appState.models.catalog.catalogName] || []),
+	];
         if (analysisStatus == 'queued') {
             res.splice(1, 0, 'queue order');
         }
@@ -307,34 +308,6 @@ SIREPO.app.directive('columnPicker', function() {
     };
 });
 
-SIREPO.app.directive('dateTimePicker', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            field: '=',
-        },
-        template: `<input type="datetime-local" class="form-control" ng-model="dateTime" required >`,
-        controller: function($scope, timeService) {
-            $scope.dateTime = $scope.model[$scope.field] ? timeService.unixTimeToDate($scope.model[$scope.field]) : '';
-            $scope.$watch('dateTime', function(newTime, oldTime) {
-                if (
-                    (newTime && !oldTime) ||
-                    (newTime && newTime.getTime() !== oldTime.getTime())
-                ) {
-                    $scope.model[$scope.field] = timeService.unixTime(newTime);
-                }
-            });
-
-            $scope.$watch('model.' + $scope.field, function(newTime, oldTime) {
-                if (newTime !== oldTime) {
-                    $scope.dateTime = timeService.unixTimeToDate(newTime);
-                }
-            });
-        }
-    };
-});
-
 SIREPO.app.directive('dotsAnimation', function() {
     return {
         restrict: 'A',
@@ -372,52 +345,6 @@ SIREPO.app.directive('pngImage', function(plotting) {
     };
 });
 
-SIREPO.app.directive('presetTimePicker', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            modelName: '=',
-        },
-        template: `
-          <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastHour()">Last Hour</button>
-          <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastDay()">Last Day</button>
-          <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeLastWeek()">Last Week</button>
-          <button type="button" class="btn btn-info btn-xs" data-ng-click="setSearchTimeMaxRange()">All Time</button>
-        `,
-        controller: function(appState, timeService, $scope) {
-            $scope.setDefaultStartStopTime = () => {
-                if (!$scope.model.searchStartTime && !$scope.model.searchStopTime) {
-                    $scope.setSearchTimeLastHour();
-                    appState.saveChanges($scope.modelName);
-                }
-            };
-
-            $scope.setSearchTimeLastDay = () => {
-                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneDayAgo());
-                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
-            };
-
-            $scope.setSearchTimeLastHour = () => {
-                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneHourAgo());
-                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
-            };
-
-            $scope.setSearchTimeLastWeek = () => {
-                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeOneWeekAgo());
-                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
-            };
-
-            $scope.setSearchTimeMaxRange = () => {
-                $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(60);
-                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
-            };
-
-            $scope.setDefaultStartStopTime();
-        }
-    };
-});
-
 SIREPO.app.directive('scansTable', function() {
     return {
         restrict: 'A',
@@ -440,15 +367,15 @@ SIREPO.app.directive('scansTable', function() {
                     <tr>
                       <th style="width: 20px; height: 40px; white-space: nowrap" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-checked="pdfSelectAllScans" data-ng-click="togglePdfSelectAll()"/> <span style="vertical-align: top">PDF</span></th>
                       <th data-ng-repeat="column in columnHeaders track by $index" class="raydata-removable-column" style="width: 100px; height: 40px; white-space: nowrap">
-                        <span style="color:lightgray;" data-ng-class="arrowClass(column)"></span>
-                        <span style="cursor: pointer" data-ng-click="sortCol(column)">{{ column }}</span>
+                        <span data-ng-if="columnIsSortable(column)" style="{{ arrowStyle(column) }}" data-ng-class="arrowClass(column)"></span>
+                        <span data-ng-attr-style="{{ columnIsSortable(column) ? 'cursor: pointer;' : '' }}" data-ng-click="sortCol(column)">{{ column }}</span>
                         <button type="submit" class="btn btn-info btn-xs raydata-remove-column-button" data-ng-if="showDeleteButton($index)" data-ng-click="deleteCol(column)"><span class="glyphicon glyphicon-remove"></span></button>
                       </th>
                       <th></th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr ng-repeat="s in scans track by $index" data-ng-click="raydataService.setDetailScan(s)" style="{{ analysisStatus === 'allStatuses' ? 'cursor: pointer;' : '' }}">
+                    <tr ng-repeat="s in scans track by $index" data-ng-click="raydataService.setDetailScan(s)" data-ng-attr-style="{{ analysisStatus === 'allStatuses' ? 'cursor: pointer;' : '' }}">
                       <td style="width: 1%" data-ng-show="showPdfColumn"><input type="checkbox" data-ng-show="showCheckbox(s)" data-ng-checked="pdfSelectedScans[s.rduid]" data-ng-click="togglePdfSelectScan(s.rduid)"/></td>
                       <td width="1%"><span data-header-tooltip="s.status"></span></td>
                       <td data-ng-if="analysisStatus == 'queued'">
@@ -496,9 +423,10 @@ SIREPO.app.directive('scansTable', function() {
             let scanArgs = {
                 pageCount: 0,
                 pageNumber: 0,
-                sortColumn: $scope.analysisStatus == 'queued' ? 'queue order' : 'start',
-                sortOrder: $scope.analysisStatus == 'queued',
+                sortColumns: defaultSortColumns(),
             };
+
+            const MAX_NUM_SORT_COLUMNS = 3;
 
             const errorOptions = {
                 modelName: $scope.modelName,
@@ -534,6 +462,14 @@ SIREPO.app.directive('scansTable', function() {
                 }
             }
 
+            function defaultSortColumns() {
+                if ($scope.analysisStatus == 'queued') {
+                    return [['queue order', true]];
+                } else {
+                    return [['start', false]];
+                }
+            }
+
             function findScan(scanId) {
                 return $scope.scans[
                     $scope.scans.findIndex(s => s.rduid === scanId)
@@ -541,6 +477,7 @@ SIREPO.app.directive('scansTable', function() {
             }
 
             function init() {
+                getAutomaticAnalysis();
                 setColumnHeaders();
                 if (scanService.cachedScans($scope.analysisStatus)) {
                     loadScans(scanService.cachedScans($scope.analysisStatus));
@@ -572,8 +509,7 @@ SIREPO.app.directive('scansTable', function() {
                 }
                 scanArgs.pageCount = scanInfo.pageCount || 0;
                 scanArgs.pageNumber = scanInfo.pageNumber;
-                scanArgs.sortColumn = scanInfo.sortColumn;
-                scanArgs.sortOrder = scanInfo.sortOrder;
+                scanArgs.sortColumns = scanInfo.sortColumns;
                 updatePageLocation();
             }
 
@@ -622,8 +558,7 @@ SIREPO.app.directive('scansTable', function() {
                                 pageNumber: scanArgs.pageNumber,
                                 searchText: m.searchText,
                                 searchTerms: buildSearchTerms(m.searchTerms),
-                                sortColumn: scanArgs.sortColumn,
-                                sortOrder: scanArgs.sortOrder,
+                                sortColumns: scanArgs.sortColumns
                             }
                         },
                         errorOptions
@@ -632,12 +567,45 @@ SIREPO.app.directive('scansTable', function() {
                 cancelRequestInterval();
                 // Send once and then will happen on $interval
                 doRequest();
-                scanRequestInterval = $interval(doRequest, 5000);
+                scanRequestInterval = $interval(doRequest, raydataService.UPDATE_DATA_PERIOD_MS);
+            }
+
+            function getAutomaticAnalysis() {
+                requestSender.sendStatelessCompute(
+                        appState,
+                        json => {
+                            appState.models.runAnalysis.automaticAnalysis = json.data.automaticAnalysis ? 1 : 0;
+                            appState.saveChanges('runAnalysis');
+                        },
+                        {
+                            method: 'get_automatic_analysis',
+                            args: {
+                                catalogName: appState.applicationState().catalog.catalogName
+                            }
+                        },
+                        errorOptions
+                );
+            }
+
+
+            function setAutomaticAnalysis() {
+                requestSender.sendStatelessCompute(
+                        appState,
+                        json => {
+                        },
+                        {
+                            method: 'set_automatic_analysis',
+                            args: {
+                                automaticAnalysis: appState.models.runAnalysis.automaticAnalysis,
+                                catalogName: appState.applicationState().catalog.catalogName                                         }
+                        },
+                        errorOptions
+                );
             }
 
             function setColumnHeaders() {
                 $scope.columnHeaders = [
-                    ...columnsService.defaultColumns($scope.analysisStatus),
+                    ...columnsService.defaultColumns($scope.analysisStatus, appState),
                     ...appState.models.metadataColumns.selected
                 ];
             }
@@ -671,13 +639,29 @@ SIREPO.app.directive('scansTable', function() {
             }
 
             $scope.arrowClass = column => {
-                if (scanArgs.sortColumn !== column) {
-                    return {};
+                let r = {};
+                scanArgs.sortColumns.forEach((sortField) => {
+                    if (sortField[0] === column) {
+                        r= {
+                            glyphicon: true,
+                            [`glyphicon-arrow-${sortField[1] ? 'up' : 'down'}`]: true,
+                        };
+                    }
+                });
+                return r;
+            };
+
+            $scope.arrowStyle = column => {
+                let r = '';
+                for (const [i, sortField] of scanArgs.sortColumns.entries()) {
+                    if (sortField[0] === column) {
+                        // logic for alpha value assumes that sortColumns are in descending priority and MAX_NUM_SORT_COLUMNS is 3
+                        let a = i === 0 ? 1 : (-0.3 * i) + 0.8;
+                        r = `color: rgba(0, 0, 0, ${a})`;
+                        break;
+                    }
                 }
-                return {
-                    glyphicon: true,
-                    [`glyphicon-arrow-${scanArgs.sortOrder ? 'up' : 'down'}`]: true,
-                };
+                return r;
             };
 
             $scope.canNextPage = () => {
@@ -791,7 +775,7 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.showDeleteButton = index => {
-                return index > columnsService.defaultColumns($scope.analysisStatus).length - 1;
+                return index > columnsService.defaultColumns($scope.analysisStatus, appState).length - 1;
             };
 
             $scope.showPdfButton = () => {
@@ -802,12 +786,34 @@ SIREPO.app.directive('scansTable', function() {
                 $scope.runLogScanId = scan.rduid;
             };
 
+            $scope.columnIsSortable = (column) => {
+                return ! (column === 'stop' || $scope.scans.length > 0 && $scope.scans[0][column] !== null && typeof $scope.scans[0][column] === 'object');
+            };
+
+
             $scope.sortCol = column => {
-                if (column === 'selected') {
+                if (! $scope.columnIsSortable(column)) {
                     return;
                 }
-                scanArgs.sortColumn = column;
-                scanArgs.sortOrder = ! scanArgs.sortOrder;
+                let inList = false;
+                scanArgs.sortColumns.forEach((sortField, i) => {
+                    if (sortField[0] === column) {
+                        inList = true;
+                        sortField[1] = ! sortField[1];
+                        scanArgs.sortColumns.splice(i, 1);
+                        scanArgs.sortColumns.unshift(sortField);
+                    }
+                });
+                if (! inList) {
+                    if ($scope.analysisStatus !== 'allStatuses') {
+                        scanArgs.sortColumns = [[column, true]];
+                    } else {
+                        scanArgs.sortColumns.unshift([column, true]);
+                        if (scanArgs.sortColumns.length > MAX_NUM_SORT_COLUMNS) {
+                            scanArgs.sortColumns.pop();
+                        }
+                    }
+                }
                 sendScanRequest(true, true);
             };
 
@@ -832,6 +838,7 @@ SIREPO.app.directive('scansTable', function() {
             };
 
             $scope.$on(`${$scope.modelName}.changed`, () => sendScanRequest(true, true));
+            $scope.$on('runAnalysis.changed', setAutomaticAnalysis);
             $scope.$on('catalog.changed', () => sendScanRequest(true, true));
             $scope.$on('metadataColumns.changed', () => {
                 sendScanRequest(true);
@@ -901,14 +908,13 @@ SIREPO.app.directive('logModal', function() {
             scanId: '=',
         },
         template: `
-            <div data-ng-if="showLogModal()"></div>
-            <div data-view-log-iframe data-log-path="logPath" data-log-html="log" data-log-is-loading="logIsLoading" data-modal-id="modalId"></div>
+            <div data-view-log-modal data-log-path="logPath" data-log-html="log" data-log-is-loading="logIsLoading" data-modal-id="modalId"></div>
         `,
-        controller: function(appState, errorService, requestSender, $scope) {
+        controller: function(appState, errorService, raydataService, requestSender, $scope, $timeout) {
             $scope.log = null;
             $scope.logIsLoading = false;
             $scope.logPath = null;
-            $scope.modalId = 'sr-view-log-iframe-' + $scope.analysisStatus;
+            $scope.modalId = 'sr-view-log-modal-' + $scope.analysisStatus;
 
             function showModal() {
                 const el = $('#' + $scope.modalId);
@@ -919,12 +925,20 @@ SIREPO.app.directive('logModal', function() {
                 });
                 $scope.logIsLoading = true;
                 el.modal('show');
+		updateModal();
+            }
+
+	    const updateModal = () => {
+		if (! $scope.scanId) {
+		    return;
+		}
                 requestSender.sendStatelessCompute(
                     appState,
                     json => {
                         $scope.logIsLoading = false;
                         $scope.log = json.run_log;
                         $scope.logPath = json.log_path;
+			$timeout(updateModal, raydataService.UPDATE_DATA_PERIOD_MS);
                     },
                     {
                         method: 'analysis_run_log',
@@ -940,7 +954,7 @@ SIREPO.app.directive('logModal', function() {
                         },
                     }
                 );
-            }
+	    };
 
             $scope.$watch('scanId', () => {
                 if ($scope.scanId) {
@@ -966,14 +980,16 @@ SIREPO.app.directive('analysisModal', function() {
                     <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                     <span class="lead modal-title text-info">Output for scan {{ scanId }}</span>
                   </div>
-                  <div class="modal-body">
+                  <div class="modal-body" scroll-to-bottom="modalContentFilenames" style="max-height: 80vh; overflow-y:auto;">
                     <span data-loading-spinner data-sentinel="images">
-                    <div class="container-fluid">
-                      <div class="row">
-                        <div class="col-sm-12">
+                      <div class="container-fluid">
+                        <div class="row">
+                          <div class="col-sm-12">
                             <div data-ng-repeat="i in images">
                               <div class="panel panel-info">
-                                <div class="panel-heading"><span class="sr-panel-heading">{{ i.filename }}</span></div>
+                                <div class="panel-heading">
+                                  <span class="sr-panel-heading">{{ i.filename }}</span>
+                                </div>
                                 <div class="panel-body">
                                   <div data-png-image="" data-image="{{ i.data }}"></div>
                                 </div>
@@ -981,7 +997,9 @@ SIREPO.app.directive('analysisModal', function() {
                             </div>
                             <div data-ng-repeat="j in jsonFiles">
                               <div class="panel panel-info">
-                                <div class="panel-heading"><span class="sr-panel-heading">{{ j.filename }}</span></div>
+                                <div class="panel-heading">
+                                  <span class="sr-panel-heading">{{ j.filename }}</span>
+                                </div>
                                 <div class="panel-body">
                                   <pre style="overflow: scroll; height: 150px">{{ formatJsonFile(j.data) }}</pre>
                                 </div>
@@ -989,11 +1007,11 @@ SIREPO.app.directive('analysisModal', function() {
                             </div>
                           </div>
                         </div>
-                      </div>
-                      <br/>
-                      <div class="row">
-                        <div class="col-sm-offset-4 col-sm-4">
-                        <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+                        <br/>
+                        <div class="row">
+                          <div class="col-sm-offset-4 col-sm-4">
+                            <button data-dismiss="modal" class="btn btn-primary" style="width:100%">Close</button>
+                          </div>
                         </div>
                       </div>
                     </span>
@@ -1001,11 +1019,13 @@ SIREPO.app.directive('analysisModal', function() {
                 </div>
               </div>
             </div>
-        `,
-        controller: function(appState, errorService, requestSender, $scope) {
+
+`,
+        controller: function(appState, errorService, raydataService, requestSender, $scope, $timeout) {
             $scope.analysisModalId = 'sr-analysis-output-' + $scope.analysisStatus;
             $scope.images = null;
             $scope.jsonFiles = null;
+	    $scope.modalContentFilenames = null;
 
             function showModal() {
                 $scope.images = null;
@@ -1017,11 +1037,23 @@ SIREPO.app.directive('analysisModal', function() {
                     el.off();
                     $scope.$apply();
                 });
+		updateModal();
+            }
+
+	    const updateModal = () => {
+		if (! $scope.scanId) {
+		    return;
+		}
                 requestSender.sendStatelessCompute(
                     appState,
                     json => {
                         $scope.images = json.images;
                         $scope.jsonFiles = json.jsonFiles;
+			// Easier to compare filenames (string) to determine if content has changed
+			$scope.modalContentFilenames = $scope.images.concat($scope.jsonFiles).map(
+			    obj => obj.filename
+			).join('');
+			$timeout(updateModal, raydataService.UPDATE_DATA_PERIOD_MS);
                     },
                     {
                         method: 'analysis_output',
@@ -1036,14 +1068,14 @@ SIREPO.app.directive('analysisModal', function() {
                         },
                     }
                 );
-            }
+	    };
 
             $scope.formatJsonFile = contents => {
                 return JSON.stringify(contents, undefined, 2);
             };
 
             $scope.$watch('scanId', () => {
-                if ($scope.scanId !== null) {
+                if ($scope.scanId) {
                     showModal();
                 }
             });
@@ -1112,77 +1144,73 @@ SIREPO.app.directive('scanDetail', function() {
         template: `
             <div><strong>Scan Detail</strong></div>
             <div class="well" style="height: 250px; overflow: auto;">
-            <div data-ng-if="scan">
-              <div><strong>Scan Id:</strong> {{ scan.rduid }}</div>
-              <div data-ng-if="detailedStatusFile()">
-                <div><strong>Most Recent Status</strong></div>
-                <pre>{{ currentStatus() }}</pre>
+              <div data-ng-if="scan">
+                <div><strong>Scan Id:</strong> {{ scan.rduid }}</div>
+                <div data-ng-if="analysisElapsedTime()"><strong>Analysis Elapsed Time:</strong> {{ analysisElapsedTime() }} seconds</div>
+                <div>
+                  <div><strong>Current Status: </strong>{{ scan.status }}</div>
+                  <div data-ng-if="latestDetailedStatus">
+                    <strong>Detailed Status:</strong>
+                      <ul>
+                        <li data-ng-repeat="(stepName, stepInfo) in latestDetailedStatus">
+                          {{ stepName }}
+                          <ul>
+                            <li data-ng-repeat="key in ['start', 'stop']" data-ng-if="stepInfo[key]">
+                              {{ key }}: {{ parseTime(stepInfo[key]) }}
+                            </li>
+                            <li data-ng-if="stepElapsed(stepInfo)">elapsed: {{ stepElapsed(stepInfo) }}</li>
+                            <li data-ng-if="stepStatus(stepInfo)">status: {{ stepStatus(stepInfo) }}</li>
+                          </ul>
+                        </li>
+                      </ul>
+                  </div>
+                </div>
               </div>
-              <div data-ng-if="detailedStatusFile()">
-                <div><strong>Detailed Status File</strong></div>
-                <pre>{{ detailedStatus() }}</pre>
-              </div>
-              <div data-ng-if="detailedStatusFile()">
-                <div><strong>Current Consecutive Failures:</strong> {{ consecutiveFailures() }}</div>
-              </div>
-              <div data-ng-if="analysisElapsedTime()"><strong>Analysis Elapsed Time:</strong> {{ analysisElapsedTime() }} seconds</div>
             </div>
-            </div>
-`,
-        controller: function($scope, columnsService, utilities) {
-            function failureInRun(run) {
-                let r = false;
-                for (const f of Object.values($scope.detailedStatusFile()[run])) {
-                    if (f.status === 'failed') {
-                        r = true;
-                    }
-                }
-                return r;
-            }
+	`,
+        controller: function($filter, $scope, columnsService, raydataService, utilities) {
+	    $scope.latestDetailedStatus = null;
 
-            function getSortedRunIndexes() {
-                return Object.keys($scope.detailedStatusFile()).map((x) => parseInt(x)).sort();
-            }
+	    function setLatestDetailedStatus() {
+		 $scope.latestDetailedStatus = null;
+		if ($scope.scan.detailed_status) {
+		    $scope.latestDetailedStatus = $scope.scan.detailed_status[Math.max(Object.keys($scope.scan.detailed_status))];
+		}
 
-            function mostRecentAnalysisDetails() {
-                return $scope.detailedStatusFile()? $scope.detailedStatusFile()[Math.max(...getSortedRunIndexes())] : '';
-             }
+	    }
 
             $scope.analysisElapsedTime = () => {
                 return $scope.scan && $scope.scan.analysis_elapsed_time ? $scope.scan.analysis_elapsed_time : null;
             };
 
-            $scope.consecutiveFailures = () => {
-                if (! $scope.detailedStatusFile()) {
-                    return '';
-                }
-                let r = 0;
-                for (const k of getSortedRunIndexes().reverse()) {
-                    if (failureInRun(k)) {
-                        r += 1;
-                    } else {
-                        return r;
-                    }
-                }
+	    $scope.parseTime = (unixTime) => {
+		return (new Date(unixTime * 1000)).toString();
+	    };
 
-                return r;
-            };
+	    $scope.stepElapsed = (stepInfo) => {
+		if (stepInfo.start && stepInfo.stop) {
+		    return $filter('date')((stepInfo.stop - stepInfo.start) * 1000, 'HH:mm:ss', 'UTC');
+		}
+		return null;
+	    };
 
-            $scope.currentStatus = () => {
-                let r = '';
-                for (const k of Object.keys(mostRecentAnalysisDetails())) {
-                    r += k + ': ' + mostRecentAnalysisDetails()[k].status + '\n';
-                }
-                return r;
-            };
+	    $scope.stepStatus = (stepInfo) => {
+		function pendingIfRunningElseError(scanStatus) {
+		    if (raydataService.ANALYSIS_STATUS_NON_STOPPED.includes(scanStatus)) {
+			return 'pending';
+		    }
+		    return 'error';
+		}
 
-            $scope.detailedStatus = () => {
-                return utilities.objectToText($scope.detailedStatusFile());
-            };
+		// start and stop have been set so the notebook was
+		// able to manage setting the status itself.
+		if (stepInfo.start && stepInfo.stop) {
+		    return stepInfo.status;
+		}
+		return pendingIfRunningElseError($scope.scan.status);
+	    };
 
-            $scope.detailedStatusFile = () => {
-                return $scope.scan && $scope.scan.detailed_status && Object.keys($scope.scan.detailed_status).length > 0 ? $scope.scan.detailed_status : null;
-            };
+            $scope.$watch('scan', setLatestDetailedStatus);
         },
     };
 });

@@ -1,0 +1,11 @@
+{
+    "models": {
+        "simFolder": {},
+        "simulation": {
+            "documentationUrl": "",
+            "folder": "/",
+            "notes": ""
+        }
+    },
+    "simulationType": "openmc"
+}

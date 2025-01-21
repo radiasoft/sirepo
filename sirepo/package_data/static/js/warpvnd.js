@@ -1547,13 +1547,11 @@ SIREPO.app.directive('conductorGrid', function(appState, layoutService, panelSta
                     return;
                 }
                 if (layoutService.plotAxis.allowUpdates) {
-                    var width = parseInt(select().style('width')) - $scope.margin.left - $scope.margin.right;
-                    if (isNaN(width)) {
+                    var elementWidth = parseInt(select().style('width'));
+                    if (isNaN(elementWidth)) {
                         return;
                     }
-                    width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
-                    $scope.width = width;
-                    $scope.height = ASPECT_RATIO * $scope.width;
+                    [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, elementWidth, ASPECT_RATIO);
                     select('svg')
                         .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
                         .attr('height', $scope.plotHeight());
@@ -3166,8 +3164,6 @@ SIREPO.app.directive('conductors3d', function(appState, errorService, geometry, 
                 var rw = $($element).find('.vtk-canvas-holder');
                 rw.on('dblclick', reset);
 
-                // removed listenWindowResize: false - turns out we need it for fullscreen to work.
-                // Instead we remove the event listener ourselves on destroy
                 fsRenderer = vtk.Rendering.Misc.vtkFullScreenRenderWindow.newInstance(
                     {
                         background: [1, 1, 1, 1],
@@ -3311,44 +3307,6 @@ SIREPO.app.service('warpVTKService', function(vtkPlotting, geometry) {
     //TODO(mvk): set colors on the model, keeping these as defaults
     var zeroVoltsColor = [243.0/255.0, 212.0/255.0, 200.0/255.0];
     var voltsColor = [105.0/255.0, 146.0/255.0, 255.0/255.0];
-
-    this.initScene = function (coordMapper, renderer) {
-
-        // the emitter plane
-        startPlaneBundle = coordMapper.buildPlane();
-        startPlaneBundle.actor.getProperty().setColor(zeroVoltsColor[0], zeroVoltsColor[1], zeroVoltsColor[2]);
-        startPlaneBundle.actor.getProperty().setLighting(false);
-        renderer.addActor(startPlaneBundle.actor);
-
-        // the collector plane
-        endPlaneBundle = coordMapper.buildPlane();
-        endPlaneBundle.actor.getProperty().setColor(voltsColor[0], voltsColor[1], voltsColor[2]);
-        endPlaneBundle.actor.getProperty().setLighting(false);
-        renderer.addActor(endPlaneBundle.actor);
-
-        // a box around the elements, for visual clarity
-        outlineBundle = coordMapper.buildBox();
-        outlineBundle.actor.getProperty().setColor(1, 1, 1);
-        outlineBundle.actor.getProperty().setEdgeVisibility(true);
-        outlineBundle.actor.getProperty().setEdgeColor(0, 0, 0);
-        outlineBundle.actor.getProperty().setFrontfaceCulling(true);
-        outlineBundle.actor.getProperty().setLighting(false);
-        renderer.addActor(outlineBundle.actor);
-
-        /*
-        orientationMarker = vtk.Interaction.Widgets.vtkOrientationMarkerWidget.newInstance({
-            actor: vtk.Rendering.Core.vtkAxesActor.newInstance(),
-            interactor: renderWindow.getInteractor()
-        });
-        orientationMarker.setEnabled(true);
-        orientationMarker.setViewportCorner(
-            vtk.Interaction.Widgets.vtkOrientationMarkerWidget.Corners.TOP_RIGHT
-        );
-        orientationMarker.setViewportSize(0.08);
-        orientationMarker.setMinPixelSize(100);
-        orientationMarker.setMaxPixelSize(300);
-        */
-   };
 
     this.updateScene = function (coordMapper, axisInfo) {
 
@@ -3558,8 +3516,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             var voltsColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.nonZeroVoltsColor);
             var reflectedParticleTrackColor = vtk.Common.Core.vtkMath.hex2float(SIREPO.APP_SCHEMA.constants.reflectedParticleTrackColor);
 
-            document.addEventListener(utilities.fullscreenListenerEvent(), refresh);
-
             function addSTLConductors() {
                 var typeMap = warpvndService.conductorTypeMap();
 
@@ -3730,8 +3686,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                         zoomUnits += evt.deltaY;
                     }
                 };
-
-                //warpVTKService.initScene(coordMapper, renderer);
 
                 // the emitter plane
                 startPlaneBundle = coordMapper.buildPlane();
@@ -4287,10 +4241,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             };
 
             function refresh() {
-
-                var width = parseInt($($element).css('width')) - $scope.margin.left - $scope.margin.right;
-                $scope.width = plotting.constrainFullscreenSize($scope, width, xzAspectRatio);
-                $scope.height = xzAspectRatio * $scope.width;
+                [$scope.height, $scope.width] = plotting.constrainFullscreenSize($scope, parseInt($($element).css('width')), xzAspectRatio);
 
                 var vtkCanvasHolderSize = {
                     width: $('.vtk-canvas-holder').width(),
@@ -4489,25 +4440,19 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                     // sort the external edges so we'll preferentially pick the left and bottom
                     var externalEdges = vpOutline.externalViewportEdgesForDimension(dim)
                         .sort(edgeSorter(perpScreenDim, ! isHorizontal));
-                    var seg = geometry.bestEdgeAndSectionInBounds(externalEdges, screenRect, dim, false);
+                    var edge = geometry.bestEdgeInBounds(externalEdges, screenRect, dim);
 
-                    if (! seg) {
-                        // all possible axis ends offscreen, so try a centerline
-                        var cl = vpOutline.centerLines[dim];
-                        seg = geometry.bestEdgeAndSectionInBounds([cl], screenRect, dim, false);
-                        if (! seg) {
-                            // don't draw axes
-                            select(axisSelector).style('opacity', 0.0);
-                            select(axisLabelSelector).style('opacity', 0.0);
-                            continue;
-                        }
-                        showAxisEnds = true;
+                    if (! edge) {
+                        // don't draw axes
+                        select(axisSelector).style('opacity', 0.0);
+                        select(axisLabelSelector).style('opacity', 0.0);
+                        continue;
                     }
                     select(axisSelector).style('opacity', 1.0);
 
-                    var fullSeg = seg.full;
-                    var clippedSeg = seg.clipped;
-                    var reverseOnScreen = shouldReverseOnScreen(dim, seg.index, screenDim);
+                    var fullSeg = edge;
+                    var clippedSeg = fullSeg;
+                    var reverseOnScreen = shouldReverseOnScreen(edge, screenDim);
                     var sortedPts = geometry.sortInDimension(clippedSeg.points, screenDim, false);
                     var axisLeft = sortedPts[0].x;
                     var axisTop = sortedPts[0].y;
@@ -4634,8 +4579,7 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
                 };
             }
 
-            function shouldReverseOnScreen(dim, index, screenDim) {
-                var currentEdge = vpOutline.viewportEdges()[dim][index];
+            function shouldReverseOnScreen(currentEdge, screenDim) {
                 var currDiff = currentEdge.points[1][screenDim] - currentEdge.points[0][screenDim];
                 return currDiff < 0;
             }
@@ -4709,7 +4653,6 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
             };
 
             $scope.destroy = function() {
-                document.removeEventListener(utilities.fullscreenListenerEvent(), refresh);
                 var rw = angular.element($($element).find('.sr-plot-particle-3d .vtk-canvas-holder'))[0];
                 rw.removeEventListener('dblclick', resetAndDigest);
                 $($element).off();
@@ -4804,6 +4747,144 @@ SIREPO.app.directive('particle3d', function(appState, errorService, frameCache, 
 
         link: function link(scope, element) {
             plotting.vtkPlot(scope, element);
+        },
+    };
+});
+
+SIREPO.app.directive('stlFileChooser', function(validationService, vtkPlotting) {
+    return {
+        restrict: 'A',
+        scope: {
+            description: '=',
+            url: '=',
+            inputFile: '=',
+            model: '=',
+            require: '<',
+            title: '@',
+        },
+        template: `
+            <div data-file-chooser=""  data-url="url" data-input-file="inputFile" data-validator="validate" data-title="title" data-file-formats=".stl" data-description="description" data-require="require">
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.validate = function (file) {
+                $scope.url = URL.createObjectURL(file);
+                return vtkPlotting.isSTLUrlValid($scope.url).then(function (ok) {
+                    return ok;
+                });
+            };
+            $scope.validationError = '';
+        },
+        link: function(scope, element, attrs) {
+
+        },
+    };
+});
+
+SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUpload, vtkPlotting, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {
+            description: '@',
+            title: '@',
+        },
+        template: `
+            <div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-info">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <div data-help-button="{{ title }}"></div>
+                    <span class="lead modal-title text-info">{{ title }}</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                        <form>
+                        <div data-stl-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true"></div>
+                          <div class="col-sm-6 pull-right">
+                            <button data-ng-click="importStlFile(inputFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingImportFile() }">Import File</button>
+                             <button data-dismiss="modal" class="btn btn-default">Cancel</button>
+                          </div>
+                        </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.inputFile = null;
+            $scope.fileURL = null;
+            $scope.isMissingImportFile = function() {
+                return ! $scope.inputFile;
+            };
+            $scope.fileUploadError = '';
+            $scope.isUploading = false;
+            $scope.title = $scope.title || 'Import STL File';
+            $scope.description = $scope.description || 'Select File';
+
+            $scope.importStlFile = function(inputFile) {
+                if (! inputFile) {
+                    return;
+                }
+                newSimFromSTL(inputFile);
+            };
+
+            function upload(inputFile, data) {
+                var simId = data.models.simulation.simulationId;
+                fileUpload.uploadFileToUrl(
+                    inputFile,
+                    $scope.isConfirming
+                        ? {
+                            confirm: $scope.isConfirming,
+                        }
+                        : null,
+                    requestSender.formatUrl(
+                        'uploadLibFile',
+                        {
+                            '<simulation_id>': simId,
+                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                            '<file_type>': vtkPlotting.stlFileType,
+                        }),
+                    function(d) {
+                        $('#simulation-import').modal('hide');
+                        $scope.inputFile = null;
+                        URL.revokeObjectURL($scope.fileURL);
+                        $scope.fileURL = null;
+                        requestSender.localRedirectHome(simId);
+                    }, function (err) {
+                        throw new Error(inputFile + ': Error during upload ' + err);
+                    });
+            }
+
+            function newSimFromSTL(inputFile) {
+                var url = $scope.fileURL;
+                var model = appState.setModelDefaults(appState.models.simulation, 'simulation');
+                model.name = inputFile.name.substring(0, inputFile.name.indexOf('.'));
+                model.folder = fileManager.getActiveFolderPath();
+                model.conductorFile = inputFile.name;
+                appState.newSimulation(
+                    model,
+                    function (data) {
+                        $scope.isUploading = false;
+                        upload(inputFile, data);
+                    },
+                    function (err) {
+                        throw new Error(inputFile + ': Error creating simulation ' + err);
+                    }
+                );
+            }
+
+        },
+        link: function(scope, element) {
+            $(element).on('show.bs.modal', function() {
+                $('#file-import').val(null);
+                scope.fileUploadError = '';
+                scope.isUploading = false;
+            });
+            scope.$on('$destroy', function() {
+                $(element).off();
+            });
         },
     };
 });

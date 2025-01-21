@@ -18,7 +18,14 @@ import sirepo.uri
 import sirepo.uri_router
 import sqlalchemy
 
-_STATUS_TO_SUBJECT = None
+_STATUS_TO_SUBJECT = PKDict(
+    approve="Access Request Approved",
+    # TODO(robnagler) should we send an email when moderation pending?
+    # For completeness
+    pending=None,
+    clarify="Additional Info?",
+    deny="Access Request Denied",
+)
 
 _cfg = None
 
@@ -32,13 +39,13 @@ _ACTIVE = frozenset(
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec(
-        "require_adm", token="AuthModerationToken", status="AuthModerationStatus"
+        "require_adm", uid="Str", role="Str", status="AuthModerationStatus"
     )
     async def api_admModerate(self):
         def _send_moderation_status_email(info):
             sirepo.smtp.send(
                 recipient=info.user_name,
-                subject=_STATUS_TO_SUBJECT[info.status].format(info.app_name),
+                subject=f"Sirepo {info.app_name}: {_STATUS_TO_SUBJECT[info.status]}",
                 body=pkjinja.render_resource(
                     f"auth_role_moderation/{info.status}_email",
                     PKDict(
@@ -56,21 +63,29 @@ class API(sirepo.quest.API):
         def _set_moderation_status(info):
             if info.status == "approve":
                 self.auth_db.model("UserRole").add_roles(roles=[info.role])
-            self.auth_db.model("UserRoleInvite").set_status(
+            self.auth_db.model("UserRoleModeration").set_status(
                 role=info.role,
                 status=info.status,
                 moderator_uid=info.moderator_uid,
             )
 
         req = self.parse_post(type=False)
-        i = self.auth_db.model("UserRoleInvite").unchecked_search_by(
-            token=req.req_data.token
+        i = self.auth_db.model("UserRoleModeration").unchecked_search_by(
+            uid=req.req_data.uid,
+            role=req.req_data.role,
         )
         if not i:
-            pkdlog(f"No record in UserRoleInvite for token={req.req_data.token}")
+            pkdlog(
+                "UserRoleModeration not found uid={} role={}",
+                req.req_data.uid,
+                req.req_data.role,
+            )
             raise sirepo.util.UserAlert(
                 "Could not find the moderation request; "
-                "refresh your browser to get the latest moderation list.",
+                + "refresh your browser to get the latest moderation list.",
+                "UserRoleModeration not found uid={} role={}",
+                req.req_data.uid,
+                req.req_data.role,
             )
         p = PKDict(
             app_name=sirepo.simulation_db.SCHEMA_COMMON.appInfo[
@@ -80,11 +95,21 @@ class API(sirepo.quest.API):
             status=req.req_data.status,
             moderator_uid=self.auth.logged_in_user(),
         )
-        pkdlog("status={} uid={} role={} token={}", p.status, i.uid, i.role, i.token)
+        pkdlog("status={} uid={} role={}", p.status, i.uid, i.role)
+        # Force METHOD_EMAIL. We are sending them an email so we will
+        # need an email for them. We only have emails for METHOD_EMAIL
+        # users.
         with self.auth.logged_in_user_set(uid=i.uid, method=self.auth.METHOD_EMAIL):
+            u = self.auth.user_name(i.uid)
+            # Sanity check. user_name() should blow up above if METHOD_EMAIL is not
+            # correct but good to be sure.
+            if not u:
+                raise AssertionError(
+                    f"auth method={self.auth.METHOD_EMAIL} is incorrect for uid={i.uid}"
+                )
             p.pkupdate(
                 display_name=self.auth.user_display_name(i.uid),
-                user_name=self.auth.logged_in_user_name(),
+                user_name=u,
             )
             _set_moderation_status(p)
             _send_moderation_status_email(p)
@@ -106,7 +131,9 @@ class API(sirepo.quest.API):
         return self.reply_dict(
             PKDict(
                 rows=_datetime_to_str(
-                    self.auth_db.model("UserRoleInvite").get_moderation_request_rows()
+                    self.auth_db.model(
+                        "UserRoleModeration"
+                    ).get_moderation_request_rows()
                 ),
             ),
         )
@@ -131,15 +158,14 @@ class API(sirepo.quest.API):
             raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
         try:
             self.auth_db.model(
-                "UserRoleInvite",
+                "UserRoleModeration",
                 uid=u,
                 role=r,
                 status=sirepo.auth_role.ModerationStatus.PENDING,
-                token=sirepo.util.random_base62(32),
             ).save()
         except sqlalchemy.exc.IntegrityError as e:
             pkdlog(
-                "Error={} saving UserRoleInvite for uid={} role={} stack={}",
+                "Error={} saving UserRoleModeration for uid={} role={} stack={}",
                 e,
                 u,
                 r,
@@ -174,7 +200,7 @@ def _datetime_to_str(rows):
 
 
 def raise_control_for_user(qcall, uid, role):
-    s = qcall.auth_db.model("UserRoleInvite").get_status(role=role)
+    s = qcall.auth_db.model("UserRoleModeration").get_status(uid=uid, role=role)
     if s in _ACTIVE:
         raise sirepo.util.SRException("moderationPending", None)
     if s == sirepo.auth_role.ModerationStatus.DENY:
@@ -185,20 +211,12 @@ def raise_control_for_user(qcall, uid, role):
 
 
 def init_apis(*args, **kwargs):
-    global _cfg, _STATUS_TO_SUBJECT
+    global _cfg
 
     _cfg = pkconfig.init(
         moderator_email=pkconfig.Required(
             str, "The email address to send moderation emails to"
         ),
-    )
-    _STATUS_TO_SUBJECT = PKDict(
-        approve="{} Access Request Approved",
-        # TODO(robnagler) should we send an email when moderation pending?
-        # For completeness
-        pending=None,
-        clarify="Sirepo {}: Additional Info?",
-        deny="{} Access Request Denied",
     )
     x = frozenset(_STATUS_TO_SUBJECT.keys())
     if x != sirepo.auth_role.ModerationStatus.VALID_SET:

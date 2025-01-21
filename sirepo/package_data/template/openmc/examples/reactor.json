@@ -1,0 +1,854 @@
+{
+    "models": {
+
+        "dagmcAnimation": {},
+        "geometry3DReport": {
+            "bgColor": "#fff9ed",
+            "opacity": 1,
+            "showEdges": "0"
+        },
+        "geometryInput": {
+            "dagmcFile": "reactor.h5m"
+        },
+        "openmcAnimation": {
+            "aspect": "mean",
+            "bgColor": "#fff9ed",
+            "colorMap": "viridis",
+            "energyRangeSum": [
+                0,
+                16
+            ],
+            "isEnergySelected": "0",
+            "jobRunMode": "parallel",
+            "numSampleSourceParticles": 10,
+            "ompThreads": 16,
+            "opacity": 1,
+            "sbatchCores": 16,
+            "sbatchHours": 0.4,
+            "sbatchNodes": 32,
+            "sbatchProject": "",
+            "sbatchQueue": "debug",
+            "score": "absorption",
+            "showEdges": "0",
+            "showMarker": "1",
+            "showSources": "0",
+            "sourceColorMap": "jet",
+            "sourceNormalization": 1000000000000,
+            "tallies": [
+                {
+                    "_index": 0,
+                    "filter1": {
+                        "_super": "filter",
+                        "_type": "meshFilter",
+                        "dimension": [
+                            150,
+                            2,
+                            150
+                        ],
+                        "lower_left": [
+                            0,
+                            0,
+                            -350
+                        ],
+                        "upper_right": [
+                            650,
+                            20,
+                            350
+                        ]
+                    },
+                    "filter2": {
+                        "_super": "filter",
+                        "_type": "energyFilter",
+                        "num": 9,
+                        "space": "linear",
+                        "start": 0,
+                        "stop": 16
+                    },
+                    "filter3": {
+                        "_type": "None"
+                    },
+                    "filter4": {
+                        "_type": "None"
+                    },
+                    "filter5": {
+                        "_type": "None"
+                    },
+                    "name": "t1",
+                    "nuclides": [],
+                    "scores": [
+                        {
+                            "score": "absorption"
+                        },
+                        {
+                            "score": "flux"
+                        },
+                        {
+                            "score": "heating"
+                        }
+                    ]
+                },
+                {
+                    "_index": 1,
+                    "filter1": {
+                        "_super": "filter",
+                        "_type": "meshFilter",
+                        "dimension": [
+                            150,
+                            150,
+                            1
+                        ],
+                        "lower_left": [
+                            0,
+                            0,
+                            -5
+                        ],
+                        "upper_right": [
+                            700,
+                            700,
+                            5
+                        ]
+                    },
+                    "filter2": {
+                        "_type": "None"
+                    },
+                    "filter3": {
+                        "_type": "None"
+                    },
+                    "filter4": {
+                        "_type": "None"
+                    },
+                    "filter5": {
+                        "_type": "None"
+                    },
+                    "name": "t2",
+                    "nuclides": [],
+                    "scores": [
+                        {
+                            "score": "absorption"
+                        },
+                        {
+                            "score": "flux"
+                        },
+                        {
+                            "score": "heating"
+                        }
+                    ]
+                }
+            ],
+            "tally": "t1",
+            "tasksPerNode": 8,
+            "thresholds": [
+                0,
+                155.62884411192465
+            ]
+        },
+        "panelState": {
+            "hidden": []
+        },
+        "reflectivePlanes": {
+            "plane1a": 0,
+            "plane1b": -1,
+            "plane2a": 1,
+            "plane2b": 0,
+            "useReflectivePlanes": "1"
+        },
+        "settings": {
+            "batches": 5,
+            "dataLibrary": "ENDFB-7.1-NNDC",
+            "inactive": 0,
+            "materialLibrary": "ENDFB-7.1-NNDC",
+            "particles": 5000,
+            "photon_transport": "0",
+            "run_mode": "fixed source",
+            "sources": [
+                {
+                    "_index": 0,
+                    "angle": {
+                        "_super": "unitSphere",
+                        "_type": "isotropic"
+                    },
+                    "energy": {
+                        "_super": "univariate",
+                        "_type": "muir",
+                        "e0": 14080000,
+                        "kt": 20000,
+                        "m_rat": 5
+                    },
+                    "particle": "neutron",
+                    "space": {
+                        "_super": "spatial",
+                        "_type": "cylindricalIndependent",
+                        "origin": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "phi": {
+                            "_super": "univariate",
+                            "_type": "uniform",
+                            "a": 0,
+                            "b": 1.57079632679
+                        },
+                        "r": {
+                            "_super": "univariate",
+                            "_type": "discrete",
+                            "probabilityValue": [
+                                {
+                                    "p": 1,
+                                    "x": 293
+                                },
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {}
+                            ]
+                        },
+                        "z": {
+                            "_super": "univariate",
+                            "_type": "discrete",
+                            "probabilityValue": [
+                                {
+                                    "p": 1,
+                                    "x": 0
+                                },
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {},
+                                {}
+                            ]
+                        }
+                    },
+                    "strength": 1,
+                    "time": {
+                        "_type": "None"
+                    }
+                }
+            ],
+            "tallies": [
+                {
+                    "_index": 0,
+                    "filter1": {
+                        "_super": "filter",
+                        "_type": "meshFilter",
+                        "dimension": [
+                            150,
+                            2,
+                            150
+                        ],
+                        "lower_left": [
+                            0,
+                            0,
+                            -350
+                        ],
+                        "upper_right": [
+                            650,
+                            20,
+                            350
+                        ]
+                    },
+                    "filter2": {
+                        "_super": "filter",
+                        "_type": "energyFilter",
+                        "num": 9,
+                        "space": "linear",
+                        "start": 0,
+                        "stop": 16
+                    },
+                    "filter3": {
+                        "_type": "None"
+                    },
+                    "filter4": {
+                        "_type": "None"
+                    },
+                    "filter5": {
+                        "_type": "None"
+                    },
+                    "name": "t1",
+                    "nuclides": [],
+                    "scores": [
+                        {
+                            "score": "absorption"
+                        },
+                        {
+                            "score": "flux"
+                        },
+                        {
+                            "score": "heating"
+                        }
+                    ]
+                },
+                {
+                    "_index": 1,
+                    "filter1": {
+                        "_super": "filter",
+                        "_type": "meshFilter",
+                        "dimension": [
+                            150,
+                            150,
+                            1
+                        ],
+                        "lower_left": [
+                            0,
+                            0,
+                            -5
+                        ],
+                        "upper_right": [
+                            700,
+                            700,
+                            5
+                        ]
+                    },
+                    "filter2": {
+                        "_type": "None"
+                    },
+                    "filter3": {
+                        "_type": "None"
+                    },
+                    "filter4": {
+                        "_type": "None"
+                    },
+                    "filter5": {
+                        "_type": "None"
+                    },
+                    "name": "t2",
+                    "nuclides": [],
+                    "scores": [
+                        {
+                            "score": "absorption"
+                        },
+                        {
+                            "score": "flux"
+                        },
+                        {
+                            "score": "heating"
+                        }
+                    ]
+                }
+            ]
+        },
+        "simFolder": {},
+        "simulation": {
+            "folder": "/Examples",
+            "name": "Tokamak Reactor",
+            "notes": "From https://github.com/fusion-energy/magnetic_fusion_openmc_dagmc_paramak_example"
+        },
+        "volumes": {
+            "blanket": {
+                "color": "#cc5ab2",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "blanket",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_elements_from_formula",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Pb842Li158",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 19,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "blanket"
+                },
+                "name": "blanket",
+                "opacity": 1,
+                "volId": "14"
+            },
+            "center_column_shield": {
+                "color": "#548dae",
+                "isVisible": true,
+                "key": "center_column_shield",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "W",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 19.3,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "center_column_shield"
+                },
+                "name": "center_column_shield",
+                "opacity": 0.3,
+                "volId": "10"
+            },
+            "divertor_lower": {
+                "color": "#8b99f3",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "divertor_lower",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "W",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 19.3,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "divertor_lower"
+                },
+                "name": "divertor_lower",
+                "opacity": 0.3,
+                "volId": "16"
+            },
+            "divertor_upper": {
+                "color": "#339868",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "divertor_upper",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "W",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 19.3,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "divertor_upper"
+                },
+                "name": "divertor_upper",
+                "opacity": 0.3,
+                "volId": "15"
+            },
+            "inboard_tf_coils": {
+                "color": "#f7fda4",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "inboard_tf_coils",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Cu",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 8.96,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "inboard_tf_coils"
+                },
+                "name": "inboard_tf_coils",
+                "opacity": 0.3,
+                "volId": "22"
+            },
+            "outboard_firstwall": {
+                "color": "#960baa",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "outboard_firstwall",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Fe",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 7.7,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "outboard_firstwall"
+                },
+                "name": "outboard_firstwall",
+                "opacity": 1,
+                "volId": "12"
+            },
+            "outboard_rear_blanket_wall": {
+                "color": "#0bd85f",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "outboard_rear_blanket_wall",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Fe",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 7.7,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "outboard_rear_blanket_wall"
+                },
+                "name": "outboard_rear_blanket_wall",
+                "opacity": 0.7,
+                "volId": "21"
+            },
+            "pf_coil_1": {
+                "color": "#5062d6",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "pf_coil_1",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Cu",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 8.96,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "pf_coil_1"
+                },
+                "name": "pf_coil_1",
+                "opacity": 0.3,
+                "volId": "1"
+            },
+            "pf_coil_2": {
+                "color": "#a83841",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "pf_coil_2",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Cu",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 8.96,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "pf_coil_2"
+                },
+                "name": "pf_coil_2",
+                "opacity": 0.3,
+                "volId": "2"
+            },
+            "pf_coil_3": {
+                "color": "#b713b3",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "pf_coil_3",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Cu",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 8.96,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "pf_coil_3"
+                },
+                "name": "pf_coil_3",
+                "opacity": 0.3,
+                "volId": "3"
+            },
+            "pf_coil_4": {
+                "color": "#29ae21",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "pf_coil_4",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Cu",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 8.96,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "pf_coil_4"
+                },
+                "name": "pf_coil_4",
+                "opacity": 0.3,
+                "volId": "4"
+            },
+            "pf_coil_case_1": {
+                "color": "#529e98",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "pf_coil_case_1",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Fe",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 8.96,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "pf_coil_case_1"
+                },
+                "name": "pf_coil_case_1",
+                "opacity": 0.3,
+                "volId": "5"
+            },
+            "pf_coil_case_2": {
+                "color": "#c63265",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "pf_coil_case_2",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Fe",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 8.96,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "pf_coil_case_2"
+                },
+                "name": "pf_coil_case_2",
+                "opacity": 0.3,
+                "volId": "6"
+            },
+            "pf_coil_case_3": {
+                "color": "#091ed5",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "pf_coil_case_3",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Fe",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 8.96,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "pf_coil_case_3"
+                },
+                "name": "pf_coil_case_3",
+                "opacity": 0.3,
+                "volId": "7"
+            },
+            "pf_coil_case_4": {
+                "color": "#86bda8",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "pf_coil_case_4",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Fe",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 8.96,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "pf_coil_case_4"
+                },
+                "name": "pf_coil_case_4",
+                "opacity": 0.3,
+                "volId": "8"
+            },
+            "plasma": {
+                "color": "#3a0914",
+                "isVisible": true,
+                "isVisibleWithTallies": false,
+                "key": "plasma",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "H",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 1e-05,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "plasma"
+                },
+                "name": "plasma",
+                "opacity": 0.43,
+                "volId": "9"
+            },
+            "supports": {
+                "color": "#cb3ad1",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "supports",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Fe",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 7.7,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "supports"
+                },
+                "name": "supports",
+                "opacity": 0.3,
+                "volId": "18"
+            },
+            "tf_coils": {
+                "color": "#042f8a",
+                "isVisible": true,
+                "isVisibleWithTallies": true,
+                "key": "tf_coils",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Cu",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 8.96,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "tf_coils"
+                },
+                "name": "tf_coils",
+                "opacity": 0.3,
+                "volId": "23"
+            }
+        }
+    },
+    "simulationType": "openmc"
+}

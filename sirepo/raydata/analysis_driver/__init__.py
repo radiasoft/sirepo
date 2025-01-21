@@ -35,10 +35,18 @@ class AnalysisDriverBase(PKDict):
     def get_conda_env(self):
         raise NotImplementedError("children must implement this method")
 
+    def get_detailed_status_file(*args, **kwargs):
+        return None
+
     def get_notebooks(self, *args, **kwargs):
         raise NotImplementedError("children must implement this method")
 
     def get_output(self):
+        def load_json(path):
+            d = pkjson.load_any(path)
+            # CHX json are double encoded so may need to load 2x
+            return pkjson.load_any(d) if isinstance(d, str) else d
+
         res = PKDict()
         for e in [
             PKDict(
@@ -53,13 +61,13 @@ class AnalysisDriverBase(PKDict):
             PKDict(
                 name="jsonFiles",
                 file_type="json",
-                op=pkjson.load_any,
+                op=load_json,
             ),
         ]:
             res[e.name] = [
                 PKDict(filename=p.basename, data=e.op(p))
                 for p in pkio.sorted_glob(
-                    self.get_output_dir().join(f"**/*.{e.file_type}")
+                    self.get_output_dir().join(f"**/*.{e.file_type}"), key="mtime"
                 )
             ]
         return res
@@ -69,12 +77,14 @@ class AnalysisDriverBase(PKDict):
 
     def get_papermill_args(self):
         res = []
-        for n, v in [
-            ["uid", self.rduid],
-            ["scan", self.rduid],
+        for a in [
+            PKDict(name="uid", value=self.rduid),
+            PKDict(name="scan", value=self.rduid),
             *self._get_papermill_args(),
         ]:
-            res.extend(["-p", f"'{n}'", f"'{v}'"])
+            res.extend(
+                ["-r" if a.get("raw_param") else "-p", f"'{a.name}'", f"'{a.value}'"]
+            )
         res.extend(("--report-mode", "--log-output", "--progress-bar"))
         return res
 
@@ -87,6 +97,11 @@ class AnalysisDriverBase(PKDict):
 
     def has_analysis_pdfs(self):
         return len(self.get_analysis_pdf_paths()) > 0
+
+    # TODO(e-carlin): There should be a databroker class for each
+    # beamline and this question should be answered by it.
+    def is_scan_elegible_for_analysis(self):
+        return True
 
     def render_papermill_script(self, input_f, output_f):
         p = self.get_output_dir().join(_PAPERMILL_SCRIPT)
@@ -109,6 +124,7 @@ class AnalysisDriverBase(PKDict):
         return []
 
 
+# TODO(e-carlin): support just passing catalog_name and rduid outsidef of PKDict
 def get(incoming):
     def _verify_rduid(rduid):
         # rduid will be combined with paths throughout the application.

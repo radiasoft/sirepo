@@ -21,7 +21,7 @@ _DEPENDENT_CODES = [
 PROD_FOSS_CODES = frozenset(
     (
         "activait",
-        "cloudmc",
+        "openmc",
         "controls",
         "elegant",
         "genesis",
@@ -42,7 +42,10 @@ PROD_FOSS_CODES = frozenset(
 #: Codes on dev, alpha, and beta
 _NON_PROD_FOSS_CODES = frozenset(
     (
+        "canvas",
         "epicsllrf",
+        "impactt",
+        "impactx",
         "myapp",
         "hellweg",
     )
@@ -142,13 +145,6 @@ def _init():
                 "url base to reach activait example files",
             ),
         ),
-        cloudmc=dict(
-            data_storage_url=(
-                "https://github.com/radiasoft/sirepo-data-cloudmc/raw/master/",
-                str,
-                "url base to reach cloudmc example h5m files",
-            ),
-        ),
         debug_mode=(pkconfig.in_dev_mode(), bool, "control debugging output"),
         default_proprietary_sim_types=(
             frozenset(),
@@ -170,6 +166,13 @@ def _init():
             set,
             "codes where all users must be authorized via moderation",
         ),
+        openmc=dict(
+            data_storage_url=(
+                "https://github.com/radiasoft/sirepo-data-cloudmc/raw/master/",
+                str,
+                "url base to reach openmc example h5m files",
+            ),
+        ),
         package_path=(
             tuple(["sirepo"]),
             tuple,
@@ -186,6 +189,11 @@ def _init():
             "codes that contain proprietary information and authorization to use is granted manually",
         ),
         raydata=dict(
+            scan_monitor_api_secret=(
+                "a_secret",
+                str,
+                "secret to secure communication with scan monitor",
+            ),
             scan_monitor_url=(
                 "http://127.0.0.1:9001/scan-monitor",
                 str,
@@ -194,13 +202,13 @@ def _init():
         ),
         schema_common=dict(
             hide_guest_warning=_dev("Hide the guest warning in the UI"),
+            support_email=(
+                "support@sirepo.com",
+                str,
+                "Support email address",
+            ),
         ),
         sim_types=(set(), set, "simulation types (codes) to be imported"),
-        slack_uri=(
-            "https://slack.com/",
-            str,
-            "Link to Sirepo Slack workspace; uid will be appended",
-        ),
         srw=dict(
             app_url=("/en/xray-beamlines.html", str, "URL for SRW link"),
             mask_in_toolbar=_test("Show the mask element in toolbar"),
@@ -214,7 +222,7 @@ def _init():
             "Trust Bash env to run Python and agents",
         ),
         ui_websocket=(
-            pkconfig.in_dev_mode(),
+            True,
             bool,
             "whether the UI should use a websocket",
         ),

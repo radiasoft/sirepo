@@ -85,11 +85,13 @@ class SirepoUtils {
         return res;
     }
 
-    static linearToLog(val, min, max, step) {
-        const bin = Math.floor(Math.abs(val - min) / step);
-        const n = Math.abs(max - min) / step;
-        const lv = (bin * Math.log10(max) + (n - bin) * Math.log10(min)) / n;
-        return 10**lv;
+    static linearToLog(val, min, max, nsteps) {
+        if (val === min || val === max) {
+            return val;
+        }
+        const bin = Math.floor(Math.abs(val - min) / ((max - min) / nsteps));
+        const n = (Math.log10(max) - Math.log10(min)) / nsteps;
+        return 10 ** (Math.log10(min) + bin * n);
     }
 
     static normalize(seq) {
@@ -144,28 +146,6 @@ class SirepoUtils {
 
     static minForIndex(arr, i) {
         return SirepoUtils.arrayMin(arr.map(x => x[i]));
-    }
-
-    static reshape(arr, dims) {
-        if (dims.length === 0) {
-            return arr;
-        }
-        const a = Array.from(arr).slice();
-        if (dims.length === 1) {
-            return a;
-        }
-        const n = dims.reduce((p, c) => p * c, 1);
-        if (a.length !== n) {
-            throw new Error(`Product of shape dimensions must equal array length: ${a.length} != ${n}`);
-        }
-        const b = [];
-        const d = dims[0];
-        const m = a.length / d;
-        for (let i = 0; i < d; ++i) {
-            const s = a.slice(m * i, m * (i + 1));
-            b.push(SirepoUtils.reshape(s, dims.slice(1)));
-        }
-        return b;
     }
 
     static wordSplits(s) {

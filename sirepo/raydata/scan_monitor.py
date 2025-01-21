@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """ray data scan monitor
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkasyncio
 from pykern import pkconfig
 from pykern import pkio
@@ -16,20 +16,24 @@ import databroker.queries
 import datetime
 import functools
 import io
+import itertools
 import math
 import pymongo
 import re
 import requests
+import sirepo.feature_config
 import sirepo.raydata.adaptive_workflow
 import sirepo.raydata.analysis_driver
 import sirepo.raydata.databroker
+import sirepo.sim_data
 import sirepo.srdb
 import sirepo.srtime
+import sirepo.tornado
 import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
-import tornado.web
 import zipfile
+
 
 #: task(s) monitoring the execution of the analysis process
 _ANALYSIS_PROCESSOR_TASKS = None
@@ -37,14 +41,13 @@ _ANALYSIS_PROCESSOR_TASKS = None
 #: task(s) monitoring catalogs for new scans
 _CATALOG_MONITOR_TASKS = PKDict()
 
-_DEFAULT_COLUMNS = PKDict(
-    start="time",
-    stop="time",
-    suid="rduid",
-)
-
 # TODO(e-carlin): tune this number
 _MAX_NUM_SCANS = 1000
+
+
+# Fields that come from the top-level of metadata (as opposed to start document).
+# Must match key name from _default_columns()
+_METADATA_COLUMNS = {"start", "stop", "suid"}
 
 _NON_DISPLAY_SCAN_FIELDS = "rduid"
 
@@ -55,6 +58,12 @@ _SCANS_AWAITING_ANALYSIS = []
 
 #: path scan_monitor registers to receive api requests
 _URI = "/scan-monitor"
+
+#: Whether or not new scans should be automatically analyzed (per catalog)
+_WANT_AUTOMATIC_ANALYSIS_FOR_CATALOG = PKDict()
+
+
+_SIM_TYPE = "raydata"
 
 cfg = None
 
@@ -177,20 +186,15 @@ class _Analysis(_DbBase):
         r.save()
 
     @classmethod
-    def statuses_for_scans(cls, catalog_name, rduids):
-        return (
-            cls.session.query(cls.rduid, cls.status)
-            .filter(cls.catalog_name == catalog_name, cls.rduid.in_(rduids))
-            .all()
+    def status_and_elapsed_time(cls, catalog_name, rduid):
+        r = (
+            cls.session.query(cls.status, cls.analysis_elapsed_time)
+            .filter(cls.rduid == rduid)
+            .one_or_none()
         )
-
-    @classmethod
-    def analysis_elapsed_time_for_scans(cls, catalog_name, rduids):
-        return (
-            cls.session.query(cls.rduid, cls.analysis_elapsed_time)
-            .filter(cls.catalog_name == catalog_name, cls.rduid.in_(rduids))
-            .all()
-        )
+        if r:
+            return PKDict(status=r[0], analysis_elapsed_time=r[1])
+        return PKDict(status=None, analysis_elapsed_time=None)
 
     @classmethod
     def _db_upgrade(cls):
@@ -244,7 +248,7 @@ class _Analysis(_DbBase):
 # TODO(e-carlin): copied from sirepo
 # TODO(e-carlin): Since we are going to sockets for communication we should probably use them here.
 # But, for now it is easier to just make a normal http request
-class _JsonPostRequestHandler(tornado.web.RequestHandler):
+class _JsonPostRequestHandler(sirepo.tornado.AuthHeaderRequestHandler):
     def set_default_headers(self):
         self.set_header("Content-Type", pkjson.CONTENT_TYPE)
 
@@ -252,9 +256,6 @@ class _JsonPostRequestHandler(tornado.web.RequestHandler):
 class _RequestHandler(_JsonPostRequestHandler):
     async def _incoming(self, body):
         return getattr(self, "_request_" + body.method)(body.data.get("args"))
-
-    async def post(self):
-        self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
 
     def _build_search_terms(self, terms):
         res = []
@@ -311,7 +312,7 @@ class _RequestHandler(_JsonPostRequestHandler):
                     },
                 ],
             }
-        elif len(nums):
+        if len(nums):
             return {
                 "scan_id": {"$in": nums},
             }
@@ -342,23 +343,6 @@ class _RequestHandler(_JsonPostRequestHandler):
                 }
             return q
 
-        def _sort_params(req_data):
-            c = _DEFAULT_COLUMNS.get(req_data.sortColumn, req_data.sortColumn)
-            s = [
-                (
-                    c,
-                    pymongo.ASCENDING if req_data.sortOrder else pymongo.DESCENDING,
-                ),
-            ]
-            if c != "time":
-                s.append(
-                    (
-                        "time",
-                        pymongo.DESCENDING,
-                    )
-                )
-            return s
-
         c = sirepo.raydata.databroker.catalog(req_data.catalogName)
         pc = math.ceil(
             len(
@@ -369,32 +353,27 @@ class _RequestHandler(_JsonPostRequestHandler):
             )
             / req_data.pageSize
         )
-        l = [
-            PKDict(rduid=u)
-            for u in c.search(
-                _search_params(req_data),
-                sort=_sort_params(req_data),
-                limit=req_data.pageSize,
-                skip=req_data.pageNumber * req_data.pageSize,
-            )
-        ]
-        d = PKDict(
-            _Analysis.statuses_for_scans(
-                catalog_name=req_data.catalogName, rduids=[s.rduid for s in l]
-            )
-        )
-
-        e = PKDict(
-            _Analysis.analysis_elapsed_time_for_scans(
-                catalog_name=req_data.catalogName, rduids=[s.rduid for s in l]
-            )
-        )
-
-        for s in l:
-            s.status = d.get(s.rduid, _AnalysisStatus.NONE)
-            s.analysis_elapsed_time = e.get(s.rduid, None)
-            s.detailed_status = _get_detailed_status(req_data.catalogName, s.rduid)
-        return l, pc
+        res = []
+        for u in c.search(
+            _search_params(req_data),
+            sort=_sort_params(req_data),
+            limit=req_data.pageSize,
+            skip=req_data.pageNumber * req_data.pageSize,
+        ):
+            # Code after this (ex detailed_status) expects that the
+            # scan is valid (ex 'cycle' exists in start doc for chx).
+            # So, don't even show scans to users that aren't elegible.
+            if sirepo.raydata.analysis_driver.get(
+                PKDict(catalog_name=req_data.catalogName, rduid=u)
+            ).is_scan_elegible_for_analysis():
+                res.append(
+                    PKDict(
+                        rduid=u,
+                        detailed_status=_get_detailed_status(req_data.catalogName, u),
+                        **_Analysis.status_and_elapsed_time(req_data.catalogName, u),
+                    )
+                )
+        return res, pc
 
     def _request_analysis_output(self, req_data):
         return sirepo.raydata.analysis_driver.get(req_data).get_output()
@@ -431,6 +410,15 @@ class _RequestHandler(_JsonPostRequestHandler):
                 verify=not pkconfig.channel_in("dev"),
             ).raise_for_status()
             return PKDict()
+
+    def _request_get_automatic_analysis(self, req_data):
+        return PKDict(
+            data=PKDict(
+                automaticAnalysis=_WANT_AUTOMATIC_ANALYSIS_FOR_CATALOG[
+                    req_data.catalogName
+                ]
+            )
+        )
 
     def _request_get_scans(self, req_data):
         s = 1
@@ -481,7 +469,7 @@ class _RequestHandler(_JsonPostRequestHandler):
     def _request_run_engine_event_callback(self, req_data):
         # Start as a task. No need to hold request until task is
         # completed because the caller does nothing with the response.
-        asyncio.create_task(
+        pkasyncio.create_task(
             sirepo.raydata.adaptive_workflow.run_engine_event_callback(req_data)
         )
         return PKDict()
@@ -494,6 +482,41 @@ class _RequestHandler(_JsonPostRequestHandler):
                 ).get_start_fields(),
             )
         )
+
+    def _request_set_automatic_analysis(self, req_data):
+        _WANT_AUTOMATIC_ANALYSIS_FOR_CATALOG[req_data.catalogName] = bool(
+            int(req_data.automaticAnalysis)
+        )
+        return PKDict(data="ok")
+
+    def _sr_authenticate(self, token):
+        if (
+            token
+            == sirepo.feature_config.for_sim_type(_SIM_TYPE).scan_monitor_api_secret
+        ):
+            return token
+        raise sirepo.tornado.error_forbidden()
+
+    async def _sr_post(self, *args, **kwargs):
+        self.write(await self._incoming(PKDict(pkjson.load_any(self.request.body))))
+
+
+def _sort_params(req_data):
+    r = []
+    has_time = False
+    for x in req_data.sortColumns:
+        n = _default_columns(req_data.catalogName).get(x[0], x[0])
+        if n == "time":
+            has_time = True
+        r.append(
+            [
+                n,
+                pymongo.ASCENDING if x[1] else pymongo.DESCENDING,
+            ]
+        )
+    if not has_time:
+        r.append(["time", pymongo.DESCENDING])
+    return r
 
 
 async def _init_analysis_processors():
@@ -545,7 +568,7 @@ async def _init_analysis_processors():
 
     assert not _ANALYSIS_PROCESSOR_TASKS
     _ANALYSIS_PROCESSOR_TASKS = [
-        asyncio.create_task(_process_analysis_queue())
+        pkasyncio.create_task(_process_analysis_queue())
     ] * cfg.concurrent_analyses
     await asyncio.gather(*_ANALYSIS_PROCESSOR_TASKS)
 
@@ -554,14 +577,24 @@ def _display_columns(columns):
     return [k for k in columns if k not in _NON_DISPLAY_SCAN_FIELDS]
 
 
-def _get_detailed_status(catalog_name, rduid):
-    d = sirepo.raydata.analysis_driver.get(
-        PKDict(catalog_name=catalog_name, rduid=rduid)
+def _default_columns(catalog_name):
+    return PKDict(
+        start="time",
+        stop="time",
+        suid="uid",
+        **{
+            e: e
+            for e in sirepo.sim_data.get_class(_SIM_TYPE)
+            .schema()
+            .constants.defaultColumns.get(catalog_name, [])
+        },
     )
-    if hasattr(d, "get_detailed_status_file"):
-        return d.get_detailed_status_file(rduid)
-    else:
-        return None
+
+
+def _get_detailed_status(catalog_name, rduid):
+    return sirepo.raydata.analysis_driver.get(
+        PKDict(catalog_name=catalog_name, rduid=rduid)
+    ).get_detailed_status_file(rduid)
 
 
 async def _init_catalog_monitors():
@@ -569,10 +602,9 @@ async def _init_catalog_monitors():
         assert catalog_name not in _CATALOG_MONITOR_TASKS
         return asyncio.create_task(_poll_catalog_for_scans(catalog_name))
 
-    if not cfg.automatic_analysis:
-        return
     for c in cfg.catalog_names:
         _CATALOG_MONITOR_TASKS[c] = _monitor_catalog(c)
+        _WANT_AUTOMATIC_ANALYSIS_FOR_CATALOG[c] = cfg.automatic_analysis
     await asyncio.gather(*_CATALOG_MONITOR_TASKS.values())
 
 
@@ -583,7 +615,6 @@ async def _init_catalog_monitors():
 # new documents are available.
 # But, for now it is easiest to just poll
 async def _poll_catalog_for_scans(catalog_name):
-    # TODO(e-carlin): need to test polling feature
     def _collect_new_scans_and_queue(last_known_scan_metadata):
         r = [
             sirepo.raydata.databroker.get_metadata(s, catalog_name)
@@ -603,24 +634,32 @@ async def _poll_catalog_for_scans(catalog_name):
             l = s
         return l
 
-    async def _poll_for_new_scans(most_recent_scan_metadata):
-        m = most_recent_scan_metadata
+    async def _poll_for_new_scans():
         while True:
-            m = _collect_new_scans_and_queue(m)
-            await pkasyncio.sleep(2)
+            if not _WANT_AUTOMATIC_ANALYSIS_FOR_CATALOG[catalog_name]:
+                await asyncio.sleep(2)
+                continue
+            s = sirepo.raydata.databroker.get_metadata_for_most_recent_scan(
+                catalog_name
+            )
+            if not _Analysis.have_analyzed_scan(s):
+                _queue_for_analysis(s)
+            while _WANT_AUTOMATIC_ANALYSIS_FOR_CATALOG[catalog_name]:
+                s = _collect_new_scans_and_queue(s)
+                await pkasyncio.sleep(2)
+
+    async def _wait_for_catalog():
+        while True:
+            try:
+                sirepo.raydata.databroker.catalog(catalog_name)
+                return
+            except KeyError:
+                pkdlog(f"no catalog_name={catalog_name}. Retrying...")
+                await pkasyncio.sleep(15)
 
     pkdlog("catalog_name={}", catalog_name)
-    c = None
-    while not c:
-        try:
-            c = sirepo.raydata.databroker.catalog(catalog_name)
-        except KeyError:
-            pkdlog(f"no catalog_name={catalog_name}. Retrying...")
-            await pkasyncio.sleep(15)
-    s = sirepo.raydata.databroker.get_metadata_for_most_recent_scan(catalog_name)
-    if not _Analysis.have_analyzed_scan(s):
-        _queue_for_analysis(s)
-    await _poll_for_new_scans(s)
+    await _wait_for_catalog()
+    await _poll_for_new_scans()
     raise AssertionError("should never get here")
 
 
@@ -629,6 +668,8 @@ def _queue_for_analysis(scan_metadata):
         rduid=scan_metadata.rduid,
         catalog_name=scan_metadata.catalog_name,
     )
+    if not sirepo.raydata.analysis_driver.get(s).is_scan_elegible_for_analysis():
+        return
     pkdlog("scan={}", s)
     if s not in _SCANS_AWAITING_ANALYSIS:
         pkio.unchecked_remove(sirepo.raydata.analysis_driver.get(s).get_output_dir())
@@ -647,6 +688,9 @@ def _scan_index(rduid, req_data):
 def _scan_info(
     rduid, status, detailed_status, analysis_elapsed_time, req_data, all_columns
 ):
+    def _get_start_field(metadata, column):
+        return
+
     m = sirepo.raydata.databroker.get_metadata(rduid, req_data.catalogName)
     d = PKDict(
         rduid=rduid,
@@ -657,12 +701,15 @@ def _scan_info(
             PKDict(rduid=rduid, **req_data)
         ).has_analysis_pdfs(),
     )
-    for c in _DEFAULT_COLUMNS.keys():
-        d[c] = getattr(m, c)()
-
-    for c in req_data.get("selectedColumns", []):
-        d[c] = m.get_start_field(c, unchecked=True)
-
+    for c in itertools.chain(
+        _default_columns(req_data.catalogName).keys(),
+        req_data.get("selectedColumns", []),
+    ):
+        d[c] = (
+            getattr(m, c)()
+            if c in _METADATA_COLUMNS
+            else m.get_start_field(c, unchecked=True)
+        )
     for c in m.get_start_fields():
         all_columns.add(c)
 
@@ -672,9 +719,10 @@ def _scan_info(
 
 def _scan_info_result(scans, page_count, req_data):
     def _compare_values(v1, v2):
+        sort_column = _sort_params(req_data)[0][0]
         # very careful compare - needs to account for missing values or mismatched types
-        v1 = v1.get(req_data.sortColumn)
-        v2 = v2.get(req_data.sortColumn)
+        v1 = v1.get(sort_column)
+        v2 = v2.get(sort_column)
         if v1 is None and v2 is None:
             return 0
         if v1 is None:
@@ -707,7 +755,7 @@ def _scan_info_result(scans, page_count, req_data):
         s = sorted(
             s,
             key=functools.cmp_to_key(_compare_values),
-            reverse=not req_data.sortOrder,
+            reverse=not _sort_params(req_data)[0][1],
         )
     return PKDict(
         data=PKDict(
@@ -715,8 +763,7 @@ def _scan_info_result(scans, page_count, req_data):
             cols=_display_columns(all_columns),
             pageCount=page_count,
             pageNumber=req_data.pageNumber,
-            sortColumn=req_data.sortColumn,
-            sortOrder=req_data.sortOrder,
+            sortColumns=req_data.sortColumns,
         )
     )
 
@@ -737,7 +784,7 @@ def start():
                 "max number of analyses that can run concurrently",
             ),
             db_dir=pkconfig.RequiredUnlessDev(
-                sirepo.srdb.root().join("raydata"),
+                sirepo.srdb.root().join(_SIM_TYPE),
                 pkio.py_path,
                 "root directory for db",
             ),

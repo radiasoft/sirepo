@@ -201,16 +201,6 @@ class GeometricObject {
     }
 
     /**
-     * Determines if one value is greater than another relative to the equalityTolerance of this object
-     * @param {number} val1 - 1st value
-     * @param {number} val2 - 2nd value
-     * @returns {boolean}
-     */
-    gtOutside(val1, val2) {
-        return val1 - val2 > this.equalityTolerance;
-    }
-
-    /**
      * Determines if one value is greater than another, or equal to it relative to the equalityTolerance of this object
      * @param {number} val1 - 1st value
      * @param {number} val2 - 2nd value
@@ -218,16 +208,6 @@ class GeometricObject {
      */
     gtOrEqualWithin(val1, val2) {
         return val1 > val2 || this.equalWithin(val1, val2);
-    }
-
-    /**
-     * Determines if one value is less than another relative to the equalityTolerance of this object
-     * @param {number} val1 - 1st value
-     * @param {number} val2 - 2nd value
-     * @returns {boolean}
-     */
-    ltOutside(val1, val2) {
-        return val2 - val1 > this.equalityTolerance;
     }
 
     /**
@@ -1233,22 +1213,18 @@ class LineSegment extends Line {
     }
 
     /**
-     * The intersection of this LineSegment and another, or null if they do not intersect. Note that
-     * they must intersect in the sense of Lines, and that intersection must line on the segments
-     * @param {LineSegment} lineSegment - a LineSegment
-     * @returns {Point|null}
-     */
-    intersectionWithSegment(lineSegment) {
-        const p = this.intersection(lineSegment);
-        return p ? (this.contains(p) && lineSegment.contains(p) ? p : null) : null;
-    }
-
-    /**
      * The length of this LineSegment
      * @returns {number}
      */
     length() {
         return this.points[0].dist(this.points[1]);
+    }
+
+    midpoint() {
+        return new Point(
+            (this.points[0].x + this.points[1].x) / 2,
+            (this.points[0].y + this.points[1].y) / 2,
+        );
     }
 
     /**
@@ -1264,7 +1240,7 @@ class LineSegment extends Line {
      * @returns {string}
      */
     toString() {
-        return this.points.map(p => p.toString());
+        return this.points.map(p => p.toString()).join(' ');
     }
 }
 
@@ -1526,21 +1502,22 @@ SIREPO.app.service('geometry', function(utilities) {
     };
     this.tolerance = 1e-4;
 
-    this.bestEdgeAndSectionInBounds = function(edges, boundingRect, dim, reverse) {
-        let edge;
-        let section;
-        for(const i in edges) {
-            edge = edges[i];
-            section = sectionOfEdgeInBounds(edge, boundingRect, dim, reverse);
-            if (section) {
-                return {
-                    full: edge,
-                    clipped: section,
-                    index: i
-                };
+    // Returns the visible edge which is closest to the lower left corner
+    this.bestEdgeInBounds = function(edges, boundingRect) {
+        let res;
+        const b = new Point(
+            boundingRect.points[0].x,
+            boundingRect.points[1].y,
+        );
+        for (const edge of edges) {
+            if (edge && edge.points.filter(boundingRect.pointFilter()).length === 2) {
+                if (res && b.dist(edge.midpoint()) > b.dist(res.midpoint())) {
+                    continue;
+                }
+                res = edge;
             }
         }
-        return null;
+        return res;
     };
 
     this.coordBounds = function(coords) {
@@ -1726,16 +1703,6 @@ SIREPO.app.service('geometry', function(utilities) {
 
         return ls;
     };
-    this.lineSegmentFromArr = function (arr) {
-        return this.lineSegment(arr[0], arr[1]);
-    };
-
-    this.matrixAdd = function (matrix1, matrix2) {
-        var m = [];
-        matrix1.forEach(function (row1, i) {
-            m.push(this.vectorAdd(row1, matrix2[i]));
-        });
-    };
 
     this.matrixDet = function(matrix) {
         var d = 0;
@@ -1827,146 +1794,6 @@ SIREPO.app.service('geometry', function(utilities) {
         });
     };
 
-    // norm is a vector (array), point is a geometry.point
-    // planes have the equation Ax + By + Cz = D
-    this.plane = function(norm, point) {
-        if (isVectorZero(norm)) {
-            throw new Error('Must specify a non-zero plane normal: ' + norm);
-        }
-        var pCoords = point.coords();
-        var pl = {
-            A: norm[0],
-            B: norm[1],
-            C: norm[2],
-            D: svc.vectorDot(norm, pCoords),
-            norm: norm,
-            point: point,
-            pointCoords: pCoords,
-        };
-        pl.closestPointToPoint = function(p) {
-            var d = this.distToPoint(p, true);
-            var n = this.normalized();
-            var pc = p.coords();
-            return svc.pointFromArr([
-                pc[0] - d * n[0], pc[1] - d * n[1], pc[2] - d * n[2]
-            ]);
-        };
-        pl.containsPoint = function(p) {
-            return equalWithin(svc.vectorDot(norm, p.coords()), this.D);
-        };
-        pl.distToPoint = function(p, signed) {
-            var pc = p.coords();
-            var d = (1 / Math.hypot(norm[0], norm[1], norm[2])) *
-                (norm[0] * pc[0] + norm[1] * pc[1] + norm[2] * pc[2] - this.D);
-            return signed ? d : Math.abs(d);
-        };
-        pl.equals = function(pl2) {
-            if (! this.isParallelTo(pl2)) {
-                return false;
-            }
-            return this.D === pl2.D;
-        };
-        pl.intersection = function (pl2) {
-            if (this.equals(pl2)) {
-                // planes are equal, return an arbitrary line containing the point
-                // need ensure they are not the same point!  Use random number?
-                return svc.line(point, this.pointInPlane());
-            }
-            // parallel but not equal, there is no intersection
-            if (this.isParallelTo(pl2)) {
-                return null;
-            }
-            var p1 = this.paramLine(pl2)(0);  // random t?
-            var p2 = this.paramLine(pl2)(1);
-            return new Line(new Point(...p1), new Point(...p2));
-        };
-        pl.intersectsLine = function (l) {
-            var pts = l.points();
-            var p1 = pts[0].coords();
-            var p2 = pts[1].coords();
-            var lv = [p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]];
-            var dp = svc.vectorDot(lv, norm);
-            if (dp !== 0) {
-                return true;
-            }
-            var pp = this.pointInPlane().coords();
-            var d = [pp[0] - p1[0], pp[1] - p1[1], pp[2] - p1[2]];
-            dp = svc.vectorDot(d, norm);
-            return dp === 0;
-        };
-        pl.isParallelTo = function(pl2) {
-            return equalWithin(this.A, pl2.A) &&
-                equalWithin(this.B, pl2.B) &&
-                equalWithin(this.C, pl2.C);
-        };
-        pl.mirrorPoint = function(p) {
-            var cp = this.closestPointToPoint(p).coords();
-            var d = this.distToPoint(p, true);
-            var n = this.normalized();
-            return svc.pointFromArr([
-                cp[0] - d * n[0],  cp[1] - d * n[1],  cp[2] - d * n[2]
-            ]);
-        };
-        pl.normalized = function() {
-            return svc.normalize([this.A, this.B, this.C]);
-            //var n = Math.hypot(this.A, this.B, this.C);
-            //return [this.A / n, this.B / n, this.C / n];
-        };
-        pl.paramLine = function(pl2, t) {
-            // makes for symmetric equations below
-            var pl1 = this;
-            var freeIndex = 0;
-            var i = 1;
-            var j = 2;
-            var d = 0;
-            for (freeIndex = 0; freeIndex < 3; ++freeIndex) {
-                i = (freeIndex + 1) % 3;
-                j = (freeIndex + 2) % 3;
-                d = pl1.norm[i] * pl2.norm[j] - pl1.norm[j] * pl2.norm[i];
-                if (d !== 0) {
-                    break;
-                }
-            }
-            return function (t) {
-                var p = [0, 0, 0];
-                p[freeIndex] = t;
-                p[i] = ((pl2.norm[j] * pl1.D - pl1.norm[j] * pl2.D) +
-                    t * (pl1.norm[j] * pl2.norm[freeIndex] - pl2.norm[j] * pl1.norm[freeIndex])) / d;
-                p[j] = ((pl1.norm[i] * pl2.D - pl2.norm[i] * pl1.D) +
-                    t * (pl1.norm[i] * pl2.norm[freeIndex] - pl2.norm[i] * pl1.norm[freeIndex])) / d;
-                return p;
-            };
-        };
-        pl.pointInPlane = function(fixedVal) {
-            if (fixedVal !==0 && ! fixedVal) {
-                fixedVal = 1;
-            }
-            // check if plane norm is along a basis vector - if so, any values in the remaining coords
-            // satisfy the plane's equation
-            var ones = [1, 1, 1];
-            for (var dim in svc.basisVectors) {
-                var v = svc.basisVectors[dim];
-                if (svc.vectorDot(v, this.normalized()) === 1) {
-                    return svc.pointFromArr(svc.vectorSubtract(ones, v));
-                }
-            }
-            // if a coord is 0 - can't all be 0 so at most one - the equation of the plane
-            // is also the equation of a line.  If no coords are 0 we can arbitrarily set z to 0
-            var non0 = [[1, 2], [0, 2], [0, 1]];
-            var ptArr = [0, 0, 0];
-            var zIdx = norm.indexOf(0);
-            zIdx = zIdx >= 0 ? zIdx : 2;
-            var nzIdxs = non0[zIdx];
-            ptArr[nzIdxs[0]] = fixedVal;
-            ptArr[nzIdxs[1]] = -fixedVal * norm[nzIdxs[0]] / norm[nzIdxs[1]];
-            return svc.pointFromArr(ptArr);
-        };
-        if (! pl.containsPoint(point)) {
-            throw new Error('Plane does not contain point: ' + point.coords());
-        }
-        return pl;
-    };
-
     // Used for both 2d and 3d
     this.point = function(x, y, z) {
         return {
@@ -2007,95 +1834,6 @@ SIREPO.app.service('geometry', function(utilities) {
 
     this.pointFromArr = function (arr) {
         return this.point(arr[0], arr[1], arr[2]);
-    };
-
-    // construct from array of points, assumed to be in "drawing order"
-    this.polygon = function (pts) {
-
-        if (pts.length < 3) {
-            throw new Error('A polygon requires at least 3 points (' + pts.length + ' provided)');
-        }
-
-        /*
-        var bounds = {};
-        svc.basis.forEach(function (dim) {
-            bounds[dim] = {};
-            var d = pts.map(function (pt) {
-                return pt[dim];
-            });
-            bounds[dim].min = SIREPO.UTILS.arrayMin(d);
-            bounds[dim].max = SIREPO.UTILS.arrayMax(d);
-        });
-        */
-
-        //var boundaryRect = svc.rect(svc.point(bounds.x.min, bounds.y.min), svc.point(bounds.x.max, bounds.y.max));
-
-        var sides = Array(pts.length);
-        pts.forEach(function (pt, ptIdx) {
-            //sides[ptIdx] = svc.lineSegment(pts[(ptIdx + 1) % pts.length], pt);
-            sides[ptIdx] = [pts[(ptIdx + 1) % pts.length], pt];
-        });
-
-        // static properties set at init
-        var poly = {
-            //bounds: bounds,
-            points: pts,
-            //boundaryRect: boundaryRect,
-            sides: sides,
-        };
-
-        // "ray casting" simplified
-        poly.containsPoint = function(pt) {
-            // count sides whose endpoints are above/below the input point and have least one endpoint to the left
-            // - implies a ray starting at -Infinity crosses that many sides
-            return sides.filter(function (ls) {
-                return (ls[0][1] > pt[1] !== ls[1][1] > pt[1]) &&
-                    (ls[0][0] < pt[0] || ls[1][0] < pt[0]);
-                //return (ls.p1.y > pt.y !== ls.p2.y > pt.y) &&
-                //    (ls.p1.x < pt.x || ls.p2.x < pt.x);
-            }).length  % 2 === 1;
-        };
-
-        // should start separating "dynamic" from "static" - if points are not expected to change there is
-        // no reason to recalculate everything.  Maybe an argument?
-        /*
-        poly.getBoundaryRect = function() {
-            var b = this.bounds();
-            return svc.rect(svc.point(b.x.min, b.y.min), svc.point(b.x.max, b.y.max));
-        };
-
-        poly.getBounds = function() {
-            var b = {};
-            svc.basis.forEach(function (dim) {
-                var d = pts.map(function (pt) {
-                    return pt[dim];
-                });
-                b[dim] = {};
-                b[dim].min = SIREPO.UTILS.arrayMin(d);
-                b[dim].max = SIREPO.UTILS.arrayMax(d);
-            });
-            return b;
-        };
-
-        poly.getPoints = function () {
-            return pts;
-        };
-
-        poly.getSides = function() {
-            var ls = Array(pts.length);
-            pts.forEach(function (pt, ptIdx) {
-                ls[ptIdx] = svc.lineSegment(pts[(ptIdx + 1) % pts.length], pt);
-            });
-            return ls;
-        };
-        */
-        return poly;
-    };
-
-    this.polyFromArr = function (arr) {
-        return this.polygon(arr.map(function (c) {
-            return svc.pointFromArr(c);
-        }));
     };
 
     // 2d only
@@ -2208,10 +1946,6 @@ SIREPO.app.service('geometry', function(utilities) {
                 return this.sides()[1].length();
             }
         };
-    };
-
-    this.rectFromArr = function (arr) {
-        return svc.rect(svc.pointFromArr(arr[0]), svc.pointFromArr(arr[1]));
     };
 
     // Sort (with optional reversal) the point array by the values in the given dimension;
@@ -2364,38 +2098,6 @@ SIREPO.app.service('geometry', function(utilities) {
         return m;
     };
 
-    // we will use "vector" to mean an array of numbers, and "point" to be an object
-    // that wraps coordinates and defines methods to manipulated them
-    this.vectorAdd = function (vector1, vector2) {
-        return this.vectorLinearCombination(vector1, vector2, 1);
-    };
-
-
-    this.vectorCross = function (vector1, vector2) {
-        if (vector1.length !== 3 || vector2.length !== 3) {
-            throw new Error('Vectors must be dimension 3: ' + vector1, vector2);
-        }
-        var c = [];
-        for (var dim in svc.basisVectors) {
-            var v = svc.basisVectors[dim];
-            var d = svc.matrixDet([v, vector1, vector2]);
-            c.push(d);
-        }
-        return c;
-    };
-
-    this.vectorDot = function (vector1, vector2) {
-        return vector1[0] * vector2[0] + vector1[1] * vector2[1] + vector1[2] * vector2[2];
-    };
-
-    this.vectorLinearCombination = function (vector1, vector2, constant) {
-        var v = [];
-        vector1.forEach(function (el1, i) {
-            v.push(el1 + constant * vector2[i]);
-        });
-        return v;
-    };
-
     this.vectorMult = function (m1, v) {
         var v2 = [];
         m1.forEach(function (row) {
@@ -2408,87 +2110,19 @@ SIREPO.app.service('geometry', function(utilities) {
         return v2;
     };
 
-    this.vectorSubtract = function (vector1, vector2) {
-        return this.vectorLinearCombination(vector1, vector2, -1);
-    };
-
-
     // numbers are to be considered equal if they differ by less than this
     function equalWithin(val1, val2, tolerance) {
         var tol = tolerance || svc.tolerance;
         return Math.abs(val2 - val1) < tol;
     }
 
-    function gtOutside(val1, val2, tolerance) {
-        var tol = tolerance || svc.tolerance;
-        return val1 - val2 > tol;
-    }
-
     function gtOrEqualWithin(val1, val2, tolerance) {
         return val1 > val2 || equalWithin(val1, val2, tolerance);
-    }
-
-    function isVectorZero(vector) {
-        return vector.every(function (c) {
-            return c === 0;
-        });
-    }
-
-    function ltOutside(val1, val2, tolerance) {
-        var tol = tolerance || svc.tolerance;
-        return val2 - val1 > tol;
     }
 
     function ltOrEqualWithin(val1, val2, tolerance) {
         return val1 < val2 || equalWithin(val1, val2, tolerance);
     }
-
-    function sectionOfEdgeInBounds(edge, boundingRect, dim, reverse) {
-
-        if (! edge) {
-            return null;
-        }
-
-        // edgeEndsInBounds are the coordinates of the ends of the selected edge are on or inside the
-        // boundary rectangle
-        const edgeEndsInBounds = edge.points.filter(boundingRect.pointFilter());
-
-        // projectedEnds are the 4 points where the boundary rectangle intersects the
-        // *line* defined by the selected edge
-        const projectedEnds = boundingRect.boundaryIntersectionsWithSeg(edge);
-
-        // if the selected edge does not intersect the boundary, it
-        // means both ends are off screen; so, reject it
-        if (projectedEnds.length === 0) {
-            return null;
-        }
-
-        // now we have any edge endpoint that is in or on the boundary, plus
-        // the points projected to the boundary
-        // get all of those points that also lie on the selected edge
-        const ap = edgeEndsInBounds.concat(projectedEnds);
-        const allPoints = edgeEndsInBounds.concat(projectedEnds).filter(edge.pointFilter());
-        const uap = utilities.unique(allPoints, (p1, p2) => p1.equals(p2));
-        if (uap.length < 2) {  // need 2 points to define the line segment
-            return null;
-        }
-        const section = new SIREPO.GEOMETRY.LineSegment(
-            ...SIREPO.GEOMETRY.GeometryUtils.sortInDimension(uap, dim, reverse)
-        );
-
-        if (edgeEndsInBounds.length === 0) {
-            return section;
-        }
-
-        // if the edge is showing and the line segment is too short (here half the length of the actual edge),
-        // do not use it
-        if (section.length() / edge.length() > 0.5) {
-            return section;
-        }
-        return null;
-    }
-
-
 });
 
 SIREPO.GEOMETRY = {

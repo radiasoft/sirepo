@@ -115,7 +115,7 @@ class API(sirepo.quest.API):
         t = None
         with sirepo.sim_run.tmp_dir(qcall=self) as d:
             # TODO(e-carlin): computeJobHash
-            t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
+            t = sirepo.job.DATA_FILE_ROOT.join(sirepo.util.unique_key())
             t.mksymlinkto(d, absolute=True)
             try:
                 r = await self._request_api(
@@ -161,7 +161,7 @@ class API(sirepo.quest.API):
     async def api_jobSupervisorPing(self):
         e = None
         try:
-            k = sirepo.job.unique_key()
+            k = sirepo.util.unique_key()
             r = await self._request_api(
                 _request_content=PKDict(ping=k),
                 _request_uri=self._supervisor_uri(sirepo.job.SERVER_PING_URI),
@@ -211,13 +211,23 @@ class API(sirepo.quest.API):
         # runStatus receives models when an animation status if first queried
         return await self._request_api(_request_content=self._request_content(PKDict()))
 
-    @sirepo.quest.Spec("require_user")
+    @sirepo.quest.Spec("require_premium")
     async def api_sbatchLogin(self):
         r = self._request_content(
             PKDict(computeJobHash="unused", jobRunMode=sirepo.job.SBATCH),
         )
-        r.sbatchCredentials = r.pkdel("data")
+        # SECURITY: Don't include credentials so the agent can't see them.
+        r.sbatchCredentials = r.data.sbatchCredentials
+        r.pkdel("data")
         return await self._request_api(_request_content=r)
+
+    @sirepo.quest.Spec("require_premium")
+    async def api_sbatchLoginStatus(self):
+        return await self._request_api(
+            _request_content=self._request_content(
+                PKDict(computeJobHash="unused", jobRunMode=sirepo.job.SBATCH),
+            )
+        )
 
     @sirepo.quest.Spec("require_user", frame_id="SimFrameId")
     async def api_simulationFrame(self, frame_id):
@@ -375,11 +385,11 @@ class API(sirepo.quest.API):
                 ), f"sbatchQueue={m.sbatchQueue} not in NERSC_QUEUES={sirepo.job.NERSC_QUEUES}"
                 c.sbatchQueue = m.sbatchQueue
                 c.sbatchProject = m.sbatchProject
-            for f in "sbatchCores", "sbatchHours", "tasksPerNode":
+            for f in "sbatchCores", "sbatchHours", "sbatchNodes", "tasksPerNode":
+                if f not in m:
+                    continue
                 assert m[f] > 0, f"{f}={m[f]} must be greater than 0"
                 c[f] = m[f]
-            if "sbatchNodes" in m:
-                c.sbatchNodes = m.sbatchNodes
             return request_content
 
         d = kwargs.pkdel("req_data")
@@ -436,7 +446,7 @@ class API(sirepo.quest.API):
         with sirepo.sim_run.tmp_dir(qcall=self) as d:
             t = None
             try:
-                t = sirepo.job.DATA_FILE_ROOT.join(sirepo.job.unique_key())
+                t = sirepo.job.DATA_FILE_ROOT.join(sirepo.util.unique_key())
                 t.mksymlinkto(d, absolute=True)
                 content.dataFileKey = t.basename
                 yield d

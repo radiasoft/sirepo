@@ -4,17 +4,15 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import crystal
 from sirepo import simulation_db
 from sirepo.template import srw_common
 from sirepo.template import template_common
 import array
-import asyncio
 import copy
 import glob
 import math
@@ -30,6 +28,7 @@ import srwpy.srwl_bl
 import srwpy.srwlib
 import srwpy.srwlpy
 import srwpy.uti_io
+import srwpy.uti_math
 import srwpy.uti_plot_com
 import time
 import traceback
@@ -60,36 +59,31 @@ _OUTPUT_FOR_MODEL = PKDict(
         units=["m", "m", ""],
     ),
     coherentModesAnimation=PKDict(
-        title="E={photonEnergy} eV Modes {plotModesStart} - {plotModesEnd}",
+        title="Coherent Modes, {position} (E={photonEnergyWithUnits}) Modes {plotModesStart} - {plotModesEnd}",
         basename="res_csd",
         filename="res_csd_cm.h5",
         dimensions=3,
         labels=["Horizontal Position", "Vertical Position", "Intensity"],
-        units=["m", "m", "{intensity_units}"],
+        units=["m", "m", "ph/s/.1%bw/mm^2"],
     ),
     fluxReport=PKDict(
-        title="Flux through Finite Aperture",
+        title="Flux through Finite Aperture, {position}",
         subtitle="{polarization} Polarization",
         filename="res_spec_me.dat",
         dimensions=2,
-        labels=["Photon Energy", "{flux_label}"],
-        units=["eV", "{flux_units}"],
     ),
     initialIntensityReport=PKDict(
-        title="Before Propagation (E={photonEnergy} eV)",
+        title="Initial Intensity, {position} (E={photonEnergyWithUnits})",
         subtitle="{characteristic}",
         filename="res_int_se.dat",
         dimensions=3,
-        labels=["Horizontal Position", "Vertical Position", "Intensity"],
-        units=["m", "m", "{intensity_units}"],
+        special_z_units=True,
     ),
     intensityReport=PKDict(
-        title="On-Axis Spectrum from Filament Electron Beam",
+        title="On-Axis Spectrum from Filament Electron Beam, {position}",
         subtitle="{polarization} Polarization",
         filename="res_spec_se.dat",
         dimensions=2,
-        labels=["Photon Energy", "Intensity"],
-        units=["eV", "{intensity_units}"],
     ),
     mirrorReport=PKDict(
         title="Optical Path Difference",
@@ -99,18 +93,14 @@ _OUTPUT_FOR_MODEL = PKDict(
         units=["m", "m", "m"],
     ),
     multiElectronAnimation=PKDict(
-        title="E={photonEnergy} eV",
+        title="Intensity {name}, {position} (E={photonEnergyWithUnits})",
         filename="res_int_pr_me.dat",
         dimensions=3,
-        labels=["Horizontal Position", "Vertical Position", "Intensity"],
-        units=["m", "m", "{intensity_units}"],
     ),
     powerDensityReport=PKDict(
-        title="Power Density",
+        title="Power Density, {position}",
         filename="res_pow.dat",
         dimensions=3,
-        labels=["Horizontal Position", "Vertical Position", "Power Density"],
-        units=["m", "m", "W/mm^2"],
     ),
     brillianceReport=PKDict(
         filename="res_brilliance.dat",
@@ -125,12 +115,11 @@ _OUTPUT_FOR_MODEL = PKDict(
         dimensions=2,
     ),
     watchpointReport=PKDict(
-        title="After Propagation (E={photonEnergy} eV)",
+        title="Intensity {name}, {position} (E={photonEnergyWithUnits})",
         subtitle="{characteristic}",
         filename="res_int_pr_se.dat",
         dimensions=3,
-        labels=["Horizontal Position", "Vertical Position", "Intensity"],
-        units=["m", "m", "{intensity_units}"],
+        special_z_units=True,
     ),
 )
 _OUTPUT_FOR_MODEL[f"{_SIM_DATA.EXPORT_RSOPT}"] = PKDict(
@@ -145,7 +134,9 @@ _OUTPUT_FOR_MODEL.beamlineAnimation.filename = "res_int_pr_se{watchpoint_id}.dat
 _OUTPUT_FOR_MODEL.sourceIntensityReport = copy.deepcopy(
     _OUTPUT_FOR_MODEL.initialIntensityReport
 )
-_OUTPUT_FOR_MODEL.sourceIntensityReport.title = "E={sourcePhotonEnergy} eV"
+_OUTPUT_FOR_MODEL.sourceIntensityReport.title = (
+    "Intensity, {position} (E={sourcePhotonEnergyWithUnits})"
+)
 
 _PREPROCESS_PREFIX = "preproc-"
 
@@ -343,44 +334,6 @@ def export_filename(sim_filename, filename):
     return filename
 
 
-def _extract_coherent_modes(model, out_info):
-    out_file = "combined-modes.dat"
-    wfr = srwpy.srwlib.srwl_uti_read_wfr_cm_hdf5(_file_path=out_info.filename)
-    if model.plotModesEnd > len(wfr):
-        model.plotModesEnd = len(wfr)
-    if model.plotModesStart > model.plotModesEnd:
-        model.plotModesStart = model.plotModesEnd
-    if model.plotModesStart == model.plotModesEnd:
-        out_info.title = "E={photonEnergy} eV Mode {plotModesStart}"
-    mesh = wfr[0].mesh
-    arI = array.array("f", [0] * mesh.nx * mesh.ny)
-    for i in range(model.plotModesStart, model.plotModesEnd + 1):
-        srwpy.srwlib.srwl.CalcIntFromElecField(
-            arI,
-            wfr[i - 1],
-            int(model.polarization),
-            int(model.characteristic),
-            3,
-            mesh.eStart,
-            0,
-            0,
-            [2],
-        )
-    srwpy.srwlib.srwl_uti_save_intens_ascii(
-        arI,
-        mesh,
-        out_file,
-        _arLabels=[
-            "Photon Energy",
-            "Horizontal Position",
-            "Vertical Position",
-            "Intensity",
-        ],
-        _arUnits=["eV", "m", "m", "ph/s/.1%bw/mm^2"],
-    )
-    return out_file
-
-
 def extract_report_data(sim_in):
     r = sim_in.report
     out = copy.deepcopy(_OUTPUT_FOR_MODEL[re.sub(r"\d+$", "", r)])
@@ -400,26 +353,51 @@ def extract_report_data(sim_in):
         _fix_file_header(out.filename)
     if r == "coherentModesAnimation":
         out.filename = _extract_coherent_modes(dm[r], out)
+    wid = dm[r].get("id", 0)
     _update_report_labels(
         out,
         PKDict(
+            name=_element_name(sim_in, wid),
+            position=_element_position(sim_in, wid),
+            photonEnergyWithUnits=_format_energy(dm.simulation.photonEnergy),
+            sourcePhotonEnergyWithUnits=_format_energy(
+                dm.sourceIntensityReport.photonEnergy
+            ),
             photonEnergy=dm.simulation.photonEnergy,
             sourcePhotonEnergy=dm.sourceIntensityReport.photonEnergy,
             polarization=_enum_text("Polarization", dm[r], "polarization"),
             characteristic=_enum_text("Characteristic", dm[r], "characteristic"),
-            intensity_units=_intensity_units(sim_in),
-            flux_label=_flux_label(dm[r]),
-            flux_units=_flux_units(dm[r]),
-            watchpoint_id=dm[r].get("id", 0),
+            watchpoint_id=wid,
             plotModesStart=dm[r].get("plotModesStart", ""),
             plotModesEnd=dm[r].get("plotModesEnd", ""),
         ),
     )
-    if out.units[1] == "m":
-        out.units[1] = "[m]"
+    points, _, allrange, labels, units = srwpy.uti_plot_com.file_load(out.filename)
+    if (
+        r == "multiElectronAnimation"
+        and dm.multiElectronAnimation.photonEnergyBandWidth > 0
+    ):
+        # SRW sometimes reports this units wrong in this case
+        units[3] = "ph/s/mm^2"
+
+    if "labels" not in out:
+        if out.dimensions == 3:
+            out.labels = labels[1:]
+            out.units = units[1:]
+            if not out.labels[2]:
+                out.labels[2] = "Intensity"
+        elif out.dimensions == 2:
+            out.labels = [labels[0], labels[3] or "Intensity"]
+            out.units = [units[0], units[3]]
+
+    if out.get("special_z_units"):
+        out.units[2] = _intensity_units(sim_in)
+
+    if out.units[1] in ("m", "rad"):
+        out.units[1] = f"[{out.units[1]}]"
     else:
         out.units[1] = "({})".format(out.units[1])
-    data, _, allrange, _, _ = srwpy.uti_plot_com.file_load(out.filename)
+
     res = PKDict(
         title=out.title,
         subtitle=out.get("subtitle", ""),
@@ -428,8 +406,8 @@ def extract_report_data(sim_in):
         x_label=out.labels[0] + " [" + out.units[0] + "]",
         x_units=out.units[0],
         y_units=out.units[1],
-        points=data,
-        z_range=[np.min(data), np.max(data)],
+        points=points,
+        z_range=[np.min(points), np.max(points)],
         # send the full plot ranges as summaryData
         summaryData=PKDict(
             fieldRange=allrange,
@@ -437,13 +415,14 @@ def extract_report_data(sim_in):
             .get("summaryData", {})
             .get(
                 "fieldIntensityRange",
-                [np.min(data), np.max(data)],
+                [np.min(points), np.max(points)],
             ),
         ),
     )
     if out.dimensions == 3:
         res.report = r
         res = _remap_3d(res, allrange, out, dm[r])
+        res.z_footer = _plot_z_footer(res.z_label, allrange, points)
     return res
 
 
@@ -455,11 +434,7 @@ def get_data_file(run_dir, model, frame, options):
         return template_common.text_data_file(
             _get_most_recent_log_file(pkio.sorted_glob(d.join("*.log"))), d
         )
-    return get_filename_for_model(model)
-
-
-def _get_most_recent_log_file(files):
-    return sorted(files, key=lambda f: f.mtime())[-1].basename
+    return _best_data_file(get_filename_for_model(model))
 
 
 def get_filename_for_model(model):
@@ -475,15 +450,6 @@ def get_filename_for_model(model):
 
 def get_predefined_beams():
     return _SIM_DATA.srw_predefined().beams
-
-
-def _copy_frame_args_into_model(frame_args, name):
-    m = frame_args.sim_in.models[frame_args.frameReport]
-    m_schema = SCHEMA.model[name]
-    for f in frame_args:
-        if f in m and f in m_schema:
-            m[f] = frame_args[f]
-    return m
 
 
 def sim_frame(frame_args):
@@ -1252,6 +1218,8 @@ def _compute_material_characteristics(model, photon_energy, prefix=""):
 
 
 def _compute_PGM_value(model):
+    if model.computeParametersFrom == "3":
+        return model
     parms_list = ["energyAvg", "cff", "grazingAngle"]
     try:
         mirror = srwpy.srwlib.SRWLOptMirPl(
@@ -1523,12 +1491,55 @@ def _compute_grazing_orientation(model):
     return model
 
 
+def _copy_frame_args_into_model(frame_args, name):
+    m = frame_args.sim_in.models[frame_args.frameReport]
+    m_schema = SCHEMA.model[name]
+    for f in frame_args:
+        if f in m and f in m_schema:
+            m[f] = frame_args[f]
+    return m
+
+
+def _core_error(cores):
+    raise sirepo.util.UserAlert(f"cores={cores} when cores must be >= {_MIN_CORES}")
+
+
 def _create_user_model(data, model_name):
     model = data.models[model_name]
     if model_name == "tabulatedUndulator":
         model = model.copy()
         model.undulator = data.models.undulator
     return model
+
+
+def _element_name(sim_in, watchpoint_id):
+    if sim_in.report == "multiElectronAnimation":
+        watchpoint_id = sim_in.models.multiElectronAnimation.get("watchpointId", 0)
+    for e in sim_in.models.beamline:
+        if e.id == watchpoint_id:
+            # use "at {title}" unless the watchpoint name contains a common preposition
+            if re.search(
+                r"\b(after|at|before|in|near)\b", e.title, re.IGNORECASE
+            ) or re.search(r"\b(pre|post)", e.title, re.IGNORECASE):
+                return e.title
+            return f"at {e.title}"
+    return ""
+
+
+def _element_position(sim_in, watchpoint_id):
+    if sim_in.report == "initialIntensityReport":
+        return f"{_format_amount(sim_in.models.simulation.distanceFromSource)} m"
+    if sim_in.report == "multiElectronAnimation":
+        watchpoint_id = sim_in.models.multiElectronAnimation.get("watchpointId", 0)
+    for e in sim_in.models.beamline:
+        if e.id == watchpoint_id:
+            return f"{_format_amount(e.position)} m"
+    if (
+        sim_in.models[sim_in.report]
+        and "distanceFromSource" in sim_in.models[sim_in.report]
+    ):
+        return f"{_format_amount(sim_in.models[sim_in.report].distanceFromSource)} m"
+    return ""
 
 
 def _enum_text(name, model, field):
@@ -1543,6 +1554,19 @@ def _export_rsopt_config(data, run_dir):
         _write_rsopt_files(data, run_dir, ctx)
     else:
         _write_rsopt_zip(data, ctx)
+
+
+def _export_rsopt_files():
+    files = PKDict()
+    for t in (
+        "py",
+        "sh",
+        "yml",
+    ):
+        files[f"{t}FileName"] = f"{_SIM_DATA.EXPORT_RSOPT}.{t}"
+    files.postProcFileName = f"{_SIM_DATA.EXPORT_RSOPT}_post.py"
+    files.readmeFileName = "README.txt"
+    return files
 
 
 def _extend_plot(
@@ -1640,6 +1664,44 @@ def _extract_brilliance_report(model, filename):
         x_points=x_points,
         points=points,
     )
+
+
+def _extract_coherent_modes(model, out_info):
+    out_file = "combined-modes.dat"
+    wfr = srwpy.srwlib.srwl_uti_read_wfr_cm_hdf5(_file_path=out_info.filename)
+    if model.plotModesEnd > len(wfr):
+        model.plotModesEnd = len(wfr)
+    if model.plotModesStart > model.plotModesEnd:
+        model.plotModesStart = model.plotModesEnd
+    if model.plotModesStart == model.plotModesEnd:
+        out_info.title = "E={photonEnergyWithUnits} Mode {plotModesStart}"
+    mesh = wfr[0].mesh
+    arI = array.array("f", [0] * mesh.nx * mesh.ny)
+    for i in range(model.plotModesStart, model.plotModesEnd + 1):
+        srwpy.srwlib.srwl.CalcIntFromElecField(
+            arI,
+            wfr[i - 1],
+            int(model.polarization),
+            int(model.characteristic),
+            3,
+            mesh.eStart,
+            0,
+            0,
+            [2],
+        )
+    srwpy.srwlib.srwl_uti_save_intens_ascii(
+        arI,
+        mesh,
+        out_file,
+        _arLabels=[
+            "Photon Energy",
+            "Horizontal Position",
+            "Vertical Position",
+            "Intensity",
+        ],
+        _arUnits=["eV", "m", "m", "ph/s/.1%bw/mm^2"],
+    )
+    return out_file
 
 
 def _extract_trajectory_report(model, filename):
@@ -1744,16 +1806,17 @@ def _fix_file_header(filename):
     pkio.write_text(filename, "".join(rows))
 
 
-def _flux_label(model):
-    if "fluxType" not in model:
-        return ""
-    return "Flux" if int(model.fluxType) == 1 else "Intensity"
+def _format_amount(value):
+    return f"{float(value):.4f}".rstrip("0").rstrip(".")
 
 
-def _flux_units(model):
-    if "fluxType" not in model:
-        return ""
-    return "ph/s/.1%bw" if int(model.fluxType) == 1 else "ph/s/.1%bw/mm^2"
+def _format_energy(energy):
+    energy = float(energy)
+    u = "eV"
+    if energy > 1000:
+        energy = energy / 1000
+        u = "keV"
+    return f"{_format_amount(energy)} {u}"
 
 
 def _generate_beamline_optics(report, data, qcall=None):
@@ -1774,6 +1837,7 @@ def _generate_beamline_optics(report, data, qcall=None):
     prev = None
     propagation = models.propagation
     max_name_size = 0
+    zero_drift_count = 0
 
     for item in models.beamline:
         is_disabled = "isDisabled" in item and item.isDisabled
@@ -1803,11 +1867,15 @@ def _generate_beamline_optics(report, data, qcall=None):
         item.drift_propagation = pp[1]
         item.name = name
         if not is_disabled:
-            if item.type == "watch" and not items:
-                # first item is a watch, insert a 0 length drift in front
+            if item.type == "watch" and (
+                not items
+                or (items[-1].type == "watch" and items[-1].position == item.position)
+            ):
+                # first item is a watch or no space between watches, insert a 0 length drift
+                zero_drift_count += 1
                 items.append(
                     PKDict(
-                        name="zero_drift",
+                        name=f"zero_drift{zero_drift_count}",
                         type="drift",
                         position=item.position,
                         propagation=item.propagation,
@@ -1975,12 +2043,6 @@ def _generate_srw_main(data, plot_reports, beamline_info):
     content = [
         f"v = srwpy.srwl_bl.srwl_uti_parse_options(srwpy.srwl_bl.srwl_uti_ext_options({vp_var}), use_sys_argv={plot_reports})",
     ]
-    if (plot_reports or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
-        content.append(
-            'setup_magnetic_measurement_files(v.fdir + "{}", v)'.format(
-                data.models.tabulatedUndulator.magneticFile
-            )
-        )
     if report == "beamlineAnimation":
         content.append("v.si_fn = ''")
         content.append("v.ws_fni = ''")
@@ -2104,6 +2166,10 @@ def _get_first_element_position(report, data):
     return template_common.DEFAULT_INTENSITY_DISTANCE
 
 
+def _get_most_recent_log_file(files):
+    return sorted(files, key=lambda f: f.mtime())[-1].basename
+
+
 def _height_profile_dimension(item, data, qcall=None):
     """Find the dimension of the provided height profile .dat file.
     1D files have 2 columns, 2D - 8 columns.
@@ -2122,10 +2188,7 @@ def _intensity_units(sim_in):
     if "models" in sim_in and _SIM_DATA.srw_is_gaussian_source(
         sim_in.models.simulation
     ):
-        if "report" in sim_in and sim_in.report in (
-            "intensityReport",
-            "sourceIntensityReport",
-        ):
+        if sim_in.get("report", "") == "sourceIntensityReport":
             i = sim_in.models[sim_in.report].fieldUnits
         else:
             i = sim_in.models.simulation.fieldUnits
@@ -2167,6 +2230,28 @@ def _machine_learning_percent_complete(run_dir, res):
     res.frameCount = count
     res.percentComplete = 100 * count / dm.exportRsOpt.totalSamples
     return res
+
+
+def _plot_z_footer(z_label, allrange, points):
+    m = re.match(r"^(.*?)\[(.*?)/mm.*$", z_label)
+    if m:
+        l, u = m.group(1), m.group(2)
+        if u == "W":
+            l = "Total Power"
+        elif u == "ph/s":
+            l = "Flux"
+        else:
+            l = "Spectral Flux"
+        v = "{:.3e}".format(
+            srwpy.uti_math.integ_ar_2d(
+                points,
+                1,
+                allrange[3:6],
+                allrange[6:9],
+            )
+            * 1.0e6
+        )
+        return f"{l}: {v} {u}"
 
 
 def _process_rsopt_elements(els):
@@ -2230,6 +2315,34 @@ def _reshape_3d(ar1d, allrange, report):
     if report.get("rotateAngle", 0):
         ar2d, x_range, y_range = _rotate_report(report, ar2d, x_range, y_range)
     return ar2d, x_range, y_range
+
+
+def _resize_mesh_dimensions(num_x, num_y):
+    def _max_size(v, v2):
+        return min(v, int(_MAX_REPORT_POINTS / v2))
+
+    nx = num_x
+    ny = num_y
+    _MIN_DIMENSION = int(_MAX_REPORT_POINTS / _CANVAS_MAX_SIZE)
+    if nx > _MIN_DIMENSION and ny > _MIN_DIMENSION and nx * ny > _MAX_REPORT_POINTS:
+        r = math.sqrt(_MAX_REPORT_POINTS / (nx * ny))
+        if r * nx <= _MIN_DIMENSION:
+            nx = _MIN_DIMENSION
+            ny = _max_size(ny, nx)
+        elif r * ny <= _MIN_DIMENSION:
+            ny = _MIN_DIMENSION
+            nx = _max_size(nx, ny)
+        elif r * nx >= _CANVAS_MAX_SIZE:
+            nx = _CANVAS_MAX_SIZE
+            ny = _max_size(ny, nx)
+        elif r * ny >= _CANVAS_MAX_SIZE:
+            ny = _CANVAS_MAX_SIZE
+            nx = _max_size(nx, ny)
+        else:
+            nx = int(r * nx)
+            ny = int(r * ny)
+
+    return min(nx, _CANVAS_MAX_SIZE), min(ny, _CANVAS_MAX_SIZE)
 
 
 def _resize_report(report, ar2d, x_range, y_range):
@@ -2298,19 +2411,6 @@ def _rotate_report(report, ar2d, x_range, y_range):
     return ar2d, x_range, y_range
 
 
-def _export_rsopt_files():
-    files = PKDict()
-    for t in (
-        "py",
-        "sh",
-        "yml",
-    ):
-        files[f"{t}FileName"] = f"{_SIM_DATA.EXPORT_RSOPT}.{t}"
-    files.postProcFileName = f"{_SIM_DATA.EXPORT_RSOPT}_post.py"
-    files.readmeFileName = "README.txt"
-    return files
-
-
 def _rsopt_jinja_context(data):
     import multiprocessing
 
@@ -2377,27 +2477,6 @@ def _save_user_model_list(model_name, beam_list, qcall=None):
     return beam_list
 
 
-def _set_magnetic_measurement_parameters(run_dir, v, qcall=None):
-    src_zip = (
-        str(run_dir.join(v.tabulatedUndulator_magneticFile))
-        if run_dir
-        else str(
-            _SIM_DATA.lib_file_abspath(v.tabulatedUndulator_magneticFile, qcall=qcall)
-        )
-    )
-    target_dir = str(run_dir.join(_TABULATED_UNDULATOR_DATA_DIR))
-    # The MagnMeasZip class defined above has convenient properties we can use here
-    mmz = MagnMeasZip(src_zip)
-    zindex = _zip_path_for_file(mmz.z, mmz.index_file)
-    zdata = map(lambda fn: _zip_path_for_file(mmz.z, fn), mmz.dat_files)
-    # extract only the index file and the data files it lists
-    mmz.z.extract(zindex, target_dir)
-    for df in zdata:
-        mmz.z.extract(df, target_dir)
-    v.magneticMeasurementsDir = _TABULATED_UNDULATOR_DATA_DIR + "/" + mmz.index_dir
-    v.magneticMeasurementsIndexFile = mmz.index_file
-
-
 def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
     report = data.report
     is_for_rsopt = _SIM_DATA.is_for_rsopt(report)
@@ -2411,12 +2490,7 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
     v[report] = 1
     for k in _OUTPUT_FOR_MODEL:
         v["{}Filename".format(k)] = _OUTPUT_FOR_MODEL[k].filename
-    v.setupMagneticMeasurementFiles = (
-        plot_reports or is_for_rsopt
-    ) and _SIM_DATA.srw_uses_tabulated_zipfile(data)
     v.srwMain = _generate_srw_main(data, plot_reports, beamline_info)
-    if (run_dir or is_for_rsopt) and _SIM_DATA.srw_uses_tabulated_zipfile(data):
-        _set_magnetic_measurement_parameters(run_dir or "", v, qcall=qcall)
     if _SIM_DATA.srw_is_background_report(report) and "beamlineAnimation" not in report:
         if sirepo.mpi.cfg().in_slurm:
             v.sbatchBackup = "1"
@@ -2437,38 +2511,6 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
             v.mpiGroupCount = dm.coherentModesAnimation.mpiGroupCount
             v.multiElectronFileFormat = "h5"
             v.multiElectronAnimationFilename = _OUTPUT_FOR_MODEL[report].basename
-
-
-def _core_error(cores):
-    raise sirepo.util.UserAlert(f"cores={cores} when cores must be >= {_MIN_CORES}")
-
-
-def _resize_mesh_dimensions(num_x, num_y):
-    def _max_size(v, v2):
-        return min(v, int(_MAX_REPORT_POINTS / v2))
-
-    nx = num_x
-    ny = num_y
-    _MIN_DIMENSION = int(_MAX_REPORT_POINTS / _CANVAS_MAX_SIZE)
-    if nx > _MIN_DIMENSION and ny > _MIN_DIMENSION and nx * ny > _MAX_REPORT_POINTS:
-        r = math.sqrt(_MAX_REPORT_POINTS / (nx * ny))
-        if r * nx <= _MIN_DIMENSION:
-            nx = _MIN_DIMENSION
-            ny = _max_size(ny, nx)
-        elif r * ny <= _MIN_DIMENSION:
-            ny = _MIN_DIMENSION
-            nx = _max_size(nx, ny)
-        elif r * nx >= _CANVAS_MAX_SIZE:
-            nx = _CANVAS_MAX_SIZE
-            ny = _max_size(ny, nx)
-        elif r * ny >= _CANVAS_MAX_SIZE:
-            ny = _CANVAS_MAX_SIZE
-            nx = _max_size(nx, ny)
-        else:
-            nx = int(r * nx)
-            ny = int(r * ny)
-
-    return min(nx, _CANVAS_MAX_SIZE), min(ny, _CANVAS_MAX_SIZE)
 
 
 def _superscript(val):
@@ -2513,6 +2555,8 @@ def _update_model_fields(models):
     is_ideal_undulator = _SIM_DATA.srw_is_idealized_undulator(st, ut)
     if is_ideal_undulator:
         models.fluxAnimation.magneticField = 1
+    elif st == "a":
+        models.fluxAnimation.magneticField = 2
     if _SIM_DATA.srw_is_tabulated_undulator_source(models.simulation):
         if is_ideal_undulator:
             models.tabulatedUndulator.gap = 0.0
@@ -2532,6 +2576,7 @@ def _update_models_for_report(report, models):
         # render the watchpoint report settings in the initialIntensityReport template slot
         models.initialIntensityReport = models[report].copy()
     if report == "sourceIntensityReport":
+        models.sourceIntensityReport.magneticField = models.simulation.magneticField
         models.simulation.update(models.sourceIntensityReport)
     elif report == "coherentModesAnimation":
         models.simulation.update(models.coherentModesAnimation)
@@ -2728,27 +2773,3 @@ def _write_rsopt_zip(data, ctx):
         content_type="application/zip",
         filename=filename,
     )
-
-
-def _zip_path_for_file(zf, file_to_find):
-    """Find the full path of the specified file within the zip.
-
-    For a zip zf containing:
-        foo1
-        foo2
-        bar/
-        bar/foo3
-
-    _zip_path_for_file(zf, 'foo3') will return 'bar/foo3'
-
-    Args:
-        zf(zipfile.ZipFile): the zip file to examine
-        file_to_find (str): name of the file to find
-
-    Returns:
-        The first path in the zip that matches the file name, or None if no match is found
-    """
-
-    # Get the base file names from the zip (directories have a basename of '')
-    file_names_in_zip = [os.path.basename(x) for x in zf.namelist()]
-    return zf.namelist()[file_names_in_zip.index(file_to_find)]

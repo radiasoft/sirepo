@@ -4,11 +4,13 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern import pkcompat
+from pmd_beamphysics import ParticleGroup
 from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+from rsbeams.rsdata.SDDS import writeSDDS
+from rsbeams.rsstats import kinematic
 from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import elegant_command_importer
@@ -20,17 +22,20 @@ from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
 import copy
 import glob
+import h5py
 import math
-import os
+import numpy
 import os.path
-import py.path
+import pmd_beamphysics.readers
 import pygments
 import pygments.formatters
 import pygments.lexers
 import re
+import scipy.constants
 import sirepo.lib
 import sirepo.sim_data
 import stat
+
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
@@ -84,6 +89,8 @@ _FIELD_LABEL = PKDict(
     LinearDensityDeriv="LinearDensityDeriv (C/s²)",
     GammaDeriv="GammaDeriv (1/m)",
 )
+
+_MULTIFILE_SUFFIX = "-%03ld"
 
 _OUTPUT_INFO_FILE = "outputInfo.json"
 
@@ -202,11 +209,14 @@ class OutputFileIterator(lattice.ModelIterator):
         if field == lattice.ElementIterator.IS_DISABLED_FIELD or field == "_super":
             return
         self.field_index += 1
-        if field_schema[1] == "OutputFile" and model[field]:
+        if field_schema[1] in ("OutputFile", "MultiOutputFile") and model[field]:
             if self._update_filenames:
+                multi_suffix = (
+                    _MULTIFILE_SUFFIX if field_schema[1] == "MultiOutputFile" else ""
+                )
                 if LatticeUtil.is_command(model):
                     suffix = self._command_file_extension(model)
-                    filename = "{}{}.{}.{}".format(
+                    filename = "{}{}.{}.{}{}".format(
                         model._type,
                         (
                             self.model_index[self.model_name]
@@ -214,10 +224,15 @@ class OutputFileIterator(lattice.ModelIterator):
                             else ""
                         ),
                         field,
+                        multi_suffix,
                         suffix,
                     )
                 else:
-                    filename = "{}.{}.sdds".format(model.name, field)
+                    filename = "{}.{}{}.sdds".format(
+                        model.name,
+                        field,
+                        multi_suffix,
+                    )
             else:
                 filename = model[field]
             k = LatticeUtil.file_id(model._id, self.field_index)
@@ -344,6 +359,11 @@ class ElegantMadxConverter(MadxConverter):
             ["TUBEND", "l", "angle"],
         ],
         [
+            # DIPEDGE attributes will be combined with any CSBEND or RBEN elements nearby
+            "DIPEDGE",
+            ["CSBEND", "e1", "tilt", "hgap", "fint"],
+        ],
+        [
             "QUADRUPOLE",
             ["QUAD", "l", "k1", "tilt"],
             ["KQUAD", "l", "k1", "tilt"],
@@ -403,12 +423,8 @@ class ElegantMadxConverter(MadxConverter):
             ["RCOL", "l", "x_max=xsize", "y_max=ysize"],
         ],
         [
-            "COLLIMATOR apertype=ELLIPSE",
-            ["ECOL", "l", "x_max=xsize", "y_max=ysize"],
-        ],
-        [
-            "COLLIMATOR apertype=RECTANGLE",
-            ["RCOL", "l", "x_max=xsize", "y_max=ysize"],
+            "COLLIMATOR",
+            ["ECOL", "l"],
         ],
         [
             "RFCAVITY",
@@ -436,7 +452,7 @@ class ElegantMadxConverter(MadxConverter):
         ],
         [
             "SROTATION",
-            ["SROT", "tilt=angle"],
+            ["ROTATE", "tilt=angle"],
         ],
     ]
     _FIELD_SCALE = PKDict(
@@ -463,8 +479,9 @@ class ElegantMadxConverter(MadxConverter):
         data = self.fill_in_missing_constants(
             super().from_madx(madx), _ELEGANT_CONSTANTS
         )
+        self.__combine_dipedge(data)
         eb = LatticeUtil.find_first_command(data, "bunched_beam")
-        mb = LatticeUtil.find_first_command(madx, "beam")
+        mb = self.beam
         for f in self._BEAM_VARS:
             v = self._find_var(madx, f)
             if v:
@@ -535,6 +552,55 @@ class ElegantMadxConverter(MadxConverter):
             for f in scale:
                 if f in element_out:
                     element_out[f] = f"{element_out[f]} {op} {scale[f]}"
+        if element_in.type == "COLLIMATOR":
+            m = re.search(r"^\{?\s*(.*?),\s*(.*?)\s*\}?$", element_in.aperture)
+            if m:
+                element_out.x_max = self.__val(m.group(1))
+                element_out.y_max = self.__val(m.group(2))
+            if element_in.apertype == "rectangle":
+                element_out.type = "RCOL"
+        elif element_in.type == "RFCAVITY":
+            element_out.phase = self.__val(element_out.phase) * 360 + 180
+            while element_out.phase >= 360:
+                element_out.phase -= 360
+
+    def __combine_dipedge(self, data):
+        # DIPEDGE elements get converted into a CSBEND with no length
+        # combine attributes with nearby CSBEND elements
+        dmap = PKDict()
+        bmap = PKDict()
+        els = []
+        for el in data.models.elements:
+            if el.type == "CSBEND" or el.type == "RBEN":
+                if el.l == 0:
+                    dmap[el._id] = el
+                    continue
+                else:
+                    bmap[el._id] = el
+            els.append(el)
+        data.models.elements = els
+        for bl in data.models.beamlines:
+            bl2 = []
+            for i, id in enumerate(bl["items"]):
+                if id in dmap:
+                    if i > 0 and bl["items"][i - 1] in bmap:
+                        # trailing dipedge
+                        b = bmap[bl["items"][i - 1]]
+                        d = dmap[id]
+                        b.e2 = d.e1
+                        b.fint2 = d.fint
+                        b.hgap = d.hgap
+                    continue
+                if id in bmap and i > 0 and bl["items"][i - 1] in dmap:
+                    # leading dipedge
+                    d = dmap[bl["items"][i - 1]]
+                    b = bmap[id]
+                    b.e1 = d.e1
+                    b.fint1 = d.fint
+                    b.hgap = d.hgap
+                    b.tilt = d.tilt
+                bl2.append(id)
+            bl["items"] = bl2
 
     def __normalize_elegant_beam(self, data, beam):
         # ensure p_central_mev, emit_x, emit_y, sigma_s, sigma_dp and dp_s_coupling are set
@@ -574,6 +640,9 @@ class ElegantMadxConverter(MadxConverter):
                 + (_var(beam.sigma_s) * _var(beam.momentum_chirp)) ** 2
             )
             # TODO(pjm): determine conversion from momentum_chirp to db_s_coupling
+
+    def __val(self, var_value):
+        return self.vars.eval_var_with_assert(var_value)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -647,6 +716,47 @@ def code_var(variables):
     return elegant_lattice_importer.elegant_code_var(variables)
 
 
+def convert_to_sdds(openpmd_file):
+    try:
+        # use openPMD beamphysics format first
+        pmd_beamphysics.interfaces.elegant.write_elegant(
+            ParticleGroup(openpmd_file),
+            openpmd_file + ".sdds",
+        )
+        return
+    except KeyError:
+        pass
+
+    # manually convert from x,y,t format
+    with h5py.File(openpmd_file, "r") as f:
+        pp = pmd_beamphysics.readers.particle_paths(f)
+        d = f[pp[-1]]
+        if "beam" in d:
+            d = d["beam"]
+        elegant_t = -numpy.array(d["position/t"]) / scipy.constants.c
+        ref = kinematic.Converter(
+            mass=d.attrs["mass_ref"],
+            mass_unit="SI",
+            gamma=d.attrs["gamma_ref"],
+        )(silent=True)
+        elegant_p = kinematic.Converter(
+            mass=d.attrs["mass_ref"],
+            mass_unit="SI",
+            gamma=numpy.array(d["momentum/t"]) * ref["betagamma"] + ref["gamma"],
+        )(silent=True)["betagamma"]
+
+        s = writeSDDS()
+        s.create_column("x", numpy.array(d["position/x"]), "double", colUnits="m")
+        s.create_column("xp", numpy.array(d["momentum/x"]), "double", colUnits="")
+        s.create_column("y", numpy.array(d["position/y"]), "double", colUnits="m")
+        s.create_column("yp", numpy.array(d["momentum/y"]), "double", colUnits="")
+        s.create_column("t", elegant_t, "double", colUnits="s")
+        s.create_column("p", elegant_p, "double", colUnits="m$be$nc")
+        s.create_parameter("particles", elegant_p.size, "long")
+        s.create_parameter("pCentral", ref["betagamma"], "double", parUnits="MeV/c")
+        s.save_sdds(openpmd_file + ".sdds", dataMode="binary")
+
+
 def extract_report_data(filename, frame_args, page_count=0):
     def _label(plot, sdds_units):
         if plot.label in _FIELD_LABEL:
@@ -658,12 +768,14 @@ def extract_report_data(filename, frame_args, page_count=0):
         plot.label = plot.label
         return
 
-    def _title(xfield, yfield, page_index, page_count):
+    def _title(xfield, yfield, page_index, page_count, position):
         title_key = xfield + "-" + yfield
         if title_key in _PLOT_TITLE:
             title = _PLOT_TITLE[title_key]
         else:
             title = "{} / {}".format(xfield, yfield)
+        if position is not None:
+            title += ", {0:.4g} m".format(position)
         if page_count > 1:
             title += ", Plot {} of {}".format(page_index + 1, page_count)
         return title
@@ -677,6 +789,14 @@ def extract_report_data(filename, frame_args, page_count=0):
     )
     _sdds_init()
 
+    position = None
+    if _is_multifile(filename):
+        filename = filename % (frame_args.frameIndex + 1)
+        if pkio.py_path(filename).exists():
+            position = sdds_util.read_sdds_parameter(filename, "s")
+        else:
+            # for old sim output, use non-numbered file
+            filename = re.sub("\-\d+\.sdds", ".sdds", filename)
     if not _is_histogram_file(
         filename,
         sdds_util.extract_sdds_column(filename, frame_args[x_field], 0)["column_names"],
@@ -696,6 +816,7 @@ def extract_report_data(filename, frame_args, page_count=0):
                 frame_args[y_field],
                 plot_attrs.page_index,
                 page_count,
+                position,
             ),
             y_field=y_field,
         )
@@ -703,6 +824,8 @@ def extract_report_data(filename, frame_args, page_count=0):
 
 
 def generate_parameters_file(data, is_parallel=False, qcall=None):
+    if "bunchReport" in data.get("report", ""):
+        _prepare_bunch_simulation(data)
     return _Generate(data, qcall=qcall).sim(full=is_parallel)
 
 
@@ -720,6 +843,8 @@ def generate_variables(data):
 
 def get_data_file(run_dir, model, frame, options):
     def _sdds(filename):
+        if _is_multifile(filename):
+            filename = filename % (frame + 1)
         path = run_dir.join(filename)
         if not path.check(file=True, exists=True):
             raise AssertionError(f"not found path={path}")
@@ -784,10 +909,17 @@ def parse_input_text(
         if input_data:
             _map(data)
         return data
-    if e == ".madx":
+    if e == ".madx" or e == ".seq":
         return ElegantMadxConverter(qcall=qcall).from_madx_text(text)
+    if e == ".in":
+        from sirepo.template import opal_parser
+        from sirepo.template.opal import OpalMadxConverter
+
+        return ElegantMadxConverter(qcall=qcall).from_madx_text(
+            OpalMadxConverter(qcall=qcall).to_madx_text(opal_parser.parse_file(text)[0])
+        )
     raise IOError(
-        f"{path.basename}: invalid file format; expecting .madx, .ele, or .lte"
+        f"{path.basename}: invalid file format; expecting .madx, .ele, .in or .lte"
     )
 
 
@@ -892,7 +1024,7 @@ def stateful_compute_get_beam_input_type(data, **kwargs):
     return data
 
 
-def stateful_compute_import_file(data, **kwargs):
+def elegant_file_import(data):
     d = data.args.pkunchecked_nested_get("import_file_arguments")
     if d:
         d = pkjson.load_any(d)
@@ -909,20 +1041,28 @@ def stateful_compute_import_file(data, **kwargs):
     return PKDict(imported_data=res)
 
 
+def stateful_compute_import_file(data, **kwargs):
+    return elegant_file_import(data)
+
+
 def validate_file(file_type, path):
     err = None
     if file_type == "bunchFile-sourceFile":
-        _sdds_init()
-        err = "expecting sdds file with (x, xp, y, yp, t, p) or (r, pr, pz, t, pphi) columns"
-        if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(path)) == 1:
-            beam_type = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
-            if beam_type in ("elegant", "spiffe"):
-                sdds.sddsdata.ReadPage(_SDDS_INDEX)
-                if len(sdds.sddsdata.GetColumn(_SDDS_INDEX, 0)) > 0:
-                    err = None
-                else:
-                    err = "sdds file contains no rows"
-        sdds.sddsdata.Terminate(_SDDS_INDEX)
+        if _is_openpmd_file(path):
+            # TODO(pjm): validate openPMD file
+            pass
+        else:
+            _sdds_init()
+            err = "expecting sdds file with (x, xp, y, yp, t, p) or (r, pr, pz, t, pphi) columns"
+            if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(path)) == 1:
+                beam_type = _sdds_beam_type(sdds.sddsdata.GetColumnNames(_SDDS_INDEX))
+                if beam_type in ("elegant", "spiffe"):
+                    sdds.sddsdata.ReadPage(_SDDS_INDEX)
+                    if len(sdds.sddsdata.GetColumn(_SDDS_INDEX, 0)) > 0:
+                        err = None
+                    else:
+                        err = "sdds file contains no rows"
+            sdds.sddsdata.Terminate(_SDDS_INDEX)
     return err
 
 
@@ -960,6 +1100,7 @@ class _Generate(sirepo.lib.GenerateBase):
         self._schema = SCHEMA
         self._update_output_filenames = update_output_filenames
         self._cv = code_var(data.models.rpnVariables)
+        self._openpmd_files = []
         if validate:
             self._validate_data()
 
@@ -980,75 +1121,12 @@ class _Generate(sirepo.lib.GenerateBase):
         r, v = template_common.generate_parameters_file(d)
         v.rpn_variables = generate_variables(d)
         self.jinja_env = v
-        if full:
-            return r + self._full_simulation()
-        if d.get("report", "") == "twissReport":
+        if d.get("report", "") == "twissReport" and not full:
             return r + self._twiss_simulation()
-        return r + self._bunch_simulation()
+        return r + self._full_simulation()
 
     def _abspath(self, basename):
         return _SIM_DATA.lib_file_abspath(basename, qcall=self.qcall)
-
-    def _bunch_simulation(self):
-        d = self.data
-        v = self.jinja_env
-        for f in SCHEMA.model.bunch:
-            info = SCHEMA.model.bunch[f]
-            if info[1] == "RPNValue":
-                field = f"bunch_{f}"
-                v[field] = _format_rpn_value(v[field], is_command=True)
-        v.bunch_p_central_mev = self._cv.eval_var_with_assert(
-            d.models.bunch.p_central_mev
-        )
-        longitudinal_method = int(d.models.bunch.longitudinalMethod)
-        # sigma s, sigma dp, dp s coupling
-        if longitudinal_method == 1:
-            v.update(
-                bunch_emit_z=0,
-                bunch_beta_z=0,
-                bunch_alpha_z=0,
-            )
-        # sigma s, sigma dp, alpha z
-        elif longitudinal_method == 2:
-            v.update(
-                bunch_emit_z=0,
-                bunch_beta_z=0,
-                bunch_dp_s_coupling=0,
-            )
-        # emit z, beta z, alpha z
-        elif longitudinal_method == 3:
-            v.update(
-                bunch_sigma_dp=0,
-                bunch_sigma_s=0,
-                bunch_dp_s_coupling=0,
-            )
-        if d.models.bunchSource.inputSource == "sdds_beam":
-            v.update(
-                bunch_beta_x=5,
-                bunch_beta_y=5,
-                bunch_alpha_x=0,
-            )
-            if v.bunchFile_sourceFile and v.bunchFile_sourceFile != "None":
-                v.bunchInputFile = self._input_file(
-                    "bunchFile",
-                    "sourceFile",
-                    v.bunchFile_sourceFile,
-                )
-                v.bunchFileType = _sdds_beam_type_from_file(
-                    self._abspath(v.bunchInputFile),
-                )
-        if str(d.models.bunch.p_central_mev) == "0":
-            run_setup = LatticeUtil.find_first_command(d, "run_setup")
-            if run_setup and run_setup.expand_for:
-                v.bunchExpandForFile = 'expand_for = "{}",'.format(
-                    self._input_file(
-                        "command_run_setup",
-                        "expand_for",
-                        run_setup.expand_for,
-                    ),
-                )
-        v.bunchOutputFile = _report_output_filename("bunchReport")
-        return template_common.render_jinja(SIM_TYPE, v, "bunch.py")
 
     def _commands(self):
         commands = self.util.iterate_models(
@@ -1090,7 +1168,7 @@ class _Generate(sirepo.lib.GenerateBase):
                 value = _format_rpn_value(
                     value, is_command=LatticeUtil.is_command(model)
                 )
-        elif el_type == "OutputFile":
+        elif el_type in ("OutputFile", "MultiOutputFile"):
             value = state.filename_map[
                 LatticeUtil.file_id(model._id, state.field_index)
             ]
@@ -1100,8 +1178,21 @@ class _Generate(sirepo.lib.GenerateBase):
             )
             if el_type == "InputFileXY":
                 value += "={}+{}".format(model[field + "X"], model[field + "Y"])
+            elif (
+                el_type == "InputFile"
+                and "_type" in model
+                and model._type == "run_setup"
+                and field == "expand_for"
+                and _is_openpmd_file(value)
+            ):
+                self._openpmd_files.append(value)
+                value += ".sdds"
         elif el_type == "BeamInputFile":
             value = self._input_file("bunchFile", "sourceFile", value)
+            if _is_openpmd_file(value):
+                self._openpmd_files.append(value)
+                value += ".sdds"
+                model.input_type = "elegant"
         elif el_type == "LatticeBeamlineList":
             value = state.id_map[int(value)].name
         elif el_type == "ElegantLatticeList":
@@ -1134,6 +1225,7 @@ class _Generate(sirepo.lib.GenerateBase):
             commands=_escape(self._commands()),
             lattice=_escape(self._lattice()),
             simulationMode=d.models.simulation.simulationMode,
+            openPMDFiles=self._openpmd_files,
         )
         return template_common.render_jinja(SIM_TYPE, self.jinja_env)
 
@@ -1171,8 +1263,8 @@ class _Generate(sirepo.lib.GenerateBase):
         twiss_output = LatticeUtil.find_first_command(d, "twiss_output") or PKDict(
             _id=max_id + 2,
             _type="twiss_output",
-            filename="1",
         )
+        twiss_output.filename = "1"
         twiss_output.final_values_only = "0"
         twiss_output.output_at_each_step = "0"
         change_particle = LatticeUtil.find_first_command(d, "change_particle")
@@ -1241,6 +1333,12 @@ def _is_histogram_file(filename, columns):
     return False
 
 
+def _is_openpmd_file(filename):
+    if filename:
+        return re.search(r"\.h5$", str(filename), re.IGNORECASE)
+    return False
+
+
 def _output_info(run_dir):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
 
@@ -1273,14 +1371,12 @@ def _output_info(run_dir):
 
         file_path = run_dir.join(filename)
         if not re.search(r".sdds$", filename, re.IGNORECASE):
-            if file_path.exists():
-                return PKDict(
-                    isAuxFile=True,
-                    filename=filename,
-                    id=file_id,
-                    lastUpdateTime=int(os.path.getmtime(str(file_path))),
-                )
-            return None
+            return PKDict(
+                isAuxFile=True,
+                filename=filename,
+                id=file_id,
+                lastUpdateTime=int(os.path.getmtime(str(file_path))),
+            )
         try:
             if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(file_path)) != 1:
                 return None
@@ -1348,6 +1444,7 @@ def _output_info(run_dir):
                 sdds.sddsdata.Terminate(_SDDS_INDEX)
             except Exception:
                 pass
+        return None
 
     # cache outputInfo to file, used later for report frames
     info_file = run_dir.join(_OUTPUT_INFO_FILE)
@@ -1363,9 +1460,15 @@ def _output_info(run_dir):
     filename_map = _build_filename_map(data)
     for k in filename_map.keys_in_order:
         filename = filename_map[k]
-        info = _info(filename, run_dir, k)
+        fn = filename % 1 if _is_multifile(filename) else filename
+        if not run_dir.join(fn).exists():
+            continue
+        info = _info(fn, run_dir, k)
         if info:
             info.modelKey = LatticeUtil.output_model_name(info.id)
+            if _is_multifile(filename):
+                info.filename = filename
+                info.pageCount = _multifile_count(run_dir, filename)
             res.append(info)
     if res:
         res[0]["_version"] = _OUTPUT_INFO_VERSION
@@ -1411,10 +1514,57 @@ def _parse_elegant_log(run_dir):
     return res, last_element, step
 
 
+def _prepare_bunch_simulation(data):
+    state = PKDict(next_id=0)
+
+    def new_model(name, type_field="_type", id_field="_id"):
+        state.next_id += 1
+        res = _SIM_DATA.model_defaults(name).pkupdate(
+            {
+                id_field: state.next_id,
+            }
+        )
+        if type_field:
+            res[type_field] = name.replace("command_", "")
+        return res
+
+    data.models.elements = [
+        new_model("WATCH", type_field="type").pkupdate(
+            name="W1",
+            filename="1",
+        )
+    ]
+    data.models.beamlines = [
+        new_model("beamline", type_field="", id_field="id").pkupdate(
+            name="bl",
+            items=[data.models.elements[0]._id],
+        )
+    ]
+    bc = None
+    expand_for = ""
+    if data.models.bunchSource.inputSource == "bunched_beam":
+        bc = LatticeUtil.find_first_command(data, "bunched_beam")
+        bc.use_twiss_command_values = "0"
+    else:
+        bc = LatticeUtil.find_first_command(data, "sdds_beam")
+        expand_for = LatticeUtil.find_first_command(data, "run_setup").expand_for
+    data.models.commands = [
+        new_model("command_run_setup").pkupdate(
+            lattice="Lattice",
+            use_beamline=data.models.beamlines[0].id,
+            p_central_mev=data.models.bunch.p_central_mev,
+            expand_for=expand_for,
+        ),
+        new_model("command_run_control"),
+        bc,
+        new_model("command_track"),
+    ]
+
+
 def _report_output_filename(report):
     if report == "twissReport":
         return "twiss_output.filename.sdds"
-    return "elegant.bun"
+    return "W1.filename-001.sdds"
 
 
 def _sdds_beam_type(column_names):
@@ -1432,6 +1582,8 @@ def _sdds_beam_type(column_names):
 
 
 def _sdds_beam_type_from_file(path):
+    if _is_openpmd_file(path):
+        return "openPMD"
     _sdds_init()
     res = ""
     if sdds.sddsdata.InitializeInput(_SDDS_INDEX, str(path)) == 1:
@@ -1465,3 +1617,15 @@ def analysis_job_log_to_html(data, run_dir, **kwargs):
             ),
         )
     )
+
+
+def _is_multifile(filename):
+    return "%" in filename
+
+
+def _multifile_count(run_dir, filename):
+    fn = re.sub(r"\%.*?\.", "*.", filename)
+    c = 0
+    for f in glob.glob(str(run_dir.join(fn))):
+        c += 1
+    return c

@@ -1,0 +1,22 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 col-xl-4">
+      <div data-basic-editor-panel="" data-view-name="simulationSettings"></div>
+    </div>
+    <div class="col-md-6 col-xl-4">
+      <div data-simple-panel="simulationStatus">
+        <div data-sim-status-panel="comparison.simState" data-start-function="comparison.startSimulation()"></div>
+      </div>
+    </div>
+    <div class="clearfix"></div>
+    <div class="col-md-6" data-ng-if="comparison.simState.hasFrames()">
+      <div data-report-panel="parameterWithLattice" data-model-name="sigmaAnimation"></div>
+    </div>
+    <div class="col-md-6" data-ng-if="comparison.simState.hasFrames()">
+      <div data-report-panel="parameterWithLattice" data-model-name="twissAnimation"></div>
+    </div>
+    <div class="clearfix"></div>
+
+    <div data-ng-if="comparison.simState.hasFrames()" data-phase-space-plots=""></div>
+  </div>
+</div>

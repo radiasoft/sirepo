@@ -19,6 +19,7 @@ import math
 import numpy as np
 import py.path
 import re
+import sirepo.const
 import sirepo.sim_data
 import zipfile
 
@@ -324,11 +325,7 @@ def background_percent_complete(report, run_dir, is_running):
     if not is_running:
         show_tunes_report = False
         show_spin_3d = False
-        in_file = run_dir.join("{}.json".format(template_common.INPUT_BASE_NAME))
-        if in_file.exists():
-            data = simulation_db.read_json(
-                run_dir.join(template_common.INPUT_BASE_NAME)
-            )
+        if data := _SIM_DATA.sim_run_input(run_dir, checked=False):
             show_tunes_report = (
                 _particle_count(data) <= SCHEMA.constants.maxFilterPlotParticles
                 and data.models.simulationSettings.npass >= 10
@@ -686,7 +683,7 @@ def _extract_animation(frame_args):
     it_filter = None
     if _particle_count(frame_args.sim_in) <= SCHEMA.constants.maxFilterPlotParticles:
         if frame_args.particleSelector != "all":
-            it_filter = frame_args.particleSelector
+            it_filter = str(frame_args.particleSelector)
 
     count = 0
     el_names = []
@@ -800,7 +797,7 @@ def _extract_spin_3d(frame_args):
     it_idx = int(col_names.index("IT"))
     it_filter = None
     if frame_args.particleSelector != "all":
-        it_filter = frame_args.particleSelector
+        it_filter = str(frame_args.particleSelector)
     for row in all_rows:
         if it_filter and it_filter != row[it_idx]:
             continue

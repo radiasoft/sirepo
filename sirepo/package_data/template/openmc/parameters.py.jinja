@@ -1,0 +1,110 @@
+# -*- python -*-
+import os
+{{ weightWindowsThreadLimit }}
+import numpy
+import openmc
+import openmc.lib
+# this import add openmc.Materials.download_cross_section_data()
+import openmc_data_downloader
+
+
+def create_geometry():
+    univ = openmc.DAGMCUniverse(
+        filename='{{ dagmcFilename }}',
+        auto_geom_ids=True,
+    )
+    {% if reflectivePlanes_useReflectivePlanes == '1' %}
+    # creates an edge of universe boundary surface
+    vac_surf = openmc.Sphere(r=10000, boundary_type="vacuum")
+    {{ planes }}
+    univ = openmc.Cell(
+        region=-vac_surf {{ region }},
+        fill=univ,
+    )
+    openmc.Geometry([univ]).export_to_xml()
+    {% elif hasGraveyard %}
+    openmc.Geometry(univ).export_to_xml()
+    {% else %}
+    graveyard = openmc.Sphere(r=10000, boundary_type="vacuum")
+    root = openmc.Universe()
+    root.add_cells([openmc.Cell(region=-graveyard, fill=univ)])
+    openmc.Geometry(root).export_to_xml()
+    {% endif %}
+
+
+def create_materials():
+    {% filter indent(width=4) %}
+    {{ materials }}
+    {% endfilter %}
+    materials.export_to_xml()
+    materials.download_cross_section_data(
+        libraries=['{{ settings_materialLibrary }}'],
+        destination='{{ materialDirectory }}',
+    )
+
+
+def create_settings():
+    settings = openmc.Settings()
+    settings.batches = {{ settings_batches }}
+    settings.statepoint = dict(
+        batches={{ batchSequence }},
+    )
+{% if settings_run_mode == "eigenvalue"  %}
+    settings.inactive = {{ settings_inactive }}
+{% endif %}
+    settings.particles = {{ settings_particles }}
+    settings.temperature = dict(
+        method='interpolation',
+    )
+{% if settings_varianceReduction == "weight_windows_mesh" or settings_varianceReduction == "weight_windows_tally" %}
+    settings.max_splits = {{ settings_max_splits }}
+{% elif settings_varianceReduction == "weight_windows_file" %}
+    settings.weight_windows = openmc.hdf5_to_wws("{{ weightWindowsFile }}")
+{% endif %}
+    settings.output = dict(
+        summary=False,
+        tallies=False,
+    )
+    settings.source = [
+        {% filter indent(width=8) %}
+        {{ sources }}
+        {% endfilter %}
+    ]
+    settings.run_mode = "{{ settings_run_mode }}"
+    settings.photon_transport = "{{ settings_photon_transport }}" == "1"
+{% if settings_varianceReduction == "survival_biasing" %}
+    settings.survival_biasing = True
+    settings.cutoff = {
+        "weight": {{ survivalBiasing_weight }},
+        "weight_avg": {{ survivalBiasing_weight_avg }},
+    }
+{% elif settings_varianceReduction == "weight_windows_mesh" %}
+    {{ weightWindowsMesh | indent(4) }}
+    settings.weight_window_generators = openmc.WeightWindowGenerator(
+        mesh=m,
+        particle_type="{{ weightWindows_particle }}"
+    )
+{% endif  %}
+    settings.export_to_xml()
+    openmc.lib.init(output=False)
+    p = openmc.lib.sample_external_source(n_samples={{ maxSampleSourceParticles }})
+    openmc.source.write_source_file(p, "{{ sourceFile }}")
+    openmc.lib.finalize()
+
+
+def create_tallies():
+    {% filter indent(width=4) %}
+    {{ tallies }}
+    {% endfilter %}
+
+
+create_geometry()
+create_materials()
+create_settings()
+create_tallies()
+{% if not isPythonSource %}
+import sirepo.template
+sirepo.template.import_module('openmc').write_volume_outlines()
+{% endif %}
+{{ runCommand }}
+{{ saveWeightWindowsFile }}

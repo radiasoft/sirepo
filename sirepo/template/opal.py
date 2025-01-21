@@ -16,10 +16,10 @@ from sirepo.template import lattice
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
-import h5py
 import math
 import numpy as np
 import re
+import sirepo.const
 import sirepo.lib
 import sirepo.sim_data
 import os.path
@@ -40,6 +40,7 @@ _OPAL_PI = 3.14159265358979323846
 _OPAL_CONSTANTS = PKDict(
     pi=_OPAL_PI,
     twopi=_OPAL_PI * 2.0,
+    # note: OPAL's raddeg and raddeg have the opposite behavior of MAD-X
     raddeg=180.0 / _OPAL_PI,
     degrad=_OPAL_PI / 180.0,
     e=2.7182818284590452354,
@@ -237,7 +238,7 @@ class OpalMadxConverter(MadxConverter):
         ],
         [
             "RFCAVITY",
-            ["RFCAVITY", "l", "volt", "lag", "harmon", "freq"],
+            ["RFCAVITY", "l", "volt", "lag", "freq"],
         ],
         [
             "TWCAVITY",
@@ -313,7 +314,7 @@ class OpalMadxConverter(MadxConverter):
                     continue
                 p = beamline.positions[i].elemedge
                 n = beamline.positions[i + 1].elemedge
-                l = code_var(data.models.elements).eval_var(_get_len_by_id(data, e))
+                l = code_var(data.models.rpnVariables).eval_var(_get_len_by_id(data, e))
                 d = round(float(n) - float(p) - l[0], 10)
                 if d > 0:
                     _insert_drift(d, beam_idx, i, p, l)
@@ -432,11 +433,11 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=0,
     )
     if is_running:
-        data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+        data = _SIM_DATA.sim_run_input(run_dir)
         # TODO(pjm): determine total frame count and set percentComplete
         res.frameCount = read_frame_count(run_dir) - 1
         return res
-    if run_dir.join("{}.json".format(template_common.INPUT_BASE_NAME)).exists():
+    if _SIM_DATA.sim_run_input(run_dir, checked=False):
         res.frameCount = read_frame_count(run_dir)
         if res.frameCount > 0:
             res.percentComplete = 100
@@ -664,6 +665,7 @@ def sim_frame_plot2Animation(frame_args):
 
 
 def stateful_compute_import_file(data, **kwargs):
+    from sirepo.template import elegant
     from sirepo.template import opal_parser
 
     if data.args.ext_lower == ".in":
@@ -677,15 +679,23 @@ def stateful_compute_import_file(data, **kwargs):
                 missing_files.append(infile)
         if missing_files:
             return PKDict(
-                error="Missing data files",
                 missingFiles=missing_files,
+                imported_data=res,
             )
-    elif data.args.ext_lower == ".madx":
+    elif data.args.ext_lower == ".madx" or data.args.ext_lower == ".seq":
         res = OpalMadxConverter(qcall=None).from_madx_text(data.args.file_as_str)
         res.models.simulation.name = data.args.purebasename
+    elif data.args.ext_lower == ".ele":
+        return elegant.elegant_file_import(data)
+    elif data.args.ext_lower == ".lte":
+        res = OpalMadxConverter(None).from_madx_text(
+            elegant.ElegantMadxConverter(qcall=None).to_madx_text(
+                elegant.elegant_file_import(data).imported_data
+            )
+        )
     else:
         raise IOError(
-            f"invalid file={data.args.basename} extension, expecting .in or .madx"
+            f"invalid file={data.args.basename} extension, expecting .in, .ele, .lte or .madx"
         )
     return PKDict(imported_data=res)
 
@@ -1070,8 +1080,10 @@ def _generate_beamline(
 
 
 def _iterate_hdf5_steps(path, callback, state):
-    with h5py.File(str(path), "r") as f:
-        _iterate_hdf5_steps_from_handle(f, callback, state)
+    def _read(file_obj):
+        _iterate_hdf5_steps_from_handle(file_obj, callback, state)
+
+    hdf5_util.HDF5Util(str(path)).read_while_writing(_read)
     return state
 
 
@@ -1087,7 +1099,7 @@ def _iterate_hdf5_steps_from_handle(h5file, callback, state):
 
 def _output_info(run_dir):
     # TODO(pjm): cache to file with version, similar to template.elegant
-    data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+    data = _SIM_DATA.sim_run_input(run_dir)
     files = LatticeUtil(data, SCHEMA).iterate_models(OpalOutputFileIterator()).result
     res = []
     for k in files.keys_in_order:

@@ -1,0 +1,443 @@
+{
+    "models": {
+        "beamlines": [
+            {
+                "angle": 0,
+                "count": 4,
+                "distance": 25.080000000000002,
+                "id": 121,
+                "items": [
+                    103,
+                    109,
+                    101,
+                    108,
+                    101,
+                    117,
+                    101,
+                    116,
+                    102
+                ],
+                "length": 25.080000000000002,
+                "name": "BL1"
+            },
+            {
+                "angle": 1.570796316,
+                "count": 18,
+                "distance": 22.78188270616448,
+                "id": 122,
+                "items": [
+                    118,
+                    118,
+                    102,
+                    115,
+                    102,
+                    118,
+                    118,
+                    102,
+                    114,
+                    102,
+                    118,
+                    118,
+                    102,
+                    113,
+                    102,
+                    118,
+                    118,
+                    102,
+                    112,
+                    102,
+                    118,
+                    118,
+                    102,
+                    111,
+                    106,
+                    119,
+                    106,
+                    118,
+                    118
+                ],
+                "length": 24.868000000000006,
+                "name": "BL2"
+            },
+            {
+                "angle": 0,
+                "count": 3,
+                "distance": 11.440000000000001,
+                "id": 123,
+                "items": [
+                    102,
+                    110,
+                    106,
+                    120,
+                    106,
+                    105,
+                    107,
+                    104
+                ],
+                "length": 11.440000000000001,
+                "name": "BL3"
+            },
+            {
+                "angle": 0,
+                "count": 3,
+                "distance": 11.440000000000001,
+                "id": 127,
+                "items": [
+                    102,
+                    110,
+                    106,
+                    120,
+                    106,
+                    105,
+                    107,
+                    104
+                ],
+                "l": 0,
+                "length": 11.440000000000001,
+                "name": "BL5"
+            },
+            {
+                "angle": 3.141592632,
+                "count": 51,
+                "distance": 55.098448214820294,
+                "id": 124,
+                "items": [
+                    121,
+                    122,
+                    123,
+                    128,
+                    -123,
+                    -122,
+                    -121
+                ],
+                "length": 122.7759999999998,
+                "name": "HALF"
+            },
+            {
+                "angle": 6.283185263999996,
+                "count": 102,
+                "distance": 1.189564123649247e-06,
+                "id": 125,
+                "items": [
+                    124,
+                    124
+                ],
+                "length": 245.55199999999974,
+                "name": "RING"
+            }
+        ],
+        "bunchAnimation1": {
+            "simCode": "elegant"
+        },
+        "bunchAnimation2": {
+            "simCode": "madx"
+        },
+        "bunchAnimation3": {
+            "simCode": "impactx"
+        },
+        "bunchReport1": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "x",
+            "y": "px"
+        },
+        "bunchReport2": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "y",
+            "y": "py"
+        },
+        "bunchReport3": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "x",
+            "y": "y"
+        },
+        "bunchReport4": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "t",
+            "y": "pt"
+        },
+        "commands": [],
+        "distribution": {
+            "charge": 1e-10,
+            "distributionFile": "",
+            "distributionType": "Gaussian",
+            "energy": 3,
+            "halo": 0,
+            "k": 0,
+            "kT": 0,
+            "kT_halo": 0,
+            "lambdapt": 0.0009498302839880638,
+            "lambdapx": 0.00029311802730839316,
+            "lambdapy": 0.0003238097072673625,
+            "lambdat": 1.052816489365201,
+            "lambdax": 0.0034116095123249727,
+            "lambday": 0.0030882313483716747,
+            "mutpt": -2.6821975672637185e-07,
+            "muxpx": -2.1979637615321227e-06,
+            "muypy": -3.972798687837155e-07,
+            "normalize": 0,
+            "normalize_halo": 0,
+            "particleCount": 5000,
+            "species": "proton"
+        },
+        "elements": [
+            {
+                "_id": 101,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 5,
+                "name": "D1",
+                "psi": 0,
+                "type": "DRIFT"
+            },
+            {
+                "_id": 102,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 0.8,
+                "name": "D2",
+                "psi": 0,
+                "type": "DRIFT"
+            },
+            {
+                "_id": 103,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 6,
+                "name": "D3",
+                "psi": 0,
+                "type": "DRIFT"
+            },
+            {
+                "_id": 104,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 5,
+                "name": "D4",
+                "psi": 0,
+                "type": "DRIFT"
+            },
+            {
+                "_id": 105,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 3.2,
+                "name": "D6",
+                "psi": 0,
+                "type": "DRIFT"
+            },
+            {
+                "_id": 106,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 0.3,
+                "name": "DS",
+                "psi": 0,
+                "type": "DRIFT"
+            },
+            {
+                "_id": 128,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 0,
+                "name": "M1",
+                "psi": 0,
+                "type": "MONITOR"
+            },
+            {
+                "_id": 107,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k1": 0.10200119101,
+                "k1s": 0,
+                "l": 0.82,
+                "name": "Q1",
+                "psi": 0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 108,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k1": -0.17291715859,
+                "k1s": 0,
+                "l": 0.82,
+                "name": "Q10",
+                "psi": 0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 109,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k1": 0.072072135782,
+                "k1s": 0,
+                "l": 0.82,
+                "name": "Q11",
+                "psi": 0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 110,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k1": -0.20184744871,
+                "k1s": 0,
+                "l": 0.82,
+                "name": "Q2",
+                "psi": 0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 111,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k1": 0.1745556669,
+                "k1s": 0,
+                "l": 0.82,
+                "name": "Q3",
+                "psi": 0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 112,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k1": -0.24083335871,
+                "k1s": 0,
+                "l": 0.82,
+                "name": "Q4",
+                "psi": 0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 113,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k1": 0.31147911184,
+                "k1s": 0,
+                "l": 0.82,
+                "name": "Q5",
+                "psi": 0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 114,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k1": -0.2638507775,
+                "k1s": 0,
+                "l": 0.82,
+                "name": "Q6",
+                "psi": 0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 115,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k1": 0.35963952602,
+                "k1s": 0,
+                "l": 0.82,
+                "name": "Q7",
+                "psi": 0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 116,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k1": -0.25917059161,
+                "k1s": 0,
+                "l": 0.82,
+                "name": "Q8",
+                "psi": 0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 117,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k1": 0.17995111594,
+                "k1s": 0,
+                "l": 0.82,
+                "name": "Q9",
+                "psi": 0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 118,
+                "_super": "_ELEMENT",
+                "angle": 0.130899693,
+                "dx": 0,
+                "dy": 0,
+                "e1": 0,
+                "e2": 0,
+                "fint": 0,
+                "fintx": 0,
+                "gap": 0.07,
+                "l": 1.064,
+                "name": "E00MU",
+                "psi": 0,
+                "type": "SBEND"
+            },
+            {
+                "_id": 119,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k2": 0.71817488518,
+                "k2s": 0,
+                "l": 0.2,
+                "name": "KS1",
+                "psi": 0,
+                "type": "SEXTUPOLE"
+            },
+            {
+                "_id": 120,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k2": -0.96954089146,
+                "k2s": 0,
+                "l": 0.2,
+                "name": "KS2",
+                "psi": 0,
+                "type": "SEXTUPOLE"
+            }
+        ],
+        "rpnVariables": [],
+        "simulation": {
+            "activeBeamlineId": 125,
+            "folder": "/Examples",
+            "name": "RESR-Storage-Ring",
+            "visualizationBeamlineId": 125
+        }
+    },
+    "simulationType": "canvas"
+}

@@ -29,6 +29,9 @@ SIREPO.app.config(function() {
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
     `;
+    SIREPO.appDownloadLinks = `
+        <li data-download-csv-link=""></li>
+    `;
     SIREPO.lattice = {
         canReverseBeamline: true,
         elementColor: {
@@ -223,9 +226,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: `
             <div data-common-footer="nav"></div>
-            <div data-import-dialog="" data-title="Import Opal File" data-description="Select an OPAL .in or .madx file." data-file-formats=".in,.madx,.zip">
-              <div data-import-options=""></div>
-            </div>
+            <div data-elegant-import-dialog=""></div>
         `,
     };
 });

@@ -715,7 +715,13 @@
             "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "numberOfMacroElectronsAvg": ["Number of macro-electrons to average on each node", "Integer", 5],
             "savingPeriodicity": ["Saving periodicity (in terms of macro-electrons)", "Integer", 5],
-            "notes": ["Notes", "Text", ""]
+            "notes": ["Notes", "Text", ""],
+            "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
+            "sbatchCores": ["Cores", "Integer", 128],
+            "tasksPerNode": ["Processes per node", "Integer", 128],
+            "sbatchHours": ["Hours", "Float", 0.4],
+            "sbatchQueue": ["Queue", "NERSCQueue", "debug"],
+            "sbatchProject": ["Project", "OptionalString", ""]
         },
         "fluxReport": {
             "distanceFromSource": ["Distance From Source [m]", "Float", 20],
@@ -803,7 +809,6 @@
             "method": ["Single-Electron Spectrum Computation Method", "IntensityMethod"],
             "precision": ["Relative Precision", "Float", 0.01],
             "polarization": ["Polarization Component to Extract", "Polarization", "6"],
-            "fieldUnits": ["Intensity Units", "FieldUnits", "1"],
             "plotScale": ["Plot Scale", "PlotScale", "linear"],
             "notes": ["Notes", "Text", ""]
         },
@@ -1714,7 +1719,6 @@
                     "finalEnergy",
                     "photonEnergyPointCount",
                     "polarization",
-                    "fieldUnits",
                     [
                         ["Horizontal", [
                             "horizontalPosition"

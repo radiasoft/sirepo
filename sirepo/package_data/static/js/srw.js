@@ -52,9 +52,7 @@ SIREPO.app.config(function() {
         </div>
     `;
     SIREPO.appDownloadLinks = `
-        <li data-lineout-csv-link="x"></li>
-        <li data-lineout-csv-link="y"></li>
-        <li data-lineout-csv-link="full"></li>
+        <li data-download-csv-link=""></li>
         <li data-export-python-link="" data-report-title="{{ reportTitle() }}"></li>
     `;
     SIREPO.appPanelHeadingButtons = `
@@ -718,7 +716,7 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
             var d = parseFloat(beamline[i + 1].position) - parseFloat(beamline[i].position);
             if (d > 0) {
                 self.propagations.push({
-                    title: 'Drift ' + srwService.formatFloat4(d) + 'm',
+                    title: 'Drift ' + srwService.formatFloat4(d) + ' m',
                     params: p[1],
                     defaultparams: [p[1][12], p[1][13], p[1][14], p[1][15], p[1][16] ],
                 });
@@ -1333,12 +1331,19 @@ SIREPO.viewLogic('exportRsOptView', function(appState, panelState, persistentSim
 
 SIREPO.viewLogic('fluxAnimationView', function(appState, panelState, srwService, $scope) {
 
+    // sm_meth fluxAnimation.method "Flux Computation Method" 1: auto-undulator 2: auto-wiggler -1: use approximate
+    // sm_mag fluxAnimation.magneticField "Magnetic Field Treatment" 1: approximate 2: accurate (tabulated)
+
     function updateFluxAnimation() {
-        // ["-1", "Use Approximate Method"]
         var approxMethodKey = '-1';
         var isApproximateMethod = appState.models.fluxAnimation.method == approxMethodKey;
-        panelState.enableField('fluxAnimation', 'magneticField', srwService.isTabulatedUndulatorWithMagenticFile());
-        if (srwService.isTabulatedUndulatorWithMagenticFile()) {
+        if (srwService.isArbitraryMagField()) {
+            appState.models.fluxAnimation.magneticField = '2';
+        }
+        panelState.enableField(
+            'fluxAnimation', 'magneticField',
+            srwService.isTabulatedUndulatorWithMagenticFile());
+        if (srwService.isTabulatedUndulatorWithMagenticFile() || srwService.isArbitraryMagField()) {
             if (appState.models.fluxAnimation.magneticField == '2' && isApproximateMethod) {
                 appState.models.fluxAnimation.method = '1';
             }
@@ -1359,6 +1364,9 @@ SIREPO.viewLogic('fluxAnimationView', function(appState, panelState, srwService,
     }
 
     $scope.whenSelected = updateFluxAnimation;
+    $scope.watchFields = [
+        ['fluxAnimation.magneticField'], updateFluxAnimation,
+    ];
 });
 
 SIREPO.viewLogic('gaussianBeamView', function(appState, panelState, srwService, $scope) {
@@ -2137,6 +2145,9 @@ SIREPO.app.directive('modelSelectionList', function(appState, srwService) {
             }
 
             function updateListFromModel(model) {
+                if (! $scope.userModelList) {
+                    return;
+                }
                 $scope.userModelList.some(function(m) {
                     if (m.id == model.id) {
                         $.extend(m, appState.clone(model));
@@ -2564,21 +2575,12 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 </div>
               </div>
               <div data-ng-show="simState.isStopped() && ! isFluxWithApproximateMethod()">
-                <div data-ng-if="normalCompletion()" data-simulation-stopped-status="simState"></div>
-                <div class="col-sm-12" data-ng-if="! normalCompletion()">Simulation Cancelled</div>
-                  <div class="col-sm-12" data-ng-show="showFrameCount()">
-                    Completed {{ runStepName }}: {{ particleNumber }} / {{ particleCount}}
-                  </div>
+                <div data-simulation-stopped-status="simState"></div>
+                <div class="col-sm-12" data-ng-show="showFrameCount()">
+                  Completed {{ runStepName }}: {{ particleNumber }} / {{ particleCount}}
+                </div>
                 <div class="col-sm-12" data-simulation-status-timer="simState"></div>
-                <div data-ng-if="simState.showJobSettings()">
-                  <div class="form-group form-group-sm">
-                    <div data-model-field="'jobRunMode'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
-                  </div>
-                  <div data-sbatch-options="simState"></div>
-                </div>
-                <div class="col-sm-6 pull-right">
-                  <button class="btn btn-default" data-ng-click="startSimulation()">{{ startButtonLabel() }}</button>
-                </div>
+                <div data-job-settings-sbatch-login-and-start-simulation data-sim-state="simState" data-start-simulation="startSimulation()"></div>
               </div>
             </form>
         `,
@@ -2620,12 +2622,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 }
             }
 
-            $scope.normalCompletion = () => {
-                var d = Math.abs($scope.particleCount - $scope.particleNumber);
-                var a = appState.models.multiElectronAnimation;
-                return d < a.numberOfMacroElectronsAvg * a.savingPeriodicity;
-            };
-
             $scope.logFileURL = () => {
                 if (! appState.isLoaded()) {
                     return '';
@@ -2654,9 +2650,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                             ? 'mode' : 'macro-electrons';
                     }
                     $scope.particleCount = data.particleCount;
-                    if ($scope.simState.isStateCompleted() && $scope.normalCompletion()){
-                        $scope.particleNumber = $scope.particleCount;
-                    }
                 }
                 if (data.frameCount) {
                     if (data.frameCount != frameCache.getFrameCount($scope.model)) {
@@ -2724,10 +2717,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     return false;
                 }
                 return $scope.particleNumber;
-            };
-
-            $scope.startButtonLabel = function() {
-                return stringsService.startButtonLabel();
             };
 
             $scope.stopButtonLabel = function() {
@@ -3051,7 +3040,7 @@ SIREPO.app.directive('beamline3d', function(appState, plotting, plotToPNG, srwSe
                 if (item.name) {
                     var res = item.name;
                     if (options().showPosition == '1' && item.position) {
-                        res += ', ' + srwService.formatFloat(item.position, 1) + 'm';
+                        res += ', ' + srwService.formatFloat(item.position, 1) + ' m';
                     }
                     return res;
                 }

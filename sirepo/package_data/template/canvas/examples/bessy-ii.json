@@ -1,0 +1,284 @@
+{
+    "models": {
+        "beamlines": [
+            {
+                "angle": 0.7853981633974483,
+                "count": 7,
+                "distance": 11.642938286447297,
+                "id": 110,
+                "items": [
+                    107,
+                    104,
+                    105,
+                    102,
+                    108,
+                    102,
+                    106,
+                    101,
+                    101,
+                    105,
+                    102,
+                    108,
+                    102,
+                    106
+                ],
+                "length": 12,
+                "name": "CC"
+            },
+            {
+                "angle": 6.283185307179586,
+                "count": 56,
+                "distance": 7.385346623550245e-15,
+                "id": 111,
+                "items": [
+                    110,
+                    109,
+                    109,
+                    109,
+                    109,
+                    109,
+                    109,
+                    109
+                ],
+                "length": 95.99999999999991,
+                "name": "RING"
+            },
+            {
+                "angle": 0.7853981633974483,
+                "count": 7,
+                "distance": 11.642938286447297,
+                "id": 109,
+                "items": [
+                    112,
+                    103,
+                    103,
+                    105,
+                    102,
+                    108,
+                    102,
+                    106,
+                    101,
+                    101,
+                    105,
+                    102,
+                    108,
+                    102,
+                    106
+                ],
+                "length": 12.000000000000004,
+                "name": "UC"
+            }
+        ],
+        "bunchAnimation1": {
+            "simCode": "elegant"
+        },
+        "bunchAnimation2": {
+            "simCode": "madx"
+        },
+        "bunchAnimation3": {
+            "simCode": "impactx"
+        },
+        "bunchReport1": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "x",
+            "y": "px"
+        },
+        "bunchReport2": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "y",
+            "y": "py"
+        },
+        "bunchReport3": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "x",
+            "y": "y"
+        },
+        "bunchReport4": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "t",
+            "y": "pt"
+        },
+        "commands": [],
+        "distribution": {
+            "charge": 1e-10,
+            "distributionFile": "",
+            "distributionType": "Gaussian",
+            "energy": 1.72,
+            "halo": 0,
+            "k": 0,
+            "kT": 0,
+            "kT_halo": 0,
+            "lambdapt": 0.0005699998528193214,
+            "lambdapx": 0.0002921589293638368,
+            "lambdapy": 0.0006668833427042591,
+            "lambdat": 6.500000286856115e-11,
+            "lambdax": 0.0008454867492522146,
+            "lambday": 0.0011110265050450958,
+            "mutpt": -1.000147719222145e-08,
+            "muxpx": 0.9707432623680929,
+            "muypy": -0.6715875410129232,
+            "normalize": 0,
+            "normalize_halo": 0,
+            "particleCount": 5000,
+            "species": "electron"
+        },
+        "elements": [
+            {
+                "_id": 101,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 1.16,
+                "name": "D1",
+                "psi": 0,
+                "type": "DRIFT"
+            },
+            {
+                "_id": 102,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 0.23,
+                "name": "D2",
+                "psi": 0,
+                "type": "DRIFT"
+            },
+            {
+                "_id": 103,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 1.1607,
+                "name": "D3",
+                "psi": 0,
+                "type": "DRIFT"
+            },
+            {
+                "_id": 104,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 2.0214,
+                "name": "D4",
+                "psi": 0,
+                "type": "DRIFT"
+            },
+            {
+                "_id": 112,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 0,
+                "name": "M1",
+                "psi": 0,
+                "type": "MONITOR"
+            },
+            {
+                "_id": 105,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k1": "kqd",
+                "k1s": 0,
+                "l": "lquad",
+                "name": "QD",
+                "psi": 0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 106,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k1": "kqf",
+                "k1s": 0,
+                "l": "lquad",
+                "name": "QF",
+                "psi": 0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 107,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "freq": 0,
+                "l": 0.3,
+                "name": "CAV",
+                "phase": "pi+0.08",
+                "psi": 0,
+                "type": "RFCAVITY",
+                "volt": 0.75
+            },
+            {
+                "_id": 108,
+                "_super": "_ELEMENT",
+                "angle": "bendangle",
+                "dx": 0,
+                "dy": 0,
+                "e1": "edgeangle",
+                "e2": "edgeangle",
+                "fint": "1/2",
+                "fintx": "1/2",
+                "gap": 0,
+                "l": "lbend",
+                "name": "BSB",
+                "psi": 0,
+                "type": "SBEND"
+            }
+        ],
+        "rpnVariables": [
+            {
+                "name": "bendangle",
+                "value": "pi/ncell"
+            },
+            {
+                "name": "bendradius",
+                "value": "ncell*lbend/pi"
+            },
+            {
+                "name": "circumference",
+                "value": 96
+            },
+            {
+                "name": "edgeangle",
+                "value": "lbend/(2*bendradius)"
+            },
+            {
+                "name": "kqd",
+                "value": -1.4658
+            },
+            {
+                "name": "kqf",
+                "value": 2.1082
+            },
+            {
+                "name": "lbend",
+                "value": 2.6193
+            },
+            {
+                "name": "lquad",
+                "value": 0.3
+            },
+            {
+                "name": "ncell",
+                "value": 8
+            }
+        ],
+        "simulation": {
+            "activeBeamlineId": 111,
+            "folder": "/Examples",
+            "name": "BESSY-II-Booster",
+            "visualizationBeamlineId": 111
+        }
+    },
+    "simulationType": "canvas"
+}

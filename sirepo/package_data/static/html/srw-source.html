@@ -32,7 +32,7 @@
     <div data-ng-if="source.srwService.isIdealizedUndulator()" class="sr-panel-item">
       <div data-report-panel="2d" data-request-priority="3" data-model-name="fluxReport" data-panel-title="{{ source.srwService.getFluxTitle('fluxReport') }}"></div>
     </div>
-    <div data-ng-if="source.srwService.isTabulatedUndulator()" class="sr-panel-item">
+    <div data-ng-if="source.srwService.isTabulatedUndulator() || source.srwService.isArbitraryMagField()" class="sr-panel-item">
       <div data-report-panel="2d" data-request-priority="3" data-model-name="fluxAnimation" data-panel-title="{{ source.srwService.getFluxTitle('fluxAnimation') }}"><div data-simulation-status-panel="fluxAnimation"></div></div>
     </div>
     <div data-ng-if="source.srwService.isElectronBeam()" class="sr-panel-item">

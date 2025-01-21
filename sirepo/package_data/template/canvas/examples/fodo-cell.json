@@ -1,0 +1,129 @@
+{
+    "models": {
+        "beamlines": [
+            {
+                "angle": 0,
+                "count": 2,
+                "distance": 3.2,
+                "id": 2,
+                "items": [
+                    3,
+                    4,
+                    3,
+                    5,
+                    3
+                ],
+                "l": 0,
+                "length": 3.2,
+                "name": "BL1"
+            }
+        ],
+        "bunchAnimation1": {
+            "simCode": "elegant"
+        },
+        "bunchAnimation2": {
+            "simCode": "madx"
+        },
+        "bunchAnimation3": {
+            "simCode": "impactx"
+        },
+        "bunchReport1": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "x",
+            "y": "px"
+        },
+        "bunchReport2": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "y",
+            "y": "py"
+        },
+        "bunchReport3": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "x",
+            "y": "y"
+        },
+        "bunchReport4": {
+            "colorMap": "viridis",
+            "histogramBins": 80,
+            "notes": "",
+            "x": "t",
+            "y": "pt"
+        },
+        "commands": [],
+        "distribution": {
+            "charge": 1e-14,
+            "distributionFile": "",
+            "distributionType": "KVdist",
+            "energy": 1.188272046,
+            "halo": 0,
+            "k": 0,
+            "kT": 0,
+            "kT_halo": 0,
+            "lambdapt": 0.0009918322465878773,
+            "lambdapx": 0.00018402759902857522,
+            "lambdapy": 0.0003689303012389371,
+            "lambdat": 1.008235479736927,
+            "lambdax": 0.001603913181199293,
+            "lambday": 0.001930099505548761,
+            "mutpt": 2.0839156129314984e-07,
+            "muxpx": -0.9554467041642623,
+            "muypy": 0.7021052290464941,
+            "normalize": 0,
+            "normalize_halo": 0,
+            "particleCount": 10000,
+            "species": "electron"
+        },
+        "elements": [
+            {
+                "_id": 3,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "l": 1,
+                "name": "D1",
+                "psi": 0,
+                "type": "DRIFT"
+            },
+            {
+                "_id": 4,
+                "_super": "_ELEMENT",
+                "dx": 0,
+                "dy": 0,
+                "k1": 5,
+                "k1s": 0,
+                "l": 0.1,
+                "name": "Q1",
+                "psi": 0,
+                "type": "QUADRUPOLE"
+            },
+            {
+                "_id": 5,
+                "_super": "_ELEMENT",
+                "description": "k1=5 ",
+                "dx": 0,
+                "dy": 0,
+                "isMarked": false,
+                "k1": -5,
+                "k1s": 0,
+                "l": 0.1,
+                "name": "Q2",
+                "psi": 0,
+                "type": "QUADRUPOLE"
+            }
+        ],
+        "rpnVariables": [],
+        "simulation": {
+            "activeBeamlineId": 2,
+            "folder": "/Examples",
+            "name": "FODO Cell",
+            "visualizationBeamlineId": 2
+        }
+    },
+    "simulationType": "canvas"
+}

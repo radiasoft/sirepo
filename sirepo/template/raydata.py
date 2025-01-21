@@ -17,6 +17,7 @@ import requests
 import requests.exceptions
 import sirepo.feature_config
 import sirepo.sim_data
+import sirepo.tornado
 import sirepo.util
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -61,6 +62,10 @@ def stateless_compute_download_analysis_pdfs(data, data_file_uri=None, **kwargs)
     return _request_scan_monitor(PKDict(method="download_analysis_pdfs", data=data))
 
 
+def stateless_compute_get_automatic_analysis(data, **kwargs):
+    return _request_scan_monitor(PKDict(method="get_automatic_analysis", data=data))
+
+
 def stateless_compute_reorder_scan(data, **kwargs):
     return _request_scan_monitor(PKDict(method="reorder_scan", data=data))
 
@@ -77,11 +82,19 @@ def stateless_compute_scan_fields(data, **kwargs):
     return _request_scan_monitor(PKDict(method="scan_fields", data=data))
 
 
+def stateless_compute_set_automatic_analysis(data, **kwargs):
+    return _request_scan_monitor(PKDict(method="set_automatic_analysis", data=data))
+
+
 def _request_scan_monitor(data):
+    c = sirepo.feature_config.for_sim_type(SIM_TYPE)
     try:
         r = requests.post(
-            sirepo.feature_config.for_sim_type(SIM_TYPE).scan_monitor_url,
+            c.scan_monitor_url,
             json=data,
+            headers=sirepo.tornado.AuthHeaderRequestHandler.get_header(
+                c.scan_monitor_api_secret
+            ),
         )
         r.raise_for_status()
     except requests.exceptions.ConnectionError as e:

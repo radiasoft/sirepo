@@ -33,15 +33,15 @@
             "YROTATION"
         ],
         "basicElementNames": [
-            "SBEND",
-            "RBEND",
-            "DRIFT",
             "COLLIMATOR",
+            "DRIFT",
             "ECOLLIMATOR",
-            "RCOLLIMATOR",
             "KICKER",
             "MARKER",
             "QUADRUPOLE",
+            "RBEND",
+            "RCOLLIMATOR",
+            "SBEND",
             "SEXTUPOLE"
         ],
         "helpUserManualURL": "https://mad.web.cern.ch/mad/webguide/manual.html",
@@ -103,7 +103,8 @@
             ["pc", "From PC"],
             ["gamma", "From Gamma"],
             ["beta", "From Beta"],
-            ["brho", "From BRHO"]
+            ["brho", "From BRHO"],
+            ["file", "From Particle File"]
         ],
         "CommandMakethinStyle": [
             ["teapot", "Teapot"],
@@ -143,11 +144,6 @@
             ["4", "4"],
             ["5", "5"],
             ["6", "6"]
-        ],
-        "SpaceCoordinate": [
-            ["x", "x"],
-            ["y", "y"],
-            ["z", "z"]
         ],
         "OptionalBoolean": [
             ["", "NOT SELECTED"],
@@ -222,6 +218,8 @@
             "name": ["Name", "ValidatedString"]
         },
         "bunch": {
+            "distributionType": ["Distribution Type", "DistributionType", "twiss"],
+            "sourceFile": ["Particle File", "InputFile", "", "OpenPMD hdf5 particle file"],
             "beamDefinition": ["Beam Definition", "BeamDefinition", "energy"],
             "matchTwissParameters": ["Match Twiss Parameters", "Boolean", "0", "Use twiss parameters computed from the selected beamline"],
             "numberOfParticles": ["Number Of Particles", "Integer", 1000, "Number of particles to track.", 1, 10000],
@@ -236,7 +234,6 @@
             "y": ["Vertical Centroid [m]", "Float", 0.0]
         },
         "simulation": {
-            "enableParticleTracking": ["Particle Tracking", "Boolean", "1"],
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""],
             "commandTemplate": ["Template", "CommandTemplate", "particle"],
             "computeTwissFromParticles": ["Compute Twiss From Particles", "Boolean", "0"]
@@ -783,10 +780,6 @@
             "name": ["Name", "String"],
             "value": ["Value", "RPNValue"]
         },
-        "twissEllipseReport": {
-            "dim": ["Dimension", "SpaceCoordinate", "x"],
-            "notes": ["Notes", "Text", ""]
-        },
         "twissFromParticlesAnimation": {
             "x": ["Horizontal Value to Plot", "ValueList", ""],
             "y1": ["Vertical Value to Plot", "ValueList", ""],
@@ -1323,7 +1316,7 @@
     },
     "strings": {
         "completionState": "",
-        "importText": "Import a lattice (.madx) file",
+        "importText": "Import a lattice file (.ele, .lte, .in, .madx, or .seq)",
         "simulationSource": "MAD-X Source (*.madx)"
     },
     "view": {
@@ -1352,7 +1345,8 @@
                     "command_beam.pc",
                     "command_beam.gamma",
                     "command_beam.beta",
-                    "command_beam.brho"
+                    "command_beam.brho",
+                    "sourceFile"
                 ]],
                 ["Distribution", [
                     "matchTwissParameters",
@@ -2042,10 +2036,6 @@
         "simulationStatus": {
             "title": "Simulation Status",
             "advanced": []
-        },
-        "twissEllipseReport": {
-            "title": "Twiss Ellipse",
-            "advanced": ["dim"]
         },
         "twissFromParticlesAnimation": {
             "title": "Twiss From Particles",

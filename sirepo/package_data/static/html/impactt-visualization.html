@@ -1,0 +1,22 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6 col-xl-4">
+      <div data-basic-editor-panel="" data-view-name="simulationSettings"></div>
+    </div>
+    <div class="col-md-6 col-xl-4">
+      <div data-simple-panel="simulationStatus">
+          <div data-sim-status-panel="visualization.simState"></div>
+      </div>
+    </div>
+    <div data-column-for-aspect-ratio="statAnimation" data-ng-if="visualization.simState.getFrameCount() >= 1">
+      <div data-report-panel="parameterWithLattice" data-model-name="statAnimation"></div>
+    </div>
+    <div data-ng-repeat="item in visualization.outputFiles track by $index" data-ng-if="visualization.simState.hasFrames()">
+      <div data-column-for-aspect-ratio="{{ item.modelAccess.modelKey }}">
+        <div data-report-panel="{{ item.modelAccess.getData().plotType }}" data-model-data="item.modelAccess" data-panel-title="{{ item.panelTitle }}"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div data-modal-editor="" view-name="elementAnimation" data-ng-repeat="item in visualization.outputFiles" data-model-data="item.modelAccess">

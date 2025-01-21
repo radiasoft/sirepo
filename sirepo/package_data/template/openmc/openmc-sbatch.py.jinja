@@ -1,0 +1,7 @@
+import os
+
+os.environ["OMP_NUM_THREADS"] = "{{ numThreads }}"
+os.environ["OPENMC_CROSS_SECTIONS"] = "{{ cacheDir }}/cross_sections.xml"
+os.system("openmc")
+
+{{ saveWeightWindowsFile }}

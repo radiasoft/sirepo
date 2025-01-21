@@ -10,14 +10,14 @@ import aenum
 import sirepo.feature_config
 
 ROLE_ADM = "adm"
-ROLE_PAYMENT_PLAN_ENTERPRISE = "enterprise"
+ROLE_USER = "user"
 ROLE_PAYMENT_PLAN_PREMIUM = "premium"
-PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM, ROLE_PAYMENT_PLAN_ENTERPRISE)
+PAID_USER_ROLES = (ROLE_PAYMENT_PLAN_PREMIUM,)
 _SIM_TYPE_ROLE_PREFIX = "sim_type_"
 
 
 class ModerationStatus(aenum.NamedConstant):
-    """States used by auth_role_moderation and UserRoleInvite"""
+    """States used by auth_role_moderation and UserRoleModeration"""
 
     APPROVE = "approve"
     CLARIFY = "clarify"
@@ -40,7 +40,7 @@ def for_moderated_sim_types():
 def for_new_user(is_guest):
     if is_guest and pkconfig.in_dev_mode():
         return get_all()
-    return []
+    return [ROLE_USER]
 
 
 def for_proprietary_oauth_sim_types():
@@ -58,8 +58,8 @@ def get_all():
         for_sim_type(t) for t in sirepo.feature_config.auth_controlled_sim_types()
     ] + [
         ROLE_ADM,
-        ROLE_PAYMENT_PLAN_ENTERPRISE,
         ROLE_PAYMENT_PLAN_PREMIUM,
+        ROLE_USER,
     ]
 
 

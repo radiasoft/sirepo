@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Test getting own and adm jobs.
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 import pytest
 import os
 from pykern.pkcollections import PKDict
@@ -31,19 +31,20 @@ def test_adm_jobs_forbidden(auth_fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdp
     from sirepo import srunit
+    import sirepo.auth_role
+    import sirepo.pkcli.roles
 
     def _op(fc, sim_type):
         with srunit.quest_start() as qcall:
-            qcall.auth_db.model("UserRole").delete_all_for_column_by_values(
-                "uid",
-                [fc.sr_uid],
+            qcall.auth_db.model("UserRole").delete_roles(
+                roles=[sirepo.auth_role.ROLE_ADM],
+                uid=fc.sr_uid,
             )
-        r = fc.sr_post(
+        fc.sr_post(
             "admJobs",
             PKDict(simulationType=sim_type),
             raw_response=True,
-        )
-        r.assert_http_status(403)
+        ).assert_http_status(403)
 
     _run_sim(auth_fc, _op)
 
@@ -113,10 +114,13 @@ def test_srw_user_see_only_own_jobs(auth_fc):
 
     def _make_user_adm(uid):
         from sirepo.pkcli import roles
+        import sirepo.auth_role
 
         roles.add(uid, auth_role.ROLE_ADM)
         with srunit.quest_start() as qcall:
-            r = qcall.auth_db.model("UserRole").search_all_for_column("uid")
+            r = qcall.auth_db.model("UserRole").search_all_for_column(
+                "uid", role=sirepo.auth_role.ROLE_ADM
+            )
         pkunit.pkeq(1, len(r), "One user with role adm r={}", r)
         pkunit.pkeq(r[0], uid, "Expected same uid as user")
 

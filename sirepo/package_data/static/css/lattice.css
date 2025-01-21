@@ -121,11 +121,32 @@ div.sr-lattice-icon-disabled span {
   top: 0;
   background-color: white;
   padding: 0.5em;
-  z-index: 1000;
+  z-index: 999;
 }
 
 .sr-search-target {
   background-color: yellow;
   color: black;
   border: solid 1px lightgray;
+}
+
+.sr-lattice-editor-panel .popover {
+  max-width: none;
+  width: 25em;
+}
+
+.sr-lattice-watch {
+  stroke: black;
+  stroke-width: 0.01;
+}
+
+.sr-selected-badge {
+  background-color: #fcf8e3;
+  color: #333;
+  border: 1px solid #777;
+}
+
+.sr-lattice-marker > path {
+  stroke: black;
+  stroke-width: 1;
 }

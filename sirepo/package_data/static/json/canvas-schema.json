@@ -1,0 +1,558 @@
+{
+    "appModes": {
+        "default": {
+            "localRoute": "lattice"
+        }
+    },
+    "constants": {
+        "codes": ["elegant", "madx", "impactx"],
+        "particleMassAndCharge": {
+            "positron": [0.510998950e-03, 1],
+            "electron": [0.510998950e-03, -1],
+            "proton": [0.93827208816, 1]
+        }
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "split-1.3.5.min.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": [
+                "canvas.js",
+                "sirepo-command.js",
+                "sirepo-lattice.js",
+                "impactx-util.js"
+            ],
+             "css": [
+                 "lattice.css",
+                 "command.css"
+            ]
+        }
+    },
+    "enum": {
+        "ApertureShape": [
+            ["elliptical", "elliptical"],
+            ["rectangular", "rectangular"]
+        ],
+        "Distribution": [
+            ["File", "From File"],
+            ["Gaussian", "Gaussian"],
+            ["KVdist", "KVdist"],
+            ["Kurth4D", "Kurth4D"],
+            ["Kurth6D", "Kurth6D"],
+            ["Semigaussian", "Semigaussian"],
+            ["Thermal", "Thermal"],
+            ["Triangle", "Triangle"],
+            ["Waterbag", "Waterbag"]
+        ],
+        "MultipoleIndex": [
+            ["1", "dipole"],
+            ["2", "quadrupole"],
+            ["3", "sextupole"],
+            ["4", "octupole"]
+        ],
+        "PhaseSpaceCoordinate": [
+            ["x", "x"],
+            ["px", "Px"],
+            ["y", "y"],
+            ["py", "Py"],
+            ["t", "t"],
+            ["pt", "Pt"]
+        ],
+        "PlotType": [
+            ["heatmap", "Heatmap"],
+            ["3d", "Heatmap with Histograms"]
+        ],
+        "Species": [
+            ["positron", "Positron"],
+            ["electron", "Electron"],
+            ["proton", "Proton"]
+        ]
+    },
+    "frameIdFields": {
+        "sigmaAnimation": [
+        ],
+        "twissAnimation": [
+        ],
+        "bunchAnimation1": [
+            "simCode",
+            "histogramBins",
+            "x",
+            "y"
+        ],
+        "bunchAnimation2": [
+            "simCode",
+            "histogramBins",
+            "x",
+            "y"
+        ],
+        "bunchAnimation3": [
+            "simCode",
+            "histogramBins",
+            "x",
+            "y"
+        ]
+    },
+    "localRoutes": {
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+                "controller": "LatticeController as lattice",
+                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
+            }
+        },
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "template": "<div data-impactx-source-tab=\"\" data-source=\"source\"></div>"
+            }
+        },
+        "comparison": {
+            "route": "/comparison/:simulationId",
+            "config": {
+              "controller": "ComparisonController as comparison",
+              "templateUrl": "/static/html/canvas-comparison.html"
+            }
+        }
+    },
+    "model": {
+        "beamline": {
+            "name": ["Name", "ValidatedString"]
+        },
+        "bunchAnimation": {
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "selectedFrame": ["", "FrameSlider", 0],
+            "notes": ["Notes", "Text", ""]
+        },
+        "bunchAnimation1": {
+            "simCode": ["", "String", "elegant"],
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "bunchAnimation2": {
+            "simCode": ["", "String", "madx"],
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "bunchAnimation3": {
+            "simCode": ["", "String", "impactx"],
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "bunchReport": {
+            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "x"],
+            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "px"],
+            "histogramBins": ["Histogram Bins", "Integer", 80],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "distribution": {
+            "species": ["Species", "Species", "electron"],
+            "energy": ["Energy [GeV]", "RPNValue", 1.0],
+            "charge": ["Bunch Charge [C]", "RPNValue", 100.0e-12],
+
+            "particleCount": ["Particle Count", "Integer", 10000],
+            "distributionType": ["Distribution Type", "Distribution", "Waterbag"],
+            "lambdax": ["X Lambda [m]", "RPNValue", 0],
+            "lambday": ["Y Lambda [m]", "RPNValue", 0],
+            "lambdat": ["T Lambda [m]", "RPNValue", 0],
+            "lambdapx": ["X Lambda P [rad]", "RPNValue", 0],
+            "lambdapy": ["Y Lambda P [rad]", "RPNValue", 0],
+            "lambdapt": ["T Lambda P [rad]", "RPNValue", 0],
+            "muxpx": ["X Mu P", "RPNValue", 0, "correlation length-momentum"],
+            "muypy": ["Y Mu P", "RPNValue", 0],
+            "mutpt": ["T Mu P", "RPNValue", 0],
+
+            "k": ["k", "RPNValue", 0],
+            "kT": ["kT", "RPNValue", 0],
+            "kT_halo": ["kT halo", "RPNValue", 0],
+            "normalize": ["normalize", "RPNValue", 0],
+            "normalize_halo": ["normalize halo", "RPNValue", 0],
+            "halo": ["halo", "RPNValue", 0],
+
+            "distributionFile": ["Distribution File [hdf5 or sdds]", "InputFile", "", "An OpenPMD HDF5 ParticleGroup or SDDS File"]
+        },
+        "sigmaAnimation": {
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "simulationSettings": {
+            "elegant": ["elegant {{ elegantVersion }}", "Boolean", "1"],
+            "madx": ["MAD-X {{ madxVersion }}", "Boolean", "1"],
+            "impactx": ["ImpactX {{ impactxVersion }}", "Boolean", "1"]
+        },
+        "twissAnimation": {
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "_ELEMENT": {
+            "_super": ["", "model", "_MISALIGNMENT"],
+            "name": ["Name", "ValidatedString"],
+            "l": ["Length [m]", "RPNValue", 0]
+        },
+        "_MISALIGNMENT": {
+            "dx": ["X misalignment [m]", "RPNValue", 0],
+            "dy": ["Y misalignment [m]", "RPNValue", 0],
+            "psi": ["Z rotation [rad]", "RPNValue", 0]
+        },
+        "APERTURE": {
+            "_super": ["", "model", "_ELEMENT"],
+            "shape": ["Boundary shape", "ApertureShape", "rectangular"],
+            "xmax": ["X max [m]", "RPNValue", 0],
+            "ymax": ["Y max [m]", "RPNValue", 0]
+        },
+        "DRIFT": {
+            "_super": ["", "model", "_ELEMENT"]
+        },
+        "KICKER": {
+            "_super": ["", "model", "_ELEMENT"],
+            "xkick": ["X Kick", "RPNValue", 0],
+            "ykick": ["Y Kick", "RPNValue", 0]
+        },
+        "MONITOR": {
+            "_super": ["", "model", "_ELEMENT"]
+        },
+        "MULTIPOLE": {
+            "_super": ["", "model", "_ELEMENT"],
+            "multipole": ["Multipole index", "MultipoleIndex", "1"],
+            "k_normal": ["Normal coefficient", "RPNValue", 0],
+            "k_skew": ["Skew coefficient", "RPNValue", 0]
+        },
+        "QUADRUPOLE": {
+            "_super": ["", "model", "_ELEMENT"],
+            "k1": ["Normal coefficient [$\\bf m^{-2}$]", "RPNValue", 0],
+            "k1s": ["Skew coefficient [$\\bf m^{-2}$]", "RPNValue", 0]
+        },
+        "RFCAVITY": {
+            "_super": ["", "model", "_ELEMENT"],
+            "volt": ["Voltage [V]", "RPNValue", 0],
+            "freq": ["Frequency [Hz]", "RPNValue", 0],
+            "phase": ["Phase [deg]", "RPNValue", 0, "RF synchronous phase (phase = 0 corresponds to maximum energy gain, phase = -90 corresponds to zero energy gain for bunching)"]
+        },
+        "SBEND": {
+            "_super": ["", "model", "_ELEMENT"],
+            "angle": ["Angle [rad]", "RPNValue", 0, "The bend angle"],
+            "gap": ["Gap [m]", "RPNValue", 0, "The gap of the magnet."],
+            "fint": ["Entrance Fringe field integral", "RPNValue", 0],
+            "fintx": ["Exit Fringe field integral", "RPNValue", 0],
+            "e1": ["Entrance Pole face rotation angle [rad]", "RPNValue", 0],
+            "e2": ["Exit Pole face rotation angle [rad]", "RPNValue", 0]
+        },
+        "SEXTUPOLE": {
+            "_super": ["", "model", "_ELEMENT"],
+            "k2": ["Normal coefficient [$\\bf m^{-3}$]", "RPNValue", 0],
+            "k2s": ["Skew coefficient [$\\bf m^{-3}$]", "RPNValue", 0]
+        },
+        "SOLENOID": {
+            "_super": ["", "model", "_ELEMENT"],
+            "ks": ["Strength [rad/m]", "RPNValue", 0]
+        },
+        "rpnVariable": {
+            "name": ["Name", "String"],
+            "value": ["Value", "RPNValue"]
+        },
+        "simulation": {
+            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
+        },
+        "simulationStatus": {}
+    },
+    "view": {
+        "beamline": {
+            "title": "Beamline",
+            "advanced": [
+                "name"
+            ]
+        },
+
+        "bunchAnimation": {
+            "hasDataFile": false,
+            "title": "Phase Space",
+            "advanced": [
+                "plotType",
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "bunchAnimation1": {
+            "title": "Phase Space",
+            "advanced": []
+        },
+        "bunchAnimation2": {
+            "title": "Phase Space",
+            "advanced": []
+        },
+        "bunchAnimation3": {
+            "title": "Phase Space",
+            "advanced": []
+        },
+        "bunchReport": {
+            "title": "Beam Phase Space",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "distribution": {
+            "title": "Particle Distribution",
+            "basic": [
+                "distributionType",
+                "species",
+                "energy",
+                "charge",
+                "particleCount",
+                [
+                    ["X", [
+                        "lambdax",
+                        "lambdapx",
+                        "muxpx"
+                    ]],
+                    ["Y", [
+                        "lambday",
+                        "lambdapy",
+                        "muypy"
+                    ]],
+                    ["T", [
+                        "lambdat",
+                        "lambdapt",
+                        "mutpt"
+                    ]]
+                ],
+                "k",
+                "kT",
+                "kT_halo",
+                "normalize",
+                "normalize_halo",
+                "halo",
+                "distributionFile"
+            ],
+            "advanced": []
+        },
+        "sigmaAnimation": {
+            "hasDataFile": false,
+            "title": "Sigma",
+            "advanced": [
+                "includeLattice",
+                "notes"
+            ]
+        },
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "simulation.visualizationBeamlineId",
+                "*Compare Codes",
+                "elegant",
+                "madx",
+                "impactx"
+            ],
+            "advanced": []
+        },
+        "twissAnimation": {
+            "hasDataFile": false,
+            "title": "Twiss",
+            "advanced": [
+                "includeLattice",
+                "notes"
+            ]
+        },
+        "APERTURE": {
+            "title": "APERTURE",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "shape",
+                    "xmax",
+                    "ymax"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "DRIFT": {
+            "title": "DRIFT",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "KICKER": {
+            "title": "KICKER",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "xkick",
+                    "ykick"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "MONITOR": {
+            "title": "MONITOR: A beam monitor",
+            "advanced": [
+                "name"
+            ]
+        },
+        "MULTIPOLE": {
+            "title": "MULTIPOLE",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "multipole",
+                    "l",
+                    "k_normal",
+                    "k_skew"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "QUADRUPOLE": {
+            "title": "QUADRUPOLE",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "k1",
+                    "k1s"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "RFCAVITY": {
+            "title": "RFCAVITY: A radiafrequency cavity",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "volt",
+                    "freq",
+                    "phase"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "SBEND": {
+            "title": "SBEND: An ideal sector bend",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "angle",
+                    "gap",
+                    [
+                        ["Entrance", [
+                            "fint",
+                            "e1"
+                        ]],
+                        ["Exit", [
+                            "fintx",
+                            "e2"
+                        ]]
+                    ]
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "SEXTUPOLE": {
+            "title": "SEXTUPOLE",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "k2",
+                    "k2s"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "SOLENOID": {
+            "title": "SOLENOID",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "ks"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "psi"
+                ]]
+            ]
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        }
+    }
+}

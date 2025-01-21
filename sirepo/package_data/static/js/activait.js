@@ -563,7 +563,7 @@ SIREPO.app.directive('analysisActions', function(appState, panelState, activaitS
             </button>
             <div data-ng-show="! isLoading()" style="background: white; padding: 1ex; border-radius: 4px;">
               <div class="clearfix"></div>
-              <div data-ng-repeat="view in viewNames track by $index" style="margin-top: -40px;">
+              <div data-ng-repeat="view in viewNames track by $index">
                 <div data-ng-if="isActiveView(view)" style="margin-top:3ex;">
                   <div data-advanced-editor-pane="" data-model-data="modelData" data-view-name="view" data-field-def="basic" data-want-buttons="{{ wantButtons() }}"></div>
                 </div>

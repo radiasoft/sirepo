@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Runs job supervisor tornado server
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjson
@@ -15,6 +15,7 @@ import sirepo.const
 import sirepo.events
 import sirepo.feature_config
 import sirepo.global_resources.api
+import sirepo.http_util
 import sirepo.job
 import sirepo.job_driver
 import sirepo.job_supervisor
@@ -97,7 +98,7 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
         pkdlog(
             "uri={} remote_ip={} ",
             self.request.uri,
-            self.request.remote_ip,
+            sirepo.http_util.remote_ip(self.request),
         )
 
     def sr_close(self):
@@ -143,7 +144,8 @@ class _ServerReq(_JsonPostRequestHandler):
         pass
 
     async def post(self):
-        self.write(await _incoming(self.request.body, self))
+        if (r := await _incoming(self.request.body, self)) is not None:
+            self.write(r)
 
     def sr_on_exception(self):
         self.send_error()
@@ -178,7 +180,8 @@ async def _incoming(content, handler):
             handler.sr_on_exception()
         except Exception as e:
             pkdlog("sr_on_exception: exception={}", e)
-        return PKDict(state=sirepo.job.ERROR, error="unexpected error")
+        # sr_on_exception writes error
+        return None
 
 
 def _sigterm(signum, frame):
@@ -189,7 +192,7 @@ class _DataFileReq(tornado.web.RequestHandler):
     async def put(self, path):
         # should be exactly two levels
         (d, f) = path.split("/")
-        assert sirepo.job.UNIQUE_KEY_RE.search(d), "invalid directory={}".format(d)
+        assert sirepo.util.UNIQUE_KEY_RE.search(d), "invalid directory={}".format(d)
         d = sirepo.job.DATA_FILE_ROOT.join(d)
         assert d.check(dir=True), "directory does not exist={}".format(d)
         # (tornado ensures no '..' and '.'), but a bit of sanity doesn't hurt

@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Common execution template.
 
 :copyright: Copyright (c) 2015 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcompat
 from pykern import pkio
 from pykern import pkjinja
@@ -25,7 +25,7 @@ import types
 DEFAULT_INTENSITY_DISTANCE = 20
 
 #: Input json file
-INPUT_BASE_NAME = "in"
+INPUT_BASE_NAME = sirepo.const.SIM_RUN_INPUT_BASENAME
 
 #: Test if value is numeric text
 NUMERIC_RE = re.compile(r"^\s*(\-|\+)?(\d+|(\d*(\.\d*)))([eE][+-]?\d+)?\s*$")
@@ -242,6 +242,7 @@ class ParticleEnergy:
     SPEED_OF_LIGHT = 299792458  # [m/s]
 
     ENERGY_PRIORITY = PKDict(
+        impactx=["energy"],
         opal=["gamma", "energy", "pc"],
         madx=["energy", "pc", "gamma", "beta", "brho"],
     )
@@ -373,14 +374,6 @@ def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
                     y_range[1] = vmax
             else:
                 y_range = [vmin, vmax]
-    # color child plots the same as parent
-    for child in [p for p in plots if "_parent" in p]:
-        parent = next(
-            (pr for pr in plots if "label" in pr and pr["label"] == child["_parent"]),
-            None,
-        )
-        if parent:
-            child["color"] = parent["color"] if "color" in parent else "#000000"
     return y_range
 
 

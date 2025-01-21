@@ -12,13 +12,17 @@
             "longName": "Activait",
             "shortName": "Activait"
         },
+        "canvas": {
+            "longName": "Lattice Canvas",
+            "shortName": "canvas"
+        },
         "controls": {
             "longName": "Controls",
             "shortName": "Controls"
         },
-        "cloudmc": {
-            "longName": "CloudMC",
-            "shortName": "CloudMC"
+        "openmc": {
+            "longName": "OpenMC",
+            "shortName": "OpenMC"
         },
         "elegant": {
             "longName": "elegant",
@@ -32,13 +36,21 @@
             "longName": "GENESIS 1.3",
             "shortName": "GENESIS 1.3"
         },
+        "impactt": {
+            "longName": "Impact-T",
+            "shortName": "Impact-T"
+        },
+        "impactx": {
+            "longName": "ImpactX",
+            "shortName": "ImpactX"
+        },
         "jspec": {
             "longName": "JSPEC",
             "shortName": "JSPEC"
         },
         "jupyterhublogin": {
-            "longName": "JupyterHub Login",
-            "shortName": "JupyterHub"
+            "longName": "Jupyter",
+            "shortName": "Jupyter"
         },
         "madx": {
             "longName": "MAD-X",
@@ -94,10 +106,12 @@
         "longName": "Sirepo"
     },
     "rootRedirectUri": {
+        "cloudmc": "/openmc",
         "fete": "/warpvnd",
         "ml": "/activait",
         "plans": "/en/plans.html",
-        "warp": "/warppba"
+        "warp": "/warppba",
+        "cloudmc": "/openmc"
     },
     "route": {
         "adjustSupervisorSrtime": "/adjust-supervisor-srtime/?<days>",
@@ -156,7 +170,9 @@
         "runStatus": "/run-status",
         "saveModerationReason": "/save-moderation-reason",
         "saveSimulationData": "/save-simulation",
+        "sbatchLoginStatus": "/sbatch-login-status",
         "sbatchLogin": "/sbatch-login",
+        "securityTxt": "/security.txt",
         "serverStatus": "/server-status",
         "simOauthFlashAuthorized": "/sim-oauth-flash-authorized",
         "simulationData": "/simulation/<simulation_type>/<simulation_id>/<pretty>/?<section>",
@@ -174,11 +190,10 @@
     },
     "common": {
         "adm": {
-            "userRoleInviteColumns": [
+            "userRoleModerationColumns": [
               ["email", "Email"],
               ["uid", "uid"],
               ["role", "Role"],
-              ["token", "Token"],
               ["status", "Status"],
               ["last_updated", "Last Updated"],
               ["moderator_uid", "Moderator uid"]
@@ -194,6 +209,7 @@
             }
         },
         "constants": {
+	    "canCreateNewSimulation": true,
             "canDownloadInputFile": true,
             "canExportArchive": true,
             "canShowDocumentationUrl": true,
@@ -204,10 +220,9 @@
             "oneDayMillis": 86400000,
             "paymentPlans": {
                 "basic": "Sirepo Community",
-                "enterprise": "Sirepo Enterprise",
                 "premium": "Sirepo Professional"
             },
-            "plansUrl": "/en/plans.html",
+            "plansUrl": "/plans",
             "simulationSourceExtension": "py"
         },
         "cookies": {
@@ -271,7 +286,13 @@
                 ["1", "1 x 1"],
                 ["0.75", "4 x 3"],
                 ["0.5625", "16 x 9"],
-                ["0.5", "2 x 1"]
+                ["0.5", "2 x 1"],
+                ["0.333333", "3 x 1"],
+                ["0.25", "4 x 1"]
+            ],
+            "AxisPosition": [
+                ["left", "Left"],
+                ["right", "Right"]
             ],
             "Boolean": [
                 ["0", "No"],
@@ -332,6 +353,7 @@
                 "route": "/complete-registration",
                 "config": {
                   "controller": "LoginConfirmController as loginConfirm",
+                  "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/complete-registration.html"
                 }
             },
@@ -366,13 +388,11 @@
             "httpRedirect": {
                 "route": "/http-redirect/:srExceptionOnly"
             },
-            "invalidSimulationSerial": {
-                "route": "/invalid-simulation-serial/:srExceptionOnly"
-            },
             "login": {
                 "route": "/login",
                 "config": {
                   "controller": "LoginController as login",
+                  "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/login.html"
                 }
             },
@@ -380,6 +400,7 @@
                 "route": "/login-fail/:method/:reason",
                 "config": {
                   "controller": "LoginFailController as loginFail",
+                  "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/login-fail.html"
                 }
             },
@@ -387,6 +408,7 @@
                 "route": "/login-with/:method",
                 "config": {
                   "controller": "LoginWithController as loginWith",
+                  "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/login-with.html"
                 }
             },
@@ -394,6 +416,7 @@
                 "route": "/login-with-email-confirm/:token/:needCompleteRegistration",
                 "config": {
                   "controller": "LoginConfirmController as loginConfirm",
+                  "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/login-with-email-confirm.html"
                 }
             },
@@ -406,12 +429,14 @@
             "moderationRequest":  {
                 "route": "/moderation-request",
                 "config": {
+                  "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/moderation-request.html"
                 }
             },
             "moderationPending":  {
                 "route": "/moderation-pending",
                 "config": {
+                  "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/moderation-pending.html"
                 }
             },

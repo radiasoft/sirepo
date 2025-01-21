@@ -75,6 +75,19 @@ def local_route(sim_type, route_name=None, params=None, query=None):
     return app_root(sim_type) + "#" + u + _query(query)
 
 
+def is_sr_exception_only(sim_type, route_name):
+    """local route has srExceptionOnly param
+
+    Args:
+        sim_type (str): simulation type (must be valid)
+        route_name (str): a local route
+    Returns:
+        object: True if srExceptionOnly, else False; None if route not found
+    """
+    rv = simulation_db.get_schema(sim_type).localRoutes.get(route_name).route
+    return rv and "srExceptionOnly" in rv
+
+
 def server_route(route_or_uri, params, query):
     """Convert name to uri found in SCHEMA_COMMON
 

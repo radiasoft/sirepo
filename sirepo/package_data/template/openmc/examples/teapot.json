@@ -1,0 +1,641 @@
+{
+    "models": {
+        "dagmcAnimation": {},
+        "geometry3DReport": {
+            "bgColor": "#fff9ed",
+            "opacity": 1,
+            "showEdges": "0"
+        },
+        "geometryInput": {
+            "dagmcFile": "utah_teapot.h5m",
+            "exampleURL": "utah_teapot.h5m"
+        },
+        "openmcAnimation": {
+            "aspect": "mean",
+            "bgColor": "#fff9ed",
+            "colorMap": "viridis",
+            "opacity": 1,
+            "score": "flux",
+            "showEdges": "0",
+            "tallies": [
+                {
+                    "_index": 0,
+                    "filter1": {
+                        "_super": "filter",
+                        "_type": "meshFilter",
+                        "dimension": [
+                            120,
+                            1,
+                            40
+                        ],
+                        "lower_left": [
+                            -20,
+                            0,
+                            -10
+                        ],
+                        "upper_right": [
+                            20,
+                            1,
+                            4
+                        ]
+                    },
+                    "filter2": {
+                        "_super": "filter",
+                        "_type": "materialFilter",
+                        "bins": [
+                            {
+                                "value": "iron"
+                            }
+                        ]
+                    },
+                    "filter3": {
+                        "_type": "None"
+                    },
+                    "filter4": {
+                        "_type": "None"
+                    },
+                    "filter5": {
+                        "_type": "None"
+                    },
+                    "name": "pot",
+                    "nuclides": [],
+                    "scores": [
+                        {
+                            "score": "flux"
+                        }
+                    ]
+                },
+                {
+                    "_index": 1,
+                    "filter1": {
+                        "_super": "filter",
+                        "_type": "meshFilter",
+                        "dimension": [
+                            120,
+                            1,
+                            40
+                        ],
+                        "lower_left": [
+                            -20,
+                            0,
+                            -10
+                        ],
+                        "upper_right": [
+                            20,
+                            1,
+                            4
+                        ]
+                    },
+                    "filter2": {
+                        "_super": "filter",
+                        "_type": "materialFilter",
+                        "bins": [
+                            {
+                                "value": "water"
+                            }
+                        ]
+                    },
+                    "filter3": {
+                        "_type": "None"
+                    },
+                    "filter4": {
+                        "_type": "None"
+                    },
+                    "filter5": {
+                        "_type": "None"
+                    },
+                    "name": "water",
+                    "nuclides": [],
+                    "scores": [
+                        {
+                            "score": "flux"
+                        }
+                    ]
+                }
+            ],
+            "tally": "pot",
+            "voxelInsetPct": 0
+        },
+        "reflectivePlanes": {
+            "plane1a": 0,
+            "plane1b": -1,
+            "plane2a": 1,
+            "plane2b": 0,
+            "useReflectivePlanes": "0"
+        },
+        "settings": {
+            "batches": 10,
+            "inactive": 0,
+            "materialLibrary": "ENDFB-7.1-NNDC",
+            "particles": 5000,
+            "photon_transport": "0",
+            "run_mode": "fixed source",
+            "sources": [
+                {
+                    "_index": 0,
+                    "angle": {
+                        "_type": "None"
+                    },
+                    "energy": {
+                        "_super": "univariate",
+                        "_type": "discrete",
+                        "probabilityValue": [
+                            {
+                                "p": 1,
+                                "x": 12
+                            },
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {}
+                        ]
+                    },
+                    "particle": "neutron",
+                    "space": {
+                        "_super": "spatial",
+                        "_type": "point",
+                        "xyz": [
+                            -4,
+                            0,
+                            -2
+                        ]
+                    },
+                    "strength": 0.125,
+                    "time": {
+                        "_type": "None"
+                    }
+                },
+                {
+                    "_index": 1,
+                    "angle": {
+                        "_type": "None"
+                    },
+                    "energy": {
+                        "_super": "univariate",
+                        "_type": "discrete",
+                        "probabilityValue": [
+                            {
+                                "p": 1,
+                                "x": 12
+                            },
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {}
+                        ]
+                    },
+                    "particle": "neutron",
+                    "space": {
+                        "_super": "spatial",
+                        "_type": "point",
+                        "xyz": [
+                            4,
+                            0,
+                            -2
+                        ]
+                    },
+                    "strength": 0.125,
+                    "time": {
+                        "_type": "None"
+                    }
+                },
+                {
+                    "_index": 2,
+                    "angle": {
+                        "_type": "None"
+                    },
+                    "energy": {
+                        "_super": "univariate",
+                        "_type": "discrete",
+                        "probabilityValue": [
+                            {
+                                "p": 1,
+                                "x": 12
+                            },
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {}
+                        ]
+                    },
+                    "particle": "neutron",
+                    "space": {
+                        "_super": "spatial",
+                        "_type": "point",
+                        "xyz": [
+                            4,
+                            0,
+                            -6
+                        ]
+                    },
+                    "strength": 0.125,
+                    "time": {
+                        "_type": "None"
+                    }
+                },
+                {
+                    "_index": 3,
+                    "angle": {
+                        "_type": "None"
+                    },
+                    "energy": {
+                        "_super": "univariate",
+                        "_type": "discrete",
+                        "probabilityValue": [
+                            {
+                                "p": 1,
+                                "x": 12
+                            },
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {}
+                        ]
+                    },
+                    "particle": "neutron",
+                    "space": {
+                        "_super": "spatial",
+                        "_type": "point",
+                        "xyz": [
+                            -4,
+                            0,
+                            -6
+                        ]
+                    },
+                    "strength": 0.125,
+                    "time": {
+                        "_type": "None"
+                    }
+                },
+                {
+                    "_index": 4,
+                    "angle": {
+                        "_type": "None"
+                    },
+                    "energy": {
+                        "_super": "univariate",
+                        "_type": "discrete",
+                        "probabilityValue": [
+                            {
+                                "p": 1,
+                                "x": 12
+                            },
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {}
+                        ]
+                    },
+                    "particle": "neutron",
+                    "space": {
+                        "_super": "spatial",
+                        "_type": "point",
+                        "xyz": [
+                            10,
+                            0,
+                            -4
+                        ]
+                    },
+                    "strength": 0.125,
+                    "time": {
+                        "_type": "None"
+                    }
+                },
+                {
+                    "_index": 5,
+                    "angle": {
+                        "_type": "None"
+                    },
+                    "energy": {
+                        "_super": "univariate",
+                        "_type": "discrete",
+                        "probabilityValue": [
+                            {
+                                "p": 1,
+                                "x": 12
+                            },
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {},
+                            {}
+                        ]
+                    },
+                    "particle": "neutron",
+                    "space": {
+                        "_super": "spatial",
+                        "_type": "point",
+                        "xyz": [
+                            -8,
+                            0,
+                            -4
+                        ]
+                    },
+                    "strength": 0.125,
+                    "time": {
+                        "_type": "None"
+                    }
+                }
+            ],
+            "tallies": [
+                {
+                    "_index": 0,
+                    "filter1": {
+                        "_super": "filter",
+                        "_type": "meshFilter",
+                        "dimension": [
+                            120,
+                            1,
+                            40
+                        ],
+                        "lower_left": [
+                            -20,
+                            0,
+                            -10
+                        ],
+                        "upper_right": [
+                            20,
+                            1,
+                            4
+                        ]
+                    },
+                    "filter2": {
+                        "_super": "filter",
+                        "_type": "materialFilter",
+                        "bins": [
+                            {
+                                "value": "iron"
+                            }
+                        ]
+                    },
+                    "filter3": {
+                        "_type": "None"
+                    },
+                    "filter4": {
+                        "_type": "None"
+                    },
+                    "filter5": {
+                        "_type": "None"
+                    },
+                    "name": "pot",
+                    "nuclides": [],
+                    "scores": [
+                        {
+                            "score": "flux"
+                        }
+                    ]
+                },
+                {
+                    "_index": 1,
+                    "filter1": {
+                        "_super": "filter",
+                        "_type": "meshFilter",
+                        "dimension": [
+                            120,
+                            1,
+                            40
+                        ],
+                        "lower_left": [
+                            -20,
+                            0,
+                            -10
+                        ],
+                        "upper_right": [
+                            20,
+                            1,
+                            4
+                        ]
+                    },
+                    "filter2": {
+                        "_super": "filter",
+                        "_type": "materialFilter",
+                        "bins": [
+                            {
+                                "value": "water"
+                            }
+                        ]
+                    },
+                    "filter3": {
+                        "_type": "None"
+                    },
+                    "filter4": {
+                        "_type": "None"
+                    },
+                    "filter5": {
+                        "_type": "None"
+                    },
+                    "name": "water",
+                    "nuclides": [],
+                    "scores": [
+                        {
+                            "score": "flux"
+                        }
+                    ]
+                }
+            ]
+        },
+        "simFolder": {},
+        "simulation": {
+            "folder": "/Examples",
+            "name": "Utah Teapot",
+            "notes": ""
+        },
+        "tallyReport": {
+            "axis": "y",
+            "colorMap": "viridis",
+            "planePos": 0
+        },
+        "volumes": {
+            "Graveyard": {
+                "color": "#e9d185",
+                "isVisible": true,
+                "key": "Graveyard",
+                "name": "Graveyard",
+                "opacity": 0.3,
+                "volId": "8"
+            },
+            "iron": {
+                "color": "#aaaaaa",
+                "isVisible": true,
+                "key": "iron",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_nuclide",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Fe54",
+                            "percent": 0.0564555822608,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        },
+                        {
+                            "component": "add_nuclide",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Fe56",
+                            "percent": 0.919015287728,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        },
+                        {
+                            "component": "add_nuclide",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Fe57",
+                            "percent": 0.0216036861685,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        },
+                        {
+                            "component": "add_nuclide",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Fe58",
+                            "percent": 0.00292544384231,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 7.874,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "iron"
+                },
+                "name": "iron",
+                "opacity": 0.3,
+                "volId": "1"
+            },
+            "water": {
+                "color": "#4d22b3",
+                "isVisible": true,
+                "key": "water",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_nuclide",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "H1",
+                            "percent": 2,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        },
+                        {
+                            "component": "add_nuclide",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "O16",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 1,
+                    "density_units": "g/cc",
+                    "depletable": "0",
+                    "name": "water"
+                },
+                "name": "water",
+                "opacity": 0.3,
+                "volId": "5"
+            }
+        }
+    },
+    "simulationType": "openmc"
+}

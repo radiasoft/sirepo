@@ -142,7 +142,7 @@ class _AuthDb(sirepo.quest.Attr):
         """Must not be called with user data"""
         column_type = column_type.upper()
         t = model.__table__.name
-        r = self._execute_sql(f"PRAGMA table_info({t})")
+        r = self.execute_sql(f"PRAGMA table_info({t})")
         for c in r.all():
             if not c[1] == column:
                 continue
@@ -151,7 +151,7 @@ class _AuthDb(sirepo.quest.Attr):
                 f" type={column_type} to table={t}",
             )
             return
-        self._execute_sql(f"ALTER TABLE {t} ADD {column} {column_type}")
+        self.execute_sql(f"ALTER TABLE {t} ADD {column} {column_type}")
 
     def all_uids(self):
         return list(self.model("UserRegistration").search_all_for_column("uid"))
@@ -181,12 +181,15 @@ class _AuthDb(sirepo.quest.Attr):
         self._commit_or_rollback(commit=commit)
 
     def drop_table(self, old):
-        self._execute_sql(f"DROP TABLE IF EXISTS {old}")
+        self.execute_sql(f"DROP TABLE IF EXISTS {old}")
 
     def execute(self, statement):
         return self.session().execute(
             statement.execution_options(synchronize_session="fetch")
         )
+
+    def execute_sql(self, text):
+        return self.execute(sqlalchemy.text(text + ";"))
 
     def metadata(self):
         return UserDbBase.metadata
@@ -209,7 +212,7 @@ class _AuthDb(sirepo.quest.Attr):
         return self.session().query(*(_class(m) for m in models))
 
     def rename_table(self, old, new):
-        self._execute_sql(f"ALTER TABLE {old} RENAME TO {new}")
+        self.execute_sql(f"ALTER TABLE {old} RENAME TO {new}")
 
     def session(self):
         if self._orm_session is None:
@@ -217,6 +220,9 @@ class _AuthDb(sirepo.quest.Attr):
             self._orm_session = sqlalchemy.orm.Session(bind=_engine)
             self._orm_session.begin()
         return self._orm_session
+
+    def table_exists(self, table_name):
+        return table_name in sqlalchemy.inspect(_engine).get_table_names()
 
     def _commit_or_rollback(self, commit):
         if self._orm_session is None:
@@ -228,9 +234,6 @@ class _AuthDb(sirepo.quest.Attr):
         else:
             s.rollback()
         s.close()
-
-    def _execute_sql(self, text):
-        return self.execute(sqlalchemy.text(text + ";"))
 
     def init_quest_for_child(self, *args, **kwargs):
         # TODO(robnagler): Consider nested transactions

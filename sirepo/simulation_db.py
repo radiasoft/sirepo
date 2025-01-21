@@ -69,9 +69,6 @@ _REL_LIB_DIR = "../" + _LIB_DIR
 #: Older than any other version
 _OLDEST_VERSION = "20140101.000001"
 
-#: Absolute path of rsmanifest file
-_RSMANIFEST_PATH = pkio.py_path("/rsmanifest" + sirepo.const.JSON_SUFFIX)
-
 #: Cache of schemas keyed by app name
 _SCHEMA_CACHE = PKDict()
 
@@ -212,7 +209,7 @@ def fixup_old_data(data, force=False, path=None, qcall=None):
         for p in pkio.sorted_glob(
             # POSIT: same format as simulation_run_dir
             json_filename(
-                template_common.INPUT_BASE_NAME, run_dir=path.dirpath().join("*")
+                sirepo.const.SIM_RUN_INPUT_BASENAME, run_dir=path.dirpath().join("*")
             ),
         ):
             if p.mtime() > m:
@@ -327,16 +324,31 @@ def json_filename(filename, run_dir=None):
 
     Args:
         filename (py.path or str): to convert
-        run_dir (py.path): which directory to join
+        run_dir (py.path): which directory to join (only if filename is str)
     Returns:
         py.path: filename.json
     """
-    filename = str(filename)
-    if not filename.endswith(sirepo.const.JSON_SUFFIX):
-        filename += sirepo.const.JSON_SUFFIX
-    if run_dir and not os.path.isabs(filename):
-        filename = run_dir.join(filename)
-    return pkio.py_path(path=filename)
+
+    def _path():
+        if not isinstance(filename, str):
+            if run_dir:
+                raise AssertionError(
+                    f"filename={filename} is a py.path, cannot join run_dir={run_dir}"
+                )
+            return filename
+        if not run_dir:
+            return pkio.py_path(filename)
+        if os.path.isabs(filename):
+            raise AssertionError(
+                f"filename={filename} is absolute, cannot join run_dir={run_dir}"
+            )
+        return run_dir.join(filename)
+
+    p = _path()
+    if p.ext == sirepo.const.JSON_SUFFIX:
+        return p
+    # Do not replace using new, because may already have suffix
+    return p + sirepo.const.JSON_SUFFIX
 
 
 def json_load(*args, **kwargs):
@@ -454,45 +466,6 @@ def parse_sim_ser(data):
             return int(data["models"]["simulation"]["simulationSerial"])
         except KeyError:
             return None
-
-
-def prepare_simulation(data, run_dir):
-    """Create and install files, update parameters, and generate command.
-
-    Copies files into the simulation directory (``run_dir``)
-    Updates the parameters in ``data`` and save.
-    Generate the pkcli command.
-
-    Args:
-        data (dict): report and model parameters
-        run_dir (py.path.local): dir simulation will be run in
-    Returns:
-        list, py.path: pkcli command, simulation directory
-    """
-    from sirepo import sim_data
-
-    sim_type = data.simulationType
-    template = sirepo.template.import_module(data)
-    s = sim_data.get_class(sim_type)
-    s.support_files_to_run_dir(data, run_dir)
-    update_rsmanifest(data)
-    write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
-    # TODO(robnagler) encapsulate in template
-    is_p = s.is_parallel(data)
-    c = template.write_parameters(
-        data,
-        run_dir=run_dir,
-        is_parallel=is_p,
-    )
-    if c:
-        return c, run_dir
-    cmd = [
-        pkinspect.root_package(template),
-        pkinspect.module_basename(template),
-        "run-background" if is_p else "run",
-        str(run_dir),
-    ]
-    return cmd, run_dir
 
 
 def process_simulation_list(res, path, data):
@@ -784,15 +757,6 @@ def uid_from_dir_name(dir_name):
         r.pattern,
     )
     return m.group(1)
-
-
-def update_rsmanifest(data):
-    try:
-        data.rsmanifest = read_json(_RSMANIFEST_PATH)
-    except Exception as e:
-        if pkio.exception_is_not_found(e):
-            return
-        raise
 
 
 def user_create():

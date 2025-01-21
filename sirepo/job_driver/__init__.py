@@ -75,7 +75,7 @@ class DriverBase(PKDict):
             # there should only be one OP_ANALYSIS running on an agent at one time.
             op_slot_q=PKDict({k: job_supervisor.SlotQueue() for k in job.SLOT_OPS}),
             uid=op.msg.uid,
-            _agent_id=job.unique_key(),
+            _agent_id=sirepo.util.unique_key(),
             _agent_life_change_lock=tornado.locks.Lock(),
             _idle_timer=None,
             _prepared_sends=PKDict(),
@@ -96,6 +96,9 @@ class DriverBase(PKDict):
         self.__instances[self._agent_id] = self
         pkdlog("{}", self)
 
+    def agent_is_ready_or_starting(self):
+        return self._websocket_ready.is_set() or bool(self._websocket_ready_timeout)
+
     def destroy_op(self, op):
         """Remove op from our list of sends"""
         self._prepared_sends.pkdel(op.op_id)
@@ -107,11 +110,7 @@ class DriverBase(PKDict):
                 await self.kill()
                 self._websocket_ready_timeout_cancel()
                 self._websocket_ready.clear()
-                w = self._websocket
-                self._websocket = None
-                if w:
-                    # Will not call websocket_on_close()
-                    w.sr_close()
+                self._websocket_close()
                 e = f"job_driver.free_resources caller={caller}"
                 for o in list(self._prepared_sends.values()):
                     o.destroy(internal_error=e)
@@ -171,13 +170,22 @@ class DriverBase(PKDict):
             return
         pkdlog("unknown agent, sending kill; msg={}", msg)
         try:
-            msg.handler.write_message(PKDict(opName=job.OP_KILL))
+            msg.handler.write_message(PKDict(opName=job.OP_KILL), binary=True)
+        except tornado.websocket.WebSocketClosedError:
+            pkdlog("websocket closed {} from unknown agent", self)
         except Exception as e:
             pkdlog("error={} stack={}", e, pkdexc())
 
     def send(self, op):
         pkdlog("{} {} runDir={}", self, op, op.msg.get("runDir"))
-        self._websocket.write_message(pkjson.dump_bytes(op.msg))
+        try:
+            self._websocket.write_message(pkjson.dump_bytes(op.msg), binary=True)
+            return True
+        except tornado.websocket.WebSocketClosedError:
+            pkdlog("websocket closed op={}", op)
+        except Exception as e:
+            pkdlog("error={} op={} stack={}", e, op, pkdexc())
+        return False
 
     @classmethod
     async def terminate(cls):
@@ -189,8 +197,16 @@ class DriverBase(PKDict):
                 # If one kill fails still try to kill the rest
                 pkdlog("error={} stack={}", e, pkdexc())
 
+    def _websocket_close(self):
+        w = self._websocket
+        self._websocket = None
+        if w:
+            # Will not call websocket_on_close()
+            w.sr_close()
+
     def websocket_on_close(self):
         pkdlog("{}", self)
+        self._websocket = None
         self._start_free_resources(caller="websocket_on_close")
 
     def _websocket_ready_timeout_cancel(self):
@@ -268,53 +284,92 @@ class DriverBase(PKDict):
         return True
 
     def _agent_receive(self, msg):
-        c = msg.content
-        i = c.get("opId")
-        if ("opName" not in c or c.opName == job.OP_ERROR) or (
-            "reply" in c and c.reply.get("state") == job.ERROR
-        ):
-            pkdlog("{} error msg={}", self, c)
-        elif c.opName == job.OP_JOB_CMD_STDERR:
-            pkdlog("{} stderr from job_cmd msg={}", self, c)
-            return
-        else:
-            pkdlog("{} opName={} o={:.4}", self, c.opName, i)
-        if i:
-            if "reply" not in c:
-                pkdlog("{} no reply={}", self, c)
-                c.reply = PKDict(state="error", error="no reply")
-            if i in self._prepared_sends:
-                # SECURITY: only ops known to this driver can be replied to
-                self._prepared_sends[i].reply_put(c.reply)
+        def _default_unbound(msg):
+            """Received msg unbound to op"""
+            if j := msg.content.get("computeJid"):
+                # SECURITY: assert agent can access to this uid
+                if job.split_jid(j).uid == self.uid:
+                    job_supervisor.agent_receive(msg.content)
+                else:
+                    pkdlog(
+                        "{} jid={} not for this uid={}; msg={}", self, j, self.uid, msg
+                    )
             else:
                 pkdlog(
-                    "{} not in prepared_sends opName={} o={:.4} content={}",
-                    self,
-                    c.opName,
-                    i,
-                    c,
+                    "{} missing computeJid, ignoring protocol error; msg={}", self, msg
                 )
+
+        def _error(content):
+            if "error" in content:
+                pkdlog("{} agent error msg={}", self, c)
+                return "internal error in job_agent"
+            pkdlog("{} no 'reply' in msg={}", self, c)
+            return "invalid message from job_agent"
+
+        def _log(content, op_id):
+            if (
+                "opName" not in content
+                or content.opName == job.OP_ERROR
+                or ("reply" in content and content.reply.get("state") == job.ERROR)
+            ):
+                # Log all errors, even without op_id
+                pkdlog("{} error msg={}", self, content)
+            else:
+                pkdlog("{} opName={} o={:.4}", self, content.opName, op_id)
+
+        def _reply(content, op_id):
+            if "reply" not in content:
+                # A protocol error but pass the state on
+                content.reply = PKDict(state=job.ERROR, error=_error(content))
+            if op_id in self._prepared_sends:
+                # SECURITY: only ops known to this driver can be replied to
+                self._prepared_sends[i].reply_put(content.reply)
+            else:
+                pkdlog(
+                    "{} op not in prepared_sends opName={} o={:.4} content={}",
+                    self,
+                    content.opName,
+                    op_id,
+                    content,
+                )
+
+        c = msg.content
+        i = c.get("opId")
+        _log(c, i)
+        if i:
+            _reply(c, i)
         else:
-            getattr(self, "_agent_receive_" + c.opName)(msg)
+            getattr(self, "_agent_receive_" + c.opName, _default_unbound)(msg)
 
     def _agent_receive_alive(self, msg):
         """Receive an ALIVE message from our agent
 
         Save the websocket and register self with the websocket
         """
-        self._websocket_ready_timeout_cancel()
-        if self._websocket:
+
+        def _ignore():
             if self._websocket != msg.handler:
-                raise AssertionError(f"incoming msg.content={msg.content}")
-        else:
-            self._websocket = msg.handler
+                pkdlog("{} reconnected to new websocket, closing old", self)
+                self._websocket_close()
+                return False
+            if self._websocket_ready.is_set():
+                # extra alive message is fine
+                return True
+            # TODO(robnagler) does this happen?
+            pkdlog("{} websocket already set but not ready", self)
+            return False
+
+        self._websocket_ready_timeout_cancel()
+        if self._websocket and _ignore():
+            return
+        self._websocket = msg.handler
         self._websocket_ready.set()
         self._websocket.sr_driver_set(self)
         self._start_idle_timeout()
 
-    def _agent_receive_error(self, msg):
-        # TODO(robnagler) what does this mean? Just a way of logging? Document this.
-        pkdlog("{} msg={}", self, msg)
+    def _agent_receive_job_cmd_stderr(self, msg):
+        """Log stderr from job_cmd"""
+        pkdlog("{} stderr from job_cmd msg={}", self, msg.get("content"))
 
     async def _agent_start(self, op):
         if self._websocket_ready_timeout:
@@ -322,8 +377,7 @@ class DriverBase(PKDict):
             return
         try:
             async with self._agent_life_change_lock:
-                if self._websocket_ready_timeout or self._websocket_ready.is_set():
-                    # agent is starting or ready
+                if self.agent_is_ready_or_starting():
                     return
                 pkdlog("{} {} await=_do_agent_start", self, op)
                 # All awaits must be after this. If a call hangs the timeout
@@ -388,20 +442,14 @@ class DriverBase(PKDict):
 
         n = op.op_name
         res = job_supervisor.SlotAllocStatus.DID_NOT_AWAIT
-        if n in (job.OP_CANCEL, job.OP_KILL, job.OP_BEGIN_SESSION):
-            return res
-        if n == job.OP_SBATCH_LOGIN:
-            if self._prepared_sends:
-                raise AssertionError(
-                    f"received op={op} but have _prepared_sends={self._prepared_sends}",
-                )
+        if n in job.OPS_WITHOUT_SLOTS:
             return res
         await _alloc_check(
-            op.op_slot.alloc, "Waiting for another simulation to complete await=op_slot"
+            op.op_slot.alloc, "Waiting for another sim op to complete await=op_slot"
         )
         await _alloc_check(
             op.run_dir_slot.alloc,
-            "Waiting for access to simulation state await=run_dir_slot",
+            "Waiting for access to sim state await=run_dir_slot",
         )
         if n not in job.CPU_SLOT_OPS:
             return res

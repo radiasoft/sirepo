@@ -1,15 +1,15 @@
-# -*- coding: utf-8 -*-
 """setup development directory
 
 :copyright: Copyright (c) 2020 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from pykern import pkconfig
 from pykern import pkio
 import pathlib
+import sirepo.const
 
 
 def default_command():
@@ -20,7 +20,7 @@ def default_command():
     )
     cfg = pkconfig.init(
         proprietary_code_uri=(
-            f"file://{pathlib.Path.home()}/src/radiasoft/rsconf/proprietary",
+            f"file://{pkio.py_path(sirepo.const.DEV_SRC_RADIASOFT_DIR).join('rsconf/proprietary')}",
             str,
             "root uri of proprietary codes files location",
         ),
@@ -37,6 +37,7 @@ def _proprietary_codes():
     import sirepo.feature_config
     import sirepo.sim_data
     import sirepo.srdb
+    import subprocess
     import urllib.error
     import urllib.request
 
@@ -44,18 +45,23 @@ def _proprietary_codes():
         f = sirepo.sim_data.get_class(s).proprietary_code_tarball()
         if not f:
             continue
-        r = pkio.mkdir_parent(
+        d = pkio.mkdir_parent(
             sirepo.srdb.proprietary_code_dir(s),
-        ).join(f)
+        )
+        z = d.join(f)
         # POSIT: download/installers/flash-tarball/radiasoft-download.sh
         u = f"{cfg.proprietary_code_uri}/{s}-dev.tar.gz"
         try:
-            urllib.request.urlretrieve(u, r)
+            urllib.request.urlretrieve(u, z)
         except urllib.error.URLError as e:
             if not isinstance(e.reason, FileNotFoundError):
                 raise
-            pkdlog("uri={} not found; mocking empty file={}", u, r)
+            pkdlog("uri={} not found; mocking empty file={}", u, z)
+            t = d.join("README")
             pkio.write_text(
-                r,
+                t,
                 "mocked by sirepo.pkcli.setup_dev",
+            )
+            subprocess.check_call(
+                ["tar", "--create", "--gzip", f"--file={z}", t, "--remove-files"]
             )

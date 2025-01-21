@@ -113,7 +113,9 @@ def test_hellweg(fc):
 
 def test_srw(fc):
     data = fc.sr_sim_data("Young's Double Slit Experiment")
-    data.models.multiElectronAnimation.numberOfMacroElectrons = 4
+    data.models.multiElectronAnimation.pkupdate(
+        numberOfMacroElectrons=4,
+    )
     data.models.simulation.sampleFactor = 0.0001
     fc.sr_animation_run(
         data,
@@ -122,7 +124,7 @@ def test_srw(fc):
             multiElectronAnimation=PKDict(
                 # Prevents "Memory Error" because SRW uses computeJobStart as frameCount
                 frame_index=0,
-                expect_title="E=4240 eV",
+                expect_title="Intensity at W60, 60 m \(E=4.24 keV\)",
             ),
         ),
         timeout=20,

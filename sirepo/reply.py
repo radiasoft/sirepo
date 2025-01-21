@@ -489,7 +489,7 @@ class _SReply(sirepo.quest.Attr):
                     kind=sirepo.const.SCHEMA_COMMON.websocketMsg.kind.asyncMsg,
                     method=sirepo.const.SCHEMA_COMMON.websocketMsg.method.setCookies,
                 ),
-                c.http_header_values(self._cookies_to_delete),
+                c.http_header_values(to_delete=self._cookies_to_delete),
             )
 
         try:
@@ -785,13 +785,12 @@ class _SRException(_Base):
             return x or y
 
         t = _sim_type()
-        s = simulation_db.get_schema(sim_type=t)
         r = self.value.routeName
-        u = r and s.localRoutes.get(r)
-        if not u:
+        x = bool(r) and sirepo.uri.is_sr_exception_only(t, r)
+        if x is None:
             pkdlog("localRoute={} not found in schema for type={}", r, t)
             return self._http_error(500, sreply)
-        if "srExceptionOnly" in u.route or sreply.qcall.sreq.method_is_post():
+        if x or sreply.qcall.sreq.method_is_post():
             return self._json(
                 PKDict({STATE: SR_EXCEPTION_STATE, SR_EXCEPTION_STATE: self.value}),
             )

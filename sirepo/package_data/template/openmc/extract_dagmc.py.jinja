@@ -1,0 +1,67 @@
+from pykern.pkcollections import PKDict
+import re
+import sirepo.pkcli.openmc
+import sirepo.simulation_db
+import xml.etree.ElementTree
+
+{% if materialsFile %}
+def _name(material_name):
+    if material_name is not None:
+        m = re.search("^mat:(.*)$", material_name)
+        if m:
+            return m.group(1)
+    return material_name
+
+
+def add_materials(volumes):
+    e = xml.etree.ElementTree.parse("{{ materialsFile }}").getroot()
+    for child in e:
+        n = _name(child.attrib.get("name"))
+        if not n or n not in volumes:
+            i = child.attrib.get("id")
+            if i is not None and str(i) in volumes:
+                n = str(i)
+            else:
+                continue
+        volumes[n].material = PKDict()
+        volumes[n].key = n
+        mat = volumes[n].material
+        mat.name = n
+        if "depletable" in child.attrib:
+            mat.depletable = "1" if child.attrib["depletable"] == "true" else "0"
+        if "volume" in child.attrib:
+            mat.volume = float(child.attrib["volume"])
+        if "temperature" in child.attrib:
+            mat.temperature = float(child.attrib["temperature"])
+        for m in child:
+            if m.tag == "density":
+                if (u := m.attrib["units"]) != "sum":
+                    mat.density = float(m.attrib["value"])
+                    mat.density_units = u
+            elif m.tag == "nuclide":
+                if "components" not in mat:
+                    mat.components = []
+                c = PKDict(
+                    component="add_nuclide",
+                    name=m.attrib["name"],
+                )
+                mat.components.append(c)
+                if "ao" in m.attrib:
+                    c.percent_type = "ao"
+                    c.percent = float(m.attrib["ao"])
+                elif "wo" in m.attrib:
+                    c.percent_type = "wo"
+                    c.percent = float(m.attrib["wo"])
+{% endif %}
+
+{% if stepFilename %}
+sirepo.pkcli.openmc.step_to_dagmc("{{ stepFilename }}", "{{ dagmcFilename }}")
+{% endif %}
+volumes = sirepo.pkcli.openmc.extract_dagmc("{{ dagmcFilename }}")
+{% if materialsFile %}
+add_materials(volumes)
+{% endif %}
+sirepo.simulation_db.write_json(
+    "{{ volumeInfoFile }}",
+    volumes,
+)

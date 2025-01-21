@@ -230,7 +230,7 @@
             "stokesParameter": "0",
             "verticalPosition": 0,
             "verticalRange": "1",
-            "watchpointId": 0
+            "watchpointId": 8
         },
         "multipole": {
             "distribution": "n",
@@ -584,6 +584,5 @@
             "rotateReshape": "1"
         }
     },
-    "report": "watchpointReport8",
     "simulationType": "srw"
 }

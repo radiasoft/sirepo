@@ -19,8 +19,8 @@ import sirepo.template
 class MadxConverter:
     _MADX_VARIABLES = PKDict(
         twopi="pi * 2",
-        raddeg="180 / pi",
-        degrad="pi / 180",
+        raddeg="pi / 180",
+        degrad="180 / pi",
     )
 
     def __init__(self, sim_type, field_map, downcase_variables=False, qcall=None):
@@ -121,7 +121,7 @@ class MadxConverter:
                 self.result.models.simulation[f] = data.models.simulation[f]
 
     def _copy_code_variables(self, data):
-        res = data.models.rpnVariables
+        res = copy.deepcopy(data.models.rpnVariables)
         if self.to_class.sim_type() in ("madx", "opal"):
             res = list(filter(lambda x: x.name not in self._MADX_VARIABLES, res))
         else:
@@ -138,6 +138,7 @@ class MadxConverter:
 
     def _copy_elements(self, data):
         for el in data.models.elements:
+            el = copy.deepcopy(el)
             if el.type not in self.field_map:
                 pkdlog("Unhandled element type: {}", el.type)
                 el.type = self.drift_type
@@ -170,6 +171,22 @@ class MadxConverter:
     def _fixup_element(self, element_in, element_out):
         pass
 
+    def _remove_zero_drifts(self, data):
+        z = set()
+        e = []
+        for el in data.models.elements:
+            if el.type == "DRIFT" and el.l == 0:
+                z.add(el._id)
+            else:
+                e.append(el)
+        data.models.elements = e
+        for bl in data.models.beamlines:
+            i = []
+            for it in bl["items"]:
+                if it not in z:
+                    i.append(it)
+            bl["items"] = i
+
     def __init_direction(self, data, from_class, to_class):
         self.from_class = sirepo.sim_data.get_class(from_class)
         self.to_class = sirepo.sim_data.get_class(to_class)
@@ -180,7 +197,7 @@ class MadxConverter:
     def __normalize_madx_beam(self, data):
         from sirepo.template import madx
 
-        self.beam = LatticeUtil.find_first_command(data, "beam")
+        self.beam = copy.deepcopy(LatticeUtil.find_first_command(data, "beam"))
         cv = madx.code_var(data.models.rpnVariables)
         for f in ParticleEnergy.ENERGY_PRIORITY.madx:
             self.beam[f] = cv.eval_var_with_assert(self.beam[f])

@@ -29,9 +29,8 @@ def api_and_supervisor(pytest_req, fc_args):
         import pykern.pkio
         import pykern.pkunit
         import re
-        import socket
 
-        h = socket.gethostname()
+        h = "localhost"
         k = pykern.pkio.py_path("~/.ssh/known_hosts").read()
         m = re.search("^{}.*$".format(h), k, re.MULTILINE)
         assert bool(m), "You need to ssh into {} to get the host key".format(h)
@@ -92,7 +91,9 @@ def api_and_supervisor(pytest_req, fc_args):
             PYKERN_PKDEBUG_WANT_PID_TIME="1",
             SIREPO_PKCLI_JOB_SUPERVISOR_IP=pkunit.LOCALHOST_IP,
             SIREPO_PKCLI_JOB_SUPERVISOR_PORT=p,
+            SIREPO_PKCLI_JOB_SUPERVISOR_USE_RELOADER="0",
             SIREPO_PKCLI_SERVICE_IP=pkunit.LOCALHOST_IP,
+            SIREPO_PKCLI_SERVICE_USE_RELOADER="0",
             SIREPO_SRDB_ROOT=str(pkio.mkdir_parent(pkunit.work_dir().join("db"))),
         )
         cfg.SIREPO_PKCLI_SERVICE_PORT = _port()
@@ -136,13 +137,17 @@ def api_and_supervisor(pytest_req, fc_args):
         time.sleep(0.5)
         _subprocess(("sirepo", "job_supervisor"))
         _ping_supervisor(c.http_prefix + "/job-supervisor-ping")
-        from sirepo import template
+        from sirepo import template, resource
         from pykern import pkio
 
         if template.is_sim_type("srw"):
-            pkio.unchecked_remove(
-                "~/src/radiasoft/sirepo/sirepo/package_data/template/srw/predefined.json"
-            )
+            try:
+                pkio.unchecked_remove(
+                    resource.file_path("template", "srw", "predefined.json"),
+                )
+            except Exception as e:
+                if not pkio.exception_is_not_found(e):
+                    raise
             template.import_module("srw").get_predefined_beams()
         yield c
     finally:

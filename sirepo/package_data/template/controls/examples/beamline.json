@@ -790,7 +790,6 @@
                     "commandTemplate": "particle",
                     "computeTwissFromParticles": "0",
                     "documentationUrl": "",
-                    "enableParticleTracking": "1",
                     "folder": "/",
                     "name": "example beamline",
                     "notes": "",

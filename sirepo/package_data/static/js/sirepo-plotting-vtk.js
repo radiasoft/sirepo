@@ -2,67 +2,6 @@
 
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
-SIREPO.DEFAULT_COLOR_MAP = 'viridis';
-SIREPO.ZERO_ARR = [0, 0, 0];
-SIREPO.ZERO_STR = '0, 0, 0';
-
-/**
- *
- */
-class Elevation {
-
-    static NAMES() {
-        return {
-            x: 'side',
-            y: 'top',
-            z: 'front',
-        };
-    }
-
-    static PLANES() {
-        return {
-            x: 'yz',
-            y: 'zx',
-            z: 'xy',
-        };
-    }
-
-    constructor(axis) {
-        if (! SIREPO.GEOMETRY.GeometryUtils.BASIS().includes(axis)) {
-            throw new Error('Invalid axis: ' + axis);
-        }
-        this.axis = axis;
-        this.class = `.plot-viewport elevation-${axis}`;
-        this.coordPlane = Elevation.PLANES()[this.axis];
-        this.name = Elevation.NAMES()[axis];
-        this.labDimensions = {
-            x: {
-                axis: this.coordPlane[0],
-                axisIndex: SIREPO.GEOMETRY.GeometryUtils.axisIndex(this.coordPlane[0]),
-            },
-            y: {
-                axis: this.coordPlane[1],
-                axisIndex: SIREPO.GEOMETRY.GeometryUtils.axisIndex(this.coordPlane[1]),
-            }
-        };
-    }
-
-    labAxis(dim) {
-        return this.labDimensions[dim].axis;
-    }
-
-    labAxes() {
-        return [this.labAxis('x'), this.labAxis('y')];
-    }
-
-    labAxisIndex(dim) {
-        return this.labDimensions[dim].axisIndex;
-    }
-
-    labAxisIndices() {
-        return [this.labAxisIndex('x'), this.labAxisIndex('y')];
-    }
-}
 
 class ObjectViews {
 
@@ -466,12 +405,13 @@ class VTKVectorFormula {
         };
     }
 
-    constructor(vectors, colorMapName='jet') {
+    constructor(scalars, vectors, colorMapName='jet') {
+        this.scalars = scalars;
         this.vectors = vectors;
         this.colorMapName = colorMapName;
         this.colorMap = SIREPO.PLOTTING.Utils.COLOR_MAP()[colorMapName];
 
-        this.magnitudes = this.vectors.map(x => Math.hypot(...x));
+        this.magnitudes = this.scalars;
         this.directions = this.vectors.map((x, i) => x.map(y => y / this.magnitudes[i]));
         this.norms = SIREPO.UTILS.normalize(this.magnitudes);
 
@@ -728,9 +668,13 @@ class VTKScene {
      * @param {[number]} viewUp
      */
     setCam(position = [1, 0, 0], viewUp = [0, 0, 1]) {
+        // set focal point outside of the origin initially to avoid a VTK warning:
+        //  "resetting view-up since view plane normal is parallel"
+        // this happens because the camera is recalculated on each modification
+        this.cam.setFocalPoint(10, 10, 10);
+        this.cam.setViewUp(...viewUp);
         this.cam.setPosition(...position);
         this.cam.setFocalPoint(0, 0, 0);
-        this.cam.setViewUp(...viewUp);
         this.renderer.resetCamera();
         this.cam.yaw(0.6);
         if (this.marker) {
@@ -961,80 +905,6 @@ class BoxBundle extends ActorBundle {
 }
 
 /**
- * A bundle for a line source defined by two points
- */
-class LineBundle extends ActorBundle {
-    /**
-     * @param {[number]} labP1 - 1st point
-     * @param {[number]} labP2 - 2nd point
-     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
-     * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
-     */
-    constructor(
-        labP1 = [0, 0, 0],
-        labP2 = [0, 0, 1],
-        transform = new SIREPO.GEOMETRY.Transform(),
-        actorProperties = {}
-    ) {
-        super(
-            vtk.Filters.Sources.vtkLineSource.newInstance({
-                point1: labP1,
-                point2: labP2,
-                resolution: 2
-            }),
-            transform,
-            actorProperties
-        );
-    }
-}
-
-/**
- * A bundle for a plane source defined by three points
- */
-class PlaneBundle extends ActorBundle {
-    /**
-     * @param {[number]} labOrigin - origin
-     * @param {[number]} labP1 - 1st point
-     * @param {[number]} labP2 - 2nd point
-     * @param {SIREPO.GEOMETRY.Transform} transform - a Transform to translate between "lab" and "local" coordinate systems
-     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
-     */
-    constructor(
-        labOrigin = [0, 0, 0],
-        labP1 = [1, 0, 0],
-        labP2 = [0, 1, 0],
-        transform = new SIREPO.GEOMETRY.Transform(),
-        actorProperties = {}
-    ) {
-        super(vtk.Filters.Sources.vtkPlaneSource.newInstance(), transform, actorProperties);
-        this.setPoints(labOrigin, labP1, labP2);
-        this.setResolution();
-    }
-
-    /**
-     * Set the defining points of the plane
-     * @param {[number]} labOrigin - origin
-     * @param {[number]} labP1 - 1st point
-     * @param {[number]} labP2 - 2nd point
-     */
-    setPoints(labOrigin, labP1, labP2) {
-        this.source.setOrigin(...this.transform.apply(new SIREPO.GEOMETRY.Matrix(labOrigin)).val);
-        this.source.setPoint1(...this.transform.apply(new SIREPO.GEOMETRY.Matrix(labP1)).val);
-        this.source.setPoint2(...this.transform.apply(new SIREPO.GEOMETRY.Matrix(labP2)).val);
-    }
-
-    /**
-     * Set the resolution in each direction
-     * @param {number} xRes - resolution (number of divisions) in the direction of the origin to p1
-     * @param {number} yRes - resolution (number of divisions) in the direction of the origin to p2
-     */
-    setResolution(xRes = 1, yRes = 1) {
-        this.source.setXResolution(xRes);
-        this.source.setYResolution(yRes);
-    }
-}
-
-/**
  * A bundle for generic polydata
  */
 class PolyDataBundle extends ActorBundle {
@@ -1124,6 +994,7 @@ class VectorFieldBundle extends ActorBundle {
      * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
      */
     constructor(
+        scalars,
         vectors,
         positions,
         scaleFactor = 1.0,
@@ -1137,7 +1008,7 @@ class VectorFieldBundle extends ActorBundle {
             transform,
             actorProperties
         );
-        this.formula = new VTKVectorFormula(vectors, colormapName);
+        this.formula = new VTKVectorFormula(scalars, vectors, colormapName);
         this.polyData = vtk.Common.DataModel.vtkPolyData.newInstance();
         this.polyData.getPoints().setData(
             new window.Float32Array(positions.flat()),
@@ -1223,29 +1094,6 @@ class CoordMapper {
     }
 
     /**
-     * Builds a line
-     * @param {[number]} labP1 - 1st point
-     * @param {[number]} labP2 - 2nd point
-     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
-     * @returns {LineBundle}
-     */
-    buildLine(labP1, labP2, actorProperties) {
-        return new LineBundle(labP1, labP2, this.transform, actorProperties);
-    }
-
-    /**
-     * Builds a plane
-     * @param {[number]} labOrigin - origin
-     * @param {[number]} labP1 - 1st point
-     * @param {[number]} labP2 - 2nd point
-     * @param {Object} actorProperties - a map of actor properties (e.g. 'color') to values
-     * @returns {LineBundle}
-     */
-    buildPlane(labOrigin, labP1, labP2, actorProperties) {
-        return new PlaneBundle(labOrigin, labP1, labP2, this.transform, actorProperties);
-    }
-
-    /**
      * Creates a Bundle from PolyData
      * @param {vtk.Common.DataModel.vtkPolyData} polyData
      * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
@@ -1274,8 +1122,8 @@ class CoordMapper {
      * @param {string} colormapName - name of a color map for the arrows
      * @param {{}} actorProperties - a map of actor properties (e.g. 'color') to values
      */
-    buildVectorField(vectors, positions, scaleFactor=1.0, useTailAsOrigin=false, colormapName='jet', actorProperties={}) {
-        return new VectorFieldBundle(vectors, positions, scaleFactor, useTailAsOrigin, colormapName, this.transform, actorProperties);
+    buildVectorField(scalars, vectors, positions, scaleFactor, useTailAsOrigin=false, colormapName='jet', actorProperties={}) {
+        return new VectorFieldBundle(scalars, vectors, positions, scaleFactor, useTailAsOrigin, colormapName, this.transform, actorProperties);
     }
 }
 
@@ -1579,7 +1427,7 @@ class ViewPortBox extends ViewPortObject {
     }
 }
 
-SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plotting, panelState, requestSender, utilities, $location, $rootScope, $timeout, $window) {
+SIREPO.app.factory('vtkPlotting', function(errorService, geometry, plotting, requestSender, utilities, $rootScope) {
 
     let self = {};
     let stlReaders = {};
@@ -1673,20 +1521,6 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
                 return actorBundle(src);
             },
 
-            buildLine: function(labP1, labP2, colorArray) {
-                var vp1 = this.xform.doTransform(labP1);
-                var vp2 = this.xform.doTransform(labP2);
-                var ls = vtk.Filters.Sources.vtkLineSource.newInstance({
-                    point1: [vp1[0], vp1[1], vp1[2]],
-                    point2: [vp2[0], vp2[1], vp2[2]],
-                    resolution: 2
-                });
-
-                var ab = actorBundle(ls);
-                ab.actor.getProperty().setColor(colorArray[0], colorArray[1], colorArray[2]);
-                return ab;
-            },
-
             buildPlane: function(labOrigin, labP1, labP2) {
                 var src = vtk.Filters.Sources.vtkPlaneSource.newInstance();
                 var b = actorBundle(src);
@@ -1776,52 +1610,8 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
         };
     };
 
-    self.buildSTL = (coordMapper, file, callback) => {
-        let r = self.getSTLReader(file);
-        if (r) {
-            setSTL(r);
-            return;
-        }
-
-        self.loadSTLFile(file).then(function (r) {
-            r.loadData()
-                .then(function (res) {
-                    self.addSTLReader(file, r);
-                    setSTL(r);
-                }, function (reason) {
-                    throw new Error(file + ': Error loading data from .stl file: ' + reason);
-                }
-            ).catch(function (e) {
-                errorService.alertText(e);
-            });
-        });
-
-        function setSTL(r) {
-            const b = new ActorBundle(r, coordMapper.transform);
-            let m = [];
-            coordMapper.transform.matrix.val.forEach(x =>  {
-                m = m.concat(x);
-                m.push(0);
-            });
-            m = m.concat([0, 0, 0, 1]);
-            b.actor.setUserMatrix(m);
-            callback(b);
-        }
-
-    };
-
-    self.clearSTLReaders = function() {
-        stlReaders = {};
-    };
-
     self.getSTLReader = function(file) {
         return stlReaders[file];
-    };
-
-    self.isSTLFileValid = function(file) {
-        return self.loadSTLFile(file).then(function (r) {
-            return ! ! r;
-        });
     };
 
     self.isSTLUrlValid = function(url) {
@@ -1858,88 +1648,9 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
             });
     };
 
-    // create a 3d shape
-    self.plotShape = function(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape, points) {
-        var shape = plotting.plotShape(id, name, center, size, color, alpha, fillStyle, strokeStyle, dashes, layoutShape, points);
-        shape.axes.push('z');
-        shape.center.z = center[2];
-        shape.size.z = size[2];
-        return shape;
-    };
-
     self.plotLine = function(id, name, line, color, alpha, strokeStyle, dashes) {
         var shape = plotting.plotLine(id, name, line, color, alpha, strokeStyle, dashes);
         return shape;
-    };
-
-    self.removeSTLReader = function(file) {
-        if (stlReaders[file]) {
-            delete stlReaders[file];
-        }
-    };
-
-    self.cylinderSection = function(center, axis, radius, height, planes) {
-        var startAxis = [0, 0, 1];
-        var startOrigin = [0, 0, 0];
-        var cylBounds = [-radius, radius, -radius, radius, -height/2.0, height/2.0];
-        var cyl = vtk.Common.DataModel.vtkCylinder.newInstance({
-            radius: radius,
-            center: startOrigin,
-            axis: startAxis
-        });
-
-        var pl = planes.map(function (p) {
-            return vtk.Common.DataModel.vtkPlane.newInstance({
-                normal: p.norm || startAxis,
-                origin: p.origin || startOrigin
-            });
-        });
-
-        // perform the sectioning
-        var section = vtk.Common.DataModel.vtkImplicitBoolean.newInstance({
-            operation: 'Intersection',
-            functions: [cyl, pl[0], pl[1], pl[2], pl[3]]
-        });
-
-        var sectionSample = vtk.Imaging.Hybrid.vtkSampleFunction.newInstance({
-            implicitFunction: section,
-            modelBounds: cylBounds,
-            sampleDimensions: [32, 32, 32]
-        });
-
-        var sectionSource = vtk.Filters.General.vtkImageMarchingCubes.newInstance();
-        sectionSource.setInputConnection(sectionSample.getOutputPort());
-        // this transformation adapted from VTK cylinder source - we don't "untranslate" because we want to
-        // rotate in place, not around the global origin
-        vtk.Common.Core.vtkMatrixBuilder
-            .buildFromRadian()
-            //.translate(...center)
-            .translate(center[0], center[1], center[2])
-            .rotateFromDirections(startAxis, axis)
-            .apply(sectionSource.getOutputData().getPoints().getData());
-       return sectionSource;
-    };
-
-    self.setColorScalars = function(data, color) {
-        var pts = data.getPoints();
-        var n = color.length * (pts.getData().length / pts.getNumberOfComponents());
-        var pd = data.getPointData();
-        var s = pd.getScalars();
-        var rgb = s ? s.getData() : new window.Uint8Array(n);
-        for (var i = 0; i < n; i += color.length) {
-            for (var j = 0; j < color.length; ++j) {
-                rgb[i + j] = color[j];
-            }
-        }
-        pd.setScalars(
-            vtk.Common.Core.vtkDataArray.newInstance({
-                name: 'color',
-                numberOfComponents: color.length,
-                values: rgb,
-            })
-        );
-
-        data.modified();
     };
 
     self.stlFileType = 'stl-file';
@@ -1994,991 +1705,7 @@ SIREPO.app.factory('vtkPlotting', function(appState, errorService, geometry, plo
     return self;
 });
 
-SIREPO.app.directive('stlFileChooser', function(validationService, vtkPlotting) {
-    return {
-        restrict: 'A',
-        scope: {
-            description: '=',
-            url: '=',
-            inputFile: '=',
-            model: '=',
-            require: '<',
-            title: '@',
-        },
-        template: `
-            <div data-file-chooser=""  data-url="url" data-input-file="inputFile" data-validator="validate" data-title="title" data-file-formats=".stl" data-description="description" data-require="require">
-            </div>
-        `,
-        controller: function($scope) {
-            $scope.validate = function (file) {
-                $scope.url = URL.createObjectURL(file);
-                return vtkPlotting.isSTLUrlValid($scope.url).then(function (ok) {
-                    return ok;
-                });
-            };
-            $scope.validationError = '';
-        },
-        link: function(scope, element, attrs) {
-
-        },
-    };
-});
-
-SIREPO.app.directive('stlImportDialog', function(appState, fileManager, fileUpload, vtkPlotting, requestSender) {
-    return {
-        restrict: 'A',
-        scope: {
-            description: '@',
-            title: '@',
-        },
-        template: `
-            <div class="modal fade" id="simulation-import" tabindex="-1" role="dialog">
-              <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                  <div class="modal-header bg-info">
-                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-                    <div data-help-button="{{ title }}"></div>
-                    <span class="lead modal-title text-info">{{ title }}</span>
-                  </div>
-                  <div class="modal-body">
-                    <div class="container-fluid">
-                        <form>
-                        <div data-stl-file-chooser="" data-input-file="inputFile" data-url="fileURL" data-title="title" data-description="description" data-require="true"></div>
-                          <div class="col-sm-6 pull-right">
-                            <button data-ng-click="importStlFile(inputFile)" class="btn btn-primary" data-ng-class="{\'disabled\': isMissingImportFile() }">Import File</button>
-                             <button data-dismiss="modal" class="btn btn-default">Cancel</button>
-                          </div>
-                        </form>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-        `,
-        controller: function($scope) {
-            $scope.inputFile = null;
-            $scope.fileURL = null;
-            $scope.isMissingImportFile = function() {
-                return ! $scope.inputFile;
-            };
-            $scope.fileUploadError = '';
-            $scope.isUploading = false;
-            $scope.title = $scope.title || 'Import STL File';
-            $scope.description = $scope.description || 'Select File';
-
-            $scope.importStlFile = function(inputFile) {
-                if (! inputFile) {
-                    return;
-                }
-                newSimFromSTL(inputFile);
-            };
-
-            function upload(inputFile, data) {
-                var simId = data.models.simulation.simulationId;
-                fileUpload.uploadFileToUrl(
-                    inputFile,
-                    $scope.isConfirming
-                        ? {
-                            confirm: $scope.isConfirming,
-                        }
-                        : null,
-                    requestSender.formatUrl(
-                        'uploadLibFile',
-                        {
-                            '<simulation_id>': simId,
-                            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                            '<file_type>': vtkPlotting.stlFileType,
-                        }),
-                    function(d) {
-                        $('#simulation-import').modal('hide');
-                        $scope.inputFile = null;
-                        URL.revokeObjectURL($scope.fileURL);
-                        $scope.fileURL = null;
-                        requestSender.localRedirectHome(simId);
-                    }, function (err) {
-                        throw new Error(inputFile + ': Error during upload ' + err);
-                    });
-            }
-
-            function newSimFromSTL(inputFile) {
-                var url = $scope.fileURL;
-                var model = appState.setModelDefaults(appState.models.simulation, 'simulation');
-                model.name = inputFile.name.substring(0, inputFile.name.indexOf('.'));
-                model.folder = fileManager.getActiveFolderPath();
-                model.conductorFile = inputFile.name;
-                appState.newSimulation(
-                    model,
-                    function (data) {
-                        $scope.isUploading = false;
-                        upload(inputFile, data);
-                    },
-                    function (err) {
-                        throw new Error(inputFile + ': Error creating simulation ' + err);
-                    }
-                );
-            }
-
-        },
-        link: function(scope, element) {
-            $(element).on('show.bs.modal', function() {
-                $('#file-import').val(null);
-                scope.fileUploadError = '';
-                scope.isUploading = false;
-            });
-            scope.$on('$destroy', function() {
-                $(element).off();
-            });
-        },
-    };});
-
-
-// elevations tab + vtk tab (or all in 1 tab?)
-// A lot of this is 2d and could be extracted
-SIREPO.app.directive('3dBuilder', function(appState, geometry, layoutService, panelState, plotting, utilities) {
-    return {
-        restrict: 'A',
-        scope: {
-            cfg: '<',
-            modelName: '@',
-            source: '=controller',
-        },
-        templateUrl: '/static/html/3d-builder.html' + SIREPO.SOURCE_CACHE_KEY,
-        controller: function($scope) {
-            const ASPECT_RATIO = 1.0;
-
-            const ELEVATIONS = {};
-            for (const axis of SIREPO.GEOMETRY.GeometryUtils.BASIS().slice().reverse()) {
-                const e = new Elevation(axis);
-                ELEVATIONS[e.name] = e;
-            }
-
-            // svg shapes
-            const LAYOUT_SHAPES = ['circle', 'ellipse', 'line', 'path', 'polygon', 'polyline', 'rect'];
-
-            const SCREEN_INFO = {
-                x: {
-                    length: $scope.width / 2
-                },
-                y: {
-                    length: $scope.height / 2
-                },
-            };
-
-            const fitDomainPct = 1.01;
-
-            let screenRect = null;
-            let selectedObject = null;
-            const objectScale = SIREPO.APP_SCHEMA.constants.objectScale || 1.0;
-            const invObjScale = 1.0 / objectScale;
-
-            $scope.alignmentTools = SIREPO.APP_SCHEMA.constants.alignmentTools;
-            $scope.elevations = ELEVATIONS;
-            $scope.isClientOnly = true;
-            $scope.margin = {top: 20, right: 20, bottom: 45, left: 70};
-            $scope.settings = appState.models.threeDBuilder;
-            $scope.snapGridSizes = appState.enumVals('SnapGridSize');
-            $scope.width = $scope.height = 0;
-
-            let didDrag = false;
-            let dragShape, dragInitialShape, zoom;
-            const dragDelta = {x: 0, y: 0};
-            let draggedShape = null;
-            const axisScale = {
-                x: 1.0,
-                y: 1.0,
-                z: 1.0
-            };
-            const axes = {
-                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
-                y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
-            };
-
-            const snapSettingsFields = [
-                'threeDBuilder.snapToGrid',
-                'threeDBuilder.snapGridSize',
-            ];
-            const settingsFields = [
-                'threeDBuilder.autoFit',
-                'threeDBuilder.elevation',
-            ].concat(snapSettingsFields);
-
-            function clearDragShadow() {
-                d3.selectAll('.vtk-object-layout-drag-shadow').remove();
-            }
-
-            function getElevation() {
-                return ELEVATIONS[$scope.settings.elevation];
-            }
-
-            function getLabAxis(dim) {
-                return getElevation().labAxis(dim);
-            }
-
-            function resetDrag() {
-                didDrag = false;
-                hideShapeLocation();
-                dragDelta.x = 0;
-                dragDelta.y = 0;
-                draggedShape = null;
-                selectedObject = null;
-            }
-
-            function d3DragShapeEnd(shape) {
-
-                function reset() {
-                    resetDrag();
-                    d3.select(`.plot-viewport ${shapeSelectionId(shape, true)}`).call(updateShapeAttributes);
-                }
-
-                const dragThreshold = 1e-3;
-                if (! didDrag || Math.abs(dragDelta.x) < dragThreshold && Math.abs(dragDelta.y) < dragThreshold) {
-                    reset();
-                    return;
-                }
-                $scope.$applyAsync(() => {
-                    if (isShapeInBounds(shape)) {
-                        const o = $scope.source.getObject(shape.id);
-                        if (! o) {
-                            reset();
-                            return;
-                        }
-                        const e = getElevation();
-                        for (const dim of SIREPO.SCREEN_DIMS) {
-                            o.center[SIREPO.GEOMETRY.GeometryUtils.axisIndex(e.labAxis(dim))] = invObjScale * shape.center[dim];
-                        }
-                        $scope.source.saveObject(shape.id, reset);
-                    }
-                    else {
-                        appState.cancelChanges($scope.modelName);
-                        reset();
-                    }
-                });
-            }
-
-            function canDrag(dim) {
-                const a = d3.event.sourceEvent.shiftKey ?
-                    (Math.abs(dragDelta.x) > Math.abs(dragDelta.y) ? 'x' : 'y') :
-                    null;
-                return ! a || a === dim;
-            }
-
-            function d3DragShape(shape) {
-
-                if (! shape.draggable) {
-                    return;
-                }
-                didDrag = true;
-                draggedShape = shape;
-                SIREPO.SCREEN_DIMS.forEach(dim => {
-                    if (appState.models.threeDBuilder.snapToGrid) {
-                        dragDelta[dim] = snap(shape, dim);
-                        return;
-                    }
-                    dragDelta[dim] = canDrag(dim) ? d3.event[dim] : 0;
-                    const numPixels = scaledPixels(dim, dragDelta[dim]);
-                    shape[dim] = dragInitialShape[dim] + numPixels;
-                    shape.center[dim] = dragInitialShape.center[dim] + numPixels;
-                });
-                d3.select(shapeSelectionId(shape)).call(updateShapeAttributes);
-                showShapeLocation(shape);
-                //TODO(mvk): restore live update of virtual shapes
-                shape.runLinks().forEach(linkedShape => {
-                    d3.select(shapeSelectionId(linkedShape)).call(updateShapeAttributes);
-                });
-            }
-
-            function shapeSelectionId(shape, includeHash=true) {
-                return `${(includeHash ? '#' : '')}shape-${shape.id}`;
-            }
-
-            function d3DragShapeStart(shape) {
-                d3.event.sourceEvent.stopPropagation();
-                dragInitialShape = appState.clone(shape);
-                showShapeLocation(shape);
-            }
-
-            function drawObjects(elevation) {
-                const shapes = $scope.source.getShapes(elevation);
-
-                // need to split the shapes up by type or the data will get mismatched
-                let layouts = {};
-                LAYOUT_SHAPES.forEach(l=> {
-                    layouts[l] = shapes
-                        .filter(s => s.layoutShape === l)
-                        .sort((s1, s2) => s2.z - s1.z)
-                        .sort((s1, s2) => s1.draggable - s2.draggable);
-                });
-
-                for (let l in layouts) {
-                    let ds = d3.select('.plot-viewport').selectAll(`${l}.vtk-object-layout-shape`)
-                        .data(layouts[l]);
-                    ds.exit().remove();
-                    // function must return a DOM object in the SVG namespace
-                    ds.enter()
-                        .append(d => {
-                            return document.createElementNS('http://www.w3.org/2000/svg', d.layoutShape);
-                        })
-                        .on('dblclick', editObject)
-                        .on('dblclick.zoom', null)
-                        .on('click', null);
-                    ds.call(updateShapeAttributes);
-                    ds.call(dragShape);
-                }
-            }
-
-            function drawShapes() {
-                drawObjects(getElevation());
-            }
-
-            function editObject(shape) {
-                d3.event.stopPropagation();
-                if (! shape.draggable) {
-                    return;
-                }
-                $scope.$applyAsync(function() {
-                    $scope.source.editObjectWithId(shape.id);
-                });
-            }
-
-            function formatObjectLength(val) {
-                return utilities.roundToPlaces(invObjScale * val, 4);
-            }
-
-            function getShape(id) {
-                return $scope.shapes.filter(x => x.id === id)[0];
-            }
-
-            function hideShapeLocation() {
-                select('.focus-text').text('');
-            }
-
-            function isMouseInBounds(evt) {
-                d3.event = evt.event;
-                var p = d3.mouse(d3.select('.plot-viewport').node());
-                d3.event = null;
-                return p[0] >= 0 && p[0] < $scope.width && p[1] >= 0 && p[1] < $scope.height
-                     ? p
-                     : null;
-            }
-
-            function isShapeInBounds(shape) {
-                if (! $scope.cfg.fixedDomain) {
-                    return true;
-                }
-                /*
-                var vAxis = shape.elev === ELEVATIONS.front ? axes.y : axes.z;
-                var bounds = {
-                    top: shape.y,
-                    bottom: shape.y - shape.height,
-                    left: shape.x,
-                    right: shape.x + shape.width,
-                };
-                if (bounds.right < axes.x.domain[0] || bounds.left > axes.x.domain[1]
-                    || bounds.top < vAxis.domain[0] || bounds.bottom > vAxis.domain[1]) {
-                    return false;
-                }
-
-                 */
-                return true;
-            }
-
-            function refresh() {
-                if (! axes.x.domain) {
-                    return;
-                }
-                if (layoutService.plotAxis.allowUpdates) {
-                    var width = parseInt(select('.workspace').style('width')) - $scope.margin.left - $scope.margin.right;
-                    if (isNaN(width)) {
-                        return;
-                    }
-                    width = plotting.constrainFullscreenSize($scope, width, ASPECT_RATIO);
-                    $scope.width = width;
-                    $scope.height = ASPECT_RATIO * $scope.width;
-                    SCREEN_INFO.x.length = $scope.width;
-                    SCREEN_INFO.y.length = $scope.height;
-
-                    select('svg')
-                        .attr('width', $scope.width + $scope.margin.left + $scope.margin.right)
-                        .attr('height', $scope.plotHeight());
-                    axes.x.scale.range([0, $scope.width]);
-                    axes.y.scale.range([$scope.height, 0]);
-                    axes.x.grid.tickSize(-$scope.height);
-                    axes.y.grid.tickSize(-$scope.width);
-                }
-                if (plotting.trimDomain(axes.x.scale, axes.x.domain)) {
-                    select('.overlay').attr('class', 'overlay mouse-zoom');
-                    axes.y.scale.domain(axes.y.domain);
-                }
-                else {
-                    select('.overlay').attr('class', 'overlay mouse-move-ew');
-                }
-
-                resetZoom();
-                select('.plot-viewport').call(zoom);
-                $.each(axes, function(dim, axis) {
-                    var d = axes[dim].scale.domain();
-                    var r = axes[dim].scale.range();
-                    axisScale[dim] = Math.abs((d[1] - d[0]) / (r[1] - r[0]));
-
-                    axis.updateLabelAndTicks({
-                        width: $scope.width,
-                        height: $scope.height,
-                    }, select);
-                    axis.grid.ticks(
-                        $scope.settings.snapToGrid ?
-                            Math.round(Math.abs(d[1] - d[0]) / ($scope.settings.snapGridSize * objectScale)) :
-                            axis.tickCount
-                    );
-                    select('.' + dim + '.axis.grid').call(axis.grid);
-                });
-
-                screenRect = geometry.rect(
-                    geometry.point(),
-                    geometry.point($scope.width, $scope.height, 0)
-                );
-
-                drawShapes();
-            }
-
-            function replot(doFit=false) {
-                const b = $scope.source.shapeBounds(getElevation());
-                const newDomain = $scope.cfg.initDomian;
-                SIREPO.SCREEN_DIMS.forEach(dim => {
-                    const axis = axes[dim];
-                    const bd = b[dim];
-                    const nd = newDomain[dim];
-                    axis.domain = $scope.cfg.fullZoom ? [-Infinity, Infinity] : nd;
-                    if (($scope.settings.autoFit || doFit)  && bd[0] !== bd[1]) {
-                        nd[0] = fitDomainPct * bd[0];
-                        nd[1] = fitDomainPct * bd[1];
-                        // center
-                        const d = (nd[1] - nd[0]) / 2 - (bd[1] - bd[0]) / 2;
-                        nd[0] -= d;
-                        nd[1] -= d;
-                    }
-                    axis.scale.domain(newDomain[dim]);
-                });
-                $scope.resize();
-            }
-
-            function resetZoom() {
-                zoom = axes.x.createZoom().y(axes.y.scale);
-            }
-
-            function scaledPixels(dim, pixels) {
-                const dom = axes[dim].scale.domain();
-                return pixels * SIREPO.SCREEN_INFO[dim].direction * (dom[1] - dom[0]) / SCREEN_INFO[dim].length;
-            }
-
-            function select(selector) {
-                var e = d3.select($scope.element);
-                return selector ? e.select(selector) : e;
-            }
-
-            function selectObject(d) {
-                //TODO(mvk): allow using shift to select more than one (for alignment etc.)
-                if (! selectedObject || selectedObject.id !== d.id ) {
-                    selectedObject = d;
-                }
-                else {
-                    selectedObject = null;
-                }
-            }
-
-            function shapeColor(hexColor, alpha) {
-                var comp = plotting.colorsFromHexString(hexColor);
-                return 'rgb(' + comp[0] + ', ' + comp[1] + ', ' + comp[2] + ', ' + (alpha || 1.0) + ')';
-            }
-
-            function showShapeLocation(shape) {
-                select('.focus-text').text(
-                    'Center: ' +
-                    formatObjectLength(shape.center.x) + ', ' +
-                    formatObjectLength(shape.center.y) + ', ' +
-                    formatObjectLength(shape.center.z)
-                );
-            }
-
-            function snap(shape, dim) {
-                function roundUnits(val, unit) {
-                    return unit * Math.round(val / unit);
-                }
-
-                if (! canDrag(dim)) {
-                    return 0;
-                }
-
-                const g = parseFloat($scope.settings.snapGridSize) * objectScale;
-                const ctr = dragInitialShape.center[dim];
-                const offset = axes[dim].scale(roundUnits(ctr, g)) - axes[dim].scale(ctr);
-                const gridSpacing = Math.abs(axes[dim].scale(2 * g) - axes[dim].scale(g));
-                const gridUnits = roundUnits(d3.event[dim], gridSpacing);
-                const numPixels = scaledPixels(dim, gridUnits + offset);
-                shape[dim] = roundUnits(dragInitialShape[dim] + numPixels, g);
-                shape.center[dim] = roundUnits(ctr + numPixels, g);
-                return Math.round(gridUnits + offset);
-            }
-
-            // called when dragging a new object, not an existing object
-            function updateDragShadow(o, p) {
-                let r = d3.select('.plot-viewport rect.vtk-object-layout-drag-shadow');
-                if (r.empty()) {
-                    const s = $scope.source.viewShadow(o).getView(getElevation());
-                    r = d3.select('.plot-viewport').append('rect')
-                        .attr('class', 'vtk-object-layout-shape vtk-object-layout-drag-shadow')
-                        .attr('width', shapeSize(s, 'x'))
-                        .attr('height', shapeSize(s, 'y'));
-                }
-                //showShapeLocation(shape);
-                r.attr('x', p[0]).attr('y', p[1]);
-            }
-
-            function shapeOrigin(shape, dim) {
-                return axes[dim].scale(
-                    shape.center[dim] - SIREPO.SCREEN_INFO[dim].direction * shape.size[dim] / 2
-                );
-            }
-
-            function shapePoints(shape) {
-                //TODO(mvk): apply transforms to dx, dy
-                const [dx, dy] = shape.id === (draggedShape || {}).id ? [dragDelta.x, dragDelta.y] : [0, 0];
-                let pts = '';
-                for (const p of shape.points) {
-                    pts += `${dx + axes.x.scale(p.x)},${dy + axes.y.scale(p.y)} `;
-                }
-                return pts;
-            }
-
-            function linePoints(shape) {
-                if (! shape.line || getElevation().coordPlane !== shape.coordPlane) {
-                    return null;
-                }
-
-                const lp = shape.line.points;
-                const labX = getElevation().labAxis('x');
-                const labY = getElevation().labAxis('y');
-
-                // same points in this coord plane
-                if (lp[0][labX] === lp[1][labX] && lp[0][labY] === lp[1][labY]) {
-                    return null;
-                }
-
-                var scaledLine = geometry.lineFromArr(
-                    lp.map(function (p) {
-                        var sp = [];
-                        SIREPO.SCREEN_DIMS.forEach(function (dim) {
-                            sp.push(axes[dim].scale(p[getElevation().labAxis(dim)]));
-                        });
-                        return geometry.pointFromArr(sp);
-                }));
-
-                var pts = screenRect.boundaryIntersectionsWithLine(scaledLine);
-                return pts;
-            }
-
-            function shapeSize(shape, dim) {
-                let c = shape.center[dim] || 0;
-                let s = shape.size[dim] || 0;
-                return Math.abs(axes[dim].scale(c + s / 2) - axes[dim].scale(c - s / 2));
-            }
-
-            //TODO(mvk): set only those attributes that pertain to each svg shape
-            function updateShapeAttributes(selection) {
-                selection
-                    .attr('class', 'vtk-object-layout-shape')
-                    .classed('vtk-object-layout-shape-selected', d => d.id === (selectedObject || {}).id)
-                    .classed('vtk-object-layout-shape-undraggable', d => ! d.draggable)
-                    .attr('id', d =>  shapeSelectionId(d, false))
-                    .attr('href', d => d.href ? `#${d.href}` : '')
-                    .attr('points', d => $.isEmptyObject(d.points || {}) ? null : shapePoints(d))
-                    .attr('x', d => shapeOrigin(d, 'x') - (d.outlineOffset || 0))
-                    .attr('y', d => shapeOrigin(d, 'y') - (d.outlineOffset || 0))
-                    .attr('x1', d => {
-                        const pts = linePoints(d);
-                        return pts ? (pts[0] ? pts[0].coords()[0] : 0) : 0;
-                    })
-                    .attr('x2', d => {
-                        const pts = linePoints(d);
-                        return pts ? (pts[1] ? pts[1].coords()[0] : 0) : 0;
-                    })
-                    .attr('y1', d => {
-                        const pts = linePoints(d);
-                        return pts ? (pts[0] ? pts[0].coords()[1] : 0) : 0;
-                    })
-                    .attr('y2', d => {
-                        const pts = linePoints(d);
-                        return pts ? (pts[1] ? pts[1].coords()[1] : 0) : 0;
-                    })
-                    .attr('marker-end', d => {
-                        if (d.endMark && d.endMark.length) {
-                            return `url(#${d.endMark})`;
-                        }
-                    })
-                    .attr('marker-start', d => {
-                        if (d.endMark && d.endMark.length) {
-                            return `url(#${d.endMark})`;
-                        }
-                    })
-                    .attr('width', d => shapeSize(d, 'x') + 2 * (d.outlineOffset || 0))
-                    .attr('height', d => shapeSize(d, 'y') + 2 * (d.outlineOffset || 0))
-                    .attr('style', d => {
-                        if (d.color) {
-                            const a = d.alpha === 0 ? 0 : (d.alpha || 1.0);
-                            const fill = `fill:${(d.fillStyle ? shapeColor(d.color, a) : 'none')}`;
-                            return `${fill}; stroke: ${shapeColor(d.color)}; stroke-width: ${d.strokeWidth || 1.0}`;
-                        }
-                    })
-                    .attr('stroke-dasharray', d => d.strokeStyle === 'dashed' ? (d.dashes || "5,5") : "");
-                let tooltip = selection.select('title');
-                if (tooltip.empty()) {
-                    tooltip = selection.append('title');
-                }
-                tooltip.text(function(d) {
-                    const ctr = d.getCenterCoords().map(function (c) {
-                        return utilities.roundToPlaces(c * invObjScale, 2);
-                    });
-                    const sz = d.getSizeCoords().map(function (c) {
-                        return utilities.roundToPlaces(c * invObjScale, 2);
-                    });
-                    return `${d.name} center : ${ctr} size: ${sz}`;
-                });
-            }
-
-            $scope.destroy = () => {
-                if (zoom) {
-                    zoom.on('zoom', null);
-                }
-                $('.plot-viewport').off();
-            };
-
-            $scope.dragMove = (o, evt) => {
-                const p = isMouseInBounds(evt);
-                if (p) {
-                    d3.select('.sr-drag-clone').attr('class', 'sr-drag-clone sr-drag-clone-hidden');
-                    updateDragShadow(o, p);
-                }
-                else {
-                    clearDragShadow();
-                    d3.select('.sr-drag-clone').attr('class', 'sr-drag-clone');
-                    hideShapeLocation();
-                }
-            };
-
-            // called when dropping new objects, not existing
-            $scope.dropSuccess = (o, evt) => {
-                clearDragShadow();
-                const p = isMouseInBounds(evt);
-                if (p) {
-                    const labXIdx = geometry.basis.indexOf(getLabAxis('x'));
-                    const labYIdx = geometry.basis.indexOf(getLabAxis('y'));
-                    const ctr = [0, 0, 0];
-                    ctr[labXIdx] = axes.x.scale.invert(p[0]);
-                    ctr[labYIdx] = axes.y.scale.invert(p[1]);
-                    o.center = ctr.map(x => x * invObjScale);
-                    $scope.$emit('layout.object.dropped', o);
-                    drawShapes();
-                }
-            };
-
-            $scope.editObject = $scope.source.editObject;
-
-            $scope.fitToShapes = () => {
-                replot(true);
-            };
-
-            $scope.getElevation = getElevation;
-
-            $scope.getObjects = () => {
-                return (appState.models[$scope.modelName] || {}).objects;
-            };
-
-            $scope.init = () => {
-                $scope.shapes = $scope.source.getShapes(getElevation());
-
-                $scope.$on($scope.modelName + '.changed', function(e, name) {
-                    $scope.shapes = $scope.source.getShapes();
-                    drawShapes();
-                    replot();
-                });
-
-                select('svg').attr('height', plotting.initialHeight($scope));
-
-                $.each(axes, function(dim, axis) {
-                    axis.init();
-                    axis.grid = axis.createAxis();
-                });
-                resetZoom();
-                dragShape = d3.behavior.drag()
-                    .origin(function(d) { return d; })
-                    .on('drag', d3DragShape)
-                    .on('dragstart', d3DragShapeStart)
-                    .on('dragend', d3DragShapeEnd);
-                SIREPO.SCREEN_DIMS.forEach(dim => {
-                    axes[dim].parseLabelAndUnits(`${getLabAxis(dim)} [m]`);
-                });
-                replot();
-            };
-
-            $scope.isDropEnabled = () => $scope.source.isDropEnabled();
-
-            $scope.plotHeight = () => $scope.plotOffset() + $scope.margin.top + $scope.margin.bottom;
-
-            $scope.plotOffset = () => $scope.height;
-
-            $scope.resize = () => {
-                if (select().empty()) {
-                    return;
-                }
-                refresh();
-            };
-
-            $scope.setElevation = elev => {
-                $scope.settings.elevation = elev;
-                SIREPO.SCREEN_DIMS.forEach(dim => {
-                    axes[dim].parseLabelAndUnits(`${getLabAxis(dim)} [m]`);
-                });
-                replot();
-            };
-
-            appState.watchModelFields($scope, settingsFields, () => {
-                appState.saveChanges('threeDBuilder');
-            });
-            appState.watchModelFields($scope, snapSettingsFields, refresh);
-
-            $scope.$on('shapes.loaded', drawShapes);
-
-            $scope.$on('shape.locked', (e, locks) => {
-                let doRefresh = false;
-                for (const l of locks) {
-                    const s = getShape(l.id);
-                    if (s) {
-                        doRefresh = true;
-                        s.draggable = ! l.doLock;
-                    }
-                }
-                if (doRefresh) {
-                    refresh();
-                }
-            });
-
-        },
-        link: function link(scope, element) {
-            plotting.linkPlot(scope, element);
-        },
-    };
-});
-
-SIREPO.app.directive('objectTable', function(appState, $rootScope) {
-    return {
-        restrict: 'A',
-        scope: {
-            elevation: '=',
-            modelName: '@',
-            overlayButtons: '=',
-            source: '=',
-        },
-        template: `
-          <div class="panel panel-info">
-            <div class="panel-heading"><span class="sr-panel-heading">Objects</span></div>
-            <div class="panel-body">
-            <form name="form">
-              <table data-ng-show="getObjects().length" style="width: 100%;  table-layout: fixed" class="table table-striped table-condensed radia-table-dialog">
-                <thead></thead>
-                  <tbody>
-                    <tr data-ng-show="areAllGroupsExpanded(o)" data-ng-attr-id="{{ o.id }}" data-ng-repeat="o in getObjects() track by $index">
-                      <td style="padding-left: {{ nestLevel(o) }}em; cursor: pointer; white-space: nowrap">
-                        <img alt="{{ lockTitle(o) }}" title="{{ lockTitle(o) }}" data-ng-src="/static/svg/lock.svg" data-ng-show="locked[o.id]" data-ng-class="{'sr-disabled-image': ! unlockable[o.id]}" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">
-                        <img alt="{{ lockTitle(o) }}" title="{{ lockTitle(o) }}" data-ng-src="/static/svg/unlock.svg" data-ng-show="! locked[o.id]" style="padding-left: 1px;"  data-ng-disabled="! unlockable[o.id]" data-ng-click="toggleLock(o)">
-                        <span style="font-size: large; color: {{o.color || '#cccccc'}}; padding-left: 1px;">■</span>
-                        <span data-ng-if="isGroup(o)" class="glyphicon" data-ng-class="{'glyphicon-chevron-up': expanded[o.id], 'glyphicon-chevron-down': ! expanded[o.id]}"  data-ng-click="toggleExpand(o)"></span>
-                        <span>{{ o.name }}</span>
-                      </td>
-                        <td style="text-align: right">
-                          <div class="sr-button-bar-parent">
-                            <div class="sr-button-bar sr-button-bar-active">
-                               <button data-ng-disabled="isAlignDisabled(o)" type="button" class="dropdown-toggle btn sr-button-action btn-xs" title="align" data-toggle="dropdown"><span class="glyphicon glyphicon-move"></span></button>
-                               <ul class="dropdown-menu">
-                                 <div class="container col-sm-8">
-                                   <div class="row">
-                                     <li style="display: inline-block">
-                                        <span class="sr-button-bar-parent">
-                                          <button data-ng-repeat="t in overlayButtons" title="{{ t.title }}" data-ng-click="align(o, t.type)"><img alt="{{ t.title }}" data-ng-src="/static/svg/{{ t.type }}.svg" width="24px" height="24px"></button>
-                                        </span>
-                                      </li>
-                                   <div>
-                                 <div>
-                               </ul>
-                               <button type="button" class="btn sr-button-action btn-xs" data-ng-disabled="isMoveDisabled(-1, o)" data-ng-click="moveObject(-1, o)" title="move up"><span class="glyphicon glyphicon-arrow-up"></span></button>
-                               <button type="button" class="btn sr-button-action btn-xs" data-ng-disabled="isMoveDisabled(1, o)" data-ng-click="moveObject(1, o)" title="move down"><span class="glyphicon glyphicon-arrow-down"></span></button>
-                               <button data-ng-disabled="isGroup(o) || locked[o.id]" type="button" class="btn sr-button-action btn-xs" data-ng-click="copyObject(o)" title="copy"><span class="glyphicon glyphicon-duplicate"></span></button>
-                               <button data-ng-disabled="locked[o.id]" data-ng-click="editObject(o)" type="button" class="btn sr-button-action btn-xs" title="edit"><span class="glyphicon glyphicon-pencil"></span></button>
-                               <button data-ng-disabled="locked[o.id]" data-ng-click="deleteObject(o)" type="button" class="btn btn-danger btn-xs" title="delete"><span class="glyphicon glyphicon-remove"></span></button>
-                            </div>
-                          </div>
-                        </td>
-                    </tr>
-                  </tbody>
-                </table>
-            </div>
-          </div>
-          <div data-buttons="" data-model-name="modelName" data-fields="fields"></div>
-          </form>
-        `,
-        controller: function($scope) {
-            $scope.expanded = {};
-            $scope.fields = ['objects'];
-            $scope.locked = {};
-            $scope.unlockable = {};
-
-            const isInGroup = $scope.source.isInGroup;
-            const getGroup = $scope.source.getGroup;
-            const getMemberObjects = $scope.source.getMemberObjects;
-            let areObjectsUnlockable = appState.models.simulation.areObjectsUnlockable;
-
-            function arrange(objects) {
-
-                const arranged = [];
-
-                function addGroup(o) {
-                    const p = getGroup(o);
-                    if (p && ! arranged.includes(p)) {
-                        return;
-                    }
-                    if (! arranged.includes(o)) {
-                        arranged.push(o);
-                    }
-                    for (const m of getMemberObjects(o)) {
-                        if ($scope.isGroup(m)) {
-                            addGroup(m);
-                        }
-                        else {
-                            arranged.push(m);
-                        }
-                    }
-                }
-
-                for (const o of objects) {
-                    if (arranged.includes(o)) {
-                        continue;
-                    }
-                    if (! isInGroup(o)) {
-                        arranged.push(o);
-                    }
-                    if ($scope.isGroup(o)) {
-                        addGroup(o);
-                    }
-                }
-                return arranged;
-            }
-
-            function init() {
-                if (areObjectsUnlockable === undefined) {
-                    areObjectsUnlockable = true;
-                }
-                for (const o of $scope.getObjects()) {
-                    $scope.expanded[o.id] = true;
-                    $scope.unlockable[o.id] = areObjectsUnlockable;
-                    $scope.locked[o.id] = ! areObjectsUnlockable;
-
-                }
-            }
-
-            function setLocked(o, doLock) {
-                $scope.locked[o.id] =  doLock;
-                let ids = [
-                    {
-                        id: o.id,
-                        doLock: doLock
-                    },
-                ];
-                if ($scope.isGroup(o)) {
-                    getMemberObjects(o).forEach(x => {
-                        ids = ids.concat(setLocked(x, doLock));
-                        if (areObjectsUnlockable) {
-                            $scope.unlockable[x.id] = ! doLock;
-                        }
-                    });
-                }
-                return ids;
-            }
-
-            $scope.align = (o, alignType) => {
-                $scope.source.align(o, alignType, $scope.elevation.labAxisIndices());
-            };
-
-            $scope.areAllGroupsExpanded = o => {
-                if (! isInGroup(o)) {
-                    return true;
-                }
-                const p = getGroup(o);
-                if (! $scope.expanded[p.id]) {
-                    return false;
-                }
-                return $scope.areAllGroupsExpanded(p);
-            };
-
-            $scope.copyObject = $scope.source.copyObject;
-
-            $scope.deleteObject = $scope.source.deleteObject;
-
-            $scope.editObject = $scope.source.editObject;
-
-            $scope.getObjects = () => {
-                return arrange((appState.models[$scope.modelName] || {}).objects);
-            };
-
-            $scope.isAlignDisabled = o => $scope.locked[o.id] || ! $scope.isGroup(o) || getMemberObjects(o).length < 2;
-
-            $scope.isGroup = $scope.source.isGroup;
-
-            $scope.isMoveDisabled = (direction, o) => {
-                if ($scope.locked[o.id]) {
-                    return true;
-                }
-                const objects = isInGroup(o) ?
-                    getMemberObjects(getGroup(o)) :
-                    $scope.getObjects().filter(x => ! isInGroup(x));
-                let i = objects.indexOf(o);
-                return direction === -1 ? i === 0 : i === objects.length - 1;
-            };
-
-            $scope.lockTitle = o => {
-                if (! areObjectsUnlockable) {
-                    return 'designer is read-only for this magnet';
-                }
-                if (! $scope.unlockable[o.id]) {
-                    return 'cannot unlock';
-                }
-                return `click to ${$scope.locked[o.id] ? 'unlock' : 'lock'}`;
-            };
-
-            $scope.moveObject = $scope.source.moveObject;
-
-            $scope.nestLevel = o => {
-                let n = 0;
-                if (isInGroup(o)) {
-                    n += (1 + $scope.nestLevel(getGroup(o)));
-                }
-                return n;
-            };
-
-            $scope.toggleExpand = o => {
-                $scope.expanded[o.id] = ! $scope.expanded[o.id];
-            };
-
-            $scope.toggleLock = o => {
-                if (! $scope.unlockable[o.id]) {
-                    return;
-                }
-                $rootScope.$broadcast('shape.locked', setLocked(o, ! $scope.locked[o.id]));
-            };
-
-            init();
-        },
-    };
-});
-
-SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, requestSender, plotting, vtkAxisService, vtkPlotting, layoutService, utilities, geometry) {
+SIREPO.app.directive('vtkAxes', function(geometry, layoutService, plotting) {
     return {
         restrict: 'A',
         scope: {
@@ -2990,293 +1717,183 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
         template: `
             <svg class="sr-vtk-axes" data-ng-attr-width="{{ width }}" data-ng-attr-height="{{ height }}">
             <g class="vtk-axes">
-                <g data-ng-repeat="dim in geometry.basis">
+                <g data-ng-repeat="dim in dimensions">
                     <g class="{{ dim }} axis"></g>
                     <text class="{{ dim }}-axis-label"></text>
-                    <text class="{{ dim }} axis-end low"></text>
-                    <text class="{{ dim }} axis-end high"></text>
                 </g>
-                <g data-ng-repeat="dim in geometry.basis">
+                <g data-ng-repeat="dim in dimensions">
                     <g class="{{ dim }}-axis-central" data-ng-if="axisCfg[dim].showCentral">
-                        <line style="stroke: gray;" stroke-dasharray="5,5" data-ng-attr-x1="{{ centralAxes[dim].x[0] }}" data-ng-attr-y1="{{ centralAxes[dim].y[0] }}" data-ng-attr-x2="{{ centralAxes[dim].x[1] }}" data-ng-attr-y2="{{ centralAxes[dim].y[1] }}" />
+                        <line style="stroke: gray;" stroke-dasharray="5,5"
+                          data-ng-attr-x1="{{ centralAxes[dim].x[0] }}"
+                          data-ng-attr-y1="{{ centralAxes[dim].y[0] }}"
+                          data-ng-attr-x2="{{ centralAxes[dim].x[1] }}"
+                          data-ng-attr-y2="{{ centralAxes[dim].y[1] }}" />
                     </g>
                 </g>
             </g>
             </svg>
         `,
         controller: function($scope, $element) {
-            $scope.axesMargins = {
-                x: { width: 16.0, height: 0.0 },
-                y: { width: 0.0, height: 16.0 }
-            };
-            $scope.centralAxes = {
-                x: { x: [-0.5, 0.5], y: [-0.5, 0.5] },
-                y: { x: [-0.5, 0.5], y: [-0.5, 0.5] },
-                z: { x: [-0.5, 0.5], y: [-0.5, 0.5] },
-            };
-            $scope.geometry = geometry;
-            $scope.margin = {top: 50, right: 23, bottom: 50, left: 75};
+            $scope.dimensions = geometry.basis;
+            $scope.centralAxes = Object.fromEntries(
+                $scope.dimensions.map(d => [d, { x: [-0.5, 0.5], y: [-0.5, 0.5] }]),
+            );
+            const axes = Object.fromEntries(
+                $scope.dimensions.map(d => [d, layoutService.plotAxis({}, d, 'bottom', refresh)]),
+            );
+            let axisCfg, d3self;
 
-            $scope.isDegenerate = function(dim) {
-                return $scope.centralAxes[dim].x[0] === $scope.centralAxes[dim].x[1] &&
-                    $scope.centralAxes[dim].y[0] === $scope.centralAxes[dim].y[1];
-            };
-
-            var axes = {
-                x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh, utilities),
-                y: layoutService.plotAxis($scope.margin, 'y', 'bottom', refresh, utilities),
-                z: layoutService.plotAxis($scope.margin, 'z', 'left', refresh, utilities)
-            };
-
-            var axisCfgDefault = {};
-            geometry.basis.forEach(function (dim) {
-                axisCfgDefault[dim] = {};
-                axisCfgDefault[dim].color = '#ff0000';
-                axisCfgDefault[dim].dimLabel = dim;
-                axisCfgDefault[dim].label = dim;
-                axisCfgDefault[dim].max = -0.5;
-                axisCfgDefault[dim].min = 0.5;
-                axisCfgDefault[dim].numPoints = 10;
-                axisCfgDefault[dim].screenDim = dim === 'z' ? 'y' : 'x';
-                axisCfgDefault[dim].showCentral = false;
-            });
-
-            var axisCfg = axisCfgDefault;
-
-            var d3self = select();
-            var lastSize = null;
-
-            function select(selector) {
-                var e = d3.select($element[0]);
-                return selector ? e.select(selector) : e;
+            function axisSelector(dim, suffix) {
+                return `.${dim}.axis${suffix || ''}`;
             }
 
-            function refresh() {
-                let size = [$($element).width(), $($element).height()];
-                if (! size[0] || ! size[1] && lastSize) {
-                    size = lastSize;
-                }
-                const screenRect = new SIREPO.GEOMETRY.Rect(
-                    new SIREPO.GEOMETRY.Point(
-                        $scope.axesMargins.x.width,
-                        $scope.axesMargins.y.height
-                    ),
-                    new SIREPO.GEOMETRY.Point(
-                        size[0] - $scope.axesMargins.x.width,
-                        size[1] - $scope.axesMargins.y.height
-                    )
+            function computeEdgeStats(edge) {
+                const slope = edge.slope();
+                const screenDim = Number.isFinite(slope) && Math.abs(slope) < 3 ? 'x' : 'y';
+                const sortedPts = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
+                    edge.points,
+                    screenDim,
+                    false
                 );
-
-                // If an axis is shorter than this, don't display it -- the ticks will
-                // be cramped and unreadable
-                const minAxisDisplayLen = 50;
-
-                for (const dim of SIREPO.GEOMETRY.GeometryUtils.BASIS()) {
-
-                    const cfg = axisCfg[dim];
-                    const isHorizontal = cfg.screenDim === 'x';
-                    const axisEnds = isHorizontal ? ['◄', '►'] : ['▼', '▲'];
-                    const perpScreenDim = isHorizontal ? 'y' : 'x';
-
-                    let showAxisEnds = false;
-                    const axisSelector = `.${dim}.axis`;
-                    const axisLabelSelector = `.${dim}-axis-label`;
-
-                    // sort the external edges so we'll preferentially pick the left and bottom
-                    const externalEdges = $scope.boundObj.externalViewportEdgesForDimension(dim)
-                        .sort(vtkAxisService.edgeSorter(perpScreenDim, ! isHorizontal));
-                    const seg = geometry.bestEdgeAndSectionInBounds(
-                        externalEdges, screenRect, dim, false
-                    );
-                    const cli = screenRect.boundaryIntersectionsWithSeg(
-                        $scope.boundObj.originLines()[dim]
-                    );
-                    if (cli && cli.length === 2) {
-                        $scope.centralAxes[dim].x = [cli[0].x, cli[1].x];
-                        $scope.centralAxes[dim].y = [cli[0].y, cli[1].y];
+                let radAngle = Math.atan(slope);
+                if (screenDim === 'y') {
+                    radAngle -= Math.PI / 2;
+                    if (radAngle < -Math.PI / 2) {
+                        radAngle += Math.PI;
                     }
-
-                    if (! seg) {
-                        // param to show arrow ends?
-                        /*
-                        // all possible axis ends offscreen, so try a centerline
-                        var cl = $scope.boundObj.vpCenterLineForDimension(dim);
-                        seg = geometry.bestEdgeAndSectionInBounds([cl], $scope.boundObj.boundingRect(), dim, false);
-                        if (! seg) {
-                            // don't draw axes
-                            d3self.select(axisSelector).style('opacity', 0.0);
-                            d3self.select(axisLabelSelector).style('opacity', 0.0);
-                            continue;
-                        }
-                        showAxisEnds = true;
-                        */
-                        d3self.select(axisSelector).style('opacity', 0.0);
-                        d3self.select(axisLabelSelector).style('opacity', 0.0);
-                        continue;
-                    }
-                    d3self.select(axisSelector).style('opacity', 1.0);
-
-                    const fullSeg = seg.full;
-                    const clippedSeg = seg.clipped;
-                    var reverseOnScreen = vtkAxisService.shouldReverseOnScreen(
-                        $scope.boundObj.viewportEdges()[dim][seg.index], cfg.screenDim
-                    );
-                    var sortedPts = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
-                        clippedSeg.points,
-                        cfg.screenDim,
-                        false
-                    );
-                    var axisLeft = sortedPts[0].x;
-                    var axisTop = sortedPts[0].y;
-                    var axisRight = sortedPts[1].x;
-                    var axisBottom = sortedPts[1].y;
-                    //var axisLeft = sortedPts[0].x * dsz[0];
-                    //var axisTop = sortedPts[0].y * dsz[1];
-                    //var axisRight = sortedPts[1].x * dsz[0];
-                    //var axisBottom = sortedPts[1].y * dsz[1];
-
-                    var newRange = Math.min(fullSeg.length(), clippedSeg.length());
-                    var radAngle = Math.atan(clippedSeg.slope());
-                    if (! isHorizontal) {
-                        radAngle -= Math.PI / 2;
-                        if (radAngle < -Math.PI / 2) {
-                            radAngle += Math.PI;
-                        }
-                    }
-                    var angle = (180 * radAngle / Math.PI);
-
-                    const allPts = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
-                        fullSeg.points.concat(clippedSeg.points),
-                        cfg.screenDim,
-                        false
-                    );
-
-                    var limits = reverseOnScreen ? [cfg.max, cfg.min] : [cfg.min, cfg.max];
-                    var newDom = [cfg.min, cfg.max];
-                    // 1st 2, last 2 points
-                    for (var m = 0; m < allPts.length; m += 2) {
-                        // a point may coincide with its successor
-                        var d = allPts[m].dist(allPts[m + 1]);
-                        if (d !== 0) {
-                            var j = Math.floor(m / 2);
-                            var k = reverseOnScreen ? 1 - j : j;
-                            var l1 = limits[j];
-                            var l2 = limits[1 - j];
-                            var part = (l1 - l2) * d / fullSeg.length();
-                            var newLimit = l1 - part;
-                            newDom[k] = newLimit;
-                        }
-                    }
-                    var xform = 'translate(' + axisLeft + ',' + axisTop + ') ' +
-                        'rotate(' + angle + ')';
-
-                    if (axisCfg.doNice) {
-                        axes[dim].scale.domain(newDom).nice();
-                    }
-                    axes[dim].scale.range([reverseOnScreen ? newRange : 0, reverseOnScreen ? 0 : newRange]);
-
-                    // this places the axis tick labels on the appropriate side of the axis
-                    var outsideCorner = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
-                        $scope.boundObj.viewPortCorners(),
-                        perpScreenDim,
-                        isHorizontal
-                    )[0];
-                    var bottomOrLeft = outsideCorner.equals(sortedPts[0]) || outsideCorner.equals(sortedPts[1]);
-                    if (isHorizontal) {
-                        axes[dim].svgAxis.orient(bottomOrLeft ? 'bottom' : 'top');
-                    }
-                    else {
-                        axes[dim].svgAxis.orient(bottomOrLeft ? 'left' : 'right');
-                    }
-
-
-                    if (showAxisEnds) {
-                        axes[dim].svgAxis.ticks(0);
-                        d3self.select(axisSelector).call(axes[dim].svgAxis);
-                    }
-                    else {
-                        axes[dim].updateLabelAndTicks({
-                            width: newRange,
-                            height: newRange
-                        }, select);
-                    }
-
-                    d3self.select(axisSelector).attr('transform', xform);
-
-                    var dimLabel = cfg.dimLabel;
-                    d3self.selectAll(axisSelector + '-end')
-                        .style('opacity', showAxisEnds ? 1 : 0);
-
-                    var tf = axes[dim].svgAxis.tickFormat();
-                    if (tf) {
-                        d3self.select(axisSelector + '-end.low')
-                            .text(axisEnds[0] + ' ' + dimLabel + ' ' + tf(reverseOnScreen ? newDom[1] : newDom[0]) + axes[dim].unitSymbol + axes[dim].units)
-                            .attr('x', axisLeft)
-                            .attr('y', axisTop)
-                            .attr('transform', 'rotate(' + (angle) + ', ' + axisLeft + ', ' + axisTop + ')');
-
-                        d3self.select(axisSelector + '-end.high')
-                            .attr('text-anchor', 'end')
-                            .text(tf(reverseOnScreen ? newDom[0] : newDom[1]) + axes[dim].unitSymbol + axes[dim].units + ' ' + dimLabel + ' ' + axisEnds[1])
-                            .attr('x', axisRight)
-                            .attr('y', axisBottom)
-                            .attr('transform', 'rotate(' + (angle) + ', ' + axisRight + ', ' + axisBottom + ')');
-                    }
-
-                    // counter-rotate the tick labels
-                    var labels = d3self.selectAll(axisSelector + ' text');
-                    labels.attr('transform', 'rotate(' + (-angle) + ')');
-                    d3self.select(axisSelector + ' .domain').style({'stroke': 'none'});
-                    d3self.select(axisSelector).style('opacity', newRange < minAxisDisplayLen ? 0 : 1);
-
-                    var labelSpace = 2 * plotting.tickFontSize(d3self.select(axisSelector + '-label'));
-                    var labelSpaceX = (isHorizontal ? Math.sin(radAngle) : Math.cos(radAngle)) * labelSpace;
-                    var labelSpaceY = (isHorizontal ? Math.cos(radAngle) : Math.sin(radAngle)) * labelSpace;
-                    var labelX = axisLeft + (bottomOrLeft ? -1 : 1) * labelSpaceX + (axisRight - axisLeft) / 2.0;
-                    var labelY = axisTop + (bottomOrLeft ? 1 : -1) * labelSpaceY + (axisBottom - axisTop) / 2.0;
-                    var labelXform = 'rotate(' + (isHorizontal ? 0 : -90) + ' ' + labelX + ' ' + labelY + ')';
-
-                    d3self.select('.' + dim + '-axis-label')
-                        .attr('x', labelX)
-                        .attr('y', labelY)
-                        .attr('transform', labelXform)
-                        .style('opacity', (showAxisEnds || newRange < minAxisDisplayLen) ? 0 : 1);
-
-                    // these optional axes go through (0, 0, 0)
-
-
                 }
-                lastSize = size;
+                return {
+                    reverseOnScreen: edge.points[1][screenDim] < edge.points[0][screenDim],
+                    newRange: edge.length(),
+                    isHorizontal: screenDim === 'x',
+                    bottomOrLeft: isBottomOrLeft(screenDim, edge, sortedPts),
+                    axis: {
+                        left: sortedPts[0].x,
+                        top: sortedPts[0].y,
+                        right: sortedPts[1].x,
+                        bottom: sortedPts[1].y,
+                    },
+                    radAngle: radAngle,
+                    angle: SIREPO.GEOMETRY.GeometryUtils.toDegrees(radAngle),
+                };
             }
 
             function init() {
-                for (var dim in axes) {
+                d3self = select();
+                for (const dim in axes) {
                     axes[dim].init();
                     axes[dim].svgAxis.tickSize(0);
                 }
-                rebuildAxes();
+            }
+
+            function isBottomOrLeft(screenDim, edge, sortedPts) {
+                // this places the axis tick labels on the appropriate side of the axis
+                const outsideCorners = SIREPO.GEOMETRY.GeometryUtils.sortInDimension(
+                    $scope.boundObj.viewPortCorners(),
+                    screenDim === 'x' ? 'y' : 'x',
+                    screenDim === 'x',
+                );
+                return outsideCorners[0].equals(sortedPts[0]) || outsideCorners[0].equals(sortedPts[1])
+                    || outsideCorners[1].equals(sortedPts[0]) || outsideCorners[1].equals(sortedPts[1]);
             }
 
             function rebuildAxes() {
-                for (var dim in axes) {
-                    var cfg = axisCfg[dim];
-                    axes[dim].values = plotting.linearlySpacedArray(cfg.min, cfg.max, cfg.numPoints);
+                for (const dim in axes) {
+                    const cfg = axisCfg[dim];
                     axes[dim].scale.domain([cfg.min, cfg.max]);
                     axes[dim].parseLabelAndUnits(cfg.label);
                 }
             }
 
+            function refresh() {
+                const screenRect = new SIREPO.GEOMETRY.Rect(
+                    new SIREPO.GEOMETRY.Point(0, 0),
+                    new SIREPO.GEOMETRY.Point($scope.width, $scope.height),
+                );
+
+                for (const dim in axes) {
+                    updateCentralAxis(screenRect, dim);
+                    const edge = geometry.bestEdgeInBounds(
+                        $scope.boundObj.externalViewportEdgesForDimension(dim),
+                        screenRect,
+                    );
+                    if (! edge) {
+                        d3self.select(axisSelector(dim)).style('opacity', 0.0);
+                        d3self.select(`.${dim}-axis-label`).style('opacity', 0.0);
+                        continue;
+                    }
+                    const e = computeEdgeStats(edge);
+                    updateAxis(dim, e);
+                    updateAxisLabels(dim, e);
+                }
+            }
+
+            function select(selector) {
+                const e = d3.select($element[0]);
+                return selector ? e.select(selector) : e;
+            }
+
+            function updateAxis(dim, e) {
+                if (e.isHorizontal) {
+                    axes[dim].svgAxis.orient(e.bottomOrLeft ? 'bottom' : 'top');
+                }
+                else {
+                    axes[dim].svgAxis.orient(e.bottomOrLeft ? 'left' : 'right');
+                }
+                axes[dim].scale.range([e.reverseOnScreen ? e.newRange : 0, e.reverseOnScreen ? 0 : e.newRange]);
+                axes[dim].updateLabelAndTicks({
+                    width: e.newRange,
+                    height: e.newRange
+                }, select);
+
+                d3self.select(axisSelector(dim)).attr(
+                    'transform',
+                    `translate(${e.axis.left}, ${e.axis.top}) rotate(${e.angle})`,
+                );
+            }
+
+            function updateAxisLabels(dim, e) {
+                // If an axis is shorter than this, don't display it -- the ticks will
+                // be cramped and unreadable
+                const minAxisDisplayLen = 75;
+
+                // counter-rotate the tick labels
+                d3self.selectAll(axisSelector(dim, ' text')).attr('transform', `rotate(${-e.angle})`);
+                d3self.select(axisSelector(dim, ' .domain')).style({'stroke': 'none'});
+                d3self.select(axisSelector(dim)).style('opacity', e.newRange < minAxisDisplayLen ? 0 : 1);
+
+                const labelSpace = 3 * plotting.tickFontSize(d3self.select(axisSelector(dim, '-label')));
+                const labelSpaceX = (e.isHorizontal ? Math.sin(e.radAngle) : Math.cos(e.radAngle)) * labelSpace;
+                const labelSpaceY = (e.isHorizontal ? Math.cos(e.radAngle) : Math.sin(e.radAngle)) * labelSpace;
+                const labelX = e.axis.left + (e.bottomOrLeft ? -1 : 1) * labelSpaceX + (e.axis.right - e.axis.left) / 2.0;
+                const labelY = e.axis.top + (e.bottomOrLeft ? 1 : -1) * labelSpaceY + (e.axis.bottom - e.axis.top) / 2.0;
+                d3self.select(`.${dim}-axis-label`)
+                    .attr('x', labelX)
+                    .attr('y', labelY)
+                    .attr('transform', `rotate(${e.isHorizontal ? 0 : -90} ${labelX} ${labelY})`)
+                    .style('opacity', e.newRange < minAxisDisplayLen ? 0 : 1);
+            }
+
+            function updateCentralAxis(screenRect, dim) {
+                const cli = screenRect.boundaryIntersectionsWithSeg(
+                    $scope.boundObj.originLines()[dim]
+                );
+                if (cli && cli.length === 2) {
+                    $scope.centralAxes[dim].x = [cli[0].x, cli[1].x];
+                    $scope.centralAxes[dim].y = [cli[0].y, cli[1].y];
+                }
+            }
+
             $scope.$on('axes.refresh', refresh);
 
-            // may not need this refresh?
-            $scope.$watch('boundObj', function (d) {
-                if (d) {
-                    //refresh();
+            $scope.$watch('width', (width) => {
+                if (width && axisCfg) {
+                    refresh();
                 }
             });
 
-            $scope.$watch('axisCfg', function (d) {
-                if (d) {
+            $scope.$watch('axisCfg', (d) => {
+                if (d && $scope.axisCfg) {
                     axisCfg = $scope.axisCfg;
                     rebuildAxes();
                     refresh();
@@ -3288,37 +1905,8 @@ SIREPO.app.directive('vtkAxes', function(appState, frameCache, panelState, reque
     };
 });
 
-// will be axis functions
-SIREPO.app.service('vtkAxisService', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, geometry) {
-
-    var svc = {};
-
-    svc.edgeSorter = function(dim, shouldReverse) {
-        return function(e1, e2) {
-            if (! e1) {
-                if (! e2) {
-                    return 0;
-                }
-                return 1;
-            }
-            if (! e2) {
-                return -1;
-            }
-            var pt1 = geometry.sortInDimension(e1.points, dim, shouldReverse)[0];
-            var pt2 = geometry.sortInDimension(e2.points, dim, shouldReverse)[0];
-            return (shouldReverse ? -1 : 1) * (pt2[dim] - pt1[dim]);
-        };
-    };
-
-    svc.shouldReverseOnScreen = function(edge, screenDim) {
-        return edge.points[1][screenDim] < edge.points[0][screenDim];
-    };
-
-    return svc;
-});
-
 // General-purpose vtk display
-SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $document, $window) {
+SIREPO.app.directive('vtkDisplay', function(appState, utilities, $window) {
 
     return {
         restrict: 'A',
@@ -3327,7 +1915,6 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
             axisObj: '<',
             enableAxes: '=',
             enableSelection: '=',
-            eventHandlers: '<',
             modelName: '@',
             resetDirection: '@',
             resetSide: '@',
@@ -3335,46 +1922,34 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
         },
         templateUrl: '/static/html/vtk-display.html' + SIREPO.SOURCE_CACHE_KEY,
         controller: function($scope, $element) {
-
             $scope.GeometryUtils = SIREPO.GEOMETRY.GeometryUtils;
-            $scope.VTKUtils = VTKUtils;
-            $scope.markerState = {
-                enabled: true,
-            };
-            $scope.modeText = {};
             $scope.isOrtho = false;
             $scope.selection = null;
-
-            let didPan = false;
-            let hasBodyEvt = false;
-            let hdlrs = {};
-            let isDragging = false;
+            const canvasHolder = $($element).find('.vtk-canvas-holder').eq(0);
             let isPointerUp = true;
 
-            const canvasHolder = $($element).find('.vtk-canvas-holder').eq(0);
-
             // supplement or override these event handlers
-            let eventHandlers = {
+            const eventHandlers = {
                 onpointerdown: function (evt) {
-                    isDragging = false;
                     isPointerUp = false;
                 },
                 onpointermove: function (evt) {
                     if (isPointerUp) {
                         return;
                     }
-                    isDragging = true;
-                    didPan = didPan || evt.shiftKey;
                     $scope.vtkScene.viewSide = null;
                     utilities.debounce(refresh, 100)();
                 },
                 onpointerup: function (evt) {
-                    isDragging = false;
                     isPointerUp = true;
                     refresh();
                 },
                 onwheel: utilities.debounce(refresh, 100),
             };
+
+            function asyncRefresh() {
+                $scope.$applyAsync(refresh);
+            }
 
             function ondblclick() {
                 $scope.vtkScene.resetView();
@@ -3382,55 +1957,35 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
                 $scope.$apply();
             }
 
-            function resize() {
-                refresh();
+            function refresh() {
+                if ($scope.axisObj) {
+                    $scope.$broadcast('axes.refresh', $scope.axisObj);
+                }
             }
 
-            $scope.init = function() {
-                const rw = angular.element($($element).find('.vtk-canvas-holder'))[0];
-                const body = angular.element($($document).find('body'))[0];
-                const view = angular.element($($document).find('.sr-view-content'))[0];
-                hdlrs = $scope.eventHandlers || {};
-
-                // vtk adds keypress event listeners to the BODY of the entire document, not the render
-                // container.
-                hasBodyEvt = Object.keys(hdlrs).some(function (e) {
-                    return ['keypress', 'keydown', 'keyup'].includes(e);
-                });
-                if (hasBodyEvt) {
-                    const bodyAddEvtLsnr = body.addEventListener;
-                    const bodyRmEvtLsnr = body.removeEventListener;
-                    body.addEventListener = (type, listener, opts) => {
-                        bodyAddEvtLsnr(type, hdlrs[type] ? hdlrs[type] : listener, opts);
-                    };
-                    // seem to need to do this so listeners get removed correctly
-                    body.removeEventListener = (type, listener, opts) => {
-                        bodyRmEvtLsnr(type, listener, opts);
-                    };
-                }
-
-                $scope.vtkScene = new VTKScene(rw, $scope.resetSide, $scope.resetDirection);
-
-                // double click handled separately
-                rw.addEventListener('dblclick', function (evt) {
-                    ondblclick(evt);
-                    if (hdlrs.ondblclick) {
-                        hdlrs.ondblclick(evt);
+            $scope.canvasGeometry = function() {
+                return {
+                    pos: canvasHolder.position(),
+                    size: {
+                        width: Math.max(0, canvasHolder.width()),
+                        height: Math.max(0, canvasHolder.height()),
                     }
-                });
-                Object.keys(eventHandlers).forEach(function (k) {
-                    const f = function (evt) {
-                        eventHandlers[k](evt);
-                        if (hdlrs[k]) {
-                            hdlrs[k](evt);
-                        }
-                    };
+                };
+            };
+
+            $scope.init = function() {
+                const rw = canvasHolder[0];
+                $scope.vtkScene = new VTKScene(rw, $scope.resetSide, $scope.resetDirection);
+                // all listeners need to be cleaned up in $destroy
+                rw.addEventListener('dblclick', ondblclick);
+                for (const k in eventHandlers) {
+                    const f = eventHandlers[k];
                     if (k == 'onpointermove') {
-                        view[k] = f;
-                        return;
+                        $('.sr-view-content')[0][k] = f;
+                        continue;
                     }
                     rw[k] = f;
-                });
+                }
                 // remove global VTK key listeners
                 for (const n of ['KeyPress', 'KeyDown', 'KeyUp']) {
                     document.removeEventListener(
@@ -3439,17 +1994,7 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
                     );
                 }
                 $scope.$emit('vtk-init', $scope.vtkScene);
-                resize();
-            };
-
-            $scope.canvasGeometry = function() {
-                return {
-                    pos: $(canvasHolder).position(),
-                    size: {
-                        width: Math.max(0, $(canvasHolder).width()),
-                        height: Math.max(0, $(canvasHolder).height()),
-                    }
-                };
+                refresh();
             };
 
             $scope.rotate = angle => {
@@ -3470,17 +2015,19 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
             };
 
             $scope.$on('$destroy', function() {
+                const rw = canvasHolder[0];
+                rw.removeEventListener('dblclick', ondblclick);
+                for (const k in eventHandlers) {
+                    if (k == 'onpointermove') {
+                        $('.sr-view-content')[0][k] = null;
+                        continue;
+                    }
+                    rw[k] = null;
+                }
                 $element.off();
-                $($window).off('resize', resize);
+                $($window).off('resize', asyncRefresh);
                 $scope.vtkScene.teardown();
             });
-
-            function refresh() {
-                if ($scope.axisObj) {
-                    $scope.$broadcast('axes.refresh', $scope.axisObj);
-                }
-            }
-
             $scope.$on('vtk.selected', function (e, d) {
                 $scope.$applyAsync(() => {
                     $scope.selection = d;
@@ -3494,66 +2041,26 @@ SIREPO.app.directive('vtkDisplay', function(appState, panelState, utilities, $do
                 $scope.vtkScene.setBgColor(appState.models[$scope.modelName].bgColor || '#ffffff');
                 $($element).find('.vtk-load-indicator img').css('display', 'none');
             });
+            $scope.$on('sr-window-resize', () => {
+                // ensure full-screen and exit full-screen resize the renderer
+                $scope.vtkScene.fsRenderer.resize();
+                refresh();
+            });
+
             $scope.init();
-
-
-            $($window).resize(resize);
+            // ensure the axes update on each resize event
+            $($window).resize(asyncRefresh);
         },
     };
 });
 
-// general-purpose vtk methods
-SIREPO.app.service('vtkService', function(appState, panelState, requestSender, frameCache, plotting, vtkPlotting, layoutService, utilities, geometry) {
-    let svc = {};
-    return svc;
-});
-
-SIREPO.app.factory('vtkUtils', function() {
-
-    var self = {};
-
-    self.INTERACTION_MODE_MOVE = 'move';
-    self.INTERACTION_MODE_SELECT = 'select';
-    self.INTERACTION_MODES = [self.INTERACTION_MODE_MOVE, self.INTERACTION_MODE_SELECT];
-
-    // Converts vtk colors ranging from 0 -> 255 to 0.0 -> 1.0
-    // can't map, because we will still have a UINT8 array
-    self.rgbToFloat = rgb => {
-        let sc = [];
-        for (let i = 0; i < rgb.length; ++i) {
-            sc.push(rgb[i] / 255.0);
-        }
-        return sc;
-    };
-
-    // Converts vtk colors ranging from 0 -> 255 to 0.0 -> 1.0
-    // can't map, because we will still have a UINT8 array
-    self.floatToRGB =  f => {
-        const rgb = new window.Uint8Array(f.length);
-        for (let i = 0; i < rgb.length; ++i) {
-            rgb[i] = Math.floor(255 * f[i]);
-        }
-        return rgb;
-    };
-
-    return self;
-});
-
 SIREPO.VTK = {
-    ActorBundle: ActorBundle,
-    BoxBundle: BoxBundle,
     CoordMapper: CoordMapper,
     CuboidViews: CuboidViews,
     CylinderViews: CylinderViews,
     ExtrudedPolyViews: ExtrudedPolyViews,
-    LineBundle: LineBundle,
-    ObjectViews: ObjectViews,
-    PlaneBundle: PlaneBundle,
     RacetrackViews: RacetrackViews,
-    SphereBundle: SphereBundle,
     SphereViews: SphereViews,
-    VectorFieldBundle: VectorFieldBundle,
     ViewPortBox: ViewPortBox,
     VTKUtils: VTKUtils,
-    VTKVectorFormula: VTKVectorFormula,
 };

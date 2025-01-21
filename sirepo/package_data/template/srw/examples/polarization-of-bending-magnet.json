@@ -210,7 +210,7 @@
             "stokesParameter": "0",
             "verticalPosition": 0,
             "verticalRange": 8,
-            "watchpointId": 0
+            "watchpointId": 7
         },
         "multipole": {
             "distribution": "n",
@@ -430,7 +430,7 @@
             "notes": "",
             "photonEnergy": 7000,
             "sampleFactor": 1,
-            "samplingMethod": 1,
+            "samplingMethod": 2,
             "sourceType": "m",
             "verticalPointCount": 100,
             "verticalPosition": 0,
@@ -549,6 +549,5 @@
             "rotateReshape": "1"
         }
     },
-    "report": "powerDensityReport",
     "simulationType": "srw"
 }

@@ -1,0 +1,301 @@
+:root {
+  --sr-bg-dark-mode: #000;
+  --sr-item-active-dark-mode: #ddd;
+  --sr-item-bg-dark-mode: #555;
+  --sr-item-focused-bg-dark-mode: #565656;
+  --sr-item-user-dark-mode: #46c246;
+  --sr-link-dark-mode: #5da1e1;
+  --sr-link-hover-dark-mode: #fff;
+  --sr-panel-heading-bg-dark-mode: #282c31;
+  --sr-panel-bg-dark-mode: #000;
+  --sr-panel-border-dark-mode: #999;
+  --sr-panel-control-dark-mode: #21252a;
+  --sr-panel-text-dark-mode: #eee;
+  --sr-input-error-dark-mode: #430101;
+  --sr-table-border-dark-mode: #3d444db3;
+  --sr-body-color-dark-mode: #f0f6fc;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sr-panel-color: #eee;
+  }
+
+  a {
+    color: var(--sr-link-dark-mode);
+  }
+  a:hover {
+    color: var(--sr-link-hover-dark-mode) !important;
+  }
+  a:visited {
+    color: var(--sr-link-dark-mode);
+  }
+
+  body {
+    color: var(--sr-body-color-dark-mode);
+    background-color: var(--sr-bg-dark-mode);
+  }
+
+  input {
+    background-color: var(--sr-panel-bg-dark-mode);
+    color: var(--sr-item-active-dark-mode);
+  }
+
+  svg.sr-plot text {
+    fill: var(--sr-panel-text-dark-mode);
+  }
+  svg.sr-plot g.tick > line {
+    stroke: var(--sr-panel-text-dark-mode);
+  }
+  svg.sr-plot g.axis > path {
+    stroke: var(--sr-panel-text-dark-mode);
+  }
+  svg.sr-plot g.text-block > text#x-text {
+    fill: var(--sr-panel-text-dark-mode) !important;
+  }
+  svg.sr-plot g.text-block g.text-group > g[id^="y-text"] > text {
+    fill: var(--sr-link-dark-mode);
+  }
+
+  app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a {
+    color: var(--sr-item-active-dark-mode);
+    background-color: var(--sr-bg-dark-mode);
+    border-color: var(--sr-panel-border-dark-mode);
+    border-bottom-color: transparent;
+  }
+  app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a:hover {
+    color: var(--sr-item-active-dark-mode);
+    background-color: var(--sr-bg-dark-mode);
+    border-color: var(--sr-panel-border-dark-mode);
+    border-bottom-color: transparent;
+  }
+  app-header-right-sim-loaded .nav-tabs > li.active.sim-section > a:focus {
+    color: var(--sr-item-active-dark-mode);
+    background-color: var(--sr-bg-dark-mode);
+    border-color: var(--sr-panel-border-dark-mode);
+    border-bottom-color: transparent;
+  }
+  app-header-right-sim-loaded .nav-tabs > li.sim-section > a:hover {
+    background-color: transparent;
+  }
+
+  .btn-default {
+    background-color: var(--sr-panel-control-dark-mode);
+    color: var(--sr-item-active-dark-mode);
+  }
+  .btn-default:hover {
+    background-color: var(--sr-item-focused-bg-dark-mode);
+    color: var(--sr-item-active-dark-mode);
+  }
+
+  .dropdown-menu {
+    background-color: var(--sr-panel-bg-dark-mode);
+    color: var(--sr-item-active-dark-mode);
+  }
+
+  .dropdown-menu > li > a {
+    color: var(--sr-item-active-dark-mode);
+  }
+
+  .dropdown-menu > li > a:hover {
+    background-color: var(--sr-panel-bg-dark-mode);
+    color: var(--sr-link-hover-dark-mode);
+  }
+
+  .form-control {
+    background-color: var(--sr-panel-control-dark-mode);
+    color: var(--sr-item-active-dark-mode);
+  }
+
+  .input-group-addon {
+    background-color: var(--sr-panel-bg-dark-mode);
+    color: var(--sr-item-active-dark-mode);
+  }
+
+  .navbar  {
+    background-color: var(--sr-bg-dark-mode);
+  }
+  .navbar-brand-text span {
+    color: var(--sr-panel-text-dark-mode);
+  }
+  .navbar-default {
+    border-color: var(--sr-panel-border-dark-mode);
+  }
+  .navbar-default .navbar-nav > li > a {
+    color: var(--sr-item-active-dark-mode);
+  }
+  .navbar-default .navbar-nav > .active > a {
+    background-color: var(--sr-item-bg-dark-mode);
+    color: var(--sr-item-active-dark-mode);
+  }
+  .navbar-default .navbar-nav > .active > a:focus {
+    background-color: var(--sr-item-focused-bg-dark-mode);
+    color: var(--sr-item-active-dark-mode);
+  }
+  .navbar-default .navbar-nav > .active > a:hover {
+    background-color: var(--sr-item-bg-dark-mode);
+  }
+  .navbar-default .navbar-nav > .open > a:focus {
+    background-color: var(--sr-item-focused-bg-dark-mode);
+    color: var(--sr-item-active-dark-mode);
+  }
+
+  .panel, .modal-content {
+    background-color: var(--sr-panel-bg-dark-mode);
+    color: var(--sr-panel-text-dark-mode);
+  }
+  .panel-info {
+    border-color: var(--sr-panel-border-dark-mode);
+  }
+  .modal-content {
+    border-color: var(--sr-panel-border-dark-mode);
+  }
+  .modal-backdrop.in {
+    opacity: 0.7;
+  }
+  .panel-info > .panel-heading, .btn-info {
+    border-color: var(--sr-panel-border-dark-mode);
+    background-color: var(--sr-panel-heading-bg-dark-mode);
+  }
+  .bg-warning, .bg-info {
+    background-color: var(--sr-panel-heading-bg-dark-mode);
+  }
+  button.close {
+    color: var(--sr-panel-color);
+    opacity: 0.8;
+  }
+  button.close:focus, button.close:hover {
+    color: var(--sr-panel-color);
+    opacity: 1;
+  }
+
+  .progress {
+    background-color: var(--sr-panel-heading-bg-dark-mode);
+  }
+
+  .report-window {
+    fill: var(--sr-item-bg-dark-mode) !important;
+    stroke: var(--sr-panel-border-dark-mode) !important;
+  }
+
+  .report-window-title-icon {
+    fill: var(--sr-link-dark-mode) !important;
+  }
+  .report-window-title-icon.close {
+    opacity: 0.5;
+  }
+
+  .report-window-title-icon.close:hover {
+    opacity: 0.75;
+  }
+
+  .sr-dropdown, .sr-nav-sidebar > li.active > a {
+    background-color: var(--sr-panel-bg-dark-mode);
+    color: var(--sr-item-active-dark-mode);
+  }
+  .sr-dropdown .ui-state-active {
+    background-color: var(--sr-action);
+  }
+
+  .sr-sidebar {
+    background-color: var(--sr-panel-bg-dark-mode);
+  }
+
+  .sr-slack-img {
+    filter: invert(0.875);
+  }
+  .sr-slack-img:hover {
+    filter: invert(1.0);
+  }
+
+  .sr-transparent-icon {
+    color: var(--sr-item-active-dark-mode);
+    text-shadow: 1px 0px 0 var(--sr-link-dark-mode), -1px 0px 0 var(--sr-link-dark-mode), 0px 1px 0 var(--sr-link-dark-mode), 0px -1px 0 var(--sr-link-dark-mode);
+  }
+
+  .sr-user-item {
+    color: var(--sr-item-user-dark-mode);
+  }
+  .sr-user-item:hover {
+    color: var(--sr-link-hover-dark-mode);
+  }
+
+  .sr-transparent-icon-user {
+    color: var(--sr-item-active-dark-mode);
+    text-shadow: 1px 0px 0 var(--sr-item-user), -1px 0px 0 var(--sr-item-user), 0px 1px 0 var(--sr-item-user), 0px -1px 0 var(--sr-item-user);
+  }
+
+  .table-hover > tbody > tr {
+    color: var(--sr-link-hover-dark-mode);
+  }
+
+  .table-hover > tbody > tr:hover {
+    background-color: var(--sr-item-bg-dark-mode);
+  }
+
+  .sr-panel-loading .sr-panel-wait, .sr-panel-waiting .sr-panel-wait {
+    background-color: var(--sr-panel-heading-bg-dark-mode);
+  }
+
+  .nav-tabs > li.active > a,
+  .nav-tabs > li.active > a:hover,
+  .nav-tabs > li.active > a:focus {
+    background-color: var(--sr-bg-dark-mode);
+    color: var(--sr-item-active-dark-mode);
+  }
+
+  .nav > li > a:hover,
+  .nav > li > a:focus {
+    background-color: transparent;
+  }
+
+  .toggle-group label.toggle-on {
+    background-color: var(--sr-panel-heading-bg-dark-mode);
+  }
+  .toggle.btn {
+    border-color: #ccc;
+  }
+  .toggle-group label.btn-default.toggle-off {
+    color: var(--sr-panel-text-dark-mode);
+    background-color: var(--sr-bg-dark-mode);
+  }
+
+  .sr-lattice-watch {
+    stroke: white;
+    stroke-width: 0.01;
+  }
+
+  .sr-screenshot {
+    background-color: var(--sr-bg-dark-mode);
+  }
+
+  input.ng-invalid.ng-dirty {
+    background-color: var(--sr-input-error-dark-mode);
+  }
+  .btn-invalid {
+    background-color: var(--sr-input-error-dark-mode);
+  }
+
+  .table > tbody > tr > td {
+    border-top-color: var(--sr-table-border-dark-mode);
+  }
+  .table > thead > tr > th {
+    border-bottom-color: var(--sr-table-border-dark-mode);
+    color: var(--sr-panel-color);
+  }
+  .table > tbody > tr.active > td {
+    background-color: var(--sr-item-active-dark-mode);
+    color: var(--sr-bg-dark-mode);
+  }
+
+  .sr-lattice-marker > path {
+    stroke: var(--sr-panel-text-dark-mode);
+  }
+
+  input[type="datetime-local"] {
+    color-scheme: dark;
+  }
+
+  .sr-button-bar {
+    background-color: var(--sr-bg-dark-mode);
+  }
+}

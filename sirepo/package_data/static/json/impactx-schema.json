@@ -1,0 +1,925 @@
+{
+    "appModes": {
+        "default": {
+            "localRoute": "lattice"
+        }
+    },
+    "constants": {
+        "advancedElementNames": [
+            "CHRACC",
+            "CHRDRIFT",
+            "CHRPLASMALENS",
+            "CHRQUAD",
+            "EXACTDRIFT",
+            "EXACTSBEND",
+            "NONLINEARLENS",
+            "SOFTQUADRUPOLE",
+            "SOFTSOLENOID",
+            "TAPEREDPL"
+        ],
+        "basicElementNames": [
+            "APERTURE",
+            "BEAMMONITOR",
+            "BUNCHER",
+            "CFBEND",
+            "CONSTF",
+            "DIPEDGE",
+            "DRIFT",
+            "KICKER",
+            "MULTIPOLE",
+            "PROT",
+            "QUAD",
+            "RFCAVITY",
+            "SBEND",
+            "SHORTRF",
+            "SOL",
+            "THINDIPOLE"
+        ],
+        "helpUserManualURL": "https://impactx.readthedocs.io/en/latest/",
+        "particleMassAndCharge": {
+            "positron": [0.510998950e-03, 1],
+            "electron": [0.510998950e-03, -1],
+            "proton": [0.93827208816, 1]
+        }
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "split-1.3.5.min.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": [
+                "impactx.js",
+                "sirepo-command.js",
+                "sirepo-lattice.js",
+                "impactx-util.js"
+            ],
+            "css": [
+                "lattice.css",
+                "command.css"
+           ]
+        }
+    },
+    "enum": {
+        "ApertureShape": [
+            ["rectangular", "Rectangular"],
+            ["elliptical", "Elliptical"]
+        ],
+        "ChrPlasmaLensUnits": [
+            ["0", "focusing strength (azimuthal magnetic field gradient in T/m) / (rigidity in T-m)"],
+            ["1", "azimuthal magnetic field gradient in T/m"]
+        ],
+        "ChrQuadUnits": [
+            ["0", "MADX convention (gradient T/m)/(rigidity T-m)"],
+            ["1", "MaryLie convention (T/m)"]
+        ],
+        "Distribution": [
+            ["File", "From File"],
+            ["Gaussian", "Gaussian"],
+            ["KVdist", "KVdist"],
+            ["Kurth4D", "Kurth4D"],
+            ["Kurth6D", "Kurth6D"],
+            ["Semigaussian", "Semigaussian"],
+            ["Thermal", "Thermal"],
+            ["Triangle", "Triangle"],
+            ["Waterbag", "Waterbag"]
+        ],
+        "KickerUnits": [
+            ["dimensionless", "Dimensionless"],
+            ["T-m", "T-m"]
+        ],
+        "ParticleBSplineOrder": [
+            ["1", "Linear"],
+            ["2", "Quadratic"],
+            ["3", "Cubic"]
+        ],
+        "PhaseSpaceCoordinate": [
+            ["x", "x"],
+            ["px", "Px"],
+            ["y", "y"],
+            ["py", "Py"],
+            ["t", "t"],
+            ["pt", "Pt"],
+            ["qm", "qm"]
+        ],
+        "SoftSolenoidUnits": [
+            ["0", "1/m"],
+            ["1", "T"]
+        ],
+        "Species": [
+            ["positron", "Positron"],
+            ["electron", "Electron"],
+            ["proton", "Proton"]
+        ],
+        "Stat": [
+            ["none", "None"],
+            ["step", "step"],
+            ["s", "s"],
+            ["x_mean", "x_mean"],
+            ["x_min", "x_min"],
+            ["x_max", "x_max"],
+            ["y_mean", "y_mean"],
+            ["y_min", "y_min"],
+            ["y_max", "y_max"],
+            ["t_mean", "t_mean"],
+            ["t_min", "t_min"],
+            ["t_max", "t_max"],
+            ["sig_x", "sig_x"],
+            ["sig_y", "sig_y"],
+            ["sig_t", "sig_t"],
+            ["px_mean", "px_mean"],
+            ["px_min", "px_min"],
+            ["px_max", "px_max"],
+            ["py_mean", "py_mean"],
+            ["py_min", "py_min"],
+            ["py_max", "py_max"],
+            ["pt_mean", "pt_mean"],
+            ["pt_min", "pt_min"],
+            ["pt_max", "pt_max"],
+            ["sig_px", "sig_px"],
+            ["sig_py", "sig_py"],
+            ["sig_pt", "sig_pt"],
+            ["emittance_x", "emittance_x"],
+            ["emittance_y", "emittance_y"],
+            ["emittance_t", "emittance_t"],
+            ["alpha_x", "alpha_x"],
+            ["alpha_y", "alpha_y"],
+            ["alpha_t", "alpha_t"],
+            ["beta_x", "beta_x"],
+            ["beta_y", "beta_y"],
+            ["beta_t", "beta_t"],
+            ["charge_C", "charge_C"]
+        ],
+        "TaperedPLUnits": [
+            ["0", "integrated focusing strength (length in m) * (magnetic field gradient $g$ in T/m) / (magnetic rigidity in T-m)"],
+            ["1", "integrated focusing strength (length in m) * (magnetic field gradient $g$ in T/m)"]
+        ]
+    },
+    "frameIdFields": {
+        "animation": [
+            "x",
+            "y",
+            "histogramBins",
+            "reportIndex"
+        ],
+        "statAnimation": ["x", "y1", "y2", "y3", "y4", "y5"]
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "template": "<div data-impactx-source-tab=\"\" data-source=\"source\"></div>"
+            }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+                "controller": "LatticeController as lattice",
+                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+              "controller": "VisualizationController as visualization",
+              "templateUrl": "/static/html/impactx-visualization.html"
+            }
+        }
+    },
+    "model": {
+        "beamline": {
+            "name": ["Name", "ValidatedString"]
+        },
+        "beamlineReport": {},
+        "bunchReport": {
+            "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "x"],
+            "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "px"],
+            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "distribution": {
+            "species": ["Species", "Species", "electron"],
+            "energy": ["Energy [GeV]", "RPNValue", 1.0],
+            "charge": ["Bunch Charge [C]", "RPNValue", 100.0e-12],
+
+            "particleCount": ["Particle Count", "Integer", 10000],
+            "distributionType": ["Distribution Type", "Distribution", "Waterbag"],
+            "lambdax": ["X Lambda [m]", "RPNValue", 0],
+            "lambday": ["Y Lambda [m]", "RPNValue", 0],
+            "lambdat": ["T Lambda [m]", "RPNValue", 0],
+            "lambdapx": ["X Lambda P [rad]", "RPNValue", 0],
+            "lambdapy": ["Y Lambda P [rad]", "RPNValue", 0],
+            "lambdapt": ["T Lambda P [rad]", "RPNValue", 0],
+            "muxpx": ["X Mu P", "RPNValue", 0, "correlation length-momentum"],
+            "muypy": ["Y Mu P", "RPNValue", 0],
+            "mutpt": ["T Mu P", "RPNValue", 0],
+
+            "k": ["k", "RPNValue", 0],
+            "kT": ["kT", "RPNValue", 0],
+            "kT_halo": ["kT halo", "RPNValue", 0],
+            "normalize": ["normalize", "RPNValue", 0],
+            "normalize_halo": ["normalize halo", "RPNValue", 0],
+            "halo": ["halo", "RPNValue", 0],
+
+            "distributionFile": ["Distribution File [hdf5]", "InputFile", "", "An OpenPMD HDF5 ParticleGroup File"]
+        },
+        "elementAnimation": {
+            "x": ["X Value", "PhaseSpaceCoordinate", "x"],
+            "y": ["Y Value", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "notes": ["Notes", "Text", ""],
+            "reportIndex": ["", "Integer"]
+        },
+        "simulationSettings": {
+            "particle_shape": ["Particle B-spline order", "ParticleBSplineOrder", "2", "The order of the shape factors (splines) for the macro-particles along all spatial directions:"],
+            "space_charge": ["Space Charge", "Boolean", "0", "Whether to calculation space charge effects"],
+            "slice_step_diagnostics": ["Diagnostics every slice step", "Boolean", "1"]
+        },
+        "simulationStatus": {},
+        "statAnimation": {
+            "x": ["Horizontal Value to Plot", "Stat", "s"],
+            "y1": ["Vertical Value to Plot", "Stat", "emittance_x"],
+            "y2": ["Vertical Value to Plot", "Stat", "emittance_y"],
+            "y3": ["Vertical Value to Plot", "Stat", "sig_x"],
+            "y4": ["Vertical Value to Plot", "Stat", "sig_y"],
+            "y5": ["Vertical Value to Plot", "Stat", "sig_t"],
+            "y1Position": ["Vertical Postion", "AxisPosition", "left"],
+            "y2Position": ["Vertical Position", "AxisPosition", "left"],
+            "y3Position": ["Vertical Position", "AxisPosition", "right"],
+            "y4Position": ["Vertical Position", "AxisPosition", "right"],
+            "y5Position": ["Vertical Position", "AxisPosition", "right"],
+            "leftLimit": ["Left Axis Limit", "Float", 0],
+            "rightLimit": ["Right Axis Limit", "Float", 0],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.5"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "rpnVariable": {
+            "name": ["Name", "String"],
+            "value": ["Value", "RPNValue"]
+        },
+        "simulation": {
+            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
+        },
+        "_ELEMENT": {
+            "name": ["NAME", "ValidatedString", "", ""]
+        },
+        "_ELEMENT_WITH_ERROR": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "dx": ["DX [m]","RPNValue",0.0,"horizontal translation error"],
+            "dy": ["DY [m]","RPNValue",0.0,"vertical translation error"],
+            "rotation": ["ROTATION [deg]","RPNValue",0.0,"rotation error in the transverse plane"]
+        },
+        "_ELEMENT_WITH_LENGTH_AND_ERROR": {
+            "_super": ["_", "model", "_ELEMENT_WITH_ERROR"],
+            "l": ["DS [m]", "RPNValue", 0, "Segment length"]
+        },
+        "APERTURE": {
+            "_super": ["_", "model", "_ELEMENT_WITH_ERROR"],
+            "shape": ["SHAPE","ApertureShape","rectangular","Aperture boundary shape"],
+            "xmax": ["Horizontal MAX [m]","RPNValue",null,"Maximum allowed X and Y coordinate value"],
+            "ymax": ["Vertical MAX [m]","RPNValue",null,"Maximum allowed X and Y coordinate value"]
+        },
+        "BEAMMONITOR": {
+            "_super": ["_", "model", "_ELEMENT"]
+        },
+        "BUNCHER": {
+            "_super": ["_", "model", "_ELEMENT_WITH_ERROR"],
+            "V": ["V","RPNValue",null,"Normalized RF voltage drop V = Emax*L/(c*Brho)"],
+            "k": ["K [1/m]","RPNValue",null,"Wavenumber of RF"]
+        },
+        "CFBEND": {
+            "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],
+            "k": ["K [1/m²]","RPNValue",null,"Quadrupole strength(MADX convention) = (gradient in T/m) / (rigidity in T-m) k > 0 horizontal focusing k < 0 horizontal defocusing"],
+            "nslice": ["NSLICE","RPNValue",1,"number of slices used for the application of space charge"],
+            "rc": ["RC [m]","RPNValue",null,"Radius of curvature"]
+        },
+        "CHRACC": {
+            "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],
+            "bz": ["BZ [1/m]","RPNValue",null,"magnetic field strength= (charge * magnetic field Bz in T) / (m*c)"],
+            "ez": ["EZ [1/m]","RPNValue",null,"electric field strength= (charge * electric field Ez in V/m) / (m*c²)"],
+            "nslice": ["NSLICE","RPNValue",1,"number of slices used for the application of space charge"]
+        },
+        "CHRDRIFT": {
+            "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],
+            "nslice": ["NSLICE","RPNValue",1,"number of slices used for the application of space charge"]
+        },
+        "CHRPLASMALENS": {
+            "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],
+            "k": ["K [1/m²]","RPNValue",null,"focusing strength (if units = 0) = (azimuthal magnetic field gradient in T/m) / (rigidity in T-m) OR  azimuthal magnetic field gradient in T/m (if units = 1)"],
+            "units": ["UNITS","ChrPlasmaLensUnits","0","specification of units for plasma lens focusing strength"],
+            "nslice": ["NSLICE","RPNValue",1,"number of slices used for the application of space charge"]
+        },
+        "CHRQUAD": {
+            "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],
+            "k": ["K [1/m²]","RPNValue",null,"Quadrupole strength (MADX convention, if units = 0) = (gradient in T/m) / (rigidity in T-m) OR  Quadrupole strength in T/m (MaryLie convention, if units = 1) k > 0 horizontal focusing k < 0 horizontal defocusing"],
+            "nslice": ["NSLICE","RPNValue",1,"number of slices used for the application of space charge"],
+            "units": ["UNITS","ChrQuadUnits","0","specification of units for quadrupole field strength"]
+        },
+        "CONSTF": {
+            "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],
+            "kt": ["KT [1/m]","RPNValue",null,"Focusing strength for t"],
+            "kx": ["KX [1/m]","RPNValue",null,"Focusing strength for x"],
+            "ky": ["KY [1/m]","RPNValue",null,"Focusing strength for y"],
+            "nslice": ["NSLICE","RPNValue",1,"number of slices used for the application of space charge"]
+        },
+        "DIPEDGE": {
+            "_super": ["_", "model", "_ELEMENT_WITH_ERROR"],
+            "K2": ["K2","RPNValue",null,"Fringe field integral (unitless)"],
+            "g": ["g [m]","RPNValue",null,"Gap parameter"],
+            "psi": ["psi [rad]","RPNValue",null,"Pole face angle"],
+            "rc": ["RC [m]","RPNValue",null,"Radius of curvature"]
+        },
+        "DRIFT": {
+            "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],
+            "nslice": ["NSLICE","RPNValue",1,"number of slices used for the application of space charge"]
+        },
+        "EXACTDRIFT": {
+            "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],
+            "nslice": ["NSLICE","RPNValue",1,"number of slices used for the application of space charge"]
+        },
+        "EXACTSBEND": {
+            "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],
+            "B": ["B [rad]","RPNValue",0.0,"Magnetic field in Tesla; when B = 0 (default), the reference bending radius is defined by r0 = length / (angle),   corresponding to a magnetic field of B = rigidity / r0; otherwise the reference bending radius is defined by r0 = rigidity / B"],
+            "nslice": ["NSLICE","RPNValue",1,"number of slices used for the application of space charge"],
+            "phi": ["PHI [deg]","RPNValue",null,"Bend angle"]
+        },
+        "KICKER": {
+            "_super": ["_", "model", "_ELEMENT_WITH_ERROR"],
+            "units": ["UNITS","KickerUnits","dimensionless","specification of units (\"dimensionless\" in units of the magnetic rigidity of the reference particle or \"T-m\")"],
+            "xkick": ["XKICK","RPNValue",null,"horizontal kick strength (dimensionless OR T-m)"],
+            "ykick": ["YKICK","RPNValue",null,"vertical kick strength (dimensionless OR T-m)"]
+        },
+        "MULTIPOLE": {
+            "_super": ["_", "model", "_ELEMENT_WITH_ERROR"],
+            "K_normal": ["K_NORMAL [1/mᵐ]","RPNValue",null,"Integrated normal multipole coefficient"],
+            "K_skew": ["K_SKEW [1/mᵐ]","RPNValue",null,"Integrated skew multipole coefficient"],
+            "multipole": ["MULTIPOLE","RPNValue",null,"index m (m=1 dipole, m=2 quadrupole, m=3 sextupole etc.)"]
+        },
+        "NONLINEARLENS": {
+            "_super": ["_", "model", "_ELEMENT_WITH_ERROR"],
+            "cnll": ["CNLL [m]","RPNValue",null,"distance of singularities from the origin"],
+            "knll": ["KNLL [m]","RPNValue",null,"integrated strength of the nonlinear lens"]
+        },
+        "PROT": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "phi_in": ["PHI_IN [deg]","RPNValue",null,"angle of the reference particle with respect to the longitudinal (z) axis in the original frame"],
+            "phi_out": ["PHI_OUT [deg]","RPNValue",null,"angle of the reference particle with respect to the longitudinal (z) axis in the rotated frame"]
+        },
+        "QUAD": {
+            "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],
+            "k": ["K [1/m²]","RPNValue",null,"Quadrupole strength(MADX convention) = (gradient in T/m) / (rigidity in T-m) k > 0 horizontal focusing k < 0 horizontal defocusing"],
+            "nslice": ["NSLICE","RPNValue",1,"number of slices used for the application of space charge"]
+        },
+        "RFCAVITY": {
+            "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],
+            "cos_coefficients": ["COS_COEFFICIENTS","FloatArray",null,"array of float cosine coefficients in Fourier expansion of on-axis electric field Ez (optional); default is a 9-cell TESLA superconducting cavity model from DOI:10.1103/PhysRevSTAB.3.092001"],
+            "escale": ["ESCALE [1/m]","RPNValue",null,"scaling factor for on-axis RF electric field = (peak on-axis electric field Ez in MV/m) / (particle rest energy in MeV)"],
+            "freq": ["FREQ","RPNValue",null,"RF frequency in Hz"],
+            "mapsteps": ["MAPSTEPS","RPNValue",1,"number of integration steps per slice used for map and reference particle push in applied fields"],
+            "nslice": ["NSLICE","RPNValue",1,"number of slices used for the application of space charge"],
+            "phase": ["PHASE [deg]","RPNValue",null,"RF driven phase"],
+            "sin_coefficients": ["SIN_COEFFICIENTS","FloatArray",null,"array of float sine coefficients in Fourier expansion of on-axis electric field Ez (optional); default is a 9-cell TESLA superconducting cavity model from DOI:10.1103/PhysRevSTAB.3.092001"]
+        },
+        "SBEND": {
+            "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],
+            "nslice": ["NSLICE","RPNValue",1,"number of slices used for the application of space charge"],
+            "rc": ["RC [m]","RPNValue",null,"Radius of curvature"]
+        },
+        "SHORTRF": {
+            "_super": ["_", "model", "_ELEMENT_WITH_ERROR"],
+            "V": ["V","RPNValue",null,"Normalized RF voltage V = maximum energy gain/(m*c²)"],
+            "freq": ["FREQ","RPNValue",null,"RF frequency in Hz"],
+            "phase": ["PHASE [deg]","RPNValue",-90.0,"RF synchronous phase (phase = 0 corresponds to maximum energy gain, phase = -90 corresponds to zero energy gain for bunching)"]
+        },
+        "SOFTQUADRUPOLE": {
+            "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],
+            "cos_coefficients": ["COS_COEFFICIENTS","FloatArray",null,"array of float cosine coefficients in Fourier expansion of on-axis field gradient (optional); default is a tanh fringe field model"],
+            "gscale": ["GSCALE [1/m]","RPNValue",null,"Scaling factor for on-axis field gradient"],
+            "mapsteps": ["MAPSTEPS","RPNValue",1,"number of integration steps per slice used for map and reference particle push in applied fields"],
+            "nslice": ["NSLICE","RPNValue",1,"number of slices used for the application of space charge"],
+            "sin_coefficients": ["SIN_COEFFICIENTS","FloatArray",null,"array of float sine coefficients in Fourier expansion of on-axis field gradient (optional); default is a tanh fringe field model"]
+        },
+        "SOFTSOLENOID": {
+            "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],
+            "bscale": ["BSCALE","RPNValue",null,"Scaling factor for on-axis magnetic field Bz in inverse meters (if unit = 0) = (magnetic field Bz in T) / (rigidity in T-m) OR  Magnetic field Bz in T (SI units, if unit = 1)"],
+            "cos_coefficients": ["COS_COEFFICIENTS","FloatArray",null,"array of float cosine coefficients in Fourier expansion of on-axis magnetic field Bz (optional); default is a thin-shell model from DOI:10.1016/J.NIMA.2022.166706"],
+            "mapsteps": ["MAPSTEPS","RPNValue",1,"number of integration steps per slice used for map and reference particle push in applied fields"],
+            "nslice": ["NSLICE","RPNValue",1,"number of slices used for the application of space charge"],
+            "sin_coefficients": ["SIN_COEFFICIENTS","FloatArray",null,"array of float sine coefficients in Fourier expansion of on-axis magnetic field Bz (optional); default is a thin-shell model from DOI:10.1016/J.NIMA.2022.166706"],
+            "unit": ["UNIT","SoftSolenoidUnits","0","specification of units for scaling of the on-axis longitudinal magnetic field"]
+        },
+        "SOL": {
+            "_super": ["_", "model", "_ELEMENT_WITH_LENGTH_AND_ERROR"],
+            "ks": ["KS [1/m]","RPNValue",null,"Solenoid strength(MADX convention) in (magnetic field Bz in T) / (rigidity in T-m)"],
+            "nslice": ["NSLICE","RPNValue",1,"number of slices used for the application of space charge"]
+        },
+        "TAPEREDPL": {
+            "_super": ["_", "model", "_ELEMENT_WITH_ERROR"],
+            "k": ["K [1/m]","RPNValue",null,"integrated focusing strength (if units = 0) = (length in m) * (magnetic field gradient $g$ in T/m) / (magnetic rigidity in T-m) OR integrated focusing strength in T (if units = 1) = (length in m) * (magnetic field gradient $g$ in T/m)"],
+            "taper": ["TAPER [1/m]","RPNValue",null,"horizontal taper parameter= 1 / (target horizontal dispersion $D_x$ in m)"],
+            "units": ["UNITS","TaperedPLUnits","0","specification of units for plasma lens focusing strength"]
+        },
+        "THINDIPOLE": {
+            "_super": ["_", "model", "_ELEMENT_WITH_ERROR"],
+            "rc": ["RC [m]","RPNValue",null,"Effective curvature radius"],
+            "theta": ["THETA","RPNValue",null,"Bend angle (degrees)"]
+        }
+    },
+    "view": {
+        "beamline": {
+            "title": "Beamline",
+            "advanced": [
+                "name"
+            ]
+        },
+        "beamlineReport": {
+            "title": "Lattice",
+            "hasDataFile": false,
+            "advanced": []
+        },
+        "bunchReport": {
+            "title": "Beam Phase Space",
+            "advanced": [
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "distribution": {
+            "title": "Particle Distribution",
+            "basic": [
+                "distributionType",
+                "species",
+                "energy",
+                "charge",
+                "particleCount",
+                [
+                    ["X", [
+                        "lambdax",
+                        "lambdapx",
+                        "muxpx"
+                    ]],
+                    ["Y", [
+                        "lambday",
+                        "lambdapy",
+                        "muypy"
+                    ]],
+                    ["T", [
+                        "lambdat",
+                        "lambdapt",
+                        "mutpt"
+                    ]]
+                ],
+                "k",
+                "kT",
+                "kT_halo",
+                "normalize",
+                "normalize_halo",
+                "halo",
+                "distributionFile"
+            ],
+            "advanced": []
+        },
+        "elementAnimation": {
+            "title": "Particle Plot",
+            "advanced": [
+                "plotType",
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "aspectRatio",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "simulation.visualizationBeamlineId",
+                "particle_shape",
+                "space_charge",
+                "slice_step_diagnostics"
+            ],
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        },
+        "statAnimation": {
+            "title": "Beam Variables",
+            "advanced": [
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1",
+                            "y2",
+                            "y3",
+                            "y4",
+                            "y5"
+                        ]],
+                        ["Position", [
+                            "y1Position",
+                            "y2Position",
+                            "y3Position",
+                            "y4Position",
+                            "y5Position"
+                        ]]
+                    ],
+                    "includeLattice",
+                    "aspectRatio",
+                    "notes"
+                ]],
+                ["Limits", [
+                    [
+                        ["Left", [
+                            "leftLimit"
+                        ]],
+                        ["Right", [
+                            "rightLimit"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
+        "_MISALIGNED_ELEMENT_VIEW": {
+            "advanced": [
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "rotation"
+                ]]
+            ]
+        },
+        "APERTURE": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "Aperture",
+            "description": "A thin collimator element, applying a transverse aperture boundary",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "shape",
+                    [
+                        ["Horizontal", [
+                            "xmax"
+                        ]],
+                        ["Vertical", [
+                            "ymax"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
+        "BEAMMONITOR": {
+            "title": "BeamMonitor",
+            "description": "A beam monitor, writing all beam particles at fixed s to openPMD files.",
+            "advanced": [
+                "name"
+            ]
+        },
+        "BUNCHER": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "Buncher",
+            "description": "A short RF cavity element at zero crossing for bunching (MaryLie model)",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "V",
+                    "k"
+                ]]
+            ]
+        },
+        "CFBEND": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "CFbend",
+            "description": "A combined function bending magnet.  This is an ideal Sbend with a normal quadrupole field component",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "rc",
+                    "k",
+                    "nslice"
+                ]]
+            ]
+        },
+        "CHRACC": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "ChrAcc",
+            "description": "Acceleration in a uniform field Ez, with a uniform solenoidal field Bz.  The Hamiltonian is expanded through second order in the transverse variables (x,px,y,py), with the exact pt dependence retained",
+            "advanced": [
+                ["Main", [
+                  "name",
+                  "l",
+                  "ez",
+                  "bz",
+                  "nslice"
+                ]]
+            ]
+        },
+        "CHRDRIFT": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "ChrDrift",
+            "description": "A drift with chromatic effects included.  The Hamiltonian is expanded through second order in the transverse variables (x,px,y,py), with the exact pt dependence retained",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "nslice"
+                ]]
+            ]
+        },
+        "CHRPLASMALENS": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "ChrPlasmaLens",
+            "description": "An active cylindrically symmetric plasma lens, with chromatic effects included. The Hamiltonian is expanded through second order in the transverse variables (x,px,y,py), with the exact pt dependence retained",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "k",
+                    "units",
+                    "nslice"
+                ]]
+            ]
+        },
+        "CHRQUAD": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "ChrQuad",
+            "description": "A Quadrupole magnet, with chromatic effects included.  The Hamiltonian is expanded through second order in the transverse variables (x,px,y,py), with the exact pt dependence retained",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "k",
+                    "units",
+                    "nslice"
+                ]]
+            ]
+        },
+        "CONSTF": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "ConstF",
+            "description": "A linear Constant Focusing element",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "kx",
+                    "ky",
+                    "kt",
+                    "nslice"
+                ]]
+            ]
+        },
+        "DIPEDGE": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "DipEdge",
+            "description": "Edge focusing associated with bend entry or exit  This model assumes a first-order effect of nonzero gap. Here we use the linear fringe field map, given to first order in g/rc (gap / radius of curvature).  References:  * K. L. Brown, SLAC Report No. 75 (1982). * K. Hwang and S. Y. Lee, PRAB 18, 122401 (2015)",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "psi",
+                    "rc",
+                    "g",
+                    "K2"
+                ]]
+            ]
+        },
+        "DRIFT": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "Drift",
+            "description": "A drift",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "nslice"
+                ]]
+            ]
+        },
+        "EXACTDRIFT": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "ExactDrift",
+            "description": "A drift using the exact nonlinear transfer map",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "nslice"
+                ]]
+            ]
+        },
+        "EXACTSBEND": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "ExactSbend",
+            "description": "An ideal sector bend using the exact nonlinear map.  The model consists of a uniform bending field B_y with a hard edge.  Pole faces are normal to the entry and exit velocity of the reference particle.  References:  * D. L. Bruhwiler et al, in Proc. of EPAC 98, pp. 1171-1173 (1998). * E. Forest et al, Part. Accel. 45, pp. 65-94 (1994)",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "phi",
+                    "B",
+                    "nslice"
+                ]]
+            ]
+        },
+        "KICKER": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "Kicker",
+            "description": "A thin transverse kicker",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "xkick",
+                    "ykick",
+                    "units"
+                ]]
+            ]
+        },
+        "MULTIPOLE": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "Multipole",
+            "description": "A general thin multipole element",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "multipole",
+                    "K_normal",
+                    "K_skew"
+                ]]
+            ]
+        },
+        "NONLINEARLENS": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "NonlinearLens",
+            "description": "Single short segment of the nonlinear magnetic insert element.  A thin lens associated with a single short segment of the nonlinear magnetic insert described by V. Danilov and S. Nagaitsev, PRSTAB 13, 084002 (2010), Sect. V.A.  This element appears in MAD-X as type NLLENS",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "knll",
+                    "cnll"
+                ]]
+            ]
+        },
+        "PROT": {
+            "title": "PRot",
+            "description": "Exact map for a pole-face rotation in the x-z plane",
+            "advanced": [
+                "phi_in",
+                "phi_out"
+            ]
+        },
+        "QUAD": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "Quad",
+            "description": "A Quadrupole magnet",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "k",
+                    "nslice"
+                ]]
+            ]
+        },
+        "RFCAVITY": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "RFCavity",
+            "description": "A radiofrequency cavity",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "escale",
+                    "freq",
+                    "phase",
+                    "cos_coefficients",
+                    "sin_coefficients",
+                    "mapsteps",
+                    "nslice"
+                ]]
+            ]
+        },
+        "SBEND": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "Sbend",
+            "description": "An ideal sector bend",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "rc",
+                    "nslice"
+                ]]
+            ]
+        },
+        "SHORTRF": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "ShortRF",
+            "description": "A short RF cavity element (MAD-X model)",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "V",
+                    "freq",
+                    "phase"
+                ]]
+            ]
+        },
+        "SOFTQUADRUPOLE": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "SoftQuadrupole",
+            "description": "A soft-edge quadrupole",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "gscale",
+                    "cos_coefficients",
+                    "sin_coefficients",
+                    "mapsteps",
+                    "nslice"
+                ]]
+            ]
+        },
+        "SOFTSOLENOID": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "SoftSolenoid",
+            "description": "A soft-edge solenoid",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "bscale",
+                    "cos_coefficients",
+                    "sin_coefficients",
+                    "unit",
+                    "mapsteps",
+                    "nslice"
+                ]]
+            ]
+        },
+        "SOL": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "Sol",
+            "description": "An ideal hard-edge Solenoid magnet",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "l",
+                    "ks",
+                    "nslice"
+                ]]
+            ]
+        },
+        "TAPEREDPL": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "TaperedPL",
+            "description": "A thin nonlinear plasma lens with transverse (horizontal) taper  $B_x = g \\left( y + \\frac{xy}{D_x} \\right), \\quad \\quad B_y = -g \\left(x + \\frac{x^2 + y^2}{2 D_x} \\right)$ where $g$ is the (linear) field gradient in T/m and $D_x$ is the targeted horizontal dispersion in m",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "k",
+                    "taper",
+                    "units"
+                ]]
+            ]
+        },
+        "THINDIPOLE": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "ThinDipole",
+            "description": "A general thin dipole element",
+            "advanced": [
+                ["Main", [
+                    "name",
+                    "theta",
+                    "rc"
+                ]]
+            ]
+        }
+    }
+}

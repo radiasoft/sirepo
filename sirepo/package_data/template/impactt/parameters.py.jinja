@@ -1,0 +1,46 @@
+from impact import Impact
+import impact.parsers
+import shutil
+
+files = dict(
+    input_to_id={},
+    next_input=1,
+)
+
+def prep_input_file(filename):
+    if filename not in files['input_to_id']:
+        n = f"rfdata{files['next_input']}"
+        files['next_input'] += 1
+        shutil.copy(filename, n)
+        files['input_to_id'][filename] = n
+    return files['input_to_id'][filename]
+
+I = Impact(
+    use_temp_dir=False,
+    workdir=".",
+    timeout=1e6,
+)
+I.header.update(dict(
+{% for k in impactHeader %}
+    {{k}}={{impactHeader[k]}},
+{% endfor %}
+))
+del I.lattice[:]
+I.lattice.extend([
+{% for v in lattice %}
+    dict(
+        {{ v | indent(8) }}    ),
+{% endfor %}
+])
+
+{% if numProcs > 1 %}
+I.numprocs = {{ numProcs }}
+{% endif %}
+
+{% if distributionFilename %}
+shutil.copy("{{distributionFilename}}", "partcl.data")
+{% endif %}
+I.run()
+
+for k in I.output["particles"]:
+    I.output["particles"][k].write(f"{k}.h5")

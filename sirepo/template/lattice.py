@@ -350,17 +350,18 @@ class LatticeParser(object):
             # assert label, 'unlabeled element: {}'.format(values)
             if not label:
                 label = cmd
-            else:
-                assert (
-                    label.upper() not in self.elements_by_name
-                ), "duplicate element in sequence: {}".format(label)
+            if label.upper() in self.elements_by_name:
+                self.container["items"].append(
+                    [self.elements_by_name[label.upper()]._id, at]
+                )
+                return
             if cmd not in self.schema.model:
                 parent = self.elements_by_name[cmd]
                 assert parent
                 assert len(res) >= 3
-                if len(res) == 3:
-                    self.container["items"].append([parent._id, at])
-                    return
+                # if len(res) == 3:
+                #     self.container["items"].append([parent._id, at])
+                #     return
             self.container["items"].append([res._id, at])
         assert "at" not in res
         # copy in superclass values
@@ -592,19 +593,25 @@ class LatticeUtil(object):
         self.schema = schema
         self.id_map, self.max_id = self.__build_id_map(data)
 
+    def explode_beamline(self, beamline_id):
+        res = []
+        for bid in self.get_item(beamline_id)["items"]:
+            e = self.get_item(abs(bid))
+            if self.is_beamline(e):
+                r = self.explode_beamline(e.id)
+                if bid < 0:
+                    r.reverse()
+                res += r
+            else:
+                res.append(bid)
+        return res
+
     @classmethod
     def find_first_command(cls, data, command_type):
         for m in data.models.commands:
             if m._type == command_type:
                 return m
         return None
-
-    @classmethod
-    def has_command(cls, data, command_type):
-        for cmd in data.models.commands:
-            if cmd._type == command_type:
-                return True
-        return False
 
     @classmethod
     def file_id(cls, model_id, field_index):
@@ -643,6 +650,9 @@ class LatticeUtil(object):
         for m in add_list:
             data.models[m] = add_list[m]
 
+    def get_item(self, item_id):
+        return self.id_map[item_id]
+
     @classmethod
     def get_lattice_id_from_file_id(cls, data, file_id):
         for c in data.models.commands:
@@ -652,6 +662,18 @@ class LatticeUtil(object):
             ):
                 return c.use_beamline
         return None
+
+    @classmethod
+    def has_command(cls, data, command_type):
+        for cmd in data.models.commands:
+            if cmd._type == command_type:
+                return True
+        return False
+
+    @classmethod
+    def is_beamline(cls, model):
+        """Is the model a beamline?"""
+        return "_id" not in model and "type" not in model
 
     @classmethod
     def is_command(cls, model):
@@ -758,7 +780,7 @@ class LatticeUtil(object):
             if "visualizationBeamlineId" not in sim or not sim.visualizationBeamlineId:
                 sim.visualizationBeamlineId = self.data.models.beamlines[0].id
             beamline_id = sim.visualizationBeamlineId
-        return self.id_map[int(beamline_id)]
+        return self.get_item(int(beamline_id))
 
     def sort_elements_and_beamlines(self):
         """Sort elements and beamline models in place, by (type, name) and (name)"""

@@ -1,0 +1,252 @@
+{
+    "models": {
+        "dagmcAnimation": {},
+        "geometry3DReport": {
+            "bgColor": "#fff9ed",
+            "opacity": 1,
+            "showEdges": "0"
+        },
+        "geometryInput": {
+            "dagmcFile": "aurora.h5m",
+            "exampleURL": "aurora.h5m"
+        },
+        "openmcAnimation": {
+            "aspect": "mean",
+            "bgColor": "#fff9ed",
+            "colorMap": "afmhot",
+            "opacity": 1,
+            "score": "heating",
+            "showEdges": "0",
+            "tallies": [
+                {
+                    "_index": 0,
+                    "filter1": {
+                        "_super": "filter",
+                        "_type": "meshFilter",
+                        "dimension": [
+                            80,
+                            250,
+                            1
+                        ],
+                        "lower_left": [
+                            2,
+                            -6,
+                            -1
+                        ],
+                        "upper_right": [
+                            8,
+                            6,
+                            1
+                        ]
+                    },
+                    "filter2": {
+                        "_type": "None"
+                    },
+                    "filter3": {
+                        "_type": "None"
+                    },
+                    "filter4": {
+                        "_type": "None"
+                    },
+                    "filter5": {
+                        "_type": "None"
+                    },
+                    "name": "t1",
+                    "nuclides": [],
+                    "scores": [
+                        {
+                            "score": "flux"
+                        },
+                        {
+                            "score": "heating"
+                        }
+                    ]
+                }
+            ],
+            "tally": "t1",
+            "voxelInsetPct": 0
+        },
+        "reflectivePlanes": {
+            "plane1a": 0,
+            "plane1b": -1,
+            "plane2a": 1,
+            "plane2b": 0,
+            "useReflectivePlanes": "0"
+        },
+        "settings": {
+            "batches": 10,
+            "dataLibrary": "ENDFB-7.1-NNDC",
+            "inactive": 0,
+            "materialLibrary": "ENDFB-7.1-NNDC",
+            "particles": 50000,
+            "photon_transport": "0",
+            "run_mode": "fixed source",
+            "sources": [
+                {
+                    "_index": 0,
+                    "angle": {
+                        "_type": "None"
+                    },
+                    "energy": {
+                        "_type": "None"
+                    },
+                    "particle": "neutron",
+                    "space": {
+                        "_super": "spatial",
+                        "_type": "point",
+                        "xyz": [
+                            0,
+                            0,
+                            0
+                        ]
+                    },
+                    "strength": 1,
+                    "time": {
+                        "_type": "None"
+                    }
+                }
+            ],
+            "tallies": [
+                {
+                    "_index": 0,
+                    "filter1": {
+                        "_super": "filter",
+                        "_type": "meshFilter",
+                        "dimension": [
+                            80,
+                            250,
+                            1
+                        ],
+                        "lower_left": [
+                            2,
+                            -6,
+                            -1
+                        ],
+                        "upper_right": [
+                            8,
+                            6,
+                            1
+                        ]
+                    },
+                    "filter2": {
+                        "_type": "None"
+                    },
+                    "filter3": {
+                        "_type": "None"
+                    },
+                    "filter4": {
+                        "_type": "None"
+                    },
+                    "filter5": {
+                        "_type": "None"
+                    },
+                    "name": "t1",
+                    "nuclides": [],
+                    "scores": [
+                        {
+                            "score": "flux"
+                        },
+                        {
+                            "score": "heating"
+                        }
+                    ]
+                }
+            ]
+        },
+        "simFolder": {},
+        "simulation": {
+            "folder": "/Examples",
+            "name": "Aurora",
+            "notes": "From https://github.com/aurora-multiphysics/aurora"
+        },
+        "tallyReport": {
+            "axis": "y",
+            "colorMap": "afmhot",
+            "planePos": 0
+        },
+        "volumes": {
+            "air": {
+                "color": "#e6e2f3",
+                "isVisible": true,
+                "key": "air",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "N",
+                            "percent": 0.784431,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        },
+                        {
+                            "component": "add_nuclide",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "O16",
+                            "percent": 0.210748,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        },
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Ar",
+                            "percent": 0.0046,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 0.001205,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "air"
+                },
+                "name": "air",
+                "opacity": 0.08,
+                "volId": "3"
+            },
+            "copper": {
+                "color": "#d6eb37",
+                "isVisible": true,
+                "key": "copper",
+                "material": {
+                    "components": [
+                        {
+                            "component": "add_element",
+                            "enrichment_type": "none",
+                            "enrichment_with_type": "",
+                            "fraction": 1,
+                            "name": "Cu",
+                            "percent": 1,
+                            "percent_type": "ao",
+                            "percent_with_type": ""
+                        }
+                    ],
+                    "density": 8.96,
+                    "density_units": "g/cm3",
+                    "depletable": "0",
+                    "name": "copper",
+                    "temperature": 300
+                },
+                "name": "copper",
+                "opacity": 0.3,
+                "volId": "1"
+            },
+            "graveyard": {
+                "color": "#bab8b5",
+                "isVisible": true,
+                "key": "graveyard",
+                "name": "graveyard",
+                "opacity": 0.06,
+                "volId": "5"
+            }
+        }
+    },
+    "simulationType": "openmc"
+}

@@ -1,0 +1,551 @@
+{
+    "models": {
+        "beamlines": [
+            {
+                "angle": 0,
+                "count": 26,
+                "distance": 16.5,
+                "id": 1,
+                "items": [
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    2,
+                    8,
+                    9,
+                    10,
+                    11,
+                    22,
+                    23,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28,
+                    29,
+                    30,
+                    31,
+                    32
+                ],
+                "l": 0,
+                "length": 16.5,
+                "name": "BL1",
+                "positions": [
+                    {
+                        "elemedge": -1000
+                    },
+                    {
+                        "elemedge": 0
+                    },
+                    {
+                        "elemedge": 0
+                    },
+                    {
+                        "elemedge": 0.01601
+                    },
+                    {
+                        "elemedge": 0.01601
+                    },
+                    {
+                        "elemedge": 0.25
+                    },
+                    {
+                        "elemedge": 1.38841
+                    },
+                    {
+                        "elemedge": 1.485
+                    },
+                    {
+                        "elemedge": 1.485
+                    },
+                    {
+                        "elemedge": 1.537464
+                    },
+                    {
+                        "elemedge": 1.537464
+                    },
+                    {
+                        "elemedge": 4.475392
+                    },
+                    {
+                        "elemedge": 4.614538605
+                    },
+                    {
+                        "elemedge": 4.752933605
+                    },
+                    {
+                        "elemedge": 5.081309605
+                    },
+                    {
+                        "elemedge": 5.328756
+                    },
+                    {
+                        "elemedge": 5.328756
+                    },
+                    {
+                        "elemedge": 5.38122
+                    },
+                    {
+                        "elemedge": 5.38122
+                    },
+                    {
+                        "elemedge": 8.319148
+                    },
+                    {
+                        "elemedge": 8.392048605
+                    },
+                    {
+                        "elemedge": 8.793561605
+                    },
+                    {
+                        "elemedge": 11.469244190867
+                    },
+                    {
+                        "elemedge": 11.875644190867
+                    },
+                    {
+                        "elemedge": 12.327300190867
+                    },
+                    {
+                        "elemedge": 14.241029190867
+                    },
+                    {
+                        "elemedge": 16.5
+                    },
+                    {
+                        "elemedge": 16.5
+                    },
+                    {
+                        "elemedge": 16.5
+                    }
+                ]
+            }
+        ],
+        "commands": [],
+        "elements": [
+            {
+                "_id": 2,
+                "dt": 4e-12,
+                "l": 0,
+                "name": "change_timestep_1",
+                "type": "CHANGE_TIMESTEP"
+            },
+            {
+                "L_effective": 0.21,
+                "_id": 7,
+                "_super": "_ELEMENT",
+                "b1_gradient": 0,
+                "l": 0.36,
+                "name": "CQ01",
+                "radius": 0.0254,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "L_effective": 0.108,
+                "_id": 15,
+                "_super": "_ELEMENT",
+                "b1_gradient": 1.8524000101358,
+                "l": 0.204,
+                "name": "QA01",
+                "radius": 0.016,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "L_effective": 0.108,
+                "_id": 16,
+                "_super": "_ELEMENT",
+                "b1_gradient": -1.8524000101358,
+                "l": 0.204,
+                "name": "QA02",
+                "radius": 0.016,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "L_effective": 0.108,
+                "_id": 25,
+                "_super": "_ELEMENT",
+                "b1_gradient": 0.18720000156206,
+                "l": 0.204,
+                "name": "QE01",
+                "radius": 0.016,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "L_effective": 0.108,
+                "_id": 26,
+                "_super": "_ELEMENT",
+                "b1_gradient": 0.16609999999321,
+                "l": 0.204,
+                "name": "QE02",
+                "radius": 0.016,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "L_effective": 0.108,
+                "_id": 27,
+                "_super": "_ELEMENT",
+                "b1_gradient": -2.6409000012747,
+                "l": 0.204,
+                "name": "QE03",
+                "radius": 0.016,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "L_effective": 0.108,
+                "_id": 28,
+                "_super": "_ELEMENT",
+                "b1_gradient": 2.9799999853198,
+                "l": 0.204,
+                "name": "QE04",
+                "radius": 0.016,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "L_effective": 0.21,
+                "_id": 6,
+                "_super": "_ELEMENT",
+                "b1_gradient": 0,
+                "l": 0.36,
+                "name": "SQ01",
+                "radius": 0.0254,
+                "rf_frequency": 0,
+                "rf_phase_deg": 0,
+                "type": "QUADRUPOLE",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0.7853981633974483
+            },
+            {
+                "_id": 3,
+                "l": 0,
+                "name": "SC_2D_to_3D",
+                "type": "ROTATIONALLY_SYMMETRIC_TO_3D"
+            },
+            {
+                "_id": 4,
+                "_super": "_ELEMENT",
+                "filename": "rfdata201.txt",
+                "l": 0.15,
+                "name": "GUN",
+                "radius": 0.15,
+                "rf_field_scale": 47537665.059089914,
+                "rf_frequency": 2856000000,
+                "solenoid_field_scale": 1,
+                "theta0_deg": 303.93723122804266,
+                "type": "SOLRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 11,
+                "_super": "_ELEMENT",
+                "filename": "rfdata5.txt",
+                "l": 2.937928,
+                "name": "L0A_body_1",
+                "radius": 0.15,
+                "rf_field_scale": 30048347.1,
+                "rf_frequency": 2856000000,
+                "solenoid_field_scale": 0,
+                "theta0_deg": 294.5,
+                "type": "SOLRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 22,
+                "_super": "_ELEMENT",
+                "filename": "rfdata6.txt",
+                "l": 2.937928,
+                "name": "L0A_body_2",
+                "radius": 0.15,
+                "rf_field_scale": 30048347.1,
+                "rf_frequency": 2856000000,
+                "solenoid_field_scale": 0,
+                "theta0_deg": 354.5,
+                "type": "SOLRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 10,
+                "_super": "_ELEMENT",
+                "filename": "rfdata4.txt",
+                "l": 0.052464,
+                "name": "L0A_entrance",
+                "radius": 0.15,
+                "rf_field_scale": 26013439.060000002,
+                "rf_frequency": 2856000000,
+                "solenoid_field_scale": 0,
+                "theta0_deg": 264.5,
+                "type": "SOLRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 23,
+                "_super": "_ELEMENT",
+                "filename": "rfdata7.txt",
+                "l": 0.052464,
+                "name": "L0A_exit",
+                "radius": 0.15,
+                "rf_field_scale": 26013439.060000002,
+                "rf_frequency": 2856000000,
+                "solenoid_field_scale": 0,
+                "theta0_deg": 264.5,
+                "type": "SOLRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 19,
+                "_super": "_ELEMENT",
+                "filename": "rfdata5.txt",
+                "l": 2.937928,
+                "name": "L0B_body_1",
+                "radius": 0.15,
+                "rf_field_scale": 36265246.5,
+                "rf_frequency": 2856000000,
+                "solenoid_field_scale": 0,
+                "theta0_deg": 72.27,
+                "type": "SOLRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 20,
+                "_super": "_ELEMENT",
+                "filename": "rfdata6.txt",
+                "l": 2.937928,
+                "name": "L0B_body_2",
+                "radius": 0.15,
+                "rf_field_scale": 36265246.5,
+                "rf_frequency": 2856000000,
+                "solenoid_field_scale": 0,
+                "theta0_deg": 132.27,
+                "type": "SOLRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 18,
+                "_super": "_ELEMENT",
+                "filename": "rfdata4.txt",
+                "l": 0.052464,
+                "name": "L0B_entrance",
+                "radius": 0.15,
+                "rf_field_scale": 31395529.900000002,
+                "rf_frequency": 2856000000,
+                "solenoid_field_scale": 1,
+                "theta0_deg": 42.27,
+                "type": "SOLRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 24,
+                "_super": "_ELEMENT",
+                "filename": "rfdata7.txt",
+                "l": 0.052464,
+                "name": "L0B_exit",
+                "radius": 0.15,
+                "rf_field_scale": 31395529.900000002,
+                "rf_frequency": 2856000000,
+                "solenoid_field_scale": 0,
+                "theta0_deg": 42.27,
+                "type": "SOLRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 5,
+                "_super": "_ELEMENT",
+                "filename": "rfdata102.txt",
+                "l": 0.49308,
+                "name": "SOL1",
+                "radius": 0.15,
+                "rf_field_scale": 1,
+                "rf_frequency": 0,
+                "solenoid_field_scale": 0.2457,
+                "theta0_deg": 0,
+                "type": "SOLRF",
+                "x_offset": 0,
+                "x_rotation": 0,
+                "y_offset": 0,
+                "y_rotation": 0,
+                "z_rotation": 0
+            },
+            {
+                "_id": 31,
+                "is_on": "0",
+                "l": 0,
+                "name": "SC_OFF",
+                "type": "SPACECHARGE"
+            },
+            {
+                "_id": 32,
+                "l": 0,
+                "name": "stop_1",
+                "type": "STOP"
+            },
+            {
+                "_id": 9,
+                "filename": "",
+                "gap": 0.0292,
+                "iris_radius": 0.0116,
+                "l": 3.042856,
+                "method": "analytical",
+                "name": "wakefield_L0A",
+                "period": 0.035,
+                "type": "WAKEFIELD"
+            },
+            {
+                "_id": 17,
+                "filename": "",
+                "gap": 0.0292,
+                "iris_radius": 0.0116,
+                "l": 3.042856,
+                "method": "analytical",
+                "name": "wakefield_L0B",
+                "period": 0.035,
+                "type": "WAKEFIELD"
+            },
+            {
+                "_id": 29,
+                "filename": "",
+                "l": 0,
+                "name": "OTR1",
+                "sample_frequency": 1,
+                "type": "WRITE_BEAM"
+            },
+            {
+                "_id": 30,
+                "filename": "",
+                "l": 0,
+                "name": "OTR2",
+                "sample_frequency": 1,
+                "type": "WRITE_BEAM"
+            },
+            {
+                "_id": 8,
+                "filename": "",
+                "l": 0,
+                "name": "YAG02",
+                "sample_frequency": 1,
+                "type": "WRITE_BEAM"
+            },
+            {
+                "_id": 14,
+                "filename": "",
+                "l": 0,
+                "name": "YAG03",
+                "sample_frequency": 1,
+                "type": "WRITE_BEAM"
+            }
+        ],
+        "rpnCache": {},
+        "rpnVariables": [],
+        "simulation": {
+            "activeBeamlineId": 1,
+            "elementPosition": "absolute",
+            "folder": "/Examples",
+            "name": "LCLS_Injector",
+            "visualizationBeamlineId": 1
+        },
+        "statAnimation": {
+            "includeLattice": "1",
+            "notes": "",
+            "x": "mean_z",
+            "y1": "sigma_px",
+            "y2": "sigma_py",
+            "y3": "sigma_pz"
+        }
+    },
+    "simulationType": "impactt"
+}
