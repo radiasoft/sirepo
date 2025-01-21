@@ -77,15 +77,16 @@ class _MoabGroupCollector:
     def _groups_and_volumes(self):
         res = PKDict()
         for g in dagmc.DAGModel(self.dagmc_filename).groups_by_name.values():
-            n, d = self._parse_entity_name_and_density(mb, g)
+            n, d = self._parse_entity_name_and_density(g.name)
             if not n:
                 continue
             v = g.volumes
             if not v:
                 continue
-            res[g.name] = PKDict(
-                name=g.name,
+            res[n] = PKDict(
+                name=n,
                 volume_count=len(v),
+                density=d,
                 # for historical reasons the vol_id for the group is the last volume's id
                 vol_id=str(v[-1].id),
             )
@@ -95,13 +96,13 @@ class _MoabGroupCollector:
                 g.is_complement = True
         return tuple(res.values())
 
-    def _parse_entity_name_and_density(self, mb, group):
-        m = re.search(
-            r"^mat:(.*?)(?:/rho:(.*))?$", self._tag_value(mb, self._name_tag, group)
-        )
-        if m:
-            return m.group(1), m.group(2)
-        return None, None
+    def _parse_entity_name_and_density(self, name):
+        # m = re.search(r"^mat:(.*?)(?:/rho:(.*))?$", name)
+        # if m:
+        #     return m.group(1), m.group(2)
+        # return None, None
+        # TODO(pjm): parse density
+        return name, None
 
 
 class _MoabGroupExtractor:
@@ -148,7 +149,6 @@ class _MoabGroupExtractor:
             self._items.append(
                 _MoabGroupExtractorOp(
                     dagmc_filename=collector.dagmc_filename,
-                    name=g.name,
                     vol_id=g.vol_id,
                     volume_count=g.volume_count,
                     name=g.name,
