@@ -15,6 +15,7 @@ import json
 import numpy
 import pymeshlab
 import re
+import sirepo.const
 import sirepo.mpi
 import sirepo.simulation_db
 import sirepo.util
@@ -25,7 +26,11 @@ _DECIMATION_MAX_POLYGONS = 10000
 
 
 def extract_dagmc(dagmc_filename):
-    gc = _MoabGroupCollector(dagmc_filename)
+    s = pkio.py_path(sirepo.const.SIM_RUN_INPUT_BASENAME)
+    dm = None
+    if s.exists():
+        dm = sirepo.simulation_db.read_json(s).models
+    gc = _MoabGroupCollector(dagmc_filename, dm)
     sirepo.mpi.restrict_ops_to_first_node(_MoabGroupExtractor(gc).get_items())
     res = PKDict()
     for g in gc.groups:
@@ -70,11 +75,11 @@ def step_to_dagmc(input_step_filename, output_dagmc_filename, threads=1):
 
 
 class _MoabGroupCollector:
-    def __init__(self, dagmc_filename):
+    def __init__(self, dagmc_filename, sim_models):
         self.dagmc_filename = dagmc_filename
-        self.groups = self._groups_and_volumes()
+        self.groups = self._groups_and_volumes(sim_models)
 
-    def _groups_and_volumes(self):
+    def _groups_and_volumes(self, sim_models):
         res = PKDict()
         for g in dagmc.DAGModel(self.dagmc_filename).groups_by_name.values():
             n, d = self._parse_entity_name_and_density(g.name)
@@ -90,8 +95,7 @@ class _MoabGroupCollector:
                 full_name=g.name,
                 density=d,
                 volume_count=len(v),
-                # for historical reasons the vol_id for the group is the last volume's id
-                vol_id=str(v[-1].id),
+                vol_id=self._volume_id(n, v, sim_models),
             )
         for g in res.values():
             if re.search(r"\_comp$", g.name):
@@ -104,6 +108,13 @@ class _MoabGroupCollector:
         if m:
             return m.group(1), m.group(2)
         return None, None
+
+    def _volume_id(self, name, volumes, sim_models):
+        # for backward compatibility, allows finding a volume from an
+        # old import which assigned volId differently
+        if sim_models and "volumes" in sim_models and name in sim_models.volumes:
+            return sim_models.volumes[name].volId
+        return str(volumes[0].id)
 
 
 class _MoabGroupExtractor:
