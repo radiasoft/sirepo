@@ -312,7 +312,7 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
 
     self.isPremiumUser = function() {
         // positive test (vs just testing 'basic')
-        return ['enterprise', 'premium'].indexOf(self.paymentPlan || '') >= 0;
+        return self.paymentPlan == 'premium';
     };
 
     self.paymentPlanName = function() {
