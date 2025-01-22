@@ -188,8 +188,11 @@ class _AuthDb(sirepo.quest.Attr):
             statement.execution_options(synchronize_session="fetch")
         )
 
-    def execute_sql(self, text):
-        return self.execute(sqlalchemy.text(text + ";"))
+    def execute_sql(self, text, params=None):
+        q = sqlalchemy.text(text + ";")
+        if params:
+            q = q.bindparams(**params)
+        return self.execute(q)
 
     def metadata(self):
         return UserDbBase.metadata

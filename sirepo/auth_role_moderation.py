@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Moderate user roles
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig
 from pykern import pkjinja
 from pykern.pkcollections import PKDict
@@ -11,6 +11,7 @@ from pykern.pkdebug import pkdexc, pkdp, pkdlog
 import datetime
 import getpass
 import sirepo.auth_role
+import sirepo.const
 import sirepo.feature_config
 import sirepo.quest
 import sirepo.simulation_db
@@ -44,16 +45,37 @@ class API(sirepo.quest.API):
         "require_adm", uid="Str", role="Str", status="AuthModerationStatus"
     )
     async def api_admModerate(self):
+        def _role_info(role, status):
+            res = PKDict(
+                role=role,
+                status=status,
+                moderator_uid=self.auth.logged_in_user(),
+            )
+            if role == sirepo.auth_role.ROLE_PLAN_TRIAL:
+                return res.pkupdate(
+                    role_display_name="Trial",
+                    app_name="Sirepo",
+                    expiration=datetime.datetime.now()
+                    + datetime.timedelta(
+                        days=sirepo.feature_config.cfg().trial_expiration_days
+                    ),
+                    additional_text=f"Your trial is active for {sirepo.feature_config.cfg().trial_expiration_days} days.",
+                )
+            a = sirepo.simulation_db.SCHEMA_COMMON.appInfo[
+                sirepo.auth_role.sim_type(role)
+            ].longName
+            return res.pkupdate(role_display_name=a, app_name=a)
+
         def _send_moderation_status_email(info):
             sirepo.smtp.send(
                 recipient=info.user_name,
-                subject=f"Sirepo {info.role_friendly_name}: {_STATUS_TO_SUBJECT[info.status]}",
+                subject=f"Sirepo {info.role_display_name}: {_STATUS_TO_SUBJECT[info.status]}",
                 body=pkjinja.render_resource(
                     f"auth_role_moderation/{info.status}_email",
                     PKDict(
                         additional_text=info.get("additional_text"),
                         app_name=info.app_name,
-                        role_friendly_name=info.role_friendly_name,
+                        role_display_name=info.role_display_name,
                         display_name=info.display_name,
                         link=self.absolute_uri(
                             self.uri_for_app_root(
@@ -93,25 +115,7 @@ class API(sirepo.quest.API):
                 req.req_data.uid,
                 req.req_data.role,
             )
-        p = PKDict(
-            role_friendly_name="Trial",
-            app_name="Sirepo",
-            expiration=datetime.datetime.now()
-            + datetime.timedelta(
-                days=sirepo.feature_config.cfg().trial_expiration_days
-            ),
-            additional_text=f"Your trial is active for {sirepo.feature_config.cfg().trial_expiration_days} days.",
-        )
-        if not i.role == sirepo.auth_role.ROLE_TRIAL:
-            a = sirepo.simulation_db.SCHEMA_COMMON.appInfo[
-                sirepo.auth_role.sim_type(i.role)
-            ].longName
-            p = PKDict(role_friendly_name=a, app_name=a)
-        p.pkupdate(
-            role=i.role,
-            status=req.req_data.status,
-            moderator_uid=self.auth.logged_in_user(),
-        )
+        p = _role_info(i.role, req.req_data.status)
         pkdlog("status={} uid={} role={}", p.status, i.uid, i.role)
         # Force METHOD_EMAIL. We are sending them an email so we will
         # need an email for them. We only have emails for METHOD_EMAIL
@@ -170,10 +174,10 @@ class API(sirepo.quest.API):
 
         req = self.parse_post()
         u = self.auth.logged_in_user()
-        r = sirepo.auth_role.ROLE_TRIAL
+        r = sirepo.auth_role.ROLE_PLAN_TRIAL
         # SECURITY: type has been validated to be a known sim type. If it is
         # not in moderated_sim_types then we know the user is just requesting
-        # access to start using Sirepo (ROLE_TRIAL).
+        # access to start using Sirepo (ROLE_PLAN_TRIAL).
         if req.type in sirepo.feature_config.cfg().moderated_sim_types:
             r = sirepo.auth_role.for_sim_type(req.type)
         if self.auth_db.model("UserRole").has_active_role(role=r):
@@ -227,8 +231,8 @@ def _datetime_to_str(rows):
 
 def raise_control_for_user(qcall, uid, role):
     if qcall.auth_db.model("UserRole").has_expired_role(role):
-        if role == sirepo.auth_role.ROLE_TRIAL:
-            raise sirepo.util.PlanRequired(f"uid={uid} role={role} expired")
+        if role == sirepo.auth_role.ROLE_PLAN_TRIAL:
+            raise sirepo.util.PlanExpired(f"uid={uid} role={role} expired")
         raise sirepo.util.Forbidden(f"uid={uid} role={role} expired")
     s = qcall.auth_db.model("UserRoleModeration").get_status(uid=uid, role=role)
     if s in _ACTIVE:
@@ -245,7 +249,7 @@ def init_apis(*args, **kwargs):
 
     _cfg = pkconfig.init(
         moderator_email=pkconfig.RequiredUnlessDev(
-            f"{getpass.getuser()}+moderator@localhost.localdomain",
+            f"{getpass.getuser()}+moderator@{sirepo.const.LOCALHOST_FQDN}",
             str,
             "The email address to send moderation emails to",
         ),

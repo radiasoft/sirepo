@@ -572,7 +572,7 @@ class _SReply(sirepo.quest.Attr):
     def _gen_exception_reply_NotFound(self, args):
         return self._gen_http_exception(404)
 
-    def _gen_exception_reply_PlanRequired(self, args):
+    def _gen_exception_reply_PlanExpired(self, args):
         return self._gen_http_exception(402)
 
     def _gen_exception_reply_Redirect(self, args):

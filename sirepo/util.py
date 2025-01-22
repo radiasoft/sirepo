@@ -113,7 +113,7 @@ class NotFound(ReplyExc):
     pass
 
 
-class PlanRequired(ReplyExc):
+class PlanExpired(ReplyExc):
     """API requires and active plan"""
 
     pass

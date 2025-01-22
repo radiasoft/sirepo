@@ -86,7 +86,7 @@ class UserRole(sirepo.auth_db.UserDbBase):
         return r and self._is_expired_role(r)
 
     def uids_of_paid_users(self):
-        return self.uids_with_roles(sirepo.auth_role.PAID_USER_ROLES)
+        return self.uids_with_roles(sirepo.auth_role.PLAN_ROLES_PAID)
 
     def uids_with_roles(self, roles):
         a = sirepo.auth_role.get_all()

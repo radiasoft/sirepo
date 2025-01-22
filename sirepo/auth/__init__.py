@@ -48,7 +48,7 @@ _COOKIE_USER = "srau"
 _GUEST_USER_DISPLAY_NAME = "Guest User"
 
 _PAYMENT_PLAN_BASIC = "basic"
-_PAYMENT_PLAN_PREMIUM = sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM
+_PAYMENT_PLAN_PREMIUM = sirepo.auth_role.ROLE_PLAN_PREMIUM
 _ALL_PAYMENT_PLANS = (
     _PAYMENT_PLAN_BASIC,
     _PAYMENT_PLAN_PREMIUM,
@@ -273,7 +273,7 @@ class _Auth(sirepo.quest.Attr):
 
     def is_premium_user(self):
         return self.qcall.auth_db.model("UserRole").has_active_role(
-            role=sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
+            role=sirepo.auth_role.ROLE_PLAN_PREMIUM,
         )
 
     def logged_in_user(self, check_path=True):
@@ -517,11 +517,11 @@ class _Auth(sirepo.quest.Attr):
         from sirepo import auth_role_moderation
 
         u = self.require_user()
-        for r in sirepo.auth_role.for_plans():
+        for r in sirepo.auth_role.PLAN_ROLES:
             if self.qcall.auth_db.model("UserRole").has_active_role(r):
                 return
         auth_role_moderation.raise_control_for_user(
-            self.qcall, u, sirepo.auth_role.ROLE_TRIAL
+            self.qcall, u, sirepo.auth_role.ROLE_PLAN_TRIAL
         )
 
     def require_premium(self):
@@ -772,7 +772,7 @@ class _Auth(sirepo.quest.Attr):
 
     def _plan(self, data):
         r = data.roles
-        if sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM in r:
+        if sirepo.auth_role.ROLE_PLAN_PREMIUM in r:
             data.paymentPlan = _PAYMENT_PLAN_PREMIUM
             data.upgradeToPlan = None
         else:

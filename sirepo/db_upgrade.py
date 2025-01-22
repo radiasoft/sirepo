@@ -104,11 +104,18 @@ def _20240524_add_role_user(qcall):
     )
 
 
-def _20250114_add_role_trial(qcall):
-    """Give all existing users a trial with expiration"""
+def _20250114_add_role_plan_trial(qcall):
+    """Give all existing users a trial plan with expiration"""
     qcall.auth_db.execute_sql(
-        "INSERT INTO user_role_t (uid, role, expiration)"
-        + f'SELECT uid, "{sirepo.auth_role.ROLE_TRIAL}", NULL from user_registration_t'
+        """INSERT INTO user_role_t (uid, role, expiration)
+        SELECT uid, :role, :expiration FROM user_registration_t""",
+        PKDict(
+            role=sirepo.auth_role.ROLE_PLAN_TRIAL,
+            expiration=datetime.datetime.utcnow()
+            + datetime.timedelta(
+                days=sirepo.feature_config.cfg().trial_expiration_days
+            ),
+        ),
     )
 
 
