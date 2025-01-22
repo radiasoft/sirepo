@@ -111,6 +111,9 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="SelectedTallyVolumes">
           <div data-tally-volume-picker=""></div>
         </div>
+        <div data-ng-switch-when="StandardMaterial" class="col-sm-7">
+          <div data-standard-material="" data-model-name="modelName" data-model="model" data-field="field"></div>
+        </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
         'geometryInput-dagmcFile': '.h5m,.stp',
@@ -120,6 +123,7 @@ SIREPO.app.config(() => {
 
 SIREPO.app.factory('openmcService', function(appState, panelState, requestSender, $rootScope) {
     const self = {};
+    let standardMaterialNames;
     appState.setAppService(self);
 
     function findFilter(tallies, tally, type) {
@@ -230,6 +234,39 @@ SIREPO.app.factory('openmcService', function(appState, panelState, requestSender
         return m[field] && (m[field][0] || m[field][1]);
     };
 
+    self.loadStandardMaterial = (name, wantElements, callback) => {
+        requestSender.sendStatefulCompute(
+            appState,
+            (data) => {
+                callback(data.material);
+            },
+            {
+                method: 'get_standard_material',
+                args: {
+                    name: name,
+                    wantElements: wantElements,
+                },
+            }
+        );
+    };
+
+    self.loadStandardMaterialNames = (callback) => {
+        if (standardMaterialNames) {
+            callback(standardMaterialNames);
+            return;
+        }
+        requestSender.sendStatefulCompute(
+            appState,
+            (data) => {
+                standardMaterialNames = data.names;
+                callback(data.names);
+            },
+            {
+                method: 'get_standard_material_names',
+            }
+        );
+    };
+
     self.selectVarianceReductionTab = () => {
         $rootScope.$broadcast('sr.setActivePage', 'settings', 4);
     };
@@ -321,12 +358,12 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
             appState,
             (data) => {
                 // don't initialize simulation until geometry is known
-                hasGeometry = data.animationDirExists;
+                hasGeometry = data.hasGeometry;
                 self.simState = persistentSimulation.initSimulationState(self);
                 self.simState.errorMessage = () => self.errorMessage;
             },
             {
-                method: 'check_animation_dir',
+                method: 'verify_geometry',
                 args: {
                     modelName: 'dagmcAnimation',
                 },
@@ -2978,43 +3015,6 @@ SIREPO.viewLogic('tallyView', function(appState, openmcService, panelState, vali
     ];
 });
 
-SIREPO.viewLogic('materialView', function(appState, panelState, $scope) {
-
-    let name = null;
-
-    $scope.whenSelected = () => {
-        $scope.appState = appState;
-        name = model().name;
-    };
-
-    function isStd() {
-        return model() && model().standardType !== 'None';
-    }
-
-    function model() {
-        return appState.models[$scope.modelName];
-    }
-
-    function updateMaterial() {
-        if (! model()) {
-            return;
-        }
-        if (isStd()) {
-            // don't change the name as it came from the loaded volume
-            appState.models[$scope.modelName] = appState.setModelDefaults({name: name}, model().standardType);
-        }
-    }
-
-    // only update when the user makes a change, not on the initial model load
-    $scope.$watch(`appState.models['${$scope.modelName}']['standardType']`, (newVal, oldVal) => {
-        if (oldVal === undefined || oldVal === newVal) {
-            return;
-        }
-        updateMaterial();
-    });
-
-});
-
 SIREPO.app.directive('simpleListEditor', function(panelState) {
     return {
         restrict: 'A',
@@ -3252,6 +3252,71 @@ SIREPO.app.directive('energyRangeSlider', function(appState, openmcService, pane
                 if (newValue !== oldValue) {
                     updateRange();
                 }
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('standardMaterial', function(openmcService, panelState, utilities) {
+    const searchClass = 'sr-material-search';
+    return {
+        restrict: 'A',
+        scope: {
+            field: '<',
+            model: '=',
+            modelName: '<',
+        },
+        template: `
+            <div data-ng-if="list" class="input-group input-group-sm">
+              <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
+              <input class="${searchClass} form-control" placeholder="Search Material Compendium" />
+              <span class="input-group-btn">
+                <button class="btn" data-ng-class="{'btn-primary': wantElement}" type="button" data-ng-disabled="! hasSelection()" data-ng-click="selectSearchType(true)">Element</button>
+                <button class="btn" data-ng-class="{'btn-primary': ! wantElement}" type="button" data-ng-disabled="! hasSelection()" data-ng-click="selectSearchType(false)">Nuclide</button>
+              </span>
+            </div>
+        `,
+        controller: function($scope, $element) {
+            let lastSelected = '';
+            $scope.wantElement = true;
+
+            $scope.hasSelection = () => lastSelected ? true : false;
+
+            $scope.onSelect = () => {
+                return (value) => {
+                    if ($scope.model) {
+                        lastSelected = value;
+                        openmcService.loadStandardMaterial(value, $scope.wantElement, (m) => {
+                            Object.assign($scope.model, m);
+                        });
+                    }
+                };
+            };
+
+            $scope.selectSearchType = (wantElement) => {
+                $scope.wantElement = wantElement;
+                if (lastSelected) {
+                    $(`.${searchClass}`).val(lastSelected);
+                    $scope.onSelect()(lastSelected);
+                }
+            };
+
+            openmcService.loadStandardMaterialNames((names) => {
+                $scope.list = [];
+                for (const n of names) {
+                    $scope.list.push({
+                        label: n,
+                        value: n,
+                    });
+                }
+                panelState.waitForUI(() => {
+                    utilities.buildSearch($scope, $element, searchClass);
+                });
+            });
+
+            $scope.$on('cancelChanges', () => {
+                $(`.${searchClass}`).val('');
+                lastSelected = '';
             });
         },
     };
