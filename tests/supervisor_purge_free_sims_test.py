@@ -51,11 +51,11 @@ def test_myapp_free_user_sim_purged(auth_fc):
 
         roles.add(
             uid,
-            auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
+            auth_role.ROLE_PLAN_PREMIUM,
         )
         with srunit.quest_start() as qcall:
             r = qcall.auth_db.model("UserRole").search_all_for_column(
-                "uid", role=auth_role.ROLE_PAYMENT_PLAN_PREMIUM
+                "uid", role=auth_role.ROLE_PLAN_PREMIUM
             )
         pkunit.pkeq([uid], r, "expecting one premium user with same id")
 
