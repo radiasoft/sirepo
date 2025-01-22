@@ -54,7 +54,7 @@ class API(sirepo.quest.API):
             if role == sirepo.auth_role.ROLE_PLAN_TRIAL:
                 return res.pkupdate(
                     role_display_name="Trial",
-                    app_name="Sirepo",
+                    product_name="Sirepo",
                     expiration=datetime.datetime.now()
                     + datetime.timedelta(
                         days=sirepo.feature_config.cfg().trial_expiration_days
@@ -64,7 +64,7 @@ class API(sirepo.quest.API):
             a = sirepo.simulation_db.SCHEMA_COMMON.appInfo[
                 sirepo.auth_role.sim_type(role)
             ].longName
-            return res.pkupdate(role_display_name=a, app_name=a)
+            return res.pkupdate(role_display_name=a, product_name=a)
 
         def _send_moderation_status_email(info):
             sirepo.smtp.send(
@@ -74,7 +74,7 @@ class API(sirepo.quest.API):
                     f"auth_role_moderation/{info.status}_email",
                     PKDict(
                         additional_text=info.get("additional_text"),
-                        app_name=info.app_name,
+                        product_name=info.product_name,
                         role_display_name=info.role_display_name,
                         display_name=info.display_name,
                         link=self.absolute_uri(
