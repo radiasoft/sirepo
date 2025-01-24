@@ -98,6 +98,8 @@ class SimData(sirepo.sim_data.SimDataBase):
             if "material" not in dm.volumes[v]:
                 continue
             cls.update_model_defaults(dm.volumes[v].material, "material")
+            if "standardType" in dm.volumes[v].material:
+                del dm.volumes[v].material["standardType"]
             _fix_val(dm.volumes[v], "opacity")
         if "tally" in dm:
             del dm["tally"]
