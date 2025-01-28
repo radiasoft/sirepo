@@ -99,8 +99,8 @@ def _20240524_add_role_user(qcall):
     )
     qcall.auth_db.drop_table("user_role_invite_t")
     qcall.auth_db.execute_sql(
-        "INSERT INTO user_role_t (uid, role, expiration)"
-        + f'SELECT uid, "{sirepo.auth_role.ROLE_USER}", NULL from user_registration_t'
+        f"""INSERT INTO user_role_t (uid, role, expiration)
+        SELECT uid, '{sirepo.auth_role.ROLE_USER}', NULL from user_registration_t"""
     )
 
 

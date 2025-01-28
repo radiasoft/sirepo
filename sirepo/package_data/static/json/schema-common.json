@@ -428,7 +428,7 @@
                 }
             },
             "moderationRequest":  {
-                "route": "/moderation-request",
+                "route": "/moderation-request/:role",
                 "config": {
                   "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/moderation-request.html"

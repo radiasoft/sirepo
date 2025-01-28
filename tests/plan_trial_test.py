@@ -25,15 +25,7 @@ def test_expired_trial_no_run_sim(auth_fc):
     import datetime
 
     u = auth_fc.sr_email_login("e@e.e")
-    roles.add_or_update(
-        u,
-        "trial",
-        expiration=int(
-            (
-                datetime.datetime.now() + datetime.timedelta(days=_EXPIRATION_DAYS)
-            ).timestamp()
-        ),
-    )
+    roles.add_or_update(u, "trial", expiration=_EXPIRATION_DAYS)
     d = auth_fc.sr_sim_data()
     auth_fc.sr_run_sim(d, "heightWeightReport")
     with auth_fc.sr_adjust_time(_EXPIRATION_DAYS + 1):

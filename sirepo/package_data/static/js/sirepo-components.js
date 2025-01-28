@@ -3591,6 +3591,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                    <div data-disable-after-click="">
                     <button data-ng-click="login()" class="btn btn-primary">Continue</button>
                   </div>
+                  <p class="help-block">Your email address must be  associated with a university, company, or research institution.</p>
                   <p class="help-block">By signing up for Sirepo you agree to Sirepo's <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
                 </div>
               </div>
@@ -4361,17 +4362,20 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
         template: `
           <form>
             <div class="form-group">
-              <label for="requestAccessExplanation">Please describe your reason for requesting access:</label>
+              <label for="requestAccessExplanation">{{ moderationRequestReason }}:</label>
               <textarea data-ng-show="!submitted" data-ng-model="data.reason" id="requestAccessExplanation" class="form-control" rows="4" cols="50" required></textarea>
             </div>
             <button data-ng-disabled="disableSubmit" data-ng-show="!submitted" type="submit" class="btn btn-primary" data-ng-click="submitRequest()">Submit</button>
           </form>
           <div data-ng-show="submitted">Response submitted.</div>
         `,
-        controller: function(requestSender, $scope) {
+        controller: function(requestSender, $route, $scope) {
             $scope.data = {};
             $scope.submitted = false;
             $scope.disableSubmit = true;
+            $scope.moderationRequestReason = {
+                trial: `To prevent abuse of our systems all new users must supply a reason for requesting access to ${SIREPO.APP_SCHEMA.productInfo.shortName}. In a few sentences please describe how you plan to use ${SIREPO.APP_SCHEMA.productInfo.shortName}`
+            }[$route.current.params.role] ?? 'Please describe your reason for requesting access';
             $scope.submitRequest = function () {
                 const handleResponse = (data) => {
                     if (data.state === 'error') {
@@ -4777,11 +4781,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                     <button data-ng-click="cancel()" type="button" class="close" data-ng-disabled="! sbatchLoginService.query('showLogin')"><span>&times;</span></button>
                     </div>
                     <div class="modal-body">
-                        <div data-ng-show="! authState.isPremiumUser()" class="alert alert-warning" role="alert">
-                        <h4 class="alert-heading"><b>Please upgrade</b></h4>
-                        <p>Supercomputer and HPC services are only available with <span data-plans-link="" link-text="one of our paid plans"></span>.</p>
-                        </div>
-                        <form name="sbatchLoginModalForm" data-ng-show="authState.isPremiumUser()">
+                        <form name="sbatchLoginModalForm">
                             <div class="sr-input-warning">{{ warning }}</div>
                             <div class="form-group">
                                 <input type="text" class="form-control" name="username" placeholder="username" autocomplete="username" data-ng-model="username" />

@@ -19,7 +19,7 @@ def add(uid_or_email, *roles, expiration=None):
     Args:
         uid_or_email (str): Uid or email of the user
         *roles (str): The roles to assign to the user
-        expiration (None|POSIX Timestamp): The expiration date for the roles
+        expiration (int): Days until expiration
     """
     with _parse_args(uid_or_email, roles) as qcall:
         qcall.auth_db.model("UserRole").add_roles(
@@ -32,7 +32,7 @@ def add_or_update(uid_or_email, *roles, expiration=None):
     Args:
         uid_or_email (str): Uid or email of the user
         *roles (str): The roles to assign to the user
-        expiration (None|POSIX Timestamp): The expiration date for the roles
+        expiration (int): Days until expiration
     """
     with _parse_args(uid_or_email, roles) as qcall:
         for r in roles:
@@ -133,5 +133,7 @@ def _parse_args(uid_or_email, roles=None):
 
 def _parse_expiration(expiration):
     return (
-        None if expiration is None else datetime.datetime.fromtimestamp(int(expiration))
+        None
+        if expiration is None
+        else (datetime.datetime.utcnow() + datetime.timedelta(days=int(expiration)))
     )

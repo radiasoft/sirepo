@@ -2,7 +2,7 @@
 // needs to be here so test.sh doesn't see it
 SIREPO.srlog = (...args) => {console.log(
     (new Date().toISOString()).substring(11, 19),
-    (new Error()).stack.split("\n")[2].match(/\(([^)]+)\)/)?.[1] || "unknown location",
+    (new Error()).stack.split("\n")[2].match(/\(([^)]+)\)/)?.[1] || "[unknown line number]",
     ...args,
 );};
 SIREPO.srdbg = SIREPO.srlog;
@@ -309,11 +309,6 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
             Server reported an error, please contact
             ${SIREPO.APP_SCHEMA.feature_config.support_email}.
         `;
-    };
-
-    self.isPremiumUser = function() {
-        // positive test (vs just testing 'basic')
-        return self.paymentPlan == 'premium';
     };
 
     self.paymentPlanName = function() {
@@ -4614,6 +4609,7 @@ SIREPO.app.controller('LoginWithController', function (authState, errorService, 
         requestSender.localRedirect('login');
     }
 });
+
 
 SIREPO.app.controller('LoginConfirmController', function (authState, requestSender, $route) {
     var self = this;
