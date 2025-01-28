@@ -698,9 +698,8 @@ SIREPO.app.directive('listSearch', function(panelState, utilities) {
             </div>
        `,
         controller: function($scope, $element) {
-            let sel = null;
             panelState.waitForUI(() => {
-                sel = utilities.buildSearch($scope, $element, searchClass);
+                utilities.buildSearch($scope, $element, searchClass);
             });
         },
     };
@@ -5410,7 +5409,6 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate, $root
     };
 
     this.buildSearch = (scope, element, searchClass, supportsMulti) => {
-        const utilities = this;
         function findToken(text, caretPos) {
             let n = 0;
             const tokens = text.split(/\s+/);
@@ -5432,6 +5430,7 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate, $root
                 'ui-autocomplete': 'sr-dropdown',
             },
             delay: 0,
+            minLength: supportsMulti ? 1 : 2,
             select: (e, ui) => {
                 scope.$apply(() => {
                     // the jqueryui autocomplete wants to display the value instead of the

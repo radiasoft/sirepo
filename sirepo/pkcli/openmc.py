@@ -6,10 +6,12 @@
 """
 from pykern import pkcompat
 from pykern import pkio
+from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 from sirepo.template import template_common
 import copy
+import h5py
 import json
 import numpy
 import pymeshlab
@@ -24,6 +26,30 @@ import subprocess
 import uuid
 
 _DECIMATION_MAX_POLYGONS = 10000
+
+
+def create_standard_materials_file(compendium_filename):
+    import sirepo.template.openmc
+
+    m = pkjson.load_any(pkio.read_text(compendium_filename))
+    dt = numpy.dtype([("name", h5py.string_dtype()), ("ao", "f4")])
+    with h5py.File(sirepo.template.openmc.STANDARD_MATERIALS_DB, mode="w") as f:
+        for d in m.data:
+            v = PKDict(
+                name=d.Name,
+                density_g_cc=d.Density,
+                elements=[],
+                nuclides=[],
+            )
+            for e in d.Elements:
+                v.elements.append((e.Element, e.AtomFraction_whole))
+                for i in e.Isotopes:
+                    v.nuclides.append((i.Isotope, i.AtomFraction_whole))
+
+            g = f.create_group(f"/{d.Name}")
+            g.attrs["density_g_cc"] = v.density_g_cc
+            g.create_dataset("elements", data=numpy.array(v.elements, dtype=dt))
+            g.create_dataset("nuclides", data=numpy.array(v.nuclides, dtype=dt))
 
 
 def extract_dagmc(dagmc_filename):

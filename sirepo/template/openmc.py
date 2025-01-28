@@ -4,6 +4,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
+from pykern import pkcompat
 from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
@@ -11,17 +12,21 @@ from sirepo import simulation_db
 from sirepo import util
 from sirepo.template import template_common
 import CAD_to_OpenMC.assembly
+import gzip
+import h5py
 import math
 import numpy
 import re
+import shutil
 import sirepo.feature_config
 import sirepo.mpi
 import sirepo.sim_data
 import sirepo.sim_run
 import subprocess
-import h5py
 
-_CACHE_DIR = "openmc-cache"
+STANDARD_MATERIALS_DB = "pnnl-materials.h5"
+_OPENMC_CACHE_DIR = "openmc-cache"
+_STANDARD_MATERIAL_CACHE_DIR = "openmc-standard-materials"
 _OUTLINES_FILE = "outlines.h5"
 _PREP_SBATCH_PREFIX = "prep-sbatch"
 _VOLUME_INFO_FILE = "volumes.json"
@@ -211,9 +216,13 @@ def sim_frame(frame_args):
     )
 
 
-def stateful_compute_check_animation_dir(data, **kwargs):
+def stateful_compute_verify_geometry(data, **kwargs):
+    """Ensures the standard material db is available and returns the state of the
+    geometry animation directory.
+    """
+    _prep_standard_material_cache()
     return PKDict(
-        animationDirExists=simulation_db.simulation_dir(SIM_TYPE, sid=data.simulationId)
+        hasGeometry=simulation_db.simulation_dir(SIM_TYPE, sid=data.simulationId)
         .join(data.args.modelName)
         .exists()
     )
@@ -229,6 +238,48 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
         "dagmcFile",
     )
     return PKDict()
+
+
+def stateful_compute_get_standard_material_names(data, **kwargs):
+    res = []
+    with h5py.File(_prep_standard_material_cache(), mode="r") as f:
+        for n in f:
+            res.append(n)
+    return PKDict(
+        names=res,
+    )
+
+
+def stateful_compute_get_standard_material(data, **kwargs):
+    v = None
+    with h5py.File(_prep_standard_material_cache(), mode="r") as f:
+        g = f[f"/{data.args.name}"]
+        v = PKDict(
+            density_g_cc=g.attrs["density_g_cc"],
+            elements=[[pkcompat.from_bytes(x[0]), x[1]] for x in g["elements"][:]],
+            nuclides=[[pkcompat.from_bytes(x[0]), x[1]] for x in g["nuclides"][:]],
+        )
+    res = PKDict(
+        density=v.density_g_cc,
+        density_units="g/cc",
+        components=[],
+    )
+    m, c = (
+        ("add_element", "elements")
+        if data.args.wantElements
+        else ("add_nuclide", "nuclides")
+    )
+    for e in v[c]:
+        res.components.append(
+            _SIM_DATA.model_defaults("materialComponent").pkupdate(
+                component=m,
+                name=e[0],
+                percent=e[1],
+            ),
+        )
+    return PKDict(
+        material=res,
+    )
 
 
 def stateful_compute_save_weight_windows_file_to_lib(data, **kwargs):
@@ -312,7 +363,7 @@ def write_parameters(data, run_dir, is_parallel):
             template_common.render_jinja(
                 SIM_TYPE,
                 PKDict(
-                    cacheDir=sirepo.sim_run.cache_dir(_CACHE_DIR),
+                    cacheDir=sirepo.sim_run.cache_dir(_OPENMC_CACHE_DIR),
                     numThreads=data.models.openmcAnimation.ompThreads,
                     saveWeightWindowsFile=_generate_save_weight_windows(data),
                 ),
@@ -651,7 +702,7 @@ def _generate_parameters_file(data, run_dir=None):
         v.materialDirectory = "."
         v.isSBATCH = False
     else:
-        v.materialDirectory = sirepo.sim_run.cache_dir(_CACHE_DIR)
+        v.materialDirectory = sirepo.sim_run.cache_dir(_OPENMC_CACHE_DIR)
         v.isSBATCH = _is_sbatch_run_mode(data)
     v.batchSequence = _batch_sequence(data.models.settings)
     v.weightWindowsMesh = _generate_mesh(data.models.weightWindowsMesh)
@@ -1042,6 +1093,27 @@ def _planes(data):
     )
 """
     return res
+
+
+def _prep_standard_material_cache():
+    m = sirepo.sim_run.cache_dir(_STANDARD_MATERIAL_CACHE_DIR).join(
+        STANDARD_MATERIALS_DB
+    )
+    if not m.exists():
+        n = f"{STANDARD_MATERIALS_DB}.gz"
+        if not _SIM_DATA.lib_file_exists(n):
+            c = _SIM_DATA.sim_db_client()
+            c.save_from_url(
+                "{}/{}".format(
+                    sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
+                    n,
+                ),
+                c.uri(_SIM_DATA.LIB_DIR, n),
+            )
+        with gzip.open(str(_SIM_DATA.lib_file_abspath(n)), "rb") as f_in:
+            with open(str(m), "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
+    return str(m)
 
 
 def _region(data):
