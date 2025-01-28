@@ -32,6 +32,7 @@ def test_myapp(auth_fc):
     fc.sr_sim_data()
     fc.sr_logout()
     fc.sr_email_login("a@b.c")
+    fc.add_plan_trial_role()
     r = fc.sr_post(
         "listSimulations", {"simulationType": fc.sr_sim_type}, raw_response=True
     )

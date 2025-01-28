@@ -8,9 +8,11 @@ from pykern import pkinspect, pkio, pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import contextlib
+import datetime
 import shutil
 import sirepo.auth_db
 import sirepo.auth_role
+import sirepo.feature_config
 import sirepo.file_lock
 import sirepo.job
 import sirepo.quest
@@ -97,8 +99,23 @@ def _20240524_add_role_user(qcall):
     )
     qcall.auth_db.drop_table("user_role_invite_t")
     qcall.auth_db.execute_sql(
-        f"INSERT INTO user_role_t (uid, role, expiration)"
-        + f'SELECT uid, "{sirepo.auth_role.ROLE_USER}", NULL from user_registration_t'
+        f"""INSERT INTO user_role_t (uid, role, expiration)
+        SELECT uid, '{sirepo.auth_role.ROLE_USER}', NULL from user_registration_t"""
+    )
+
+
+def _20250114_add_role_plan_trial(qcall):
+    """Give all existing users a trial plan with expiration"""
+    qcall.auth_db.execute_sql(
+        """INSERT INTO user_role_t (uid, role, expiration)
+        SELECT uid, :role, :expiration FROM user_registration_t""",
+        PKDict(
+            role=sirepo.auth_role.ROLE_PLAN_TRIAL,
+            expiration=datetime.datetime.utcnow()
+            + datetime.timedelta(
+                days=sirepo.feature_config.cfg().trial_expiration_days
+            ),
+        ),
     )
 
 

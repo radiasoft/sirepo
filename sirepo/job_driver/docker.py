@@ -4,7 +4,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from __future__ import absolute_import, division, print_function
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
@@ -13,6 +12,7 @@ from sirepo import job_driver
 import io
 import os
 import re
+import sirepo.const
 import sirepo.util
 import subprocess
 import tornado.ioloop
@@ -246,7 +246,7 @@ class DockerDriver(job_driver.DriverBase):
         ), "neither cfg.tls_dir and cfg.hosts nor must be set to get auto-config"
         # dev mode only; see _cfg_tls_dir and _cfg_hosts
         cls.cfg.tls_dir = srdb.root().join("docker_tls")
-        cls.cfg.hosts = ("localhost.localdomain",)
+        cls.cfg.hosts = (sirepo.const.LOCALHOST_FQDN,)
         d = cls.cfg.tls_dir.join(cls.cfg.hosts[0])
         if d.check(dir=True):
             return

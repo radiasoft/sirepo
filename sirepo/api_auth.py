@@ -32,12 +32,15 @@ def check_api_call(qcall, func):
         a.ALLOW_SIM_TYPELESS_REQUIRE_EMAIL_USER,
         a.REQUIRE_COOKIE_SENTINEL,
         a.REQUIRE_USER,
+        a.REQUIRE_PLAN,
         a.REQUIRE_ADM,
         a.REQUIRE_PREMIUM,
     ):
         if not qcall.cookie.has_sentinel():
             raise sirepo.util.SRException("missingCookies", None)
-        if expect == a.REQUIRE_USER:
+        if expect == a.REQUIRE_PLAN:
+            qcall.auth.require_plan()
+        elif expect == a.REQUIRE_USER:
             qcall.auth.require_user()
         elif expect == a.ALLOW_SIM_TYPELESS_REQUIRE_EMAIL_USER:
             qcall.auth.require_email_user()

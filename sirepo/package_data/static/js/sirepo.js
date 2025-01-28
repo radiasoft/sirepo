@@ -2,6 +2,7 @@
 // needs to be here so test.sh doesn't see it
 SIREPO.srlog = (...args) => {console.log(
     (new Date().toISOString()).substring(11, 19),
+    (new Error()).stack.split("\n")[2].match(/\(([^)]+)\)/)?.[1] || "[unknown line number]",
     ...args,
 );};
 SIREPO.srdbg = SIREPO.srlog;
@@ -310,11 +311,6 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         `;
     };
 
-    self.isPremiumUser = function() {
-        // positive test (vs just testing 'basic')
-        return self.paymentPlan == 'premium';
-    };
-
     self.paymentPlanName = function() {
         return SIREPO.APP_SCHEMA.constants.paymentPlans[self.paymentPlan];
     };
@@ -322,12 +318,6 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
     self.sbatchHostDisplayName = self.jobRunModeMap.sbatch;
 
     self.sbatchHostIsNersc = self.sbatchHostDisplayName ? self.sbatchHostDisplayName.toLowerCase().indexOf('nersc') >= 0 : false;
-
-    self.upgradePlanLink = function() {
-        return '<a href="' + SIREPO.APP_SCHEMA.constants.plansUrl +
-            '" target="_blank">' +
-            SIREPO.APP_SCHEMA.constants.paymentPlans[self.upgradeToPlan] + '</a>';
-    };
 
     return self;
 });
@@ -4619,6 +4609,7 @@ SIREPO.app.controller('LoginWithController', function (authState, errorService, 
         requestSender.localRedirect('login');
     }
 });
+
 
 SIREPO.app.controller('LoginConfirmController', function (authState, requestSender, $route) {
     var self = this;

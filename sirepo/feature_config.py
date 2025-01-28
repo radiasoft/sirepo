@@ -216,6 +216,11 @@ def _init():
             show_open_shadow=_test('Show "Open as a New Shadow Simulation" menu item'),
             show_rsopt_ml=_test('Show "Export ML Script" menu item'),
         ),
+        trial_expiration_days=(
+            30,
+            pkconfig.parse_positive_int,
+            "number of days a sirepo trial is active",
+        ),
         trust_sh_env=(
             False,
             bool,

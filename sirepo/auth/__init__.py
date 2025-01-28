@@ -48,7 +48,7 @@ _COOKIE_USER = "srau"
 _GUEST_USER_DISPLAY_NAME = "Guest User"
 
 _PAYMENT_PLAN_BASIC = "basic"
-_PAYMENT_PLAN_PREMIUM = sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM
+_PAYMENT_PLAN_PREMIUM = sirepo.auth_role.ROLE_PLAN_PREMIUM
 _ALL_PAYMENT_PLANS = (
     _PAYMENT_PLAN_BASIC,
     _PAYMENT_PLAN_PREMIUM,
@@ -172,11 +172,9 @@ class _Auth(sirepo.quest.Attr):
             return
         u = self.logged_in_user()
         r = sirepo.auth_role.for_sim_type(t)
-        if self.qcall.auth_db.model("UserRole").has_role(
-            role=r
-        ) and not self.qcall.auth_db.model("UserRole").is_expired(role=r):
+        if self.qcall.auth_db.model("UserRole").has_active_role(role=r):
             return
-        elif r in sirepo.auth_role.for_proprietary_oauth_sim_types():
+        if r in sirepo.auth_role.for_proprietary_oauth_sim_types():
             oauth.raise_authorize_redirect(self.qcall, sirepo.auth_role.sim_type(r))
         if r in sirepo.auth_role.for_moderated_sim_types():
             auth_role_moderation.raise_control_for_user(self.qcall, u, r)
@@ -184,7 +182,7 @@ class _Auth(sirepo.quest.Attr):
 
     def _assert_role_user(self):
         u = self.logged_in_user()
-        if not self.qcall.auth_db.model("UserRole").has_role(
+        if not self.qcall.auth_db.model("UserRole").has_active_role(
             role=sirepo.auth_role.ROLE_USER,
         ):
             raise sirepo.util.Forbidden(
@@ -274,8 +272,8 @@ class _Auth(sirepo.quest.Attr):
         return s in (_STATE_COMPLETE_REGISTRATION, _STATE_LOGGED_IN)
 
     def is_premium_user(self):
-        return self.qcall.auth_db.model("UserRole").has_role(
-            role=sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
+        return self.qcall.auth_db.model("UserRole").has_active_role(
+            role=sirepo.auth_role.ROLE_PLAN_PREMIUM,
         )
 
     def logged_in_user(self, check_path=True):
@@ -493,7 +491,7 @@ class _Auth(sirepo.quest.Attr):
 
     def require_adm(self):
         u = self.require_user()
-        if not self.qcall.auth_db.model("UserRole").has_role(
+        if not self.qcall.auth_db.model("UserRole").has_active_role(
             role=sirepo.auth_role.ROLE_ADM,
         ):
             raise sirepo.util.Forbidden(
@@ -515,9 +513,20 @@ class _Auth(sirepo.quest.Attr):
         if m != METHOD_EMAIL:
             raise sirepo.util.Forbidden(f"method={m} is not email for uid={i}")
 
+    def require_plan(self):
+        from sirepo import auth_role_moderation
+
+        u = self.require_user()
+        for r in sirepo.auth_role.PLAN_ROLES:
+            if self.qcall.auth_db.model("UserRole").has_active_role(r):
+                return
+        auth_role_moderation.raise_control_for_user(
+            self.qcall, u, sirepo.auth_role.ROLE_PLAN_TRIAL
+        )
+
     def require_premium(self):
         if not self.is_premium_user():
-            raise sirepo.util.Forbidden(f"not premium user")
+            raise sirepo.util.Forbidden("not premium user")
 
     def require_user(self):
         """Asserts whether user is logged in
@@ -763,7 +772,7 @@ class _Auth(sirepo.quest.Attr):
 
     def _plan(self, data):
         r = data.roles
-        if sirepo.auth_role.ROLE_PAYMENT_PLAN_PREMIUM in r:
+        if sirepo.auth_role.ROLE_PLAN_PREMIUM in r:
             data.paymentPlan = _PAYMENT_PLAN_PREMIUM
             data.upgradeToPlan = None
         else:

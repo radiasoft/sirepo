@@ -8,20 +8,37 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo.pkcli import admin
 import contextlib
+import datetime
 import pykern.pkcli
 import sirepo.auth_role
 import sirepo.quest
 
 
-def add(uid_or_email, *roles):
-    """Assign roles to a user
+def add(uid_or_email, *roles, expiration=None):
+    """Assign roles to a user.
     Args:
         uid_or_email (str): Uid or email of the user
-        *roles: The roles to assign to the user
+        *roles (str): The roles to assign to the user
+        expiration (int): Days until expiration
     """
-
     with _parse_args(uid_or_email, roles) as qcall:
-        qcall.auth_db.model("UserRole").add_roles(roles)
+        qcall.auth_db.model("UserRole").add_roles(
+            roles, expiration=_parse_expiration(expiration)
+        )
+
+
+def add_or_update(uid_or_email, *roles, expiration=None):
+    """Add roles or update expirations to existing roles for user.
+    Args:
+        uid_or_email (str): Uid or email of the user
+        *roles (str): The roles to assign to the user
+        expiration (int): Days until expiration
+    """
+    with _parse_args(uid_or_email, roles) as qcall:
+        for r in roles:
+            qcall.auth_db.model("UserRole").add_role_or_update_expiration(
+                r, _parse_expiration(expiration)
+            )
 
 
 def add_roles(*args):
@@ -72,6 +89,16 @@ def list(uid_or_email):
         return qcall.auth_db.model("UserRole").get_roles()
 
 
+def list_with_expiration(uid_or_email):
+    """List all roles assigned to a user with their expiration.
+    Args:
+        uid_or_email (str): Uid or email of the user
+    """
+
+    with _parse_args(uid_or_email) as qcall:
+        return qcall.auth_db.model("UserRole").get_roles_and_expiration()
+
+
 def list_roles(*args):
     """DEPRECATED: Use list"""
     return list(*args)
@@ -102,3 +129,11 @@ def _parse_args(uid_or_email, roles=None):
             ), "roles={} not a subset of all_roles={}".format(roles, a)
         with qcall.auth.logged_in_user_set(u):
             yield qcall
+
+
+def _parse_expiration(expiration):
+    return (
+        None
+        if expiration is None
+        else (datetime.datetime.utcnow() + datetime.timedelta(days=int(expiration)))
+    )
