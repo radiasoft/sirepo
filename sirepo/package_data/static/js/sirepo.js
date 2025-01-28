@@ -453,6 +453,15 @@ SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, re
                             callback(resp);
                         }
                     },
+                    errorCallback: function(resp) {
+                        // give the user some feedback that the save failed
+                        if (! resp || resp.error === 'Server Error') {
+                            errorService.alertText('Save failed due to a server error');
+                        }
+                        else {
+                            errorService.alertText(resp.error);
+                        }
+                    },
                     data: lastAutoSaveData
                 };
             }

@@ -415,7 +415,7 @@ def extract_report_data(sim_in):
             .get("summaryData", {})
             .get(
                 "fieldIntensityRange",
-                [np.min(points), np.max(points)],
+                [0, 0] if np.isnan(points).all() else [np.min(points), np.max(points)],
             ),
         ),
     )
