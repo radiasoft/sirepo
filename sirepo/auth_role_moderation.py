@@ -50,21 +50,22 @@ class API(sirepo.quest.API):
                 role=role,
                 status=status,
                 moderator_uid=self.auth.logged_in_user(),
+                product_name=sirepo.simulation_db.SCHEMA_COMMON.productInfo.shortName,
             )
             if role == sirepo.auth_role.ROLE_PLAN_TRIAL:
                 return res.pkupdate(
                     role_display_name="Trial",
-                    product_name="Sirepo",
                     expiration=datetime.datetime.utcnow()
                     + datetime.timedelta(
                         days=sirepo.feature_config.cfg().trial_expiration_days
                     ),
                     additional_text=f"Your trial is active for {sirepo.feature_config.cfg().trial_expiration_days} days.",
                 )
-            a = sirepo.simulation_db.SCHEMA_COMMON.appInfo[
-                sirepo.auth_role.sim_type(role)
-            ].longName
-            return res.pkupdate(role_display_name=a, product_name=a)
+            return res.pkupdate(
+                role_display_name=sirepo.simulation_db.SCHEMA_COMMON.appInfo[
+                    sirepo.auth_role.sim_type(role)
+                ].longName
+            )
 
         def _send_moderation_status_email(info):
             sirepo.smtp.send(
