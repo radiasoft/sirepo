@@ -5529,6 +5529,13 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate, $root
 
     this.roundToPlaces = (val, p) => SIREPO.UTILS.roundToPlaces(val, p);
 
+    // Returns 0 for empty or NaN values
+    this.safeNumber = (value) => {
+        return ! value || isNaN(value)
+             ? 0
+             : value;
+    };
+
     this.trimText = function(text, maxLines, maxLength) {
         const m = text.match(new RegExp(`^(.*\n+){${maxLines}}`));
         if (m) {
