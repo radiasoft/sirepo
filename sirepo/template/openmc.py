@@ -9,7 +9,6 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 from sirepo import simulation_db
-from sirepo import util
 from sirepo.template import template_common
 import CAD_to_OpenMC.assembly
 import gzip
@@ -784,7 +783,7 @@ sirepo.sim_data.get_class("{ SIM_TYPE }").put_sim_file(
 
 def _generate_source(source):
     if source.get("type") == "file" and source.get("file"):
-        return f"openmc.IndependentSource(filename=\"{_SIM_DATA.lib_file_name_with_model_field('source', 'file', source.file)}\")"
+        return f"openmc.FileSource(\"{_SIM_DATA.lib_file_name_with_model_field('source', 'file', source.file)}\")"
     if source.space._type == "box":
         # TODO(pjm): move only_fissionable outside of box
         c = f"{{'fissionable': {source.space.only_fissionable == '1'}}}"
