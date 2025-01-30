@@ -93,13 +93,13 @@
         "ProbabilityDistribution": [
             ["None", "None"],
             ["discrete", "Discrete"],
+            ["tabularFromFile", "From File"],
             ["legendre", "Legendre"],
             ["maxwell", "Maxwell"],
             ["muir", "Muir"],
             ["normal", "Normal"],
             ["powerLaw", "PowerLaw"],
             ["tabular", "Tabular"],
-            ["tabularFromFile", "From File"],
             ["uniform", "Uniform"],
             ["watt", "Watt"]
         ],
@@ -518,7 +518,7 @@
         },
         "tabularFromFile": {
             "_super": ["_", "model", "univariate"],
-            "file": ["File", "InputFile", "", "", false],
+            "file": ["CSV File", "InputFile", "", "A CSV file with two columns: (value, probability) which will be interpolated in a Linear-Linear manner.", false],
             "interpolation": ["Interpolation", "Interpolation", "linear-linear"],
             "ignore_negative": ["Ignore negative probabilities", "Boolean", "0"]
         },
