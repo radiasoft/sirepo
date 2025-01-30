@@ -5425,6 +5425,8 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate, $root
         }
 
         const s = $(element).find(`.${searchClass}`);
+        // avoid spelling suggestions in Safari browser blocking the selection list
+        s.attr('spellcheck', false);
         s.autocomplete({
             classes: {
                 'ui-autocomplete': 'sr-dropdown',
