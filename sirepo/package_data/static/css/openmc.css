@@ -2,3 +2,8 @@
 .model-tallyReport-axis .sr-enum-button {
   min-width: 4em;
 }
+
+tr.sr-inactive td {
+  opacity: 0.8;
+  font-style: italic;
+}

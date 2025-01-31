@@ -19,7 +19,7 @@
                     <th>σ</th>
                   </thead>
                   <tbody>
-                    <tr data-ng-repeat="e in visualization.eigenvalue.slice(-visualization.eigenvalueHistory()) track by $index">
+                    <tr data-ng-repeat="e in visualization.eigenvalue.slice(-visualization.eigenvalueHistory()) track by $index" data-ng-class="{'sr-inactive': ! e.val[1] }">
                       <td>{{ e.batch }}</td>
                       <td>{{ e.val[0] }}</td>
                       <td>{{ e.val[1] || 'N/A' }}</td>
