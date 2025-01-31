@@ -2645,7 +2645,7 @@ SIREPO.app.directive('sourcesOrTalliesEditor', function(appState, panelState) {
             $scope.description = m => {
                 if (childModel === 'source')  {
                     return m.type === 'file' && m.file
-                         ? `File(filename=${m.file })`
+                         ? `FileSource(${m.file })`
                          : sourceInfo('SpatialDistribution', m.space);
                 }
                 return tallyInfo(m);

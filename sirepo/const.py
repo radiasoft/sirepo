@@ -16,6 +16,8 @@ JSON_SUFFIX = ".json"
 #: where template resources and template non-sim user files live
 LIB_DIR = "lib"
 
+LOCALHOST_FQDN = "localhost.localdomain"
+
 # matches requirements for uid and isn't actually put in the db
 MOCK_UID = "someuser"
 

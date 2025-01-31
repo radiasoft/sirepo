@@ -32,7 +32,9 @@ class APIPerm(aenum.Flag):
     REQUIRE_USER = aenum.auto()
     #: only usable on internal test systems
     INTERNAL_TEST = aenum.auto()
-    #: a user with a a premium subscription is required
+    #: a user with an active plan (any type) is required
+    REQUIRE_PLAN = aenum.auto()
+    #: a user with a premium plan is required
     REQUIRE_PREMIUM = aenum.auto()
 
 

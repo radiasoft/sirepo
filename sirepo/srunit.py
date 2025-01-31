@@ -153,6 +153,12 @@ class _TestClient:
         if feature_config.cfg().ui_websocket:
             self._websocket = _WebSocket(self)
 
+    def add_plan_trial_role(self):
+        from sirepo.pkcli import roles
+        from sirepo import auth_role
+
+        roles.add(self.sr_uid, auth_role.ROLE_PLAN_TRIAL)
+
     def assert_post_will_redirect(self, expect_re, *args, **kwargs):
         rv = self.sr_post(*args, **kwargs)
         rv.assert_http_redirect(expect_re)

@@ -51,11 +51,11 @@ def test_myapp_free_user_sim_purged(auth_fc):
 
         roles.add(
             uid,
-            auth_role.ROLE_PAYMENT_PLAN_PREMIUM,
+            auth_role.ROLE_PLAN_PREMIUM,
         )
         with srunit.quest_start() as qcall:
             r = qcall.auth_db.model("UserRole").search_all_for_column(
-                "uid", role=auth_role.ROLE_PAYMENT_PLAN_PREMIUM
+                "uid", role=auth_role.ROLE_PLAN_PREMIUM
             )
         pkunit.pkeq([uid], r, "expecting one premium user with same id")
 
@@ -70,6 +70,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
     user_free = "free@b.c"
     user_premium = "premium@x.y"
     fc.sr_email_login(user_free)
+    fc.add_plan_trial_role()
     fc.sr_email_login(user_premium)
     _make_user_premium(fc.sr_uid)
     _make_invalid_job()
@@ -95,6 +96,7 @@ def test_elegant_no_frame_after_purge(auth_fc):
     fc = auth_fc
     user_free = "free@b.c"
     fc.sr_email_login(user_free)
+    fc.add_plan_trial_role()
     d = fc.sr_sim_data(sim_name="Compact Storage Ring", sim_type="elegant")
     r = fc.sr_run_sim(d, "animation")
     with fc.sr_adjust_time(_PURGE_FREE_AFTER_DAYS + 1):

@@ -398,11 +398,11 @@ SIREPO.app.directive('canceledDueToTimeoutAlert', function(authState) {
         template: `
             <div data-ng-if="showAlert()" class="alert alert-warning" role="alert">
               <h4 class="alert-heading"><b>Canceled: Maximum runtime exceeded</b></h4>
-              <p>Your runtime limit is {{getTime()}}. To increase your maximum runtime, please upgrade to ${authState.upgradePlanLink()}.</p>
+              <p>Your runtime limit is {{getTime()}}. To increase your maximum runtime, <span data-plans-link="" link-text="{{ upgradeToLink }}"></span>.</p>
             </div>
         `,
         controller: function($scope, appState) {
-            $scope.authState = authState;
+            $scope.upgradeToLink = `please upgrade to a ${authState.upgradeToPlan} plan`;
 
             $scope.getTime = function() {
                 return appState.formatTime($scope.simState.getCanceledAfterSecs());
@@ -1787,6 +1787,20 @@ SIREPO.app.directive('pendingLinkToSimulations', function() {
             $scope.showJobsList = function() {
                 $('#' + panelState.modalId('jobsListModal')).modal('show');
             };
+        },
+    };
+});
+
+
+SIREPO.app.directive('plansLink', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            linkText: '@',
+        },
+        template: '<a data-ng-href="{{ plansUrl }}" target="_blank">{{ linkText }}</a>',
+        controller: function($scope) {
+            $scope.plansUrl = SIREPO.APP_SCHEMA.constants.plansUrl;
         },
     };
 });
@@ -3576,6 +3590,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                    <div data-disable-after-click="">
                     <button data-ng-click="login()" class="btn btn-primary">Continue</button>
                   </div>
+                  <p class="help-block">Your email address must be  associated with a university, company, or research institution.</p>
                   <p class="help-block">By signing up for Sirepo you agree to Sirepo's <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
                 </div>
               </div>
@@ -4346,17 +4361,20 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
         template: `
           <form>
             <div class="form-group">
-              <label for="requestAccessExplanation">Please describe your reason for requesting access:</label>
+              <label for="requestAccessExplanation">{{ moderationRequestReason }}:</label>
               <textarea data-ng-show="!submitted" data-ng-model="data.reason" id="requestAccessExplanation" class="form-control" rows="4" cols="50" required></textarea>
             </div>
             <button data-ng-disabled="disableSubmit" data-ng-show="!submitted" type="submit" class="btn btn-primary" data-ng-click="submitRequest()">Submit</button>
           </form>
           <div data-ng-show="submitted">Response submitted.</div>
         `,
-        controller: function(requestSender, $scope) {
+        controller: function(requestSender, $route, $scope) {
             $scope.data = {};
             $scope.submitted = false;
             $scope.disableSubmit = true;
+            $scope.moderationRequestReason = {
+                trial: `To prevent abuse of our systems all new users must supply a reason for requesting access to ${SIREPO.APP_SCHEMA.productInfo.shortName}. In a few sentences please describe how you plan to use ${SIREPO.APP_SCHEMA.productInfo.shortName}`
+            }[$route.current.params.role] ?? 'Please describe your reason for requesting access';
             $scope.submitRequest = function () {
                 const handleResponse = (data) => {
                     if (data.state === 'error') {
@@ -4762,11 +4780,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                     <button data-ng-click="cancel()" type="button" class="close" data-ng-disabled="! sbatchLoginService.query('showLogin')"><span>&times;</span></button>
                     </div>
                     <div class="modal-body">
-                        <div data-ng-show="! authState.isPremiumUser()" class="alert alert-warning" role="alert">
-                        <h4 class="alert-heading"><b>Please upgrade</b></h4>
-                        <p>Supercomputer and HPC services are only available with <a data-ng-href="{{ plansUrl }}" target="_blank">one of our paid plans</a>.</p>
-                        </div>
-                        <form name="sbatchLoginModalForm" data-ng-show="authState.isPremiumUser()">
+                        <form name="sbatchLoginModalForm">
                             <div class="sr-input-warning">{{ warning }}</div>
                             <div class="form-group">
                                 <input type="text" class="form-control" name="username" placeholder="username" autocomplete="username" data-ng-model="username" />
@@ -4802,7 +4816,6 @@ SIREPO.app.directive('sbatchLoginModal', function() {
 
 	    _resetLoginFormText();
 	    $scope.authState = authState;
-            $scope.plansUrl = SIREPO.APP_SCHEMA.constants.plansUrl;
 	    $scope.sbatchLoginService = sbatchLoginService;
 
             $scope.cancel = () => {
@@ -5412,6 +5425,8 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate, $root
         }
 
         const s = $(element).find(`.${searchClass}`);
+        // avoid spelling suggestions in Safari browser blocking the selection list
+        s.attr('spellcheck', false);
         s.autocomplete({
             classes: {
                 'ui-autocomplete': 'sr-dropdown',
@@ -5515,6 +5530,13 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate, $root
     };
 
     this.roundToPlaces = (val, p) => SIREPO.UTILS.roundToPlaces(val, p);
+
+    // Returns 0 for empty or NaN values
+    this.safeNumber = (value) => {
+        return ! value || isNaN(value)
+             ? 0
+             : value;
+    };
 
     this.trimText = function(text, maxLines, maxLength) {
         const m = text.match(new RegExp(`^(.*\n+){${maxLines}}`));

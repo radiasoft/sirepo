@@ -7,6 +7,7 @@
 from pykern.pkcollections import PKDict
 
 _MODERATED_SIM_TYPE = "myapp"
+_NON_MODERATED_SIM_TYPE = "elegant"
 
 
 def setup_module(module):
@@ -45,7 +46,14 @@ def test_moderation(auth_fc):
         "saveModerationReason",
         PKDict(
             simulationType=auth_fc.sr_sim_type,
-            reason="reason for needing moderation",
+            reason="moderation for moderated sim type",
+        ),
+    )
+    auth_fc.sr_post(
+        "saveModerationReason",
+        PKDict(
+            simulationType=_NON_MODERATED_SIM_TYPE,
+            reason="moderation for sirepo trial access",
         ),
     )
     r = auth_fc.sr_post(
@@ -60,15 +68,16 @@ def test_moderation(auth_fc):
     r = auth_fc.sr_get("admModerateRedirect")
     r.assert_http_status(200)
     r = auth_fc.sr_post("getModerationRequestRows", PKDict())
-    pkunit.pkeq(len(r.rows), 1)
-    auth_fc.sr_post(
-        "admModerate",
-        PKDict(
-            uid=r.rows[0].uid,
-            role=r.rows[0].role,
-            status="approve",
-        ),
-    )
+    pkunit.pkeq(len(r.rows), 2)
+    for r in r.rows:
+        auth_fc.sr_post(
+            "admModerate",
+            PKDict(
+                uid=r.uid,
+                role=r.role,
+                status="approve",
+            ),
+        )
     auth_fc.sr_logout()
     auth_fc.sr_email_login(a, sim_type=_MODERATED_SIM_TYPE)
     r = auth_fc.sr_sim_data()

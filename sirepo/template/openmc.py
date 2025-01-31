@@ -9,7 +9,6 @@ from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 from sirepo import simulation_db
-from sirepo import util
 from sirepo.template import template_common
 import CAD_to_OpenMC.assembly
 import gzip
@@ -106,7 +105,7 @@ def prepare_for_save(data, qcall):
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
-    return _generate_parameters_file(data)
+    return _generate_parameters_file(data, qcall=qcall)
 
 
 def sim_frame(frame_args):
@@ -546,7 +545,7 @@ def _energy_plot(run_dir, data, frame_index):
     )
 
 
-def _generate_angle(angle):
+def _generate_angle(angle, qcall):
     if angle._type == "None":
         return angle._type
     args = []
@@ -555,7 +554,7 @@ def _generate_angle(angle):
     elif angle._type == "monodirectional":
         args.append(_generate_array(angle.reference_uvw))
     elif angle._type == "polarAzimuthal":
-        args += [_generate_distribution(angle[v]) for v in ["mu", "phi"]]
+        args += [_generate_distribution(angle[v], qcall) for v in ["mu", "phi"]]
         args.append(_generate_array(angle.reference_uvw))
     else:
         raise AssertionError("unknown angle type: {}".format(angle._type))
@@ -570,7 +569,7 @@ def _generate_call(name, args):
     return "openmc.stats." + name[0].upper() + name[1:] + "(" + ", ".join(args) + ")"
 
 
-def _generate_distribution(dist):
+def _generate_distribution(dist, qcall):
     import sirepo.csv
 
     if dist._type == "None":
@@ -593,7 +592,8 @@ def _generate_distribution(dist):
                 _SIM_DATA.lib_file_abspath(
                     _SIM_DATA.lib_file_name_with_model_field(
                         dist._type, "file", dist.file
-                    )
+                    ),
+                    qcall=qcall,
                 )
             )
         ).T.tolist():
@@ -686,7 +686,7 @@ m.upper_right = {_generate_array(mesh.upper_right)}
 """
 
 
-def _generate_parameters_file(data, run_dir=None):
+def _generate_parameters_file(data, run_dir=None, qcall=None):
     report = data.get("report", "")
     if report == "tallyReport":
         return ""
@@ -714,7 +714,7 @@ def _generate_parameters_file(data, run_dir=None):
     v.runCommand = _generate_run_mode(data, v)
     v.incomplete_data_msg = ""
     v.materials = _generate_materials(data, v)
-    v.sources = _generate_sources(data, v)
+    v.sources = _generate_sources(data, v, qcall)
     v.sourceFile = _source_filename(data)
     v.maxSampleSourceParticles = SCHEMA.model.openmcAnimation.numSampleSourceParticles[
         5
@@ -782,33 +782,35 @@ sirepo.sim_data.get_class("{ SIM_TYPE }").put_sim_file(
     return ""
 
 
-def _generate_source(source):
+def _generate_source(source, qcall):
     if source.get("type") == "file" and source.get("file"):
-        return f"openmc.IndependentSource(filename=\"{_SIM_DATA.lib_file_name_with_model_field('source', 'file', source.file)}\")"
+        return f"openmc.FileSource(\"{_SIM_DATA.lib_file_name_with_model_field('source', 'file', source.file)}\")"
     if source.space._type == "box":
         # TODO(pjm): move only_fissionable outside of box
         c = f"{{'fissionable': {source.space.only_fissionable == '1'}}}"
     else:
         c = "None"
     return f"""openmc.IndependentSource(
-        space={_generate_space(source.space)},
-        angle={_generate_angle(source.angle)},
-        energy={_generate_distribution(source.energy)},
-        time={_generate_distribution(source.time)},
+        space={_generate_space(source.space, qcall)},
+        angle={_generate_angle(source.angle, qcall)},
+        energy={_generate_distribution(source.energy, qcall)},
+        time={_generate_distribution(source.time, qcall)},
         strength={source.strength},
         particle="{source.particle}",
         constraints={c},
     )"""
 
 
-def _generate_sources(data, j2_ctx):
+def _generate_sources(data, j2_ctx, qcall):
     if not len(data.models.settings.sources):
         j2_ctx.incomplete_data_msg += " No Settings Sources defined,"
         return
-    return ",\n".join([_generate_source(s) for s in data.models.settings.sources])
+    return ",\n".join(
+        [_generate_source(s, qcall) for s in data.models.settings.sources]
+    )
 
 
-def _generate_space(space):
+def _generate_space(space, qcall):
     if space._type == "None":
         return space._type
     args = []
@@ -818,14 +820,14 @@ def _generate_space(space):
             _generate_array(space.upper_right),
         ]
     elif space._type == "cartesianIndependent":
-        args += [_generate_distribution(space[v]) for v in ["x", "y", "z"]]
+        args += [_generate_distribution(space[v], qcall) for v in ["x", "y", "z"]]
     elif space._type == "cylindricalIndependent":
-        args += [_generate_distribution(space[v]) for v in ["r", "phi", "z"]]
+        args += [_generate_distribution(space[v], qcall) for v in ["r", "phi", "z"]]
         args.append(f"origin={_generate_array(space.origin)}")
     elif space._type == "point":
         args.append(_generate_array(space.xyz))
     elif space._type == "sphericalIndependent":
-        args += [_generate_distribution(space[v]) for v in ["r", "theta", "phi"]]
+        args += [_generate_distribution(space[v], qcall) for v in ["r", "theta", "phi"]]
         args.append(f"origin={_generate_array(space.origin)}")
     else:
         raise AssertionError("unknown space type: {}".format(space._type))

@@ -7,6 +7,7 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import csv
+import re
 
 _ENCODINGS = ("cp1252", "utf-8", "utf-8-sig")
 
@@ -26,9 +27,13 @@ def read_as_number_list(path):
 
 def read_as_list(path, data_type=str):
     for e in _ENCODINGS:
+        skip_header = data_type != str
         try:
             res = []
             for r in open_csv(path, encoding=e):
+                if skip_header and len(r) and re.search(r"[A-Za-z]", r[0]):
+                    skip_header = False
+                    continue
                 res.append([data_type(c) for c in r])
             return res
         except (TypeError, UnicodeDecodeError, ValueError):

@@ -4,6 +4,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
+import getpass
 import os
 
 
@@ -14,6 +15,8 @@ def setup_module(module):
         # Need to set these manually when in non-dev-mode
         SIREPO_COOKIE_IS_SECURE="0",
         SIREPO_COOKIE_PRIVATE_KEY="MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=",
+        SIREPO_AUTH_ROLE_MODERATION_MODERATOR_EMAIL=getpass.getuser()
+        + "@localhost.localdomain",
         # Avoids srw/predefined.json check
         SIREPO_FEATURE_CONFIG_SIM_TYPES="myapp",
         SIREPO_SMTP_PASSWORD="dev",
@@ -47,6 +50,7 @@ def test_runError(fc):
     from pykern.pkdebug import pkdc, pkdp, pkdlog
     import time
 
+    fc.add_plan_trial_role()  # Need to add explicitly when not in dev
     d = fc.sr_sim_data()
     d.models.simulation.name = "srunit_error_run"
     d = fc.sr_post(
@@ -65,5 +69,4 @@ def test_runError(fc):
             return
         time.sleep(1)
         d = fc.sr_post("runStatus", d.nextRequest)
-    else:
-        pkunit.pkfail("Error never returned d={}", d)
+    pkunit.pkfail("Error never returned d={}", d)

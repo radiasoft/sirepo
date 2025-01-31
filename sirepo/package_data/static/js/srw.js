@@ -68,7 +68,7 @@ SIREPO.app.config(function() {
     SIREPO.BEAMLINE_WATCHPOINT_MODEL_PREFIX = 'beamlineAnimation';
 });
 
-SIREPO.app.factory('srwService', function(activeSection, appDataService, appState, beamlineService, panelState, requestSender, $location, $rootScope) {
+SIREPO.app.factory('srwService', function(appDataService, appState, beamlineService, panelState, requestSender, utilities, $location, $rootScope) {
     var self = {};
     self.showCalcCoherence = false;
 
@@ -146,7 +146,6 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
             // update plot size info from summaryData
             if (appState.isLoaded()) {
                 var range = info.fieldRange;
-                // var intensityRange = info.fieldIntensityRange;
                 var m = appState.models[modelKey];
                 // only set the default plot range if no override is currently used
                 if (m && 'usePlotRange' in m && m.usePlotRange == '0') {
@@ -157,8 +156,8 @@ SIREPO.app.factory('srwService', function(activeSection, appDataService, appStat
                     appState.saveQuietly(modelKey);
                 }
                 if (m && 'useIntensityLimits' in m && m.useIntensityLimits == '0') {
-                    m.minIntensityLimit = info.fieldIntensityRange[0]; // intensityRange[0];
-                    m.maxIntensityLimit = info.fieldIntensityRange[1]; // intensityRange[1];
+                    m.minIntensityLimit = utilities.safeNumber(info.fieldIntensityRange[0]);
+                    m.maxIntensityLimit = utilities.safeNumber(info.fieldIntensityRange[1]);
                     appState.saveQuietly(modelKey);
                 }
             }
