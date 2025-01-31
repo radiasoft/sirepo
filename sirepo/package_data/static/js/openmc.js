@@ -2164,6 +2164,7 @@ SIREPO.app.directive('volumeSelector', function(appState, openmcService, panelSt
                     row.material = appState.setModelDefaults(
                         {
                             name: row.name,
+                            density: row.density,
                         },
                         'material');
                 }

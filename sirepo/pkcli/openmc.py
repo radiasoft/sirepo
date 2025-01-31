@@ -11,14 +11,13 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 from sirepo.template import template_common
 import copy
+import dagmc
 import h5py
 import json
 import numpy
 import pymeshlab
-import pymoab.core
-import pymoab.rng
-import pymoab.types
 import re
+import sirepo.const
 import sirepo.mpi
 import sirepo.simulation_db
 import sirepo.util
@@ -53,7 +52,11 @@ def create_standard_materials_file(compendium_filename):
 
 
 def extract_dagmc(dagmc_filename):
-    gc = _MoabGroupCollector(dagmc_filename)
+    s = pkio.py_path(sirepo.const.SIM_RUN_INPUT_BASENAME)
+    dm = None
+    if s.exists():
+        dm = sirepo.simulation_db.read_json(s).models
+    gc = _MoabGroupCollector(dagmc_filename, dm)
     sirepo.mpi.restrict_ops_to_first_node(_MoabGroupExtractor(gc).get_items())
     res = PKDict()
     for g in gc.groups:
@@ -98,54 +101,46 @@ def step_to_dagmc(input_step_filename, output_dagmc_filename, threads=1):
 
 
 class _MoabGroupCollector:
-    def __init__(self, dagmc_filename):
-        mb = pymoab.core.Core()
-        mb.load_file(dagmc_filename)
+    def __init__(self, dagmc_filename, sim_models):
         self.dagmc_filename = dagmc_filename
-        self._id_tag = self._tag(mb, "GLOBAL_ID")
-        self._name_tag = self._tag(mb, "NAME")
-        self.groups = self._groups_and_volumes(mb)
+        self.groups = self._groups_and_volumes(sim_models)
 
-    def _groups(self, mb):
-        for g in mb.get_entities_by_type_and_tag(
-            mb.get_root_set(),
-            pymoab.types.MBENTITYSET,
-            [self._tag(mb, "CATEGORY")],
-            ["Group"],
-        ):
-            yield g
-
-    def _groups_and_volumes(self, mb):
+    def _groups_and_volumes(self, sim_models):
         res = PKDict()
-        for g in self._groups(mb):
-            n, d = self._parse_entity_name_and_density(mb, g)
+        for g in dagmc.DAGModel(self.dagmc_filename).groups_by_name.values():
+            n, d = self._parse_entity_name_and_density(g.name)
             if not n:
                 continue
-            v = [h for h in mb.get_entities_by_handle(g)]
+            if not g.name.startswith("mat:"):
+                continue
+            v = g.volumes
             if not v:
                 continue
-            res.pksetdefault(n, lambda: PKDict(name=n, volumes=[], density=d))
-            res[n].volumes[0:0] = v
+            res[n] = PKDict(
+                name=n,
+                full_name=g.name,
+                density=d,
+                volume_count=len(v),
+                vol_id=self._volume_id(n, v, sim_models),
+            )
         for g in res.values():
-            g.vol_id = self._tag_value(mb, self._id_tag, g.volumes[0])
             if re.search(r"\_comp$", g.name):
                 g.name = re.sub(r"\_comp$", "", g.name)
                 g.is_complement = True
         return tuple(res.values())
 
-    def _parse_entity_name_and_density(self, mb, group):
-        m = re.search(
-            r"^mat:(.*?)(?:/rho:(.*))?$", self._tag_value(mb, self._name_tag, group)
-        )
+    def _parse_entity_name_and_density(self, name):
+        m = re.search(r"^mat:(.*?)(?:/rho:(.*))?$", name)
         if m:
             return m.group(1), m.group(2)
         return None, None
 
-    def _tag(self, mb, name):
-        return mb.tag_get_handle(getattr(pymoab.types, f"{name}_TAG_NAME"))
-
-    def _tag_value(self, mb, tag, handle):
-        return str(mb.tag_get_data(tag, handle).flat[0])
+    def _volume_id(self, name, volumes, sim_models):
+        # for backward compatibility, allows finding a volume from an
+        # old import which assigned volId differently
+        if sim_models and "volumes" in sim_models and name in sim_models.volumes:
+            return sim_models.volumes[name].volId
+        return str(volumes[0].id)
 
 
 class _MoabGroupExtractor:
@@ -192,14 +187,15 @@ class _MoabGroupExtractor:
             self._items.append(
                 _MoabGroupExtractorOp(
                     dagmc_filename=collector.dagmc_filename,
-                    name=g.name,
                     vol_id=g.vol_id,
-                    volumes=g.volumes,
+                    volume_count=g.volume_count,
+                    name=g.name,
+                    full_name=g.full_name,
                     processor=self,
                 )
             )
         # process longest volume sets first
-        self._items.sort(key=lambda v: -len(v.volumes))
+        self._items.sort(key=lambda v: -v.volume_count)
 
     def get_items(self):
         return self._items
@@ -232,19 +228,12 @@ class _MoabGroupExtractor:
         )
 
     def _extract_moab_vertices_and_triangles(self, item):
-        def _reshape3(v):
-            return v.reshape(int(len(v) / 3), 3)
-
-        mb = pymoab.core.Core()
-        mb.load_file(item.dagmc_filename)
-        vr = pymoab.rng.Range()
-        tr = pymoab.rng.Range()
-        for h in item.volumes:
-            self._get_verticies_and_triangles(mb, h, vr, tr)
-        return (
-            _reshape3(mb.get_coords(vr)),
-            _reshape3(numpy.searchsorted(vr, mb.get_connectivity(tr))),
+        t, v = (
+            dagmc.DAGModel(item.dagmc_filename)
+            .groups_by_name[item.full_name]
+            .get_triangle_conn_and_coords(True)
         )
+        return (v, t)
 
     def _get_points_and_polys(self, points, polys):
         return PKDict(
@@ -252,19 +241,6 @@ class _MoabGroupExtractor:
             # inserts polygon point count (always 3 for triangles)
             polys=numpy.insert(polys, 0, 3, axis=1).ravel(),
         )
-
-    def _get_verticies_and_triangles(
-        self, mb, handle, verticies, triangles, visited=None
-    ):
-        if visited is None:
-            visited = set()
-        verticies.merge(mb.get_entities_by_type(handle, pymoab.types.MBVERTEX))
-        triangles.merge(mb.get_entities_by_type(handle, pymoab.types.MBTRI))
-        for c in mb.get_child_meshsets(handle):
-            if c in visited:
-                continue
-            visited.add(c)
-            self._get_verticies_and_triangles(mb, c, verticies, triangles, visited)
 
     def _write_mesh(self, vol_id, points, polys):
         ms = pymeshlab.MeshSet()
