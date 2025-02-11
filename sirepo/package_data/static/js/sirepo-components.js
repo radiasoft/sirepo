@@ -4776,7 +4776,7 @@ SIREPO.app.directive('sbatchLoginModal', function() {
               <div class="modal-dialog" role="document">
                 <div class="modal-content">
                   <div class="modal-header bg-warning">
-                    <span class="lead modal-title text-info">Login to {{ authState.sbatchHostDisplayName }}</span>
+                    <span class="lead modal-title text-info">{{ loginHeading() }}</span>
                     <button data-ng-click="cancel()" type="button" class="close" data-ng-disabled="! sbatchLoginService.query('showLogin')"><span>&times;</span></button>
                     </div>
                     <div class="modal-body">
@@ -4822,6 +4822,8 @@ SIREPO.app.directive('sbatchLoginModal', function() {
                 _resetLoginForm();
                 sbatchLoginService.event('credsCancel');
             };
+
+            $scope.loginHeading = () => sbatchLoginService.loginButtonLabel();
 
             $scope.submit = () => {
                 $scope.warning = null;
