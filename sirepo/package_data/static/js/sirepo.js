@@ -1737,10 +1737,11 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
 });
 
 
-SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, srCache, $interval, $rootScope, $timeout) {
-    var self = {};
-    var frameCountByModelKey = {};
-    var masterFrameCount = 0;
+SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, srCache, $rootScope, $timeout) {
+    const self = {};
+    let frameCountByModelKey = {};
+    let masterFrameCount = 0;
+    const requestByModelKey = {};
     self.modelToCurrentFrame = {};
 
     function frameId(frameReport, frameIndex) {
@@ -1782,92 +1783,105 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, s
         return self.modelToCurrentFrame[modelName] || 0;
     };
 
-    self.getFrame = function(modelName, index, isPlaying, callback) {
-        const isHidden = panelState.isHidden(modelName);
-        let frameRequestTime = now();
-        let setPanelStateIsLoadingTimer = null;
+    self.getFrame = function(modelKey, index, isPlaying, callback) {
+        let loadingTimer = null;
 
-	function cancelSetPanelStateIsLoadingTimer() {
-	    if (setPanelStateIsLoadingTimer) {
-		$timeout.cancel(setPanelStateIsLoadingTimer);
-		setPanelStateIsLoadingTimer = null;
-	    }
-	}
-
-        function onError(response) {
-	    if (! (response && response.error)) {
-                panelState.reportNotGenerated(modelName);
-            }
-            else if (! response.sbatchLoginServiceSRException) {
-                panelState.setLoading(modelName, false);
-                panelState.setError(modelName, response.error);
-            }
-            cancelSetPanelStateIsLoadingTimer();
-        }
-
-        function now() {
-            return new Date().getTime();
-        }
-
-        const framePeriod = () => {
-            if (! isPlaying || isHidden) {
-                return 0;
-            }
-            const milliseconds = 1000;
-            var x = appState.models[modelName].framesPerSecond;
-            if (! x) {
-                return  0.5 * milliseconds;
-            }
-            return  milliseconds / parseInt(x);
-        };
-
-        const callbackData = (data) => {
-            let e = framePeriod() - (now() - frameRequestTime);
-            if (e <= 0) {
+        const callbackData = (data, frameRequestTime) => {
+            const t = framePeriod() - (now() - frameRequestTime);
+            if (t <= 0) {
                 callback(index, data);
                 return;
             }
-            $interval(
-                function() {
-                    callback(index, data);
-                },
-                e,
-                1
-            );
+            $timeout(() => callback(index, data), t);
         };
 
-        const requestFunction = function() {
-            const id = frameId(modelName, index);
-            srCache.getFrame(id, modelName, (data) => {
-                if (data) {
-                    callbackData(data);
+	const cancelLoadingTimer = () => {
+            panelState.setLoading(modelKey, false);
+	    if (loadingTimer) {
+		$timeout.cancel(loadingTimer);
+		loadingTimer = null;
+	    }
+	};
+
+        const framePeriod = () => {
+            if (! isPlaying || panelState.isHidden(modelKey)) {
+                return 0;
+            }
+            const s = appState.models[modelKey].framesPerSecond;
+            return 1000 / (s && parseInt(s) ? parseInt(s) : 2);
+        };
+
+        const now = () => new Date().getTime();
+
+        const onError = (response) => {
+	    if (! (response && response.error)) {
+                panelState.reportNotGenerated(modelKey);
+            }
+            else if (! response.sbatchLoginServiceSRException) {
+                panelState.setError(modelKey, response.error);
+            }
+            cancelLoadingTimer();
+        };
+
+        const checkNextRequest = () => {
+            const i = requestByModelKey[modelKey];
+            delete requestByModelKey[modelKey];
+            if (i != index) {
+                index = i;
+                // avoid a recursive stack overflow
+                $timeout(() => requestFunction(true), 0);
+            }
+        };
+
+        const requestFunction = (isRetry) => {
+            const id = frameId(modelKey, index);
+            const frameRequestTime = now();
+            srCache.getFrame(id, modelKey, (data) => {
+                if (isRetry && modelKey in requestByModelKey) {
+                    // another frame has been requested since the retry was started
                     return;
                 }
-                setPanelStateIsLoadingTimer = $timeout(() => {
-                    panelState.setLoading(modelName, true);
-                }, 5000);
+                if (data) {
+                    callbackData(data, frameRequestTime);
+                    return;
+                }
+                if (modelKey in requestByModelKey) {
+                    requestByModelKey[modelKey] = index;
+                    return;
+                }
+                if (! loadingTimer) {
+                    loadingTimer = $timeout(() => {
+                        panelState.setLoading(modelKey, true);
+                    }, 5000);
+                }
+                requestByModelKey[modelKey] = index;
                 requestSender.sendRequest(
                     {
                         routeName: 'simulationFrame',
                         frame_id: id,
                     },
-                    function(data) {
-                        cancelSetPanelStateIsLoadingTimer();
-                        panelState.setLoading(modelName, false);
+                    (data) => {
+                        cancelLoadingTimer();
                         if ('state' in data && data.state === 'missing') {
                             onError();
-                            return;
                         }
-                        callbackData(data);
-                        srCache.saveFrame(id, modelName, data);
+                        else {
+                            callbackData(data, frameRequestTime);
+                            srCache.saveFrame(id, modelKey, data);
+                        }
+                        checkNextRequest();
                     },
                     null,
-                    onError
+                    (response) => {
+                        onError(response);
+                        checkNextRequest();
+                    }
                 );
             });
         };
-        if (isHidden) {
-            panelState.addPendingRequest(modelName, requestFunction);
+
+        if (panelState.isHidden(modelKey)) {
+            panelState.setPendingRequest(modelKey, requestFunction);
         }
         else {
             requestFunction();
@@ -2145,10 +2159,6 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
         return uri.format(route, {...a, ...args});
     }
 
-    self.addPendingRequest = function(name, requestFunction) {
-        pendingRequests[name] = requestFunction;
-    };
-
     self.clear = function(name) {
         if (name) {
             clearPanel(name);
@@ -2332,7 +2342,7 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
         if (queueItems[name]) {
             simulationQueue.cancelItem(queueItems[name]);
         }
-        self.addPendingRequest(name, function() {
+        self.setPendingRequest(name, () => {
             queueItems[name] = sendRequest(name, wrappedCallback, errorCallback);
         });
         if (! self.isHidden(name)) {
@@ -2359,6 +2369,8 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
     self.setLoading = (name, isLoading) => setPanelValue(name, 'loading', isLoading);
 
     self.setData = (name, data) => setPanelValue(name, 'data', data);
+
+    self.setPendingRequest = (name, requestFunction) =>  pendingRequests[name] = requestFunction;
 
     self.setWaiting = (name, isWaiting) => {
         setPanelValue(name, 'waiting', isWaiting);
