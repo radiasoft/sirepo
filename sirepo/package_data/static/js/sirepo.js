@@ -3760,11 +3760,9 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
 	    }
             setSimulationStatus(data);
             if (state.isStopped()) {
-                state.timeData.elapsedTime = Math.max(
-                    state.timeData.elapsedTime || 0, data.elapsedTime
-                );
+                state.timeData.elapsedTime = data.elapsedTime;
             }
-            else {
+            else if (data.elapsedTime) {
                 startElapsedTimeTimer(data.elapsedTime);
             }
             if (data.hasOwnProperty('percentComplete')) {
@@ -3830,10 +3828,10 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
 
         function startElapsedTimeTimer(elapsedTime) {
             var d = state.timeData;
+            d.elapsedTime = elapsedTime;
             if (d.elapsedTimeTimer) {
                 return;
             }
-            d.elapsedTime = elapsedTime;
             d.elapsedTimeTimer = $interval(
                 function() {
                     if (! state.simulationQueueItem || state.simulationQueueItem.qState == 'removing') {
@@ -3950,6 +3948,7 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             if (state.isStateRunning()) {
                 return;
             }
+            state.timeData = {};
             //TODO(robnagler) should be part of simulationStatus
             frameCache.setFrameCount(0);
             srCache.clearFrames(appState.models.simulation.simulationId);

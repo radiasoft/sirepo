@@ -4967,7 +4967,7 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
             <div data-canceled-due-to-timeout-alert="simState"></div>
             <form name="form" class="form-horizontal" autocomplete="off" novalidate data-ng-show="simState.isStopped()">
               <div data-ng-show="simState.getFrameCount() > 0" data-simulation-stopped-status="simState"><br><br></div>
-              <div data-ng-show="simState.getFrameCount() > 0">
+              <div data-ng-show="simState.hasTimeData()">
                 <div class="col-sm-12" data-simulation-status-timer="simState"></div>
               </div>
               <div data-job-settings-sbatch-login-and-start-simulation data-sim-state="simState" data-start-simulation="start()"></div>

@@ -124,11 +124,13 @@ class API(pykern.quest.API):
         if not isinstance(parent, API):
             raise AssertionError(f"invalid parent type={type(parent)}")
         # must be right after initialization
-        if not (len(self._bucket.keys()) == 1 and len(self.keys()) == 1):
+        if not (len(self._bucket.keys()) == 1 and len(self.keys()) == 2):
             raise AssertionError(f"must be first call after __init__; child={self}")
         # In insertion order so already sorted topologically. _bucket will
         # be reinitialized, but it knows that.
         for k, v in parent.items():
+            if k == "_destroyed":
+                continue
             if k == "_bucket":
                 self._bucket.init_bucket_for_child(parent)
                 continue
