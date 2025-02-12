@@ -2566,6 +2566,8 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                     <div data-ng-show="! simState.isStatePending() && particleNumber">
                       Completed {{ runStepName }}: {{ particleNumber }} / {{ particleCount}}
                     </div>
+                  </div>
+                  <div data-ng-show="simState.hasTimeData()">
                     <div data-simulation-status-timer="simState" data-ng-show="! isFluxWithApproximateMethod()"></div>
                   </div>
                 </div>

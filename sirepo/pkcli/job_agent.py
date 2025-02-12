@@ -1230,9 +1230,8 @@ class _SbatchRunStatus(_SbatchCmd):
                 return False
             rv = True
             if prev == job.PENDING and curr in (job.RUNNING, job.COMPLETED):
-                self._sbatch_status.pksetdefault(
-                    computeJobStart=lambda: int(time.time())
-                )
+                if not self._sbatch_status.get('computeJobStart'):
+                    self._sbatch_status.computeJobStart = int(time.time())
             if curr == job.COMPLETED:
                 curr = job.JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP
                 # waits for parallelStatus from job_cmd to send COMPLETED
