@@ -1078,6 +1078,9 @@ class _ComputeJob(_Supervisor):
         return await self._send_op_analysis(req, "stateless_compute")
 
     def _is_sbatch_login_ok(self, req):
+        r = req.content.get("jobRunMode", self.db.jobRunMode)
+        if r not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
+            return False
         o = self._create_op(job.OP_SBATCH_AGENT_READY, req)
         try:
             return o.assign_driver().agent_is_ready_or_starting()
