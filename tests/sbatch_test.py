@@ -51,6 +51,8 @@ def test_srw_cancel(fc):
             r,
         )
         if r.state == "running" and _squeue_num_jobs() == 1:
+            if not r.nextRequest.get("computeJobStart"):
+                pkfail("Missing computeJobStart or falsey reply={}", r)
             break
         r = fc.sr_post("runStatus", r.nextRequest)
     r = fc.sr_post("runCancel", r.nextRequest)
