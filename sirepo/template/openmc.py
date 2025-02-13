@@ -892,7 +892,9 @@ t{tally._index + 1}.filters = ["""
     openmc.ParticleFilter([{'"' + '","'.join(v.value for v in f.bins) + '"'}]),
 """
         else:
-            raise AssertionError("filter not yet implemented: {}".format(f._type))
+            raise AssertionError("Unknown filter selected: {}".format(f._type))
+    if not len(tally.scores):
+        raise AssertionError(f"Tally {tally.name} has no scores defined")
     res += f"""]
 t{tally._index + 1}.scores = [{','.join(["'" + s.score + "'" for s in tally.scores])}]
 """

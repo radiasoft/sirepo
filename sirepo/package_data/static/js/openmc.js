@@ -14,7 +14,10 @@ SIREPO.app.config(() => {
     `;
     SIREPO.appFieldEditors = `
         <div data-ng-switch-when="Point3D" class="col-sm-7">
-          <div data-point3d="" data-model="model" data-field="field"></div>
+          <div data-point3d="" data-model="model" data-field="field" data-type="Float"></div>
+        </div>
+        <div data-ng-switch-when="Size3D" class="col-sm-7">
+          <div data-point3d="" data-model="model" data-field="field" data-type="integer" data-min="1"></div>
         </div>
         <div data-ng-switch-when="MaterialComponents" class="col-sm-12">
           <div data-material-components=""></div>
@@ -2549,12 +2552,15 @@ SIREPO.app.directive('point3d', function() {
         scope: {
             model: '=',
             field: '=',
+            type: '@',
+            min: '@',
         },
         template: `
             <div data-ng-repeat="v in model[field] track by $index"
               style="display: inline-block; width: 7em; margin-right: 5px;" >
-              <input class="form-control" data-string-to-number="Float"
+              <input class="form-control" data-string-to-number="{{ type }}"
                 data-ng-model="model[field][$index]"
+                data-min="min"
                 style="text-align: right" required />
             </div>
         `,
