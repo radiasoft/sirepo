@@ -898,6 +898,9 @@ t{tally._index + 1}.filters = ["""
     res += f"""]
 t{tally._index + 1}.scores = [{','.join(["'" + s.score + "'" for s in tally.scores])}]
 """
+    if tally.estimator != "default":
+        res += f"""t{tally._index + 1}.estimator = "{tally.estimator}"
+"""
     if len(tally.nuclides):
         res += f"""
 t{tally._index + 1}.nuclides = [{','.join(["'" + s.nuclide + "'" for s in tally.nuclides if s.nuclide])}]
