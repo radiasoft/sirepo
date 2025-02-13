@@ -223,6 +223,8 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_plan")
     async def api_sbatchLoginStatus(self):
+        if sirepo.job.SBATCH not in simulation_db.JOB_RUN_MODE_MAP:
+            raise AssertionError(f"{sirepo.job.SBATCH} jobRunMode is not enabled")
         return await self._request_api(
             _request_content=self._request_content(
                 PKDict(computeJobHash="unused", jobRunMode=sirepo.job.SBATCH),

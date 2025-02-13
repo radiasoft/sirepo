@@ -3927,6 +3927,12 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
         };
 
         state.resetSimulation = function() {
+            // ensure the selected jobRunMode is present
+            const m = appState.models[state.model];
+            if (m && m.jobRunMode && ! (m.jobRunMode in authState.jobRunModeMap)) {
+                m.jobRunMode = 'parallel';
+                appState.saveQuietly(state.model);
+            }
             setSimulationStatus({state: 'missing'});
             frameCache.setFrameCount(0);
             appState.whenModelsLoaded(controller.simScope, runStatus);
