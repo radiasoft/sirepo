@@ -1126,10 +1126,12 @@ def _prep_standard_material_cache():
 def _region(data):
     res = ""
     for i, p in enumerate(data.models.reflectivePlanes.planesList):
+        if res:
+            res += " & "
         if p.inside == "1":
-            res += f"& +p{i + 1} "
+            res += f"+p{i + 1}"
         else:
-            res += f"& -p{i + 1} "
+            res += f"-p{i + 1}"
     return res
 
 
