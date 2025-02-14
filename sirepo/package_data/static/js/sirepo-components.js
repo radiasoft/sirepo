@@ -4955,8 +4955,11 @@ SIREPO.app.directive('simStatusPanel', function(appState) {
               <div data-pending-link-to-simulations="" data-sim-state="simState"></div>
               <div data-ng-show="simState.isStateRunning()">
                 <div class="col-sm-12">
-                  <div data-ng-show="simState.isInitializing()">{{ initMessage() }} {{ simState.dots }}</div>
-                  <div data-ng-show="simState.getFrameCount() > 0">{{ runningMessage(); }}</div>
+                  <div>
+                    <div data-ng-show="simState.isInitializing()">{{ initMessage() }} {{ simState.dots }}</div>
+                    <div data-ng-show="simState.getFrameCount() > 0">{{ runningMessage(); }}</div>
+                    <div data-simulation-status-timer="simState"></div>
+                  </div>
                   <div data-sim-state-progress-bar="" data-sim-state="simState"></div>
                 </div>
               </div>
