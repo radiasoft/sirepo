@@ -1419,7 +1419,7 @@ SIREPO.app.directive('geometry3d', function(appState, openmcService, plotting, p
         },
         template: `
             <div data-vtk-display="" class="vtk-display col-sm-11"
-                  data-ng-style="sizeStyle()" data-show-border="true"
+                  data-ng-style="sizeStyle()"
                   data-model-name="{{ modelName }}"
                   data-reset-side="y" data-reset-direction="-1"
                   data-enable-axes="true" data-axis-cfg="axisCfg"
