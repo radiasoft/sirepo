@@ -11,7 +11,7 @@ import openmc_data_downloader
 def create_mgxs_library(geometry, materials):
     mgxs_lib = openmc.mgxs.Library(geometry)
     mgxs_lib.energy_groups = openmc.mgxs.EnergyGroups(
-        openmc.mgxs.GROUP_STRUCTURES["CASMO-2"]
+        openmc.mgxs.GROUP_STRUCTURES["{{ settings_energyGroup }}"]
     )
     mgxs_lib.correction = None
     mgxs_lib.mgxs_types = [
@@ -78,7 +78,7 @@ def create_settings():
     settings = openmc.Settings()
     {% if settings_materialDefinition == 'mgxs' %}
     settings.energy_mode = "multi-group"
-    {% endif %}    
+    {% endif %}
     settings.batches = {{ settings_batches }}
     settings.statepoint = dict(
         batches={{ batchSequence }},

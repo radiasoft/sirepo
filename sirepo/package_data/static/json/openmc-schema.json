@@ -51,6 +51,28 @@
             ["sum", "sum"],
             ["macro", "macro"]
         ],
+        "EnergyGroup": [
+            ["CASMO-2", "CASMO-2"],
+            ["CASMO-4", "CASMO-4"],
+            ["CASMO-8", "CASMO-8"],
+            ["CASMO-16", "CASMO-16"],
+            ["CASMO-25", "CASMO-25"],
+            ["CASMO-40", "CASMO-40"],
+            ["CASMO-70", "CASMO-70"],
+            ["CCFE-709", "CCFE-709"],
+            ["ECCO-1968", "ECCO-1968"],
+            ["MPACT-51", "MPACT-51"],
+            ["MPACT-60", "MPACT-60"],
+            ["MPACT-69", "MPACT-69"],
+            ["SCALE-44", "SCALE-44"],
+            ["SCALE-252", "SCALE-252"],
+            ["SHEM-361", "SHEM-361"],
+            ["TRIPOLI-315", "TRIPOLI-315"],
+            ["UKAEA-1102", "UKAEA-1102"],
+            ["VITAMIN-J-42", "VITAMIN-J-42"],
+            ["VITAMIN-J-175", "VITAMIN-J-175"],
+            ["XMAS-172", "XMAS-172"]
+        ],
         "EnrichmentType": [
             ["none", ""],
             ["ao", "ao"],
@@ -490,7 +512,8 @@
             "weightWindowsFile": ["File", "InputFile", ""],
             "materialDefinition": ["Material definition", "MaterialDefinition", "library"],
             "mgxsFile": ["MGXS material file", "InputFile", ""],
-            "generateMGXS": ["Generate MGXS data file", "Boolean", "0", "Create a multi-group cross section file during simulation"]
+            "generateMGXS": ["Generate MGXS data file", "Boolean", "0", "Create a multi-group cross section file during simulation"],
+            "energyGroup": ["MGXS Energy Group", "EnergyGroup", "CASMO-2"]
         },
         "source": {
             "angle": ["Angular distribution", "UnitSphere", {"_type": "None"}],
@@ -810,7 +833,8 @@
                     "materialLibrary",
                     "mgxsFile",
                     "photon_transport",
-                    "generateMGXS"
+                    "generateMGXS",
+                    "energyGroup"
                 ]],
                 ["Sources", [
                     "sources"

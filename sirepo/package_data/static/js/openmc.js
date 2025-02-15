@@ -2898,6 +2898,7 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
             ['weightWindowsFile'], m.varianceReduction === 'weight_windows_file',
             ['materialLibrary', 'generateMGXS'], m.materialDefinition === 'library',
             ['mgxsFile'], m.materialDefinition == 'mgxs',
+            ['energyGroup'], m.generateMGXS == '1',
         ]);
         validationService.validateField(
             $scope.modelName,
@@ -2917,6 +2918,7 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
             `${$scope.modelName}.inactive`,
             `${$scope.modelName}.varianceReduction`,
             `${$scope.modelName}.materialDefinition`,
+            `${$scope.modelName}.generateMGXS`,
             'reflectivePlanes.useReflectivePlanes'
         ], updateEditor,
     ];
