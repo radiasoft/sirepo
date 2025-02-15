@@ -31,6 +31,7 @@ _PREP_SBATCH_PREFIX = "prep-sbatch"
 _VOLUME_INFO_FILE = "volumes.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _WEIGHT_WINDOWS_FILE = "weight_windows.h5"
+_MGXS_FILE = "mgxs.h5"
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -60,12 +61,14 @@ def get_data_file(run_dir, model, frame, options):
     if model == "openmcAnimation":
         if options.suffix == "log":
             return template_common.text_data_file(template_common.RUN_LOG, run_dir)
-        if options.suffix == "h5":
+        if options.suffix in ("ww", "mgxs"):
             return template_common.JobCmdFile(
-                reply_uri=_format_weight_windows_file_name(
-                    sim_in.models.simulation.name
+                reply_uri=_format_file_name(
+                    sim_in.models.simulation.name, options.suffix
                 ),
-                reply_path=run_dir.join(_WEIGHT_WINDOWS_FILE),
+                reply_path=run_dir.join(
+                    _WEIGHT_WINDOWS_FILE if options.suffix == "h5" else _MGXS_FILE
+                ),
             )
         return _statepoint_filename(
             simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
@@ -282,7 +285,7 @@ def stateful_compute_get_standard_material(data, **kwargs):
 
 
 def stateful_compute_save_weight_windows_file_to_lib(data, **kwargs):
-    n = _format_weight_windows_file_name(data.args.name)
+    n = _format_file_name(data.args.name, "ww")
     _SIM_DATA.lib_file_write(
         _SIM_DATA.lib_file_name_with_model_field(
             "settings",
@@ -624,9 +627,10 @@ def _generate_distribution(dist, qcall):
     return _generate_call(t, args)
 
 
-def _generate_materials(data, j2_ctx):
+def _generate_materials(data, errors):
     res = ""
     material_vars = []
+    is_mgxs = data.models.settings.materialDefinition == "mgxs"
     for v in data.models.volumes.values():
         if "material" not in v:
             continue
@@ -634,6 +638,10 @@ def _generate_materials(data, j2_ctx):
         material_vars.append(n)
         res += f"# {v.name}\n"
         res += f'{n} = openmc.Material(name="{v.key}", material_id={v.volId})\n'
+        if is_mgxs:
+            res += f'{n}.set_density("macro", 1.0)\n'
+            res += f'{n}.add_macroscopic(openmc.Macroscopic("{v.key}"))\n'
+            continue
         if v.material.get("density"):
             res += (
                 f'{n}.set_density("{v.material.density_units}", {v.material.density})\n'
@@ -671,7 +679,7 @@ def _generate_materials(data, j2_ctx):
             elif c.component == "add_s_alpha_beta":
                 res += f'{n}.{c.component}("{c.name}", {c.fraction})\n'
     if not len(material_vars):
-        j2_ctx.incomplete_data_msg += " No materials defined for volumes,"
+        errors.append("No materials defined for volumes")
         return
     res += "materials = openmc.Materials([" + ", ".join(material_vars) + "])\n"
     return res
@@ -704,6 +712,14 @@ def _generate_parameters_file(data, run_dir=None, qcall=None):
     else:
         v.materialDirectory = sirepo.sim_run.cache_dir(_OPENMC_CACHE_DIR)
         v.isSBATCH = _is_sbatch_run_mode(data)
+    if data.models.settings.materialDefinition == "mgxs":
+        v.mgxsFile = _SIM_DATA.lib_file_name_with_model_field(
+            "settings",
+            "mgxsFile",
+            data.models.settings.mgxsFile,
+        )
+    else:
+        v.mgxsFile = _MGXS_FILE
     v.batchSequence = _batch_sequence(data.models.settings)
     v.weightWindowsMesh = _generate_mesh(data.models.weightWindowsMesh)
     v.weightWindowsFile = _SIM_DATA.lib_file_name_with_model_field(
@@ -712,21 +728,24 @@ def _generate_parameters_file(data, run_dir=None, qcall=None):
         data.models.settings.weightWindowsFile,
     )
     v.runCommand = _generate_run_mode(data, v)
-    v.incomplete_data_msg = ""
-    v.materials = _generate_materials(data, v)
-    v.sources = _generate_sources(data, v, qcall)
+    errors = []
+    v.materials = _generate_materials(data, errors)
+    v.sources = _generate_sources(data, errors, qcall)
     v.sourceFile = _source_filename(data)
     v.maxSampleSourceParticles = SCHEMA.model.openmcAnimation.numSampleSourceParticles[
         5
     ]
-    v.tallies = _generate_tallies(data, v)
+    v.tallies = _generate_tallies(data, errors)
     v.hasGraveyard = _has_graveyard(data)
     v.region = _region(data)
     v.planes = _planes(data)
-    if v.incomplete_data_msg:
-        return (
-            f'raise AssertionError("Unable to generate sim: {v.incomplete_data_msg}")'
-        )
+    v.generateMGXS = (
+        data.models.settings.materialDefinition == "library"
+        and data.models.settings.generateMGXS == "1"
+    )
+    if len(errors):
+        e = ", ".join(errors)
+        return f'raise AssertionError("Unable to generate sim: {e}")'
     if not v.isSBATCH and not v.isPythonSource:
         v.saveWeightWindowsFile = _generate_save_weight_windows(data)
     return template_common.render_jinja(
@@ -801,9 +820,9 @@ def _generate_source(source, qcall):
     )"""
 
 
-def _generate_sources(data, j2_ctx, qcall):
+def _generate_sources(data, errors, qcall):
     if not len(data.models.settings.sources):
-        j2_ctx.incomplete_data_msg += " No Settings Sources defined,"
+        errors.append("No Settings Sources defined")
         return
     return ",\n".join(
         [_generate_source(s, qcall) for s in data.models.settings.sources]
@@ -834,9 +853,9 @@ def _generate_space(space, qcall):
     return _generate_call(space._type, args)
 
 
-def _generate_tallies(data, j2_ctx):
+def _generate_tallies(data, errors):
     if not len(data.models.settings.tallies):
-        j2_ctx.incomplete_data_msg += " No Tallies defined"
+        errors.append("No Tallies defined")
         return
     return (
         "\n".join(
@@ -849,7 +868,6 @@ def _generate_tallies(data, j2_ctx):
 tallies = openmc.Tallies([
     {','.join(['t' + str(tally._index + 1) for tally in data.models.settings.tallies])}
 ])
-tallies.export_to_xml()
 """
     )
 
@@ -1019,8 +1037,8 @@ def _parse_run_stats(run_dir, out):
                     out.results.append(_get_groups(m, 1, 2, 3))
 
 
-def _format_weight_windows_file_name(name):
-    return name.strip().replace(" ", "-") + ".h5"
+def _format_file_name(name, suffix):
+    return name.strip().replace(" ", "-") + f"-{suffix}.h5"
 
 
 def _frame_count_for_batch(batch, data):
@@ -1077,8 +1095,10 @@ def _percent_complete(run_dir, is_running):
     if res.frameCount:
         _cleanup_statepoint_files(run_dir, data, res.frameCount, is_running)
         res.tallies = data.models.settings.tallies
-        if not is_running and run_dir.join(_WEIGHT_WINDOWS_FILE).exists():
-            res.hasWeightWindowsFile = True
+        if not is_running:
+            res.hasWeightWindowsFile = run_dir.join(_WEIGHT_WINDOWS_FILE).exists()
+            res.hasMGXSFile = run_dir.join(_MGXS_FILE).exists()
+
     return res
 
 

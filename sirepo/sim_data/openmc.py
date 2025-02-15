@@ -168,6 +168,14 @@ class SimData(sirepo.sim_data.SimDataBase):
                         data.models.settings.weightWindowsFile,
                     )
                 )
+            if data.models.settings.materialDefinition == "mgxs":
+                r.append(
+                    cls.lib_file_name_with_model_field(
+                        "settings",
+                        "mgxsFile",
+                        data.models.settings.mgxsFile,
+                    )
+                )
         return r
 
     @classmethod

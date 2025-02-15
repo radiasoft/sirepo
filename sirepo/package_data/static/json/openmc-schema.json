@@ -76,6 +76,10 @@
             ["add_nuclide", "Nuclide"],
             ["add_s_alpha_beta", "S alpha beta"]
         ],
+        "MaterialDefinition": [
+            ["library", "Material Data Library"],
+            ["mgxs", "Multi-Group Cross Section File"]
+        ],
         "MaterialLibrary": [
             ["ENDFB-7.1-NNDC", "ENDFB-7.1-NNDC"],
             ["ENDFB-8.0-NNDC", "ENDFB-8.0-NNDC"],
@@ -481,9 +485,12 @@
             "run_mode": ["Run mode", "RunMode", "fixed source", "The type of calculation to perform"],
             "materialLibrary": ["Material data library", "MaterialLibrary", "ENDFB-8.0-NNDC"],
             "varianceReduction": ["Technique", "VarianceReduction", "None"],
-            "max_splits": ["Maximum splits", "Integer", 1000, "Maximum number of particle splits for weight windows"],
+            "max_splits": ["Maximum history splits", "Integer", 1e7, "Maximum number of particle splits for weight windows"],
             "outputInterval": ["Output interval", "Integer", 1, "Output interval for active batches", 1],
-            "weightWindowsFile": ["File", "InputFile", ""]
+            "weightWindowsFile": ["File", "InputFile", ""],
+            "materialDefinition": ["Material definition", "MaterialDefinition", "library"],
+            "mgxsFile": ["MGXS material file", "InputFile", ""],
+            "generateMGXS": ["Generate MGXS data file", "Boolean", "0", "Create a multi-group cross section file during simulation"]
         },
         "source": {
             "angle": ["Angular distribution", "UnitSphere", {"_type": "None"}],
@@ -799,8 +806,11 @@
                     "particles",
                     "run_mode",
                     "outputInterval",
+                    "materialDefinition",
                     "materialLibrary",
-                    "photon_transport"
+                    "mgxsFile",
+                    "photon_transport",
+                    "generateMGXS"
                 ]],
                 ["Sources", [
                     "sources"
