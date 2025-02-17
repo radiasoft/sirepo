@@ -3575,7 +3575,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
             <form class="form-horizontal" autocomplete="off" novalidate>
               <div class="form-group">
                 <div class="col-sm-offset-2 col-sm-10">
-                  <p>Enter your email address and we'll send an authorization link to your inbox.</p>
+                  <p>Enter your institutional email address. Any email or internet address associated with providers like Gmail.com, Yahoo.com, Outlook.com, etc. will be rejected. Emails associated with <a href="https://www.state.gov/countries-of-particular-concern-special-watch-list-countries-entities-of-particular-concern" target="_blank">'Countries of Particular Concern' as designated by the US State Department</a> will also be rejected.</p>
                 </div>
               </div>
               <div class="form-group">
@@ -3590,8 +3590,8 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                    <div data-disable-after-click="">
                     <button data-ng-click="login()" class="btn btn-primary">Continue</button>
                   </div>
-                  <p class="help-block">Your email address must be  associated with a university, company, or research institution.</p>
-                  <p class="help-block">By signing up for Sirepo you agree to Sirepo's <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
+                  <p class="help-block">When you click continue, we'll send an authorization link to your inbox.</p>
+                  <p class="help-block">By signing up for Sirepo you agree to Sirepo's <a href="en/privacy.html" target="_blank">privacy policy</a> and <a href="en/terms.html" target="_blank">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
                 </div>
               </div>
             </form>
@@ -3599,7 +3599,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
               <p>We just emailed a confirmation link to {{ data.sentEmail }}. Click the link and you'll be signed in. You may close this window.</p>
             </div>
         `,
-        controller: function($scope) {
+        controller: function($scope, authState) {
             function handleResponse(data) {
                 if (data.state == 'ok') {
                     $scope.showWarning = false;
@@ -3621,7 +3621,10 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
             $scope.login = function() {
                 var e = $scope.data.email;
                 errorService.alertText('');
-                if (! ( e && e.match(/^.+@.+\..+$/) )) {
+                if (
+                  ! (e && e.match(/^.+@.+\..+$/)) ||
+                  e.match(new RegExp(`@(${authState.denyEmailAccessDomains.join('|')})$`, 'i'))
+                ) {
                     $scope.showWarning = true;
                     $scope.warningText = 'Email address is invalid. Please update and resubmit.';
                     $scope.$broadcast('sr-clearDisableAfterClick');
@@ -3693,7 +3696,7 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
                     <button data-ng-click="login()" class="btn btn-primary">Continue</button>
                   </div>
                   <div class="sr-input-warning" data-ng-show="showWarning">{{ warningText }}</div>
-                  <p class="help-block">By signing up for Sirepo you agree to Sirepo's <a href="en/privacy.html">privacy policy</a> and <a href="en/terms.html">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
+                  <p class="help-block">By signing up for Sirepo you agree to Sirepo's <a href="en/privacy.html" target="_blank">privacy policy</a> and <a href="en/terms.html" target="_blank">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
                 </div>
               </div>
             </form>
