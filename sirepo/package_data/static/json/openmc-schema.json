@@ -51,6 +51,12 @@
             ["sum", "sum"],
             ["macro", "macro"]
         ],
+        "Estimator": [
+            ["default", "Default"],
+            ["analog", "Analog"],
+            ["tracklength", "Track Length"],
+            ["collision", "Collision"]
+        ],
         "EnrichmentType": [
             ["none", ""],
             ["ao", "ao"],
@@ -379,7 +385,7 @@
         },
         "meshFilter": {
             "_super": ["_", "model", "filter"],
-            "dimension": ["Mesh cell count", "Point3D", [10, 10, 10]],
+            "dimension": ["Mesh cell count", "Size3D", [10, 10, 10]],
             "lower_left": ["Mesh lower left [cm]", "Point3D", [-5.0, -5.0, -5.0]],
             "upper_right": ["Mesh upper right [cm]", "Point3D", [5.0, 5.0, 5.0]]
         },
@@ -530,7 +536,8 @@
             "filter4": ["Filter", "Filter", {"_type": "None"}],
             "filter5": ["Filter", "Filter", {"_type": "None"}],
             "scores": ["Scores", "SimpleListEditor", [], "", "tallyScore"],
-            "nuclides": ["Nuclides", "SimpleListEditor", [], "List of nuclides to use when scoring results", "nuclide"]
+            "nuclides": ["Nuclides", "SimpleListEditor", [], "List of nuclides to use when scoring results", "nuclide"],
+            "estimator": ["Estimator", "Estimator", "default", "If Default is selected, OpenMC will automatically select an appropriate estimator based on the tally filters and scores with a preference for \"tracklength\"."]
         },
         "tallyReport": {
             "axis": ["Slice axis", "Axis", "y"],
@@ -884,6 +891,7 @@
             "advanced": [
                 ["Main", [
                     "name",
+                    "estimator",
                     "scores"
                 ]],
                 ["Filters", [

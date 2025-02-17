@@ -892,9 +892,14 @@ t{tally._index + 1}.filters = ["""
     openmc.ParticleFilter([{'"' + '","'.join(v.value for v in f.bins) + '"'}]),
 """
         else:
-            raise AssertionError("filter not yet implemented: {}".format(f._type))
+            raise AssertionError("Unknown filter selected: {}".format(f._type))
+    if not len(tally.scores):
+        raise AssertionError(f"Tally {tally.name} has no scores defined")
     res += f"""]
 t{tally._index + 1}.scores = [{','.join(["'" + s.score + "'" for s in tally.scores])}]
+"""
+    if tally.estimator != "default":
+        res += f"""t{tally._index + 1}.estimator = "{tally.estimator}"
 """
     if len(tally.nuclides):
         res += f"""
@@ -1121,10 +1126,12 @@ def _prep_standard_material_cache():
 def _region(data):
     res = ""
     for i, p in enumerate(data.models.reflectivePlanes.planesList):
+        if res:
+            res += " & "
         if p.inside == "1":
-            res += f"& +p{i + 1} "
+            res += f"+p{i + 1}"
         else:
-            res += f"& -p{i + 1} "
+            res += f"-p{i + 1}"
     return res
 
 

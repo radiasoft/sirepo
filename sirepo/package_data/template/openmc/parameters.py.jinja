@@ -14,21 +14,16 @@ def create_geometry():
         auto_geom_ids=True,
     )
     {% if reflectivePlanes_useReflectivePlanes == '1' %}
-    # creates an edge of universe boundary surface
-    vac_surf = openmc.Sphere(r=10000, boundary_type="vacuum")
     {{ planes }}
     univ = openmc.Cell(
-        region=-vac_surf {{ region }},
-        fill=univ,
+        region={{ region }},
+        fill=univ.bounded_universe(),
     )
     openmc.Geometry([univ]).export_to_xml()
     {% elif hasGraveyard %}
     openmc.Geometry(univ).export_to_xml()
     {% else %}
-    graveyard = openmc.Sphere(r=10000, boundary_type="vacuum")
-    root = openmc.Universe()
-    root.add_cells([openmc.Cell(region=-graveyard, fill=univ)])
-    openmc.Geometry(root).export_to_xml()
+    openmc.Geometry(univ.bounded_universe()).export_to_xml()
     {% endif %}
 
 
