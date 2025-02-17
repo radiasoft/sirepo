@@ -2902,7 +2902,7 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
         panelState.showFields('settings', [
             ['max_splits'], ['weight_windows_tally', 'weight_windows_mesh'].includes(m.varianceReduction),
             ['weightWindowsFile'], m.varianceReduction === 'weight_windows_file',
-            ['materialLibrary', 'generateMGXS'], m.materialDefinition === 'library',
+            ['materialLibrary', 'generateMGXS', 'photon_transport'], m.materialDefinition === 'library',
             ['mgxsFile'], m.materialDefinition == 'mgxs',
             ['energyGroup'], m.generateMGXS == '1',
         ]);

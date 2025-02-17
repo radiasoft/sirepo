@@ -100,7 +100,7 @@ def create_settings():
         {% endfilter %}
     ]
     settings.run_mode = "{{ settings_run_mode }}"
-    settings.photon_transport = {{ settings_photon_transport == '1' }}
+    settings.photon_transport = {{ settings_photon_transport == '1' and settings_materialDefinition == 'library' }}
 {% if settings_varianceReduction == "survival_biasing" %}
     settings.survival_biasing = True
     settings.cutoff = {
