@@ -109,6 +109,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             dm.energyAnimation.tally = dm.openmcAnimation.tally
             dm.energyAnimation.score = dm.openmcAnimation.score
         for t in dm.settings.tallies:
+            cls.update_model_defaults(t, "tally")
             for i in range(1, sch.constants.maxFilters + 1):
                 f = t[f"filter{i}"]
                 y = f._type
