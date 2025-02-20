@@ -151,11 +151,6 @@ def _init():
             set,
             "codes where all users are authorized by default but that authorization can be revoked",
         ),
-        deny_email_access_domains=(
-            ["gmail.com", "yahoo.com", "outlook.com"],
-            list,
-            "domains that are automatically blocked from email registration",
-        ),
         enable_global_resources=(
             False,
             bool,

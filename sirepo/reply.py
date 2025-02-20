@@ -569,6 +569,9 @@ class _SReply(sirepo.quest.Attr):
     def _gen_exception_reply_Error(self, args):
         return self.from_kwargs(content=_Error(args))
 
+    def _gen_exception_reply_InvalidEmail(self, args):
+        return self.from_kwargs(content=_Error(args))
+
     def _gen_exception_reply_NotFound(self, args):
         return self._gen_http_exception(404)
 

@@ -32,6 +32,8 @@ UserModel = "AuthEmailUser"
 #: module handle
 this_module = pkinspect.this_module()
 
+_cfg = None
+
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("allow_cookieless_set_user", token="EmailAuthToken")
@@ -119,9 +121,12 @@ class API(sirepo.quest.API):
 
         def _parse_email(data):
             res = data.email.strip().lower()
-            assert pyisemail.is_email(res), "invalid post data: email={}".format(
-                data.email
-            )
+            if not pyisemail.is_email(res):
+                raise sirepo.util.InvalidEmail(
+                    "invalid email={} ",
+                    res,
+                    sr_args=PKDict(error="invalid-email"),
+                )
             return res
 
         def _send_login_email(user_data, uri):
@@ -147,6 +152,13 @@ This link will expire in {user_data.expires_minutes / 60} hours and can only be 
         m = self.auth_db.model(UserModel)
         u = m.unchecked_search_by(unverified_email=email)
         if not u:
+            # POSIT: Email has been validated by _parse_email so simple split is ok
+            if email.split("@")[1] in _cfg.deny_access_domains:
+                raise sirepo.util.InvalidEmail(
+                    "invalid email={} ",
+                    email,
+                    sr_args=PKDict(error="invalid-email"),
+                )
             u = m.new(unverified_email=email)
         u.create_token()
         u.save()
@@ -172,4 +184,15 @@ def avatar_uri(qcall, model, size):
     return "https://www.gravatar.com/avatar/{}?d=mp&s={}".format(
         hashlib.md5(pykern.pkcompat.to_bytes(model.user_name)).hexdigest(),
         size,
+    )
+
+
+def init_apis(*args, **kwargs):
+    global _cfg
+    _cfg = pkconfig.init(
+        deny_access_domains=(
+            {"gmail.com", "yahoo.com", "outlook.com"},
+            frozenset,
+            "domains that are automatically blocked from email registration",
+        ),
     )

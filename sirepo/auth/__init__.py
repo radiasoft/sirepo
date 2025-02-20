@@ -663,7 +663,6 @@ class _Auth(sirepo.quest.Attr):
         s = self._qcall_bound_state()
         v = pkcollections.Dict(
             avatarUrl=None,
-            denyEmailAccessDomains=sirepo.feature_config.cfg().deny_email_access_domains,
             displayName=None,
             guestIsOnlyMethod=not non_guest_methods,
             isGuestUser=False,
