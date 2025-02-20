@@ -51,6 +51,28 @@
             ["sum", "sum"],
             ["macro", "macro"]
         ],
+        "EnergyGroup": [
+            ["CASMO-2", "CASMO-2"],
+            ["CASMO-4", "CASMO-4"],
+            ["CASMO-8", "CASMO-8"],
+            ["CASMO-16", "CASMO-16"],
+            ["CASMO-25", "CASMO-25"],
+            ["CASMO-40", "CASMO-40"],
+            ["CASMO-70", "CASMO-70"],
+            ["CCFE-709", "CCFE-709"],
+            ["ECCO-1968", "ECCO-1968"],
+            ["MPACT-51", "MPACT-51"],
+            ["MPACT-60", "MPACT-60"],
+            ["MPACT-69", "MPACT-69"],
+            ["SCALE-44", "SCALE-44"],
+            ["SCALE-252", "SCALE-252"],
+            ["SHEM-361", "SHEM-361"],
+            ["TRIPOLI-315", "TRIPOLI-315"],
+            ["UKAEA-1102", "UKAEA-1102"],
+            ["VITAMIN-J-42", "VITAMIN-J-42"],
+            ["VITAMIN-J-175", "VITAMIN-J-175"],
+            ["XMAS-172", "XMAS-172"]
+        ],
         "Estimator": [
             ["default", "Default"],
             ["analog", "Analog"],
@@ -81,6 +103,10 @@
             ["add_macroscopic", "Macroscopic"],
             ["add_nuclide", "Nuclide"],
             ["add_s_alpha_beta", "S alpha beta"]
+        ],
+        "MaterialDefinition": [
+            ["library", "Material Data Library"],
+            ["mgxs", "Multi-Group Cross Section File"]
         ],
         "MaterialLibrary": [
             ["ENDFB-7.1-NNDC", "ENDFB-7.1-NNDC"],
@@ -333,7 +359,7 @@
         },
         "geometryInput": {
             "dagmcFile": ["Model file", "InputFile", "", "A DAGMC (.h5m) or Step (.stp) file"],
-            "materialsFile": ["Materials XML file (optional)", "InputFile", "", "An OpenMC materials.xml mapping from names to volume properties", false],
+            "materialsFile": ["Materials XML file (optional)", "InputFile", "", "An OpenMC materials.xml (or model.xml) mapping from names to volume properties", false],
             "exampleURL": ["", "String", ""]
         },
         "geometry3DReport": {
@@ -487,9 +513,13 @@
             "run_mode": ["Run mode", "RunMode", "fixed source", "The type of calculation to perform"],
             "materialLibrary": ["Material data library", "MaterialLibrary", "ENDFB-8.0-NNDC"],
             "varianceReduction": ["Technique", "VarianceReduction", "None"],
-            "max_splits": ["Maximum splits", "Integer", 1000, "Maximum number of particle splits for weight windows"],
+            "max_splits": ["Maximum history splits", "Integer", 1e7, "Maximum number of particle splits for weight windows"],
             "outputInterval": ["Output interval", "Integer", 1, "Output interval for active batches", 1],
-            "weightWindowsFile": ["File", "InputFile", ""]
+            "weightWindowsFile": ["File", "InputFile", ""],
+            "materialDefinition": ["Material definition", "MaterialDefinition", "library"],
+            "mgxsFile": ["MGXS material file", "InputFile", ""],
+            "generateMGXS": ["Generate MGXS data file", "Boolean", "0", "Create a multi-group cross section file during simulation"],
+            "energyGroup": ["MGXS Energy Group", "EnergyGroup", "CASMO-2"]
         },
         "source": {
             "angle": ["Angular distribution", "UnitSphere", {"_type": "None"}],
@@ -806,8 +836,12 @@
                     "particles",
                     "run_mode",
                     "outputInterval",
+                    "materialDefinition",
                     "materialLibrary",
-                    "photon_transport"
+                    "mgxsFile",
+                    "photon_transport",
+                    "generateMGXS",
+                    "energyGroup"
                 ]],
                 ["Sources", [
                     "sources"

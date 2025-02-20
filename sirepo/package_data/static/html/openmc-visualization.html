@@ -46,9 +46,14 @@
                 </table>
               </div>
               <div class="col-sm-12" data-ng-if="visualization.hasWeightWindowsFile">
-                <div class="col-sm-12"><a data-ng-attr-href="{{ visualization.weightWindowsFileURL() }}">
+                <div class="col-sm-12"><a data-ng-attr-href="{{ visualization.weightWindowsFileURL }}">
                   <span class="glyphicon glyphicon-cloud-download"></span> Computed Weight Windows</a>
                   <buttontype="button" class="btn btn-sm btn-default" data-ng-click="visualization.applyWeightWindows()">Apply Weight Windows</button>
+                </div>
+              </div>
+              <div class="col-sm-12" data-ng-if="visualization.hasMGXSFile">
+                <div class="col-sm-12"><a data-ng-attr-href="{{ visualization.mgxsFileURL }}">
+                  <span class="glyphicon glyphicon-cloud-download"></span> Computed MGXS File</a>
                 </div>
               </div>
             </div>
