@@ -222,6 +222,20 @@ def stateful_compute_verify_geometry(data, **kwargs):
     """Ensures the standard material db is available and returns the state of the
     geometry animation directory.
     """
+
+    # TODO(pjm): the MGXS energy list should be a dynamically computed enum
+    # import openmc.mgxs
+
+    # def sort_name(value):
+    #     m = re.search(r'^(.*?)\-(\d+)', value)
+    #     assert m
+    #     return f"{m.group(1)} {m.group(2).zfill(5)}"
+
+    # enum.EnergyGroup = [n[0] for n in sorted(
+    #     map(lambda v: [v, sort_name(v)], openmc.mgxs.GROUP_STRUCTURES.keys()),
+    #     key=lambda v: v[1],
+    # )]
+
     _prep_standard_material_cache()
     return PKDict(
         hasGeometry=simulation_db.simulation_dir(SIM_TYPE, sid=data.simulationId)

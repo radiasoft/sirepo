@@ -15,6 +15,8 @@ def _name(material_name):
 
 def add_materials(volumes):
     e = xml.etree.ElementTree.parse("{{ materialsFile }}").getroot()
+    if e.find("materials"):
+        e = e.find("materials")
     for child in e:
         n = _name(child.attrib.get("name"))
         if not n or n not in volumes:

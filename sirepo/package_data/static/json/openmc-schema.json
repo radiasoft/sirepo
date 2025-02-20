@@ -359,7 +359,7 @@
         },
         "geometryInput": {
             "dagmcFile": ["Model file", "InputFile", "", "A DAGMC (.h5m) or Step (.stp) file"],
-            "materialsFile": ["Materials XML file (optional)", "InputFile", "", "An OpenMC materials.xml mapping from names to volume properties", false],
+            "materialsFile": ["Materials XML file (optional)", "InputFile", "", "An OpenMC materials.xml (or model.xml) mapping from names to volume properties", false],
             "exampleURL": ["", "String", ""]
         },
         "geometry3DReport": {
