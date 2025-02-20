@@ -3599,7 +3599,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
               <p>We just emailed a confirmation link to {{ data.sentEmail }}. Click the link and you'll be signed in. You may close this window.</p>
             </div>
         `,
-        controller: function($scope, authState) {
+        controller: function($scope) {
             function handleResponse(data) {
                 if (data.state == 'ok') {
                     $scope.showWarning = false;
@@ -3621,7 +3621,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
             $scope.login = function() {
                 var e = $scope.data.email;
                 errorService.alertText('');
-                if (! (e && e.match(/^.+@.+\..+$/) )) {
+                if (! ( e && e.match(/^.+@.+\..+$/) )) {
                     $scope.showWarning = true;
                     $scope.warningText = 'Email address is invalid. Please update and resubmit.';
                     $scope.$broadcast('sr-clearDisableAfterClick');
