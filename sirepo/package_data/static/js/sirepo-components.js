@@ -3600,9 +3600,9 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
             </div>
         `,
         controller: function($scope) {
-            function showInvalidEmail() {
+            function showInvalidEmail(warningText) {
                 $scope.showWarning = true;
-                $scope.warningText = 'Email address is invalid. Please update and resubmit.';
+                $scope.warningText = warningText;
                 $scope.$broadcast('sr-clearDisableAfterClick');
             }
 
@@ -3613,8 +3613,8 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                     $scope.form.$setPristine();
                     $('#sr-email-login-done').modal('show');
                 }
-                else if (data.error && data.error == 'invalid-email') {
-                    showInvalidEmail();
+                else if (data.error) {
+                    showInvalidEmail(data.error);
                 }
                 else {
                     $scope.showWarning = true;
@@ -3631,7 +3631,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
                 var e = $scope.data.email;
                 errorService.alertText('');
                 if (! ( e && e.match(/^.+@.+\..+$/) )) {
-                    showInvalidEmail();
+                    showInvalidEmail('Email address is invalid. Please update and resubmit.');
                     return;
                 }
                 $scope.showWarning = false;

@@ -114,6 +114,19 @@ class API(sirepo.quest.API):
         User has sent an email, which needs to be verified.
         """
 
+        def _assert_allow(email):
+            # POSIT: Email has been validated by _parse_email so simple split is ok
+            d = email.split("@")[1]
+            if d in _cfg.deny_access_domains:
+                raise sirepo.util.InvalidEmail(
+                    "invalid email={}",
+                    email,
+                    sr_args=PKDict(
+                        error=f"Please use your institutional email, we do not allow {d} addresses.",
+                    ),
+                )
+            return email
+
         def _login_text(user_data):
             if user_data.user_name:
                 return "sign in to"
@@ -125,7 +138,9 @@ class API(sirepo.quest.API):
                 raise sirepo.util.InvalidEmail(
                     "invalid email={} ",
                     res,
-                    sr_args=PKDict(error="invalid-email"),
+                    sr_args=PKDict(
+                        error="Invalid email. Please update and resubmit.",
+                    ),
                 )
             return res
 
@@ -152,14 +167,7 @@ This link will expire in {user_data.expires_minutes / 60} hours and can only be 
         m = self.auth_db.model(UserModel)
         u = m.unchecked_search_by(unverified_email=email)
         if not u:
-            # POSIT: Email has been validated by _parse_email so simple split is ok
-            if email.split("@")[1] in _cfg.deny_access_domains:
-                raise sirepo.util.InvalidEmail(
-                    "invalid email={} ",
-                    email,
-                    sr_args=PKDict(error="invalid-email"),
-                )
-            u = m.new(unverified_email=email)
+            u = m.new(unverified_email=_assert_allow(email))
         u.create_token()
         u.save()
         d = PKDict(
@@ -191,8 +199,8 @@ def init_apis(*args, **kwargs):
     global _cfg
     _cfg = pkconfig.init(
         deny_access_domains=(
-            {"gmail.com", "yahoo.com", "outlook.com"},
-            frozenset,
+            set(),
+            set,
             "domains that are automatically blocked from email registration",
         ),
     )
