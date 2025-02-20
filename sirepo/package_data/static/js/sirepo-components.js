@@ -3621,10 +3621,7 @@ SIREPO.app.directive('emailLogin', function(requestSender, errorService) {
             $scope.login = function() {
                 var e = $scope.data.email;
                 errorService.alertText('');
-                if (
-                  ! (e && e.match(/^.+@.+\..+$/)) ||
-                  e.match(new RegExp(`@(${authState.denyEmailAccessDomains.join('|')})$`, 'i'))
-                ) {
+                if (! (e && e.match(/^.+@.+\..+$/) )) {
                     $scope.showWarning = true;
                     $scope.warningText = 'Email address is invalid. Please update and resubmit.';
                     $scope.$broadcast('sr-clearDisableAfterClick');
