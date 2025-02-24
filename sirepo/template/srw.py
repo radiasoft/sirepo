@@ -295,20 +295,6 @@ def calculate_beam_drift(
     return ebeam_position.drift
 
 
-def compute_crl_focus(model):
-    import bnlcrl.pkcli.simulate
-
-    d = bnlcrl.pkcli.simulate.calc_ideal_focus(
-        radius=float(model.tipRadius) * 1e-6,  # um -> m
-        n=model.numberOfLenses,
-        delta=model.refractiveIndex,
-        p0=model.position,
-    )
-    model.focalDistance = d["ideal_focus"]
-    model.absoluteFocusPosition = d["p1_ideal_from_source"]
-    return model
-
-
 def compute_undulator_length(model, qcall=None):
     if model.undulatorType == "u_i":
         return PKDict()
@@ -906,12 +892,27 @@ def stateful_compute_undulator_length(data, **kwargs):
 
 
 def stateless_compute_crl_characteristics(data, **kwargs):
-    return compute_crl_focus(
-        _compute_material_characteristics(
-            data.optical_element,
-            data.photon_energy,
-        )
+    import bnlcrl.pkcli.simulate
+
+    m = _compute_material_characteristics(
+        data.optical_element,
+        data.photon_energy,
     )
+    if (
+        float(m.refractiveIndex) > 0
+        and float(m.tipRadius) > 0
+        and float(m.numberOfLenses) > 0
+        and float(m.position) > 0
+    ):
+        d = bnlcrl.pkcli.simulate.calc_ideal_focus(
+            radius=float(m.tipRadius) * 1e-6,  # um -> m
+            n=m.numberOfLenses,
+            delta=m.refractiveIndex,
+            p0=m.position,
+        )
+        m.focalDistance = d["ideal_focus"]
+        m.absoluteFocusPosition = d["p1_ideal_from_source"]
+    return m
 
 
 def stateless_compute_crystal_init(data, **kwargs):
