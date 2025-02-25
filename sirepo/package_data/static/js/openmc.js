@@ -121,6 +121,7 @@ SIREPO.app.config(() => {
     SIREPO.FILE_UPLOAD_TYPE = {
         'geometryInput-dagmcFile': '.h5m,.stp',
         'geometryInput-materialsFile': '.xml',
+        'settings-mgxsFile': '.h5',
     };
 });
 
@@ -304,16 +305,6 @@ SIREPO.app.factory('openmcService', function(appState, panelState, requestSender
         appState.saveQuietly('openmcAnimation');
     };
 
-    self.weightWindowsFileURL = () => {
-        return requestSender.formatUrl('downloadDataFile', {
-            '<simulation_id>': appState.models.simulation.simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<model>': 'openmcAnimation',
-            '<frame>': SIREPO.nonDataFileFrame,
-            '<suffix>': 'h5',
-        });
-    };
-
     return self;
 });
 
@@ -414,10 +405,22 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
 SIREPO.app.controller('VisualizationController', function(appState, errorService, openmcService, frameCache, panelState, persistentSimulation, requestSender, tallyService, $scope) {
     const self = this;
     self.eigenvalue = null;
+    self.mgxsFileURL = fileURL('mgxs');
     self.results = null;
-    self.simScope = $scope;
     self.simComputeModel = 'openmcAnimation';
+    self.simScope = $scope;
+    self.weightWindowsFileURL = fileURL('ww');
     let errorMessage, isRunning, statusMessage;
+
+    function fileURL(suffix) {
+        return requestSender.formatUrl('downloadDataFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<model>': 'openmcAnimation',
+            '<frame>': SIREPO.nonDataFileFrame,
+            '<suffix>': suffix,
+        });
+    }
 
     function validateSelectedTally(tallies) {
         appState.models.openmcAnimation.tallies = tallies;
@@ -459,6 +462,7 @@ SIREPO.app.controller('VisualizationController', function(appState, errorService
             validateSelectedTally(data.tallies);
         }
         self.hasWeightWindowsFile = data.hasWeightWindowsFile;
+        self.hasMGXSFile = data.hasMGXSFile;
     };
     self.simState = persistentSimulation.initSimulationState(self);
     self.simState.errorMessage = () => errorMessage;
@@ -500,8 +504,6 @@ SIREPO.app.controller('VisualizationController', function(appState, errorService
         const a = appState.models.openmcAnimation;
         return `Tally Results - ${a.tally} - ${a.score} - ${a.aspect}`;
     };
-
-    self.weightWindowsFileURL = openmcService.weightWindowsFileURL;
 
     const sortTallies = () => {
         for (const t of appState.models.settings.tallies) {
@@ -2900,6 +2902,9 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
         panelState.showFields('settings', [
             ['max_splits'], ['weight_windows_tally', 'weight_windows_mesh'].includes(m.varianceReduction),
             ['weightWindowsFile'], m.varianceReduction === 'weight_windows_file',
+            ['materialLibrary', 'generateMGXS', 'photon_transport'], m.materialDefinition === 'library',
+            ['mgxsFile'], m.materialDefinition == 'mgxs',
+            ['energyGroup'], m.generateMGXS == '1',
         ]);
         validationService.validateField(
             $scope.modelName,
@@ -2918,6 +2923,8 @@ SIREPO.viewLogic('settingsView', function(appState, panelState, validationServic
             `${$scope.modelName}.batches`,
             `${$scope.modelName}.inactive`,
             `${$scope.modelName}.varianceReduction`,
+            `${$scope.modelName}.materialDefinition`,
+            `${$scope.modelName}.generateMGXS`,
             'reflectivePlanes.useReflectivePlanes'
         ], updateEditor,
     ];

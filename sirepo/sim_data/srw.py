@@ -68,6 +68,14 @@ class SimData(sirepo.sim_data.SimDataBase):
         }
     )
 
+    _MATERIAL_FIELDS = PKDict(
+        crl=["material"],
+        fiber=["externalMaterial", "coreMaterial"],
+        mask=["material"],
+        sample=["material"],
+        zonePlate=["mainMaterial", "complementaryMaterial"],
+    )
+
     SRW_FILE_TYPE_EXTENSIONS = PKDict(
         {
             "mirror": ["dat", "txt"],
@@ -486,6 +494,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def __fixup_old_data_beamline(cls, data, qcall):
         dm = data.models
+        e = float(dm.simulation.photonEnergy)
+        er = cls.schema().constants.materialEnergyRange
         for i in dm.beamline:
             t = i.type
             if t == "crl":
@@ -518,4 +528,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             if t == "grating":
                 if not i.get("energyAvg"):
                     i.energyAvg = dm.simulation.photonEnergy
+            if t in cls._MATERIAL_FIELDS and (e < er[0] or e > er[1]):
+                for f in cls._MATERIAL_FIELDS[t]:
+                    i[f] = cls.schema().enum.CRLMaterial[0][0]
             cls.update_model_defaults(i, t)
