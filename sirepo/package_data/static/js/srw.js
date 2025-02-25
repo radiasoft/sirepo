@@ -50,6 +50,9 @@ SIREPO.app.config(function() {
         <div data-ng-switch-when="SampleRandomShapeArray" class="col-sm-7">
           <div data-sample-random-shapes="" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="Material" data-ng-class="fieldClass">
+          <div data-material-editor="" data-model-name="modelName" data-model="model" data-field="field"></div>
+        </div>
     `;
     SIREPO.appDownloadLinks = `
         <li data-download-csv-link=""></li>
@@ -3363,6 +3366,47 @@ SIREPO.app.directive('srwNumberList', function(appState) {
                 }
                 return $scope.values;
             };
+        },
+    };
+});
+
+SIREPO.app.directive('materialEditor', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            modelName: '=',
+            field: '=',
+            model: '=',
+        },
+        template: `
+            <select class="form-control" data-ng-model="model[field]"
+              data-ng-options="item[0] as item[1] for item in items"></select>
+            <div class="sr-input-warning">{{ energyWarning }}</div>
+        `,
+        controller: function($scope) {
+            const energyRange = SIREPO.APP_SCHEMA.constants.materialEnergyRange;
+
+            function updateChoices() {
+                if (! $scope.model) {
+                    return;
+                }
+                const e = appState.applicationState().simulation.photonEnergy;
+                if (e >= energyRange[0] && e <= energyRange[1]) {
+                    $scope.items = SIREPO.APP_SCHEMA.enum.CRLMaterial;
+                    $scope.energyWarning = '';
+                }
+                else {
+                    $scope.items = [
+                        SIREPO.APP_SCHEMA.enum.CRLMaterial[0],
+                    ];
+                    $scope.model[$scope.field] = $scope.items[0][0];
+                    $scope.energyWarning = `Photon energy ${e} eV is outside of computable range:`
+                                         + ` ${energyRange[0]} - ${energyRange[1]} eV`;
+                }
+            }
+
+            updateChoices();
+            $scope.$on('simulation.changed', updateChoices);
         },
     };
 });
