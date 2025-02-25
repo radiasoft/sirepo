@@ -88,6 +88,12 @@ class OKReplyExc(ReplyExc):
     pass
 
 
+class InvalidEmail(ReplyExc):
+    """Email user is trying to register with is malformed or domain is on deny list."""
+
+    pass
+
+
 class Error(ReplyExc):
     """Raised to send an error response
 
