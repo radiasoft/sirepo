@@ -454,6 +454,13 @@
                   "templateUrl": "/static/html/copy-session.html"
                 }
             },
+            "payment": {
+                "route": "/payment",
+                "config": {
+                  "controller": "PaymentController as payment",
+                  "templateUrl": "/static/html/payment.html"
+                }
+            },
             "planRequired": {
                 "route": "/plan-required",
                 "config": {

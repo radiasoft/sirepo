@@ -4736,6 +4736,60 @@ SIREPO.app.controller('FindByNameController', function (appState, requestSender,
         });
 });
 
+
+SIREPO.app.controller('PaymentController', function ($window, requestSender) {
+    var self = this;
+
+    self.loadStripe = function() {
+        // Check if Stripe is already loaded
+        if ($window.Stripe) {
+            self.initializeStripe();
+            return;
+        }
+        // Dynamically load the Stripe script
+        const script = document.createElement('script');
+        script.src = 'https://js.stripe.com/v3/';
+        script.onload = function() {
+            self.initializeStripe();
+        };
+        document.body.appendChild(script);
+    };
+
+    self.initializeStripe = function() {
+        $window.Stripe(
+        // TODO(e-carlin): get from authState
+            "pk_test_51Q1wcG2MoUThcATgbGDqQUmqgRhq4DC1zNUhSYKRQCFHRTzRjElRglNeXttWYzeBKfN54FBZ91MkoRiYaD1xdqyM00gi1iSvJg"
+        ).initEmbeddedCheckout({
+            fetchClientSecret: () => {
+                new Promise((resolve, reject) => {
+                    requestSender.sendRequest(
+                        'createCheckoutSession',
+                        function(data) {
+                            if (data && data.clientSecret) {
+                                resolve(data.clientSecret);
+                            } else {
+                                reject(new Error('Invalid response from server: missing client secret'));
+                            }
+                        },
+                        {},
+                        function(error) {
+                            reject(new Error('Failed to create checkout session: ' +
+                                (error && error.error ? error.error : 'Unknown error')));
+                        }
+                    );
+                })
+            }
+        }).then((checkout) => {
+            checkout.mount('#checkout');
+        }).catch((error) => {
+            console.error('Error initializing Stripe checkout:', error);
+        });
+    };
+
+    // Start the process when the controller loads
+    self.loadStripe();
+});
+
 SIREPO.app.controller('ServerUpgradedController', function (errorService, requestSender) {
     var self = this;
 
