@@ -4736,6 +4736,90 @@ SIREPO.app.controller('FindByNameController', function (appState, requestSender,
         });
 });
 
+
+SIREPO.app.controller('PaymentCheckoutController', function (authState, errorService, requestSender, $location, $window) {
+    var self = this;
+
+    self.loadStripe = function() {
+        if ($window.Stripe) {
+            self.initializeStripe();
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://js.stripe.com/v3/';
+        script.onload = function() {
+            self.initializeStripe();
+        };
+        document.body.appendChild(script);
+    };
+
+    self.initializeStripe = function() {
+        $window.Stripe(
+            authState.stripePublishableKey,
+        ).initEmbeddedCheckout({
+            fetchClientSecret: () => {
+                return new Promise((resolve, reject) => {
+                    requestSender.sendRequest(
+                        'paymentCreateCheckoutSession',
+                        function(data) {
+                            if (data && data.clientSecret) {
+                                resolve(data.clientSecret);
+                            } else {
+                                srlog(`paymentCreateCheckoutSession did not return client secret data=`, data)
+                                errorService.alertText(`There was an error. Please contact ${SIREPO.APP_SCHEMA.feature_config.support_email}.`);
+                                reject(new Error('Invalid response from server: missing client secret'));
+                            }
+                        },
+                        {
+                            simulationType: SIREPO.APP_SCHEMA.simulationType,
+                            plan: $location.search().plan,
+                        },
+                        function(error) {
+                            srlog(`paymentCreateCheckoutSession request error=`, error)
+                            errorService.alertText(`There was an error. Please contact ${SIREPO.APP_SCHEMA.feature_config.support_email}.`);
+                            reject(new Error('Failed to create checkout session'));
+                        }
+                    );
+                })
+            }
+        }).then((checkout) => {
+            checkout.mount('#checkout');
+        }).catch((error) => {
+            srlog(`Error initializing Stripe checkout error=`, error);
+            errorService.alertText(`There was an error. Please contact ${SIREPO.APP_SCHEMA.feature_config.support_email}.`);
+        });
+    };
+    self.loadStripe();
+});
+
+
+SIREPO.app.controller('PaymentFinalizationController', function ($location, requestSender) {
+    const self = this;
+    self.productShortName = SIREPO.APP_SCHEMA.productInfo.shortName
+    self.sessionStatus = null;
+    self.redirectAppRoot = requestSender.globalRedirectRoot;
+    self.redirectPaymentCheckout = () => requestSender.localRedirect('paymentCheckout');
+
+    const s = $location.search();
+    if ( ! ('session_id' in s)) {
+        requestSender.localRedirect('paymentCheckout');
+    }
+    requestSender.sendRequest(
+        'paymentCheckoutSessionStatus',
+        function(data) {
+            if ('sessionStatus' in data) {
+                self.sessionStatus = data.sessionStatus;
+                return;
+            }
+            self.sessionStatus = 'error';
+        },
+        {sessionId: s.session_id},
+        function(error) {
+            self.sessionStatus = 'error';
+        },
+    )
+});
+
 SIREPO.app.controller('ServerUpgradedController', function (errorService, requestSender) {
     var self = this;
 

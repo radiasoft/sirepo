@@ -50,7 +50,9 @@ def init_module(**imports):
     sirepo.util.setattr_imports(imports)
 
 
-def local_route(sim_type, route_name=None, params=None, query=None):
+def local_route(
+    sim_type, route_name=None, params=None, query=None, query_safe_chars=""
+):
     """Generate uri for local route with params
 
     Args:
@@ -58,6 +60,7 @@ def local_route(sim_type, route_name=None, params=None, query=None):
         route_name (str): a local route [defaults to local default]
         params (dict): paramters to pass to route
         query (dict): query values (joined and escaped)
+        query_safe_chars (str): ASCII chars in query that won't be encoded
     Returns:
         str: formatted URI
     """
@@ -72,7 +75,7 @@ def local_route(sim_type, route_name=None, params=None, query=None):
             if not params or p not in params:
                 continue
         u += "/" + _to_uri(params[p])
-    return app_root(sim_type) + "#" + u + _query(query)
+    return app_root(sim_type) + "#" + u + _query(query, safe=query_safe_chars)
 
 
 def is_sr_exception_only(sim_type, route_name):
@@ -124,10 +127,10 @@ def unchecked_root_redirect(path):
     return simulation_db.SCHEMA_COMMON.rootRedirectUri.get(path)
 
 
-def _query(query):
+def _query(query, safe=""):
     if not query:
         return ""
-    return "?" + urllib.parse.urlencode(query)
+    return "?" + urllib.parse.urlencode(query, safe=safe)
 
 
 def _to_uri(element):

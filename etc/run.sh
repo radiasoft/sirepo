@@ -143,6 +143,11 @@ _op_no_smtp_mail() {
     _exec_all
 }
 
+_op_payments() {
+    export SIREPO_FEATURE_CONFIG_API_MODULES="payments"
+    _op_mail
+}
+
 _op_server_status() {
     declare u=$(cd "$(dirname "$0")"/../run/user && ls -d ???????? 2>/dev/null | head -1)
     if [[ ! $u ]]; then

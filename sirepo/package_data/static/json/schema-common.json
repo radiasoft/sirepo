@@ -160,6 +160,8 @@
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
         "ownJobs": "/own-jobs",
+        "paymentCreateCheckoutSession": "/payment-create-checkout-session",
+        "paymentCheckoutSessionStatus": "/payment-checkout-session-status",
         "planRequired": "/plan-required",
         "proxyError": "/proxy-error",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
@@ -185,6 +187,7 @@
         "statefulCompute": "/stateful-compute",
         "statelessCompute": "/stateless-compute",
         "staticFile": "/static/*<path_info>",
+        "stripeWebhook": "/stripe-webhook",
         "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
         "uploadLibFile": "/upload-lib-file/<simulation_type>/<simulation_id>/<file_type>"
@@ -220,7 +223,7 @@
             "maxSimCopies": 100,
             "oneDayMillis": 86400000,
             "paymentPlans": {
-                "basic": "Sirepo Community",
+                "basic": "Sirepo Basic",
                 "premium": "Sirepo Professional"
             },
             "plansUrl": "/plans",
@@ -452,6 +455,20 @@
                 "config": {
                   "controller": "NotFoundCopyController as notFoundCopy",
                   "templateUrl": "/static/html/copy-session.html"
+                }
+            },
+            "paymentCheckout": {
+                "route": "/payment-checkout",
+                "config": {
+                  "controller": "PaymentCheckoutController as payment",
+                  "templateUrl": "/static/html/payment-checkout.html"
+                }
+            },
+            "paymentFinalization": {
+                "route": "/payment-finalization",
+                "config": {
+                  "controller": "PaymentFinalizationController as payment",
+                  "templateUrl": "/static/html/payment-finalization.html"
                 }
             },
             "planRequired": {

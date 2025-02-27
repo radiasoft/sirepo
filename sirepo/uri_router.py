@@ -27,7 +27,13 @@ import sirepo.util
 _FUNC_PREFIX = "api_"
 
 #: modules that must be initialized
-_REQUIRED_MODULES = ("auth_api", "job_api", "server", "srtime", "auth_role_moderation")
+_REQUIRED_MODULES = (
+    "auth_api",
+    "job_api",
+    "server",
+    "srtime",
+    "auth_role_moderation",
+)
 
 #: uri for default dispatches
 _ROUTE_URI_DEFAULT = ""

@@ -30,10 +30,10 @@ class UserRole(sirepo.auth_db.UserDbBase):
         cls = self.__class__
         return [r[0] for r in self.query().distinct(cls.role).all()]
 
-    def add_roles(self, roles, expiration=None):
+    def add_roles(self, roles, expiration=None, uid=None):
         from sirepo import sim_data
 
-        u = self.logged_in_user()
+        u = uid or self.logged_in_user()
         for r in roles:
             try:
                 # Check here, because sqlite doesn't throw IntegrityErrors
