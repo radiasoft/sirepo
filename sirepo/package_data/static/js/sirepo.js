@@ -4762,20 +4762,21 @@ SIREPO.app.controller('PaymentController', function ($window, requestSender) {
             "pk_test_51Q1wcG2MoUThcATgbGDqQUmqgRhq4DC1zNUhSYKRQCFHRTzRjElRglNeXttWYzeBKfN54FBZ91MkoRiYaD1xdqyM00gi1iSvJg"
         ).initEmbeddedCheckout({
             fetchClientSecret: () => {
-                new Promise((resolve, reject) => {
+                return new Promise((resolve, reject) => {
                     requestSender.sendRequest(
                         'paymentCreateCheckoutSession',
                         function(data) {
                             if (data && data.clientSecret) {
                                 resolve(data.clientSecret);
                             } else {
+                                srlog(`paymentCreateCheckoutSession did not return client secret data=`, data)
                                 reject(new Error('Invalid response from server: missing client secret'));
                             }
                         },
                         {},
                         function(error) {
-                            reject(new Error('Failed to create checkout session: ' +
-                                (error && error.error ? error.error : 'Unknown error')));
+                            srlog(`paymentCreateCheckoutSession request error=`, error)
+                            reject(new Error('Failed to create checkout session'));
                         }
                     );
                 })
@@ -4783,7 +4784,7 @@ SIREPO.app.controller('PaymentController', function ($window, requestSender) {
         }).then((checkout) => {
             checkout.mount('#checkout');
         }).catch((error) => {
-            console.error('Error initializing Stripe checkout:', error);
+            srlog(`Error initializing Stripe checkout error=`, error);
         });
     };
 

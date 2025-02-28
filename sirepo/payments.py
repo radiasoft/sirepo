@@ -19,25 +19,32 @@ class API(sirepo.quest.API):
         """Create a Stripe checkout session
 
         Returns:
-            dict: Stripe checkout session ID
+            str: Stripe client secret
         """
-        email = self.auth.user_name(self.auth.logged_in_user())
-        checkout_session = await stripe.checkout.Session.create_async(
-            customer_email=email,
-            ui_mode="embedded",
-            line_items=[
-                {
-                    "price": _cfg.stripe_price_id,
-                    "quantity": 1,
-                },
-            ],
-            mode="subscription",
-            # TODO(e-carlin): need to fix this. See moss. Need to add {CHECKOUT_SESSION_ID}  prob sim type
-            return_url="http://localhost:8000",
-            # TODO(e-carlin): don't think this is needed
-            # client_reference_id=uid,
+        return self.reply_ok(
+            PKDict(
+                clientSecret=(
+                    await stripe.checkout.Session.create_async(
+                        customer_email=self.auth.user_name(self.auth.logged_in_user()),
+                        ui_mode="embedded",
+                        line_items=[
+                            {
+                                # TODO(e-carlin): handle premium plan
+                                "price": _cfg.stripe_basic_plan_price_id,
+                                "quantity": 1,
+                            },
+                        ],
+                        mode="subscription",
+                        # TODO(e-carlin): need to fix this. See moss. Need to add {CHECKOUT_SESSION_ID}  prob sim type
+                        return_url="http://localhost:8000",
+                        # TODO(e-carlin): don't think this is needed
+                        # client_reference_id=uid,
+                        # TODO(e-carlin): needed?
+                        # automatic_tax=PKDict(enabled=True),
+                    )
+                ).client_secret,
+            ),
         )
-        return self.reply_dict(id=checkout_session.id)
 
 
 def init_apis(*args, **kwargs):
@@ -46,15 +53,16 @@ def init_apis(*args, **kwargs):
     if _cfg:
         return
     _cfg = pkconfig.init(
-        stripe_api_key=(None, str, "Stripe API key"),
-        stripe_webhook_secret=(None, str, "Stripe webhook secret"),
-        stripe_price_id=(None, str, "Stripe price ID for premium plan"),
-        stripe_publishable_key=(None, str, "Stripe publishable key for frontend"),
+        stripe_secret_key=pkconfig.Required(str, "Stripe secret API key"),
+        stripe_publishable_key=pkconfig.Required(str, "Stripe publishable API key"),
+        stripe_basic_plan_price_id=pkconfig.Required(
+            str, "Stripe price ID for basic plan"
+        ),
+        stripe_premium_plan_price_id=pkconfig.Required(
+            str, "Stripe price ID for premium plan"
+        ),
     )
-    if _cfg.stripe_api_key:
-        stripe.api_key = _cfg.stripe_api_key
-        # TODO(e-carlin): make stripe api key requried and set async
-
+    stripe.api_key = _cfg.stripe_secret_key
     # Explicitly setting like this forces stripe to raise an error if
     # a sync call is ever called when there is a corresponding async
     # method available.

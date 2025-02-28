@@ -75,7 +75,7 @@ _op_flash() {
         echo 'You must set $SIREPO_SIM_OAUTH_FLASH_KEY and $SIREPO_SIM_OAUTH_FLASH_SECRET' 1>&2
         exit 1
     fi
-    _exec_all
+    _op_mail
 }
 
 _op_jupyterhub() {
@@ -141,6 +141,11 @@ _op_no_smtp_mail() {
     export SIREPO_SMTP_SERVER=dev
     _env_mail_common
     _exec_all
+}
+
+_op_payments() {
+    # TODO(e-carlin): enable stripe module (currently hardcoded as enabled)
+    _op_mail
 }
 
 _op_server_status() {
