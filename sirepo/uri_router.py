@@ -27,7 +27,15 @@ import sirepo.util
 _FUNC_PREFIX = "api_"
 
 #: modules that must be initialized
-_REQUIRED_MODULES = ("auth_api", "job_api", "server", "srtime", "auth_role_moderation")
+# TODO(e-carlin): payments shouldn't be required. Should be brought in thru config
+_REQUIRED_MODULES = (
+    "auth_api",
+    "job_api",
+    "server",
+    "srtime",
+    "auth_role_moderation",
+    "payments",
+)
 
 #: uri for default dispatches
 _ROUTE_URI_DEFAULT = ""

@@ -4756,6 +4756,7 @@ SIREPO.app.controller('PaymentController', function ($window, requestSender) {
     };
 
     self.initializeStripe = function() {
+        // TODO(e-carlin): think about error handling
         $window.Stripe(
         // TODO(e-carlin): get from authState
             "pk_test_51Q1wcG2MoUThcATgbGDqQUmqgRhq4DC1zNUhSYKRQCFHRTzRjElRglNeXttWYzeBKfN54FBZ91MkoRiYaD1xdqyM00gi1iSvJg"
@@ -4763,7 +4764,7 @@ SIREPO.app.controller('PaymentController', function ($window, requestSender) {
             fetchClientSecret: () => {
                 new Promise((resolve, reject) => {
                     requestSender.sendRequest(
-                        'createCheckoutSession',
+                        'paymentCreateCheckoutSession',
                         function(data) {
                             if (data && data.clientSecret) {
                                 resolve(data.clientSecret);
