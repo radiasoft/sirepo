@@ -21,6 +21,8 @@ class API(sirepo.quest.API):
         Returns:
             str: Stripe client secret
         """
+        req = self.parse_post()
+        pkdp("uuuuuuuuuuuuuuuu {}", req.type)
         return self.reply_ok(
             PKDict(
                 clientSecret=(

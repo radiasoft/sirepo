@@ -4737,7 +4737,7 @@ SIREPO.app.controller('FindByNameController', function (appState, requestSender,
 });
 
 
-SIREPO.app.controller('PaymentController', function ($window, requestSender) {
+SIREPO.app.controller('PaymentCheckoutController', function ($window, requestSender) {
     var self = this;
 
     self.loadStripe = function() {
@@ -4773,7 +4773,9 @@ SIREPO.app.controller('PaymentController', function ($window, requestSender) {
                                 reject(new Error('Invalid response from server: missing client secret'));
                             }
                         },
-                        {},
+                        {
+                            simulationType: SIREPO.APP_SCHEMA.simulationType,
+                        },
                         function(error) {
                             srlog(`paymentCreateCheckoutSession request error=`, error)
                             reject(new Error('Failed to create checkout session'));
