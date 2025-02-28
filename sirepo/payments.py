@@ -35,12 +35,13 @@ class API(sirepo.quest.API):
                             },
                         ],
                         mode="subscription",
-                        # TODO(e-carlin): need to fix this. See moss. Need to add {CHECKOUT_SESSION_ID}  prob sim type
+                        # TODO(e-carlin): Need to probably add  ?session_id={CHECKOUT_SESSION_ID} to local_route
                         return_url=self.absolute_uri(
                             sirepo.uri.local_route(
                                 self.parse_post().type, route_name="paymentFinalization"
                             )
-                        ),
+                        )
+                        + "?session_id={CHECKOUT_SESSION_ID}",
                         # TODO(e-carlin): don't think this is needed
                         # client_reference_id=uid,
                         # TODO(e-carlin): needed?

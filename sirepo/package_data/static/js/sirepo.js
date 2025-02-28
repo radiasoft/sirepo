@@ -4793,9 +4793,14 @@ SIREPO.app.controller('PaymentCheckoutController', function ($window, requestSen
 });
 
 
-SIREPO.app.controller('PaymentFinalizationController', function () {
+SIREPO.app.controller('PaymentFinalizationController', function ($location, requestSender) {
     const self = this;
     srdbg(`in PaymentFinalizationController`);
+    const s = $location.search();
+    if ( ! ('session_id' in s)) {
+        requestSender.localRedirect('paymentCheckout');
+    }
+    srdbg(`llllllllllllllll `, s.session_id);
 
 });
 
