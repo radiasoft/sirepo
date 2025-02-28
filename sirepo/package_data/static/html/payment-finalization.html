@@ -1,5 +1,17 @@
 <div class="container-fluid">
-  <div>
-    hello world
+  <div class="row">
+    <div class="col-sm-6 col-sm-offset-2">
+      <div data-ng-if="! payment.sessionStatus">
+        <!-- TODO(e-carlin): loding indicator? -->
+      </div>
+      <div data-ng-if="payment.sessionStatus === 'complete'">
+        <h1>Payment Complete</h1>
+        <p>Thank you for signing up! Please <a href="" data-ng-click="payment.redirectAppRoot()">click here</a> to use {{ payment.productShortName }}.</p>
+      </div>
+      <div data-ng-if="payment.sessionStatus !== null && payment.sessionStatus !== 'complete'">
+        <h1>Trouble Completing Payment</h1>
+        <p>There was trouble completing your payment. Please <a href="" data-ng-click="payment.redirectPaymentCheckout()">click here</a> to try again. If the issue persists please reach out to our support team <span data-support-email=""></span>.</p>
+      </div>
+    </div>
   </div>
 </div>

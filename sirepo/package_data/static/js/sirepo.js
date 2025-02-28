@@ -4795,7 +4795,13 @@ SIREPO.app.controller('PaymentCheckoutController', function ($window, requestSen
 
 SIREPO.app.controller('PaymentFinalizationController', function ($location, requestSender) {
     const self = this;
-    srdbg(`in PaymentFinalizationController`);
+    self.productShortName = SIREPO.APP_SCHEMA.productInfo.shortName
+    self.sessionStatus = null;
+    // TODO(e-carlin): rm
+    self.sessionStatus = 'error';
+    self.redirectAppRoot = requestSender.globalRedirectRoot;
+    self.redirectPaymentCheckout = () => requestSender.localRedirect('paymentCheckout');
+
     const s = $location.search();
     if ( ! ('session_id' in s)) {
         requestSender.localRedirect('paymentCheckout');
@@ -4804,9 +4810,15 @@ SIREPO.app.controller('PaymentFinalizationController', function ($location, requ
         'paymentCheckoutSessionStatus',
         function(data) {
             srdbg(`response data=`, data);
+            if ('sessionStatus' in data) {
+                self.sessionStatus = data.sessionStatus;
+                return;
+            }
+            // TODO(e-carlin): otherwise some error so ?? maybe try payment again?
         },
         {sessionId: s.session_id},
         function(error) {
+            // TODO(e-carlin): handle error. maybe try payment again?
             srdbg(`response error=`, error);
         },
     )

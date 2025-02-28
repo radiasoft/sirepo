@@ -53,7 +53,6 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user")
     async def api_paymentCheckoutSessionStatus(self):
-        # TODO(e-carlin): remove tmp var
         return self.reply_ok(
             PKDict(
                 sessionStatus=(
