@@ -462,6 +462,13 @@
                   "templateUrl": "/static/html/payment-checkout.html"
                 }
             },
+            "paymentFinalization": {
+                "route": "/payment-finalization",
+                "config": {
+                  "controller": "PaymentFinalizationController as payment",
+                  "templateUrl": "/static/html/payment-finalization.html"
+                }
+            },
             "planRequired": {
                 "route": "/plan-required",
                 "config": {

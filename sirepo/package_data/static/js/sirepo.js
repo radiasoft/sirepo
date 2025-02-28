@@ -4789,9 +4789,14 @@ SIREPO.app.controller('PaymentCheckoutController', function ($window, requestSen
             srlog(`Error initializing Stripe checkout error=`, error);
         });
     };
-
-    // Start the process when the controller loads
     self.loadStripe();
+});
+
+
+SIREPO.app.controller('PaymentFinalizationController', function () {
+    const self = this;
+    srdbg(`in PaymentFinalizationController`);
+
 });
 
 SIREPO.app.controller('ServerUpgradedController', function (errorService, requestSender) {

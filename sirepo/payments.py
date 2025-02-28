@@ -21,8 +21,6 @@ class API(sirepo.quest.API):
         Returns:
             str: Stripe client secret
         """
-        req = self.parse_post()
-        pkdp("uuuuuuuuuuuuuuuu {}", req.type)
         return self.reply_ok(
             PKDict(
                 clientSecret=(
@@ -38,7 +36,11 @@ class API(sirepo.quest.API):
                         ],
                         mode="subscription",
                         # TODO(e-carlin): need to fix this. See moss. Need to add {CHECKOUT_SESSION_ID}  prob sim type
-                        return_url="http://localhost:8000",
+                        return_url=self.absolute_uri(
+                            sirepo.uri.local_route(
+                                self.parse_post().type, route_name="paymentFinalization"
+                            )
+                        ),
                         # TODO(e-carlin): don't think this is needed
                         # client_reference_id=uid,
                         # TODO(e-carlin): needed?
