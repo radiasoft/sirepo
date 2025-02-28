@@ -51,6 +51,19 @@ class API(sirepo.quest.API):
             ),
         )
 
+    @sirepo.quest.Spec("require_user")
+    async def api_paymentCheckoutSessionStatus(self):
+        # TODO(e-carlin): remove tmp var
+        return self.reply_ok(
+            PKDict(
+                sessionStatus=(
+                    await stripe.checkout.Session.retrieve_async(
+                        self.body_as_dict().sessionId,
+                    )
+                ).status
+            )
+        )
+
 
 def init_apis(*args, **kwargs):
     global _cfg

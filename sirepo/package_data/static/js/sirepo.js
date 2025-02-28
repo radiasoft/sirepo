@@ -4800,6 +4800,16 @@ SIREPO.app.controller('PaymentFinalizationController', function ($location, requ
     if ( ! ('session_id' in s)) {
         requestSender.localRedirect('paymentCheckout');
     }
+    requestSender.sendRequest(
+        'paymentCheckoutSessionStatus',
+        function(data) {
+            srdbg(`response data=`, data);
+        },
+        {sessionId: s.session_id},
+        function(error) {
+            srdbg(`response error=`, error);
+        },
+    )
     srdbg(`llllllllllllllll `, s.session_id);
 
 });
