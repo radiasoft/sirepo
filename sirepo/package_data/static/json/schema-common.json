@@ -187,6 +187,7 @@
         "statefulCompute": "/stateful-compute",
         "statelessCompute": "/stateless-compute",
         "staticFile": "/static/*<path_info>",
+        "stripeWebhook": "/stripe-webhook",
         "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
         "uploadLibFile": "/upload-lib-file/<simulation_type>/<simulation_id>/<file_type>"

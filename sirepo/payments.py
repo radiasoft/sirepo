@@ -63,6 +63,14 @@ class API(sirepo.quest.API):
             )
         )
 
+    @sirepo.quest.Spec("allow_visitor")
+    async def api_stripeWebhook(self):
+        e = stripe.Event.construct_from(
+            self.body_as_dict(),
+            _cfg.stripe_secret_key,
+        )
+        pkdp("eeeeeeeeeeeeeeee {}", e)
+
 
 def init_apis(*args, **kwargs):
     global _cfg
