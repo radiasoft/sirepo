@@ -6,6 +6,10 @@
     }
 
     /* bootstrap overrides */
+    .alert-info {
+      background-color: transparent;
+    }
+
     .modal-header {
       border-top-left-radius: 6px;
       border-top-right-radius: 6px;

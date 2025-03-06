@@ -200,27 +200,29 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, utilit
     };
 });
 
-SIREPO.app.directive('srAlert', function(errorService) {
+SIREPO.app.directive('srAlert', function(errorService, uri) {
     return {
         restrict: 'A',
         scope: {},
         template: `
-            <div data-ng-show="alertText()" class="alert alert-warning alert-dismissible" role="alert">
-              <button type="button" class="close" data-ng-click="clearAlert()" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-              <strong>{{ alertText() }}</strong>
+            <div data-ng-repeat="m in errorService.MESSAGE_TYPES track by $index">
+              <div data-ng-if="text(m)" class="alert"
+                    data-ng-class="{'alert-warning': m === 'alert', 'alert-info': m !== 'alert'}" role="alert">
+                <button type="button" class="close" data-ng-click="clear(m)" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+                <strong>{{ text(m) }}</strong>
+                <span data-ng-if="m === 'subscription'">
+                    <a data-ng-href="{{ subscribeURL() }}">Subscribe now</a>
+                </span>
+              </div>
             </div>
         `,
         controller: function($scope) {
-            //TODO(robnagler) bind to value in appState or vice versa
-            $scope.alertText = function() {
-                return errorService.alertText();
-            };
-
-            $scope.clearAlert = function() {
-                errorService.alertText('');
-            };
+            $scope.errorService = errorService;
+            $scope.clear = (alertType) => errorService.messageText(alertType, '');
+            $scope.subscribeURL = () => uri.formatLocal('paymentCheckout', {}) + '?plan=basic';
+            $scope.text = (alertType) => errorService.messageText(alertType);
 
             $scope.$on('$routeChangeSuccess', $scope.clearAlert);
         },
@@ -1017,7 +1019,7 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
             };
 
             $scope.showAdmJobs = function() {
-                return authState.roles.indexOf('adm') >= 0;
+                return authState.roles.adm ? true : false;
             };
 
             $scope.showJobsList = function() {

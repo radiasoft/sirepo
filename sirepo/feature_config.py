@@ -201,7 +201,6 @@ def _init():
             ),
         ),
         schema_common=dict(
-            hide_guest_warning=_dev("Hide the guest warning in the UI"),
             support_email=(
                 "support@sirepo.com",
                 str,

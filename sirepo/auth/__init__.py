@@ -546,10 +546,6 @@ class _Auth(sirepo.quest.Attr):
             pass
         elif s == _STATE_LOGGED_IN:
             if m in _cfg.methods:
-                f = getattr(_METHOD_MODULES[m], "validate_login", None)
-                if f:
-                    pkdc("validate_login method={}", m)
-                    f(self.qcall)
                 return self._assert_role_user()
             if m in _cfg.deprecated_methods:
                 e = "deprecated"
@@ -666,7 +662,6 @@ class _Auth(sirepo.quest.Attr):
             guestIsOnlyMethod=not non_guest_methods,
             isGuestUser=False,
             isLoggedIn=self.is_logged_in(s),
-            isLoginExpired=False,
             jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
             max_message_bytes=sirepo.job.cfg().max_message_bytes,
             method=self._qcall_bound_method(),
@@ -685,12 +680,8 @@ class _Auth(sirepo.quest.Attr):
         u = self._qcall_bound_user()
         if v.isLoggedIn:
             if v.method == METHOD_GUEST:
-                # currently only method to expire login
                 v.displayName = _GUEST_USER_DISPLAY_NAME
                 v.isGuestUser = True
-                v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired(
-                    self.qcall
-                )
                 v.needCompleteRegistration = False
                 v.visibleMethods = non_guest_methods
             else:
@@ -700,6 +691,10 @@ class _Auth(sirepo.quest.Attr):
                 if r:
                     v.displayName = r.display_name
             v.roles = self.qcall.auth_db.model("UserRole").get_roles()
+            v.roles = {
+                x.role: (x.expiration.timestamp() if x.expiration else None)
+                for x in self.qcall.auth_db.model("UserRole").get_roles_and_expiration()
+            }
             self._plan(v)
             self._method_auth_state(v, u)
         if pkconfig.channel_in_internal_test():
