@@ -43,9 +43,7 @@ class API(sirepo.quest.API):
                         ui_mode="embedded",
                         line_items=[
                             {
-                                "price": _plan_to_price(
-                                    self.sreq.form_get("plan", "uknown")
-                                ),
+                                "price": _plan_to_price(self.body_as_dict().plan),
                                 "quantity": 1,
                             },
                         ],
