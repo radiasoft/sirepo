@@ -4672,11 +4672,17 @@ SIREPO.app.controller('LoginConfirmController', function (authState, requestSend
                 '<token>': p.token,
             },
             function (data) {
+                if (data.state === 'ok' && self.needCompleteRegistration) {
+                    $('#sr-complete-registration-done').modal('show');
+                    return;
+                }
                 authState.handleLogin(data, self);
             },
             {
                 token: p.token,
                 displayName: self.data.displayName,
+                reason: self.data.reason,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
             }
         );
     };

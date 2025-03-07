@@ -13,7 +13,6 @@ import pyisemail
 import pykern.pkcompat
 import sirepo.auth
 import sirepo.auth_db
-import sirepo.auth_db.email
 import sirepo.quest
 import sirepo.smtp
 import sirepo.srtime
@@ -67,7 +66,7 @@ class API(sirepo.quest.API):
                     token,
                     d,
                 )
-            return d.get("displayName")
+            return d
 
         if self.sreq.is_spider():
             raise sirepo.util.Forbidden("robots not allowed")
@@ -75,19 +74,24 @@ class API(sirepo.quest.API):
         m = self.auth_db.model(UserModel)
         u = m.unchecked_search_by(token=token)
         if u and u.expires >= sirepo.srtime.utc_now():
-            n = _verify_confirm(req.type, u)
+            d = _verify_confirm(req.type, u)
             m.delete_changed_email(user=u)
             u.user_name = u.unverified_email
             u.token = None
             u.expires = None
             u.save()
-            i = u.uid
-            self.auth.login(
-                this_module,
-                sim_type=req.type,
-                model=u,
-                display_name=n,
-            )
+            try:
+                self.auth.login(
+                    this_module,
+                    sim_type=req.type,
+                    model=u,
+                    display_name=d.get("displayName"),
+                )
+            except sirepo.util.SReplyExc:
+                # email confirmation with moderation include a "reason" value
+                if d.get("reason"):
+                    return await self.call_api("saveModerationReason", body=d)
+                raise
             raise AssertionError("auth.login returned unexpectedly")
         if not u:
             pkdlog("login with invalid token={}", token)

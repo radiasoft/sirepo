@@ -644,6 +644,9 @@ ul.navbar-nav > li.sr-logged-in-menu > a {
 input.ng-invalid.ng-dirty {
   background-color: #fad8de;
 }
+textarea.ng-invalid.ng-dirty {
+  background-color: #fad8de;
+}
 .btn-invalid {
   background-color: #fad8de;
 }
