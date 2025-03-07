@@ -2,7 +2,6 @@ import contextlib
 import os
 import pytest
 import re
-import requests
 import subprocess
 
 #: Maximum time an individual test case (function) can run
@@ -11,10 +10,7 @@ MAX_CASE_RUN_SECS = int(os.getenv("SIREPO_CONFTEST_MAX_CASE_RUN_SECS", 120))
 
 @pytest.fixture(scope="function")
 def auth_fc(auth_fc_module):
-    # set the sentinel
-    auth_fc_module.cookie_jar.clear()
-    auth_fc_module.sr_get_root()
-    return auth_fc_module
+    return _auth_fc(auth_fc_module)
 
 
 @pytest.fixture(scope="module")
@@ -144,8 +140,19 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "sirepo_args: pass parameters to fixtures")
 
 
+@pytest.fixture(scope="function")
+def stripe_auth_fc(stripe_auth_fc_module):
+    return _auth_fc(stripe_auth_fc_module)
+
+
+@pytest.fixture(scope="module")
+def stripe_auth_fc_module(request):
+    with _auth_client_module(request, additional_api_modules=["payments"]) as c:
+        yield c
+
+
 @contextlib.contextmanager
-def _auth_client_module(request):
+def _auth_client_module(request, additional_api_modules=None):
     from pykern.pkcollections import PKDict
     from sirepo import srunit_servers
 
@@ -159,7 +166,9 @@ def _auth_client_module(request):
         SIREPO_SMTP_USER="x",
         SIREPO_AUTH_GUEST_EXPIRY_DAYS="1",
         SIREPO_AUTH_METHODS="basic:email:guest",
-        SIREPO_FEATURE_CONFIG_API_MODULES="status",
+        SIREPO_FEATURE_CONFIG_API_MODULES=":".join(
+            ["status"] + (additional_api_modules if additional_api_modules else [])
+        ),
     )
     from pykern import pkconfig
 
@@ -167,6 +176,13 @@ def _auth_client_module(request):
 
     with srunit_servers.api_and_supervisor(request, fc_args=PKDict(cfg=cfg)) as c:
         yield c
+
+
+def _auth_fc(module):
+    # set the sentinel
+    module.cookie_jar.clear()
+    module.sr_get_root()
+    return module
 
 
 def _fc(request, fc_module, new_user=False):

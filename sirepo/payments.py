@@ -59,7 +59,6 @@ class API(sirepo.quest.API):
                                 query_safe_chars="{}",
                             )
                         ),
-                        client_reference_id=u,
                         # TODO(e-carlin): needed?
                         # automatic_tax=PKDict(enabled=True),
                     )
@@ -89,10 +88,6 @@ class API(sirepo.quest.API):
                 }
             )[subscription["items"].data[0].price.id]
 
-        if not cfg().stripe_webhook_secret:
-            raise AssertionError(
-                "must define stripe_webhook_secret to call api_stripeWebhook"
-            )
         # https://docs.stripe.com/billing/subscriptions/webhooks
         # TODO(e-carlin): need to add our api to stripe dashboard https://docs.stripe.com/webhooks#test-webhook
         e = stripe.Webhook.construct_event(
