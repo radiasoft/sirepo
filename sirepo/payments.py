@@ -10,6 +10,7 @@ from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdformat
 import datetime
 import sirepo.auth_role
 import sirepo.quest
+import sqlalchemy
 import stripe
 
 _STRIPE_SIGNATURE_HEADER = "Stripe-Signature"
@@ -110,6 +111,18 @@ class API(sirepo.quest.API):
                 # a foreign key relationship setup with user_registration_t
                 uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
             )
+            self.auth_db.model("UserSubscription").new(
+                amount_paid=e["data"]["object"]["amount_paid"],
+                customer_id=e["data"]["object"]["customer"],
+                invoice_id=e["data"]["object"]["id"],
+                subscription_id=e["data"]["object"]["subscription"],
+                subscription_name=(
+                    await stripe.Product.retrieve_async(
+                        s["items"].data[0]["price"]["product"]
+                    )
+                )["name"],
+                uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
+            ).save()
         return self.reply_ok()
 
 

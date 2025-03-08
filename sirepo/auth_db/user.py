@@ -156,3 +156,20 @@ class UserRoleModeration(sirepo.auth_db.UserDbBase):
         if moderator_uid:
             s.moderator_uid = moderator_uid
         s.save()
+
+
+class UserSubscription(sirepo.auth_db.UserDbBase):
+    __tablename__ = "user_subscription_t"
+    amount_paid = sqlalchemy.Column(sqlalchemy.Integer(), nullable=False)
+    created = sqlalchemy.Column(
+        sqlalchemy.DateTime(),
+        server_default=sqlalchemy.sql.func.now(),
+        nullable=False,
+    )
+    customer_id = sqlalchemy.Column(
+        sirepo.auth_db.STRING_NAME, unique=True, nullable=False
+    )
+    invoice_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
+    subscription_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
+    subscription_name = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
+    uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID, primary_key=True)
