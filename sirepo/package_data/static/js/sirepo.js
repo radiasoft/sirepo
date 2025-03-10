@@ -303,7 +303,7 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
     self.sbatchHostIsNersc = self.sbatchHostDisplayName
         && self.sbatchHostDisplayName.toLowerCase().indexOf('nersc') >= 0;
 
-    if (self.roles.trial) {
+    if (self.roles.trial && ! ('basic' in self.roles || 'premium' in self.roles)) {
         const d = new Date(self.roles.trial * 1000);
         errorService.messageText(
             'subscription',
@@ -4792,6 +4792,7 @@ SIREPO.app.controller('PaymentCheckoutController', function (authState, errorSer
         });
     };
     self.loadStripe();
+    errorService.messageText('subscription', '');
 });
 
 
