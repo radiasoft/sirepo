@@ -87,44 +87,42 @@ class API(sirepo.quest.API):
         def _res(checkout_session):
             return self.reply_ok(PKDict(sessionStatus=checkout_session.status))
 
-        checkout_session = await stripe.checkout.Session.retrieve_async(
+        c = await stripe.checkout.Session.retrieve_async(
             self.body_as_dict().sessionId,
         )
-        if not checkout_session.status == "complete":
-            return _res(checkout_session)
-        subscription = await stripe.Subscription.retrieve_async(
-            checkout_session.subscription
-        )
+        if not c.status == "complete":
+            return _res(c)
+        s = await stripe.Subscription.retrieve_async(c.subscription)
         if (
-            not subscription.metadata[_STRIPE_SIREPO_UID_METADATA_KEY]
+            not s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY]
             == self.auth.logged_in_user()
         ):
             raise AssertionError(
-                f"stripe_uid={subscription.metadata[_STRIPE_SIREPO_UID_METADATA_KEY]} does not match logged_in_user={self.auth.logged_in_user()}"
+                f"stripe_uid={s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY]} does not match logged_in_user={self.auth.logged_in_user()}"
             )
         self.auth_db.model("UserSubscription").new(
             # TODO(e-carlin): I think we should add stripe customer id
-            uid=subscription.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
+            uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
             checkout_session_id=self.body_as_dict().sessionId,
             creation_reason=_ROLE_CREATED_BY_API_CHECKOUT_SESSION_STATUS,
             created=sirepo.srtime.utc_now(),
             revocation_reason=None,
             revoked=None,
-            role=_price_to_role(subscription),
+            role=_price_to_role(s),
         ).save()
         # We aren't 100% positive the user has fully paid at this
         # point. But, we are pretty sure. So, proactively give them the
         # role and _ROLE_AUDITOR_CRON will remove if it finds out they
         # didn't end up paying.
         self.auth_db.model("UserRole").add_roles(
-            roles=[_price_to_role(subscription)],
-            expiration=datetime.datetime.fromtimestamp(subscription.current_period_end),
+            roles=[_price_to_role(s)],
+            expiration=datetime.datetime.fromtimestamp(s.current_period_end),
             # TODO(e-carlin): should we validate against our db? We don't have
             # a foreign key relationship setup with user_registration_t
             # TODO(e-carlin): maybe just logged_in_user()?
-            uid=subscription.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
+            uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
         )
-        return _res(checkout_session)
+        return _res(c)
 
     @sirepo.quest.Spec("allow_visitor")
     async def api_stripeWebhook(self):
