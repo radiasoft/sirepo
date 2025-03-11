@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Runs API server and job supervisor
 
 Also supports starting nginx proxy.
@@ -6,6 +5,7 @@ Also supports starting nginx proxy.
 :copyright: Copyright (c) 2015-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkcli
 from pykern import pkcollections
 from pykern import pkconfig
@@ -165,6 +165,12 @@ def server():
 
 
 def tornado():
+    def _is_primary(**kwargs):
+        """By default always primary, or if matches port"""
+        p = _cfg().tornado_primary_port
+        kwargs["is_primary"] = p is None or p == kwargs["port"]
+        return kwargs
+
     with pkio.save_chdir(_run_dir()) as r:
         d = pkconfig.in_dev_mode()
         if d:
@@ -176,9 +182,11 @@ def tornado():
                     tornado.autoreload.watch(f)
         pkdlog("ip={} port={}", _cfg().ip, _cfg().port)
         sirepo.modules.import_and_init("sirepo.uri_router").start_tornado(
-            debug=sirepo.feature_config.cfg().debug_mode,
-            ip=_cfg().ip,
-            port=_cfg().port,
+            **_is_primary(
+                debug=sirepo.feature_config.cfg().debug_mode,
+                ip=_cfg().ip,
+                port=_cfg().port,
+            ),
         )
 
 
@@ -203,6 +211,11 @@ def _cfg():
                 "port on which http listens",
             ),
             run_dir=(None, str, "where to run the program (defaults db_dir)"),
+            tornado_primary_port=(
+                None,
+                int,
+                "for multi-instance tornado, port of controlling api server",
+            ),
             use_reloader=(pkconfig.in_dev_mode(), bool, "use the server reloader"),
         )
     return __cfg
