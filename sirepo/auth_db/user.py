@@ -13,6 +13,23 @@ import sirepo.util
 import sqlalchemy
 
 
+class UserPayment(sirepo.auth_db.UserDbBase):
+    __tablename__ = "user_payment_t"
+    amount_paid = sqlalchemy.Column(sqlalchemy.Integer(), nullable=False)
+    created = sqlalchemy.Column(
+        sqlalchemy.DateTime(),
+        server_default=sqlalchemy.sql.func.now(),
+        nullable=False,
+    )
+    customer_id = sqlalchemy.Column(
+        sirepo.auth_db.STRING_NAME, unique=True, nullable=False
+    )
+    invoice_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
+    subscription_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
+    subscription_name = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
+    uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID, primary_key=True)
+
+
 class UserRegistration(sirepo.auth_db.UserDbBase):
     __tablename__ = "user_registration_t"
     uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID, primary_key=True)
@@ -159,17 +176,20 @@ class UserRoleModeration(sirepo.auth_db.UserDbBase):
 
 
 class UserSubscription(sirepo.auth_db.UserDbBase):
+    CREATION_REASON_CHECKOUT_SESSION_STATUS_COMPLETE = (
+        "created by checkout session status complete"
+    )
     __tablename__ = "user_subscription_t"
-    amount_paid = sqlalchemy.Column(sqlalchemy.Integer(), nullable=False)
+    uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID, primary_key=True)
+    checkout_session_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=True)
+    creation_reason = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
     created = sqlalchemy.Column(
         sqlalchemy.DateTime(),
-        server_default=sqlalchemy.sql.func.now(),
         nullable=False,
     )
-    customer_id = sqlalchemy.Column(
-        sirepo.auth_db.STRING_NAME, unique=True, nullable=False
+    revocation_reason = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=True)
+    revoked = sqlalchemy.Column(
+        sqlalchemy.DateTime(),
+        nullable=True,
     )
-    invoice_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
-    subscription_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
-    subscription_name = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
-    uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID, primary_key=True)
+    role = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
