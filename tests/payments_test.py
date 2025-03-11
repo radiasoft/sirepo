@@ -23,8 +23,36 @@ class Webhook:
     def construct_event(cls, *args, **kwargs):
         return PKDict(
             type="invoice.paid",
-            data=PKDict(object=PKDict(subscription=PKDict())),
+            data=PKDict(
+                object=PKDict(
+                    id="id_test",
+                    amount_paid=1,
+                    customer="customer_id_test",
+                    subscription="subscription_id_test",
+                )
+            ),
         )
+
+
+class Product:
+    @classmethod
+    async def retrieve_async(*args, **kwargs):
+        return PKDict(name="test product")
+
+
+async def _r(*args, **kwargs):
+    return PKDict(status="complete", subscription=None)
+
+
+class checkout:
+    pass
+
+
+# checkout = PKDict(Session=PKDict(retrieve_async=_r))
+# class checkout:
+#     @classmethod
+#     async def retrieve_async(*args, **kwargs):
+#         return PKDict(status="complete", subscription=None)
 
 
 class Subscription:
@@ -33,9 +61,15 @@ class Subscription:
         from sirepo import payments
 
         return PKDict(
+            customer="customer_id_tests",
             items=PKDict(
                 data=[
-                    PKDict(price=PKDict(id=payments.cfg().stripe_plan_basic_price_id))
+                    PKDict(
+                        price=PKDict(
+                            id=payments.cfg().stripe_plan_basic_price_id,
+                            product="test product",
+                        )
+                    )
                 ]
             ),
             current_period_end=_EXPIRATION.timestamp(),
@@ -56,7 +90,7 @@ def _skip():
 pytestmark = pytest.mark.skipif(_skip(), reason="No Stripe configuration")
 
 
-def test_new_create_checkout_session(stripe_auth_fc):
+def test__checkout_session(stripe_auth_fc):
     from sirepo import auth_role
     from pykern.pkunit import pkre
 
@@ -67,6 +101,10 @@ def test_new_create_checkout_session(stripe_auth_fc):
         PKDict(simulationType=_SIM_TYPE, plan=auth_role.ROLE_PLAN_BASIC),
     )
     pkre("^cs_test_", res.clientSecret)
+    res = stripe_auth_fc.sr_post(
+        "paymentCheckoutSessionStatus",
+        PKDict(sessionId="session_id_test"),
+    )
 
 
 def test_event_paid_webhook():
