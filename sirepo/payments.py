@@ -8,14 +8,18 @@ from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdformat
 import datetime
+import sirepo.auth_db.user
 import sirepo.auth_role
+import sirepo.cron
 import sirepo.quest
-import sqlalchemy
-import stripe
 import sirepo.srtime
+import stripe
 
-from uri_router import _validate_root_redirect_uris
-
+#: reference to cron so it isn't garbage collected
+_ROLE_AUDITOR_CRON = None
+_ROLE_CREATED_BY_API_CHECKOUT_SESSION_STATUS = (
+    sirepo.auth_db.user.UserSubscription.CREATION_REASON_CHECKOUT_SESSION_STATUS_COMPLETE
+)
 _STRIPE_SIGNATURE_HEADER = "Stripe-Signature"
 _STRIPE_SIREPO_UID_METADATA_KEY = "sirepo_uid"
 _cfg = None
@@ -80,42 +84,38 @@ class API(sirepo.quest.API):
                 }
             )[subscription["items"].data[0].price.id]
 
-        def _res():
-            return self.reply_ok(PKDict(sessionStatus=s))
+        def _res(checkout_session):
+            return self.reply_ok(PKDict(sessionStatus=checkout_session.status))
 
-        s = (
-            await stripe.checkout.Session.retrieve_async(
-                self.body_as_dict().sessionId,
+        checkout_session = await stripe.checkout.Session.retrieve_async(
+            self.body_as_dict().sessionId,
+        )
+        if not checkout_session.status == "complete":
+            return _res(checkout_session)
+        subscription = await stripe.Subscription.retrieve_async(
+            checkout_session.subscription
+        )
+        if (
+            not subscription.metadata[_STRIPE_SIREPO_UID_METADATA_KEY]
+            == self.auth.logged_in_user()
+        ):
+            raise AssertionError(
+                f"stripe_uid={subscription.metadata[_STRIPE_SIREPO_UID_METADATA_KEY]} does not match logged_in_user={self.auth.logged_in_user()}"
             )
-        ).status
-        if not s == "complete":
-            return _res()
-
         self.auth_db.model("UserSubscription").new(
-            # TODO(e-carlin): which uid? the one from subscription is more secure (bound to the session id)
-            # but idk if we have access to it at this point.
-            uid=self.auth.logged_in_user(),
+            # TODO(e-carlin): I think we should add stripe customer id
             uid=subscription.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
             checkout_session_id=self.body_as_dict().sessionId,
-            creation_reason=self.auth_db.model(
-                "UserSubscription"
-            ).CREATION_REASON_CHECKOUT_SESSION_STATUS_COMPLETE,
+            creation_reason=_ROLE_CREATED_BY_API_CHECKOUT_SESSION_STATUS,
             created=sirepo.srtime.utc_now(),
             revocation_reason=None,
             revoked=None,
             role=_price_to_role(subscription),
         ).save()
-        # SECURITY: There is potential here for someone to get a session id
-        # and then call this API to create a role for themselves. Session ID's
-        # aren't secret but to get one in a state of 'complete' would require
-        # work and they aren't easily guessable so it is fairly secure.
-
         # We aren't 100% positive the user has fully paid at this
         # point. But, we are pretty sure. So, proactively give them the
-        # role and the payment cron will remove if it finds out they
-        # didn't end up paying
-        # TODO(e-carlin): change "payment cron" to whatever the name actually is
-        # TODO(e-carlin): how do we get subscription?
+        # role and _ROLE_AUDITOR_CRON will remove if it finds out they
+        # didn't end up paying.
         self.auth_db.model("UserRole").add_roles(
             roles=[_price_to_role(subscription)],
             expiration=datetime.datetime.fromtimestamp(subscription.current_period_end),
@@ -124,7 +124,7 @@ class API(sirepo.quest.API):
             # TODO(e-carlin): maybe just logged_in_user()?
             uid=subscription.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
         )
-        return _res()
+        return _res(checkout_session)
 
     @sirepo.quest.Spec("allow_visitor")
     async def api_stripeWebhook(self):
@@ -159,7 +159,23 @@ class API(sirepo.quest.API):
 
 
 def init_apis(*args, **kwargs):
-    # TODO(e-carlin): start cron
+    global _ROLE_AUDITOR_CRON
+
+    async def _auditor(_):
+        """Compare sirepo role status with Stripe payment status.
+
+        We proactively assign roles from api_paymentCheckoutSessionStatus.
+        This auditor goes through all roles created by that API and validates
+        they they are still active/paid in Stripe.
+        """
+        # get all users with _ROLE_CREATED_BY_API_CHECKOUT_SESSION_STATUS and revoked == None
+        # query stripe to get their current status (can we query stripe based on sirepo uid?)
+        # maybe we need to add stripe customer id to UserSubscription?
+        pass
+
+    _ROLE_AUDITOR_CRON = sirepo.cron.CronTask(
+        cfg().role_auditor_cron_period, _auditor, None
+    )
     pass
 
 
@@ -169,6 +185,11 @@ def cfg():
     if _cfg:
         return _cfg
     _cfg = pkconfig.init(
+        role_auditor_cron_period=(
+            60 * 60 * 24,
+            int,
+            "Seconds to sleep between runs of auditor",
+        ),
         stripe_secret_key=pkconfig.Required(str, "Stripe secret API key"),
         stripe_publishable_key=pkconfig.Required(str, "Stripe publishable API key"),
         stripe_plan_basic_price_id=pkconfig.Required(
@@ -178,8 +199,8 @@ def cfg():
             str, "Stripe price ID for premium plan"
         ),
         # In dev stripe cli will output this
-        stripe_webhook_secret=pkconfig.RequiredUnlessDev(
-            None, str, "Stripe secret key for webhook security"
+        stripe_webhook_secret=pkconfig.Required(
+            str, "Stripe secret key for webhook security"
         ),
     )
     stripe.api_key = _cfg.stripe_secret_key
