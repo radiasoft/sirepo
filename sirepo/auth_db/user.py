@@ -15,6 +15,9 @@ import sqlalchemy
 
 class UserPayment(sirepo.auth_db.UserDbBase):
     __tablename__ = "user_payment_t"
+    # invoice_id's are unique so safe for a primary_key and makes
+    # payment_exists check easier.
+    # https://docs.stripe.com/api/invoices/object#invoice_object-id
     invoice_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, primary_key=True)
     uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID, nullable=False)
     amount_paid = sqlalchemy.Column(sqlalchemy.Integer(), nullable=False)
@@ -26,6 +29,9 @@ class UserPayment(sirepo.auth_db.UserDbBase):
     customer_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
     subscription_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
     subscription_name = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
+
+    def payment_exists(self, invoice_id):
+        return self.unchecked_search_by(invoice_id=invoice_id)
 
 
 class UserRegistration(sirepo.auth_db.UserDbBase):
@@ -178,7 +184,9 @@ class UserSubscription(sirepo.auth_db.UserDbBase):
         "created by checkout session status complete"
     )
     __tablename__ = "user_subscription_t"
-    uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID, primary_key=True)
+    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+    uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID)
+    customer_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
     checkout_session_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=True)
     creation_reason = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
     created = sqlalchemy.Column(

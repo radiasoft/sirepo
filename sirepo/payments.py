@@ -101,8 +101,8 @@ class API(sirepo.quest.API):
                 f"stripe_uid={s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY]} does not match logged_in_user={self.auth.logged_in_user()}"
             )
         self.auth_db.model("UserSubscription").new(
-            # TODO(e-carlin): I think we should add stripe customer id
             uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
+            customer_id=s.customer,
             checkout_session_id=self.body_as_dict().sessionId,
             creation_reason=_ROLE_CREATED_BY_API_CHECKOUT_SESSION_STATUS,
             created=sirepo.srtime.utc_now(),
@@ -117,9 +117,6 @@ class API(sirepo.quest.API):
         self.auth_db.model("UserRole").add_roles(
             roles=[_price_to_role(s)],
             expiration=datetime.datetime.fromtimestamp(s.current_period_end),
-            # TODO(e-carlin): should we validate against our db? We don't have
-            # a foreign key relationship setup with user_registration_t
-            # TODO(e-carlin): maybe just logged_in_user()?
             uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
         )
         return _res(c)
@@ -141,16 +138,25 @@ class API(sirepo.quest.API):
                 raise AssertionError(
                     pkdformat("multiple subscription line items s={}", s)
                 )
+            n = (
+                await stripe.Product.retrieve_async(
+                    s["items"].data[0]["price"]["product"]
+                )
+            )["name"]
+            # Be robust against stripe sending duplicate events.
+            # No await below here so we are sure only one call makes
+            # it through.
+            # https://docs.stripe.com/webhooks#handle-duplicate-events
+            if self.auth_db.model("UserPayment").payment_exists(
+                e["data"]["object"]["id"]
+            ):
+                return self.reply_ok()
             self.auth_db.model("UserPayment").new(
                 amount_paid=e["data"]["object"]["amount_paid"],
                 customer_id=e["data"]["object"]["customer"],
                 invoice_id=e["data"]["object"]["id"],
                 subscription_id=e["data"]["object"]["subscription"],
-                subscription_name=(
-                    await stripe.Product.retrieve_async(
-                        s["items"].data[0]["price"]["product"]
-                    )
-                )["name"],
+                subscription_name=n,
                 uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
             ).save()
         return self.reply_ok()
