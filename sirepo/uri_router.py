@@ -158,7 +158,7 @@ def register_api_module(module):
             _api_funcs[n] = _Route(func=o, cls=c, func_name=n)
 
 
-def start_tornado(ip, port, debug):
+def start_tornado(ip, port, debug, is_primary=True):
     """Start tornado server, does not return"""
     from tornado import httpserver, ioloop, web, log, websocket
 
@@ -322,6 +322,13 @@ def start_tornado(ip, port, debug):
         def set_log_user(self, log_user):
             self.log_user = log_user
 
+    def _cron_and_start():
+        from sirepo import cron
+
+        l = ioloop.IOLoop.current()
+        cron.CronTask.init_class(l if is_primary else None)
+        l.start()
+
     def _log(handler, which="end", fmt="", args=None):
         r = handler.request
         f = "{} ip={} uri={} "
@@ -372,7 +379,7 @@ def start_tornado(ip, port, debug):
         max_buffer_size=sirepo.job.cfg().max_message_bytes,
     ).listen(port=port, address=ip)
     log.enable_pretty_logging()
-    ioloop.IOLoop.current().start()
+    _cron_and_start()
 
 
 def uri_for_api(api_name, params=None):
