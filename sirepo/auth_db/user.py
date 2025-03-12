@@ -51,6 +51,14 @@ class UserRole(sirepo.auth_db.UserDbBase):
         cls = self.__class__
         return [r[0] for r in self.query().distinct(cls.role).all()]
 
+    def all_plan_roles_expired(self):
+        for r in self.get_roles():
+            if r not in sirepo.auth_role.PLAN_ROLES:
+                continue
+            if self.has_active_role(r):
+                return False
+        return True
+
     def add_roles(self, roles, expiration=None, uid=None):
         from sirepo import sim_data
 
@@ -216,7 +224,7 @@ class UserSubscription(sirepo.auth_db.UserDbBase):
         )
 
     def revoke_due_to_inactive_stripe_status(self, subscription_record):
-        subscription_record.revocation_reson = (
+        subscription_record.revocation_reason = (
             self._REVOCATION_REASON_INACTIVE_STRIPE_STATUS
         )
         subscription_record.revoked = sirepo.srtime.utc_now()

@@ -207,7 +207,6 @@ def cfg():
 
 
 async def _auditor(_):
-    pkdp("e-carlin starting auditor={}", 1)
     """Remove sriepo subscription/role for users with inactive Stripe subscription status.
 
     We proactively assign roles from
@@ -217,7 +216,9 @@ async def _auditor(_):
     """
 
     async def _stripe_status_is_active(subscription_record):
-        s = await stripe.Subscription.retrieve_async(subscription_record.id)
+        s = await stripe.Subscription.retrieve_async(
+            subscription_record.subscription_id
+        )
         if s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY] != subscription_record.uid:
             raise AssertionError(
                 pkdformat(
@@ -232,16 +233,12 @@ async def _auditor(_):
         for s in qcall.auth_db.model(
             "UserSubscription"
         ).active_subscriptions_from_stripe():
-            pkdp("e-carlin subscription={}", s)
             if qcall.auth_db.model("UserRole").has_expired_role(s.role, uid=s.uid):
-                pkdp("e-carlin is expired ={}", s)
                 continue
             if await _stripe_status_is_active(
                 s,
             ):
-                pkdp("e-carlin is active={}", s)
                 continue
-            pkdp("e-carlin setting expired and revoked={}", s)
             qcall.auth_db.model("UserRole").expire_role(s.role, uid=s.uid)
             qcall.auth_db.model(
                 "UserSubscription"
