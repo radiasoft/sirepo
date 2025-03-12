@@ -39,9 +39,8 @@ async def _checkout_create(**kwargs):
     return PKDict(client_secret=_CLIENT_SECRET)
 
 
-checkout = PKDict(
-    Session=PKDict(retrieve_async=_checkout_retrieve, create_async=_checkout_create)
-)
+async def _product_retrieve(*args, **kwargs):
+    return PKDict(name="test product")
 
 
 def _webhook_construct(*args, **kwargs):
@@ -58,40 +57,41 @@ def _webhook_construct(*args, **kwargs):
     )
 
 
-Webhook = PKDict(construct_event=_webhook_construct)
+async def _subscription_retrieve(*args, **kwargs):
+    from sirepo import payments
+
+    return PKDict(
+        customer="customer_id_test",
+        items=PKDict(
+            data=[
+                PKDict(
+                    price=PKDict(
+                        id=payments.cfg().stripe_plan_basic_price_id,
+                        product="test product",
+                    )
+                )
+            ]
+        ),
+        current_period_end=_EXPIRATION.timestamp(),
+        metadata=PKDict({payments._STRIPE_SIREPO_UID_METADATA_KEY: _UID_IN_DB}),
+    )
 
 
-async def _product_retrieve(*args, **kwargs):
-    return PKDict(name="test product")
+checkout = PKDict(
+    Session=PKDict(retrieve_async=_checkout_retrieve, create_async=_checkout_create)
+)
+
+
+HTTPXClient = lambda: None
 
 
 Product = PKDict(retrieve_async=_product_retrieve)
 
 
-class Subscription:
-    @classmethod
-    async def retrieve_async(*args, **kwargs):
-        from sirepo import payments
-
-        return PKDict(
-            customer="customer_id_test",
-            items=PKDict(
-                data=[
-                    PKDict(
-                        price=PKDict(
-                            id=payments.cfg().stripe_plan_basic_price_id,
-                            product="test product",
-                        )
-                    )
-                ]
-            ),
-            current_period_end=_EXPIRATION.timestamp(),
-            metadata=PKDict({payments._STRIPE_SIREPO_UID_METADATA_KEY: _UID_IN_DB}),
-        )
+Subscription = PKDict(retrieve_async=_subscription_retrieve)
 
 
-class HTTPXClient:
-    pass
+Webhook = PKDict(construct_event=_webhook_construct)
 
 
 def _skip():
@@ -103,7 +103,6 @@ def _skip():
 pytestmark = pytest.mark.skipif(_skip(), reason="No Stripe configuration")
 
 
-# TODO(e-carlin): no more uses of stripe_auth_fc. I think I can remove it. srunit or conftest?
 def test_checkout_session():
     from pykern import pkconfig
     from pykern import pkio

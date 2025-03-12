@@ -140,19 +140,8 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "sirepo_args: pass parameters to fixtures")
 
 
-@pytest.fixture(scope="function")
-def stripe_auth_fc(stripe_auth_fc_module):
-    return _auth_fc(stripe_auth_fc_module)
-
-
-@pytest.fixture(scope="module")
-def stripe_auth_fc_module(request):
-    with _auth_client_module(request, additional_api_modules=["payments"]) as c:
-        yield c
-
-
 @contextlib.contextmanager
-def _auth_client_module(request, additional_api_modules=None):
+def _auth_client_module(request):
     from pykern.pkcollections import PKDict
     from sirepo import srunit_servers
 
@@ -166,9 +155,7 @@ def _auth_client_module(request, additional_api_modules=None):
         SIREPO_SMTP_USER="x",
         SIREPO_AUTH_GUEST_EXPIRY_DAYS="1",
         SIREPO_AUTH_METHODS="basic:email:guest",
-        SIREPO_FEATURE_CONFIG_API_MODULES=":".join(
-            ["status"] + (additional_api_modules if additional_api_modules else [])
-        ),
+        SIREPO_FEATURE_CONFIG_API_MODULES="status",
     )
     from pykern import pkconfig
 
