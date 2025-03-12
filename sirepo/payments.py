@@ -20,6 +20,7 @@ _ROLE_AUDITOR_CRON = None
 _ROLE_CREATED_BY_API_CHECKOUT_SESSION_STATUS = (
     sirepo.auth_db.user.UserSubscription.CREATION_REASON_CHECKOUT_SESSION_STATUS_COMPLETE
 )
+_STRIPE_ACTIVE_SUBSCRIPTION_STATUSES = {"trialing", "active", "past_due"}
 _STRIPE_SIGNATURE_HEADER = "Stripe-Signature"
 _STRIPE_SIREPO_UID_METADATA_KEY = "sirepo_uid"
 _cfg = None
@@ -105,6 +106,7 @@ class API(sirepo.quest.API):
             uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
             customer_id=s.customer,
             checkout_session_id=b.sessionId,
+            subscription_id=s.id,
             creation_reason=_ROLE_CREATED_BY_API_CHECKOUT_SESSION_STATUS,
             created=sirepo.srtime.utc_now(),
             revocation_reason=None,
@@ -166,17 +168,42 @@ class API(sirepo.quest.API):
 def init_apis(*args, **kwargs):
     global _ROLE_AUDITOR_CRON
 
-    async def _auditor(_):
-        """Compare sirepo role status with Stripe payment status.
+    async def _stripe_status_is_active(subscription_record):
+        s = await stripe.Subscription.retrieve_async(subscription_record.id)
+        if s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY] != subscription_record.uid:
+            raise AssertionError(
+                pkdformat(
+                    "subscription={} not bound to uid={}",
+                    s,
+                    subscription_record.uid,
+                )
+            )
+        return s.status in _STRIPE_ACTIVE_SUBSCRIPTION_STATUSES
 
-        We proactively assign roles from api_paymentCheckoutSessionStatus.
-        This auditor goes through all roles created by that API and validates
-        they they are still active/paid in Stripe.
+    async def _auditor(_):
+        """Remove sriepo subscription/role for users with inactive Stripe subscription status.
+
+        We proactively assign roles from
+        api_paymentCheckoutSessionStatus. This auditor goes through
+        all sirepo subscriptions/roles created by that API and revokes
+        any that are no longer active in Stripe
         """
-        # get all users with _ROLE_CREATED_BY_API_CHECKOUT_SESSION_STATUS and revoked == None
-        # query stripe to get their current status (can we query stripe based on sirepo uid?)
-        # maybe we need to add stripe customer id to UserSubscription?
-        pass
+        with sirepo.quest.start() as qcall:
+            for s in qcall.auth_db.qcall.model(
+                "UserSubscription"
+            ).active_subscriptions_from_stripe():
+                if qcall.auth_db.qcall.model("UserRole").has_expired_role(
+                    s.role, uid=s.uid
+                ):
+                    continue
+                if _stripe_status_is_active(
+                    s,
+                ):
+                    continue
+                qcall.auth_db.qcall.model("UserRole").expire_role(s.role, uid=s.uid)
+                qcall.auth_db.qcall.model(
+                    "UserSubscription"
+                ).revoke_due_to_inactive_stripe_status(s)
 
     _ROLE_AUDITOR_CRON = sirepo.cron.CronTask(
         cfg().role_auditor_cron_period, _auditor, None

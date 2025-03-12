@@ -70,9 +70,7 @@ class UserRole(sirepo.auth_db.UserDbBase):
         if not self._has_role(role):
             self.add_roles(roles=[role], expiration=expiration)
             return
-        r = self.search_by(uid=self.logged_in_user(), role=role)
-        r.expiration = expiration
-        r.save()
+        self.set_role_expiration(role, expiration)
 
     def delete_roles(self, roles, uid=None):
         from sirepo import sim_data
@@ -89,6 +87,9 @@ class UserRole(sirepo.auth_db.UserDbBase):
         )
         sim_data.audit_proprietary_lib_files(qcall=self.auth_db.qcall)
 
+    def expire_role(self, role, uid=None):
+        self.set_role_expiration(role, sirepo.srtime.utc_now(), uid=uid)
+
     def get_roles(self):
         return self.search_all_for_column("role", uid=self.logged_in_user())
 
@@ -102,9 +103,14 @@ class UserRole(sirepo.auth_db.UserDbBase):
         r = self._has_role(role, uid=uid)
         return r and not self._is_expired_role(r)
 
-    def has_expired_role(self, role):
-        r = self._has_role(role)
+    def has_expired_role(self, role, uid=None):
+        r = self._has_role(role, uid=uid)
         return r and self._is_expired_role(r)
+
+    def set_role_expiration(self, role, expiration, uid=None):
+        r = self.search_by(uid=uid or self.logged_in_user(), role=role)
+        r.expiration = expiration
+        r.save()
 
     def uids_of_paid_users(self):
         return self.uids_with_roles(sirepo.auth_role.PLAN_ROLES_PAID)
@@ -183,11 +189,14 @@ class UserSubscription(sirepo.auth_db.UserDbBase):
     CREATION_REASON_CHECKOUT_SESSION_STATUS_COMPLETE = (
         "payments_checkout_session_status_complete"
     )
+    _REVOCATION_REASON_INACTIVE_STRIPE_STATUS = "inactive_stripe_status"
+
     __tablename__ = "user_subscription_t"
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
     uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID)
     customer_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
     checkout_session_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=True)
+    subscription_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
     creation_reason = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
     created = sqlalchemy.Column(
         sqlalchemy.DateTime(),
@@ -199,3 +208,16 @@ class UserSubscription(sirepo.auth_db.UserDbBase):
         nullable=True,
     )
     role = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
+
+    def active_subscriptions_from_stripe(self):
+        return self.search_by(
+            revoked=None,
+            creation_reason=self.CREATION_REASON_CHECKOUT_SESSION_STATUS_COMPLETE,
+        )
+
+    def revoke_due_to_inactive_stripe_status(self, subscription_record):
+        subscription_record.revocation_reson = (
+            self._REVOCATION_REASON_INACTIVE_STRIPE_STATUS
+        )
+        subscription_record.revoked = sirepo.srtime.utc_now()
+        subscription_record.save()
