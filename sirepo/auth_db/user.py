@@ -181,7 +181,7 @@ class UserRoleModeration(sirepo.auth_db.UserDbBase):
 
 class UserSubscription(sirepo.auth_db.UserDbBase):
     CREATION_REASON_CHECKOUT_SESSION_STATUS_COMPLETE = (
-        "created by checkout session status complete"
+        "payments_checkout_session_status_complete"
     )
     __tablename__ = "user_subscription_t"
     id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
