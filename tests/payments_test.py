@@ -20,28 +20,6 @@ _UID_IN_DB = "J4FHIC7n"
 sys.modules["stripe"] = pkinspect.this_module()
 
 
-class Webhook:
-    @classmethod
-    def construct_event(cls, *args, **kwargs):
-        return PKDict(
-            type="invoice.paid",
-            data=PKDict(
-                object=PKDict(
-                    id="id_test",
-                    amount_paid=1,
-                    customer="customer_id_test",
-                    subscription="subscription_id_test",
-                )
-            ),
-        )
-
-
-class Product:
-    @classmethod
-    async def retrieve_async(*args, **kwargs):
-        return PKDict(name="test product")
-
-
 async def _checkout_retrieve(*args, **kwargs):
     return PKDict(status="complete", subscription=None)
 
@@ -64,10 +42,29 @@ async def _checkout_create(**kwargs):
 checkout = PKDict(
     Session=PKDict(retrieve_async=_checkout_retrieve, create_async=_checkout_create)
 )
-# class checkout:
-#     @classmethod
-#     async def retrieve_async(*args, **kwargs):
-#         return PKDict(status="complete", subscription=None)
+
+
+def _webhook_construct(*args, **kwargs):
+    return PKDict(
+        type="invoice.paid",
+        data=PKDict(
+            object=PKDict(
+                id="id_test",
+                amount_paid=1,
+                customer="customer_id_test",
+                subscription="subscription_id_test",
+            )
+        ),
+    )
+
+
+Webhook = PKDict(construct_event=_webhook_construct)
+
+
+class Product:
+    @classmethod
+    async def retrieve_async(*args, **kwargs):
+        return PKDict(name="test product")
 
 
 class Subscription:
