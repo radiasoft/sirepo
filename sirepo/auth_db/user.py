@@ -210,7 +210,7 @@ class UserSubscription(sirepo.auth_db.UserDbBase):
     role = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
 
     def active_subscriptions_from_stripe(self):
-        return self.search_by(
+        return self.unchecked_search_all(
             revoked=None,
             creation_reason=self.CREATION_REASON_CHECKOUT_SESSION_STATUS_COMPLETE,
         )

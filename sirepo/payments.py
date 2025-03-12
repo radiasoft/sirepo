@@ -186,10 +186,10 @@ def init_apis(*args, **kwargs):
         We proactively assign roles from
         api_paymentCheckoutSessionStatus. This auditor goes through
         all sirepo subscriptions/roles created by that API and revokes
-        any that are no longer active in Stripe
+        any that are not active in Stripe.
         """
         with sirepo.quest.start() as qcall:
-            for s in qcall.auth_db.qcall.model(
+            for s in qcall.auth_db.model(
                 "UserSubscription"
             ).active_subscriptions_from_stripe():
                 if qcall.auth_db.qcall.model("UserRole").has_expired_role(
