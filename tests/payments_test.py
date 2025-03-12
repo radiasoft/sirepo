@@ -57,28 +57,6 @@ _UID_IN_DB = "J4FHIC7n"
 #         ),
 #     )
 
-
-async def _subscription_retrieve(*args, **kwargs):
-    from sirepo import payments
-
-    return PKDict(
-        customer="customer_id_test",
-        items=PKDict(
-            data=[
-                PKDict(
-                    price=PKDict(
-                        id=payments.cfg().stripe_plan_basic_price_id,
-                        product="test product",
-                    )
-                )
-            ]
-        ),
-        current_period_end=_EXPIRATION.timestamp(),
-        metadata=PKDict({payments._STRIPE_SIREPO_UID_METADATA_KEY: _UID_IN_DB}),
-        status="active",
-    )
-
-
 # checkout = PKDict(
 #     Session=PKDict(retrieve_async=_checkout_retrieve, create_async=_checkout_create)
 # )
@@ -90,7 +68,7 @@ async def _subscription_retrieve(*args, **kwargs):
 # Product = PKDict(retrieve_async=_product_retrieve)
 
 
-# Subscription = PKDict(retrieve_async=_subscription_retrieve)
+# Subscription = PKDict(retrieve_async=_subscription_active)
 
 
 # Webhook = PKDict(construct_event=_webhook_construct)
@@ -125,12 +103,6 @@ def test_auditor(monkeypatch):
     from sirepo.pkcli import roles
     import asyncio
 
-    async def _stripe_subscription_unpaid(*args, **kwargs):
-        return PKDict(
-            metadata=PKDict({payments._STRIPE_SIREPO_UID_METADATA_KEY: _UID_IN_DB}),
-            status="unpaid",
-        )
-
     pkio.unchecked_remove(srdb.root())
     pkunit.data_dir().join("auditor_db").copy(srdb.root())
     # finish this test
@@ -157,15 +129,11 @@ def test_auditor(monkeypatch):
         monkeypatch.setattr(
             stripe.Subscription,
             "retrieve_async",
-            _subscription_retrieve,
+            _subscription_active,
         )
         asyncio.run(payments._auditor(None))
     with srunit.quest_start() as qcall:
-        monkeypatch.setattr(
-            stripe.Subscription, "retrieve_async", _stripe_subscription_unpaid
-        )
-        # payments.stripe.Subscription.retrieve_async = _stripe_subscription_unpaid
-        # importlib.reload(payments)
+        monkeypatch.setattr(stripe.Subscription, "retrieve_async", _subscription_unpaid)
         asyncio.run(payments._auditor(None))
     with srunit.quest_start() as qcall:
         pkunit.pkeq(
@@ -271,3 +239,33 @@ def test_event_paid_webhook():
             "no UserPayment record for uid={}",
             _UID_IN_DB,
         )
+
+
+async def _subscription_active(*args, **kwargs):
+    from sirepo import payments
+
+    return PKDict(
+        customer="customer_id_test",
+        items=PKDict(
+            data=[
+                PKDict(
+                    price=PKDict(
+                        id=payments.cfg().stripe_plan_basic_price_id,
+                        product="test product",
+                    )
+                )
+            ]
+        ),
+        current_period_end=_EXPIRATION.timestamp(),
+        metadata=PKDict({payments._STRIPE_SIREPO_UID_METADATA_KEY: _UID_IN_DB}),
+        status="active",
+    )
+
+
+async def _subscription_unpaid(*args, **kwargs):
+    from sirepo import payments
+
+    return PKDict(
+        metadata=PKDict({payments._STRIPE_SIREPO_UID_METADATA_KEY: _UID_IN_DB}),
+        status="unpaid",
+    )
