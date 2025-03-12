@@ -15,28 +15,7 @@ import sys
 _CLIENT_SECRET = "stripe_client_secret_test"
 _EXPIRATION = datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
 _SIM_TYPE = "srw"
-# TODO(e-carlin): I'm not convinced we need to have an _data db
 _UID_IN_DB = "J4FHIC7n"
-
-# sys.modules["stripe"] = pkinspect.this_module()
-
-
-# async def _product_retrieve(*args, **kwargs):
-#     return PKDict(name="test product")
-
-
-# checkout = PKDict(
-#     Session=PKDict(retrieve_async=_checkout_retrieve, create_async=_checkout_create)
-# )
-
-
-# HTTPXClient = lambda: None
-
-
-# Product = PKDict(retrieve_async=_product_retrieve)
-
-
-# Webhook = PKDict(construct_event=_webhook_construct)
 
 
 def _skip():
@@ -180,7 +159,7 @@ def test_checkout_session(monkeypatch):
         )
 
 
-def test_event_paid_webhook():
+def test_event_paid_webhook(monkeypatch):
     from pykern import pkconfig
     from pykern import pkio
     from pykern import pkunit
@@ -194,6 +173,13 @@ def test_event_paid_webhook():
     from sirepo import srdb
     from sirepo import srunit
 
+    monkeypatch.setattr(stripe.Webhook, "construct_event", _webhook_construct)
+    monkeypatch.setattr(
+        stripe.Subscription,
+        "retrieve_async",
+        _subscription_active,
+    )
+    monkeypatch.setattr(stripe.Product, "retrieve_async", _product_retrieve)
     pkio.unchecked_remove(srdb.root())
     pkunit.data_dir().join("db").copy(srdb.root())
     with srunit.quest_start() as qcall:
@@ -223,6 +209,10 @@ async def _checkout_create(**kwargs):
 
 async def _checkout_retrieve(*args, **kwargs):
     return PKDict(status="complete", subscription=None)
+
+
+async def _product_retrieve(*args, **kwargs):
+    return PKDict(name="test product")
 
 
 async def _subscription_active(*args, **kwargs):
