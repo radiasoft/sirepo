@@ -61,10 +61,11 @@ def _webhook_construct(*args, **kwargs):
 Webhook = PKDict(construct_event=_webhook_construct)
 
 
-class Product:
-    @classmethod
-    async def retrieve_async(*args, **kwargs):
-        return PKDict(name="test product")
+async def _product_retrieve(*args, **kwargs):
+    return PKDict(name="test product")
+
+
+Product = PKDict(retrieve_async=_product_retrieve)
 
 
 class Subscription:
