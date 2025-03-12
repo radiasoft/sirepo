@@ -109,16 +109,17 @@ def test_checkout_session():
     from pykern import pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
+
+    # Before Sirepo imports
+    pkconfig.reset_state_for_testing(
+        PKDict(SIREPO_FEATURE_CONFIG_API_MODULES="payments")
+    )
     from sirepo import auth_role
     from sirepo import srdb
     from sirepo import srunit
     from sirepo import util
     from sirepo.pkcli import roles
 
-    # TODO(e-carlin): this doesn't seem to do anything
-    pkconfig.reset_state_for_testing(
-        PKDict(SIREPO_FEATURE_CONFIG_API_MODULES="payments")
-    )
     pkio.unchecked_remove(srdb.root())
     pkunit.data_dir().join("db").copy(srdb.root())
     with srunit.quest_start() as qcall:
@@ -155,18 +156,19 @@ def test_checkout_session():
 
 
 def test_event_paid_webhook():
+    from pykern import pkconfig
     from pykern import pkio
     from pykern import pkunit
-    from pykern import pkconfig
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
-    from sirepo import srdb
-    from sirepo import srunit
 
-    # TODO(e-carlin): this doesn't seem to do anything
+    # Before Sirepo imports
     pkconfig.reset_state_for_testing(
         PKDict(SIREPO_FEATURE_CONFIG_API_MODULES="payments")
     )
+    from sirepo import srdb
+    from sirepo import srunit
+
     pkio.unchecked_remove(srdb.root())
     pkunit.data_dir().join("db").copy(srdb.root())
     with srunit.quest_start() as qcall:
