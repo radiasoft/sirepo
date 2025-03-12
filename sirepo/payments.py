@@ -50,10 +50,10 @@ class API(sirepo.quest.API):
                         customer_email=self.auth.user_name(u),
                         ui_mode="embedded",
                         line_items=[
-                            {
-                                "price": _plan_to_price(self.body_as_dict().plan),
-                                "quantity": 1,
-                            },
+                            PKDict(
+                                price=_plan_to_price(self.body_as_dict().plan),
+                                quantity=1,
+                            ),
                         ],
                         mode="subscription",
                         subscription_data=PKDict(
@@ -87,8 +87,9 @@ class API(sirepo.quest.API):
         def _res(checkout_session):
             return self.reply_ok(PKDict(sessionStatus=checkout_session.status))
 
+        b = self.body_as_dict()
         c = await stripe.checkout.Session.retrieve_async(
-            self.body_as_dict().sessionId,
+            b.sessionId,
         )
         if not c.status == "complete":
             return _res(c)
@@ -103,7 +104,7 @@ class API(sirepo.quest.API):
         self.auth_db.model("UserSubscription").new(
             uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
             customer_id=s.customer,
-            checkout_session_id=self.body_as_dict().sessionId,
+            checkout_session_id=b.sessionId,
             creation_reason=_ROLE_CREATED_BY_API_CHECKOUT_SESSION_STATUS,
             created=sirepo.srtime.utc_now(),
             revocation_reason=None,

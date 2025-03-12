@@ -33,6 +33,8 @@ _REQUIRED_MODULES = (
     "server",
     "srtime",
     "auth_role_moderation",
+    # TODO(e-carlin): rm, just because I can't figure out how to get tests working w/o it.
+    "payments",
 )
 
 #: uri for default dispatches
