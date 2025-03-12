@@ -21,41 +21,9 @@ _UID_IN_DB = "J4FHIC7n"
 # sys.modules["stripe"] = pkinspect.this_module()
 
 
-# async def _checkout_retrieve(*args, **kwargs):
-#     return PKDict(status="complete", subscription=None)
-
-
-# async def _checkout_create(**kwargs):
-#     from pykern import pkunit
-#     from sirepo import payments
-
-#     pkunit.pkeq(
-#         _UID_IN_DB,
-#         kwargs["subscription_data"].metadata[payments._STRIPE_SIREPO_UID_METADATA_KEY],
-#     )
-#     pkunit.pkeq(
-#         payments.cfg().stripe_plan_basic_price_id,
-#         kwargs["line_items"][0]["price"],
-#     )
-#     return PKDict(client_secret=_CLIENT_SECRET)
-
-
 # async def _product_retrieve(*args, **kwargs):
 #     return PKDict(name="test product")
 
-
-# def _webhook_construct(*args, **kwargs):
-#     return PKDict(
-#         type="invoice.paid",
-#         data=PKDict(
-#             object=PKDict(
-#                 id="id_test",
-#                 amount_paid=1,
-#                 customer="customer_id_test",
-#                 subscription="subscription_id_test",
-#             )
-#         ),
-#     )
 
 # checkout = PKDict(
 #     Session=PKDict(retrieve_async=_checkout_retrieve, create_async=_checkout_create)
@@ -66,9 +34,6 @@ _UID_IN_DB = "J4FHIC7n"
 
 
 # Product = PKDict(retrieve_async=_product_retrieve)
-
-
-# Subscription = PKDict(retrieve_async=_subscription_active)
 
 
 # Webhook = PKDict(construct_event=_webhook_construct)
@@ -105,13 +70,6 @@ def test_auditor(monkeypatch):
 
     pkio.unchecked_remove(srdb.root())
     pkunit.data_dir().join("auditor_db").copy(srdb.root())
-    # finish this test
-    # mock out the call to stripe so their status is inactive
-    # set role to not expired
-    # confirm UserSubscription revoked is None
-    # run the auditor
-    # confirm role is expired and expiration is now
-    # confirm UserSubscription has is revoked
     with srunit.quest_start() as qcall:
         qcall.auth_db.model("UserRole").set_role_expiration(
             auth_role.ROLE_PLAN_BASIC, _EXPIRATION, uid=_UID_IN_DB
@@ -163,7 +121,7 @@ def test_auditor(monkeypatch):
             )
 
 
-def test_checkout_session():
+def test_checkout_session(monkeypatch):
     from pykern import pkconfig
     from pykern import pkio
     from pykern import pkunit
@@ -180,6 +138,13 @@ def test_checkout_session():
     from sirepo import util
     from sirepo.pkcli import roles
 
+    monkeypatch.setattr(stripe.checkout.Session, "create_async", _checkout_create)
+    monkeypatch.setattr(stripe.checkout.Session, "retrieve_async", _checkout_retrieve)
+    monkeypatch.setattr(
+        stripe.Subscription,
+        "retrieve_async",
+        _subscription_active,
+    )
     pkio.unchecked_remove(srdb.root())
     pkunit.data_dir().join("db").copy(srdb.root())
     with srunit.quest_start() as qcall:
@@ -241,10 +206,30 @@ def test_event_paid_webhook():
         )
 
 
+async def _checkout_create(**kwargs):
+    from pykern import pkunit
+    from sirepo import payments
+
+    pkunit.pkeq(
+        _UID_IN_DB,
+        kwargs["subscription_data"].metadata[payments._STRIPE_SIREPO_UID_METADATA_KEY],
+    )
+    pkunit.pkeq(
+        payments.cfg().stripe_plan_basic_price_id,
+        kwargs["line_items"][0]["price"],
+    )
+    return PKDict(client_secret=_CLIENT_SECRET)
+
+
+async def _checkout_retrieve(*args, **kwargs):
+    return PKDict(status="complete", subscription=None)
+
+
 async def _subscription_active(*args, **kwargs):
     from sirepo import payments
 
     return PKDict(
+        id="subscription_id_test",
         customer="customer_id_test",
         items=PKDict(
             data=[
@@ -268,4 +253,18 @@ async def _subscription_unpaid(*args, **kwargs):
     return PKDict(
         metadata=PKDict({payments._STRIPE_SIREPO_UID_METADATA_KEY: _UID_IN_DB}),
         status="unpaid",
+    )
+
+
+def _webhook_construct(*args, **kwargs):
+    return PKDict(
+        type="invoice.paid",
+        data=PKDict(
+            object=PKDict(
+                id="id_test",
+                amount_paid=1,
+                customer="customer_id_test",
+                subscription="subscription_id_test",
+            )
+        ),
     )
