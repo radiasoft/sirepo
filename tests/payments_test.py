@@ -34,7 +34,7 @@ def test_auditor(monkeypatch):
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
 
-    # Before Sirepo imports
+    # Must be before Sirepo import so it is picked up by Sirepo
     pkconfig.reset_state_for_testing(
         PKDict(SIREPO_FEATURE_CONFIG_API_MODULES="payments")
     )
@@ -100,7 +100,7 @@ def test_checkout_session(monkeypatch):
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
 
-    # Before Sirepo imports
+    # Must be before Sirepo import so it is picked up by Sirepo
     pkconfig.reset_state_for_testing(
         PKDict(SIREPO_FEATURE_CONFIG_API_MODULES="payments")
     )
@@ -159,7 +159,7 @@ def test_event_paid_webhook(monkeypatch):
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
 
-    # Before Sirepo imports
+    # Must be before Sirepo import so it is picked up by Sirepo
     pkconfig.reset_state_for_testing(
         PKDict(SIREPO_FEATURE_CONFIG_API_MODULES="payments")
     )
