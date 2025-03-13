@@ -83,12 +83,6 @@ def test_auditor(monkeypatch):
         )
         l = roles.list_with_expiration(_UID_IN_DB)
         for r in l:
-            pkdp(
-                "e-carlin role={} expiry={} now={}",
-                r.role,
-                r.expiration,
-                srtime.utc_now(),
-            )
             if r.role == auth_role.ROLE_PLAN_BASIC and r.expiration <= srtime.utc_now():
                 break
         else:
