@@ -52,12 +52,14 @@ class UserRole(sirepo.auth_db.UserDbBase):
         return [r[0] for r in self.query().distinct(cls.role).all()]
 
     def all_plan_roles_expired(self):
+        p = False
         for r in self.get_roles():
             if r not in sirepo.auth_role.PLAN_ROLES:
                 continue
+            p = True
             if self.has_active_role(r):
                 return False
-        return True
+        return p
 
     def add_roles(self, roles, expiration=None, uid=None):
         from sirepo import sim_data
