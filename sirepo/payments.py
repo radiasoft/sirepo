@@ -15,7 +15,7 @@ import sirepo.quest
 import sirepo.srtime
 import stripe
 
-#: reference to cron so it isn't garbage collected
+#: keep reference so auditor isn't garbage collected
 _ROLE_AUDITOR_CRON = None
 _ROLE_CREATED_BY_API_CHECKOUT_SESSION_STATUS = (
     sirepo.auth_db.user.UserSubscription.CREATION_REASON_CHECKOUT_SESSION_STATUS_COMPLETE

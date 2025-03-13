@@ -10,7 +10,10 @@ MAX_CASE_RUN_SECS = int(os.getenv("SIREPO_CONFTEST_MAX_CASE_RUN_SECS", 120))
 
 @pytest.fixture(scope="function")
 def auth_fc(auth_fc_module):
-    return _auth_fc(auth_fc_module)
+    # set the sentinel
+    auth_fc_module.cookie_jar.clear()
+    auth_fc_module.sr_get_root()
+    return auth_fc_module
 
 
 @pytest.fixture(scope="module")
@@ -163,13 +166,6 @@ def _auth_client_module(request):
 
     with srunit_servers.api_and_supervisor(request, fc_args=PKDict(cfg=cfg)) as c:
         yield c
-
-
-def _auth_fc(module):
-    # set the sentinel
-    module.cookie_jar.clear()
-    module.sr_get_root()
-    return module
 
 
 def _fc(request, fc_module, new_user=False):
