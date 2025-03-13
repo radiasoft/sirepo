@@ -16,20 +16,17 @@ def test_basic():
     async def _pre_start(params):
         from sirepo import srtime
 
-        pkdebug.pkdp("e-carlin _pre_start called params={}", params)
         params.calls += 1
         if params.calls == 1:
             asyncio.create_task(_stop(params))
         srtime.adjust_time(days=1)
 
     async def _stop(params):
-        pkdebug.pkdp("e-carlin _stop called params{}", params)
         try:
             p = params.calls
             params.stop_ok = False
             for _ in range(10):
                 await asyncio.sleep(0)
-                pkdebug.pkdp("e-carlin in _stop loop params={}", params)
                 if p == params.calls:
                     # Should always increment
                     break
