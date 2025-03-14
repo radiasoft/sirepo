@@ -151,8 +151,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             return r
         if data.models.geometryInput.dagmcFile:
             d, s = cls.dagmc_and_maybe_step_filename(data)
-            if not s:
-                r.append(d)
+            r.append(s or d)
             r += cls.source_filenames(data)
         if data.get("report") == "dagmcAnimation":
             d, s = cls.dagmc_and_maybe_step_filename(data)

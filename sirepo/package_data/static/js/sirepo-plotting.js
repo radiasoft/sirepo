@@ -3081,9 +3081,11 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             function binnedCoords(point) {
                 const [i, j] = heatmapIndices(point);
                 const [dx, dy] = coordBinSize();
+                const xr = getRange(axes.x.values);
+                const yr = getRange(axes.y.values);
                 return [
-                    getRange(axes.x.values)[0] + i * dx + dx / 2,
-                    getRange(axes.y.values)[0] + j * dy + dy / 2,
+                    xr[0] + (i * dx + dx / 2) * (xr[0] > xr[1] ? -1 : 1),
+                    yr[0] + (j * dy + dy / 2) * (yr[0] > yr[1] ? -1 : 1),
                 ];
             }
 
@@ -3319,7 +3321,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 else {
                     text = '';
                 }
-                select(overlaySelector).selectAll('text.sr-heatmap-readout').text(text);
+                select().selectAll('text.sr-heatmap-readout').text(text);
             }
 
             $scope.clearData = function() {
