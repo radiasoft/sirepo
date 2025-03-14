@@ -272,23 +272,6 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
 SIREPO.app.factory('authState', function(appDataService, appState, errorService, uri, $rootScope) {
     var self = appState.clone(SIREPO.authState);
 
-    if (SIREPO.authState.isGuestUser
-        && ! SIREPO.APP_SCHEMA.feature_config.hide_guest_warning
-        && ! SIREPO.authState.isLoginExpired) {
-        appState.whenModelsLoaded(
-            $rootScope,
-            function() {
-                if (appDataService.isApplicationMode('default')) {
-                    errorService.alertText(
-                        'You are accessing Sirepo as a guest. ' +
-                            'Guest sessions are regularly deleted. ' +
-                            'To ensure that your work is saved, please click on Save Your Work!.'
-                    );
-                }
-            }
-        );
-    }
-
     SIREPO.APP_SCHEMA.enum.JobRunMode = SIREPO.APP_SCHEMA.enum.JobRunMode.map(
         function (x) {
             return [x[0], self.jobRunModeMap[x[0]]];
@@ -317,8 +300,18 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
 
     self.sbatchHostDisplayName = self.jobRunModeMap.sbatch;
 
-    self.sbatchHostIsNersc = self.sbatchHostDisplayName ? self.sbatchHostDisplayName.toLowerCase().indexOf('nersc') >= 0 : false;
+    self.sbatchHostIsNersc = self.sbatchHostDisplayName
+        && self.sbatchHostDisplayName.toLowerCase().indexOf('nersc') >= 0;
 
+    if (self.roles.trial && ! ('basic' in self.roles || 'premium' in self.roles)) {
+        const d = new Date(self.roles.trial * 1000);
+        errorService.messageText(
+            'subscription',
+            d > new Date()
+                ? `Your Sirepo free trial expires on ${d.toLocaleDateString()}.`
+                : 'Your Sirepo free trial has expired.',
+        );
+    }
     return self;
 });
 
@@ -4017,8 +4010,11 @@ SIREPO.app.provider('$exceptionHandler', {
 });
 
 SIREPO.app.factory('errorService', function($log, $window) {
-    var self = this;
-    var alertText = null;
+    const self = this;
+    const messageText = {};
+    self.MESSAGE_TYPES = ['alert', 'subscription'];
+
+    self.alertText = (value) => self.messageText('alert', value);
 
     self.exceptionHandler = function(exception, cause) {
         // preserve the default behaviour which will log the error
@@ -4027,7 +4023,7 @@ SIREPO.app.factory('errorService', function($log, $window) {
         // now try to log the error to the server side.
         try {
             // use AJAX (in this example jQuery) and msgRouter
-            var message = exception ? String(exception) : '';
+            const message = exception ? String(exception) : '';
             cause = cause ? String(cause) : '';
             self.logToServer(
                 'clientException',
@@ -4070,11 +4066,11 @@ SIREPO.app.factory('errorService', function($log, $window) {
         });
     };
 
-    self.alertText = function(value) {
+    self.messageText = (messageType, value) => {
         if (angular.isDefined(value)) {
-            alertText = value;
+            messageText[messageType] = value;
         }
-        return alertText;
+        return messageText[messageType];
     };
 
     return self;
@@ -4676,11 +4672,17 @@ SIREPO.app.controller('LoginConfirmController', function (authState, requestSend
                 '<token>': p.token,
             },
             function (data) {
+                if (data.state === 'ok' && self.needCompleteRegistration) {
+                    $('#sr-complete-registration-done').modal('show');
+                    return;
+                }
                 authState.handleLogin(data, self);
             },
             {
                 token: p.token,
                 displayName: self.data.displayName,
+                reason: self.data.reason,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
             }
         );
     };
@@ -4734,6 +4736,92 @@ SIREPO.app.controller('FindByNameController', function (appState, requestSender,
                 }
             );
         });
+});
+
+
+SIREPO.app.controller('PaymentCheckoutController', function (authState, errorService, requestSender, $location, $window) {
+    var self = this;
+
+    function initializeStripe() {
+        $window.Stripe(
+            authState.stripePublishableKey,
+        ).initEmbeddedCheckout({
+            fetchClientSecret: () => {
+                return new Promise((resolve, reject) => {
+                    requestSender.sendRequest(
+                        'paymentCreateCheckoutSession',
+                        function(data) {
+                            if (data && data.clientSecret) {
+                                resolve(data.clientSecret);
+                            } else {
+                                srlog(`paymentCreateCheckoutSession did not return client secret data=`, data);
+                                errorService.alertText(`There was an error. Please contact ${SIREPO.APP_SCHEMA.feature_config.support_email}.`);
+                                reject(new Error('Invalid response from server: missing client secret'));
+                            }
+                        },
+                        {
+                            simulationType: SIREPO.APP_SCHEMA.simulationType,
+                            plan: $location.search().plan,
+                        },
+                        function(error) {
+                            srlog(`paymentCreateCheckoutSession request error=`, error);
+                            errorService.alertText(`There was an error. Please contact ${SIREPO.APP_SCHEMA.feature_config.support_email}.`);
+                            reject(new Error('Failed to create checkout session'));
+                        }
+                    );
+                });
+            }
+        }).then((checkout) => {
+            checkout.mount('#checkout');
+        }).catch((error) => {
+            srlog(`Error initializing Stripe checkout error=`, error);
+            errorService.alertText(`There was an error. Please contact ${SIREPO.APP_SCHEMA.feature_config.support_email}.`);
+        });
+    }
+
+    function loadStripe() {
+        if (authState.isLoggedIn) {
+            $('.navbar-static-top').hide();
+        }
+        if ($window.Stripe) {
+            initializeStripe();
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://js.stripe.com/v3/';
+        script.onload = initializeStripe;
+        document.body.appendChild(script);
+    }
+
+    loadStripe();
+    errorService.messageText('subscription', '');
+});
+
+
+SIREPO.app.controller('PaymentFinalizationController', function ($location, requestSender) {
+    const self = this;
+    self.productShortName = SIREPO.APP_SCHEMA.productInfo.shortName;
+    self.sessionStatus = null;
+    self.redirectPaymentCheckout = () => requestSender.localRedirect('paymentCheckout');
+
+    const s = $location.search();
+    if ( ! ('session_id' in s)) {
+        requestSender.localRedirect('paymentCheckout');
+    }
+    requestSender.sendRequest(
+        'paymentCheckoutSessionStatus',
+        function(data) {
+            if ('sessionStatus' in data) {
+                self.sessionStatus = data.sessionStatus;
+                return;
+            }
+            self.sessionStatus = 'error';
+        },
+        {sessionId: s.session_id},
+        function(error) {
+            self.sessionStatus = 'error';
+        },
+    );
 });
 
 SIREPO.app.controller('ServerUpgradedController', function (errorService, requestSender) {

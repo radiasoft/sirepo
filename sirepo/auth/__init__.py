@@ -12,7 +12,6 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import contextlib
 import datetime
 import importlib
-import pyisemail
 import sirepo.auth_db
 import sirepo.auth_role
 import sirepo.cookie
@@ -547,10 +546,6 @@ class _Auth(sirepo.quest.Attr):
             pass
         elif s == _STATE_LOGGED_IN:
             if m in _cfg.methods:
-                f = getattr(_METHOD_MODULES[m], "validate_login", None)
-                if f:
-                    pkdc("validate_login method={}", m)
-                    f(self.qcall)
                 return self._assert_role_user()
             if m in _cfg.deprecated_methods:
                 e = "deprecated"
@@ -667,7 +662,6 @@ class _Auth(sirepo.quest.Attr):
             guestIsOnlyMethod=not non_guest_methods,
             isGuestUser=False,
             isLoggedIn=self.is_logged_in(s),
-            isLoginExpired=False,
             jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
             max_message_bytes=sirepo.job.cfg().max_message_bytes,
             method=self._qcall_bound_method(),
@@ -679,15 +673,15 @@ class _Auth(sirepo.quest.Attr):
         )
         if "sbatch" in v.jobRunModeMap:
             v.sbatchQueueMaxes = sirepo.job.NERSC_QUEUE_MAX
+        if "payments" in sirepo.feature_config.cfg().api_modules:
+            from sirepo import payments
+
+            v.stripePublishableKey = payments.cfg().stripe_publishable_key
         u = self._qcall_bound_user()
         if v.isLoggedIn:
             if v.method == METHOD_GUEST:
-                # currently only method to expire login
                 v.displayName = _GUEST_USER_DISPLAY_NAME
                 v.isGuestUser = True
-                v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired(
-                    self.qcall
-                )
                 v.needCompleteRegistration = False
                 v.visibleMethods = non_guest_methods
             else:
@@ -697,6 +691,10 @@ class _Auth(sirepo.quest.Attr):
                 if r:
                     v.displayName = r.display_name
             v.roles = self.qcall.auth_db.model("UserRole").get_roles()
+            v.roles = {
+                x.role: (x.expiration.timestamp() if x.expiration else None)
+                for x in self.qcall.auth_db.model("UserRole").get_roles_and_expiration()
+            }
             self._plan(v)
             self._method_auth_state(v, u)
         if pkconfig.channel_in_internal_test():
@@ -771,6 +769,10 @@ class _Auth(sirepo.quest.Attr):
         return self.qcall.auth_db.model(module.UserModel).unchecked_search_by(uid=uid)
 
     def _plan(self, data):
+        # TODO(e-carlin): discuss with rjn. Basic and Trial are somewhat the same (same number of cores/hours). Do we want
+        # to show users that they are on trial and can upgrade to basic (it will get them no additional resources).
+        # I think we don't want this and it is fine to show them they are on basic (even when on trial) and they can
+        # upgrade to premium.
         r = data.roles
         if sirepo.auth_role.ROLE_PLAN_PREMIUM in r:
             data.paymentPlan = _PAYMENT_PLAN_PREMIUM

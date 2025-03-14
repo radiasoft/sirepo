@@ -21,42 +21,8 @@ def test_happy_path(auth_fc):
         guestIsOnlyMethod=False,
         isGuestUser=True,
         isLoggedIn=True,
-        isLoginExpired=False,
         method="guest",
         needCompleteRegistration=False,
         userName=None,
         visibleMethods=["email"],
-    )
-
-
-def test_timeout(auth_fc):
-    fc = auth_fc
-
-    from pykern import pkconfig, pkunit, pkio
-    from pykern import pkjson
-    from pykern.pkdebug import pkdp
-    from pykern.pkunit import pkok, pkre, pkeq, pkexcept
-    import re
-
-    r = fc.sr_get("authGuestLogin", {"simulation_type": fc.sr_sim_type}, redirect=False)
-    r.assert_http_status(200)
-    d = pkjson.load_any(r.data)
-    pkeq(True, d.authState.isLoggedIn)
-    fc.sr_post("listSimulations", {"simulationType": fc.sr_sim_type})
-    fc.sr_auth_state(
-        isGuestUser=True,
-        isLoggedIn=True,
-        isLoginExpired=False,
-    )
-    fc.sr_get_json("adjustTime", params={"days": "2"})
-    fc.sr_auth_state(
-        isGuestUser=True,
-        isLoggedIn=True,
-        isLoginExpired=True,
-    )
-    fc.assert_post_will_redirect(
-        "guest-expired",
-        "listSimulations",
-        {"simulationType": fc.sr_sim_type},
-        redirect=False,
     )

@@ -76,10 +76,8 @@ class CronTask:
             await self._coro_func(self._params)
             if self._destroyed:
                 break
-            # Sleep exactly period. If coro_func ran over, then start immediately.
-            # Always sleep so yields to event loop
             await asyncio.sleep(
-                self._period - max(sirepo.srtime.utc_now_as_float() - t, self._period),
+                self._period - min(sirepo.srtime.utc_now_as_float() - t, self._period),
             )
 
     def _start(self):

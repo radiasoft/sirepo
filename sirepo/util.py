@@ -293,6 +293,15 @@ def find_obj(arr, key, value):
     return None
 
 
+def first_sim_type():
+    """Returns the first configured sim_type"""
+    from sirepo import feature_config
+
+    x = feature_config.auth_controlled_sim_types()
+    res = sorted(feature_config.cfg().sim_types - x)
+    return res[0] if res else sorted(x)[0]
+
+
 def import_submodule(submodule, type_or_data):
     """Import fully qualified module that contains submodule for sim type
 

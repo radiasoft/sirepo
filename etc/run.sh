@@ -143,6 +143,16 @@ _op_no_smtp_mail() {
     _exec_all
 }
 
+_op_payments() {
+    if ! rpm -q stripe &> /dev/null; then
+       echo -e "[Stripe]\nname=stripe\nbaseurl=https://packages.stripe.dev/stripe-cli-rpm-local/\nenabled=1\ngpgcheck=0" | sudo tee /etc/yum.repos.d/stripe.repo
+       sudo dnf install -y stripe
+    fi
+    export SIREPO_FEATURE_CONFIG_API_MODULES="payments"
+    stripe listen --forward-to localhost:8000/stripe-webhook &
+    _op_mail
+}
+
 _op_server_status() {
     declare u=$(cd "$(dirname "$0")"/../run/user && ls -d ???????? 2>/dev/null | head -1)
     if [[ ! $u ]]; then
