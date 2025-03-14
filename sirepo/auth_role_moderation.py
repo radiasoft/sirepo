@@ -17,8 +17,7 @@ import sirepo.quest
 import sirepo.simulation_db
 import sirepo.smtp
 import sirepo.uri
-import sirepo.uri_router
-import sqlalchemy
+import sirepo.util
 import sqlalchemy.exc
 
 _STATUS_TO_SUBJECT = PKDict(
@@ -137,15 +136,10 @@ class API(sirepo.quest.API):
             _send_moderation_status_email(p)
         return self.reply_ok()
 
-    @sirepo.quest.Spec("require_adm")
+    @sirepo.quest.Spec("allow_visitor")
     async def api_admModerateRedirect(self):
-        def _type():
-            x = sirepo.feature_config.auth_controlled_sim_types()
-            res = sorted(sirepo.feature_config.cfg().sim_types - x)
-            return res[0] if res else sorted(x)[0]
-
         raise sirepo.util.Redirect(
-            sirepo.uri.local_route(_type(), route_name="admRoles"),
+            sirepo.uri.local_route(sirepo.util.first_sim_type(), route_name="admRoles"),
         )
 
     @sirepo.quest.Spec("require_adm")

@@ -162,6 +162,7 @@
         "ownJobs": "/own-jobs",
         "paymentCreateCheckoutSession": "/payment-create-checkout-session",
         "paymentCheckoutSessionStatus": "/payment-checkout-session-status",
+        "paymentPlanRedirect": "/payment-plan/<plan>",
         "planRequired": "/plan-required",
         "proxyError": "/proxy-error",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",

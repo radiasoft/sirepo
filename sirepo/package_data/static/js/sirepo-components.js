@@ -213,7 +213,7 @@ SIREPO.app.directive('srAlert', function(errorService, uri) {
                 </button>
                 <strong>{{ text(m) }}</strong>
                 <span data-ng-if="m === 'subscription'">
-                    <a data-ng-href="{{ subscribeURL() }}">Subscribe now</a>
+                    <span data-plans-link="" data-link-text="Subscribe now"</span>
                 </span>
               </div>
             </div>
@@ -221,9 +221,7 @@ SIREPO.app.directive('srAlert', function(errorService, uri) {
         controller: function($scope) {
             $scope.errorService = errorService;
             $scope.clear = (alertType) => errorService.messageText(alertType, '');
-            $scope.subscribeURL = () => uri.formatLocal('paymentCheckout', {}) + '?plan=basic';
             $scope.text = (alertType) => errorService.messageText(alertType);
-
             $scope.$on('$routeChangeSuccess', $scope.clearAlert);
         },
     };
@@ -1800,7 +1798,7 @@ SIREPO.app.directive('plansLink', function() {
         scope: {
             linkText: '@',
         },
-        template: '<a data-ng-href="{{ plansUrl }}" target="_blank">{{ linkText }}</a>',
+        template: '<a data-ng-href="{{ plansUrl }}">{{ linkText }}</a>',
         controller: function($scope) {
             $scope.plansUrl = SIREPO.APP_SCHEMA.constants.plansUrl;
         },
@@ -4576,7 +4574,7 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('admRolesList', function(appState, errorService, panelState) {
+SIREPO.app.directive('admRolesList', function(appState, authState, errorService, panelState) {
     return {
         restrict: 'A',
         template: `
@@ -4631,6 +4629,9 @@ SIREPO.app.directive('admRolesList', function(appState, errorService, panelState
                 );
             };
 
+            if (authState.isLoggedIn) {
+                $('.navbar-static-top').hide();
+            }
             $scope.getModerationRequestRows();
         },
     };

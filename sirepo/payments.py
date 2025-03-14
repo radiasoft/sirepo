@@ -13,6 +13,7 @@ import sirepo.auth_role
 import sirepo.cron
 import sirepo.quest
 import sirepo.srtime
+import sirepo.util
 import stripe
 
 #: keep reference so auditor isn't garbage collected
@@ -123,6 +124,16 @@ class API(sirepo.quest.API):
             uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
         )
         return _res(c)
+
+    @sirepo.quest.Spec("allow_visitor")
+    async def api_paymentPlanRedirect(self, plan):
+        raise sirepo.util.Redirect(
+            sirepo.uri.local_route(
+                sirepo.util.first_sim_type(),
+                route_name="paymentCheckout",
+                query=PKDict(plan=plan),
+            ),
+        )
 
     @sirepo.quest.Spec("allow_visitor")
     async def api_stripeWebhook(self):

@@ -4742,20 +4742,7 @@ SIREPO.app.controller('FindByNameController', function (appState, requestSender,
 SIREPO.app.controller('PaymentCheckoutController', function (authState, errorService, requestSender, $location, $window) {
     var self = this;
 
-    self.loadStripe = function() {
-        if ($window.Stripe) {
-            self.initializeStripe();
-            return;
-        }
-        const script = document.createElement('script');
-        script.src = 'https://js.stripe.com/v3/';
-        script.onload = function() {
-            self.initializeStripe();
-        };
-        document.body.appendChild(script);
-    };
-
-    self.initializeStripe = function() {
+    function initializeStripe() {
         $window.Stripe(
             authState.stripePublishableKey,
         ).initEmbeddedCheckout({
@@ -4790,8 +4777,23 @@ SIREPO.app.controller('PaymentCheckoutController', function (authState, errorSer
             srlog(`Error initializing Stripe checkout error=`, error);
             errorService.alertText(`There was an error. Please contact ${SIREPO.APP_SCHEMA.feature_config.support_email}.`);
         });
-    };
-    self.loadStripe();
+    }
+
+    function loadStripe() {
+        if (authState.isLoggedIn) {
+            $('.navbar-static-top').hide();
+        }
+        if ($window.Stripe) {
+            initializeStripe();
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://js.stripe.com/v3/';
+        script.onload = initializeStripe;
+        document.body.appendChild(script);
+    }
+
+    loadStripe();
     errorService.messageText('subscription', '');
 });
 
@@ -4800,7 +4802,6 @@ SIREPO.app.controller('PaymentFinalizationController', function ($location, requ
     const self = this;
     self.productShortName = SIREPO.APP_SCHEMA.productInfo.shortName;
     self.sessionStatus = null;
-    self.redirectAppRoot = requestSender.globalRedirectRoot;
     self.redirectPaymentCheckout = () => requestSender.localRedirect('paymentCheckout');
 
     const s = $location.search();
