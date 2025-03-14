@@ -99,9 +99,7 @@ describe('plotting: plotAxis', function() {
         );
         assertTicks(
             tickValues('', [-0.0003, 0.0003], {width: 548, height: 313}, 'y', 'left'),
-            //TODO(pjm): should be:
-            //['-3e-4', '-2e-4', '-1e-4', '0', '1e-4', '2e-4', '3e-4'],
-            ['-3.0e-4', '-2.0e-4', '-1.0e-4', '3.6e-20', '1.0e-4', '2.0e-4', '3.0e-4'],
+            ['-2e-4', '-1e-4', '0', '1e-4', '2e-4'],
         );
         assertTicks(
             tickValues('', [-0.005903110878804563, 0.0016902793870008444], {width: 493, height: 493}, 'y', 'left'),

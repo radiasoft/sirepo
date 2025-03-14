@@ -611,7 +611,7 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
     };
 
     self.getEnergyReportCoords = () => {
-        const [x, y] = SIREPO.GEOMETRY.GeometryUtils.nextAxes(appState.models.tallyReport.axis).reverse();
+        const [z, x, y] = self.tallyReportAxes();
         if (appState.applicationState().openmcAnimation.isEnergySelected === "0") {
             return null;
         }
@@ -738,6 +738,17 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
             max: r[1] - f * s,
             steps: r[2],
         };
+    };
+
+    self.tallyReportAxes = () => {
+        const a = appState.models.tallyReport.axis;
+        if (a === 'x') {
+            return ['x', 'y', 'z'];
+        }
+        if (a === 'y') {
+            return ['y', 'x', 'z'];
+        }
+        return ['z', 'x', 'y'];
     };
 
     self.updateTallyDisplay = () => {
@@ -1038,7 +1049,7 @@ SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService,
             );
 
             function setBins(hVal, vVal) {
-                const [z, x, y] = tallyReportAxes();
+                const [z, x, y] = tallyService.tallyReportAxes();
                 const r = appState.models.energyAnimation;
                 r[x] = hVal;
                 r[y] = vVal;
@@ -1083,7 +1094,7 @@ SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService,
             }
 
             function buildTallyReportsWithOutlines() {
-                const [z, x, y] = tallyReportAxes();
+                const [z, x, y] = tallyService.tallyReportAxes();
                 const [zi, xi, yi] = tallyReportAxisIndices();
                 const ranges = tallyService.getMeshRanges();
                 if (z === 'z' || z === 'x') {
@@ -1343,19 +1354,8 @@ SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService,
                 return val;
             }
 
-            function tallyReportAxes() {
-                const a = appState.models.tallyReport.axis;
-                if (a === 'x') {
-                    return ['x', 'y', 'z'];
-                }
-                if (a === 'y') {
-                    return ['y', 'x', 'z'];
-                }
-                return ['z', 'x', 'y'];
-            }
-
             function tallyReportAxisIndices() {
-                return tallyReportAxes().map((a) => SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(a));
+                return tallyService.tallyReportAxes().map((a) => SIREPO.GEOMETRY.GeometryUtils.BASIS().indexOf(a));
             }
 
             function updateDisplay() {
@@ -1369,6 +1369,11 @@ SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService,
                     displayRanges[dim] = tallyService.tallyRange(dim);
                 });
                 buildTallyReport();
+            }
+
+            function updateTallyAxis() {
+                appState.models.openmcAnimation.isEnergySelected = '0';
+                updateDisplay();
             }
 
             function vectorScaleFactor() {
@@ -1399,9 +1404,11 @@ SIREPO.app.directive('geometry2d', function(appState, frameCache, openmcService,
                 'openmcAnimation.colorMap',
                 'openmcAnimation.showSources',
                 'openmcAnimation.sourceColorMap',
-                'tallyReport.axis',
                 'tallyReport.planePos',
             ], updateDisplay);
+            appState.watchModelFields($scope, [
+                'tallyReport.axis',
+            ], updateTallyAxis);
             $scope.$watch('tallyService.fieldData', updateDisplayRange);
 
             $scope.$on('sr-plotLinked', () => {
