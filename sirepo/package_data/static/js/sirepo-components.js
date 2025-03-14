@@ -5496,7 +5496,7 @@ SIREPO.app.service('utilities', function($window, $interval, $interpolate, $root
             },
             source: (req, res) => {
                 const text = req.term;
-                const l = scope.list.toSorted((a, b) => (a.label < b.label ? -1 : 1));
+                const l = [...scope.list].sort((a, b) => (a.label < b.label ? -1 : 1));
                 if (! supportsMulti) {
                     res(l.filter(x => {
                         return x.label.toLowerCase().includes(text.toLowerCase());
