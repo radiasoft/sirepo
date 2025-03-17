@@ -67,7 +67,7 @@ def get_data_file(run_dir, model, frame, options):
                     sim_in.models.simulation.name, options.suffix
                 ),
                 reply_path=run_dir.join(
-                    _WEIGHT_WINDOWS_FILE if options.suffix == "h5" else _MGXS_FILE
+                    _MGXS_FILE if options.suffix == "mgxs" else _WEIGHT_WINDOWS_FILE
                 ),
             )
         return _statepoint_filename(
