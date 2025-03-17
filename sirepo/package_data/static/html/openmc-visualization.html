@@ -1,4 +1,5 @@
-<div class="container-fluid">
+<div data-ng-if="! visualization.hasGeometry" data-loading-indicator="'Verifying geometry'"></div>
+<div class="container-fluid" data-ng-if="visualization.hasGeometry">
   <div class="row">
     <div class="col-sm-12 col-xxl-4">
       <div class="row">

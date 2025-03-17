@@ -1,5 +1,6 @@
-<div class="container-fluid">
-  <div class="row" data-ng-if="geometry.hasServerStatus">
+<div data-ng-if="! geometry.hasServerStatus" data-loading-indicator="'Verifying geometry'"></div>
+<div class="container-fluid" data-ng-if="geometry.hasServerStatus">
+  <div class="row">
     <div class="col-md-6 col-xl-4" data-ng-if="! geometry.isGeometryProcessed()">
       <div data-basic-editor-panel="" data-view-name="geometryInput">
         <div data-ng-if="geometry.isGeometrySelected()" style="margin-top: 1em" data-sim-status-panel="geometry.simState"></div>
