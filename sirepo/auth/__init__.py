@@ -468,7 +468,7 @@ class _Auth(sirepo.quest.Attr):
                 guestIsOnlyMethod=not non_guest_methods,
                 isGuestUser=False,
                 isLoggedIn=False,
-                roles=[],
+                roles=PKDict(),
                 userName=None,
                 uiWebSocket=sirepo.feature_config.cfg().ui_websocket,
                 visibleMethods=visible_methods,
@@ -690,7 +690,6 @@ class _Auth(sirepo.quest.Attr):
                 )
                 if r:
                     v.displayName = r.display_name
-            v.roles = self.qcall.auth_db.model("UserRole").get_roles()
             v.roles = {
                 x.role: (x.expiration.timestamp() if x.expiration else None)
                 for x in self.qcall.auth_db.model("UserRole").get_roles_and_expiration()

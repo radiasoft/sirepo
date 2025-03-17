@@ -1017,7 +1017,7 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
             };
 
             $scope.showAdmJobs = function() {
-                return authState.roles.adm ? true : false;
+                return authState.hasRole('adm');
             };
 
             $scope.showJobsList = function() {

@@ -295,7 +295,10 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
     };
 
     self.paymentPlanName = function() {
-        return SIREPO.APP_SCHEMA.constants.paymentPlans[self.paymentPlan];
+        const rv = SIREPO.APP_SCHEMA.constants.paymentPlans[self.paymentPlan];
+        if (! rv) {
+            throw new Error(`invalid paymentPlan=${self.paymentPlan}`);
+        }
     };
 
     self.sbatchHostDisplayName = self.jobRunModeMap.sbatch;
@@ -303,7 +306,14 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
     self.sbatchHostIsNersc = self.sbatchHostDisplayName
         && self.sbatchHostDisplayName.toLowerCase().indexOf('nersc') >= 0;
 
-    if (self.roles.trial && ! ('basic' in self.roles || 'premium' in self.roles)) {
+    self.hasRole = (role) => {
+        if (! SIREPO.APP_SCHEMA.constants.authStateRoles.includes(role)) {
+            throw new Error(`invalid role=${role}`);
+        }
+        return self.roles.hasOwnProperty(role);
+    };
+
+    if (self.hasRole('trial') && ! (self.hasRole('basic') || self.hasRole('premium'))) {
         const d = new Date(self.roles.trial * 1000);
         errorService.messageText(
             'subscription',
