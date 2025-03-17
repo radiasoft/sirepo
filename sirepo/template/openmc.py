@@ -201,8 +201,9 @@ def sim_frame(frame_args):
             frame_args.energyRangeSum,
         )
 
-    # volume normalize copied from openmc.UnstructuredMesh.write_data_to_vtk()
-    v /= t.find_filter(openmc.MeshFilter).mesh.volumes.ravel()
+    # pjm: removed this to match results from openmc plotter
+    # # volume normalize copied from openmc.UnstructuredMesh.write_data_to_vtk()
+    # v /= t.find_filter(openmc.MeshFilter).mesh.volumes.ravel()
     return PKDict(
         field_data=v.tolist(),
         min_field=v.min(),
