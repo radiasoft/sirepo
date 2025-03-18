@@ -768,10 +768,6 @@ class _Auth(sirepo.quest.Attr):
         return self.qcall.auth_db.model(module.UserModel).unchecked_search_by(uid=uid)
 
     def _plan(self, data):
-        # TODO(e-carlin): discuss with rjn. Basic and Trial are somewhat the same (same number of cores/hours). Do we want
-        # to show users that they are on trial and can upgrade to basic (it will get them no additional resources).
-        # I think we don't want this and it is fine to show them they are on basic (even when on trial) and they can
-        # upgrade to premium.
         r = data.roles
         if sirepo.auth_role.ROLE_PLAN_PREMIUM in r:
             data.paymentPlan = _PAYMENT_PLAN_PREMIUM

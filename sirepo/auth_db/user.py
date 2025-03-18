@@ -226,10 +226,7 @@ class UserSubscription(sirepo.auth_db.UserDbBase):
         )
 
     def revoke_due_to_inactive_stripe_status(self, subscription_record):
-        subscription_record.revocation_reason = (
-            self._REVOCATION_REASON_INACTIVE_STRIPE_STATUS
-        )
-        subscription_record.revoked = sirepo.srtime.utc_now()
-        # TODO(e-carlin): save doesn't work on record w/o this. Need to find something better
-        subscription_record.auth_db = self.auth_db
-        subscription_record.save()
+        s = self._new(subscription_record)
+        s.revocation_reason = self._REVOCATION_REASON_INACTIVE_STRIPE_STATUS
+        s.revoked = sirepo.srtime.utc_now()
+        s.save()
