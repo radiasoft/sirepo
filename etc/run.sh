@@ -4,6 +4,17 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 
 declare _mail_d=~/mail
 
+_dnf_install() {
+    declare -a pkgs=( "$@" )
+    declare f
+    for f in "${pkgs[@]}"; do
+        if ! rpm -q "$f" &> /dev/null; then
+            _msg "installing $f"
+            sudo dnf install -y -q "$f"
+        fi
+    done
+}
+
 _env_common() {
     export PYKERN_PKDEBUG_WANT_PID_TIME=1
 }
@@ -144,11 +155,12 @@ _op_no_smtp_mail() {
 }
 
 _op_payments() {
-    if ! rpm -q stripe &> /dev/null; then
-       echo -e "[Stripe]\nname=stripe\nbaseurl=https://packages.stripe.dev/stripe-cli-rpm-local/\nenabled=1\ngpgcheck=0" | sudo tee /etc/yum.repos.d/stripe.repo
-       sudo dnf install -y stripe
+    if [[ ! -e /etc/yum.repos.d/stripe.repo ]]; then
+        echo -e "[Stripe]\nname=stripe\nbaseurl=https://packages.stripe.dev/stripe-cli-rpm-local/\nenabled=1\ngpgcheck=0" \
+            | sudo install -m 644 /dev/stdin /etc/yum.repos.d/stripe.repo
     fi
-    export SIREPO_FEATURE_CONFIG_API_MODULES="payments"
+    _dnf_install stripe
+    export SIREPO_FEATURE_CONFIG_API_MODULES=payments
     stripe listen --color=off --forward-to localhost:8000/stripe-webhook &
     _op_mail
 }
@@ -196,13 +208,7 @@ UMASK=077
 mail/.
 END
     fi
-    declare f
-    for f in postfix procmail; do
-        if ! rpm -q "$f" &> /dev/null; then
-            _msg "installing $f"
-            sudo dnf install -y -q "$f"
-        fi
-    done
+    _dnf_install postfix procmail
     if [[ ! $(postconf -n recipient_delimiter) ]]; then
         _msg 'configuring postfix'
         sudo su - <<'END'
