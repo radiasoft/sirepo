@@ -656,14 +656,23 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
         if (! self.mesh) {
             return SIREPO.GEOMETRY.GeometryUtils.BASIS().slice();
         }
+        // show all axes unless 2 dimension exceed minTallyResolution
+        let c = 0;
+        for (const v of self.mesh.dimension) {
+            if (v >= SIREPO.APP_SCHEMA.constants.minTallyResolution) {
+                c += 1;
+            }
+        }
         const v = {};
         SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
             v[dim] = true;
-            SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim].forEach((bv, bi) => {
-                if (! bv && self.mesh.dimension[bi] < SIREPO.APP_SCHEMA.constants.minTallyResolution) {
-                    delete v[dim];
-                }
-            });
+            if (c >= 2) {
+                SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim].forEach((bv, bi) => {
+                    if (! bv && self.mesh.dimension[bi] < SIREPO.APP_SCHEMA.constants.minTallyResolution) {
+                        delete v[dim];
+                    }
+                });
+            }
         });
         return Object.keys(v);
     };
