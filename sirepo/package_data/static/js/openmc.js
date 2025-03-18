@@ -2849,10 +2849,7 @@ SIREPO.viewLogic('energyAnimationView', function(appState, panelState, tallyServ
                 $scope.modelName,
                 dim,
                 appState.models.tallyReport.selectedGeometry === '3D'
-                    || (
-                        appState.models.tallyReport.axis != dim
-                            && tallyService.tallyRange(dim, true).steps > 1
-                    ),
+                    || appState.models.tallyReport.axis != dim,
             );
         });
     }
