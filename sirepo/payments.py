@@ -16,6 +16,7 @@ import sirepo.srtime
 import sirepo.util
 import stripe
 
+_CHECKOUT_SESSION_ID_URI_PARAM = "~CHECKOUT_SESSION_ID~"
 #: keep reference so auditor isn't garbage collected
 _ROLE_AUDITOR_CRON = None
 _ROLE_CREATED_BY_API_CHECKOUT_SESSION_STATUS = (
@@ -65,9 +66,10 @@ class API(sirepo.quest.API):
                             sirepo.uri.local_route(
                                 self.parse_post().type,
                                 route_name="paymentFinalization",
-                                query=PKDict(session_id="{CHECKOUT_SESSION_ID}"),
-                                query_safe_chars="{}",
+                                query=PKDict(session_id=_CHECKOUT_SESSION_ID_URI_PARAM),
                             )
+                        ).replace(
+                            _CHECKOUT_SESSION_ID_URI_PARAM, "{CHECKOUT_SESSION_ID}"
                         ),
                         # TODO(e-carlin): needed?
                         # automatic_tax=PKDict(enabled=True),
