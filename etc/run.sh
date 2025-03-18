@@ -149,7 +149,7 @@ _op_payments() {
        sudo dnf install -y stripe
     fi
     export SIREPO_FEATURE_CONFIG_API_MODULES="payments"
-    stripe listen --forward-to localhost:8000/stripe-webhook &
+    stripe listen --color=off --forward-to localhost:8000/stripe-webhook &
     _op_mail
 }
 
