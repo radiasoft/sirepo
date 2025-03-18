@@ -4764,6 +4764,10 @@ SIREPO.app.controller('PaymentCheckoutController', function (authState, errorSer
         ).initEmbeddedCheckout({
             fetchClientSecret: () => {
                 return new Promise((resolve, reject) => {
+                    if ( ! $location.search().plan) {
+                        reject (new Error('No plan selected'));
+                        return;
+                    }
                     requestSender.sendRequest(
                         'paymentCreateCheckoutSession',
                         function(data) {
