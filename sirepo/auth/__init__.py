@@ -516,12 +516,8 @@ class _Auth(sirepo.quest.Attr):
         from sirepo import auth_role_moderation
 
         u = self.require_user()
-        for r in sirepo.auth_role.PLAN_ROLES:
-            if self.qcall.auth_db.model("UserRole").has_active_role(r):
-                return
-        auth_role_moderation.raise_control_for_user(
-            self.qcall, u, sirepo.auth_role.ROLE_PLAN_TRIAL
-        )
+        if not self.qcall.auth_db.model("UserRole").has_active_plan(uid=u):
+            raise sirepo.util.PlanExpired(f"uid={u} has no active plans")
 
     def require_premium(self):
         if not self.is_premium_user():

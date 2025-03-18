@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
-"""?
+"""auth database models for user, payments, and roles.
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.auth_db
@@ -50,16 +50,6 @@ class UserRole(sirepo.auth_db.UserDbBase):
     def all_roles(self):
         cls = self.__class__
         return [r[0] for r in self.query().distinct(cls.role).all()]
-
-    def all_plan_roles_expired(self):
-        p = False
-        for r in self.get_roles():
-            if r not in sirepo.auth_role.PLAN_ROLES:
-                continue
-            p = True
-            if self.has_active_role(r):
-                return False
-        return p
 
     def add_roles(self, roles, expiration=None, uid=None):
         from sirepo import sim_data
@@ -108,6 +98,21 @@ class UserRole(sirepo.auth_db.UserDbBase):
             PKDict(role=r.role, expiration=r.expiration)
             for r in self.query().filter_by(uid=self.logged_in_user())
         ]
+
+    def has_active_plan(self, uid):
+        cls = self.__class__
+        return bool(
+            self.query()
+            .filter(
+                cls.role.in_(sirepo.auth_role.PLAN_ROLES),
+                cls.uid == uid,
+                sqlalchemy.or_(
+                    cls.expiration.is_(None),
+                    cls.expiration > sirepo.srtime.utc_now(),
+                ),
+            )
+            .first()
+        )
 
     def has_active_role(self, role, uid=None):
         r = self._has_role(role, uid=uid)

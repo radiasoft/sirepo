@@ -225,8 +225,6 @@ def _datetime_to_str(rows):
 
 
 def raise_control_for_user(qcall, uid, role):
-    if qcall.auth_db.model("UserRole").all_plan_roles_expired():
-        raise sirepo.util.PlanExpired(f"uid={uid} role={role} expired")
     s = qcall.auth_db.model("UserRoleModeration").get_status(uid=uid, role=role)
     if s in _ACTIVE:
         raise sirepo.util.SRException("moderationPending", None)
