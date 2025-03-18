@@ -19,7 +19,7 @@ def test_basic():
         params.calls += 1
         if params.calls == 1:
             asyncio.create_task(_stop(params))
-        srtime.adjust_time(days=1)
+        srtime.adjust_time(days=params.calls)
 
     async def _stop(params):
         try:
@@ -28,10 +28,9 @@ def test_basic():
             for _ in range(10):
                 await asyncio.sleep(0)
                 if p == params.calls:
-                    # Should always increment
+                    pkdebug.pkdlog("_pre_start failed to increment in the loop")
                     break
-                p = params.calls
-                if params.calls >= 2:
+                if params.calls >= 3:
                     params.cron_task.destroy()
                     params.stop_ok = True
         except Exception as e:
@@ -55,5 +54,5 @@ def test_basic():
     p = PKDict(calls=0)
     p.cron_task = cron.CronTask(24 * 60 * 60, _pre_start, p)
     service.server()
-    pkunit.pkeq(2, p.calls)
+    pkunit.pkeq(3, p.calls)
     pkunit.pkok(p.stop_ok, "stop failed")
