@@ -4774,9 +4774,9 @@ SIREPO.app.controller('PaymentCheckoutController', function (authState, errorSer
                             if (data && data.clientSecret) {
                                 resolve(data.clientSecret);
                             } else {
-                                srlog(`paymentCreateCheckoutSession did not return client secret data=`, data);
+                                srlog(`paymentCreateCheckoutSession no clientSecret error=`, data);
                                 errorService.alertText(`There was an error. Please contact ${SIREPO.APP_SCHEMA.feature_config.support_email}.`);
-                                reject(new Error('Invalid response from server: missing client secret'));
+                                reject(new Error('paymentCreateCheckoutSession no clientSecret'));
                             }
                         },
                         {
@@ -4786,7 +4786,7 @@ SIREPO.app.controller('PaymentCheckoutController', function (authState, errorSer
                         function(error) {
                             srlog(`paymentCreateCheckoutSession request error=`, error);
                             errorService.alertText(`There was an error. Please contact ${SIREPO.APP_SCHEMA.feature_config.support_email}.`);
-                            reject(new Error('Failed to create checkout session'));
+                            reject(new Error('paymentCreateCheckoutSession request failed'));
                         }
                     );
                 });
