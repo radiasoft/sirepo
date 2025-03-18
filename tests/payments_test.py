@@ -8,9 +8,7 @@ from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 import datetime
-import pytest
 import stripe
-import sys
 
 _CLIENT_SECRET = "stripe_client_secret_test"
 _EXPIRATION = datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
@@ -18,41 +16,27 @@ _SIM_TYPE = "srw"
 _UID_IN_DB = "J4FHIC7n"
 
 
-def _skip():
-    from sirepo import payments
-
-    return payments.cfg().stripe_secret_key is None
-
-
-pytestmark = pytest.mark.skipif(_skip(), reason="No Stripe configuration")
-
-
 def test_auditor(monkeypatch):
-    from pykern import pkconfig
     from pykern import pkio
     from pykern import pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
-
-    # Must be before Sirepo import so it is picked up by Sirepo
-    pkconfig.reset_state_for_testing(
-        PKDict(SIREPO_FEATURE_CONFIG_API_MODULES="payments")
-    )
-    from sirepo import auth_role
-    from sirepo import payments
     from sirepo import srdb
-    from sirepo import srtime
     from sirepo import srunit
-    from sirepo.pkcli import roles
     import asyncio
 
     pkio.unchecked_remove(srdb.root())
     pkunit.data_dir().join("auditor_db").copy(srdb.root())
-    with srunit.quest_start() as qcall:
+    with srunit.quest_start(cfg=_state_for_testing()) as qcall:
+        from sirepo import auth_role
+        from sirepo import payments
+        from sirepo import srtime
+        from sirepo.pkcli import roles
+
         qcall.auth_db.model("UserRole").set_role_expiration(
             auth_role.ROLE_PLAN_BASIC, _EXPIRATION, uid=_UID_IN_DB
         )
-    with srunit.quest_start() as qcall:
+    with srunit.quest_start(cfg=_state_for_testing()) as qcall:
         pkunit.pkeq(
             1,
             len(
@@ -68,10 +52,10 @@ def test_auditor(monkeypatch):
             _subscription_active,
         )
         asyncio.run(payments._auditor(None))
-    with srunit.quest_start() as qcall:
+    with srunit.quest_start(cfg=_state_for_testing()) as qcall:
         monkeypatch.setattr(stripe.Subscription, "retrieve_async", _subscription_unpaid)
         asyncio.run(payments._auditor(None))
-    with srunit.quest_start() as qcall:
+    with srunit.quest_start(cfg=_state_for_testing()) as qcall:
         pkunit.pkeq(
             0,
             len(
@@ -94,21 +78,12 @@ def test_auditor(monkeypatch):
 
 
 def test_checkout_session(monkeypatch):
-    from pykern import pkconfig
     from pykern import pkio
     from pykern import pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
-
-    # Must be before Sirepo import so it is picked up by Sirepo
-    pkconfig.reset_state_for_testing(
-        PKDict(SIREPO_FEATURE_CONFIG_API_MODULES="payments")
-    )
-    from sirepo import auth_role
     from sirepo import srdb
     from sirepo import srunit
-    from sirepo import util
-    from sirepo.pkcli import roles
 
     monkeypatch.setattr(stripe.checkout.Session, "create_async", _checkout_create)
     monkeypatch.setattr(stripe.checkout.Session, "retrieve_async", _checkout_retrieve)
@@ -119,7 +94,11 @@ def test_checkout_session(monkeypatch):
     )
     pkio.unchecked_remove(srdb.root())
     pkunit.data_dir().join("db").copy(srdb.root())
-    with srunit.quest_start() as qcall:
+    with srunit.quest_start(cfg=_state_for_testing()) as qcall:
+        from sirepo import auth_role
+        from sirepo import util
+        from sirepo.pkcli import roles
+
         qcall.cookie.set_sentinel()
         try:
             r = qcall.auth.login(method="guest", uid=_UID_IN_DB, sim_type="myapp")
@@ -153,21 +132,12 @@ def test_checkout_session(monkeypatch):
 
 
 def test_event_paid_webhook(monkeypatch):
-    from pykern import pkconfig
     from pykern import pkio
     from pykern import pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
-
-    # Must be before Sirepo import so it is picked up by Sirepo
-    pkconfig.reset_state_for_testing(
-        PKDict(SIREPO_FEATURE_CONFIG_API_MODULES="payments")
-    )
     from sirepo import srdb
     from sirepo import srunit
-
-    # TODO(e-carlin): why is this import needed. reset_state_for_testing doesn't work w/o it?
-    from sirepo import simulation_db
 
     monkeypatch.setattr(stripe.Webhook, "construct_event", _webhook_construct)
     monkeypatch.setattr(
@@ -178,7 +148,7 @@ def test_event_paid_webhook(monkeypatch):
     monkeypatch.setattr(stripe.Product, "retrieve_async", _product_retrieve)
     pkio.unchecked_remove(srdb.root())
     pkunit.data_dir().join("db").copy(srdb.root())
-    with srunit.quest_start() as qcall:
+    with srunit.quest_start(cfg=_state_for_testing()) as qcall:
         r = qcall.call_api_sync("stripeWebhook", body=PKDict())
         pkunit.pkeq("ok", r.content_as_object().state)
         pkunit.pkok(
@@ -209,6 +179,17 @@ async def _checkout_retrieve(*args, **kwargs):
 
 async def _product_retrieve(*args, **kwargs):
     return PKDict(name="test product")
+
+
+def _state_for_testing():
+    return PKDict(
+        SIREPO_FEATURE_CONFIG_API_MODULES="payments",
+        SIREPO_PAYMENTS_STRIPE_PLAN_BASIC_PRICE_ID="price_id_plan_basic",
+        SIREPO_PAYMENTS_STRIPE_PLAN_PREMIUM_PRICE_ID="price_id_plan_premium",
+        SIREPO_PAYMENTS_STRIPE_PUBLISHABLE_KEY="publishable_key",
+        SIREPO_PAYMENTS_STRIPE_SECRET_KEY="secret_key",
+        SIREPO_PAYMENTS_STRIPE_WEBHOOK_SECRET="webhook_secret",
+    )
 
 
 async def _subscription_active(*args, **kwargs):
