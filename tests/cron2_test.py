@@ -23,7 +23,7 @@ def test_complex():
         if params.pre_calls == 1:
             # Will only get one call, because sleep will be for 60 real seconds
             cron.CronTask(60, _post_start, params)
-        srtime.adjust_time(days=1)
+        srtime.adjust_time(days=params.pre_calls)
         if params.pre_calls >= 3:
             asyncio.get_running_loop().stop()
 
