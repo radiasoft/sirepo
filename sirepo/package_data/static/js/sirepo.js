@@ -3225,6 +3225,12 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         }
         else if (SIREPO.APP_SCHEMA.customErrors[status]) {
             msg = SIREPO.APP_SCHEMA.customErrors[status].msg;
+            const r = SIREPO.APP_SCHEMA.customErrors[status].route;
+            if (r === 'planRequired') {
+                // special handling for plan required
+                uri.localRedirect(r);
+                return;
+            }
         }
         if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
             // Try to parse javascript-redirect.html
