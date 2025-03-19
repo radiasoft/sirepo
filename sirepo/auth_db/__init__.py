@@ -6,12 +6,14 @@
 
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
+import functools
 import importlib
 import inspect
 import pykern.pkconfig
 import pykern.pkinspect
 import sirepo.quest
 import sirepo.srdb
+import sirepo.util
 import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
@@ -26,6 +28,7 @@ _engine = None
 
 STRING_ID = sqlalchemy.String(8)
 STRING_NAME = sqlalchemy.String(100)
+_PRIMARY_KEY_ID_LEN = 12
 
 _models = None
 
@@ -134,6 +137,18 @@ def init_module():
 
 def init_quest(qcall):
     _AuthDb(qcall=qcall)
+
+
+def prefixed_id_primary_key_column(prefix):
+    def _id(prefix):
+        return prefix + sirepo.util.random_base62(_PRIMARY_KEY_ID_LEN)
+
+    p = f"{prefix}_"
+    return sqlalchemy.Column(
+        sqlalchemy.String(len(p) + _PRIMARY_KEY_ID_LEN),
+        primary_key=True,
+        default=functools.partial(_id, p),
+    )
 
 
 class _AuthDb(sirepo.quest.Attr):

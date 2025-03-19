@@ -15,23 +15,29 @@ import sqlalchemy
 
 class UserPayment(sirepo.auth_db.UserDbBase):
     __tablename__ = "user_payment_t"
-    # invoice_id's are unique so safe for a primary_key and makes
-    # payment_exists check easier.
+    payment_id = sirepo.auth_db.prefixed_id_primary_key_column("pmt")
+    # Invoice id's are unique in Stripe
     # https://docs.stripe.com/api/invoices/object#invoice_object-id
-    invoice_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, primary_key=True)
+    stripe_invoice_id = sqlalchemy.Column(
+        sirepo.auth_db.STRING_NAME, unique=True, nullable=False
+    )
     uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID, nullable=False)
-    amount_paid = sqlalchemy.Column(sqlalchemy.Integer(), nullable=False)
+    stripe_amount_paid = sqlalchemy.Column(sqlalchemy.Integer(), nullable=False)
     created = sqlalchemy.Column(
         sqlalchemy.DateTime(),
         server_default=sqlalchemy.sql.func.now(),
         nullable=False,
     )
-    customer_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
-    subscription_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
-    subscription_name = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
+    stripe_customer_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
+    stripe_subscription_id = sqlalchemy.Column(
+        sirepo.auth_db.STRING_NAME, nullable=False
+    )
+    stripe_subscription_name = sqlalchemy.Column(
+        sirepo.auth_db.STRING_NAME, nullable=False
+    )
 
-    def payment_exists(self, invoice_id):
-        return self.unchecked_search_by(invoice_id=invoice_id)
+    def payment_exists(self, stripe_invoice_id):
+        return self.unchecked_search_by(stripe_invoice_id=stripe_invoice_id)
 
 
 class UserRegistration(sirepo.auth_db.UserDbBase):
@@ -207,11 +213,15 @@ class UserSubscription(sirepo.auth_db.UserDbBase):
     _REVOCATION_REASON_INACTIVE_STRIPE_STATUS = "inactive_stripe_status"
 
     __tablename__ = "user_subscription_t"
-    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
+    subscription_id = sirepo.auth_db.prefixed_id_primary_key_column("sbs")
     uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID)
-    customer_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
-    checkout_session_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=True)
-    subscription_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
+    stripe_customer_id = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
+    stripe_checkout_session_id = sqlalchemy.Column(
+        sirepo.auth_db.STRING_NAME, nullable=True
+    )
+    stripe_subscription_id = sqlalchemy.Column(
+        sirepo.auth_db.STRING_NAME, nullable=False
+    )
     creation_reason = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
     created = sqlalchemy.Column(
         sqlalchemy.DateTime(),
@@ -224,7 +234,7 @@ class UserSubscription(sirepo.auth_db.UserDbBase):
     )
     role = sqlalchemy.Column(sirepo.auth_db.STRING_NAME, nullable=False)
 
-    def active_subscriptions_from_stripe(self):
+    def non_revoked_stripe_subscriptions(self):
         return self.unchecked_search_all(
             revoked=None,
             creation_reason=self.CREATION_REASON_CHECKOUT_SESSION_STATUS_COMPLETE,

@@ -512,6 +512,7 @@ class _SReply(sirepo.quest.Attr):
 
     def _content_as(self, clazz):
         res = self.__attrs.get("content")
+        pkdp("e-carlin rrrrrrrrrrrrjl={} ={}", res, res.value)
         if not isinstance(res, clazz):
             raise AssertionError(f"unexpected reply type={type(res)}")
         return res

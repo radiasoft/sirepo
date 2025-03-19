@@ -107,9 +107,9 @@ class API(sirepo.quest.API):
             )
         self.auth_db.model("UserSubscription").new(
             uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
-            customer_id=s.customer,
-            checkout_session_id=b.sessionId,
-            subscription_id=s.id,
+            stripe_customer_id=s.customer,
+            stripe_checkout_session_id=b.sessionId,
+            stripe_subscription_id=s.id,
             creation_reason=_ROLE_CREATED_BY_API_CHECKOUT_SESSION_STATUS,
             created=sirepo.srtime.utc_now(),
             revocation_reason=None,
@@ -168,11 +168,11 @@ class API(sirepo.quest.API):
             ):
                 return self.reply_ok()
             self.auth_db.model("UserPayment").new(
-                amount_paid=e["data"]["object"]["amount_paid"],
-                customer_id=e["data"]["object"]["customer"],
-                invoice_id=e["data"]["object"]["id"],
-                subscription_id=e["data"]["object"]["subscription"],
-                subscription_name=n,
+                stripe_amount_paid=e["data"]["object"]["amount_paid"],
+                stripe_customer_id=e["data"]["object"]["customer"],
+                stripe_invoice_id=e["data"]["object"]["id"],
+                stripe_subscription_id=e["data"]["object"]["subscription"],
+                stripe_subscription_name=n,
                 uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
             ).save()
         return self.reply_ok()
@@ -230,7 +230,7 @@ async def _auditor(_):
 
     async def _stripe_status_is_active(subscription_record):
         s = await stripe.Subscription.retrieve_async(
-            subscription_record.subscription_id
+            subscription_record.stripe_subscription_id
         )
         if s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY] != subscription_record.uid:
             raise AssertionError(
@@ -245,13 +245,14 @@ async def _auditor(_):
     with sirepo.quest.start() as qcall:
         for s in qcall.auth_db.model(
             "UserSubscription"
-        ).active_subscriptions_from_stripe():
+        ).non_revoked_stripe_subscriptions():
             if qcall.auth_db.model("UserRole").has_expired_role(s.role, uid=s.uid):
                 continue
             if await _stripe_status_is_active(
                 s,
             ):
                 continue
+            pkdlog("revoking uid={} role={}", s.uid, s.role)
             qcall.auth_db.model("UserRole").expire_role(s.role, uid=s.uid)
             qcall.auth_db.model(
                 "UserSubscription"

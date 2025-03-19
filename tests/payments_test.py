@@ -13,7 +13,7 @@ import stripe
 _CLIENT_SECRET = "stripe_client_secret_test"
 _EXPIRATION = datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
 _SIM_TYPE = "srw"
-_UID_IN_DB = "J4FHIC7n"
+_UID_IN_DB = "Uh4mhMWU"
 
 
 def test_auditor(monkeypatch):
@@ -42,7 +42,7 @@ def test_auditor(monkeypatch):
             len(
                 qcall.auth_db.model(
                     "UserSubscription"
-                ).active_subscriptions_from_stripe()
+                ).non_revoked_stripe_subscriptions()
             ),
             "expecting just one active subscription",
         )
@@ -61,7 +61,7 @@ def test_auditor(monkeypatch):
             len(
                 qcall.auth_db.model(
                     "UserSubscription"
-                ).active_subscriptions_from_stripe()
+                ).non_revoked_stripe_subscriptions()
             ),
             "expecting no active subscriptions",
         )

@@ -252,13 +252,13 @@ def assert_sim_type(sim_type):
     return sim_type
 
 
-def create_token(value):
+def create_token(value, prefix=None):
     if pkconfig.channel_in_internal_test() and _cfg.create_token_secret:
         v = base64.b32encode(
             hashlib.sha256(pkcompat.to_bytes(value + _cfg.create_token_secret)).digest()
         )
         return pkcompat.from_bytes(v[:TOKEN_SIZE])
-    return random_base62(TOKEN_SIZE)
+    return random_base62(TOKEN_SIZE, prefix=prefix)
 
 
 def err(obj, fmt="", *args, **kwargs):
@@ -380,7 +380,7 @@ def json_dump(obj, path=None, pretty=False, **kwargs):
     return res
 
 
-def random_base62(length=32):
+def random_base62(length=32, prefix=None):
     """Returns a safe string of sufficient length to be a nonce
 
     Args:
@@ -388,8 +388,8 @@ def random_base62(length=32):
     Returns:
         str: random base62 characters
     """
-    r = random.SystemRandom()
-    return "".join(r.choice(numconv.BASE62) for x in range(length))
+    res = "".join(random.SystemRandom().choice(numconv.BASE62) for x in range(length))
+    return f"{prefix}_{res}" if prefix else res
 
 
 def read_zip(path_or_bytes):
