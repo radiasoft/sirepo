@@ -618,9 +618,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
         drawImage: function(xAxisScale, yAxisScale, width, height, xValues, yValues, canvas, cacheCanvas, alignOnPixel) {
             var xZoomDomain = xAxisScale.domain();
-            var xDomain = [xValues[0], xValues[xValues.length - 1]];
+            var xDomain = xValues.srDomain || [xValues[0], xValues[xValues.length - 1]];
             var yZoomDomain = yAxisScale.domain();
-            var yDomain = [yValues[0], yValues[yValues.length - 1]];
+            var yDomain = yValues.srDomain || [yValues[0], yValues[yValues.length - 1]];
             var zoomWidth = xZoomDomain[1] - xZoomDomain[0];
             var zoomHeight = yZoomDomain[1] - yZoomDomain[0];
             canvas.width = width;
@@ -842,9 +842,9 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
 
         pixelSize: function(xAxisScale, yAxisScale, width, height, xValues, yValues) {
             const xZoomDomain = xAxisScale.domain();
-            const xDomain = [xValues[0], xValues[xValues.length - 1]];
+            const xDomain = xValues.srDomain || [xValues[0], xValues[xValues.length - 1]];
             const yZoomDomain = yAxisScale.domain();
-            const yDomain = [yValues[0], yValues[yValues.length - 1]];
+            const yDomain = yValues.srDomain || [yValues[0], yValues[yValues.length - 1]];
             const zoomWidth = xZoomDomain[1] - xZoomDomain[0];
             const zoomHeight = yZoomDomain[1] - yZoomDomain[0];
             return {
@@ -3067,7 +3067,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             const overlayDataClass = 'sr-overlay-data';
 
             let aspectRatio = 1.0;
-            let canvas, ctx, amrLine, heatmap, mouseClickPoint, mouseMovePoint, pointer, zoom;
+            let amrLine, canvas, ctx, fullDomain, heatmap, mouseClickPoint, mouseMovePoint, pointer, zoom;
             let globalMin = 0.0;
             let globalMax = 1.0;
             let cacheCanvas, imageData;
@@ -3075,27 +3075,23 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             const overlaySelector = 'svg.sr-plot g.sr-overlay-data-group';
             const cellHighlightClass = 'sr-cell-highlight';
             let selectedCell;
-
             let overlayData = null;
 
             function binnedCoords(point) {
                 const [i, j] = heatmapIndices(point);
-                const [dx, dy] = coordBinSize();
-                const xr = getRange(axes.x.values);
-                const yr = getRange(axes.y.values);
+                const [bx, by] = coordBinSize();
+                const [xd, yd] = [fullDomain.x, fullDomain.y];
                 return [
-                    xr[0] + (i * dx + dx / 2) * (xr[0] > xr[1] ? -1 : 1),
-                    yr[0] + (j * dy + dy / 2) * (yr[0] > yr[1] ? -1 : 1),
+                    xd[0] + (i * bx + bx / 2) * (xd[0] > xd[1] ? -1 : 1),
+                    yd[0] + (j * by + by / 2) * (yd[0] > yd[1] ? -1 : 1),
                 ];
             }
 
             function coordBinSize() {
                 const n = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL ? 0 : 1;
-                const xRange = getRange(axes.x.values);
-                const yRange = getRange(axes.y.values);
                 return [
-                    Math.abs((xRange[1] - xRange[0])) / (heatmap[0].length - n),
-                    Math.abs((yRange[1] - yRange[0])) / (heatmap.length - n),
+                    Math.abs((fullDomain.x[1] - fullDomain.x[0])) / (heatmap[0].length - n),
+                    Math.abs((fullDomain.y[1] - fullDomain.y[0])) / (heatmap.length - n),
                 ];
             }
 
@@ -3141,24 +3137,17 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
             }
 
             function heatmapIndices(point) {
-                const fp = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL;
-                const xRange = getRange(axes.x.values);
-                const yRange = getRange(axes.y.values);
                 const x = axes.x.scale.invert(point[0] - 1);
                 const y = axes.y.scale.invert(point[1] - 1);
-                const n = fp ? 0 : 1;
-                const dx = Math.abs((xRange[1] - xRange[0])) / (heatmap[0].length - n);
-                const dy = Math.abs((yRange[1] - yRange[0])) / (heatmap.length - n);
-                let i = Math.abs((x - xRange[0]) / dx);
-                let j = Math.abs((y - yRange[0]) / dy);
+                const n = SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL ? 0 : 1;
+                const dx = Math.abs((fullDomain.x[1] - fullDomain.x[0])) / (heatmap[0].length - n);
+                const dy = Math.abs((fullDomain.y[1] - fullDomain.y[0])) / (heatmap.length - n);
+                const i = Math.abs((x - fullDomain.x[0]) / dx);
+                const j = Math.abs((y - fullDomain.y[0]) / dy);
                 return [
-                    fp ? Math.max(0, Math.floor(i)) : Math.round(i),
-                    fp ? Math.max(0, Math.floor(j)) : Math.round(j),
+                    n ? Math.round(i) : Math.max(0, Math.floor(i)),
+                    n ? Math.round(j) : Math.max(0, Math.floor(j)),
                 ];
-            }
-
-            function getRange(values) {
-                return [values[0], values[values.length - 1]];
             }
 
             function mouseClick() {
@@ -3177,7 +3166,7 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
 
             const mouseMove = utilities.debounce(() => {
                 /*jshint validthis: true*/
-                if (! heatmap || heatmap[0].length <= 2 || ! mouseMovePoint) {
+                if (! heatmap || ! heatmap[0].length || ! mouseMovePoint) {
                     return;
                 }
                 const [i, j] = heatmapIndices(mouseMovePoint);
@@ -3202,8 +3191,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     axes.x.scale.range([0, $scope.canvasSize.width]);
                     axes.y.scale.range([$scope.canvasSize.height, 0]);
                 }
-                if (plotting.trimDomain(axes.x.scale, getRange(axes.x.values))
-                    + plotting.trimDomain(axes.y.scale, getRange(axes.y.values))) {
+                if (plotting.trimDomain(axes.x.scale, fullDomain.x)
+                    + plotting.trimDomain(axes.y.scale, fullDomain.y)) {
                     select('.mouse-rect').attr('class', 'mouse-rect mouse-zoom');
                 }
                 else {
@@ -3247,7 +3236,12 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 var plotMin = globalMin != null ? globalMin : plotting.min2d(heatmap);
                 var plotMax = globalMax != null ? globalMax : plotting.max2d(heatmap);
                 if (plotMin == plotMax) {
-                    plotMax = (plotMin || 1e-6) * 10;
+                    if (plotMin <= 0) {
+                        plotMax = plotMax ? 0 : 1;
+                    }
+                    else if (plotMin > 0) {
+                        plotMin = 0;
+                    }
                 }
                 var colorScale = plotting.initImage(
                     {
@@ -3346,7 +3340,8 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                     .on('mousemove', function() {
                         // mouseMove is debounced, so save the point before calling
                         mouseMovePoint = d3.mouse(this);
-                        mouseMove();})
+                        mouseMove();
+                    })
                     .on('click', function() {
                         mouseClickPoint = d3.mouse(this);
                         mouseClick();
@@ -3386,20 +3381,17 @@ SIREPO.app.directive('heatmap', function(appState, layoutService, plotting, util
                 globalMax = json.global_max;
                 select('.main-title').text(json.title);
                 select('.sub-title').text(json.subtitle);
-                let c = false;
+                const newFullDomain = {};
                 $.each(axes, function(dim, axis) {
-                    const r = axis.values && getRange(axis.values);
+                    newFullDomain[dim] = json[dim + '_range'].slice(0, 2);
                     axis.values = plotting.linearlySpacedArray(...json[dim + '_range']);
+                    axis.values.srDomain = newFullDomain[dim];
                     axis.updateLabel(json[dim + '_label'], select);
-                    if (! appState.deepEquals(r, getRange(axis.values))) {
-                        c = true;
+                    if (! appState.deepEquals(fullDomain && fullDomain[dim], newFullDomain[dim])) {
+                        axis.scale.domain(newFullDomain[dim]);
                     }
                 });
-                if (c) {
-                    Object.values(axes).forEach(axis => {
-                        axis.scale.domain(getRange(axis.values));
-                    });
-                }
+                fullDomain = newFullDomain;
                 cacheCanvas.width = axes.x.values.length;
                 cacheCanvas.height = axes.y.values.length;
                 imageData = ctx.getImageData(0, 0, cacheCanvas.width, cacheCanvas.height);
