@@ -4758,6 +4758,14 @@ SIREPO.app.controller('FindByNameController', function (appState, requestSender,
 SIREPO.app.controller('PaymentCheckoutController', function (authState, errorService, requestSender, $location, $window) {
     var self = this;
 
+    const handleError = (message, data, reject) => {
+        srlog(`Error: ${message} data=`, data);
+        errorService.logToServer('Payment error', message,  data);
+        if (reject) {
+            reject(new Error(message));
+        };
+    };
+
     function initializeStripe() {
         $window.Stripe(
             authState.stripePublishableKey,
@@ -4774,9 +4782,7 @@ SIREPO.app.controller('PaymentCheckoutController', function (authState, errorSer
                             if (data && data.clientSecret) {
                                 resolve(data.clientSecret);
                             } else {
-                                srlog(`paymentCreateCheckoutSession no clientSecret error=`, data);
-                                errorService.alertText(`There was an error. Please contact ${SIREPO.APP_SCHEMA.feature_config.support_email}.`);
-                                reject(new Error('paymentCreateCheckoutSession no clientSecret'));
+                                handleError('paymentCreateCheckoutSession no clientSecret', data, reject);
                             }
                         },
                         {
@@ -4784,9 +4790,7 @@ SIREPO.app.controller('PaymentCheckoutController', function (authState, errorSer
                             plan: $location.search().plan,
                         },
                         function(error) {
-                            srlog(`paymentCreateCheckoutSession request error=`, error);
-                            errorService.alertText(`There was an error. Please contact ${SIREPO.APP_SCHEMA.feature_config.support_email}.`);
-                            reject(new Error('paymentCreateCheckoutSession request failed'));
+                            handleError('paymentCreateCheckoutSession request failed', error)
                         }
                     );
                 });
@@ -4794,8 +4798,7 @@ SIREPO.app.controller('PaymentCheckoutController', function (authState, errorSer
         }).then((checkout) => {
             checkout.mount('#checkout');
         }).catch((error) => {
-            srlog(`Error initializing Stripe checkout error=`, error);
-            errorService.alertText(`There was an error. Please contact ${SIREPO.APP_SCHEMA.feature_config.support_email}.`);
+            handleError('Stripe initEmbeddedCheckout', error);
         });
     }
 
