@@ -73,6 +73,9 @@ visible_methods = None
 #: visible_methods excluding guest
 non_guest_methods = None
 
+#: in auth state
+_cookie_http_name = None
+
 _cfg = None
 
 
@@ -103,7 +106,7 @@ def init_module(**imports):
     global _cfg
 
     def _init_full():
-        global visible_methods, valid_methods, non_guest_methods
+        global visible_methods, valid_methods, non_guest_methods, _cookie_http_name
 
         p = pkinspect.this_module().__name__
         visible_methods = []
@@ -116,9 +119,11 @@ def init_module(**imports):
         visible_methods = tuple(sorted(visible_methods))
         non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
         s = list(simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
-        assert sorted(s) == sorted(
-            _ALL_PAYMENT_PLANS
-        ), f"payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}"
+        if sorted(s) != sorted(_ALL_PAYMENT_PLANS):
+            raise AssertionError(
+                f"payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}",
+            )
+        _cookie_http_name = sirepo.cookie.unchecked_http_name()
 
     if _cfg:
         return
@@ -654,6 +659,7 @@ class _Auth(sirepo.quest.Attr):
         s = self._qcall_bound_state()
         v = pkcollections.Dict(
             avatarUrl=None,
+            cookieName=_cookie_http_name,
             displayName=None,
             guestIsOnlyMethod=not non_guest_methods,
             isGuestUser=False,

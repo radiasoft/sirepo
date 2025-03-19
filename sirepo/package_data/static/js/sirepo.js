@@ -269,16 +269,42 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     }
 });
 
-SIREPO.app.factory('authState', function(appDataService, appState, errorService, uri, $rootScope) {
-    var self = appState.clone(SIREPO.authState);
+SIREPO.app.factory('authState', (errorService, uri, $rootScope) => {
+    const self = angular.copy(SIREPO.authState);
+    let _cookie = null;
+    let _cookiesVerbatim = null;
+    if (! self.cookieName) {
+        throw new Error('authState.cookieName missing');
+    }
+    const _cookiePrefix = self.cookieName + '=';
 
     SIREPO.APP_SCHEMA.enum.JobRunMode = SIREPO.APP_SCHEMA.enum.JobRunMode.map(
-        function (x) {
-            return [x[0], self.jobRunModeMap[x[0]]];
-        }
+        (x) => [x[0], self.jobRunModeMap[x[0]]]
     );
 
-    self.handleLogin = function (data, controller) {
+    const _cookieSave = () => {
+        // Keep two versions for faster checking in cookieCheck
+        _cookiesVerbatim = document.cookie;
+        // save complete value: easier and better for debugging
+        _cookie = _cookiesVerbatim.split(/\s*;\s*/).find(e => e.startsWith(_cookiePrefix)) || null;
+    };
+
+    self.cookieCheck = () => {
+        if (_cookiesVerbatim === document.cookie) {
+            return false;
+        }
+        const p = _cookie;
+        _cookieSave();
+        // first time is null; server always sends a cookie
+        if (! p || p === _cookie) {
+            return false;
+        }
+        srlog('authState cookie changed via another browser tab, reloading application');
+        uri.globalRedirectRoot();
+        return true;
+    };
+
+    self.handleLogin = (data, controller) => {
         if (data.state === 'ok') {
             if (data.authState) {
                 SIREPO.authState = data.authState;
@@ -294,7 +320,14 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         `;
     };
 
-    self.paymentPlanName = function() {
+    self.hasRole = (role) => {
+        if (! SIREPO.APP_SCHEMA.constants.authStateRoles.includes(role)) {
+            throw new Error(`invalid role=${role}`);
+        }
+        return self.roles.hasOwnProperty(role);
+    };
+
+    self.paymentPlanName = () => {
         const rv = SIREPO.APP_SCHEMA.constants.paymentPlans[self.paymentPlan];
         if (! rv) {
             throw new Error(`invalid paymentPlan=${self.paymentPlan}`);
@@ -306,11 +339,13 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
     self.sbatchHostIsNersc = self.sbatchHostDisplayName
         && self.sbatchHostDisplayName.toLowerCase().indexOf('nersc') >= 0;
 
-    self.hasRole = (role) => {
-        if (! SIREPO.APP_SCHEMA.constants.authStateRoles.includes(role)) {
-            throw new Error(`invalid role=${role}`);
+    self.updateCookies = (changeOp) => {
+        if (self.cookieCheck()) {
+            return false;
         }
-        return self.roles.hasOwnProperty(role);
+        changeOp();
+        _cookieSave();
+        return true;
     };
 
     if (self.hasRole('trial') && ! (self.hasRole('basic') || self.hasRole('premium'))) {
@@ -322,6 +357,7 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
                 : 'Your Sirepo free trial has expired.',
         );
     }
+
     return self;
 });
 
@@ -2773,14 +2809,11 @@ SIREPO.app.factory('uri', ($location, $rootScope, $window) => {
     return self;
 });
 
-// cannot import authState factory, because of circular import with requestSender
-SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, uri) => {
+SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, authState, errorService, uri) => {
     const asyncMsgMethods = {};
     const httpRequests = [];
     const self = {};
     const toSend = [];
-    let cookiesSorted = null;
-    let cookiesVerbatim = null;
     let needReply = {};
     let reqSeq = 1;
     let socket = null;
@@ -2795,21 +2828,6 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
             i += b.length;
         }
         wsreq.msg = f;
-    };
-
-    const _cookiesChangedAndRedirect = () => {
-        if (cookiesVerbatim === document.cookie) {
-            return false;
-        }
-        const c = cookiesSorted;
-        _saveCookies();
-        // first time is null, and reordering is ok
-        if (c === null || c === cookiesSorted.replace(`; ${SIREPO.cookieConsentName}=dismiss`, '')) {
-            return false;
-        }
-        srlog("cookies changed via another browser tab, reloading application");
-        uri.globalRedirectRoot();
-        return true;
     };
 
     const _httpRequest = (url, data, httpConfig) => {
@@ -2998,12 +3016,6 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         };
     };
 
-    const _saveCookies = () => {
-        // Keep two versions for faster checking in _cookiesChangedAndRedirect
-        cookiesVerbatim = document.cookie;
-        cookiesSorted = cookiesVerbatim.split(/\s*;\s*/).sort().join('; ');
-    };
-
     const _send = () => {
         //if already req_seq use that so server can know if it is a resend
         if (toSend.length <= 0) {
@@ -3027,7 +3039,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         if (socket !== null) {
             return;
         }
-        if (_cookiesChangedAndRedirect()) {
+        if (authState.cookieCheck()) {
             return;
         }
         const s = new WebSocket(
@@ -3092,7 +3104,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
     };
 
     self.send = (url, data, httpConfig) => {
-        if (_cookiesChangedAndRedirect()) {
+        if (authState.cookieCheck()) {
             // app will reload so return a fake promise
             return {then: () => {}};
         }
@@ -3130,15 +3142,6 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
             _reqData(data, wsreq, c);
         }
         return wsreq.deferred.promise;
-    };
-
-    self.updateCookies = (changeOp) => {
-        if (_cookiesChangedAndRedirect()) {
-            return false;
-        }
-        changeOp();
-        _saveCookies();
-        return true;
     };
 
     return self;
@@ -5214,7 +5217,7 @@ SIREPO.app.filter('simulationName', function() {
 
 // only uses angularjs $cookies for removing old cookies, which
 // were encoded by $cookies.
-SIREPO.app.factory('browserStorage', function($cookies, msgRouter) {
+SIREPO.app.factory('browserStorage', function($cookies, authState) {
     const self = {};
 
     const _updateOld = () => {
@@ -5263,7 +5266,7 @@ SIREPO.app.factory('browserStorage', function($cookies, msgRouter) {
         };
         _v1();
         _v2();
-        msgRouter.updateCookies(() => {
+        authState.updateCookies(() => {
             for (let k of toDelete) {
                 $cookies.remove(k);
             }
@@ -5307,10 +5310,10 @@ SIREPO.app.factory('browserStorage', function($cookies, msgRouter) {
     return self;
 });
 
-SIREPO.app.factory('asyncMsgSetCookies', ($cookies, msgRouter) => {
+SIREPO.app.factory('asyncMsgSetCookies', ($cookies, authState, msgRouter) => {
     const self = {};
     const asyncMsgMethod = (content) => {
-        msgRouter.updateCookies(() => {
+        authState.updateCookies(() => {
             for (let c of content) {
                 document.cookie = c;
             }
