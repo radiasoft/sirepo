@@ -614,8 +614,12 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
     };
 
     self.colorScale = modelName => {
+        const r = [...appState.models.openmcAnimation.colorRange];
+        if (r[0] === r[1]) {
+            r[0] = 0;
+        }
         return SIREPO.PLOTTING.Utils.colorScale(
-            ...appState.models.openmcAnimation.colorRange,
+            ...r,
             SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.applicationState()[modelName].colorMap],
         );
     };
@@ -2558,8 +2562,8 @@ SIREPO.app.directive('minMax', function(validationService) {
                           ? 'Enter values'
                           : (t[0] === 0 && t[1] === 0)
                           ? ''
-                          : t[0] >= t[1]
-                          ? 'Lower limit must be less than upper limit'
+                          : t[0] > t[1]
+                          ? 'Lower limit must be equal to or less than upper limit'
                           : '';
                 ngModel.$setValidity('', validationService.validateField(
                     scope.modelName,
@@ -2857,8 +2861,10 @@ SIREPO.viewLogic('energyAnimationView', function(appState, panelState, tallyServ
             panelState.showField(
                 $scope.modelName,
                 dim,
-                appState.models.tallyReport.selectedGeometry === '3D'
-                    || appState.models.tallyReport.axis != dim,
+                (
+                    appState.models.tallyReport.selectedGeometry === '3D'
+                    || appState.models.tallyReport.axis != dim
+                ) && tallyService.tallyRange(dim, true).steps > 1,
             );
         });
     }
@@ -3248,6 +3254,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, openmcService, panelSta
             'tallyReport.selectedGeometry',
             'openmcAnimation.score',
             'openmcAnimation.showSources',
+            'tallyReport.axis',
         ], showFields,
         [
             'openmcAnimation.tally',
