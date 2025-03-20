@@ -4766,7 +4766,7 @@ SIREPO.app.controller('PaymentCheckoutController', function (authState, errorSer
         errorService.logToServer('Payment error', message,  data);
         if (reject) {
             reject(new Error(message));
-        };
+        }
     };
 
     function initializeStripe() {
@@ -4793,7 +4793,7 @@ SIREPO.app.controller('PaymentCheckoutController', function (authState, errorSer
                             plan: $location.search().plan,
                         },
                         function(error) {
-                            handleError('paymentCreateCheckoutSession request failed', error)
+                            handleError('paymentCreateCheckoutSession request failed', error);
                         }
                     );
                 });
