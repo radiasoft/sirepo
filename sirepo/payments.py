@@ -60,7 +60,7 @@ class API(sirepo.quest.API):
                         ],
                         mode="subscription",
                         subscription_data=PKDict(
-                            metadata=PKDict({_STRIPE_SIREPO_UID_METADATA_KEY: u})
+                            metadata=PKDict({_STRIPE_SIREPO_UID_METADATA_KEY: u}),
                         ),
                         return_url=self.absolute_uri(
                             sirepo.uri.local_route(
