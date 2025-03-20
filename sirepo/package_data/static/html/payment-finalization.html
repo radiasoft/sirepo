@@ -4,8 +4,8 @@
       <div ng-switch on="payment.sessionStatus">
         <div ng-switch-when="null"></div>
         <div ng-switch-when="complete">
-          <h1>Payment Complete</h1>
-          <p>Thank you for signing up! Please <a href="/">click here</a> to use {{ payment.productShortName }}.</p>
+          <h1>Thank you for Subscribing</h1>
+          <p><a href="/">Click here to start using {{ payment.productShortName }}!</a></p>
         </div>
         <div ng-switch-default>
           <h1>Trouble Completing Payment</h1>

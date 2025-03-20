@@ -479,9 +479,9 @@
                 }
             },
             "planRequired": {
-                "route": "/plan-required",
+                "route": "/subscription-required",
                 "config": {
-                  "templateUrl": "/static/html/http-plan-required.html"
+                  "templateUrl": "/static/html/http-subscription-required.html"
                 }
             },
             "proxyError": {
