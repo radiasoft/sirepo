@@ -18,6 +18,7 @@ import sirepo.cookie
 import sirepo.events
 import sirepo.feature_config
 import sirepo.job
+import sirepo.payments
 import sirepo.quest
 import sirepo.reply
 import sirepo.request
@@ -675,9 +676,7 @@ class _Auth(sirepo.quest.Attr):
         )
         if "sbatch" in v.jobRunModeMap:
             v.sbatchQueueMaxes = sirepo.job.NERSC_QUEUE_MAX
-        if "payments" in sirepo.feature_config.cfg().api_modules:
-            from sirepo import payments
-
+        if sirepo.feature_config.have_payments():
             v.stripePublishableKey = payments.cfg().stripe_publishable_key
         u = self._qcall_bound_user()
         if v.isLoggedIn:
