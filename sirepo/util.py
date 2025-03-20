@@ -254,13 +254,13 @@ def assert_sim_type(sim_type):
     return sim_type
 
 
-def create_token(value, prefix=None):
+def create_token(value):
     if pkconfig.channel_in_internal_test() and _cfg.create_token_secret:
         v = base64.b32encode(
             hashlib.sha256(pkcompat.to_bytes(value + _cfg.create_token_secret)).digest()
         )
         return pkcompat.from_bytes(v[:TOKEN_SIZE])
-    return random_base62(TOKEN_SIZE, prefix=prefix)
+    return random_base62(TOKEN_SIZE)
 
 
 def err(obj, fmt="", *args, **kwargs):
