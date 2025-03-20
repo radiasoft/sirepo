@@ -44,14 +44,16 @@ CREATE TABLE zz_sentinel (
 	PRIMARY KEY (anything)
 );
 CREATE TABLE user_payment_t (
-	invoice_id VARCHAR(100) NOT NULL, 
+	payment_id VARCHAR(16) NOT NULL, 
+	stripe_invoice_id VARCHAR(100) NOT NULL, 
 	uid VARCHAR(8) NOT NULL, 
-	amount_paid INTEGER NOT NULL, 
+	stripe_amount_paid INTEGER NOT NULL, 
 	created DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
-	customer_id VARCHAR(100) NOT NULL, 
-	subscription_id VARCHAR(100) NOT NULL, 
-	subscription_name VARCHAR(100) NOT NULL, 
-	PRIMARY KEY (invoice_id)
+	stripe_customer_id VARCHAR(100) NOT NULL, 
+	stripe_subscription_id VARCHAR(100) NOT NULL, 
+	stripe_subscription_name VARCHAR(100) NOT NULL, 
+	PRIMARY KEY (payment_id), 
+	UNIQUE (stripe_invoice_id)
 );
 CREATE TABLE user_role_moderation_t (
 	uid VARCHAR(8) NOT NULL, 
@@ -62,16 +64,16 @@ CREATE TABLE user_role_moderation_t (
 	PRIMARY KEY (uid, role)
 );
 CREATE TABLE user_subscription_t (
-	id INTEGER NOT NULL, 
+	subscription_id VARCHAR(16) NOT NULL, 
 	uid VARCHAR(8), 
-	customer_id VARCHAR(100) NOT NULL, 
-	checkout_session_id VARCHAR(100), 
-	subscription_id VARCHAR(100) NOT NULL, 
+	stripe_customer_id VARCHAR(100) NOT NULL, 
+	stripe_checkout_session_id VARCHAR(100), 
+	stripe_subscription_id VARCHAR(100) NOT NULL, 
 	creation_reason VARCHAR(100) NOT NULL, 
 	created DATETIME NOT NULL, 
 	revocation_reason VARCHAR(100), 
 	revoked DATETIME, 
 	role VARCHAR(100) NOT NULL, 
-	PRIMARY KEY (id)
+	PRIMARY KEY (subscription_id)
 );
 COMMIT;

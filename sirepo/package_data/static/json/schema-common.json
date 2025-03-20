@@ -589,8 +589,8 @@
     },
     "customErrors": {
         "402": {
-            "url": "http-plan-required.html",
-            "msg": "Plan Required",
+            "url": "http-subscription-required.html",
+            "msg": "Subscription Required",
             "route": "planRequired"
         },
         "403": {

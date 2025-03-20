@@ -239,7 +239,6 @@ def _end_api_call(qcall, kwargs):
     qcall.cookie.save_to_reply(kwargs.resp)
 
 
-
 def init_module():
     global _cfg, _HTTP_HEADER_ADD_FMT
 
