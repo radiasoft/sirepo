@@ -4395,13 +4395,18 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
           </form>
           <div data-ng-show="submitted">Response submitted.</div>
         `,
-        controller: function(requestSender, $route, $scope) {
+        controller: function(requestSender, uri, $route, $scope) {
+            const _reason = () => {
+                if (uri.currentRouteParam('role', '') === 'trial') {
+                    return `To prevent abuse of our systems all new users must supply a reason for requesting access to ${SIREPO.APP_SCHEMA.productInfo.shortName}. In a few sentences please describe how you plan to use ${SIREPO.APP_SCHEMA.productInfo.shortName}`;
+                }
+                return 'Please describe your reason for requesting access';
+            };
+
             $scope.data = {};
             $scope.submitted = false;
             $scope.disableSubmit = true;
-            $scope.moderationRequestReason = {
-                trial: `To prevent abuse of our systems all new users must supply a reason for requesting access to ${SIREPO.APP_SCHEMA.productInfo.shortName}. In a few sentences please describe how you plan to use ${SIREPO.APP_SCHEMA.productInfo.shortName}`
-            }[$route.current.params.role] ?? 'Please describe your reason for requesting access';
+            $scope.moderationRequestReason = _reason();
             $scope.submitRequest = function () {
                 const handleResponse = (data) => {
                     if (data.state === 'error') {

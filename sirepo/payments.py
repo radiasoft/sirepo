@@ -16,7 +16,6 @@ import sirepo.srtime
 import sirepo.util
 import stripe
 
-_CHECKOUT_SESSION_ID_URI_PARAM = "~CHECKOUT_SESSION_ID~"
 #: keep reference so auditor isn't garbage collected
 _ROLE_AUDITOR_CRON = None
 _ROLE_CREATED_BY_API_CHECKOUT_SESSION_STATUS = (
@@ -45,6 +44,18 @@ class API(sirepo.quest.API):
                 }
             )[plan]
 
+        def _return_url():
+            # Need to put braces in url for stripe but local_route escapes them.
+            # POSIT: CHECKOUT_SESSION_ID is unique in our uri map.
+            x = "CHECKOUT_SESSION_ID"
+            return self.absolute_uri(
+                sirepo.uri.local_route(
+                    self.parse_post().type,
+                    route_name="paymentFinalization",
+                    params=PKDict(session_id=x),
+                )
+            ).replace(x, f"{x}")
+
         u = self.auth.logged_in_user()
         return self.reply_ok(
             PKDict(
@@ -62,15 +73,7 @@ class API(sirepo.quest.API):
                         subscription_data=PKDict(
                             metadata=PKDict({_STRIPE_SIREPO_UID_METADATA_KEY: u}),
                         ),
-                        return_url=self.absolute_uri(
-                            sirepo.uri.local_route(
-                                self.parse_post().type,
-                                route_name="paymentFinalization",
-                                query=PKDict(session_id=_CHECKOUT_SESSION_ID_URI_PARAM),
-                            )
-                        ).replace(
-                            _CHECKOUT_SESSION_ID_URI_PARAM, "{CHECKOUT_SESSION_ID}"
-                        ),
+                        return_url=_return_url(),
                         # TODO(e-carlin): needed?
                         # automatic_tax=PKDict(enabled=True),
                     )
@@ -133,7 +136,7 @@ class API(sirepo.quest.API):
             sirepo.uri.local_route(
                 sirepo.util.first_sim_type(),
                 route_name="paymentCheckout",
-                query=PKDict(plan=plan),
+                params=PKDict(plan=plan),
             ),
         )
 

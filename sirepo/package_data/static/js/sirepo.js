@@ -361,7 +361,7 @@ SIREPO.app.factory('authState', (errorService, uri, $rootScope) => {
     return self;
 });
 
-SIREPO.app.factory('activeSection', function(authState, requestSender, $location, $route, $rootScope, appState) {
+SIREPO.app.factory('activeSection', function(authState, requestSender, uri, $location, $route, $rootScope, appState) {
     var self = this;
 
     self.getActiveSection = function() {
@@ -373,9 +373,10 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
     };
 
     $rootScope.$on('$routeChangeSuccess', function() {
-        if ($route.current.params.simulationId) {
+        const i = uri.currentRouteParam('simulationId', '');
+        if (i) {
             appState.loadModels(
-                $route.current.params.simulationId,
+                i,
                 // clear list items each time a simulation is loaded
                 requestSender.clearListFilesData,
                 self.getActiveSection());
@@ -2572,7 +2573,7 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
     return self;
 });
 
-SIREPO.app.factory('uri', ($location, $rootScope, $window) => {
+SIREPO.app.factory('uri', ($location, $rootScope, $route, $window) => {
     const self = {};
     const globalMap = {_name: 'global'};
     const localMap = {_name: 'local'};
@@ -2705,6 +2706,19 @@ SIREPO.app.factory('uri', ($location, $rootScope, $window) => {
         }
         throw new Error(param + ': ' + (typeof v) + ' type cannot be serialized');
     };
+
+    self.currentRouteParam = (name, defaultValue) => {
+        const rv = $route.current.params[name];
+        // TODO(robnagler) if the param exists but blank is it empty string? Is that possible?
+        if (rv !== undefined || rv !== null) {
+            return rv;
+        }
+        if (defaultValue === undefined) {
+            return defaultValue;
+        }
+        throw new Error(`parameter=${name} not in current route uri`);
+    };
+
 
     self.defaultRouteName = (appMode=null) => {
         return SIREPO.APP_SCHEMA.appModes[appMode || 'default'].localRoute;
@@ -4562,15 +4576,15 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
 
 });
 
-SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route) {
+SIREPO.app.controller('NotFoundCopyController', function (requestSender, uri, $route) {
     var self = this;
-    var ids = $route.current.params.simulationIds.split('-');
+    var ids = uri.currentRouteParam('simulationIds').split('-');
     self.simulationId = ids[0];
     self.userCopySimulationId = ids[1];
 
     function localRedirect(simId) {
         requestSender.localRedirect(
-            $route.current.params.section || requestSender.defaultRouteName(),
+            uri.currentRouteParam('section', requestSender.defaultRouteName()),
             {
                 ':simulationId': simId,
             });
@@ -4620,9 +4634,9 @@ SIREPO.app.controller('LoginController', function (authService, authState, reque
     }
 });
 
-SIREPO.app.controller('LoginWithController', function (authState, errorService, requestSender, $route) {
+SIREPO.app.controller('LoginWithController', function (authState, errorService, requestSender, uri, $route) {
     var self = this;
-    var m = $route.current.params.method || '';
+    var m = uri.currentRouteParam('method', '');
     self.showWarning = false;
     self.warningText = '';
     self.method = m;
@@ -4708,10 +4722,10 @@ SIREPO.app.controller('LoginConfirmController', function (authState, requestSend
     return;
 });
 
-SIREPO.app.controller('LoginFailController', function (requestSender, stringsService, $route, $sce) {
+SIREPO.app.controller('LoginFailController', function (requestSender, stringsService, uri, $route, $sce) {
     var self = this;
-    var t = $sce.getTrustedHtml(stringsService.ucfirst($route.current.params.method || ''));
-    var r = $route.current.params.reason || '';
+    var t = $sce.getTrustedHtml(stringsService.ucfirst(uri.currentRouteParam('method', '')))
+    var r = uri.currentRouteParam('reason', '');
     var login_text = function(text) {
         return '<a href="' + requestSender.formatUrlLocal('login')
              + '">' + text + '</a>';
@@ -4740,9 +4754,9 @@ SIREPO.app.controller('LoginFailController', function (requestSender, stringsSer
     }
 });
 
-SIREPO.app.controller('FindByNameController', function (appState, requestSender, $route) {
+SIREPO.app.controller('FindByNameController', function (appState, requestSender, uri, $route) {
     var self = this;
-    self.simulationName = $route.current.params.simulationName;
+    self.simulationName = uri.currentRouteParam('simulationName');
     appState.listSimulations(
         function() {
             // authenticated listSimulations successfully, now go to the URL
@@ -4751,14 +4765,14 @@ SIREPO.app.controller('FindByNameController', function (appState, requestSender,
                 {
                     '<simulation_name>': self.simulationName,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<application_mode>': $route.current.params.applicationMode,
+                    '<application_mode>': uri.currentRouteParam('applicationMode', ''),
                 }
             );
         });
 });
 
 
-SIREPO.app.controller('PaymentCheckoutController', function (authState, errorService, requestSender, $location, $window) {
+SIREPO.app.controller('PaymentCheckoutController', function (authState, errorService, requestSender, uri, $location, $window) {
     var self = this;
 
     const handleError = (message, data, reject) => {
@@ -4775,10 +4789,6 @@ SIREPO.app.controller('PaymentCheckoutController', function (authState, errorSer
         ).initEmbeddedCheckout({
             fetchClientSecret: () => {
                 return new Promise((resolve, reject) => {
-                    if ( ! $location.search().plan) {
-                        reject (new Error('No plan selected'));
-                        return;
-                    }
                     requestSender.sendRequest(
                         'paymentCreateCheckoutSession',
                         function(data) {
@@ -4790,7 +4800,7 @@ SIREPO.app.controller('PaymentCheckoutController', function (authState, errorSer
                         },
                         {
                             simulationType: SIREPO.APP_SCHEMA.simulationType,
-                            plan: $location.search().plan,
+                            plan: uri.currentRouteParam('plan'),
                         },
                         function(error) {
                             handleError('paymentCreateCheckoutSession request failed', error);
@@ -4824,16 +4834,11 @@ SIREPO.app.controller('PaymentCheckoutController', function (authState, errorSer
 });
 
 
-SIREPO.app.controller('PaymentFinalizationController', function ($location, requestSender) {
+SIREPO.app.controller('PaymentFinalizationController', function ($location, uri, requestSender) {
     const self = this;
     self.productShortName = SIREPO.APP_SCHEMA.productInfo.shortName;
     self.sessionStatus = null;
-    self.redirectPaymentCheckout = () => requestSender.localRedirect('paymentCheckout');
 
-    const s = $location.search();
-    if ( ! ('session_id' in s)) {
-        requestSender.localRedirect('paymentCheckout');
-    }
     requestSender.sendRequest(
         'paymentCheckoutSessionStatus',
         function(data) {
@@ -4843,7 +4848,7 @@ SIREPO.app.controller('PaymentFinalizationController', function ($location, requ
             }
             self.sessionStatus = 'error';
         },
-        {sessionId: s.session_id},
+        {sessionId: uri.currentRouteParam('session_id')},
         function(error) {
             self.sessionStatus = 'error';
         },

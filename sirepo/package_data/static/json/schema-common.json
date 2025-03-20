@@ -465,14 +465,14 @@
                 }
             },
             "paymentCheckout": {
-                "route": "/payment-checkout",
+                "route": "/payment-checkout/:plan",
                 "config": {
                   "controller": "PaymentCheckoutController as payment",
                   "templateUrl": "/static/html/payment-checkout.html"
                 }
             },
             "paymentFinalization": {
-                "route": "/payment-finalization",
+                "route": "/payment-finalization/:session_id",
                 "config": {
                   "controller": "PaymentFinalizationController as payment",
                   "templateUrl": "/static/html/payment-finalization.html"
