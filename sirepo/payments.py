@@ -245,7 +245,7 @@ async def _auditor(_):
     with sirepo.quest.start() as qcall:
         for s in qcall.auth_db.model(
             "UserSubscription"
-        ).non_revoked_stripe_subscriptions():
+        ).not_revoked_stripe_subscriptions():
             if qcall.auth_db.model("UserRole").has_expired_role(s.role, uid=s.uid):
                 continue
             if await _stripe_status_is_active(

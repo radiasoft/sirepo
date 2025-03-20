@@ -42,7 +42,7 @@ def test_auditor(monkeypatch):
             len(
                 qcall.auth_db.model(
                     "UserSubscription"
-                ).non_revoked_stripe_subscriptions()
+                ).not_revoked_stripe_subscriptions()
             ),
             "expecting just one active subscription",
         )
@@ -61,7 +61,7 @@ def test_auditor(monkeypatch):
             len(
                 qcall.auth_db.model(
                     "UserSubscription"
-                ).non_revoked_stripe_subscriptions()
+                ).not_revoked_stripe_subscriptions()
             ),
             "expecting no active subscriptions",
         )
