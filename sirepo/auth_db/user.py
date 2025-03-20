@@ -15,7 +15,7 @@ import sqlalchemy
 
 class UserPayment(sirepo.auth_db.UserDbBase):
     __tablename__ = "user_payment_t"
-    payment_id = sirepo.auth_db.prefixed_id_primary_key_column("pmt")
+    user_payment_id = sirepo.auth_db.prefixed_id_primary_key_column("pmt")
     # Invoice id's are unique in Stripe
     # https://docs.stripe.com/api/invoices/object#invoice_object-id
     stripe_invoice_id = sqlalchemy.Column(

@@ -44,7 +44,7 @@ CREATE TABLE zz_sentinel (
 	PRIMARY KEY (anything)
 );
 CREATE TABLE user_payment_t (
-	payment_id VARCHAR(16) NOT NULL, 
+	user_payment_id VARCHAR(16) NOT NULL, 
 	stripe_invoice_id VARCHAR(100) NOT NULL, 
 	uid VARCHAR(8) NOT NULL, 
 	stripe_amount_paid INTEGER NOT NULL, 
@@ -52,7 +52,7 @@ CREATE TABLE user_payment_t (
 	stripe_customer_id VARCHAR(100) NOT NULL, 
 	stripe_subscription_id VARCHAR(100) NOT NULL, 
 	stripe_subscription_name VARCHAR(100) NOT NULL, 
-	PRIMARY KEY (payment_id), 
+	PRIMARY KEY (user_payment_id), 
 	UNIQUE (stripe_invoice_id)
 );
 CREATE TABLE user_role_moderation_t (
