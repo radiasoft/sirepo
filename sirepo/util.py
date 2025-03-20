@@ -36,6 +36,8 @@ UNIQUE_KEY_CHARS_RE = r"\w+"
 #: A standalone unique key
 UNIQUE_KEY_RE = re.compile(r"^{}$".format(UNIQUE_KEY_CHARS_RE))
 
+_FIRST_SIM_TYPE = None
+
 # See https://github.com/radiasoft/sirepo/pull/3889#discussion_r738769716
 # for reasoning on why define both
 _INVALID_PYTHON_IDENTIFIER = re.compile(r"\W|^(?=\d)")
@@ -295,11 +297,14 @@ def find_obj(arr, key, value):
 
 def first_sim_type():
     """Returns the first configured sim_type"""
+    global _FIRST_SIM_TYPE
+    if _FIRST_SIM_TYPE:
+        return _FIRST_SIM_TYPE
     from sirepo import feature_config
 
     x = feature_config.auth_controlled_sim_types()
-    res = sorted(feature_config.cfg().sim_types - x)
-    return res[0] if res else sorted(x)[0]
+    _FIRST_SIM_TYPE = (sorted(feature_config.cfg().sim_types - x) or sorted(x))[0]
+    return _FIRST_SIM_TYPE
 
 
 def import_submodule(submodule, type_or_data):

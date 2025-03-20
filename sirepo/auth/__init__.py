@@ -677,7 +677,7 @@ class _Auth(sirepo.quest.Attr):
         if "sbatch" in v.jobRunModeMap:
             v.sbatchQueueMaxes = sirepo.job.NERSC_QUEUE_MAX
         if sirepo.feature_config.have_payments():
-            v.stripePublishableKey = payments.cfg().stripe_publishable_key
+            v.stripePublishableKey = sirepo.payments.cfg().stripe_publishable_key
         u = self._qcall_bound_user()
         if v.isLoggedIn:
             if v.method == METHOD_GUEST:
