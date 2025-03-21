@@ -4724,7 +4724,7 @@ SIREPO.app.controller('LoginConfirmController', function (authState, requestSend
 
 SIREPO.app.controller('LoginFailController', function (requestSender, stringsService, uri, $route, $sce) {
     var self = this;
-    var t = $sce.getTrustedHtml(stringsService.ucfirst(uri.currentRouteParam('method', '')))
+    var t = $sce.getTrustedHtml(stringsService.ucfirst(uri.currentRouteParam('method', '')));
     var r = uri.currentRouteParam('reason', '');
     var login_text = function(text) {
         return '<a href="' + requestSender.formatUrlLocal('login')
