@@ -12,7 +12,7 @@ def test_basic(sim_db_file_server):
 
     stype = srunit.SR_SIM_TYPE_DEFAULT
     c = sim_data.get_class(stype).sim_db_client()
-    time.sleep(1)
+    time.sleep(5)
     pkunit.pkeq(b"xyzzy", c.get(c.LIB_DIR, "hello.txt"))
     c.put(c.LIB_DIR, "hello.txt", "abc")
     pkunit.pkeq(b"abc", c.get(c.LIB_DIR, "hello.txt"))
