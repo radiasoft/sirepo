@@ -166,6 +166,7 @@ _IMPORT_PYTHON_POLLS = 60
 
 _PREDEFINED_BEAMS = None
 
+
 class MagnMeasZip:
     def __init__(self, archive_name):
         """The class for convenient operation with an archive with the magnetic measurements.
