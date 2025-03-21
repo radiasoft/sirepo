@@ -164,6 +164,7 @@ _USER_MODEL_LIST_FILENAME = PKDict(
 
 _IMPORT_PYTHON_POLLS = 60
 
+_PREDEFINED_BEAMS = None
 
 class MagnMeasZip:
     def __init__(self, archive_name):
@@ -435,7 +436,43 @@ def get_filename_for_model(model):
 
 
 def get_predefined_beams():
-    return _SIM_DATA.srw_predefined().beams
+    global _PREDEFINED_BEAMS
+
+    def _calc():
+        import srwpy.srwl_uti_src
+
+        return [_calc_one(*x) for x in srwpy.srwl_uti_src.srwl_uti_src_e_beam_predef()]
+
+    def _calc_one(name, info):
+        return srw_common.process_beam_parameters(
+            # info is:
+            # _Iavg _e _sig_e _emit_x _beta_x _alpha_x _eta_x _eta_x_pr _emit_y _beta_y _alpha_y
+            PKDict(
+                name=name,
+                current=info[0],
+                energy=info[1],
+                rmsSpread=info[2],
+                horizontalEmittance=_SIM_DATA.srw_format_float(info[3] * 1e9),
+                horizontalBeta=info[4],
+                horizontalAlpha=info[5],
+                horizontalDispersion=info[6],
+                horizontalDispersionDerivative=info[7],
+                verticalEmittance=_SIM_DATA.srw_format_float(info[8] * 1e9),
+                verticalBeta=info[9],
+                verticalAlpha=info[10],
+                verticalDispersion=0,
+                verticalDispersionDerivative=0,
+                energyDeviation=0,
+                horizontalPosition=0,
+                verticalPosition=0,
+                drift=0.0,
+                isReadOnly=True,
+            )
+        )
+
+    if not _PREDEFINED_BEAMS:
+        _PREDEFINED_BEAMS = _calc()
+    return _PREDEFINED_BEAMS
 
 
 def sim_frame(frame_args):

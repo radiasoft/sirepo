@@ -10,10 +10,6 @@ import copy
 import re
 
 
-#: what `sirepo.pkcli.srw.create_predefined` writes
-PREDEFINED_JSON = "predefined.json"
-
-
 def process_beam_parameters(ebeam):
     import sirepo.sim_data
     import srwpy.srwlib

@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """simulation data operations
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -348,25 +348,6 @@ class SimData(sirepo.sim_data.SimDataBase):
                 if x:
                     res.append(x)
         return res
-
-    @classmethod
-    def srw_predefined(cls):
-        import pykern.pkjson
-        from sirepo.template import srw_common
-
-        try:
-            f = cls.resource_path(srw_common.PREDEFINED_JSON)
-        except Exception as e:
-            if not pkio.exception_is_not_found(e):
-                raise
-            assert (
-                pkconfig.in_dev_mode()
-            ), f'{srw_common.PREDEFINED_JSON}: not found; call "sirepo srw create-predefined" before pip install'
-            from sirepo.pkcli import srw
-
-            srw.create_predefined()
-            f = cls.resource_path(srw_common.PREDEFINED_JSON)
-        return cls._memoize(pykern.pkjson.load_any(f))
 
     @classmethod
     def srw_uses_tabulated_zipfile(cls, data):

@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
 """PyTest for :mod:`sirepo.template.srw.py`
 
 :copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
-import pytest
-from sirepo import srunit
 
 
 def test_srw_model_defaults():
@@ -20,7 +16,6 @@ def test_srw_model_defaults():
         from sirepo import simulation_db, sim_data
 
         s = sim_data.get_class("srw")
-        s.resource_path("predefined.json")
         res = s.model_defaults("trajectoryReport")
         assert res == PKDict(
             notes="",
