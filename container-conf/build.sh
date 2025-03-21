@@ -43,10 +43,6 @@ _sirepo_pip_install() {
     declare branch=$2
     git clone -q -c advice.detachedHead=false ${branch:+--branch "$branch"} --depth=1 https://github.com/radiasoft/"$repo"
     cd "$repo"
-    if [[ $repo == sirepo ]]; then
-        pip install -e .
-        sirepo srw create_predefined
-    fi
     pip install .
     cd - &> /dev/null
     rm -rf "$repo"
