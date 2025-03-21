@@ -54,7 +54,7 @@ class API(sirepo.quest.API):
                     route_name="paymentFinalization",
                     params=PKDict(session_id=x),
                 )
-            ).replace(x, f"{x}")
+            ).replace(x, "{" + x + "}")
 
         u = self.auth.logged_in_user()
         return self.reply_ok(
