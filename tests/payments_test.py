@@ -11,7 +11,6 @@ import datetime
 import stripe
 
 _CLIENT_SECRET = "stripe_client_secret_test"
-_EXPIRATION = datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
 _SIM_TYPE = "srw"
 _UID_IN_DB = "Uh4mhMWU"
 
@@ -25,6 +24,7 @@ def test_auditor(monkeypatch):
     from sirepo import srunit
     import asyncio
 
+    _EXPIRATION = datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
     pkio.unchecked_remove(srdb.root())
     pkunit.data_dir().join("auditor_db").copy(srdb.root())
     with srunit.quest_start(cfg=_state_for_testing()) as qcall:
@@ -49,7 +49,7 @@ def test_auditor(monkeypatch):
         monkeypatch.setattr(
             stripe.Subscription,
             "retrieve_async",
-            _subscription_active,
+            _get_subscription_active(_EXPIRATION),
         )
         asyncio.run(payments._auditor(None))
     with srunit.quest_start(cfg=_state_for_testing()) as qcall:
@@ -85,12 +85,13 @@ def test_checkout_session(monkeypatch):
     from sirepo import srdb
     from sirepo import srunit
 
+    _EXPIRATION = datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
     monkeypatch.setattr(stripe.checkout.Session, "create_async", _checkout_create)
     monkeypatch.setattr(stripe.checkout.Session, "retrieve_async", _checkout_retrieve)
     monkeypatch.setattr(
         stripe.Subscription,
         "retrieve_async",
-        _subscription_active,
+        _get_subscription_active(_EXPIRATION),
     )
     pkio.unchecked_remove(srdb.root())
     pkunit.data_dir().join("db").copy(srdb.root())
@@ -143,7 +144,9 @@ def test_event_paid_webhook(monkeypatch):
     monkeypatch.setattr(
         stripe.Subscription,
         "retrieve_async",
-        _subscription_active,
+        _get_subscription_active(
+            datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
+        ),
     )
     monkeypatch.setattr(stripe.Product, "retrieve_async", _product_retrieve)
     pkio.unchecked_remove(srdb.root())
@@ -192,26 +195,29 @@ def _state_for_testing():
     )
 
 
-async def _subscription_active(*args, **kwargs):
-    from sirepo import payments
+def _get_subscription_active(expiration):
+    async def _do(*args, **kwargs):
+        from sirepo import payments
 
-    return PKDict(
-        id="subscription_id_test",
-        customer="customer_id_test",
-        items=PKDict(
-            data=[
-                PKDict(
-                    price=PKDict(
-                        id=payments.cfg().stripe_plan_basic_price_id,
-                        product="test product",
+        return PKDict(
+            id="subscription_id_test",
+            customer="customer_id_test",
+            items=PKDict(
+                data=[
+                    PKDict(
+                        price=PKDict(
+                            id=payments.cfg().stripe_plan_basic_price_id,
+                            product="test product",
+                        )
                     )
-                )
-            ]
-        ),
-        current_period_end=_EXPIRATION.timestamp(),
-        metadata=PKDict({payments._STRIPE_SIREPO_UID_METADATA_KEY: _UID_IN_DB}),
-        status="active",
-    )
+                ]
+            ),
+            current_period_end=expiration.timestamp(),
+            metadata=PKDict({payments._STRIPE_SIREPO_UID_METADATA_KEY: _UID_IN_DB}),
+            status="active",
+        )
+
+    return _do
 
 
 async def _subscription_unpaid(*args, **kwargs):
