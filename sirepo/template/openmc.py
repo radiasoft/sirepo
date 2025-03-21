@@ -422,7 +422,15 @@ def write_volume_outlines():
                     yield t.name, t[f]
 
     def _is_skip_dimension(tally_range, dim):
+        # if more than 2 dimensions are below the minTallyResolution
+        # then include all dimensions, see #7482
         m = SCHEMA.constants.minTallyResolution
+        c = 0
+        for idx in range(len(tally_range)):
+            if len(tally_range[idx]) >= m:
+                c += 1
+        if c < 2:
+            return False
         d1 = 1 if dim == "x" else 0
         d2 = 1 if dim == "z" else 2
         return len(tally_range[d1]) < m or len(tally_range[d2]) < m

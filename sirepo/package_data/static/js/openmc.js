@@ -614,8 +614,12 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
     };
 
     self.colorScale = modelName => {
+        const r = [...appState.models.openmcAnimation.colorRange];
+        if (r[0] === r[1]) {
+            r[0] = 0;
+        }
         return SIREPO.PLOTTING.Utils.colorScale(
-            ...appState.models.openmcAnimation.colorRange,
+            ...r,
             SIREPO.PLOTTING.Utils.COLOR_MAP()[appState.applicationState()[modelName].colorMap],
         );
     };
@@ -656,14 +660,23 @@ SIREPO.app.factory('tallyService', function(appState, openmcService, utilities, 
         if (! self.mesh) {
             return SIREPO.GEOMETRY.GeometryUtils.BASIS().slice();
         }
+        // show all axes unless 2 dimension exceed minTallyResolution
+        let c = 0;
+        for (const v of self.mesh.dimension) {
+            if (v >= SIREPO.APP_SCHEMA.constants.minTallyResolution) {
+                c += 1;
+            }
+        }
         const v = {};
         SIREPO.GEOMETRY.GeometryUtils.BASIS().forEach(dim => {
             v[dim] = true;
-            SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim].forEach((bv, bi) => {
-                if (! bv && self.mesh.dimension[bi] < SIREPO.APP_SCHEMA.constants.minTallyResolution) {
-                    delete v[dim];
-                }
-            });
+            if (c >= 2) {
+                SIREPO.GEOMETRY.GeometryUtils.BASIS_VECTORS()[dim].forEach((bv, bi) => {
+                    if (! bv && self.mesh.dimension[bi] < SIREPO.APP_SCHEMA.constants.minTallyResolution) {
+                        delete v[dim];
+                    }
+                });
+            }
         });
         return Object.keys(v);
     };
@@ -2549,8 +2562,8 @@ SIREPO.app.directive('minMax', function(validationService) {
                           ? 'Enter values'
                           : (t[0] === 0 && t[1] === 0)
                           ? ''
-                          : t[0] >= t[1]
-                          ? 'Lower limit must be less than upper limit'
+                          : t[0] > t[1]
+                          ? 'Lower limit must be equal to or less than upper limit'
                           : '';
                 ngModel.$setValidity('', validationService.validateField(
                     scope.modelName,
@@ -2848,8 +2861,10 @@ SIREPO.viewLogic('energyAnimationView', function(appState, panelState, tallyServ
             panelState.showField(
                 $scope.modelName,
                 dim,
-                appState.models.tallyReport.selectedGeometry === '3D'
-                    || appState.models.tallyReport.axis != dim,
+                (
+                    appState.models.tallyReport.selectedGeometry === '3D'
+                    || appState.models.tallyReport.axis != dim
+                ) && tallyService.tallyRange(dim, true).steps > 1,
             );
         });
     }
@@ -3239,6 +3254,7 @@ SIREPO.viewLogic('tallySettingsView', function(appState, openmcService, panelSta
             'tallyReport.selectedGeometry',
             'openmcAnimation.score',
             'openmcAnimation.showSources',
+            'tallyReport.axis',
         ], showFields,
         [
             'openmcAnimation.tally',
