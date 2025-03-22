@@ -1,6 +1,12 @@
 """Test payment workflow
 
-:copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
+To recreate the test db:
+
+    sqlite3 auth.db .dump > auth_db.sql
+    # edit auth_db.sql
+    sqlite3 auth.db < auth_db.sql
+
+:copyright: Copyright (c) 2025 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
