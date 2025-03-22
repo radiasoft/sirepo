@@ -4,11 +4,10 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-import getpass
-import os
-
 
 def setup_module(module):
+    import os, getpass
+
     os.environ.update(
         # Dev mode has to be false for these tests to pass
         PYKERN_PKCONFIG_DEV_MODE="0",
@@ -17,7 +16,6 @@ def setup_module(module):
         SIREPO_COOKIE_PRIVATE_KEY="MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=",
         SIREPO_AUTH_ROLE_MODERATION_MODERATOR_EMAIL=getpass.getuser()
         + "@localhost.localdomain",
-        # Avoids srw/predefined.json check
         SIREPO_FEATURE_CONFIG_SIM_TYPES="myapp",
         SIREPO_SMTP_PASSWORD="dev",
         SIREPO_SMTP_SERVER="dev",
