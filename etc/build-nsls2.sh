@@ -37,7 +37,6 @@ build_nsls2_guest_main() {
         cd ../"$d"
         pip install .
     done
-    sirepo srw create_predefined
     cd /
     rm -rf "$_build_nsls2_guest_d"
 }
