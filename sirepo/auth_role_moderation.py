@@ -136,7 +136,7 @@ class API(sirepo.quest.API):
             _send_moderation_status_email(p)
         return self.reply_ok()
 
-    @sirepo.quest.Spec("allow_visitor")
+    @sirepo.quest.Spec("require_adm")
     async def api_admModerateRedirect(self):
         raise sirepo.util.Redirect(
             sirepo.uri.local_route(sirepo.util.first_sim_type(), route_name="admRoles"),
