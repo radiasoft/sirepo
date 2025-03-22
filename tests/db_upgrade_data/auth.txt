@@ -43,17 +43,30 @@ CREATE TABLE zz_sentinel (
 	anything VARCHAR(8) NOT NULL,
 	PRIMARY KEY (anything)
 );
-CREATE TABLE user_payment_t (
-	user_payment_id VARCHAR(16) NOT NULL, 
-	stripe_invoice_id VARCHAR(100) NOT NULL, 
-	uid VARCHAR(8) NOT NULL, 
-	stripe_amount_paid INTEGER NOT NULL, 
+CREATE TABLE stripe_payment_t (
+	user_payment_key VARCHAR(12) NOT NULL, 
+	invoice_id VARCHAR(255) NOT NULL, 
+	uid VARCHAR(100) NOT NULL, 
+	amount_paid INTEGER NOT NULL, 
 	created DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
-	stripe_customer_id VARCHAR(100) NOT NULL, 
-	stripe_subscription_id VARCHAR(100) NOT NULL, 
-	stripe_subscription_name VARCHAR(100) NOT NULL, 
-	PRIMARY KEY (user_payment_id), 
-	UNIQUE (stripe_invoice_id)
+	customer_id VARCHAR(255) NOT NULL, 
+	subscription_id VARCHAR(255) NOT NULL, 
+	subscription_name VARCHAR(255) NOT NULL, 
+	PRIMARY KEY (user_payment_key), 
+	UNIQUE (invoice_id)
+);
+CREATE TABLE stripe_subscription_t (
+	stripe_subscription_key VARCHAR(12) NOT NULL, 
+	uid VARCHAR(100), 
+	customer_id VARCHAR(255) NOT NULL, 
+	checkout_session_id VARCHAR(255), 
+	subscription_id VARCHAR(255) NOT NULL, 
+	creation_reason VARCHAR(100) DEFAULT 'payments_checkout_session_status_complete', 
+	created DATETIME NOT NULL, 
+	revocation_reason VARCHAR(100), 
+	revoked DATETIME, 
+	role VARCHAR(100) NOT NULL, 
+	PRIMARY KEY (stripe_subscription_key)
 );
 CREATE TABLE user_role_moderation_t (
 	uid VARCHAR(8) NOT NULL, 
@@ -62,18 +75,5 @@ CREATE TABLE user_role_moderation_t (
 	moderator_uid VARCHAR(8), 
 	last_updated DATETIME DEFAULT (CURRENT_TIMESTAMP) NOT NULL, 
 	PRIMARY KEY (uid, role)
-);
-CREATE TABLE user_subscription_t (
-	subscription_id VARCHAR(16) NOT NULL, 
-	uid VARCHAR(8), 
-	stripe_customer_id VARCHAR(100) NOT NULL, 
-	stripe_checkout_session_id VARCHAR(100), 
-	stripe_subscription_id VARCHAR(100) NOT NULL, 
-	creation_reason VARCHAR(100) NOT NULL, 
-	created DATETIME NOT NULL, 
-	revocation_reason VARCHAR(100), 
-	revoked DATETIME, 
-	role VARCHAR(100) NOT NULL, 
-	PRIMARY KEY (subscription_id)
 );
 COMMIT;
