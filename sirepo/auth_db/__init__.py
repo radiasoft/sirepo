@@ -18,6 +18,7 @@ import sqlalchemy
 import sqlalchemy.ext.declarative
 import sqlalchemy.orm
 import sqlalchemy.sql.expression
+import re
 
 
 #: sqlite file located in sirepo_db_dir
@@ -26,9 +27,15 @@ _SQLITE3_BASENAME = "auth.db"
 #: SQLAlchemy database engine
 _engine = None
 
-STRING_ID = sqlalchemy.String(8)
+_UNIQUE_ID_LEN = 8
+STRING_ID = sqlalchemy.String(_UNIQUE_ID_LEN)
 STRING_NAME = sqlalchemy.String(100)
-_PRIMARY_KEY_ID_LEN = 12
+_PRIMARY_KEY_PREFIX_SEP = "_"
+_PRIMARY_KEY_PREFIX_LEN = 3
+_PRIMARY_KEY_PREFIX_RE = re.compile("^[a-z]{3}$")
+_PRIMARY_KEY_LEN = (
+    _PRIMARY_KEY_PREFIX_LEN + len(_PRIMARY_KEY_PREFIX_SEP) + _UNIQUE_ID_LEN
+)
 
 _models = None
 
@@ -139,15 +146,16 @@ def init_quest(qcall):
     _AuthDb(qcall=qcall)
 
 
-def prefixed_id_primary_key_column(prefix):
-    def _id(prefix):
-        return prefix + sirepo.util.random_base62(_PRIMARY_KEY_ID_LEN)
+def primary_key_column(prefix):
+    def _gen(prefix_and_sep):
+        return prefix_and_sep + sirepo.util.random_base62(_UNIQUE_ID_LEN)
 
-    p = f"{prefix}_"
+    if not _PRIMARY_KEY_PREFIX_RE.search(prefix):
+        raise AssertionError(f"prefix={prefix} must match={_PRIMARY_KEY_PREFIX_RE}")
     return sqlalchemy.Column(
-        sqlalchemy.String(len(p) + _PRIMARY_KEY_ID_LEN),
+        sqlalchemy.String(_PRIMARY_KEY_LEN),
         primary_key=True,
-        default=functools.partial(_id, p),
+        default=functools.partial(_gen, prefix + _PRIMARY_KEY_PREFIX_SEP),
     )
 
 

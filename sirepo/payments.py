@@ -8,7 +8,6 @@ from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog, pkdp, pkdexc, pkdformat
 import datetime
-import sirepo.auth_db.user
 import sirepo.auth_role
 import sirepo.cron
 import sirepo.quest
@@ -18,9 +17,6 @@ import stripe
 
 #: keep reference so auditor isn't garbage collected
 _ROLE_AUDITOR_CRON = None
-_ROLE_CREATED_BY_API_CHECKOUT_SESSION_STATUS = (
-    sirepo.auth_db.user.UserSubscription.CREATION_REASON_CHECKOUT_SESSION_STATUS_COMPLETE
-)
 _STRIPE_ACTIVE_SUBSCRIPTION_STATUSES = {"trialing", "active", "past_due"}
 _STRIPE_SIGNATURE_HEADER = "Stripe-Signature"
 _STRIPE_SIREPO_UID_METADATA_KEY = "sirepo_uid"
@@ -108,12 +104,11 @@ class API(sirepo.quest.API):
             raise AssertionError(
                 f"stripe_uid={s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY]} does not match logged_in_user={self.auth.logged_in_user()}"
             )
-        self.auth_db.model("UserSubscription").new(
+        self.auth_db.model("StripeSubscription").new(
             uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
-            stripe_customer_id=s.customer,
-            stripe_checkout_session_id=b.sessionId,
-            stripe_subscription_id=s.id,
-            creation_reason=_ROLE_CREATED_BY_API_CHECKOUT_SESSION_STATUS,
+            customer_id=s.customer,
+            checkout_session_id=b.sessionId,
+            subscription_id=s.id,
             created=sirepo.srtime.utc_now(),
             revocation_reason=None,
             revoked=None,
@@ -162,20 +157,21 @@ class API(sirepo.quest.API):
                     s["items"].data[0]["price"]["product"]
                 )
             )["name"]
-            # Be robust against stripe sending duplicate events.
+            # Be somewhat robust against stripe sending duplicate events.
+            # The transaction will fail at commit time.
             # No await below here so we are sure only one call makes
             # it through.
             # https://docs.stripe.com/webhooks#handle-duplicate-events
-            if self.auth_db.model("UserPayment").payment_exists(
+            if self.auth_db.model("StripePayment").payment_exists(
                 e["data"]["object"]["id"]
             ):
                 return self.reply_ok()
-            self.auth_db.model("UserPayment").new(
-                stripe_amount_paid=e["data"]["object"]["amount_paid"],
-                stripe_customer_id=e["data"]["object"]["customer"],
-                stripe_invoice_id=e["data"]["object"]["id"],
-                stripe_subscription_id=e["data"]["object"]["subscription"],
-                stripe_subscription_name=n,
+            self.auth_db.model("StripePayment").new(
+                amount_paid=e["data"]["object"]["amount_paid"],
+                customer_id=e["data"]["object"]["customer"],
+                invoice_id=e["data"]["object"]["id"],
+                subscription_id=e["data"]["object"]["subscription"],
+                subscription_name=n,
                 uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
             ).save()
         return self.reply_ok()
@@ -187,7 +183,6 @@ def init_apis(*args, **kwargs):
     _ROLE_AUDITOR_CRON = sirepo.cron.CronTask(
         cfg().role_auditor_cron_period, _auditor, None
     )
-    pass
 
 
 def cfg():
@@ -223,7 +218,7 @@ def cfg():
 
 
 async def _auditor(_):
-    """Remove sriepo subscription/role for users with inactive Stripe subscription status.
+    """Remove sirepo subscription/role for users with inactive Stripe subscription status.
 
     We proactively assign roles from
     api_paymentCheckoutSessionStatus. This auditor goes through
@@ -233,7 +228,7 @@ async def _auditor(_):
 
     async def _stripe_status_is_active(subscription_record):
         s = await stripe.Subscription.retrieve_async(
-            subscription_record.stripe_subscription_id
+            subscription_record.subscription_id
         )
         if s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY] != subscription_record.uid:
             raise AssertionError(
@@ -247,7 +242,7 @@ async def _auditor(_):
 
     with sirepo.quest.start() as qcall:
         for s in qcall.auth_db.model(
-            "UserSubscription"
+            "StripeSubscription"
         ).not_revoked_stripe_subscriptions():
             if qcall.auth_db.model("UserRole").has_expired_role(s.role, uid=s.uid):
                 continue
@@ -258,5 +253,5 @@ async def _auditor(_):
             pkdlog("revoking uid={} role={}", s.uid, s.role)
             qcall.auth_db.model("UserRole").expire_role(s.role, uid=s.uid)
             qcall.auth_db.model(
-                "UserSubscription"
+                "StripeSubscription"
             ).revoke_due_to_inactive_stripe_status(s)

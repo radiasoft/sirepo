@@ -41,7 +41,7 @@ def test_auditor(monkeypatch):
             1,
             len(
                 qcall.auth_db.model(
-                    "UserSubscription"
+                    "StripeSubscription"
                 ).not_revoked_stripe_subscriptions()
             ),
             "expecting just one active subscription",
@@ -60,7 +60,7 @@ def test_auditor(monkeypatch):
             0,
             len(
                 qcall.auth_db.model(
-                    "UserSubscription"
+                    "StripeSubscription"
                 ).not_revoked_stripe_subscriptions()
             ),
             "expecting no active subscriptions",
@@ -127,8 +127,8 @@ def test_checkout_session(monkeypatch):
                 l,
             )
         pkunit.pkok(
-            qcall.auth_db.model("UserSubscription").search_by(uid=_UID_IN_DB),
-            "expecting a UserSubscription record",
+            qcall.auth_db.model("StripeSubscription").search_by(uid=_UID_IN_DB),
+            "expecting a StripeSubscription record",
         )
 
 
@@ -155,8 +155,8 @@ def test_event_paid_webhook(monkeypatch):
         r = qcall.call_api_sync("stripeWebhook", body=PKDict())
         pkunit.pkeq("ok", r.content_as_object().state)
         pkunit.pkok(
-            qcall.auth_db.model("UserPayment").search_by(uid=_UID_IN_DB),
-            "no UserPayment record for uid={}",
+            qcall.auth_db.model("StripePayment").search_by(uid=_UID_IN_DB),
+            "no StripePayment record for uid={}",
             _UID_IN_DB,
         )
 
