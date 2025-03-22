@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
-"""?
+"""auth database models for user roles.
 
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.auth_db
@@ -30,10 +30,10 @@ class UserRole(sirepo.auth_db.UserDbBase):
         cls = self.__class__
         return [r[0] for r in self.query().distinct(cls.role).all()]
 
-    def add_roles(self, roles, expiration=None):
+    def add_roles(self, roles, expiration=None, uid=None):
         from sirepo import sim_data
 
-        u = self.logged_in_user()
+        u = uid or self.logged_in_user()
         for r in roles:
             try:
                 # Check here, because sqlite doesn't throw IntegrityErrors
@@ -49,9 +49,7 @@ class UserRole(sirepo.auth_db.UserDbBase):
         if not self._has_role(role):
             self.add_roles(roles=[role], expiration=expiration)
             return
-        r = self.search_by(uid=self.logged_in_user(), role=role)
-        r.expiration = expiration
-        r.save()
+        self.set_role_expiration(role, expiration)
 
     def delete_roles(self, roles, uid=None):
         from sirepo import sim_data
@@ -68,6 +66,9 @@ class UserRole(sirepo.auth_db.UserDbBase):
         )
         sim_data.audit_proprietary_lib_files(qcall=self.auth_db.qcall)
 
+    def expire_role(self, role, uid=None):
+        self.set_role_expiration(role, sirepo.srtime.utc_now(), uid=uid)
+
     def get_roles(self):
         return self.search_all_for_column("role", uid=self.logged_in_user())
 
@@ -77,13 +78,33 @@ class UserRole(sirepo.auth_db.UserDbBase):
             for r in self.query().filter_by(uid=self.logged_in_user())
         ]
 
+    def has_active_plan(self, uid):
+        cls = self.__class__
+        return bool(
+            self.query()
+            .filter(
+                cls.role.in_(sirepo.auth_role.PLAN_ROLES),
+                cls.uid == uid,
+                sqlalchemy.or_(
+                    cls.expiration.is_(None),
+                    cls.expiration > sirepo.srtime.utc_now(),
+                ),
+            )
+            .first()
+        )
+
     def has_active_role(self, role, uid=None):
         r = self._has_role(role, uid=uid)
         return r and not self._is_expired_role(r)
 
-    def has_expired_role(self, role):
-        r = self._has_role(role)
+    def has_expired_role(self, role, uid=None):
+        r = self._has_role(role, uid=uid)
         return r and self._is_expired_role(r)
+
+    def set_role_expiration(self, role, expiration, uid=None):
+        r = self.search_by(uid=uid or self.logged_in_user(), role=role)
+        r.expiration = expiration
+        r.save()
 
     def uids_of_paid_users(self):
         return self.uids_with_roles(sirepo.auth_role.PLAN_ROLES_PAID)

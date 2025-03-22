@@ -1,0 +1,17 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-sm-6 col-sm-offset-2">
+      <div ng-switch on="payment.sessionStatus">
+        <div ng-switch-when="null"></div>
+        <div ng-switch-when="complete">
+          <h1>Thank you for Subscribing</h1>
+          <p><a href="/">Click here to start using {{ payment.productShortName }}!</a></p>
+        </div>
+        <div ng-switch-default>
+          <h1>Trouble Completing Payment</h1>
+          <p>There was trouble completing your payment. Please <a href="" data-ng-click="payment.redirectPaymentCheckout()">click here</a> to try again. If the issue persists please reach out to our support team <span data-support-email=""></span>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

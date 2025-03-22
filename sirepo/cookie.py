@@ -47,6 +47,17 @@ def init_quest(qcall):
         c.set_sentinel()
 
 
+def unchecked_http_name():
+    """http_name used in the cookie header
+
+    Should only be called by `sirepo.auth`.
+
+    Returns:
+       str: http_name or None
+    """
+    return _cfg and _cfg.http_name
+
+
 class _Cookie(sirepo.quest.Attr):
     # Only necessary to cascade values
     _INIT_QUEST_FOR_CHILD_KEYS = frozenset(("_values",))

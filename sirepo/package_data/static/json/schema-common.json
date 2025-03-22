@@ -160,6 +160,9 @@
         "listSimulations": "/simulation-list",
         "newSimulation": "/new-simulation",
         "ownJobs": "/own-jobs",
+        "paymentCreateCheckoutSession": "/payment-create-checkout-session",
+        "paymentCheckoutSessionStatus": "/payment-checkout-session-status",
+        "paymentPlanRedirect": "/payment-plan/<plan>",
         "planRequired": "/plan-required",
         "proxyError": "/proxy-error",
         "pythonSource": "/python-source/<simulation_type>/<simulation_id>/?<model>/?<title>",
@@ -185,6 +188,7 @@
         "statefulCompute": "/stateful-compute",
         "statelessCompute": "/stateless-compute",
         "staticFile": "/static/*<path_info>",
+        "stripeWebhook": "/stripe-webhook",
         "updateFolder": "/update-folder",
         "uploadFile": "/upload-file/<simulation_type>/<simulation_id>/<file_type>",
         "uploadLibFile": "/upload-lib-file/<simulation_type>/<simulation_id>/<file_type>"
@@ -210,6 +214,12 @@
             }
         },
         "constants": {
+            "authStateRoles": [
+                "adm",
+                "basic",
+                "premium",
+                "trial"
+            ],
 	    "canCreateNewSimulation": true,
             "canDownloadInputFile": true,
             "canExportArchive": true,
@@ -220,7 +230,7 @@
             "maxSimCopies": 100,
             "oneDayMillis": 86400000,
             "paymentPlans": {
-                "basic": "Sirepo Community",
+                "basic": "Sirepo Basic",
                 "premium": "Sirepo Professional"
             },
             "plansUrl": "/plans",
@@ -454,10 +464,24 @@
                   "templateUrl": "/static/html/copy-session.html"
                 }
             },
-            "planRequired": {
-                "route": "/plan-required",
+            "paymentCheckout": {
+                "route": "/payment-checkout/:plan",
                 "config": {
-                  "templateUrl": "/static/html/http-plan-required.html"
+                  "controller": "PaymentCheckoutController as payment",
+                  "templateUrl": "/static/html/payment-checkout.html"
+                }
+            },
+            "paymentFinalization": {
+                "route": "/payment-finalization/:session_id",
+                "config": {
+                  "controller": "PaymentFinalizationController as payment",
+                  "templateUrl": "/static/html/payment-finalization.html"
+                }
+            },
+            "planRequired": {
+                "route": "/subscription-required",
+                "config": {
+                  "templateUrl": "/static/html/http-subscription-required.html"
                 }
             },
             "proxyError": {
@@ -565,8 +589,8 @@
     },
     "customErrors": {
         "402": {
-            "url": "http-plan-required.html",
-            "msg": "Plan Required",
+            "url": "http-subscription-required.html",
+            "msg": "Subscription Required",
             "route": "planRequired"
         },
         "403": {

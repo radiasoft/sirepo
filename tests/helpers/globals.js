@@ -5,6 +5,7 @@ var SIREPO = {
     APP_NAME: 'srw',
     authState: {
         avatarUrl: null,
+        cookieName: 'sirepo_test',
         displayName: 'Guest User',
 	feature_config: {
 	    hide_guest_warning: true,
@@ -19,6 +20,7 @@ var SIREPO = {
 	},
         method: 'guest',
         needCompleteRegistration: false,
+        roles: [],
         uiWebSocket: false,
         userName: null,
         visibleMethods: []
@@ -41,6 +43,12 @@ SIREPO.APP_SCHEMA = {
         },
     },
     "constants": {
+        "authStateRoles": [
+            "adm",
+            "basic",
+            "premium",
+            "trial"
+        ],
         "clientCookie": "sirepo_cookie_js",
         "oneDayMillis": 86400000
     },
