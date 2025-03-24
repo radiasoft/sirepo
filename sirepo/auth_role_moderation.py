@@ -17,8 +17,7 @@ import sirepo.quest
 import sirepo.simulation_db
 import sirepo.smtp
 import sirepo.uri
-import sirepo.uri_router
-import sqlalchemy
+import sirepo.util
 import sqlalchemy.exc
 
 _STATUS_TO_SUBJECT = PKDict(
@@ -139,13 +138,8 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_adm")
     async def api_admModerateRedirect(self):
-        def _type():
-            x = sirepo.feature_config.auth_controlled_sim_types()
-            res = sorted(sirepo.feature_config.cfg().sim_types - x)
-            return res[0] if res else sorted(x)[0]
-
         raise sirepo.util.Redirect(
-            sirepo.uri.local_route(_type(), route_name="admRoles"),
+            sirepo.uri.local_route(sirepo.util.first_sim_type(), route_name="admRoles"),
         )
 
     @sirepo.quest.Spec("require_adm")
@@ -231,10 +225,6 @@ def _datetime_to_str(rows):
 
 
 def raise_control_for_user(qcall, uid, role):
-    if qcall.auth_db.model("UserRole").has_expired_role(role):
-        if role == sirepo.auth_role.ROLE_PLAN_TRIAL:
-            raise sirepo.util.PlanExpired(f"uid={uid} role={role} expired")
-        raise sirepo.util.Forbidden(f"uid={uid} role={role} expired")
     s = qcall.auth_db.model("UserRoleModeration").get_status(uid=uid, role=role)
     if s in _ACTIVE:
         raise sirepo.util.SRException("moderationPending", None)

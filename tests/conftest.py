@@ -2,7 +2,6 @@ import contextlib
 import os
 import pytest
 import re
-import requests
 import subprocess
 
 #: Maximum time an individual test case (function) can run

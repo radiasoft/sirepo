@@ -100,6 +100,10 @@ def for_sim_type(sim_type):
     )
 
 
+def have_payments():
+    return "payments" in cfg().api_modules
+
+
 def proprietary_sim_types():
     """All sim types that have proprietary information and require granted access to use
 
@@ -201,7 +205,6 @@ def _init():
             ),
         ),
         schema_common=dict(
-            hide_guest_warning=_dev("Hide the guest warning in the UI"),
             support_email=(
                 "support@sirepo.com",
                 str,

@@ -36,6 +36,8 @@ UNIQUE_KEY_CHARS_RE = r"\w+"
 #: A standalone unique key
 UNIQUE_KEY_RE = re.compile(r"^{}$".format(UNIQUE_KEY_CHARS_RE))
 
+_FIRST_SIM_TYPE = None
+
 # See https://github.com/radiasoft/sirepo/pull/3889#discussion_r738769716
 # for reasoning on why define both
 _INVALID_PYTHON_IDENTIFIER = re.compile(r"\W|^(?=\d)")
@@ -293,6 +295,18 @@ def find_obj(arr, key, value):
     return None
 
 
+def first_sim_type():
+    """Returns the first configured sim_type"""
+    global _FIRST_SIM_TYPE
+    if _FIRST_SIM_TYPE:
+        return _FIRST_SIM_TYPE
+    from sirepo import feature_config
+
+    x = feature_config.auth_controlled_sim_types()
+    _FIRST_SIM_TYPE = (sorted(feature_config.cfg().sim_types - x) or sorted(x))[0]
+    return _FIRST_SIM_TYPE
+
+
 def import_submodule(submodule, type_or_data):
     """Import fully qualified module that contains submodule for sim type
 
@@ -371,7 +385,7 @@ def json_dump(obj, path=None, pretty=False, **kwargs):
     return res
 
 
-def random_base62(length=32):
+def random_base62(length=32, prefix=None):
     """Returns a safe string of sufficient length to be a nonce
 
     Args:
@@ -379,8 +393,8 @@ def random_base62(length=32):
     Returns:
         str: random base62 characters
     """
-    r = random.SystemRandom()
-    return "".join(r.choice(numconv.BASE62) for x in range(length))
+    res = "".join(random.SystemRandom().choice(numconv.BASE62) for x in range(length))
+    return f"{prefix}_{res}" if prefix else res
 
 
 def read_zip(path_or_bytes):

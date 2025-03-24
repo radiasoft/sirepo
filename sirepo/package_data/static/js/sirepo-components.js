@@ -200,28 +200,28 @@ SIREPO.app.directive('advancedEditorPane', function(appState, panelState, utilit
     };
 });
 
-SIREPO.app.directive('srAlert', function(errorService) {
+SIREPO.app.directive('srAlert', function(errorService, uri) {
     return {
         restrict: 'A',
         scope: {},
         template: `
-            <div data-ng-show="alertText()" class="alert alert-warning alert-dismissible" role="alert">
-              <button type="button" class="close" data-ng-click="clearAlert()" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-              <strong>{{ alertText() }}</strong>
+            <div data-ng-repeat="m in errorService.MESSAGE_TYPES track by $index">
+              <div data-ng-if="text(m)" class="alert"
+                    data-ng-class="{'alert-warning': m === 'alert', 'alert-info': m !== 'alert'}" role="alert">
+                <button type="button" class="close" data-ng-click="clear(m)" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+                <strong>{{ text(m) }}</strong>
+                <span data-ng-if="m === 'subscription'">
+                    <span data-plans-link="" data-link-text="Subscribe now"</span>
+                </span>
+              </div>
             </div>
         `,
         controller: function($scope) {
-            //TODO(robnagler) bind to value in appState or vice versa
-            $scope.alertText = function() {
-                return errorService.alertText();
-            };
-
-            $scope.clearAlert = function() {
-                errorService.alertText('');
-            };
-
+            $scope.errorService = errorService;
+            $scope.clear = (alertType) => errorService.messageText(alertType, '');
+            $scope.text = (alertType) => errorService.messageText(alertType);
             $scope.$on('$routeChangeSuccess', $scope.clearAlert);
         },
     };
@@ -1017,7 +1017,7 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
             };
 
             $scope.showAdmJobs = function() {
-                return authState.roles.indexOf('adm') >= 0;
+                return authState.hasRole('adm');
             };
 
             $scope.showJobsList = function() {
@@ -1798,7 +1798,7 @@ SIREPO.app.directive('plansLink', function() {
         scope: {
             linkText: '@',
         },
-        template: '<a data-ng-href="{{ plansUrl }}" target="_blank">{{ linkText }}</a>',
+        template: '<a data-ng-href="{{ plansUrl }}">{{ linkText }}</a>',
         controller: function($scope) {
             $scope.plansUrl = SIREPO.APP_SCHEMA.constants.plansUrl;
         },
@@ -3541,26 +3541,45 @@ SIREPO.app.directive('completeRegistration', function() {
     return {
         restrict: 'A',
         template: `
-            <form class="form-horizontal" autocomplete="off" novalidate>
-              <div class="form-group">
-                <div class="col-sm-offset-3 col-sm-10">
-                  <p>Please enter your full name to complete your Sirepo registration.</p>
+            <div class="col-sm-12 col-md-offset-2 col-md-8 col-lg-offset-3 col-lg-6">
+              <form class="form-horizontal" autocomplete="off" novalidate>
+                <h2>Moderation Request</h2>
+                <p>Please enter your full name to complete your Sirepo registration.</p>
+                <div class="form-group">
+                  <label class="col-sm-3 control-label">Your full name</label>
+                  <div class="col-sm-9">
+                    <input name="displayName" class="form-control"
+                      data-ng-model="loginConfirm.data.displayName" required/>
+                    <div class="sr-input-warning" data-ng-show="showWarning">{{ loginConfirm.warningText }}</div>
+                  </div>
                 </div>
-              </div>
-              <div class="form-group">
-                <label class="col-sm-3 control-label">Your full name</label>
-                <div class="col-sm-7">
-                  <input name="displayName" class="form-control" data-ng-model="loginConfirm.data.displayName" required/>
-                  <div class="sr-input-warning" data-ng-show="showWarning">{{ loginConfirm.warningText }}</div>
+                <p>To prevent abuse of our systems all new users must supply a reason for
+                  requesting access to {{ shortName }}. In a few sentences please describe
+                  how you plan to use {{ shortName }}</p>
+                <div class="form-group">
+                  <div class="col-sm-12">
+                    <textarea data-ng-model="loginConfirm.data.reason" id="requestAccessExplanation"
+                      class="form-control" rows="4" cols="50" required></textarea>
+                  </div>
                 </div>
-              </div>
-              <div class="form-group">
-                <div class="col-sm-offset-3 col-sm-10">
-                 <button data-ng-click="loginConfirm.submit()" class="btn btn-primary" data-ng-disabled="! loginConfirm.data.displayName">Submit</button>
+                <div class="form-group">
+                  <div class="col-sm-12">
+                   <button data-ng-click="loginConfirm.submit()" class="btn btn-primary"
+                     data-ng-disabled="! (loginConfirm.data.displayName && loginConfirm.data.reason)">Submit</button>
+                  </div>
                 </div>
-              </div>
-            </form>
+              </form>
+            </div>
+            <div data-confirmation-modal="" data-is-required="true"
+              data-id="sr-complete-registration-done" data-title="Thank you for your request"
+              data-ok-text="" data-cancel-text="">
+              <p>Your response has been submitted. You will received an email from Sirepo support
+                after your request has been reviewed.</p>
+            </div>
         `,
+        controller: function($scope) {
+            $scope.shortName = SIREPO.APP_SCHEMA.productInfo.shortName;
+        },
     };
 });
 
@@ -4376,13 +4395,18 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
           </form>
           <div data-ng-show="submitted">Response submitted.</div>
         `,
-        controller: function(requestSender, $route, $scope) {
+        controller: function(requestSender, uri, $route, $scope) {
+            const _reason = () => {
+                if (uri.currentRouteParam('role', '') === 'trial') {
+                    return `To prevent abuse of our systems all new users must supply a reason for requesting access to ${SIREPO.APP_SCHEMA.productInfo.shortName}. In a few sentences please describe how you plan to use ${SIREPO.APP_SCHEMA.productInfo.shortName}`;
+                }
+                return 'Please describe your reason for requesting access';
+            };
+
             $scope.data = {};
             $scope.submitted = false;
             $scope.disableSubmit = true;
-            $scope.moderationRequestReason = {
-                trial: `To prevent abuse of our systems all new users must supply a reason for requesting access to ${SIREPO.APP_SCHEMA.productInfo.shortName}. In a few sentences please describe how you plan to use ${SIREPO.APP_SCHEMA.productInfo.shortName}`
-            }[$route.current.params.role] ?? 'Please describe your reason for requesting access';
+            $scope.moderationRequestReason = _reason();
             $scope.submitRequest = function () {
                 const handleResponse = (data) => {
                     if (data.state === 'error') {
@@ -4555,7 +4579,7 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('admRolesList', function(appState, errorService, panelState) {
+SIREPO.app.directive('admRolesList', function(appState, authState, errorService, panelState) {
     return {
         restrict: 'A',
         template: `
@@ -4610,6 +4634,9 @@ SIREPO.app.directive('admRolesList', function(appState, errorService, panelState
                 );
             };
 
+            if (authState.isLoggedIn) {
+                $('.navbar-static-top').hide();
+            }
             $scope.getModerationRequestRows();
         },
     };

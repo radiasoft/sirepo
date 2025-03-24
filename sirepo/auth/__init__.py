@@ -12,13 +12,13 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import contextlib
 import datetime
 import importlib
-import pyisemail
 import sirepo.auth_db
 import sirepo.auth_role
 import sirepo.cookie
 import sirepo.events
 import sirepo.feature_config
 import sirepo.job
+import sirepo.payments
 import sirepo.quest
 import sirepo.reply
 import sirepo.request
@@ -74,6 +74,9 @@ visible_methods = None
 #: visible_methods excluding guest
 non_guest_methods = None
 
+#: in auth state
+_cookie_http_name = None
+
 _cfg = None
 
 
@@ -104,7 +107,7 @@ def init_module(**imports):
     global _cfg
 
     def _init_full():
-        global visible_methods, valid_methods, non_guest_methods
+        global visible_methods, valid_methods, non_guest_methods, _cookie_http_name
 
         p = pkinspect.this_module().__name__
         visible_methods = []
@@ -117,9 +120,11 @@ def init_module(**imports):
         visible_methods = tuple(sorted(visible_methods))
         non_guest_methods = tuple(m for m in visible_methods if m != METHOD_GUEST)
         s = list(simulation_db.SCHEMA_COMMON.common.constants.paymentPlans.keys())
-        assert sorted(s) == sorted(
-            _ALL_PAYMENT_PLANS
-        ), f"payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}"
+        if sorted(s) != sorted(_ALL_PAYMENT_PLANS):
+            raise AssertionError(
+                f"payment plans from SCHEMA_COMMON={s} not equal to _ALL_PAYMENT_PLANS={_ALL_PAYMENT_PLANS}",
+            )
+        _cookie_http_name = sirepo.cookie.unchecked_http_name()
 
     if _cfg:
         return
@@ -469,7 +474,7 @@ class _Auth(sirepo.quest.Attr):
                 guestIsOnlyMethod=not non_guest_methods,
                 isGuestUser=False,
                 isLoggedIn=False,
-                roles=[],
+                roles=PKDict(),
                 userName=None,
                 uiWebSocket=sirepo.feature_config.cfg().ui_websocket,
                 visibleMethods=visible_methods,
@@ -517,12 +522,8 @@ class _Auth(sirepo.quest.Attr):
         from sirepo import auth_role_moderation
 
         u = self.require_user()
-        for r in sirepo.auth_role.PLAN_ROLES:
-            if self.qcall.auth_db.model("UserRole").has_active_role(r):
-                return
-        auth_role_moderation.raise_control_for_user(
-            self.qcall, u, sirepo.auth_role.ROLE_PLAN_TRIAL
-        )
+        if not self.qcall.auth_db.model("UserRole").has_active_plan(uid=u):
+            raise sirepo.util.PlanExpired(f"uid={u} has no active plans")
 
     def require_premium(self):
         if not self.is_premium_user():
@@ -547,10 +548,6 @@ class _Auth(sirepo.quest.Attr):
             pass
         elif s == _STATE_LOGGED_IN:
             if m in _cfg.methods:
-                f = getattr(_METHOD_MODULES[m], "validate_login", None)
-                if f:
-                    pkdc("validate_login method={}", m)
-                    f(self.qcall)
                 return self._assert_role_user()
             if m in _cfg.deprecated_methods:
                 e = "deprecated"
@@ -663,11 +660,11 @@ class _Auth(sirepo.quest.Attr):
         s = self._qcall_bound_state()
         v = pkcollections.Dict(
             avatarUrl=None,
+            cookieName=_cookie_http_name,
             displayName=None,
             guestIsOnlyMethod=not non_guest_methods,
             isGuestUser=False,
             isLoggedIn=self.is_logged_in(s),
-            isLoginExpired=False,
             jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
             max_message_bytes=sirepo.job.cfg().max_message_bytes,
             method=self._qcall_bound_method(),
@@ -679,15 +676,13 @@ class _Auth(sirepo.quest.Attr):
         )
         if "sbatch" in v.jobRunModeMap:
             v.sbatchQueueMaxes = sirepo.job.NERSC_QUEUE_MAX
+        if sirepo.feature_config.have_payments():
+            v.stripePublishableKey = sirepo.payments.cfg().stripe_publishable_key
         u = self._qcall_bound_user()
         if v.isLoggedIn:
             if v.method == METHOD_GUEST:
-                # currently only method to expire login
                 v.displayName = _GUEST_USER_DISPLAY_NAME
                 v.isGuestUser = True
-                v.isLoginExpired = _METHOD_MODULES[METHOD_GUEST].is_login_expired(
-                    self.qcall
-                )
                 v.needCompleteRegistration = False
                 v.visibleMethods = non_guest_methods
             else:
@@ -696,7 +691,10 @@ class _Auth(sirepo.quest.Attr):
                 )
                 if r:
                     v.displayName = r.display_name
-            v.roles = self.qcall.auth_db.model("UserRole").get_roles()
+            v.roles = {
+                x.role: (x.expiration.timestamp() if x.expiration else None)
+                for x in self.qcall.auth_db.model("UserRole").get_roles_and_expiration()
+            }
             self._plan(v)
             self._method_auth_state(v, u)
         if pkconfig.channel_in_internal_test():

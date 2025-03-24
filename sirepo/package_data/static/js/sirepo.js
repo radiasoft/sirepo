@@ -269,33 +269,42 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
     }
 });
 
-SIREPO.app.factory('authState', function(appDataService, appState, errorService, uri, $rootScope) {
-    var self = appState.clone(SIREPO.authState);
-
-    if (SIREPO.authState.isGuestUser
-        && ! SIREPO.APP_SCHEMA.feature_config.hide_guest_warning
-        && ! SIREPO.authState.isLoginExpired) {
-        appState.whenModelsLoaded(
-            $rootScope,
-            function() {
-                if (appDataService.isApplicationMode('default')) {
-                    errorService.alertText(
-                        'You are accessing Sirepo as a guest. ' +
-                            'Guest sessions are regularly deleted. ' +
-                            'To ensure that your work is saved, please click on Save Your Work!.'
-                    );
-                }
-            }
-        );
+SIREPO.app.factory('authState', (errorService, uri, $rootScope) => {
+    const self = angular.copy(SIREPO.authState);
+    let _cookie = null;
+    let _cookiesVerbatim = null;
+    if (! self.cookieName) {
+        throw new Error('authState.cookieName missing');
     }
+    const _cookiePrefix = self.cookieName + '=';
 
     SIREPO.APP_SCHEMA.enum.JobRunMode = SIREPO.APP_SCHEMA.enum.JobRunMode.map(
-        function (x) {
-            return [x[0], self.jobRunModeMap[x[0]]];
-        }
+        (x) => [x[0], self.jobRunModeMap[x[0]]]
     );
 
-    self.handleLogin = function (data, controller) {
+    const _cookieSave = () => {
+        // Keep two versions for faster checking in cookieCheck
+        _cookiesVerbatim = document.cookie;
+        // save complete value: easier and better for debugging
+        _cookie = _cookiesVerbatim.split(/\s*;\s*/).find(e => e.startsWith(_cookiePrefix)) || null;
+    };
+
+    self.cookieCheck = () => {
+        if (_cookiesVerbatim === document.cookie) {
+            return false;
+        }
+        const p = _cookie;
+        _cookieSave();
+        // first time is null; server always sends a cookie
+        if (! p || p === _cookie) {
+            return false;
+        }
+        srlog('authState cookie changed via another browser tab, reloading application');
+        uri.globalRedirectRoot();
+        return true;
+    };
+
+    self.handleLogin = (data, controller) => {
         if (data.state === 'ok') {
             if (data.authState) {
                 SIREPO.authState = data.authState;
@@ -311,18 +320,48 @@ SIREPO.app.factory('authState', function(appDataService, appState, errorService,
         `;
     };
 
-    self.paymentPlanName = function() {
-        return SIREPO.APP_SCHEMA.constants.paymentPlans[self.paymentPlan];
+    self.hasRole = (role) => {
+        if (! SIREPO.APP_SCHEMA.constants.authStateRoles.includes(role)) {
+            throw new Error(`invalid role=${role}`);
+        }
+        return self.roles.hasOwnProperty(role);
+    };
+
+    self.paymentPlanName = () => {
+        const rv = SIREPO.APP_SCHEMA.constants.paymentPlans[self.paymentPlan];
+        if (! rv) {
+            throw new Error(`invalid paymentPlan=${self.paymentPlan}`);
+        }
     };
 
     self.sbatchHostDisplayName = self.jobRunModeMap.sbatch;
 
-    self.sbatchHostIsNersc = self.sbatchHostDisplayName ? self.sbatchHostDisplayName.toLowerCase().indexOf('nersc') >= 0 : false;
+    self.sbatchHostIsNersc = self.sbatchHostDisplayName
+        && self.sbatchHostDisplayName.toLowerCase().indexOf('nersc') >= 0;
+
+    self.updateCookies = (changeOp) => {
+        if (self.cookieCheck()) {
+            return false;
+        }
+        changeOp();
+        _cookieSave();
+        return true;
+    };
+
+    if (self.hasRole('trial') && ! (self.hasRole('basic') || self.hasRole('premium'))) {
+        const d = new Date(self.roles.trial * 1000);
+        errorService.messageText(
+            'subscription',
+            d > new Date()
+                ? `Your Sirepo free trial expires on ${d.toLocaleDateString()}.`
+                : 'Your Sirepo free trial has expired.',
+        );
+    }
 
     return self;
 });
 
-SIREPO.app.factory('activeSection', function(authState, requestSender, $location, $route, $rootScope, appState) {
+SIREPO.app.factory('activeSection', function(authState, requestSender, uri, $location, $route, $rootScope, appState) {
     var self = this;
 
     self.getActiveSection = function() {
@@ -334,9 +373,10 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, $location
     };
 
     $rootScope.$on('$routeChangeSuccess', function() {
-        if ($route.current.params.simulationId) {
+        const i = uri.currentRouteParam('simulationId', '');
+        if (i) {
             appState.loadModels(
-                $route.current.params.simulationId,
+                i,
                 // clear list items each time a simulation is loaded
                 requestSender.clearListFilesData,
                 self.getActiveSection());
@@ -2533,7 +2573,7 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
     return self;
 });
 
-SIREPO.app.factory('uri', ($location, $rootScope, $window) => {
+SIREPO.app.factory('uri', ($location, $rootScope, $route, $window) => {
     const self = {};
     const globalMap = {_name: 'global'};
     const localMap = {_name: 'local'};
@@ -2667,6 +2707,19 @@ SIREPO.app.factory('uri', ($location, $rootScope, $window) => {
         throw new Error(param + ': ' + (typeof v) + ' type cannot be serialized');
     };
 
+    self.currentRouteParam = (name, defaultValue) => {
+        const rv = $route.current.params[name];
+        // TODO(robnagler) if the param exists but blank is it empty string? Is that possible?
+        if (rv !== undefined || rv !== null) {
+            return rv;
+        }
+        if (defaultValue === undefined) {
+            return defaultValue;
+        }
+        throw new Error(`parameter=${name} not in current route uri`);
+    };
+
+
     self.defaultRouteName = (appMode=null) => {
         return SIREPO.APP_SCHEMA.appModes[appMode || 'default'].localRoute;
     };
@@ -2770,14 +2823,11 @@ SIREPO.app.factory('uri', ($location, $rootScope, $window) => {
     return self;
 });
 
-// cannot import authState factory, because of circular import with requestSender
-SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, uri) => {
+SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, authState, errorService, uri) => {
     const asyncMsgMethods = {};
     const httpRequests = [];
     const self = {};
     const toSend = [];
-    let cookiesSorted = null;
-    let cookiesVerbatim = null;
     let needReply = {};
     let reqSeq = 1;
     let socket = null;
@@ -2792,21 +2842,6 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
             i += b.length;
         }
         wsreq.msg = f;
-    };
-
-    const _cookiesChangedAndRedirect = () => {
-        if (cookiesVerbatim === document.cookie) {
-            return false;
-        }
-        const c = cookiesSorted;
-        _saveCookies();
-        // first time is null, and reordering is ok
-        if (c === null || c === cookiesSorted.replace(`; ${SIREPO.cookieConsentName}=dismiss`, '')) {
-            return false;
-        }
-        srlog("cookies changed via another browser tab, reloading application");
-        uri.globalRedirectRoot();
-        return true;
     };
 
     const _httpRequest = (url, data, httpConfig) => {
@@ -2995,12 +3030,6 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         };
     };
 
-    const _saveCookies = () => {
-        // Keep two versions for faster checking in _cookiesChangedAndRedirect
-        cookiesVerbatim = document.cookie;
-        cookiesSorted = cookiesVerbatim.split(/\s*;\s*/).sort().join('; ');
-    };
-
     const _send = () => {
         //if already req_seq use that so server can know if it is a resend
         if (toSend.length <= 0) {
@@ -3024,7 +3053,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
         if (socket !== null) {
             return;
         }
-        if (_cookiesChangedAndRedirect()) {
+        if (authState.cookieCheck()) {
             return;
         }
         const s = new WebSocket(
@@ -3089,7 +3118,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
     };
 
     self.send = (url, data, httpConfig) => {
-        if (_cookiesChangedAndRedirect()) {
+        if (authState.cookieCheck()) {
             // app will reload so return a fake promise
             return {then: () => {}};
         }
@@ -3127,15 +3156,6 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, errorService, ur
             _reqData(data, wsreq, c);
         }
         return wsreq.deferred.promise;
-    };
-
-    self.updateCookies = (changeOp) => {
-        if (_cookiesChangedAndRedirect()) {
-            return false;
-        }
-        changeOp();
-        _saveCookies();
-        return true;
     };
 
     return self;
@@ -3222,6 +3242,12 @@ SIREPO.app.factory('requestSender', function(browserStorage, errorService, utili
         }
         else if (SIREPO.APP_SCHEMA.customErrors[status]) {
             msg = SIREPO.APP_SCHEMA.customErrors[status].msg;
+            const r = SIREPO.APP_SCHEMA.customErrors[status].route;
+            if (r === 'planRequired') {
+                // special handling for plan required
+                uri.localRedirect(r);
+                return;
+            }
         }
         if (angular.isString(data) && IS_HTML_ERROR_RE.exec(data)) {
             // Try to parse javascript-redirect.html
@@ -4017,8 +4043,11 @@ SIREPO.app.provider('$exceptionHandler', {
 });
 
 SIREPO.app.factory('errorService', function($log, $window) {
-    var self = this;
-    var alertText = null;
+    const self = this;
+    const messageText = {};
+    self.MESSAGE_TYPES = ['alert', 'subscription'];
+
+    self.alertText = (value) => self.messageText('alert', value);
 
     self.exceptionHandler = function(exception, cause) {
         // preserve the default behaviour which will log the error
@@ -4027,7 +4056,7 @@ SIREPO.app.factory('errorService', function($log, $window) {
         // now try to log the error to the server side.
         try {
             // use AJAX (in this example jQuery) and msgRouter
-            var message = exception ? String(exception) : '';
+            const message = exception ? String(exception) : '';
             cause = cause ? String(cause) : '';
             self.logToServer(
                 'clientException',
@@ -4070,11 +4099,11 @@ SIREPO.app.factory('errorService', function($log, $window) {
         });
     };
 
-    self.alertText = function(value) {
+    self.messageText = (messageType, value) => {
         if (angular.isDefined(value)) {
-            alertText = value;
+            messageText[messageType] = value;
         }
-        return alertText;
+        return messageText[messageType];
     };
 
     return self;
@@ -4547,15 +4576,15 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
 
 });
 
-SIREPO.app.controller('NotFoundCopyController', function (requestSender, $route) {
+SIREPO.app.controller('NotFoundCopyController', function (requestSender, uri, $route) {
     var self = this;
-    var ids = $route.current.params.simulationIds.split('-');
+    var ids = uri.currentRouteParam('simulationIds').split('-');
     self.simulationId = ids[0];
     self.userCopySimulationId = ids[1];
 
     function localRedirect(simId) {
         requestSender.localRedirect(
-            $route.current.params.section || requestSender.defaultRouteName(),
+            uri.currentRouteParam('section', requestSender.defaultRouteName()),
             {
                 ':simulationId': simId,
             });
@@ -4605,9 +4634,9 @@ SIREPO.app.controller('LoginController', function (authService, authState, reque
     }
 });
 
-SIREPO.app.controller('LoginWithController', function (authState, errorService, requestSender, $route) {
+SIREPO.app.controller('LoginWithController', function (authState, errorService, requestSender, uri, $route) {
     var self = this;
-    var m = $route.current.params.method || '';
+    var m = uri.currentRouteParam('method', '');
     self.showWarning = false;
     self.warningText = '';
     self.method = m;
@@ -4676,21 +4705,27 @@ SIREPO.app.controller('LoginConfirmController', function (authState, requestSend
                 '<token>': p.token,
             },
             function (data) {
+                if (data.state === 'ok' && self.needCompleteRegistration) {
+                    $('#sr-complete-registration-done').modal('show');
+                    return;
+                }
                 authState.handleLogin(data, self);
             },
             {
                 token: p.token,
                 displayName: self.data.displayName,
+                reason: self.data.reason,
+                simulationType: SIREPO.APP_SCHEMA.simulationType,
             }
         );
     };
     return;
 });
 
-SIREPO.app.controller('LoginFailController', function (requestSender, stringsService, $route, $sce) {
+SIREPO.app.controller('LoginFailController', function (requestSender, stringsService, uri, $route, $sce) {
     var self = this;
-    var t = $sce.getTrustedHtml(stringsService.ucfirst($route.current.params.method || ''));
-    var r = $route.current.params.reason || '';
+    var t = $sce.getTrustedHtml(stringsService.ucfirst(uri.currentRouteParam('method', '')));
+    var r = uri.currentRouteParam('reason', '');
     var login_text = function(text) {
         return '<a href="' + requestSender.formatUrlLocal('login')
              + '">' + text + '</a>';
@@ -4719,9 +4754,9 @@ SIREPO.app.controller('LoginFailController', function (requestSender, stringsSer
     }
 });
 
-SIREPO.app.controller('FindByNameController', function (appState, requestSender, $route) {
+SIREPO.app.controller('FindByNameController', function (appState, requestSender, uri, $route) {
     var self = this;
-    self.simulationName = $route.current.params.simulationName;
+    self.simulationName = uri.currentRouteParam('simulationName');
     appState.listSimulations(
         function() {
             // authenticated listSimulations successfully, now go to the URL
@@ -4730,10 +4765,94 @@ SIREPO.app.controller('FindByNameController', function (appState, requestSender,
                 {
                     '<simulation_name>': self.simulationName,
                     '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                    '<application_mode>': $route.current.params.applicationMode,
+                    '<application_mode>': uri.currentRouteParam('applicationMode', ''),
                 }
             );
         });
+});
+
+
+SIREPO.app.controller('PaymentCheckoutController', function (authState, errorService, requestSender, uri, $location, $window) {
+    var self = this;
+
+    const handleError = (message, data, reject) => {
+        srlog(`Error: ${message} data=`, data);
+        errorService.logToServer('Payment error', message,  data);
+        if (reject) {
+            reject(new Error(message));
+        }
+    };
+
+    function initializeStripe() {
+        $window.Stripe(
+            authState.stripePublishableKey,
+        ).initEmbeddedCheckout({
+            fetchClientSecret: () => {
+                return new Promise((resolve, reject) => {
+                    requestSender.sendRequest(
+                        'paymentCreateCheckoutSession',
+                        function(data) {
+                            if (data && data.clientSecret) {
+                                resolve(data.clientSecret);
+                            } else {
+                                handleError('paymentCreateCheckoutSession no clientSecret', data, reject);
+                            }
+                        },
+                        {
+                            simulationType: SIREPO.APP_SCHEMA.simulationType,
+                            plan: uri.currentRouteParam('plan'),
+                        },
+                        function(error) {
+                            handleError('paymentCreateCheckoutSession request failed', error);
+                        }
+                    );
+                });
+            }
+        }).then((checkout) => {
+            checkout.mount('#checkout');
+        }).catch((error) => {
+            handleError('Stripe initEmbeddedCheckout', error);
+        });
+    }
+
+    function loadStripe() {
+        if (authState.isLoggedIn) {
+            $('.navbar-static-top').hide();
+        }
+        if ($window.Stripe) {
+            initializeStripe();
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://js.stripe.com/v3/';
+        script.onload = initializeStripe;
+        document.body.appendChild(script);
+    }
+
+    loadStripe();
+    errorService.messageText('subscription', '');
+});
+
+
+SIREPO.app.controller('PaymentFinalizationController', function ($location, uri, requestSender) {
+    const self = this;
+    self.productShortName = SIREPO.APP_SCHEMA.productInfo.shortName;
+    self.sessionStatus = null;
+
+    requestSender.sendRequest(
+        'paymentCheckoutSessionStatus',
+        function(data) {
+            if ('sessionStatus' in data) {
+                self.sessionStatus = data.sessionStatus;
+                return;
+            }
+            self.sessionStatus = 'error';
+        },
+        {sessionId: uri.currentRouteParam('session_id')},
+        function(error) {
+            self.sessionStatus = 'error';
+        },
+    );
 });
 
 SIREPO.app.controller('ServerUpgradedController', function (errorService, requestSender) {
@@ -5103,7 +5222,7 @@ SIREPO.app.filter('simulationName', function() {
 
 // only uses angularjs $cookies for removing old cookies, which
 // were encoded by $cookies.
-SIREPO.app.factory('browserStorage', function($cookies, msgRouter) {
+SIREPO.app.factory('browserStorage', function($cookies, authState) {
     const self = {};
 
     const _updateOld = () => {
@@ -5152,7 +5271,7 @@ SIREPO.app.factory('browserStorage', function($cookies, msgRouter) {
         };
         _v1();
         _v2();
-        msgRouter.updateCookies(() => {
+        authState.updateCookies(() => {
             for (let k of toDelete) {
                 $cookies.remove(k);
             }
@@ -5196,10 +5315,10 @@ SIREPO.app.factory('browserStorage', function($cookies, msgRouter) {
     return self;
 });
 
-SIREPO.app.factory('asyncMsgSetCookies', ($cookies, msgRouter) => {
+SIREPO.app.factory('asyncMsgSetCookies', ($cookies, authState, msgRouter) => {
     const self = {};
     const asyncMsgMethod = (content) => {
-        msgRouter.updateCookies(() => {
+        authState.updateCookies(() => {
             for (let c of content) {
                 document.cookie = c;
             }

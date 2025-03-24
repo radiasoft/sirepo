@@ -19,18 +19,17 @@ def test_basic():
         params.calls += 1
         if params.calls == 1:
             asyncio.create_task(_stop(params))
-        srtime.adjust_time(days=1)
+        srtime.adjust_time(days=params.calls)
 
     async def _stop(params):
         try:
             p = params.calls
             params.stop_ok = False
-            for i in range(10):
+            for _ in range(10):
                 await asyncio.sleep(0)
                 if p == params.calls:
-                    # Should always increment
+                    pkdebug.pkdlog("_pre_start failed to increment in the loop")
                     break
-                p == params.calls
                 if params.calls >= 3:
                     params.cron_task.destroy()
                     params.stop_ok = True
