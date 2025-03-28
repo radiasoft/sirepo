@@ -77,10 +77,10 @@ def geometry_xml_to_h5m(geometry_xml_filename, output_dagmc_filename, threads=1)
         input_filename=geometry_xml_filename,
         output_filename=s,
     )
-    step_to_dagmc(f"{s}.step", output_dagmc_filename, threads)
+    step_to_dagmc(f"{s}.step", output_dagmc_filename, threads, scale=1.0)
 
 
-def step_to_dagmc(input_step_filename, output_dagmc_filename, threads=1):
+def step_to_dagmc(input_step_filename, output_dagmc_filename, threads=1, scale=0.1):
     """Convert a CAD step (.stp or .step) file to dagmc (.h5m) file.
 
     A sanity check (check_watertight) is performed on the output file.
@@ -102,7 +102,7 @@ def step_to_dagmc(input_step_filename, output_dagmc_filename, threads=1):
     CAD_to_OpenMC.assembly.mesher_config["mesh_algorithm"] = 2
     a = CAD_to_OpenMC.assembly.Assembly([input_step_filename])
     a.set_tag_delim(r".*")
-    a.import_stp_files()
+    a.import_stp_files(scale=scale)
     a.merge_all()
     a.solids_to_h5m(backend="gmsh", h5m_filename=output_dagmc_filename)
     o = subprocess.check_output(("check_watertight", output_dagmc_filename))
