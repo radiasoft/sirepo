@@ -68,29 +68,43 @@ def extract_dagmc(dagmc_filename):
     return res
 
 
+def geometry_xml_to_h5m(geometry_xml_filename, output_dagmc_filename, threads=1):
+    import geouned
+
+    s = "out"
+    geouned.CsgToCad().export_cad(
+        csg_format="openmc_xml",
+        input_filename=geometry_xml_filename,
+        output_filename=s,
+    )
+    step_to_dagmc(f"{s}.step", output_dagmc_filename, threads)
+
+
 def step_to_dagmc(input_step_filename, output_dagmc_filename, threads=1):
-    """Convert a CAD step (.stp) file to dagmc (.h5m) file.
+    """Convert a CAD step (.stp or .step) file to dagmc (.h5m) file.
 
     A sanity check (check_watertight) is performed on the output file.
 
     Args:
-      input_step_filename (str): .stp input file
-      output_dagmc_filename (str): .h5m output file
+      input_step_filename (str): STEP input file
+      output_dagmc_filename (str): DAGMC output file
       threads (int): number of thread used for conversion (optional)
     """
     import CAD_to_OpenMC.assembly
 
-    if not input_step_filename.endswith(".stp") or not output_dagmc_filename.endswith(
-        ".h5m"
+    if not re.search(r"\.ste?p", input_step_filename, re.IGNORECASE) or not re.search(
+        r"\.h5m", output_dagmc_filename, re.IGNORECASE
     ):
         raise AssertionError(
             f"input_step_filename={input_step_filename} must be .stp and output_dagmc_filename={output_dagmc_filename} must be .h5m"
         )
     CAD_to_OpenMC.assembly.mesher_config["threads"] = threads
+    CAD_to_OpenMC.assembly.mesher_config["mesh_algorithm"] = 2
     a = CAD_to_OpenMC.assembly.Assembly([input_step_filename])
+    a.set_tag_delim(r".*")
     a.import_stp_files()
     a.merge_all()
-    a.solids_to_h5m(backend="stl", h5m_filename=output_dagmc_filename)
+    a.solids_to_h5m(backend="gmsh", h5m_filename=output_dagmc_filename)
     o = subprocess.check_output(("check_watertight", output_dagmc_filename))
     r = re.findall(rb"(\(0%\) unsealed)", o)
     if len(r) != 2:

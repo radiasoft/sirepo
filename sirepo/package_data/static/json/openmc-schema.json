@@ -358,7 +358,7 @@
             "_type": ["", "TallyFilter"]
         },
         "geometryInput": {
-            "dagmcFile": ["Model file", "InputFile", "", "A DAGMC (.h5m) or Step (.stp) file"],
+            "dagmcFile": ["Model file", "InputFile", "", "A DAGMC (.h5m), Step (.stp or .step) file"],
             "materialsFile": ["Materials XML file (optional)", "InputFile", "", "An OpenMC materials.xml (or model.xml) mapping from names to volume properties", false],
             "exampleURL": ["", "String", ""]
         },
@@ -831,10 +831,10 @@
             "title": "Settings",
             "basic": [
                 ["Main", [
+                    "run_mode",
                     "batches",
                     "inactive",
                     "particles",
-                    "run_mode",
                     "outputInterval",
                     "materialDefinition",
                     "materialLibrary",

@@ -176,6 +176,8 @@ def _init():
                 str,
                 "url base to reach openmc example h5m files",
             ),
+            # TODO(pjm): remove this when FreeCAD is available in sirepo container
+            has_freecad=_dev("FreeCAD library available"),
         ),
         package_path=(
             tuple(["sirepo"]),

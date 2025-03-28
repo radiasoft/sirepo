@@ -6,31 +6,44 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+import re
 import sirepo.sim_data
 
 
 class SimData(sirepo.sim_data.SimDataBase):
+    INPUT_DAGMC = "DAGMC"
+    INPUT_STEP = "STEP"
+    INPUT_MCNP = "MCNP"
+
     @classmethod
-    def dagmc_and_maybe_step_filename(cls, data):
-        """Get the dagmc and possibly step filenames
+    def get_geometry_input_filenames(cls, data):
+        """Get the dagmc and possibly STEP or MCNP filenames
 
         Args:
           data (PKDict): simulation data
         Returns:
           (str, str|None): Tuple of the dagmc filename. And either the
-        original step file the dagmc was generated from or None if the
-        dagmc wasn't generated from a step file.
+        original STEP or MCNP file the dagmc was generated from or None if the
+        dagmc wasn't generated from an intermediate file.
         """
         d = cls.lib_file_name_with_model_field(
             "geometryInput",
             "dagmcFile",
             data.models.geometryInput.dagmcFile,
         )
-        s = None
-        if d.endswith(".stp"):
-            s = d
-            d += ".h5m"
-        return d, s
+        if cls.get_input_file_type(d) != cls.INPUT_DAGMC:
+            return f"{d}.h5m", d
+        return d, None
+
+    @classmethod
+    def get_input_file_type(cls, filename):
+        if re.search(r"\.(stp|step)$", filename, re.IGNORECASE):
+            return cls.INPUT_STEP
+        if re.search(r"\.i$", filename, re.IGNORECASE):
+            return cls.INPUT_MCNP
+        if re.search(r"\.h5m$", filename, re.IGNORECASE):
+            return cls.INPUT_DAGMC
+        raise AssertionError(f"Invalid geometry input file type: {filename}")
 
     @classmethod
     def materials_filename(cls, data):
@@ -150,11 +163,11 @@ class SimData(sirepo.sim_data.SimDataBase):
         if data.get("report") == "tallyReport":
             return r
         if data.models.geometryInput.dagmcFile:
-            d, s = cls.dagmc_and_maybe_step_filename(data)
+            d, s = cls.get_geometry_input_filenames(data)
             r.append(s or d)
             r += cls.source_filenames(data)
         if data.get("report") == "dagmcAnimation":
-            d, s = cls.dagmc_and_maybe_step_filename(data)
+            d, s = cls.get_geometry_input_filenames(data)
             r.append(s or d)
             if data.models.geometryInput.materialsFile:
                 r.append(cls.materials_filename(data))
@@ -184,7 +197,7 @@ class SimData(sirepo.sim_data.SimDataBase):
         if data.report == "openmcAnimation":
             for v in data.models.volumes.values():
                 res.append(PKDict(basename=f"{v.volId}.ply"))
-            d, s = cls.dagmc_and_maybe_step_filename(data)
+            d, s = cls.get_geometry_input_filenames(data)
             if s:
                 res.append(PKDict(basename=d))
         return res
