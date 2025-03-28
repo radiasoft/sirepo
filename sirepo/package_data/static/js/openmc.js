@@ -119,7 +119,9 @@ SIREPO.app.config(() => {
         </div>
     `;
     SIREPO.FILE_UPLOAD_TYPE = {
-        'geometryInput-dagmcFile': '.h5m,.stp',
+        'geometryInput-dagmcFile': SIREPO.APP_SCHEMA.feature_config.has_freecad
+            ? '.h5m,.stp,.step,.i'
+            : '.h5m,.stp,.step',
         'geometryInput-materialsFile': '.xml',
         'settings-mgxsFile': '.h5',
     };
@@ -348,6 +350,16 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
         );
     }
 
+    function updateFields() {
+        if (! hasGeometry) {
+            panelState.showField(
+                'geometryInput', 'materialsFile',
+                appState.models.geometryInput.dagmcFile
+                && appState.models.geometryInput.dagmcFile.endsWith('h5m'),
+            );
+        }
+    }
+
     function processGeometry() {
         panelState.showFields('geometryInput', [
             ['dagmcFile', 'materialsFile'], false,
@@ -400,6 +412,8 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
         self.simState = persistentSimulation.initSimulationState(self);
         self.simState.errorMessage = () => self.errorMessage;
     });
+
+    appState.watchModelFields($scope, ['geometryInput.dagmcFile'], updateFields);
 });
 
 SIREPO.app.controller('VisualizationController', function(appState, errorService, openmcService, frameCache, panelState, persistentSimulation, requestSender, tallyService, $scope) {
