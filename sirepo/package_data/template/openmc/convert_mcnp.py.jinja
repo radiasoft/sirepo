@@ -1,0 +1,5 @@
+
+# requires most recent version of openmc, python 3.11.9
+
+import openmc_mcnp_adapter.openmc_conversion
+openmc_mcnp_adapter.openmc_conversion.mcnp_to_model("{{ mcnpFilename }}").export_to_xml()
