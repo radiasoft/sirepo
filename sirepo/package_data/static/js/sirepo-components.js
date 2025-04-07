@@ -1002,7 +1002,8 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
                 <li class="dropdown-header"><strong>{{ ::authState.displayName }}</strong></li>
                 <li class="dropdown-header">{{ authState.paymentPlanName() }}</li>
                 <li class="dropdown-header" data-ng-if="::authState.userName">{{ ::authState.userName }}</li>
-                <li data-ng-if="showAdmJobs()"><a data-ng-href="{{ getUrl('admJobs') }}">Admin</a></li>
+                <li data-ng-if="isAdm()"><a data-ng-href="{{ getUrl('admJobs') }}">Admin Jobs</a></li>
+                <li data-ng-if="isAdm()"><a data-ng-href="{{ getUrl('admUsers') }}">Admin Users</a></li>
                 <li><a data-ng-click="showJobsList()" style="cursor:pointer">Jobs</a></li>
                 <li><a data-ng-href="{{ ::authService.logoutUrl }}">Sign out</a></li>
               </ul>
@@ -1012,15 +1013,13 @@ SIREPO.app.directive('logoutMenu', function(authState, authService, requestSende
             $scope.authState = authState;
             $scope.authService = authService;
 
-            $scope.getUrl = function(route) {
+            $scope.getUrl = (route) => {
                 return requestSender.formatUrlLocal(route);
             };
 
-            $scope.showAdmJobs = function() {
-                return authState.hasRole('adm');
-            };
+            $scope.isAdm = () => authState.hasRole('adm');
 
-            $scope.showJobsList = function() {
+            $scope.showJobsList = () => {
                 $('#' + panelState.modalId('jobsListModal')).modal('show');
             };
         },
@@ -4579,28 +4578,32 @@ SIREPO.app.directive('rangeSlider', function(appState, panelState) {
     };
 });
 
-SIREPO.app.directive('admRolesList', function(appState, authState, errorService, panelState) {
+SIREPO.app.directive('admRolesList', function() {
     return {
         restrict: 'A',
         template: `
-            <div>
+            <div class="col-sm-12">
               <table class="table">
-              <thead>
-                <th data-ng-repeat="h in headers">{{ h[1] }}</th>
-              </thead>
-              <tbody>
-              <tr data-ng-repeat="r in rows track by $index">
-                <td data-ng-repeat="h in headers">{{ r[h[0]] }}</td>
-                <td><button class="btn btn-default" data-ng-click="setModerationStatus(r, 'approve')">Approve</button></td>
-                <td><button class="btn btn-default" data-ng-click="setModerationStatus(r, 'deny')">Deny</button></td>
-                <td><button class="btn btn-default" data-ng-show="r.status!=='clarify'" data-ng-click="setModerationStatus(r, 'clarify')">Clarify</button></td>
-              </tr>
-              </tbody>
+                <thead>
+                  <th data-ng-repeat="h in headers">{{ h[1] }}</th>
+                </thead>
+                <tbody>
+                  <tr data-ng-repeat="r in rows track by $index">
+                    <td data-ng-repeat="h in headers">{{ r[h[0]] }}</td>
+                    <td><button class="btn btn-default"
+                      data-ng-click="setModerationStatus(r, 'approve')">Approve</button></td>
+                    <td><button class="btn btn-default"
+                      data-ng-click="setModerationStatus(r, 'deny')">Deny</button></td>
+                    <td><button class="btn btn-default" data-ng-show="r.status!=='clarify'"
+                      data-ng-click="setModerationStatus(r, 'clarify')">Clarify</button></td>
+                  </tr>
+                </tbody>
               </table>
+              <button type="submit" class="btn btn-primary"
+                data-ng-click="getModerationRequestRows()">Refresh Table</button>
             </div>
-          <button type="submit" class="btn btn-primary" data-ng-click="getModerationRequestRows()">Refresh Table</button>
         `,
-        controller: function(requestSender, $scope) {
+        controller: function(authState, errorService, requestSender, $scope) {
             $scope.rows = [];
             $scope.headers = [];
 
@@ -4612,7 +4615,7 @@ SIREPO.app.directive('admRolesList', function(appState, authState, errorService,
                 requestSender.sendRequest(
                     'getModerationRequestRows',
                     handleResponse,
-                    {}
+                    {},
                 );
             };
 
@@ -4639,6 +4642,56 @@ SIREPO.app.directive('admRolesList', function(appState, authState, errorService,
             }
             $scope.getModerationRequestRows();
         },
+    };
+});
+
+SIREPO.app.directive('admUserList', function() {
+    return {
+        restrict: 'A',
+        template: `
+            <div class="col-md-10 col-md-offset-1 col-lg-8 col-lg-offset-2">
+              <label class="pull-right"><input type="checkbox" data-ng-model="showAll"> Show all rows</label>
+              <table class="table">
+                <thead>
+                  <th data-ng-repeat="h in header">{{ h }}</th>
+                </thead>
+                <tbody>
+                  <tr data-ng-repeat="r in rows track by $index">
+                    <td data-ng-repeat="h in header">{{ r[h] }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+        `,
+        controller: function(authState, errorService, requestSender, $scope) {
+            $scope.showAll = false;
+
+            const dateString = (dateTime) => {
+                return dateTime
+                     ? new Date(dateTime * 1000).toLocaleDateString()
+                     : '';
+            };
+
+            const loadRows = () => {
+                requestSender.sendRequest(
+                    'admUsers',
+                    (res) => {
+                        $scope.header = res.header;
+                        $scope.rows = res.rows;
+                        for (const r of $scope.rows) {
+                            r['Creation Date'] = dateString(r['Creation Date']);
+                            r.Expiration = dateString(r.Expiration);
+                        }
+                    },
+                    {
+                        showAll: $scope.showAll,
+                        simulationType: SIREPO.APP_NAME
+                    },
+                );
+            };
+
+            $scope.$watch('showAll', loadRows);
+        }
     };
 });
 
