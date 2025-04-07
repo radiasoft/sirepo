@@ -13,6 +13,7 @@ import pyisemail
 import pykern.pkcompat
 import sirepo.auth
 import sirepo.auth_db
+import sirepo.auth_role
 import sirepo.quest
 import sirepo.smtp
 import sirepo.srtime
@@ -35,6 +36,85 @@ _cfg = None
 
 
 class API(sirepo.quest.API):
+
+    @sirepo.quest.Spec("require_adm")
+    async def api_admUsers(self):
+        show_all = self.parse_post().req_data.get("showAll", False)
+
+        def _format_results():
+            rows = [
+                PKDict(
+                    {
+                        "Name": u["UserRegistration"].display_name,
+                        "Email": u["AuthEmailUser"].unverified_email,
+                        "uid": u["UserRole"].uid,
+                        "Creation Date": _timestamp(u["UserRegistration"].created),
+                        "Role": u["UserRole"].role,
+                        "Expiration": _timestamp(u["UserRole"].expiration),
+                    }
+                )
+                for u in _get_user_roles()
+            ]
+            return PKDict(
+                header=list(rows[0].keys()) if len(rows) else [],
+                rows=rows,
+            )
+
+        def _get_user_roles():
+            res = PKDict()
+            role_precedence = [
+                sirepo.auth_role.ROLE_PLAN_PREMIUM,
+                sirepo.auth_role.ROLE_PLAN_BASIC,
+                sirepo.auth_role.ROLE_PLAN_TRIAL,
+            ]
+            for u in _users_from_db():
+                assert u["UserRole"].uid == u["UserRegistration"].uid
+                uid = u["UserRole"].uid
+                r = u["UserRole"].role
+                if r not in role_precedence or (
+                    uid in res
+                    and role_precedence.index(r)
+                    > role_precedence.index(res[uid]["UserRole"].role)
+                ):
+                    continue
+                if not show_all:
+                    t = _timestamp(u["UserRole"].expiration)
+                    if t and t < _timestamp(sirepo.srtime.utc_now()):
+                        continue
+                res[uid] = u
+            return res.values()
+
+        def _timestamp(value):
+            return sirepo.srtime.to_timestamp(value) if value else None
+
+        def _users_from_db():
+            UserRole, UserRegistration, AuthEmailUser = (
+                self.auth_db.model(c).__class__
+                for c in ("UserRole", "UserRegistration", "AuthEmailUser")
+            )
+            return (
+                self.auth_db.session()
+                .query(
+                    UserRole,
+                    UserRegistration,
+                    AuthEmailUser,
+                )
+                .select_from(UserRole)
+                # TODO(pjm): need to link foreign key uid across tables in sqlalchemy definition
+                .join(
+                    UserRegistration,
+                    UserRole.uid == UserRegistration.uid,
+                )
+                .join(
+                    AuthEmailUser,
+                    UserRole.uid == AuthEmailUser.uid,
+                )
+                .order_by(AuthEmailUser.unverified_email)
+                .all()
+            )
+
+        return _format_results()
+
     @sirepo.quest.Spec("allow_cookieless_set_user", token="EmailAuthToken")
     async def api_authEmailAuthorized(self, simulation_type, token):
         """Clicked by user in an email
