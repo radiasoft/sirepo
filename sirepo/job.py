@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Common functionality that is shared between the server, supervisor, and driver.
 
 :copyright: Copyright (c) 2019-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
@@ -114,12 +114,14 @@ PENDING = "pending"
 RUNNING = "running"
 UNKNOWN = "unknown"
 
+#: Queued or running
+ACTIVE_STATUSES = frozenset((PENDING, RUNNING))
 
-#: When the job is completed
-EXIT_STATUSES = frozenset((CANCELED, COMPLETED, ERROR))
+#: When the job is inactive
+EXIT_STATUSES = frozenset((CANCELED, COMPLETED, ERROR, MISSING, JOB_RUN_PURGED))
 
 #: Valid values for job status
-STATUSES = EXIT_STATUSES.union((PENDING, RUNNING))
+STATUSES = EXIT_STATUSES.union(ACTIVE_STATUSES)
 
 #: For communication between job_agent and job_cmd
 JOB_CMD_STATE_SBATCH_RUN_STATUS_STOP = "sbatch_run_status_stop"

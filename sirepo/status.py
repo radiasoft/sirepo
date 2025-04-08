@@ -14,6 +14,7 @@ import asyncio
 import datetime
 import random
 import re
+import sirepo.job
 import sirepo.quest
 import time
 
@@ -64,45 +65,64 @@ class API(sirepo.quest.API):
             assert (
                 _cfg.sim_type == "myapp"
             ), f"{_cfg.sim_type} should be myapp or have models.electronBeam.current"
-            pass
         d.simulationId = i
         d.report = _cfg.sim_report
-        r = None
-        resp = None
-        try:
-            resp = await self.call_api("runSimulation", body=d)
-            for _ in range(_cfg.max_calls):
-                r = resp.content_as_object()
-                resp.destroy()
-                resp = None
-                if r.state == "error":
-                    raise RuntimeError(f"state=error sid={i} resp={r}")
-                if r.state == "completed":
-                    pkdlog("status=completed sid={}", i)
-                    if "initialIntensityReport" == d.report:
-                        m = 50
-                        if len(r.z_matrix) < m:
-                            raise RuntimeError(
-                                f"len(r.z_matrix)={len(r.z_matrix)} < {m} resp={r}",
-                            )
-                        if len(r.z_matrix[0]) < m:
-                            raise RuntimeError(
-                                f"len(r.z_matrix[0])={len(r.z_matrix[0])} < {m} resp={r}",
-                            )
-                    return
-                if (d := r.get("nextRequest")) is None:
-                    raise RuntimeError(
-                        f"nextRequest missing state={r.get('state')} resp={r}"
-                    )
+        await self._run_sim(d)
 
-                resp = await self.call_api("runStatus", body=d)
+    async def _run_sim(self, body):
+        def _completed(reply):
+            pkdlog("status=completed sid={}", body.simulationId)
+            if "initialIntensityReport" != body.report:
+                return
+            m = 50
+            if len(reply.z_matrix) < m:
+                raise RuntimeError(
+                    f"len(reply.z_matrix)={len(reply.z_matrix)} < {m} reply={reply}",
+                )
+            if len(reply.z_matrix[0]) < m:
+                raise RuntimeError(
+                    f"len(reply.z_matrix[0])={len(reply.z_matrix[0])} < {m} reply={reply}",
+                )
+
+        async def _first(body):
+            rv = await self.call_api("runStatus", body=body)
+            try:
+                s = rv.content_as_object().state
+            except:
+                rv.destroy()
+            if s not in sirepo.job.ACTIVE_STATUSES:
+                rv.destroy()
+                rv = await self.call_api("runSimulation", body=body)
+            return rv
+
+        def _next(reply, body):
+            if reply.state == sirepo.job.ERROR:
+                raise RuntimeError(f"state=error sid={body.simulationId} reply={reply}")
+            if reply.state == sirepo.job.COMPLETED:
+                _completed(reply)
+                return None
+            if (rv := reply.get("nextRequest")) is None:
+                raise RuntimeError(
+                    f"nextRequest missing state={reply.get('state')} reply={reply}"
+                )
+            return rv
+
+        r = None
+        try:
+            r = await _first(body)
+            for _ in range(_cfg.max_calls):
+                if (body := _next(r.content_as_object(), body)) is None:
+                    return
+                r.destroy()
+                r = await self.call_api("runStatus", body=body)
                 await asyncio.sleep(_SLEEP)
             raise RuntimeError(f"timeout={_cfg.max_calls * _SLEEP}s last resp={r}")
         finally:
-            if resp:
-                resp.destroy()
+            if r:
+                r.destroy()
             try:
-                await self.call_api("runCancel", body=d)
+                if body is not None:
+                    await self.call_api("runCancel", body=body)
             except Exception:
                 pass
 
