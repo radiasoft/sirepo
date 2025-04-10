@@ -119,6 +119,7 @@
         "admJobs": "/adm-jobs",
         "admModerate": "/adm-moderate",
         "admModerateRedirect": "/adm-moderate-redirect",
+        "admUsers": "/adm-users",
         "analysisJob": "/analysis-job",
         "authBlueskyLogin": "/auth-bluesky-login",
         "authCompleteRegistration": "/auth-complete-registration",
@@ -357,7 +358,13 @@
             "admRoles": {
                 "route": "/adm-roles",
                 "config": {
-                  "templateUrl": "/static/html/adm-roles.html"
+                  "template": "<div data-adm-roles-list=''></div>"
+                }
+            },
+            "admUsers": {
+                "route": "/adm-users",
+                "config": {
+                  "template": "<div data-adm-user-list=''></div>"
                 }
             },
             "completeRegistration": {
