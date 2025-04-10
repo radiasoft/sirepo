@@ -112,7 +112,7 @@ def _lookup_uid(qcall, uid_or_email):
         )
     else:
         rVal = qcall.auth.unchecked_get_user(uid_or_email)
-        if rVal is None: #Try resolving by email if uid doesn't work
+        if rVal is None:  # Try resolving by email if uid doesn't work
             return qcall.auth_db.model("AuthEmailUser").unchecked_uid(
                 user_name=uid_or_email
             )
