@@ -7,7 +7,8 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkdebug import pkdlog, pkdp
 from pykern.pkcollections import PKDict
-import ldap
+from ldap3 import Server, Connection, ALL
+from ldap3.core.exceptions import LDAPException
 import re
 import sirepo.quest
 import sirepo.util
@@ -39,12 +40,21 @@ class API(sirepo.quest.API):
     async def api_authLdapLogin(self):
         def _bind(creds):
             try:
-                ldap.initialize(_cfg.server).simple_bind_s(creds.dn, creds.password)
+                server = Server(_cfg.server)
+                conn = Connection(
+                    server, 
+                    user=creds.dn, 
+                    password=creds.password, 
+                    auto_escape=True, 
+                    raise_exceptions=True, 
+                    read_only=True
+                    )
+                conn.bind()
             except Exception as e:
                 m = "Unable to contact LDAP server"
-                if isinstance(e, ldap.INVALID_CREDENTIALS):
-                    m = _INVALID_CREDENTIALS
-                pkdlog("{} email={}", e, creds.email)
+                if isinstance(e, LDAPException):
+                    m = e.description
+                pkdlog("{} email={} dn={}", e, creds.email, creds.dn)
                 return m
 
         def _user(email):
@@ -67,12 +77,13 @@ class API(sirepo.quest.API):
             return _INVALID_CREDENTIALS
 
         req = self.parse_post()
+        dn = _cfg.dn_prefix if _cfg.dn_prefix else ""
+        dn += re.sub(_ESCAPE_DN_MAIL, r"\\\1", req.req_data.email)
+        dn += _cfg.dn_suffix if _cfg.dn_suffix else ""
         res = PKDict(
             email=req.req_data.email,
             password=req.req_data.password,
-            dn="mail="
-            + re.sub(_ESCAPE_DN_MAIL, r"\\\1", req.req_data.email)
-            + _cfg.dn_suffix,
+            dn=dn
         )
         r = (
             _validate_entry(res, "email")
@@ -96,10 +107,13 @@ def init_apis(*args, **kwargs):
     global _cfg
 
     _cfg = pkconfig.init(
-        server=pkconfig.RequiredUnlessDev(
+        server=(
             "ldap://127.0.0.1:389", str, " ldap://ip:port"
         ),
-        dn_suffix=pkconfig.RequiredUnlessDev(
+        dn_suffix=(
             ",ou=users,dc=example,dc=com", _cfg_dn_suffix, "ou and dc values of dn"
+        ),
+        dn_prefix=(
+            "mail=", str, "prefix from username/email of dn"
         ),
     )
