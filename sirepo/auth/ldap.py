@@ -41,7 +41,14 @@ class API(sirepo.quest.API):
         def _bind(creds):
             try:
                 server = Server(_cfg.server)
-                conn = Connection(server, user=creds.dn, password=creds.password, auto_escape=True, raise_exceptions=True, read_only=True)
+                conn = Connection(
+                    server, 
+                    user=creds.dn, 
+                    password=creds.password, 
+                    auto_escape=True, 
+                    raise_exceptions=True, 
+                    read_only=True
+                    )
                 conn.bind()
             except Exception as e:
                 m = "Unable to contact LDAP server"
