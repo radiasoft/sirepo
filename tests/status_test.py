@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
-"""
+"""test server status
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern.pkcollections import PKDict
 import pytest
 
@@ -24,18 +24,21 @@ def test_basic(auth_fc):
     from sirepo import srunit
     import base64
 
+    def _status(fc, headers):
+        pkeq("ok", fc.sr_get_json("serverStatus", headers=headers).state)
+
     # POSIT: sirepo.auth.basic.require_user returns logged_in_user in srunit
     u = auth_fc.sr_login_as_guest()
     auth_fc.sr_logout()
-    r = auth_fc.sr_get_json(
-        "serverStatus",
-        headers=PKDict(
-            Authorization="Basic "
-            + pkcompat.from_bytes(
-                base64.b64encode(
-                    pkcompat.to_bytes(f"{u}:pass"),
-                ),
+    h = PKDict(
+        Authorization="Basic "
+        + pkcompat.from_bytes(
+            base64.b64encode(
+                pkcompat.to_bytes(f"{u}:pass"),
             ),
         ),
     )
-    pkeq("ok", r.state)
+    auth_fc.sr_thread_start("t1", _status, headers=h)
+    auth_fc.sr_thread_start("t2", _status, headers=h)
+    #    auth_fc.sr_thread_start("t3", _status, headers=h)
+    auth_fc.sr_thread_join()

@@ -742,7 +742,7 @@ class _TestClient:
         except requests.exceptions.ConnectionError as e:
             from pykern.pkdebug import pkdlog
 
-            pkdlog("op={} uri={} headers={}", op, u, headers)
+            pkdlog("op={} uri={} headers={}", op, u, kwargs.headers)
             raise
 
     def _uid_clear(self):
