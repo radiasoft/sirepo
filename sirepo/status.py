@@ -8,7 +8,7 @@ from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdformat
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdformat, pkdpretty
 from sirepo import simulation_db
 import asyncio
 import datetime
@@ -43,35 +43,29 @@ class API(sirepo.quest.API):
         await self._validate_auth_state()
         simulation_type = _cfg.sim_type
         res = await self.call_api(
-            "findByNameWithAuth",
-            kwargs=PKDict(
-                simulation_type=simulation_type,
-                application_mode="default",
-                simulation_name=_cfg.sim_name,
+            "listSimulations",
+            body=PKDict(
+                simulationType=simulation_type,
+                search=PKDict({"simulation.name": _cfg.sim_name}),
             ),
         )
         try:
-            c = res.content_as_redirect()
+            c = res.content_as_object()
         finally:
             res.destroy()
-        m = re.search(r"/source/(\w+)$", c.uri)
-        if not m:
-            raise RuntimeError(f"failed to find sid in resp={c}")
-        i = m.group(1)
-        d = simulation_db.read_simulation_json(simulation_type, sid=i, qcall=self)
-        try:
-            d.models.electronBeam.current += random.random() / 10
-        except AttributeError:
-            assert (
-                _cfg.sim_type == "myapp"
-            ), f"{_cfg.sim_type} should be myapp or have models.electronBeam.current"
-        d.simulationId = i
+        if len(c) != 1:
+            raise AssertionError(
+                f"listSimulations name={sim_name} returned count={len(c)}"
+            )
+        d = simulation_db.read_simulation_json(
+            simulation_type, sid=c[0].simulation.simulationId, qcall=self
+        )
         d.report = _cfg.sim_report
-        await self._run_sim(d)
+        await self._run_sim(d, d.models.simulation.simulationId)
 
-    async def _run_sim(self, body):
+    async def _run_sim(self, body, sim_id):
         def _completed(reply):
-            pkdlog("status=completed sid={}", body.simulationId)
+            pkdlog("status=completed sid={}", sim_id)
             if "initialIntensityReport" != body.report:
                 return
             m = 50
@@ -84,20 +78,22 @@ class API(sirepo.quest.API):
                     f"len(reply.z_matrix[0])={len(reply.z_matrix[0])} < {m} reply={reply}",
                 )
 
-        async def _first(body):
+        async def _first():
             rv = await self.call_api("runStatus", body=body)
             try:
                 s = rv.content_as_object().state
             except:
                 rv.destroy()
-            if s not in sirepo.job.ACTIVE_STATUSES:
+            if s in sirepo.job.ACTIVE_STATUSES:
+                pkdlog("already running simulation={}", sim_id)
+            else:
                 rv.destroy()
                 rv = await self.call_api("runSimulation", body=body)
             return rv
 
-        def _next(reply, body):
+        def _next(reply):
             if reply.state == sirepo.job.ERROR:
-                raise RuntimeError(f"state=error sid={body.simulationId} reply={reply}")
+                raise RuntimeError(f"state=error sid={sim_id} reply={reply}")
             if reply.state == sirepo.job.COMPLETED:
                 _completed(reply)
                 return None
@@ -109,9 +105,13 @@ class API(sirepo.quest.API):
 
         r = None
         try:
-            r = await _first(body)
+            async with sirepo.file_lock.AsyncFileLock(
+                simulation_db.sim_data_file(body.simulationType, sim_id, qcall=self),
+                qcall=self,
+            ):
+                r = await _first()
             for _ in range(_cfg.max_calls):
-                if (body := _next(r.content_as_object(), body)) is None:
+                if (body := _next(r.content_as_object())) is None:
                     return
                 r.destroy()
                 r = await self.call_api("runStatus", body=body)
