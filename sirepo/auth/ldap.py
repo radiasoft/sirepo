@@ -1,4 +1,5 @@
 """LDAP authentication support
+
 :copyright: Copyright (c) 2022-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
@@ -7,8 +8,8 @@ from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkdebug import pkdlog, pkdp
 from pykern.pkcollections import PKDict
-from ldap3 import Server, Connection, ALL
-from ldap3.core.exceptions import LDAPException
+import ldap3
+import ldap3.core.exceptions
 import re
 import sirepo.quest
 import sirepo.util
@@ -34,28 +35,40 @@ this_module = pkinspect.this_module()
 #: well known alias for auth
 user_model = "AuthEmailUser"
 
+#: map of LDAP3 errors to user readable errors
+_LDAP3_ERROR = PKDict(
+    invalidCredentials=_INVALID_CREDENTIALS,
+)
+
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_cookie_sentinel")
     async def api_authLdapLogin(self):
         def _bind(creds):
             try:
-                server = Server(_cfg.server)
-                conn = Connection(
-                    server, 
-                    user=creds.dn, 
-                    password=creds.password, 
-                    auto_escape=True, 
-                    raise_exceptions=True, 
-                    read_only=True
-                    )
-                conn.bind()
+                ldap3.Connection(
+                    ldap3.Server(_cfg.server),
+                    user=creds.dn,
+                    password=creds.password,
+                    auto_escape=True,
+                    raise_exceptions=True,
+                    read_only=True,
+                ).bind()
             except Exception as e:
-                m = "Unable to contact LDAP server"
-                if isinstance(e, LDAPException):
-                    m = e.description
+                m = "Unable to contact LDAP server or unexpected error"
+                if isinstance(e, ldap3.core.exceptions.LDAPException) and hasattr(
+                    e, "description"
+                ):
+                    m = _LDAP3_ERROR.get(e.description, m)
                 pkdlog("{} email={} dn={}", e, creds.email, creds.dn)
                 return m
+
+        def _dn(req):
+            return (
+                (_cfg.dn_prefix if _cfg.dn_prefix else "")
+                + re.sub(_ESCAPE_DN_MAIL, r"\\\1", req.req_data.email)
+                + (_cfg.dn_suffix if _cfg.dn_suffix else "")
+            )
 
         def _user(email):
             m = self.auth_db.model(user_model)
@@ -77,13 +90,8 @@ class API(sirepo.quest.API):
             return _INVALID_CREDENTIALS
 
         req = self.parse_post()
-        dn = _cfg.dn_prefix if _cfg.dn_prefix else ""
-        dn += re.sub(_ESCAPE_DN_MAIL, r"\\\1", req.req_data.email)
-        dn += _cfg.dn_suffix if _cfg.dn_suffix else ""
         res = PKDict(
-            email=req.req_data.email,
-            password=req.req_data.password,
-            dn=dn
+            email=req.req_data.email, password=req.req_data.password, dn=_dn(req)
         )
         r = (
             _validate_entry(res, "email")
@@ -107,13 +115,11 @@ def init_apis(*args, **kwargs):
     global _cfg
 
     _cfg = pkconfig.init(
-        server=(
-            "ldap://127.0.0.1:389", str, " ldap://ip:port"
-        ),
+        server=("ldap://127.0.0.1:389", str, " ldap://ip:port"),
         dn_suffix=(
-            ",ou=users,dc=example,dc=com", _cfg_dn_suffix, "ou and dc values of dn"
+            ",ou=users,dc=example,dc=com",
+            _cfg_dn_suffix,
+            "ou and dc values of dn",
         ),
-        dn_prefix=(
-            "mail=", str, "prefix from username/email of dn"
-        ),
+        dn_prefix=("mail=", str, "prefix from username/email of dn"),
     )
