@@ -3693,7 +3693,7 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
     return {
         restrict: 'A',
         scope: {
-            email: '@',
+            user: '@',
             password: '@',
         },
         template: `
@@ -3704,9 +3704,9 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
                 </div>
               </div>
               <div class="form-group">
-                <label class="col-sm-2 control-label">Email</label>
+                <label class="col-sm-2 control-label">User</label>
                 <div class="col-sm-10">
-                  <input type="text" value='' maxlength="256" class="form-control" data-ng-model="email"/>
+                  <input type="text" value='' maxlength="256" class="form-control" data-ng-model="user"/>
                 </div>
                 <label class="col-sm-2 control-label">Password</label>
                 <div class="col-sm-10">
@@ -3744,7 +3744,7 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
             }
 
             $scope.login = function () {
-                if (!$scope.email || !$scope.password) {
+                if (!$scope.user || !$scope.password) {
                     showWarning('Empty field(s)');
                 }
                 else {
@@ -3753,9 +3753,9 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
                         'authLdapLogin',
                         handleResponse,
                         {
-                            email: $scope.email,
                             password: $scope.password,
                             simulationType: SIREPO.APP_SCHEMA.simulationType
+                            user: $scope.user,
                         }
                     );
                 }
