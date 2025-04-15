@@ -109,7 +109,7 @@ def http():
             if _cfg().vue_port:
                 _install_vue()
                 _start(
-                    ("npm", "run", "dev", "--", "--port", str(_cfg().vue_port)),
+                    ("npm", "run", "dev"),
                     cwd="../ui",
                     want_prefix=False,
                     extra_environ=PKDict(PORT=str(_cfg().vue_port)),

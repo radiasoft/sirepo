@@ -6,15 +6,14 @@
 </script>
 
 <template>
-    <div>
+    <div class="container-fluid">
         <HelloWorld msg="some text" />
-
         <div class="links">
-            <RouterLink :to="routes.HOME.path">{{ routes.HOME.name }}</RouterLink>
-            <RouterLink :to="routes.ABOUT.path">{{ routes.ABOUT.name }}</RouterLink>
+            <RouterLink :to="{ name: 'home' }">{{ routes.home.title }}</RouterLink>
+            <RouterLink :to="{ name: 'about' }">{{ routes.about.title }}</RouterLink>
         </div>
+        <RouterView />
     </div>
-    <RouterView />
 </template>
 
 <style scoped>

@@ -3,13 +3,15 @@ import HomeView from '@/views/HomeView.vue'
 import NotFoundView from '@/views/NotFound.vue'
 
 export const routes = {
-    HOME: {
+    home: {
         path: '/myapp',
-        name: 'Home',
+        name: 'home',
+        title: 'Home',
     },
-    ABOUT: {
+    about: {
         path: '/myapp/about',
-        name: 'About',
+        name: 'about',
+        title: 'About',
     },
 };
 
@@ -18,16 +20,16 @@ const router = createRouter({
     routes: [
         {
             path: '/',
-            redirect: routes.HOME.path,
+            redirect: routes.home.path,
         },
         {
-            path: routes.HOME.path,
-            name: routes.HOME.name,
+            path: routes.home.path,
+            name: routes.home.name,
             component: HomeView,
         },
         {
-            path: routes.ABOUT.path,
-            name: routes.ABOUT.name,
+            path: routes.about.path,
+            name: routes.about.name,
             // route level code-splitting
             // this generates a separate chunk (About.[hash].js) for this route
             // which is lazy-loaded when the route is visited.
@@ -39,5 +41,10 @@ const router = createRouter({
         },
     ],
 })
+
+router.beforeEach((to, from, next) => {
+    document.title = routes[to.name].title;
+    next();
+});
 
 export default router
