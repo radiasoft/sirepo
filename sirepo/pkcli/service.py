@@ -7,7 +7,6 @@ Also supports starting nginx proxy.
 """
 
 from pykern import pkcli
-from pykern import pkcollections
 from pykern import pkconfig
 from pykern import pkio
 from pykern import pkjinja
@@ -15,7 +14,6 @@ from pykern import pksubprocess
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdp, pkdlog
 import contextlib
-import importlib
 import os
 import psutil
 import py
@@ -30,7 +28,6 @@ import sirepo.sim_api.jupyterhublogin
 import sirepo.srdb
 import sirepo.template
 import sirepo.util
-import socket
 import socket
 import subprocess
 import time
@@ -55,6 +52,13 @@ def http():
             yield
         finally:
             [signal.signal(x[0], x[1]) for x in o]
+
+    def _install_vue():
+        p = pkio.py_path("../ui/node_modules")
+        if p.exists():
+            return
+        pkdlog("Need to install vue (takes a few seconds)...")
+        os.system(f"cd '{p.dirname}' && npm install")
 
     def _kill(*args):
         for p in processes:
@@ -102,6 +106,15 @@ def http():
             (signal.SIGINT, signal.SIGTERM)
         ):
             e = PKDict()
+            if _cfg().vue_port:
+                _install_vue()
+                _start(
+                    ("npm", "run", "dev", "--", "--port", str(_cfg().vue_port)),
+                    cwd="../ui",
+                    want_prefix=False,
+                    extra_environ=PKDict(PORT=str(_cfg().vue_port)),
+                )
+                e.SIREPO_SERVER_VUE_SERVER = f"http://127.0.0.1:{_cfg().vue_port}/"
             _start(("service", "server"), extra_environ=e)
             # Avoid race condition on creating auth db
             # Not asyncio.sleep: at server startup
@@ -217,6 +230,16 @@ def _cfg():
                 "for multi-instance tornado, port of controlling api server",
             ),
             use_reloader=(pkconfig.in_dev_mode(), bool, "use the server reloader"),
+            vue_port=(
+                (
+                    sirepo.const.PORT_DEFAULTS.vue
+                    if len(sirepo.feature_config.cfg().vue_sim_types)
+                    and pkconfig.in_dev_mode()
+                    else None
+                ),
+                _cfg_port,
+                "port on which vue listens",
+            ),
         )
     return __cfg
 

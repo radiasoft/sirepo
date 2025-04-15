@@ -196,6 +196,22 @@ _op_test_mail() {
     _err mail delivery test failed
 }
 
+_op_vue_build() {
+    if [[ ! ${run_vue_build_no_compile:-} ]]; then
+        cd "$(dirname "$0")"/../ui
+        rm -rf dist
+        npm run build
+        (
+            # These aren't likely to fail so run in subshell
+            cd ..
+            rm -f sirepo/package_data/static/vue
+            ln -s ../../../ui/dist sirepo/package_data/static/vue
+        )
+    fi
+    export SIREPO_SERVER_VUE_SERVER=build
+    _op_mail
+}
+
 _setup_smtp() {
     _env_mail_smtp
     if [[ ! -d $_mail_d ]]; then
