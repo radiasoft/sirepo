@@ -208,6 +208,7 @@ _op_vue_build() {
             ln -s ../../../ui/dist sirepo/package_data/static/vue
         )
     fi
+    export SIREPO_PKCLI_SERVICE_VUE_PORT=
     export SIREPO_SERVER_VUE_SERVER=build
     _op_mail
 }
