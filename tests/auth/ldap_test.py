@@ -4,11 +4,22 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
+import pytest
+
+
+def setup_module(module):
+    import os
+
+    os.environ.update(
+        SIREPO_AUTH_LDAP_EMAIL_DOMAIN="radiasoft.net",
+    )
+    _mock_ldap3()
+
 
 def test_happy_path():
     from pykern import pkunit
 
-    r, u = _call_login("vagrant@radiasoft.net", "vagrant")
+    r, u = _call_login("happy", "some-good-pw")
     pkunit.pkeq("/myapp#/complete-registration", r.content_as_redirect().uri)
     pkunit.pkne(None, u)
 
@@ -23,44 +34,59 @@ def test_cred_deviance():
         )
 
 
-def _call_login(email, password):
-    from pykern import pkinspect
+def _call_login(user, password):
+    from pykern.pkcollections import PKDict
     from sirepo import srunit
     from pykern.pkdebug import pkdp
-    import sys
 
-    sys.modules["ldap"] = pkinspect.this_module()
     with srunit.quest_start(cfg={"SIREPO_AUTH_METHODS": "ldap"}) as qcall:
-        from pykern.pkcollections import PKDict
-
         r = qcall.call_api_sync(
             "authLdapLogin",
             body=PKDict(
                 simulationType="myapp",
-                email=email,
+                user=user,
                 password=password,
             ),
         )
-        m = qcall.auth_db.model("AuthEmailUser")
-        u = m.unchecked_search_by(unverified_email=email)
-        return r, u
+        return (
+            r,
+            qcall.auth_db.model("AuthEmailUser").unchecked_search_by(
+                unverified_email=user + "@radiasoft.net",
+            ),
+        )
 
 
-# mock ldap.INVALID_CREDENTIALS
-class INVALID_CREDENTIALS(Exception):
-    pass
+def _mock_ldap3():
+    from pykern import pkinspect
+    import sys
+
+    m = pkinspect.this_module()
+    m.core = m
+    m.exceptions = m
+    sys.modules["ldap3"] = m
+    sys.modules["ldap3.core"] = m
+    sys.modules["ldap3.core.exceptions"] = m
 
 
-def initialize(*args, **kwargs):
-    """Mock ldap.initialize"""
+class LDAPException(Exception):
+    """mock ldap3.core.exceptions.LDAPException"""
+
+    description = "invalidCredentials"
+
+
+def Connection(*args, **kwargs):
+    """Mock ldap3.Connection"""
     from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdp
 
-    # mock ldap.simple_bind_s
     def _bind(dn, password):
-        if (
-            dn != "mail=vagrant@radiasoft.net,ou=users,dc=example,dc=com"
-            or password != "vagrant"
-        ):
-            raise INVALID_CREDENTIALS
+        """mock ldap3.Connection.bind"""
+        if dn != "mail=happy,ou=users,dc=example,dc=com" or password != "some-good-pw":
+            raise LDAPException()
 
-    return PKDict(simple_bind_s=lambda x, y: _bind(x, y))
+    return PKDict(bind=lambda: _bind(kwargs["user"], kwargs["password"]))
+
+
+def Server(*args, **kwargs):
+    """Mock ldap3.Server"""
+    return None
