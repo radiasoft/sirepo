@@ -10,6 +10,7 @@ import pytest
 pytestmark = pytest.mark.sirepo_args(
     fc_module=PKDict(
         cfg=PKDict(
+            SIREPO_STATUS_REPLY_SENTINEL="unique-value",
             SIREPO_STATUS_SIM_NAME="Scooby Doo",
             SIREPO_STATUS_SIM_REPORT="heightWeightReport",
             SIREPO_STATUS_SIM_TYPE="myapp",
@@ -25,7 +26,9 @@ def test_basic(auth_fc):
     import base64
 
     def _status(fc, headers):
-        pkeq("ok", fc.sr_get_json("serverStatus", headers=headers).state)
+        r = fc.sr_get_json("serverStatus", headers=headers)
+        pkeq("ok", r.state)
+        pkeq("unique-value", r.sentinel)
 
     # POSIT: sirepo.auth.basic.require_user returns logged_in_user in srunit
     u = auth_fc.sr_login_as_guest()
