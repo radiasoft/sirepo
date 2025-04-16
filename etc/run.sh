@@ -113,14 +113,8 @@ _op_jupyterhub() {
         npm install --global configurable-http-proxy
     fi
     _env_moderate jupyterhublogin
-    sirepo service tornado &
-    sirepo service nginx-proxy &
-    sirepo job_supervisor &
     sirepo service jupyterhub &
-    declare -a x=( $(jobs -p) )
-    # TERM is better than KILL
-    trap "kill ${x[*]}" EXIT
-    wait -n
+    _op_nginx_proxy
 }
 
 _op_ldap() {
@@ -145,6 +139,13 @@ _op_mail() {
 _op_moderate() {
     _env_moderate srw
     _exec_all
+}
+
+_op_nginx_proxy() {
+    sirepo service tornado &
+    sirepo service nginx-proxy &
+    sirepo job_supervisor &
+    _wait_on_jobs
 }
 
 _op_no_smtp_mail() {
@@ -222,6 +223,13 @@ END
 END
         _op_test_mail
     fi
+}
+
+_wait_on_jobs() {
+    declare -a x=( $(jobs -p) )
+    # TERM is better than KILL
+    trap "kill ${x[*]} &> /dev/null" EXIT
+    wait -n
 }
 
 _main "$@"
