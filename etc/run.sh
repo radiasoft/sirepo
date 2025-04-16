@@ -204,13 +204,13 @@ _op_vue_build() {
         (
             # These aren't likely to fail so run in subshell
             cd ..
-            rm -f sirepo/package_data/static/vue
-            ln -s ../../../ui/dist sirepo/package_data/static/vue
+            rm -f sirepo/package_data/static/ui
+            ln -s ../../../ui/dist sirepo/package_data/static/ui
         )
     fi
     export SIREPO_PKCLI_SERVICE_VUE_PORT=
     export SIREPO_SERVER_VUE_SERVER=build
-    _op_mail
+    _exec_all
 }
 
 _setup_smtp() {

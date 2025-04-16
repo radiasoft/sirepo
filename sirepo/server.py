@@ -660,10 +660,10 @@ class API(sirepo.quest.API):
                 p = "index.html"
             # do not call api_staticFile due to recursion of _proxy_vue()
             r = self.reply_file(
-                sirepo.resource.static(sirepo.util.validate_path(f"vue/{p}")),
+                sirepo.resource.static(sirepo.util.validate_path(f"ui/{p}")),
             )
             if p == "index.html":
-                # Ensures latest react is always returned, because index.html contains
+                # Ensures latest vue is always returned, because index.html contains
                 # version-tagged values but index.html does not. It's likely that
                 # a check would be made on a refresh, this ensures no caching.
                 r.headers_for_no_cache()
@@ -755,9 +755,9 @@ def _init_proxy_vue():
         return
     global _PROXY_VUE_URI_RE
     r = (
-        r"^(assets)"
+        r"^(vue_assets)"
         if _cfg.vue_server == _VUE_SERVER_BUILD
-        else r"^(@|src|node_modules)"
+        else r"^(@|src/|node_modules/)"
     )
     for x in sirepo.feature_config.cfg().vue_sim_types:
         r += rf"|^{x}(?:\/|$)"
@@ -815,6 +815,6 @@ _cfg = pkconfig.init(
     vue_server=(
         None if pkconfig.in_dev_mode() else _VUE_SERVER_BUILD,
         _cfg_vue_server,
-        "Base URL of npm start server or 'build'",
+        f"Base URL of npm start server or '{_VUE_SERVER_BUILD}'",
     ),
 )

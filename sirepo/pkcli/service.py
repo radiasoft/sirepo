@@ -53,13 +53,6 @@ def http():
         finally:
             [signal.signal(x[0], x[1]) for x in o]
 
-    def _install_vue():
-        p = pkio.py_path("../ui/node_modules")
-        if p.exists():
-            return
-        pkdlog("Need to install vue (takes a few seconds)...")
-        os.system(f"cd '{p.dirname}' && npm install")
-
     def _kill(*args):
         for p in processes:
             try:
@@ -100,22 +93,29 @@ def http():
             )
         )
 
+    def _start_vue_server():
+        e = PKDict()
+        if _cfg().vue_port:
+            _VUE_DIR = "../ui"
+            p = pkio.py_path(f"{_VUE_DIR}/node_modules")
+            if not p.exists():
+                pkdlog("Need to install vue (takes a few seconds)...")
+                os.system(f"cd '{p.dirname}' && npm install")
+            _start(
+                ("npm", "run", "dev"),
+                cwd=_VUE_DIR,
+                want_prefix=False,
+                extra_environ=PKDict(PORT=str(_cfg().vue_port)),
+            )
+            e.SIREPO_SERVER_VUE_SERVER = f"http://127.0.0.1:{_cfg().vue_port}/"
+        return e
+
     assert pkconfig.in_dev_mode()
     try:
         with pkio.save_chdir(_run_dir()), _handle_signals(
             (signal.SIGINT, signal.SIGTERM)
         ):
-            e = PKDict()
-            if _cfg().vue_port:
-                _install_vue()
-                _start(
-                    ("npm", "run", "dev"),
-                    cwd="../ui",
-                    want_prefix=False,
-                    extra_environ=PKDict(PORT=str(_cfg().vue_port)),
-                )
-                e.SIREPO_SERVER_VUE_SERVER = f"http://127.0.0.1:{_cfg().vue_port}/"
-            _start(("service", "server"), extra_environ=e)
+            _start(("service", "server"), extra_environ=_start_vue_server())
             # Avoid race condition on creating auth db
             # Not asyncio.sleep: at server startup
             time.sleep(0.3)
@@ -233,8 +233,7 @@ def _cfg():
             vue_port=(
                 (
                     sirepo.const.PORT_DEFAULTS.vue
-                    if len(sirepo.feature_config.cfg().vue_sim_types)
-                    and pkconfig.in_dev_mode()
+                    if sirepo.feature_config.cfg().vue_sim_types
                     else None
                 ),
                 _cfg_port,
