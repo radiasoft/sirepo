@@ -35,6 +35,7 @@ class API(sirepo.quest.API):
         return self.reply_ok(
             {
                 "datetime": datetime.datetime.utcnow().isoformat(),
+                "sentinel": _cfg.reply_sentinel,
             }
         )
 
@@ -136,13 +137,13 @@ class API(sirepo.quest.API):
 
 
 def init_apis(*args, **kwargs):
-    pass
+    global _cfg
 
-
-_cfg = pkconfig.init(
-    max_calls=(30, int, "1 second calls"),
-    # only used for srunit
-    sim_name=("Undulator Radiation", str, "which sim"),
-    sim_report=("initialIntensityReport", str, "which report"),
-    sim_type=("srw", str, "which app to test"),
-)
+    _cfg = pkconfig.init(
+        max_calls=(30, int, "1 second calls"),
+        reply_sentinel=("any-string", str, "unique string for reply"),
+        # only configured for srunit
+        sim_name=("Undulator Radiation", str, "which sim"),
+        sim_report=("initialIntensityReport", str, "which report"),
+        sim_type=("srw", str, "which app to test"),
+    )
