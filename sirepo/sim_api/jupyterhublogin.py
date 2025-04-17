@@ -10,6 +10,7 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import re
 import sirepo.api_perm
 import sirepo.events
+import sirepo.jupyterhub
 import sirepo.oauth
 import sirepo.quest
 import sirepo.srdb
@@ -27,15 +28,15 @@ _INVALID_USER_NAME_CHARS = re.compile(r"[^a-z0-9]+")
 
 _JUPYTERHUB_LOGOUT_USER_NAME_ATTR = "jupyterhub_logout_user_name"
 
-_SIM_TYPE = "jupyterhublogin"
-
 
 class API(sirepo.quest.API):
-    @sirepo.quest.Spec("require_plan", sim_type=f"SimType const={_SIM_TYPE}")
+    @sirepo.quest.Spec(
+        "require_plan", sim_type=f"SimType const={sirepo.jupyterhub.SIM_TYPE}"
+    )
     async def api_checkAuthJupyterHub(self):
         # TODO(rorour) do this role check at a higher level
         # (see https://github.com/radiasoft/sirepo/issues/7026)
-        self.parse_params(type=_SIM_TYPE)
+        self.parse_params(type=sirepo.jupyterhub.SIM_TYPE)
         u = _unchecked_jupyterhub_user_name(
             self,
             have_simulation_db=False,
@@ -44,11 +45,13 @@ class API(sirepo.quest.API):
             u = create_user(self)
         return self.reply_ok(PKDict(username=u))
 
-    @sirepo.quest.Spec("require_plan", sim_type=f"SimType const={_SIM_TYPE}")
+    @sirepo.quest.Spec(
+        "require_plan", sim_type=f"SimType const={sirepo.jupyterhub.SIM_TYPE}"
+    )
     async def api_redirectJupyterHub(self):
         # TODO(rorour) do this role check at a higher level
         # (see https://github.com/radiasoft/sirepo/issues/7026)
-        self.parse_params(type=_SIM_TYPE)
+        self.parse_params(type=sirepo.jupyterhub.SIM_TYPE)
         if not _unchecked_jupyterhub_user_name(self):
             create_user(self)
         return self.reply_redirect("jupyterHub")

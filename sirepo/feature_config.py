@@ -100,6 +100,10 @@ def for_sim_type(sim_type):
     )
 
 
+def jupyter_is_enabled():
+    return cfg().enable_jupyter
+
+
 def have_payments():
     return "payments" in cfg().api_modules
 
@@ -130,6 +134,7 @@ def _init():
     from pykern import pkconfig
     from pykern import pkio
     from pykern.pkdebug import pkdp
+    from sirepo import jupyterhub
 
     global _cfg
 
@@ -160,6 +165,7 @@ def _init():
             bool,
             "enable the global resources allocation system",
         ),
+        enable_jupyter=(False, bool, "enable sirepo jupyter"),
         jspec=dict(
             derbenevskrinsky_force_formula=_test(
                 "Include Derbenev-Skrinsky force formula"
@@ -254,6 +260,10 @@ def _init():
     for v in _DEPENDENT_CODES:
         if v[0] in s:
             s.add(v[1])
+    if jupyterhub.SIM_TYPE in s:
+        _cfg.enable_jupyter = True
+    if jupyter_is_enabled():
+        s.add(jupyterhub.SIM_TYPE)
     _cfg.sim_types = frozenset(s)
     _check_packages(_cfg.package_path)
     _cfg.is_fedora_36 = _is_fedora_36()
