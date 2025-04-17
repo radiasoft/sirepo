@@ -134,7 +134,7 @@ def _init():
     from pykern import pkconfig
     from pykern import pkio
     from pykern.pkdebug import pkdp
-    from sirepo import jupyterhub
+    from sirepo import const
 
     global _cfg
 
@@ -260,10 +260,10 @@ def _init():
     for v in _DEPENDENT_CODES:
         if v[0] in s:
             s.add(v[1])
-    if jupyterhub.SIM_TYPE in s:
+    if const.SIM_TYPE_JUPYTERHUBLOGIN in s:
         _cfg.enable_jupyter = True
     if jupyter_is_enabled():
-        s.add(jupyterhub.SIM_TYPE)
+        s.add(const.SIM_TYPE_JUPYTERHUBLOGIN)
     _cfg.sim_types = frozenset(s)
     _check_packages(_cfg.package_path)
     _cfg.is_fedora_36 = _is_fedora_36()

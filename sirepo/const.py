@@ -55,6 +55,8 @@ SIM_DATA_BASENAME = "sirepo-data" + JSON_SUFFIX
 #: Simulation file name saved both in sim db and run directory
 SIM_RUN_INPUT_BASENAME = "in" + JSON_SUFFIX
 
+SIM_TYPE_JUPYTERHUBLOGIN = "jupyterhublogin"
+
 SRUNIT_USER_AGENT = "srunit/1.0"
 
 TEST_PORT_RANGE = range(10000, 20000)
