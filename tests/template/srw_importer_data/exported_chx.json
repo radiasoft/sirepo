@@ -53,13 +53,13 @@
                 "id": 5,
                 "numberOfLenses": 1,
                 "position": 35.4,
-                "radius": 0.0015,
                 "refractiveIndex": 4.20756805e-06,
                 "shape": 1,
+                "tipRadius": 1500.0,
+                "tipWallThickness": 80.0,
                 "title": "CRL1",
                 "type": "crl",
-                "verticalApertureSize": 2.4,
-                "wallThickness": 8e-05
+                "verticalApertureSize": 2.4
             },
             {
                 "attenuationLength": 0.00731294,
@@ -68,13 +68,13 @@
                 "id": 6,
                 "numberOfLenses": 6,
                 "position": 35.4,
-                "radius": 0.0005,
                 "refractiveIndex": 4.20756805e-06,
                 "shape": 1,
+                "tipRadius": 500.0,
+                "tipWallThickness": 80.0,
                 "title": "CRL2",
                 "type": "crl",
-                "verticalApertureSize": 1.4,
-                "wallThickness": 8e-05
+                "verticalApertureSize": 1.4
             },
             {
                 "horizontalOffset": 0.0,

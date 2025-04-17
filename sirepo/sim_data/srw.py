@@ -485,8 +485,8 @@ class SimData(sirepo.sim_data.SimDataBase):
                     method="server",
                     absoluteFocusPosition=None,
                     focalDistance=None,
-                    tipRadius=float(i.radius) * 1e6,  # m -> um
-                    tipWallThickness=float(i.wallThickness) * 1e6,  # m -> um
+                    tipRadius=float(i.get("radius", 0)) * 1e6,  # m -> um
+                    tipWallThickness=float(i.get("wallThickness", 0)) * 1e6,  # m -> um
                 ).items():
                     if k not in i:
                         i[k] = v

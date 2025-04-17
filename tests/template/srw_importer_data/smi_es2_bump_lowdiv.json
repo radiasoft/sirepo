@@ -104,13 +104,13 @@
                 "id": 10,
                 "numberOfLenses": 23,
                 "position": 57.337360000000004,
-                "radius": 5e-05,
                 "refractiveIndex": 8.21692879e-07,
                 "shape": 1,
+                "tipRadius": 50.0,
+                "tipWallThickness": 32.4,
                 "title": "CRL1",
                 "type": "crl",
-                "verticalApertureSize": 1.0,
-                "wallThickness": 3.24e-05
+                "verticalApertureSize": 1.0
             },
             {
                 "id": 11,
