@@ -85,7 +85,7 @@ def delete_user(uid):
         if qcall.auth.unchecked_get_user(uid) is None:
             return
         with qcall.auth.logged_in_user_set(uid):
-            if sirepo.template.is_sim_type("jupyterhublogin"):
+            if feature_config.jupyter_is_enabled():
                 from sirepo.sim_api import jupyterhublogin
 
                 jupyterhublogin.delete_user_dir(qcall=qcall)

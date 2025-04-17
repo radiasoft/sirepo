@@ -11,6 +11,7 @@ from pykern.pkdebug import pkdp, pkdlog
 import pyisemail
 import sirepo.auth
 import sirepo.auth_role
+import sirepo.feature_config
 import sirepo.quest
 import sirepo.sim_api.jupyterhublogin
 import sirepo.template
@@ -49,7 +50,8 @@ def create_user(email, display_name):
 
     if not pyisemail.is_email(email):
         pkcli.command_error("invalid email={}", email)
-    sirepo.template.assert_sim_type("jupyterhublogin")
+    if not sirepo.feature_config.jupyter_is_enabled():
+        pkcli.command_error("jupyter must be enabled")
     with sirepo.quest.start() as qcall:
         u = maybe_create_sirepo_user(
             qcall,
