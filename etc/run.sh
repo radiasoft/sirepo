@@ -198,14 +198,14 @@ _op_test_mail() {
 
 _op_vue_build() {
     if [[ ! ${run_vue_build_no_compile:-} ]]; then
-        cd "$(dirname "$0")"/../ui
+        cd "$(dirname "$0")"/../vue
         rm -rf dist
         npm run build
         (
             # These aren't likely to fail so run in subshell
             cd ..
-            rm -f sirepo/package_data/static/ui
-            ln -s ../../../ui/dist sirepo/package_data/static/ui
+            rm -rf sirepo/package_data/static/vue
+            cp -r vue/dist sirepo/package_data/static/vue
         )
     fi
     export SIREPO_PKCLI_SERVICE_VUE_PORT=

@@ -96,7 +96,7 @@ def http():
     def _start_vue_server():
         e = PKDict()
         if _cfg().vue_port:
-            _VUE_DIR = "../ui"
+            _VUE_DIR = "../vue"
             p = pkio.py_path(f"{_VUE_DIR}/node_modules")
             if not p.exists():
                 pkdlog("Need to install vue (takes a few seconds)...")

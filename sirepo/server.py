@@ -660,7 +660,7 @@ class API(sirepo.quest.API):
                 p = "index.html"
             # do not call api_staticFile due to recursion of _proxy_vue()
             r = self.reply_file(
-                sirepo.resource.static(sirepo.util.validate_path(f"ui/{p}")),
+                sirepo.resource.static(sirepo.util.validate_path(f"vue/{p}")),
             )
             if p == "index.html":
                 # Ensures latest vue is always returned, because index.html contains
