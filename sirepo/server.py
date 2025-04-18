@@ -755,7 +755,7 @@ def _init_proxy_vue():
         return
     global _PROXY_VUE_URI_RE
     r = (
-        r"^(vue_assets)"
+        r"^(assets)"
         if _cfg.vue_server == _VUE_SERVER_BUILD
         else r"^(@|src/|node_modules/)"
     )
