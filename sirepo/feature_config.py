@@ -234,6 +234,11 @@ def _init():
             bool,
             "whether the UI should use a websocket",
         ),
+        vue_sim_types=(
+            (("myapp",) if pkconfig.channel_in("dev") else ()),
+            set,
+            "Vue apps",
+        ),
         warpvnd=dict(
             allow_3d_mode=(True, bool, "Include 3D features in the Warp VND UI"),
             display_test_boxes=_dev(

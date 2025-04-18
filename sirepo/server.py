@@ -5,13 +5,11 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern import pkconfig
-from pykern import pkconst
 from pykern import pkio
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdpretty
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import simulation_db
 import datetime
-import os.path
 import re
 import sirepo.const
 import sirepo.feature_config
@@ -23,7 +21,6 @@ import sirepo.srschema
 import sirepo.srtime
 import sirepo.uri
 import sirepo.util
-import urllib
 import urllib.parse
 
 
@@ -35,8 +32,11 @@ if any(
     import h5py
 
 
-#: Global app value (only here so instance not lost)
-_app = None
+#: See `_proxy_vue`
+_PROXY_VUE_URI_RE = None
+
+#: See `_proxy_vue`
+_VUE_SERVER_BUILD = "build"
 
 
 class API(sirepo.quest.API):
@@ -418,6 +418,7 @@ class API(sirepo.quest.API):
     async def api_root(self, path_info=None):
         from sirepo import template
 
+        self._proxy_vue(path_info)
         if path_info is None:
             return self.reply_redirect(_cfg.home_page_uri)
         if template.is_sim_type(path_info):
@@ -547,6 +548,7 @@ class API(sirepo.quest.API):
         """
         if not path_info:
             raise sirepo.util.NotFound("empty path info")
+        self._proxy_vue(f"{sirepo.const.STATIC_D}/" + path_info)
         p = sirepo.resource.static(sirepo.util.validate_path(path_info))
         if re.match(r"^(html|en)/[^/]+html$", path_info):
             return self.reply_html(p)
@@ -648,6 +650,43 @@ class API(sirepo.quest.API):
             }
         )
 
+    def _proxy_vue(self, path):
+        import requests
+
+        def _build():
+            p = path
+            m = re.search(r"^(\w+)(?:$|/)", p)
+            if m and m.group(1) in sirepo.feature_config.cfg().sim_types:
+                p = "index.html"
+            # do not call api_staticFile due to recursion of _proxy_vue()
+            r = self.reply_file(
+                sirepo.resource.static(sirepo.util.validate_path(f"vue/{p}")),
+            )
+            if p == "index.html":
+                # Ensures latest vue is always returned, because index.html contains
+                # version-tagged values but index.html does not. It's likely that
+                # a check would be made on a refresh, this ensures no caching.
+                r.headers_for_no_cache()
+            raise sirepo.util.SReplyExc(r)
+
+        def _dev():
+            p = path
+            m = re.search(r"(\?.*)", self.sreq.http_request_uri)
+            if m:
+                p += m.group(1)
+            r = requests.get(_cfg.vue_server + p)
+            # We want to throw an exception here, because it shouldn't happen
+            r.raise_for_status()
+            raise sirepo.util.SReplyExc(
+                self.reply_as_proxy(
+                    content=r.content,
+                    content_type=r.headers["Content-Type"],
+                ),
+            )
+
+        if path and _cfg.vue_server and _PROXY_VUE_URI_RE.search(path):
+            _build() if _cfg.vue_server == _VUE_SERVER_BUILD else _dev()
+
     def _render_root_page(self, page, values):
         values.update(
             PKDict(
@@ -684,6 +723,7 @@ def init_apis(*args, **kwargs):
 
 def init_tornado(use_reloader=False, is_server=False):
     """Initialize globals and create/upgrade db"""
+    _init_proxy_vue()
     from sirepo import auth_db
 
     with sirepo.quest.start() as qcall:
@@ -692,6 +732,36 @@ def init_tornado(use_reloader=False, is_server=False):
 
 def init_module(**imports):
     pass
+
+
+def _cfg_vue_server(value):
+    if value is None:
+        return None
+    if value == _VUE_SERVER_BUILD:
+        return value
+    u = urllib.parse.urlparse(value)
+    if (
+        u.scheme
+        and u.netloc
+        and u.path == "/"
+        and len(u.params + u.query + u.fragment) == 0
+    ):
+        return value
+    pkconfig.raise_error(f"invalid url={value}, must be http://netloc/")
+
+
+def _init_proxy_vue():
+    if not _cfg.vue_server:
+        return
+    global _PROXY_VUE_URI_RE
+    r = (
+        r"^(assets)"
+        if _cfg.vue_server == _VUE_SERVER_BUILD
+        else r"^(@|src/|node_modules/)"
+    )
+    for x in sirepo.feature_config.cfg().vue_sim_types:
+        r += rf"|^{x}(?:\/|$)"
+    _PROXY_VUE_URI_RE = re.compile(r)
 
 
 def _lib_file_write_path(req):
@@ -742,4 +812,9 @@ _cfg = pkconfig.init(
         "enable source cache key, disable to allow local file edits in Chrome",
     ),
     home_page_uri=("/en/landing.html", str, "home page to redirect to"),
+    vue_server=(
+        None if pkconfig.in_dev_mode() else _VUE_SERVER_BUILD,
+        _cfg_vue_server,
+        f"Base URL of npm start server or '{_VUE_SERVER_BUILD}'",
+    ),
 )

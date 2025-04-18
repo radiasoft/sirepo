@@ -31,6 +31,7 @@ PORT_DEFAULTS = PKDict(
     jupyterhub=8002,
     nginx_proxy=8080,
     supervisor=8001,
+    vue=8008,
 )
 
 #: These values will be injected into simulation_db.SCHEMA_COMMON
