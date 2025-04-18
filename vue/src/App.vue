@@ -17,6 +17,9 @@
 </template>
 
 <style scoped>
+ .links {
+     padding-bottom: 1em;
+ }
  .links a {
      margin: 1ex;
  }
