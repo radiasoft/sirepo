@@ -16,9 +16,15 @@
      { height: 150 },
  ];
 
+ const callLayout = () => {
+     nextTick(() => masonry.value.layout());
+ };
+
  const layout = () => {
      masonry.value = new Masonry(masonry.value, {
          percentPosition: true,
+         // transitionDuration: 0,
+         // horizontalOrder: true,
      })
  };
 
@@ -34,7 +40,9 @@
         <VCol v-for="(item, index) in items">
             <VCard
                 :title="'Heading ' + (index + 1)"
-                :height="item.height">
+                :height="item.height"
+                @card-visibility-changed="callLayout()"
+            >
                 Content {{ index + 1 }}
             </VCard>
         </VCol>

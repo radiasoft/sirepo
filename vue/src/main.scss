@@ -1,0 +1,14 @@
+
+$primary: #337ab7;
+$success: #5cb85c;
+$info: #5bc0de;
+$warning: #f0ad4e;
+$danger: #d9534f;
+
+$body-bg: #fff;
+$body-color: #333;
+$link-color: #337ab7;
+$link-hover-color: darken(#337ab7, 15%);
+
+// Include Bootstrap SCSS files
+@import 'bootstrap/scss/bootstrap.scss';

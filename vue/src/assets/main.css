@@ -1,0 +1,9 @@
+.sr-panel-header {
+  font-weight: 350;
+  line-height: 1.4;
+  font-size: 21px;
+  margin-bottom: 0;
+}
+.sr-panel-options > a, .sr-panel-options > div {
+  margin-left: 1em;
+}
