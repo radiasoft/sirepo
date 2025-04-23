@@ -7,3 +7,6 @@
 .sr-panel-options > a, .sr-panel-options > div {
   margin-left: 1em;
 }
+input.sr-invalid, input.sr-invalid:focus {
+  box-shadow: 0 0 0 0.25rem var(--bs-warning);
+}

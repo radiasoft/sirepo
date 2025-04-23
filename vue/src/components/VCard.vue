@@ -1,9 +1,8 @@
 <script setup>
- import { defineEmits, defineProps, onMounted, onBeforeUnmount, ref } from 'vue';
+ import { onMounted, onBeforeUnmount, ref } from 'vue';
 
  defineProps({
      title: String,
-     height: Number,
  });
 
  const emit = defineEmits(['card-visibility-changed']);
@@ -85,10 +84,7 @@
         </div>
         <div class="card-text" v-show="! hidden">
             <div class="container">
-                <div class="text-center"
-                     :style="{lineHeight: height + 'px'}">
-                    <slot></slot>
-                </div>
+                <slot></slot>
             </div>
         </div>
     </div>

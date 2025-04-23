@@ -1,8 +1,8 @@
 <script setup>
  import { RouterLink, RouterView } from 'vue-router'
  import HelloWorld from '@/components/HelloWorld.vue'
- import router from './router'
- import { routes } from './router'
+ import router from '@/services/router'
+ import { routes } from '@/services/router'
 </script>
 
 <template>
