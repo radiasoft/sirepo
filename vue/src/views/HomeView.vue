@@ -1,12 +1,9 @@
 <script setup>
+ import { nextTick, onMounted, onUpdated, reactive, ref } from 'vue';
  import Masonry from 'masonry-layout'
  import VCard from '@/components/VCard.vue'
- import VCol from '@/components/VCol.vue'
- import { nextTick, onMounted, onUpdated, reactive, ref } from 'vue';
- import VLabel from '@/components/widget/VLabel.vue'
- import VStatic from '@/components/widget/VStatic.vue'
- import VText from '@/components/widget/VText.vue'
- import VSelect from '@/components/widget/VSelect.vue'
+ import VCol from '@/components/layout/VCol.vue'
+ import VForm from '@/components/VForm.vue'
 
  const rowRef = ref(null);
  let masonry = null;
@@ -43,23 +40,31 @@
      first_name: {
          label: 'First Name',
          value: 'Scooby',
+         widget: 'static',
+         visible: true,
+         cols: 5,
      },
      last_name: {
          label: 'Last Name',
          value: 'Doo',
-         widget: 'string',
+         widget: 'text',
          enabled: true,
+         visible: true,
+         cols: 5,
      },
      balance: {
          label: 'Balance',
          value: 1.25,
          widget: 'float',
          enabled: true,
+         visible: true,
+         cols: 3,
+         tooltip: 'Account balance',
      },
      treats: {
          label: 'Treats',
          value: '2x',
-         widget: 'enum',
+         widget: 'select',
          enabled: true,
          choices: [
              '1x',
@@ -68,8 +73,17 @@
              '4x',
              '5x',
          ].map(v => ({ code: v, display: v })),
+         visible: true,
+         cols: 7,
      },
  });
+
+ const v = [
+     'first_name',
+     'last_name',
+     'balance',
+     'treats',
+ ];
 
 </script>
 
@@ -81,65 +95,11 @@
                 @card-visibility-changed="callLayout()"
             >
                 <div class="text-center"
+                     style="border: 1px solic black; background-color: lightgrey"
                      :style="{lineHeight: item.height + 'px'}">
                     Content {{ index + 1 }}
                 </div>
-                <div class="row mb-3">
-                    <div class="col-sm-5">
-                    <VLabel
-                        :field="'first_name'"
-                        :ui_ctx="m"
-                    />
-                    </div>
-                    <div class="col-sm-7">
-                    <VStatic
-                        :field="'first_name'"
-                        :ui_ctx="m"
-                    />
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-sm-5">
-                    <VLabel
-                        field="last_name"
-                        :ui_ctx="m"
-                    />
-                    </div>
-                    <div class="col-sm-7">
-                    <VText
-                        field="last_name"
-                        :ui_ctx="m"
-                    />
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-sm-5">
-                    <VLabel
-                        field="balance"
-                        :ui_ctx="m"
-                    />
-                    </div>
-                    <div class="col-sm-5">
-                    <VText
-                        field="balance"
-                        :ui_ctx="m"
-                    />
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-sm-5">
-                    <VLabel
-                        field="treats"
-                        :ui_ctx="m"
-                    />
-                    </div>
-                    <div class="col-sm-7">
-                    <VSelect
-                        field="treats"
-                        :ui_ctx="m"
-                    />
-                    </div>
-                </div>
+                <VForm :ui_ctx="m" :layout="v" />
             </VCard>
         </VCol>
     </div>

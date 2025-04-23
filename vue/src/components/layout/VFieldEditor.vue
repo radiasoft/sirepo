@@ -4,43 +4,38 @@
 <template>
     <div
         class="mb-3"
-        v-if="ui_ctx[name].visible">
-        <div v-if="ui_ctx[name].widget == 'select'">
+        v-if="ui_ctx[field].visible">
+        <div v-if="ui_ctx[field].widget == 'select'">
             <VSelect
-                :field="name"
+                :field="field"
                 :ui_ctx="ui_ctx"
             />
         </div>
-        <div v-else-if="['text', 'float', 'integer'].includes(ui_ctx[name].widget)">
+        <div v-else-if="['text', 'float', 'integer'].includes(ui_ctx[field].widget)">
             <VText
-                :field="name"
+                :field="field"
                 :ui_ctx="ui_ctx"
             />
         </div>
-        <div v-else-if="ui_ctx[name].widget == 'static'">
+        <div v-else-if="ui_ctx[field].widget == 'static'">
             <VStatic
-                :field="name"
+                :field="field"
                 :ui_ctx="ui_ctx"
             />
         </div>
-        <div v-else-if="ui_ctx[name].widget == 'button'">
-            <VButton
-                :field="name"
-                :ui_ctx="ui_ctx"
-            />
+        <div v-else>
+            Unknown widget type {{ ui_ctx[field].widget }}
         </div>
     </div>
 </template>
 
 <script setup>
- //TODO(pjm): move VLabel here, remove from widgets
- import VButton from '@/components/widget/VButton.vue';
  import VSelect from '@/components/widget/VSelect.vue';
  import VStatic from '@/components/widget/VStatic.vue';
  import VText from '@/components/widget/VText.vue';
 
  const props = defineProps({
-     name: String,
+     field: String,
      ui_ctx: Object,
  });
 </script>
