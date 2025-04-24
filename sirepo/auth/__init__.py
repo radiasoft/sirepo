@@ -672,6 +672,7 @@ class _Auth(sirepo.quest.Attr):
             roles=[],
             userName=None,
             uiWebSocket=sirepo.feature_config.cfg().ui_websocket,
+            userModeration=sirepo.feature_config.cfg().user_moderation,
             visibleMethods=visible_methods,
         )
         if "sbatch" in v.jobRunModeMap:

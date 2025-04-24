@@ -3542,7 +3542,7 @@ SIREPO.app.directive('completeRegistration', function() {
         template: `
             <div class="col-sm-12 col-md-offset-2 col-md-8 col-lg-offset-3 col-lg-6">
               <form class="form-horizontal" autocomplete="off" novalidate>
-                <h2>Moderation Request</h2>
+                <h2 data-ng-if="userModeration">Moderation Request</h2>
                 <p>Please enter your full name to complete your Sirepo registration.</p>
                 <div class="form-group">
                   <label class="col-sm-3 control-label">Your full name</label>
@@ -3552,19 +3552,21 @@ SIREPO.app.directive('completeRegistration', function() {
                     <div class="sr-input-warning" data-ng-show="showWarning">{{ loginConfirm.warningText }}</div>
                   </div>
                 </div>
-                <p>To prevent abuse of our systems all new users must supply a reason for
-                  requesting access to {{ shortName }}. In a few sentences please describe
-                  how you plan to use {{ shortName }}</p>
-                <div class="form-group">
-                  <div class="col-sm-12">
-                    <textarea data-ng-model="loginConfirm.data.reason" id="requestAccessExplanation"
-                      class="form-control" rows="4" cols="50" required></textarea>
-                  </div>
+                <div data-ng-if="userModeration">
+                    <p>To prevent abuse of our systems all new users must supply a reason for
+                      requesting access to {{ shortName }}. In a few sentences please describe
+                      how you plan to use {{ shortName }}</p>
+                    <div class="form-group">
+                      <div class="col-sm-12">
+                        <textarea data-ng-model="loginConfirm.data.reason" id="requestAccessExplanation"
+                          class="form-control" rows="4" cols="50" required></textarea>
+                      </div>
+                    </div>
                 </div>
                 <div class="form-group">
-                  <div class="col-sm-12">
+                  <div class="col-sm-9 col-sm-offset-3">
                    <button data-ng-click="loginConfirm.submit()" class="btn btn-primary"
-                     data-ng-disabled="! (loginConfirm.data.displayName && loginConfirm.data.reason)">Submit</button>
+                     data-ng-disabled="! canSubmit()">Submit</button>
                   </div>
                 </div>
               </form>
@@ -3576,8 +3578,19 @@ SIREPO.app.directive('completeRegistration', function() {
                 after your request has been reviewed.</p>
             </div>
         `,
-        controller: function($scope) {
+        controller: function(authState, $scope) {
             $scope.shortName = SIREPO.APP_SCHEMA.productInfo.shortName;
+            $scope.userModeration = authState.userModeration;
+
+            $scope.canSubmit = () => {
+                if (! $scope.loginConfirm.data.displayName) {
+                    return false;
+                }
+                if (authState.userModeration) {
+                    return !!$scope.loginConfirm.data.reason;
+                }
+                return true;
+            };
         },
     };
 });
@@ -3708,6 +3721,8 @@ SIREPO.app.directive('ldapLogin', function (requestSender) {
                 <div class="col-sm-10">
                   <input type="text" value='' maxlength="256" class="form-control" data-ng-model="user"/>
                 </div>
+              </div>
+              <div class="form-group">
                 <label class="col-sm-2 control-label">Password</label>
                 <div class="col-sm-10">
                   <input type="password" value='' maxlength="256" class="form-control" data-ng-model="password"/>

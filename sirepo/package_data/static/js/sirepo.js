@@ -4705,7 +4705,7 @@ SIREPO.app.controller('LoginConfirmController', function (authState, requestSend
                 '<token>': p.token,
             },
             function (data) {
-                if (data.state === 'ok' && self.needCompleteRegistration) {
+                if (data.state === 'ok' && self.needCompleteRegistration && authState.userModeration) {
                     $('#sr-complete-registration-done').modal('show');
                     return;
                 }
