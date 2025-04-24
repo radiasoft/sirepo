@@ -327,6 +327,8 @@ SIREPO.app.factory('authState', (errorService, uri, $rootScope) => {
         return self.roles.hasOwnProperty(role);
     };
 
+    self.isModerated = () => self.method === 'email';
+
     self.paymentPlanName = () => {
         const rv = SIREPO.APP_SCHEMA.constants.paymentPlans[self.paymentPlan];
         if (! rv) {
@@ -4705,7 +4707,7 @@ SIREPO.app.controller('LoginConfirmController', function (authState, requestSend
                 '<token>': p.token,
             },
             function (data) {
-                if (data.state === 'ok' && self.needCompleteRegistration && authState.userModeration) {
+                if (data.state === 'ok' && self.needCompleteRegistration && authState.isModerated()) {
                     $('#sr-complete-registration-done').modal('show');
                     return;
                 }

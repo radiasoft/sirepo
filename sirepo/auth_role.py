@@ -40,9 +40,9 @@ def for_moderated_sim_types():
     return [for_sim_type(s) for s in sirepo.feature_config.cfg().moderated_sim_types]
 
 
-def for_new_user(is_guest):
-    if is_guest and pkconfig.in_dev_mode():
-        return get_all()
+def for_new_user():
+    if pkconfig.in_dev_mode():
+        return list(filter(lambda r: r != ROLE_ADM, get_all()))
     return [ROLE_USER]
 
 

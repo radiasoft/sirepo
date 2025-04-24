@@ -672,7 +672,6 @@ class _Auth(sirepo.quest.Attr):
             roles=[],
             userName=None,
             uiWebSocket=sirepo.feature_config.cfg().ui_websocket,
-            userModeration=sirepo.feature_config.cfg().user_moderation,
             visibleMethods=visible_methods,
         )
         if "sbatch" in v.jobRunModeMap:
@@ -708,11 +707,10 @@ class _Auth(sirepo.quest.Attr):
         u = simulation_db.user_create()
         if want_login:
             self._login_user(module, u)
-        if r := sirepo.auth_role.for_new_user(
-            is_guest=module.AUTH_METHOD == METHOD_GUEST
-        ):
-            with self.logged_in_user_set(u, method=module.AUTH_METHOD):
-                self.qcall.auth_db.model("UserRole").add_roles(roles=r)
+        with self.logged_in_user_set(u, method=module.AUTH_METHOD):
+            self.qcall.auth_db.model("UserRole").add_roles(
+                roles=sirepo.auth_role.for_new_user()
+            )
         return u
 
     def _handle_user_dir_not_found(self, user_dir, uid):
