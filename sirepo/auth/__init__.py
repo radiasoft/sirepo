@@ -709,7 +709,9 @@ class _Auth(sirepo.quest.Attr):
             self._login_user(module, u)
         with self.logged_in_user_set(u, method=module.AUTH_METHOD):
             self.qcall.auth_db.model("UserRole").add_roles(
-                roles=sirepo.auth_role.for_new_user()
+                roles=sirepo.auth_role.for_new_user(
+                    is_guest=module.AUTH_METHOD == METHOD_GUEST
+                )
             )
         return u
 
