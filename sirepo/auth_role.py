@@ -40,9 +40,15 @@ def for_moderated_sim_types():
     return [for_sim_type(s) for s in sirepo.feature_config.cfg().moderated_sim_types]
 
 
-def for_new_user(is_guest):
-    if pkconfig.in_dev_mode():
-        return list(filter(lambda r: is_guest or r != ROLE_ADM, get_all()))
+def for_new_user(auth_method):
+    import sirepo.auth
+
+    if pkconfig.in_dev_mode:
+        if auth_method == sirepo.auth.METHOD_GUEST:
+            return get_all()
+        # the email auth method on dev has limited roles for unit tests
+        if auth_method != sirepo.auth.METHOD_EMAIL:
+            return list(filter(lambda r: r != ROLE_ADM, get_all()))
     return [ROLE_USER]
 
 
