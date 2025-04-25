@@ -10,3 +10,24 @@
 input.sr-invalid, input.sr-invalid:focus {
   box-shadow: 0 0 0 0.25rem var(--bs-warning);
 }
+
+.btn.sr-button-save-cancel {
+  min-width: 6em;
+  margin: 0 0.5ex;
+}
+
+/* bootstrap css overrides */
+.tooltip {
+  --bs-tooltip-color: #000;
+  --bs-tooltip-bg: #f9f9f9;
+}
+.tooltip-inner {
+  border: 1px solid black;
+}
+.bs-tooltip-auto[data-popper-placement^=bottom] .tooltip-arrow::before {
+  border-bottom-color: black;
+  bottom: 0;
+}
+.btn-outline-secondary {
+  --bs-btn-color: #333;
+}

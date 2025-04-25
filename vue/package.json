@@ -15,6 +15,7 @@
     "bootstrap-icons": "^1.11.3",
     "d3": "^7.9.0",
     "masonry-layout": "^4.2.2",
+    "pinia": "^3.0.2",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"
   },

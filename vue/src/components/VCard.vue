@@ -82,10 +82,8 @@
                 </a>
             </div>
         </div>
-        <div class="card-text" v-show="! hidden">
-            <div class="container">
-                <slot></slot>
-            </div>
+        <div class="card-body" v-show="! hidden">
+            <slot></slot>
         </div>
     </div>
 </template>

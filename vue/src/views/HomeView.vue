@@ -1,9 +1,10 @@
 <script setup>
- import { nextTick, onMounted, onUpdated, reactive, ref } from 'vue';
+ import { nextTick, onMounted, onUpdated, onUnmounted, reactive, ref } from 'vue';
  import Masonry from 'masonry-layout'
  import VCard from '@/components/VCard.vue'
  import VCol from '@/components/layout/VCol.vue'
  import VForm from '@/components/VForm.vue'
+ import { useModelStore } from '@/stores/models'
 
  const rowRef = ref(null);
  let masonry = null;
@@ -34,19 +35,27 @@
      nextTick(buildLayout);
  });
 
+ onUnmounted(() => {
+     if (masonry) {
+         masonry.destroy();
+     }
+ });
+
  onUpdated(buildLayout);
+
+ const store = useModelStore();
 
  const m = reactive({
      first_name: {
          label: 'First Name',
-         value: 'Scooby',
+         value: store.dog.first_name,
          widget: 'static',
          visible: true,
          cols: 5,
      },
      last_name: {
          label: 'Last Name',
-         value: 'Doo',
+         value: store.dog.last_name,
          widget: 'text',
          enabled: true,
          visible: true,
@@ -54,7 +63,7 @@
      },
      balance: {
          label: 'Balance',
-         value: 1.25,
+         value: store.dog.balance,
          widget: 'float',
          enabled: true,
          visible: true,
@@ -63,7 +72,7 @@
      },
      treats: {
          label: 'Treats',
-         value: '2x',
+         value: store.dog.treats,
          widget: 'select',
          enabled: true,
          choices: [
@@ -74,7 +83,7 @@
              '5x',
          ].map(v => ({ code: v, display: v })),
          visible: true,
-         cols: 7,
+         cols: 5,
      },
  });
 
@@ -104,10 +113,3 @@
         </VCol>
     </div>
 </template>
-
-
-/*
-  div mb-3
-    label col-form-label col-form-label-sm for=...
-    select form-select form-select-sm
-*/
