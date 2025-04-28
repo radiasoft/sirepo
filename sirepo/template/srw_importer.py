@@ -211,6 +211,10 @@ def _beamline_element(obj, idx, title, elem_type, position):
         for key in ["horizontalApertureSize", "verticalApertureSize"]:
             data[key] *= 1000.0
 
+        for key in ["radius", "wallThickness"]:
+            data[f"tip{key[0].upper() + key[1:]}"] = data[key] * 1e6
+            del data[key]
+
     elif elem_type == "crystal":
         # Fixed values in srw.js:
         data["heightAmplification"] = 1

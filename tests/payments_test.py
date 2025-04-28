@@ -137,6 +137,20 @@ def test_checkout_session(monkeypatch):
             "expecting a StripeSubscription record",
         )
 
+        # test with missing current_period_end
+        monkeypatch.setattr(
+            stripe.Subscription,
+            "retrieve_async",
+            _get_subscription_active(None),
+        )
+        pkunit.pkok(
+            qcall.call_api_sync(
+                "paymentCheckoutSessionStatus",
+                body=PKDict(sessionId="session_id_test"),
+            ).content_as_object(),
+            "Invalid session status",
+        )
+
 
 def test_event_paid_webhook(monkeypatch):
     from pykern import pkio
@@ -205,7 +219,7 @@ def _get_subscription_active(expiration):
     async def _do(*args, **kwargs):
         from sirepo import payments
 
-        return PKDict(
+        res = PKDict(
             id="subscription_id_test",
             customer="customer_id_test",
             items=PKDict(
@@ -218,10 +232,12 @@ def _get_subscription_active(expiration):
                     )
                 ]
             ),
-            current_period_end=expiration.timestamp(),
             metadata=PKDict({payments._STRIPE_SIREPO_UID_METADATA_KEY: _UID_IN_DB}),
             status="active",
         )
+        if expiration is not None:
+            res.current_period_end = expiration.timestamp()
+        return res
 
     return _do
 
