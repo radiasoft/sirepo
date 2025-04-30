@@ -46,6 +46,8 @@ dependencies = [
     "dnspython",
     # required for sbatch agent
     "asyncssh",
+    # required for ldap login
+    "ldap3",
 ]
 description = "Sirepo provides browser access to physics codes like elegant, Warp, SRW, JSPEC, Zgoubi, and more."
 dynamic = ["version"]

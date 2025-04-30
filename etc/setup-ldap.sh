@@ -1,8 +1,7 @@
 #!/bin/bash
 set -eou pipefail
-# install and start, python-ldap needs openldap-devel
-sudo yum -y install openldap-devel openldap-clients openldap-servers
-pip install python-ldap
+# install and start
+sudo yum -y install openldap-clients openldap-servers
 sudo systemctl start slapd
 sudo systemctl enable slapd
 

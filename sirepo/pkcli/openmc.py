@@ -11,7 +11,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
 from sirepo.template import template_common
 import copy
-import dagmc
 import h5py
 import json
 import numpy
@@ -23,6 +22,12 @@ import sirepo.simulation_db
 import sirepo.util
 import subprocess
 import uuid
+
+try:
+    from dagmc import DAGModel
+except:
+    from pydagmc import Model as DAGModel
+
 
 _DECIMATION_MAX_POLYGONS = 10000
 
@@ -121,7 +126,7 @@ class _MoabGroupCollector:
 
     def _groups_and_volumes(self, sim_models):
         res = PKDict()
-        for g in dagmc.DAGModel(self.dagmc_filename).groups_by_name.values():
+        for g in DAGModel(self.dagmc_filename).groups_by_name.values():
             n, d = self._parse_entity_name_and_density(g.name)
             if not n:
                 continue
@@ -243,7 +248,7 @@ class _MoabGroupExtractor:
 
     def _extract_moab_vertices_and_triangles(self, item):
         t, v = (
-            dagmc.DAGModel(item.dagmc_filename)
+            DAGModel(item.dagmc_filename)
             .groups_by_name[item.full_name]
             .get_triangle_conn_and_coords(True)
         )

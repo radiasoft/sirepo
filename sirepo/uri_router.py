@@ -350,11 +350,12 @@ def start_tornado(ip, port, debug, is_primary=True):
     def _remote_peer(request):
         # https://github.com/tornadoweb/tornado/issues/2967#issuecomment-757370594
         # implementation may change; Code in tornado.httputil check connection.
+        p = 0
         if c := request.connection:
             # socket is not set on stream for websockets.
             if hasattr(c, "stream") and hasattr(c.stream, "socket"):
-                return "{}:{}".format(*c.stream.socket.getpeername())
-        return f"{sirepo.http_util.remote_ip(request)}:0"
+                p = c.stream.socket.getpeername()[1]
+        return f"{sirepo.http_util.remote_ip(request)}:{p}"
 
     sirepo.modules.import_and_init("sirepo.server").init_tornado()
     s = httpserver.HTTPServer(

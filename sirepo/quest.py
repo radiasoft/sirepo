@@ -68,6 +68,17 @@ class API(pykern.quest.API):
     def bucket_get(self, name):
         return self._bucket[name]
 
+    def bucket_get_or_default(self, name, default):
+        """Get named value or pksetdefault
+
+        Args:
+            name (str): key
+            default (object): if callable, will be called
+        Returns:
+            object: value of name
+        """
+        return self._bucket.pksetdefault(name, default)[name]
+
     def bucket_set(self, name, value):
         assert (
             name not in self._bucket

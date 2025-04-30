@@ -104,6 +104,12 @@ class API(sirepo.quest.API):
             raise AssertionError(
                 f"stripe_uid={s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY]} does not match logged_in_user={self.auth.logged_in_user()}"
             )
+        pkdlog(
+            "Stripe subscription for uid: {} sessionId: {} current_period_end: {}",
+            self.auth.logged_in_user(),
+            b.sessionId,
+            s.get("current_period_end"),
+        )
         self.auth_db.model("StripeSubscription").new(
             uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
             customer_id=s.customer,
@@ -120,7 +126,14 @@ class API(sirepo.quest.API):
         # didn't end up paying.
         self.auth_db.model("UserRole").add_roles(
             roles=[_price_to_role(s)],
-            expiration=datetime.datetime.fromtimestamp(s.current_period_end),
+            # current_period_end may not be present, see #7546
+            # TODO(pjm): use date library to add year
+            # TODO(pjm): consider removing current_period_end and always compute from current date
+            expiration=(
+                datetime.datetime.fromtimestamp(s.current_period_end)
+                if s.get("current_period_end")
+                else datetime.datetime.utcnow() + datetime.timedelta(days=365)
+            ),
             uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
         )
         return _res(c)

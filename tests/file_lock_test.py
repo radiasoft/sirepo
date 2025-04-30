@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
 """test file_lock
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import pytest
 
 
 def test_three_processes():
