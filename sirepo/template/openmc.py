@@ -15,6 +15,7 @@ import gzip
 import h5py
 import math
 import numpy
+import os
 import re
 import shutil
 import sirepo.feature_config
@@ -54,8 +55,7 @@ def background_percent_complete(report, run_dir, is_running):
 def get_data_file(run_dir, model, frame, options):
     sim_in = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if model == "geometry3DReport":
-        d, _ = _SIM_DATA.dagmc_and_maybe_step_filename(sim_in)
-        return d
+        return _SIM_DATA.get_geometry_input_filenames(sim_in)[0]
     if model == "dagmcAnimation":
         return f"{frame}.zip"
     if model == "openmcAnimation":
@@ -82,7 +82,7 @@ def post_execution_processing(
     if success_exit:
         if compute_model == "dagmcAnimation":
             l = pkio.sorted_glob(run_dir.join("*.ply"))
-            d, s = _SIM_DATA.dagmc_and_maybe_step_filename(
+            d, s = _SIM_DATA.get_geometry_input_filenames(
                 simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
             )
             if s:
@@ -341,24 +341,23 @@ def stateless_compute_validate_material_name(data, **kwargs):
 
 
 def validate_file(file_type, path):
-    import h5py
-
     if file_type == "geometryInput-dagmcFile":
-        if path.ext == ".h5m" and not h5py.is_hdf5(path):
+        t = _SIM_DATA.get_input_file_type(str(path))
+        if t == _SIM_DATA.INPUT_DAGMC and not h5py.is_hdf5(path):
             return "File is not a valid hdf5 file."
-        if path.ext == ".stp":
+        if t == _SIM_DATA.INPUT_STEP:
             try:
                 a = CAD_to_OpenMC.assembly.Assembly([path])
                 a.load_stp_file(path)
             except Exception as e:
                 pkdlog(
-                    "path={} is not a valid stp file error={} stack={}",
+                    "path={} is not a valid step file error={} stack={}",
                     path,
                     e,
                     pkdexc(),
                 )
-                return "File is not a valid stp file."
-
+                return "File is not a valid step file."
+        # TODO(pjm): validate MCNP input file
     return None
 
 
@@ -388,6 +387,37 @@ def write_parameters(data, run_dir, is_parallel):
             ),
         )
     else:
+        # TODO(pjm): this can be combined after python version is updated,
+        #   openmc is updated and FreeCAD is available
+        if (
+            _SIM_DATA.get_input_file_type(data.models.geometryInput.dagmcFile)
+            == _SIM_DATA.INPUT_MCNP
+        ):
+            p = "new_python_required.py"
+            pkio.write_text(
+                run_dir.join(p),
+                template_common.render_jinja(
+                    SIM_TYPE,
+                    PKDict(
+                        mcnpFilename=_SIM_DATA.lib_file_name_with_model_field(
+                            "geometryInput",
+                            "dagmcFile",
+                            data.models.geometryInput.dagmcFile,
+                        ),
+                    ),
+                    "convert_mcnp.py",
+                ),
+            )
+            with pkio.open_text(run_dir.join(f"x.log"), mode="w") as l:
+                # TODO(pjm): this is a hacky work-around until we have a newer python
+                #   when new python is available, the convert_mcnp.py.jinja can be combined
+                #   with parameters.py.jinja
+                subprocess.run(
+                    ["/home/vagrant/.pyenv/versions/3.11.9/bin/python", p],
+                    check=True,
+                    stderr=l,
+                    stdout=l,
+                )
         pkio.write_text(
             run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
             _generate_parameters_file(data, run_dir=run_dir),
@@ -722,7 +752,14 @@ def _generate_parameters_file(data, run_dir=None, qcall=None):
     if report == "tallyReport":
         return ""
     res, v = template_common.generate_parameters_file(data)
-    v.dagmcFilename, v.stepFilename = _SIM_DATA.dagmc_and_maybe_step_filename(data)
+    v.dagmcFilename, intermediate = _SIM_DATA.get_geometry_input_filenames(data)
+    if intermediate:
+        if _SIM_DATA.get_input_file_type(intermediate) == _SIM_DATA.INPUT_STEP:
+            v.stepFilename = intermediate
+        elif _SIM_DATA.get_input_file_type(intermediate) == _SIM_DATA.INPUT_MCNP:
+            v.mcnpFilename = intermediate
+            data.models.geometryInput.materialsFile = None
+            v.materialsFile = "materials2.xml"
     if report == "dagmcAnimation":
         v.volumeInfoFile = _VOLUME_INFO_FILE
         if data.models.geometryInput.materialsFile:
