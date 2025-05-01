@@ -20,6 +20,7 @@ input.sr-invalid, input.sr-invalid:focus {
 .tooltip {
   --bs-tooltip-color: #000;
   --bs-tooltip-bg: #f9f9f9;
+  --bs-tooltip-font-size: 0.75rem;
 }
 .tooltip-inner {
   border: 1px solid black;

@@ -4,16 +4,17 @@
 <template>
     <div>
         <input
-            v-model="ui_ctx[field].value"
-            class="form-control form-control-sm form-control-plaintext"
-            :id="field"
+            v-model="ui_ctx[field_name].val"
+            type="text"
+            readonly
+            class="form-control-sm form-control-plaintext"
         />
     </div>
 </template>
 
 <script setup>
  const props = defineProps({
-     field: String,
+     field_name: String,
      ui_ctx: Object,
  });
 </script>

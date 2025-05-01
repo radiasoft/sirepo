@@ -5,11 +5,12 @@
     <div>
         <input
             v-model="rawValue"
+            type="text"
             autocomplete="off"
             class="form-control form-control-sm"
             :class="{'sr-invalid': isInvalid, 'text-end': isNumeric}"
-            :readonly="! ui_ctx[field].enabled"
-            :id="field"
+            :readonly="! ui_ctx[field_name].enabled"
+            @keydown="onKeydown()"
         />
     </div>
 </template>
@@ -20,24 +21,51 @@
  import { useNumberValidation } from '@/components/widget/validation/useNumberValidation.js'
 
  const props = defineProps({
-     field: String,
+     field_name: String,
      ui_ctx: Object,
  });
- const isNumeric = ['integer', 'float'].includes(props.ui_ctx[props.field].widget);
 
+ const field = () => props.ui_ctx[props.field_name];
+ const isNumeric = ['integer', 'float'].includes(field().widget);
  const { isInvalid, parsedValue, rawValue } = isNumeric
-     ? useNumberValidation(props.ui_ctx[props.field])
-     : useValidation(props.ui_ctx[props.field]);
- rawValue.value = props.ui_ctx[props.field].value;
+     ? useNumberValidation(field())
+     : useValidation(field());
+ rawValue.value = field().val;
 
- watch(props.ui_ctx[props.field], () => {
-     rawValue.value = props.ui_ctx[props.field].value;
+ //TODO(pjm): move to a utility
+ const formatExponential = (value) => {
+     if (Math.abs(value) >= 10000 || (value != 0 && Math.abs(value) < 0.001)) {
+         value = (+value).toExponential(9).replace(/\.?0+e/, 'e');
+     }
+     return value;
+ };
+
+ const onKeydown = () => {
+     field().isDirty = true;
+ };
+
+ watch(() => field().val, () => {
+     if (field().val !== parsedValue.value) {
+         rawValue.value = field().val;
+     }
+ });
+
+ watch(() => field().isDirty, () => {
+     // reset rawValue when isDirty is cleared
+     if (! field().isDirty) {
+         rawValue.value = field().val;
+         if (field().widget === 'float') {
+             rawValue.value = formatExponential(rawValue.value);
+         }
+     }
  });
 
  watch(parsedValue, () => {
+     field().isInvalid = isInvalid.value;
      if (! isInvalid.value) {
-         props.ui_ctx[props.field].value = parsedValue.value;
+         field().val = parsedValue.value;
      }
  });
+
 
 </script>

@@ -5,6 +5,5 @@ import "bootstrap"
 import '@/main.scss'
 import "bootstrap-icons/font/bootstrap-icons.css";
 import '@/assets/main.css'
-import { createPinia } from 'pinia'
 
-createApp(App).use(router).use(createPinia()).mount('#app')
+createApp(App).use(router).mount('#app')

@@ -5,11 +5,10 @@
     <div class="text-end">
         <label
             class="col-form-label col-form-label-sm"
-            :for="field"
         >
-            {{ ui_ctx[field].label }}
-        <span v-if="ui_ctx[field].tooltip">
-            <VTooltip :tooltip="ui_ctx[field].tooltip" />
+            {{ ui_ctx[field_name].label }}
+        <span v-if="ui_ctx[field_name].tooltip">
+            <VTooltip :tooltip="ui_ctx[field_name].tooltip" />
         </span>
         </label>
     </div>
@@ -19,7 +18,7 @@
  import VTooltip from '@/components/VTooltip.vue'
 
  const props = defineProps({
-     field: String,
+     field_name: String,
      ui_ctx: Object,
  });
 </script>

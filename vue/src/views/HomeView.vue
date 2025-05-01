@@ -4,19 +4,20 @@
  import VCard from '@/components/VCard.vue'
  import VCol from '@/components/layout/VCol.vue'
  import VForm from '@/components/VForm.vue'
- import { useModelStore } from '@/stores/models'
+ import { appState } from '@/services/appstate.js';
 
  const rowRef = ref(null);
- let masonry = null;
+ let masonry;
+ let resizeObserver;
 
  const items = [
-     { height: 150 },
-     { height: 100 },
-     { height: 100 },
-     { height: 266 },
-     { height: 150 },
-     { height: 100 },
-     { height: 150 },
+     { height: 150, m: reactive(appState.getUIContext('dog')) },
+     { height: 100, m: reactive(appState.getUIContext('dog')) },
+     { height: 100, m: reactive(appState.getUIContext('dog')) },
+     { height: 266, m: reactive(appState.getUIContext('dog')) },
+     { height: 150, m: reactive(appState.getUIContext('dog')) },
+     { height: 100, m: reactive(appState.getUIContext('dog')) },
+     { height: 150, m: reactive(appState.getUIContext('dog')) },
  ];
 
  const buildLayout = () => {
@@ -33,59 +34,25 @@
 
  onMounted(() => {
      nextTick(buildLayout);
+     resizeObserver = new ResizeObserver(() => {
+         nextTick(() => masonry.layout());
+     });
+     //TODO(pjm): this assumes a static list of child panels
+     for (const c of document.getElementById('sr-home-row').children) {
+         resizeObserver.observe(c);
+     }
  });
 
  onUnmounted(() => {
      if (masonry) {
          masonry.destroy();
      }
+     if (resizeObserver) {
+         resizeObserver.disconnect();
+     }
  });
 
  onUpdated(buildLayout);
-
- const store = useModelStore();
-
- const m = reactive({
-     first_name: {
-         label: 'First Name',
-         value: store.dog.first_name,
-         widget: 'static',
-         visible: true,
-         cols: 5,
-     },
-     last_name: {
-         label: 'Last Name',
-         value: store.dog.last_name,
-         widget: 'text',
-         enabled: true,
-         visible: true,
-         cols: 5,
-     },
-     balance: {
-         label: 'Balance',
-         value: store.dog.balance,
-         widget: 'float',
-         enabled: true,
-         visible: true,
-         cols: 3,
-         tooltip: 'Account balance',
-     },
-     treats: {
-         label: 'Treats',
-         value: store.dog.treats,
-         widget: 'select',
-         enabled: true,
-         choices: [
-             '1x',
-             '2x',
-             '3x',
-             '4x',
-             '5x',
-         ].map(v => ({ code: v, display: v })),
-         visible: true,
-         cols: 5,
-     },
- });
 
  const v = [
      'first_name',
@@ -97,7 +64,7 @@
 </script>
 
 <template>
-    <div class="row" ref="rowRef">
+    <div id="sr-home-row" class="row" ref="rowRef">
         <VCol v-for="(item, index) in items">
             <VCard
                 :title="'Heading ' + (index + 1)"
@@ -108,7 +75,7 @@
                      :style="{lineHeight: item.height + 'px'}">
                     Content {{ index + 1 }}
                 </div>
-                <VForm :ui_ctx="m" :layout="v" />
+                <VForm :ui_ctx="item.m" :layout="v" />
             </VCard>
         </VCol>
     </div>
