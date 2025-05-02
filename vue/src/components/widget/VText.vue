@@ -8,7 +8,10 @@
             type="text"
             autocomplete="off"
             class="form-control form-control-sm"
-            :class="{'sr-invalid': isInvalid, 'text-end': isNumeric}"
+            :class="{
+                'sr-invalid': isInvalid,
+                'text-end': isNumeric,
+            }"
             :readonly="! ui_ctx[field_name].enabled"
             @keydown="onKeydown()"
         />
@@ -30,7 +33,6 @@
  const { isInvalid, parsedValue, rawValue } = isNumeric
      ? useNumberValidation(field())
      : useValidation(field());
- rawValue.value = field().val;
 
  //TODO(pjm): move to a utility
  const formatExponential = (value) => {
@@ -39,6 +41,13 @@
      }
      return value;
  };
+
+ const formatRawValue = () => {
+     rawValue.value = field().val;
+     if (field().widget === 'float') {
+         rawValue.value = formatExponential(rawValue.value);
+     }
+ }
 
  const onKeydown = () => {
      field().isDirty = true;
@@ -53,10 +62,7 @@
  watch(() => field().isDirty, () => {
      // reset rawValue when isDirty is cleared
      if (! field().isDirty) {
-         rawValue.value = field().val;
-         if (field().widget === 'float') {
-             rawValue.value = formatExponential(rawValue.value);
-         }
+         formatRawValue();
      }
  });
 
@@ -67,5 +73,6 @@
      }
  });
 
+ formatRawValue();
 
 </script>

@@ -9,12 +9,8 @@ export function useValidation(field) {
     const rawValue = ref('');
 
     watch(rawValue, () => {
-        if (! field.optional && rawValue.value === '') {
-            isInvalid.value = true;
-            return;
-        }
         parsedValue.value = rawValue.value;
-        isInvalid.value = false;
+        isInvalid.value = ! field.optional && rawValue.value === '';
     });
     return { isInvalid, parsedValue, rawValue };
 }

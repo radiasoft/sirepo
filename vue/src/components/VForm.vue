@@ -1,5 +1,5 @@
 <template>
-    <form>
+    <form @submit.prevent autocomplete="off" novalidate>
         <div class="row" v-for="f of layout">
             <div class="col-sm-5">
                 <VLabel
@@ -17,7 +17,6 @@
         <div class="row" v-show="isFormDirty()">
             <div class="col-sm-12 text-center">
                 <button
-                    type="button"
                     class="btn btn-primary sr-button-save-cancel"
                     :disabled="isInvalid()"
                     @click="saveChanges"

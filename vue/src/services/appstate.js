@@ -1,6 +1,5 @@
 
 import { PubSub } from '@/services/pubsub.js';
-//import { reactive } from 'vue';
 
 export const appState = {
     models: {
@@ -26,7 +25,6 @@ export const appState = {
     },
 
     getUIContext(name) {
-        //TODO(pjm): could be reactive on the caller side
         return {
             first_name: {
                 label: 'First Name',
