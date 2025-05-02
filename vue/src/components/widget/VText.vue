@@ -12,7 +12,8 @@
                 'sr-invalid': isInvalid,
                 'text-end': isNumeric,
             }"
-            :readonly="! ui_ctx[field_name].enabled"
+            :disabled="! enabled"
+            :readonly="! enabled"
             @keydown="onKeydown()"
         />
     </div>
@@ -20,15 +21,17 @@
 
 <script setup>
  import { ref, watch } from 'vue';
- import { useValidation } from '@/components/widget/validation/useValidation.js'
- import { useNumberValidation } from '@/components/widget/validation/useNumberValidation.js'
+ import { useNumberValidation } from '@/components/widget/validation/useNumberValidation.js';
+ import { useValidation } from '@/components/widget/validation/useValidation.js';
+ import { useWidget } from '@/components/widget/useWidget.js';
 
  const props = defineProps({
      field_name: String,
      ui_ctx: Object,
  });
 
- const field = () => props.ui_ctx[props.field_name];
+ const { enabled, field } = useWidget(props.ui_ctx, props.field_name);
+
  const isNumeric = ['integer', 'float'].includes(field().widget);
  const { isInvalid, parsedValue, rawValue } = isNumeric
      ? useNumberValidation(field())
@@ -74,5 +77,4 @@
  });
 
  formatRawValue();
-
 </script>

@@ -1,18 +1,10 @@
 <template>
     <form @submit.prevent autocomplete="off" novalidate>
         <div class="row" v-for="f of layout">
-            <div class="col-sm-5">
-                <VLabel
-                    :field_name="f"
-                    :ui_ctx="ui_ctx"
-                />
-            </div>
-            <div :class="'col-sm-' + ui_ctx[f].cols">
-                <VFieldEditor
-                    :field_name="f"
-                    :ui_ctx="ui_ctx"
-                />
-            </div>
+            <VLabelAndField
+                :field_name="f"
+                :ui_ctx="ui_ctx"
+            />
         </div>
         <div class="row" v-show="isFormDirty()">
             <div class="col-sm-12 text-center">
@@ -36,17 +28,19 @@
 </template>
 
 <script setup>
- import VFieldEditor from '@/components/layout/VFieldEditor.vue'
- import VLabel from '@/components/widget/VLabel.vue'
+ import VLabelAndField from '@/components/layout/VLabelAndField.vue'
  import { PubSub } from '@/services/pubsub.js';
  import { appState } from '@/services/appstate.js';
  import { onMounted, onUnmounted } from 'vue';
-
 
  const props = defineProps({
      layout: Object,
      ui_ctx: Object,
  });
+
+ const cancelChanges = () => {
+     loadFromModel('dog');
+ };
 
  const isFormDirty = () => {
      for (const f in props.ui_ctx) {
@@ -57,17 +51,27 @@
      return false;
  };
 
- const cancelChanges = () => {
-     loadFromModel('dog');
- };
-
  const isInvalid = () => {
      for (const f in props.ui_ctx) {
-         if (props.ui_ctx[f].isInvalid) {
+         if (props.ui_ctx[f].visible && props.ui_ctx[f].isInvalid) {
              return true;
          }
      }
      return false;
+ };
+
+ const loadFromModel = (name) => {
+     const m = appState.models[name];
+     for (const f in m) {
+         if (f in props.ui_ctx) {
+             props.ui_ctx[f].val = m[f];
+             props.ui_ctx[f].isDirty = false;
+         }
+     }
+ };
+
+ const onModelChanged = (names) => {
+     loadFromModel(names[0]);
  };
 
  const saveChanges = () => {
@@ -81,25 +85,11 @@
      });
  };
 
- const loadFromModel = (name) => {
-     const m = appState.models[name];
-     for (const f in m) {
-         if (f in props.ui_ctx) {
-             props.ui_ctx[f].val = m[f];
-             props.ui_ctx[f].isDirty = false;
-         }
-     }
- };
-
- const event = (payload) => {
-     loadFromModel(payload[0]);
- };
-
  onMounted(() => {
-     PubSub.subscribe("modelChanged", event);
+     PubSub.subscribe("modelChanged", onModelChanged);
  });
 
  onUnmounted(() => {
-     PubSub.unsubscribe("modelChanged", event);
+     PubSub.unsubscribe("modelChanged", onModelChanged);
  });
 </script>

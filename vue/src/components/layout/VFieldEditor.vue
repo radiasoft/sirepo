@@ -2,9 +2,7 @@
    Field editor based on ui_ctx field widget.
  -->
 <template>
-    <div
-        class="mb-3"
-        v-if="ui_ctx[field_name].visible">
+    <div class="mb-3">
         <div v-if="ui_ctx[field_name].widget == 'select'">
             <VSelect
                 :field_name="field_name"
@@ -38,4 +36,5 @@
      field_name: String,
      ui_ctx: Object,
  });
+
 </script>

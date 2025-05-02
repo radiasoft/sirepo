@@ -7,6 +7,7 @@
             v-model="ui_ctx[field_name].val"
             class="form-select form-select-sm"
             @change="onChange()"
+            :disabled="! enabled"
         >
             <option
                 v-for="v of ui_ctx[field_name].choices"
@@ -18,13 +19,16 @@
 </template>
 
 <script setup>
- import { watch } from 'vue';
+ import { useWidget } from '@/components/widget/useWidget.js';
+
  const props = defineProps({
      field_name: String,
      ui_ctx: Object,
  });
 
+ const { enabled, field } = useWidget(props.ui_ctx, props.field_name);
+
  const onChange = () => {
-     props.ui_ctx[props.field_name].isDirty = true;
+     field().isDirty = true;
  };
 </script>
