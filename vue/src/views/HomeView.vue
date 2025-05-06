@@ -4,12 +4,12 @@
             <VCard
                 :title="'Heading ' + (index + 1)"
             >
-                <div class="text-center"
+                <div class="text-center mb-3"
                      style="border: 1px solic black; background-color: lightgrey"
                      :style="{lineHeight: item.height + 'px'}">
                     Content {{ index + 1 }}
                 </div>
-                <VForm :ui_ctx="item.m" :layout="v" />
+                <VForm :viewName="viewName" fieldDef="basic" />
             </VCard>
         </VCol>
     </VMasonry>
@@ -20,24 +20,18 @@
  import VCol from '@/components/layout/VCol.vue'
  import VForm from '@/components/VForm.vue'
  import VMasonry from '@/components/layout/VMasonry.vue'
- import { appState } from '@/services/appstate.js';
  import { reactive } from 'vue';
 
- const items = reactive([
-     { height: 150, m: reactive(appState.getUIContext('dog')) },
-     { height: 100, m: reactive(appState.getUIContext('dog')) },
-     { height: 100, m: reactive(appState.getUIContext('dog')) },
-     { height: 266, m: reactive(appState.getUIContext('dog')) },
-     { height: 150, m: reactive(appState.getUIContext('dog')) },
-     { height: 100, m: reactive(appState.getUIContext('dog')) },
-     { height: 150, m: reactive(appState.getUIContext('dog')) },
- ]);
+ const viewName = "dog";
 
- const v = [
-     'first_name',
-     'last_name',
-     'balance',
-     'treats',
- ];
+ const items = reactive([
+     { height: 150 },
+     { height: 100 },
+     { height: 100 },
+     { height: 266 },
+     { height: 150 },
+     { height: 100 },
+     { height: 150 },
+ ]);
 
 </script>

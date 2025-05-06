@@ -4,7 +4,7 @@
 import { ref, watch } from 'vue'
 
 export function useWidget(ui_ctx, field_name) {
-    const field = () => ui_ctx[field_name];
+    const field = () => ui_ctx.fields[field_name];
 
     const enabled = ref(field().enabled);
     const error = ref(field().error);

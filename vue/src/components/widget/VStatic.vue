@@ -4,7 +4,7 @@
 <template>
     <div>
         <input
-            v-model="ui_ctx[field_name].val"
+            v-model="ui_ctx.fields[field_name].val"
             type="text"
             readonly
             class="form-control-sm form-control-plaintext"

@@ -3,26 +3,26 @@
  -->
 <template>
     <div class="mb-3">
-        <div v-if="ui_ctx[field_name].widget == 'select'">
+        <div v-if="ui_ctx.fields[field_name].widget == 'select'">
             <VSelect
                 :field_name="field_name"
                 :ui_ctx="ui_ctx"
             />
         </div>
-        <div v-else-if="['text', 'float', 'integer'].includes(ui_ctx[field_name].widget)">
+        <div v-else-if="['text', 'float', 'integer'].includes(ui_ctx.fields[field_name].widget)">
             <VText
                 :field_name="field_name"
                 :ui_ctx="ui_ctx"
             />
         </div>
-        <div v-else-if="ui_ctx[field_name].widget == 'static'">
+        <div v-else-if="ui_ctx.fields[field_name].widget == 'static'">
             <VStatic
                 :field_name="field_name"
                 :ui_ctx="ui_ctx"
             />
         </div>
         <div v-else>
-            Unknown widget type {{ ui_ctx[field_name].widget }}
+            Unknown widget type {{ ui_ctx.fields[field_name].widget }}
         </div>
     </div>
 </template>

@@ -6,9 +6,9 @@
         <label
             class="col-form-label col-form-label-sm"
         >
-            {{ ui_ctx[field_name].label }}
-        <span v-if="ui_ctx[field_name].tooltip">
-            <VTooltip :tooltip="ui_ctx[field_name].tooltip" />
+            {{ ui_ctx.fields[field_name].label }}
+        <span v-if="ui_ctx.fields[field_name].tooltip">
+            <VTooltip :tooltip="ui_ctx.fields[field_name].tooltip" />
         </span>
         </label>
     </div>

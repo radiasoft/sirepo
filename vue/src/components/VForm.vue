@@ -31,66 +31,38 @@
  import VLabelAndField from '@/components/layout/VLabelAndField.vue'
  import { PubSub } from '@/services/pubsub.js';
  import { appState } from '@/services/appstate.js';
- import { onMounted, onUnmounted } from 'vue';
+ import { onMounted, onUnmounted, reactive } from 'vue';
 
  const props = defineProps({
-     ui_ctx: Object,
+     viewName: String,
+     fieldDef: String,
  });
 
- const layout = props.ui_ctx._view.basic;
+ const ui_ctx = reactive(appState.getUIContext(props.viewName, props.fieldDef));
 
- const cancelChanges = () => {
-     loadFromModel('dog');
- };
+ //TODO(pjm): view layout may be complicated with columns and tabs
+ const layout = ui_ctx.viewSchema[ui_ctx.fieldDef];
 
- const isFormDirty = () => {
-     for (const f in props.ui_ctx) {
-         if (props.ui_ctx[f].isDirty) {
-             return true;
-         }
-     }
-     return false;
- };
+ const cancelChanges = () => ui_ctx.cancelChanges(ui_ctx);
 
- const isInvalid = () => {
-     for (const f in props.ui_ctx) {
-         if (props.ui_ctx[f].visible && props.ui_ctx[f].isInvalid) {
-             return true;
-         }
-     }
-     return false;
- };
+ const isFormDirty = () => ui_ctx.isDirty();
 
- const loadFromModel = (name) => {
-     const m = appState.models[name];
-     for (const f in m) {
-         if (f in props.ui_ctx) {
-             props.ui_ctx[f].val = m[f];
-             props.ui_ctx[f].isDirty = false;
-         }
-     }
- };
+ const isInvalid = () => ui_ctx.isInvalid();
 
  const onModelChanged = (names) => {
-     loadFromModel(names[0]);
+     //TODO(pjm): only call if named models are used by UIContext
+     cancelChanges();
  };
 
  const saveChanges = () => {
-     appState.saveChanges({
-         dog: {
-             first_name: props.ui_ctx.first_name.val,
-             last_name: props.ui_ctx.last_name.val,
-             balance: props.ui_ctx.balance.val,
-             treats: props.ui_ctx.treats.val,
-         },
-     });
+     ui_ctx.saveChanges();
  };
 
  onMounted(() => {
-     PubSub.subscribe("modelChanged", onModelChanged);
+     PubSub.subscribe(appState.MODEL_CHANGED_EVENT, onModelChanged);
  });
 
  onUnmounted(() => {
-     PubSub.unsubscribe("modelChanged", onModelChanged);
+     PubSub.unsubscribe(appState.MODEL_CHANGED_EVENT, onModelChanged);
  });
 </script>

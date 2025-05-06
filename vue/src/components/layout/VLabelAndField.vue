@@ -5,7 +5,7 @@
             :ui_ctx="props.ui_ctx"
         />
     </div>
-    <div :class="'col-sm-' + ui_ctx[props.field_name].cols" v-if="visible">
+    <div :class="'col-sm-' + ui_ctx.fields[props.field_name].cols" v-if="visible">
         <VFieldEditor
             :field_name="props.field_name"
             :ui_ctx="props.ui_ctx"
@@ -24,8 +24,8 @@
  });
  const visible = ref(true);
 
- watch(() => props.ui_ctx[props.field_name].visible, () => {
-     visible.value = props.ui_ctx[props.field_name].visible;
+ watch(() => props.ui_ctx.fields[props.field_name].visible, () => {
+     visible.value = props.ui_ctx.fields[props.field_name].visible;
  });
 
 </script>

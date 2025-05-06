@@ -1,87 +1,11 @@
 
 import { PubSub } from '@/services/pubsub.js';
 
-const _schema = {
-    enum: {
-        Treats: [
-            ["1x", "1x"],
-            ["2x", "2x"],
-            ["3x", "3x"],
-            ["4x", "4x"],
-            ["5x", "5x"],
-        ],
-
-
-        Gender: [
-            ["male", "Male"],
-            ["female", "Female"]
-        ],
-        DogDisposition: [
-            ["aggressive", "Aggressive"],
-            ["friendly", "Friendly"],
-            ["submissive", "Submissive"]
-        ],
-    },
-    model: {
-        dog: {
-            first_name: ["First Name", "String"],
-            last_name: ["Last Name", "String"],
-            balance: ["Balance", "Float", 0, "Account balance"],
-            treats: ["Treats", "Treats", "1x"],
-
-
-            breed: ["Breed", "String"],
-            gender: ["Gender", "Gender", "male"],
-            height: ["Height [cm]", "Float", 50.0, "Distance from front paws to withers"],
-            weight: ["Weight [lbs]", "Float", 60.5],
-            disposition: ["Disposition", "DogDisposition", "friendly"],
-            favoriteTreat: ["Favorite Treat", "OptionalString", ""],
-        },
-        heightWeightReport: {}
-    },
-    view: {
-        dog: {
-            title: "Dog",
-            basic: [
-                "first_name",
-                "last_name",
-                "balance",
-                "treats",
-
-                "breed",
-                "weight",
-                "height",
-                "disposition",
-                "favoriteTreat",
-            ],
-            advanced: [
-                "breed",
-                "gender",
-                "weight",
-                "height",
-            ],
-        },
-        heightWeightReport: {
-            title: "Physical Characteristics",
-            advanced: [],
-        },
-    },
-};
-
 export const appState = {
-    models: {
-        dog: {
-            first_name:'Scooby',
-            last_name: 'Doo',
-            balance: 1.27,
-            treats: '2x',
+    MODEL_CHANGED_EVENT: 'modelChanged',
 
-            breed: 'Great Dane',
-            weight: 70.25,
-            height: 81.28,
-            disposition: "friendly",
-            favoriteTreat: "",
-        },
+    loadModels(models) {
+        this.models = models;
     },
 
     saveChanges(values) {
@@ -94,70 +18,123 @@ export const appState = {
                 }
             }
         }
-        PubSub.publish('modelChanged', Object.keys(values));
+        PubSub.publish(this.MODEL_CHANGED_EVENT, Object.keys(values));
     },
 
-    getUIContext(accessPath, viewName, fieldDef="basic") {
-        // accessPath: keyed path into object data
-        // ex. "electronBeam" or "beamline#3" or "volumes.air.material.components#3"
+    getUIContext(accessPath, fieldDef="basic", viewName=accessPath) {
+        return new UIContext(accessPath, viewName, fieldDef);
+    }
+};
 
-        viewName = viewName || accessPath;
-        const r = {
-            /*
-            _ui_ctx: {
-                accessPath,
-                viewName,
-                fieldDef,
-            },
-            */
-        };
+class UIContext {
+    // accessPath: keyed path into object data
+    // ex. "electronBeam" or "beamline#3" or "volumes.air.material.components#3"
+    //TODO(pjm): implement complex accessPath and view.model
+    constructor(accessPath, viewName, fieldDef="basic") {
+        if (! accessPath) {
+            throw Error('Missing UIContext accessPath');
+        }
+        this.accessPath = accessPath;
+        this.viewName = viewName || accessPath;
+        this.fieldDef = fieldDef
+        this.viewSchema = appState.schema.view[this.viewName];
+        if (! this.viewSchema) {
+            throw Error(`No schema view for name: ${this.viewName}`);
+        }
+        if (! this.viewSchema[this.fieldDef]) {
+            throw Error(`Missing fieldDev: ${this.fieldDef} for viewName: ${this.viewName}`);
+        }
+        this.fields = this._buildFields();
+    }
 
-        const updateFieldForType = (field, def) => {
-            field.cols = 5;
-            field.tooltip = def[3];
-            const t = def[1];
-            if (t in _schema.enum) {
-                field.widget = 'select';
-                field.choices = _schema.enum[t].map((v) => {
-                    return {
-                        code: v[0],
-                        display: v[1],
-                    };
-                });
-            }
-            else if (t === 'String') {
-                field.widget = 'text';
-            }
-            else if (t === 'OptionalString') {
-                field.widget = 'text';
-                field.optional = true;
-            }
-            else if (t === 'Float') {
-                field.widget = 'float';
-                field.cols = 3;
-            }
-            else {
-                throw new Error(`unhandled field type: ${t}`);
-            }
-        };
-
-        const sv = _schema.view[viewName];
-        //TODO(pjm): need a better structure for this
-        r._view = sv;
-        const sm = _schema.model[sv.model || viewName];
-        for (const f of sv[fieldDef]) {
+    _buildFields() {
+        const r = {};
+        const sm = appState.schema.model[this.viewSchema.model || this.viewName];
+        for (const f of this.viewSchema[this.fieldDef]) {
             //TODO(pjm): could be a structure of tabs or columns of fields
             if (f.includes('.')) {
                 //TODO(pjm): f could be a "model.field" value which would refer to a different model
             }
             r[f] = {
                 label: sm[f][0],
-                val: this.models[accessPath][f],
+                val: appState.models[this.accessPath][f],
                 visible: true,
                 enabled: true,
             };
-            updateFieldForType(r[f], sm[f]);
+            this._updateFieldForType(r[f], sm[f]);
         }
         return r;
     }
-};
+
+    _updateFieldForType(field, def) {
+        field.cols = 5;
+        field.tooltip = def[3];
+        const t = def[1];
+        if (t in appState.schema.enum) {
+            field.widget = 'select';
+            field.choices = appState.schema.enum[t].map((v) => {
+                return {
+                    code: v[0],
+                    display: v[1],
+                };
+            });
+        }
+        else if (t === 'String') {
+            field.widget = 'text';
+        }
+        else if (t === 'OptionalString') {
+            field.widget = 'text';
+            field.optional = true;
+        }
+        else if (t === 'Float') {
+            field.widget = 'float';
+            field.cols = 3;
+        }
+        else {
+            throw new Error(`unhandled field type: ${t}`);
+        }
+    }
+
+    _loadFromModels = (proxy) => {
+        const m = appState.models[this.accessPath];
+        for (const f in m) {
+            if (f in proxy.fields) {
+                proxy.fields[f].val = m[f];
+                proxy.fields[f].isDirty = false;
+            }
+        }
+    };
+
+    cancelChanges(proxy) {
+        // must use proxy not this for updates to ensure reactivity
+        this._loadFromModels(proxy);
+    }
+
+    isDirty() {
+        for (const f in this.fields) {
+            if (this.fields[f].isDirty) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    isInvalid() {
+        for (const f in this.fields) {
+            if (this.fields[f].visible && this.fields[f].isInvalid) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    saveChanges() {
+        const v = {};
+        for (const f in this.fields) {
+            v[f] = this.fields[f].val;
+        }
+        appState.saveChanges({
+            [this.accessPath]: v,
+        });
+    }
+}

@@ -4,7 +4,7 @@
 <template>
     <div>
         <select
-            v-model="ui_ctx[field_name].val"
+            v-model="ui_ctx.fields[field_name].val"
             class="form-select form-select-sm"
             :class="{
                 'sr-invalid': error,
@@ -13,7 +13,7 @@
             :disabled="! enabled"
         >
             <option
-                v-for="v of ui_ctx[field_name].choices"
+                v-for="v of ui_ctx.fields[field_name].choices"
                 :key="v.code"
                 :value="v.code">{{ v.display }}
             </option>
