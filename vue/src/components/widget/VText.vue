@@ -9,13 +9,16 @@
             autocomplete="off"
             class="form-control form-control-sm"
             :class="{
-                'sr-invalid': isInvalid,
+                'sr-invalid': isInvalid || error,
                 'text-end': isNumeric,
             }"
             :disabled="! enabled"
             :readonly="! enabled"
             @keydown="onKeydown()"
         />
+        <div v-if="error" class="invalid-feedback">
+            {{ error }}
+        </div>
     </div>
 </template>
 
@@ -30,7 +33,7 @@
      ui_ctx: Object,
  });
 
- const { enabled, field } = useWidget(props.ui_ctx, props.field_name);
+ const { enabled, error, field } = useWidget(props.ui_ctx, props.field_name);
 
  const isNumeric = ['integer', 'float'].includes(field().widget);
  const { isInvalid, parsedValue, rawValue } = isNumeric

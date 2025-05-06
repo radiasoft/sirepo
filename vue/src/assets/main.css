@@ -9,6 +9,21 @@
 }
 input.sr-invalid, input.sr-invalid:focus {
   box-shadow: 0 0 0 0.25rem var(--bs-warning);
+  border-color: var(--bs-form-invalid-border-color);
+}
+select.sr-invalid, select.sr-invalid:focus {
+  box-shadow: 0 0 0 0.25rem var(--bs-warning);
+  border-color: var(--bs-form-invalid-border-color);
+}
+.sr-invalid ~ .invalid-feedback {
+  display: block;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .sr-form-label {
+    text-align: right;
+  }
 }
 
 .btn.sr-button-save-cancel {
@@ -21,13 +36,20 @@ input.sr-invalid, input.sr-invalid:focus {
   --bs-tooltip-color: #000;
   --bs-tooltip-bg: #f9f9f9;
   --bs-tooltip-font-size: 0.75rem;
+  --bs-tooltip-opacity: 1;
 }
 .tooltip-inner {
   border: 1px solid black;
 }
-.bs-tooltip-auto[data-popper-placement^=bottom] .tooltip-arrow::before {
+.bs-tooltip-auto[data-popper-placement^=bottom] .tooltip-arrow::before
+{
   border-bottom-color: black;
   bottom: 0;
+}
+.bs-tooltip-auto[data-popper-placement^=top] .tooltip-arrow::before
+{
+  border-top-color: black;
+  top: 0;
 }
 .btn-outline-secondary {
   --bs-btn-color: #333;

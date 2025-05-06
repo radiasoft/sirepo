@@ -6,6 +6,9 @@
         <select
             v-model="ui_ctx[field_name].val"
             class="form-select form-select-sm"
+            :class="{
+                'sr-invalid': error,
+            }"
             @change="onChange()"
             :disabled="! enabled"
         >
@@ -15,6 +18,9 @@
                 :value="v.code">{{ v.display }}
             </option>
         </select>
+        <div v-if="error" class="invalid-feedback">
+            {{ error }}
+        </div>
     </div>
 </template>
 
@@ -26,7 +32,7 @@
      ui_ctx: Object,
  });
 
- const { enabled, field } = useWidget(props.ui_ctx, props.field_name);
+ const { enabled, error, field } = useWidget(props.ui_ctx, props.field_name);
 
  const onChange = () => {
      field().isDirty = true;

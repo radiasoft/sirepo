@@ -34,9 +34,10 @@
  import { onMounted, onUnmounted } from 'vue';
 
  const props = defineProps({
-     layout: Object,
      ui_ctx: Object,
  });
+
+ const layout = props.ui_ctx._view.basic;
 
  const cancelChanges = () => {
      loadFromModel('dog');

@@ -2,7 +2,7 @@
    A form field label.
  -->
 <template>
-    <div class="text-end">
+    <div class="sr-form-label">
         <label
             class="col-form-label col-form-label-sm"
         >
