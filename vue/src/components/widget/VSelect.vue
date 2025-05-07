@@ -9,7 +9,7 @@
             :class="{
                 'sr-invalid': error,
             }"
-            @change="onChange()"
+            @input="onInput"
             :disabled="! enabled"
         >
             <option
@@ -32,9 +32,6 @@
      ui_ctx: Object,
  });
 
- const { enabled, error, field } = useWidget(props.ui_ctx, props.field_name);
+ const { enabled, error, field, onInput } = useWidget(props.ui_ctx, props.field_name);
 
- const onChange = () => {
-     field().isDirty = true;
- };
 </script>

@@ -14,7 +14,7 @@
             }"
             :disabled="! enabled"
             :readonly="! enabled"
-            @keydown="onKeydown()"
+            @input="onInput"
         />
         <div v-if="error" class="invalid-feedback">
             {{ error }}
@@ -33,7 +33,7 @@
      ui_ctx: Object,
  });
 
- const { enabled, error, field } = useWidget(props.ui_ctx, props.field_name);
+ const { enabled, error, field, onInput } = useWidget(props.ui_ctx, props.field_name);
 
  const isNumeric = ['integer', 'float'].includes(field().widget);
  const { isInvalid, parsedValue, rawValue } = isNumeric
@@ -54,10 +54,6 @@
          rawValue.value = formatExponential(rawValue.value);
      }
  }
-
- const onKeydown = () => {
-     field().isDirty = true;
- };
 
  watch(() => field().val, () => {
      if (field().val !== parsedValue.value) {

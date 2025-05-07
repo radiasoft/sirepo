@@ -5,8 +5,8 @@
 </template>
 
 <script setup>
- import { nextTick, onMounted, onUnmounted, onUpdated, ref } from 'vue';
  import Masonry from 'masonry-layout'
+ import { nextTick, onMounted, onUnmounted, onUpdated, ref } from 'vue';
 
  const rowRef = ref(null);
  let masonry;
@@ -25,8 +25,7 @@
          //TODO(pjm): add debouncer
          resizeObserver = new ResizeObserver(() => masonry.layout());
      }
-     //TODO(pjm): assumes only one VMasonry component layout on a page
-     for (const c of document.getElementById('sr-masonry-row').children) {
+     for (const c of rowRef.value.children) {
          resizeObserver.observe(c);
      }
  };
@@ -43,5 +42,4 @@
  });
 
  onUpdated(buildLayout);
-
 </script>

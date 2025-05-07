@@ -2,7 +2,7 @@
     <VMasonry>
         <VCol v-for="(item, index) in items">
             <VCard
-                :title="'Heading ' + (index + 1)"
+                :viewName="viewName"
             >
                 <div class="text-center mb-3"
                      style="border: 1px solic black; background-color: lightgrey"

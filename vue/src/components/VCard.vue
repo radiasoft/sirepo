@@ -1,13 +1,62 @@
-<script setup>
- import { onMounted, onBeforeUnmount, ref } from 'vue';
+<template>
+    <div class="card mb-4" :style="cardStyle">
+        <div class="sr-panel-header card-header lead text-bg-info bg-opacity-25">
+            {{ title }}
+            <div class="sr-panel-options float-end">
+                <a v-if="canEdit" href title="Edit" @click.prevent="showModal"><span class="bi bi-pencil-fill"></span></a>
+                <div class="dropdown-menu-end" style="display: inline-block" title="Download">
+                    <a href data-bs-toggle="dropdown"><span class="bi bi-cloud-download-fill"></span></a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#">Action</a></li>
+                        <li><a class="dropdown-item" href="#">Another action</a></li>
+                        <li><a class="dropdown-item" href="#">Something else here</a></li>
+                    </ul>
+                </div>
+                <a href
+                   @click.prevent="toggleFullscreen()"
+                   v-if="! hidden"
+                   :title="isFullscreen() ? 'Exit Full Screen' : 'Full Screen'"
+                >
+                    <span :class="{
+                        'bi bi-fullscreen-exit': isFullscreen(),
+                        'bi bi-fullscreen': ! isFullscreen()
+                    }"></span>
+                </a>
+                <a href
+                   @click.prevent="toggleHidden()"
+                   v-if="! isFullscreen()"
+                   :title="hidden ? 'Show' : 'Hide'"
+                >
+                    <span :class="{
+                        'bi bi-chevron-down': hidden,
+                        'bi bi-chevron-up': ! hidden
+                    }"></span>
+                </a>
+            </div>
+        </div>
+        <div class="card-body" v-show="! hidden">
+            <slot></slot>
+        </div>
+    </div>
+    <div v-if="canEdit">
+        <VModal :viewName="viewName" :title="title" ref="modal"/>
+    </div>
+</template>
 
- defineProps({
-     title: String,
+<script setup>
+ import VModal from '@/components/VModal.vue'
+ import { appState } from '@/services/appstate.js';
+ import { onBeforeUnmount, onMounted, ref } from 'vue';
+
+ const props = defineProps({
+     viewName: String,
  });
 
- const emit = defineEmits(['card-visibility-changed']);
+ const canEdit = appState.schema.view[props.viewName].advanced.length > 0;
  const cardStyle = ref({});
  const hidden = ref(false);
+ const modal = ref(null);
+ const title = appState.schema.view[props.viewName].title;
 
  const onKeydown = (event) => {
      if (event.key == 'Escape' && isFullscreen()) {
@@ -16,6 +65,8 @@
  };
 
  const isFullscreen = () => !!cardStyle.value.position;
+
+ const showModal = () => modal.value.showModal();
 
  const toggleFullscreen = () => {
      cardStyle.value = isFullscreen()
@@ -33,7 +84,6 @@
 
  const toggleHidden = () => {
      hidden.value = ! hidden.value;
-     emit('card-visibility-changed');
  };
 
  onBeforeUnmount(() => {
@@ -43,47 +93,4 @@
  onMounted(() => {
      document.addEventListener('keydown', onKeydown);
  });
-
 </script>
-
-<template>
-    <div class="card mb-4" :style="cardStyle">
-        <div class="sr-panel-header card-header lead text-bg-info bg-opacity-25">
-            {{ title }}
-            <div class="sr-panel-options float-end">
-                <a href title="Edit"><span class="bi bi-pencil-fill"></span></a>
-                <div class="dropdown-menu-end" style="display: inline-block" title="Download">
-                    <a href data-bs-toggle="dropdown"><span class="bi bi-cloud-download-fill"></span></a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#">Action</a></li>
-                        <li><a class="dropdown-item" href="#">Another action</a></li>
-                        <li><a class="dropdown-item" href="#">Something else here</a></li>
-                    </ul>
-                </div>
-                <a href
-                   @click.prevent="toggleFullscreen()"
-                   v-if="! hidden"
-                   :title="isFullscreen() ? 'Exit Full Screen' : 'Full Screen'"
-                >
-                    <span :class="{
-                                  'bi bi-fullscreen-exit': isFullscreen(),
-                                  'bi bi-fullscreen': ! isFullscreen()
-                                  }"></span>
-                </a>
-                <a href
-                   @click.prevent="toggleHidden()"
-                   v-if="! isFullscreen()"
-                   :title="hidden ? 'Show' : 'Hide'"
-                >
-                    <span :class="{
-                                  'bi bi-chevron-down': hidden,
-                                  'bi bi-chevron-up': ! hidden
-                                  }"></span>
-                </a>
-            </div>
-        </div>
-        <div class="card-body" v-show="! hidden">
-            <slot></slot>
-        </div>
-    </div>
-</template>

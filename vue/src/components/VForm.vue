@@ -38,12 +38,17 @@
      fieldDef: String,
  });
 
+ const emit = defineEmits(['dismissModal']);
+
  const ui_ctx = reactive(appState.getUIContext(props.viewName, props.fieldDef));
 
  //TODO(pjm): view layout may be complicated with columns and tabs
  const layout = ui_ctx.viewSchema[ui_ctx.fieldDef];
 
- const cancelChanges = () => ui_ctx.cancelChanges(ui_ctx);
+ const cancelChanges = () => {
+     ui_ctx.cancelChanges(ui_ctx);
+     emit('dismissModal');
+ };
 
  const isFormDirty = () => ui_ctx.isDirty();
 
@@ -56,6 +61,7 @@
 
  const saveChanges = () => {
      ui_ctx.saveChanges();
+     emit('dismissModal');
  };
 
  onMounted(() => {
@@ -65,4 +71,6 @@
  onUnmounted(() => {
      PubSub.unsubscribe(appState.MODEL_CHANGED_EVENT, onModelChanged);
  });
+
+ defineExpose({ cancelChanges });
 </script>
