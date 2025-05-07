@@ -1,5 +1,5 @@
 <template>
-    <div v-if="modalCreated" class="modal fade" :id="viewName" tabindex="-1" ref="modal">
+    <div v-if="modalCreated" class="modal fade" tabindex="-1" ref="modal">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header text-bg-info bg-opacity-25">

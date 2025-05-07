@@ -10,7 +10,7 @@ export function useWidget(ui_ctx, field_name) {
     const error = ref(field().error);
 
     const onInput = () => {
-        field().isDirty = true;
+        field().dirty = true;
     };
 
     watch(() => field().enabled, () => {

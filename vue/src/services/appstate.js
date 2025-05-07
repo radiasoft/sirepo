@@ -95,24 +95,20 @@ class UIContext {
         }
     }
 
-    _loadFromModels = (proxy) => {
+    cancelChanges(proxy) {
         const m = appState.models[this.accessPath];
         for (const f in m) {
+            // must use proxy not this for updates to ensure reactivity
             if (f in proxy.fields) {
                 proxy.fields[f].val = m[f];
-                proxy.fields[f].isDirty = false;
+                proxy.fields[f].dirty = false;
             }
         }
-    };
-
-    cancelChanges(proxy) {
-        // must use proxy not this for updates to ensure reactivity
-        this._loadFromModels(proxy);
     }
 
     isDirty() {
         for (const f in this.fields) {
-            if (this.fields[f].isDirty) {
+            if (this.fields[f].dirty) {
                 return true;
             }
         }
@@ -121,7 +117,7 @@ class UIContext {
 
     isInvalid() {
         for (const f in this.fields) {
-            if (this.fields[f].visible && this.fields[f].isInvalid) {
+            if (this.fields[f].visible && this.fields[f].invalid) {
                 return true;
             }
         }

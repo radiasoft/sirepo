@@ -61,15 +61,15 @@
      }
  });
 
- watch(() => field().isDirty, () => {
-     // reset rawValue when isDirty is cleared
-     if (! field().isDirty) {
+ watch(() => field().dirty, () => {
+     // reset rawValue when dirty is cleared
+     if (! field().dirty) {
          formatRawValue();
      }
  });
 
  watch(parsedValue, () => {
-     field().isInvalid = isInvalid.value;
+     field().invalid = isInvalid.value;
      if (! isInvalid.value) {
          field().val = parsedValue.value;
      }

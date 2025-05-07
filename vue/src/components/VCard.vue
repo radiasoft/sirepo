@@ -1,3 +1,4 @@
+//TODO(pjm): dropdown-menu should be a named slot
 <template>
     <div class="card mb-4" :style="cardStyle">
         <div class="sr-panel-header card-header lead text-bg-info bg-opacity-25">

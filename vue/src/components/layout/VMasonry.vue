@@ -1,5 +1,5 @@
 <template>
-    <div id="sr-masonry-row" class="row" ref="rowRef">
+    <div class="row" ref="rowRef">
         <slot></slot>
     </div>
 </template>
