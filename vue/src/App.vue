@@ -3,6 +3,7 @@
         <HelloWorld msg="some text" />
         <div class="links">
             <RouterLink :to="{ name: 'home' }">{{ routes.home.title }}</RouterLink>
+            <RouterLink :to="{ name: 'test' }">{{ routes.test.title }}</RouterLink>
             <RouterLink :to="{ name: 'about' }">{{ routes.about.title }}</RouterLink>
         </div>
         <RouterView />
