@@ -29,7 +29,7 @@
 
 <script setup>
  import VLabelAndField from '@/components/layout/VLabelAndField.vue'
- import { PubSub } from '@/services/pubsub.js';
+ import { pubSub } from '@/services/pubsub.js';
  import { appState } from '@/services/appstate.js';
  import { onMounted, onUnmounted, reactive } from 'vue';
 
@@ -65,11 +65,11 @@
  };
 
  onMounted(() => {
-     PubSub.subscribe(appState.MODEL_CHANGED_EVENT, onModelChanged);
+     pubSub.subscribe(appState.MODEL_CHANGED_EVENT, onModelChanged);
  });
 
  onUnmounted(() => {
-     PubSub.unsubscribe(appState.MODEL_CHANGED_EVENT, onModelChanged);
+     pubSub.unsubscribe(appState.MODEL_CHANGED_EVENT, onModelChanged);
  });
 
  defineExpose({ cancelChanges });

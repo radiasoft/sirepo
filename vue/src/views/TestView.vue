@@ -70,7 +70,7 @@
      await addScriptTag('/auth-state');
      console.log(SIREPO);
      response = await fetchWithJSON('/simulation-list', { simulationType: 'myapp' });
-     checkResponse(response);
+     await checkResponse(response);
      response = await msgRouter.send('/simulation-list', { simulationType: 'myapp' }, {});
      console.log('msgRouter response:', response);
  };

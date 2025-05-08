@@ -5,15 +5,16 @@ import * as msgpack from '@msgpack/msgpack';
 const srlog = console.log;
 
 //SIREPO.app.factory('msgRouter', ($interval, $q, $window, authState, errorService) => {
-export const msgRouter = {
-    asyncMsgMethods: {},
-    toSend: [],
-    needReply: {},
-    reqSeq: 1,
-    socket: null,
-    socketRetryBackoff:  0,
+class MsgRouter {
 
-    _appendBuffers(wsreq, buffers) {
+    #asyncMsgMethods = {};
+    #needReply = {};
+    #reqSeq = 1;
+    #socket = null;
+    #socketRetryBackoff = 0;
+    #toSend = [];
+
+    #appendBuffers(wsreq, buffers) {
         buffers.splice(0, 0, wsreq.msg);
         const f = new Uint8Array(buffers.reduce((a, b) => a + b.length, 0));
         let i = 0;
@@ -22,9 +23,9 @@ export const msgRouter = {
             i += b.length;
         }
         wsreq.msg = f;
-    },
+    }
 
-    _protocolError(header, content, wsreq, errorMsg) {
+    #protocolError(header, content, wsreq, errorMsg) {
         const e = "sirepo.msgRouter protocolError=" + (errorMsg || "invalid reply from server");
         srlog(
             e,
@@ -43,24 +44,24 @@ export const msgRouter = {
                 status: 500,
             });
         }
-    },
+    }
 
-    _reply(blob) {
+    #reply(blob) {
         let [header, content] = msgpack.decodeMulti(blob);
-        const wsreq = this.needReply[header.reqSeq];
+        const wsreq = this.#needReply[header.reqSeq];
         if (header.version !== SIREPO.APP_SCHEMA.websocketMsg.version) {
-            this._protocolError(header, content, wsreq, "invalid version");
+            this.#protocolError(header, content, wsreq, "invalid version");
             return;
         }
         if (header.kind === SIREPO.APP_SCHEMA.websocketMsg.kind.asyncMsg) {
             if (! header.method) {
-                this._protocolError(header, content, wsreq, "missing method in content");
+                this.#protocolError(header, content, wsreq, "missing method in content");
             }
-            else if (! (header.method in this.asyncMsgMethods) ){
-                this._protocolError(header, content, wsreq, `unregistered asyncMsg method=${header.method}`);
+            else if (! (header.method in this.#asyncMsgMethods) ){
+                this.#protocolError(header, content, wsreq, `unregistered asyncMsg method=${header.method}`);
             }
             else {
-                this.asyncMsgMethods[header.method](content);
+                this.#asyncMsgMethods[header.method](content);
             }
             return;
         }
@@ -73,10 +74,10 @@ export const msgRouter = {
             }
         };
         if (! wsreq) {
-            this._protocolError(header, content, null, "reqSeq not found");
+            this.#protocolError(header, content, null, "reqSeq not found");
             return;
         }
-        delete this.needReply[header.reqSeq];
+        delete this.#needReply[header.reqSeq];
         if (header.kind === SIREPO.APP_SCHEMA.websocketMsg.kind.srException) {
             const n = content.routeName;
             const r = {data: {}};
@@ -91,13 +92,13 @@ export const msgRouter = {
             return;
         }
         if (header.kind !== SIREPO.APP_SCHEMA.websocketMsg.kind.httpReply) {
-            this._protocolError(header, content, wsreq, "invalid websocketMsg.kind");
+            this.#protocolError(header, content, wsreq, "invalid websocketMsg.kind");
             return;
         }
         const b = wsreq.responseType === "blob";
         if (content instanceof Uint8Array) {
             if (! b) {
-                this._protocolError(header, content, wsreq, "unexpected blob content");
+                this.#protocolError(header, content, wsreq, "unexpected blob content");
                 return;
             }
             content = new Blob([content]);
@@ -107,7 +108,7 @@ export const msgRouter = {
                 _replyError({data: content});
                 return;
             }
-            this._protocolError(header, content, wsreq, "expected blob content");
+            this.#protocolError(header, content, wsreq, "expected blob content");
             return;
         }
         else if (wsreq.responseType === "json") {
@@ -138,9 +139,9 @@ export const msgRouter = {
                 status: 200
             });
         }
-    },
+    }
 
-    _reqData(data, wsreq, done) {
+    #reqData(data, wsreq, done) {
         if (! (data instanceof FormData)) {
             done([data]);
             return;
@@ -166,10 +167,10 @@ export const msgRouter = {
         if (f.key !== "file") {
             throw new Error("file form fields must be named 'file' name=" + f.key);
         }
-        this._reqDataFile(d, f.key, f.file, done);
-    },
+        this.#reqDataFile(d, f.key, f.file, done);
+    }
 
-    _reqDataFile(data, key, file, done) {
+    #reqDataFile(data, key, file, done) {
         var r = new FileReader();
         r.readAsArrayBuffer(file);
         r.onerror = (event) => {
@@ -184,95 +185,98 @@ export const msgRouter = {
                 {filename: file.name, blob: new Uint8Array(r.result),},
             ]);
         };
-    },
+    }
 
-    _send() {
+    #send() {
         //if already req_seq use that so server can know if it is a resend
-        if (this.toSend.length <= 0) {
+        if (this.#toSend.length <= 0) {
             return;
         }
-        if (this.socket === null) {
-            this._socket();
+        if (this.#socket === null) {
+            this.#socketCreate();
             return;
         }
-        if (this.socket.readyState !== 1) {
+        if (this.#socket.readyState !== 1) {
             return;
         }
-        while (this.toSend.length > 0) {
-            const wsreq = this.toSend.shift();
-            this.needReply[wsreq.header.reqSeq] = wsreq;
-            this.socket.send(wsreq.msg);
+        while (this.#toSend.length > 0) {
+            const wsreq = this.#toSend.shift();
+            this.#needReply[wsreq.header.reqSeq] = wsreq;
+            this.#socket.send(wsreq.msg);
         }
-    },
+    }
 
-    _socket() {
-        if (this.socket !== null) {
+    #socketCreate() {
+        if (this.#socket !== null) {
             return;
         }
         //TODO(pjm): support cookies
         //if (authState.cookieCheck()) {
         //    return;
         //}
-        const s = new WebSocket(
-            //new URL($window.location.href).origin.replace(/^http/i, "ws") + "/ws",
-            new URL(window.location.href).origin.replace(/^http/i, "ws") + "/ws",
+        this.#socket = Object.assign(
+            new WebSocket(
+                //new URL($window.location.href).origin.replace(/^http/i, "ws") + "/ws",
+                new URL(window.location.href).origin.replace(/^http/i, "ws") + "/ws",
+            ),
+            {
+                onclose: this.#socketError.bind(this),
+                onerror: this.#socketError.bind(this),
+                onmessage: this.#socketOnMessage.bind(this),
+                onopen: this.#socketOnOpen.bind(this),
+            },
         );
-        s.onclose = this._socketError.bind(this);
-        s.onerror = this._socketError.bind(this);
-        s.onmessage = this._socketOnMessage.bind(this);
-        s.onopen = this._socketOnOpen.bind(this);
-        this.socket = s;
-    },
+    }
 
-    _socketError(event) {
+    #socketError(event) {
         // close: event.code : short, event.reason : str, wasClean : bool
         // error: app specific
-        this.socket = null;
-        if (this.socketRetryBackoff <= 0) {
-            this.socketRetryBackoff = 1;
+        this.#socket = null;
+        if (this.#socketRetryBackoff <= 0) {
+            this.#socketRetryBackoff = 1;
             srlog("WebSocket failed: event=", event);
             if (! event.wasClean) {
-                this.toSend.unshift(...Object.values(this.needReply));
-                this.needReply = {};
+                this.#toSend.unshift(...Object.values(this.#needReply));
+                this.#needReply = {};
             }
         }
         //TODO(robnagler) some type of set status to communicate connection lost
-        //$interval(_socket, this.socketRetryBackoff * 1000, 1);
-        setTimeout(this._socket.bind(this), this.socketRetryBackoff * 1000);
+        //$interval(_socket, this.#socketRetryBackoff * 1000, 1);
+        setTimeout(this.#socket.bind(this), this.#socketRetryBackoff * 1000);
 
-        if (this.socketRetryBackoff < 60) {
-            this.socketRetryBackoff *= 2;
+        if (this.#socketRetryBackoff < 60) {
+            this.#socketRetryBackoff *= 2;
         }
-    },
+    }
 
-    _socketOnMessage(event) {
+    #socketOnMessage(event) {
         event.data.arrayBuffer().then(
-            (blob) => {this._reply(blob);},
+            (blob) => {this.#reply(blob);},
             (error) => {srlog("WebSocket.onmessage error=", error, " event=", event);}
         );
-    },
+    }
 
-    _socketOnOpen(event) {
-        this.socketRetryBackoff = 0;
-        this._send();
-    },
+    #socketOnOpen(event) {
+        this.#socketRetryBackoff = 0;
+        this.#send();
+    }
 
     clearModels() {
-        while (this.toSend.length > 0) {
-            this.toSend.shift().deferred = null;
+        while (this.#toSend.length > 0) {
+            this.#toSend.shift().deferred = null;
         }
-        for (const v of Object.values(this.needReply)) {
+        for (const v of Object.values(this.#needReply)) {
             v.deferred = null;
         }
-        this.needReply = {};
-    },
+        this.#needReply = {};
+    }
 
     registerAsyncMsg(methodName, callback) {
-        if (methodName in this.asyncMsgMethods) {
+        if (methodName in this.#asyncMsgMethods) {
             throw new Error(`duplicate registerAsyncMsg methodName="${methodName}"`);
         }
-        this.asyncMsgMethods[methodName] = callback;
-    },
+        this.#asyncMsgMethods[methodName] = callback;
+    }
 
     send(url, data, httpConfig) {
         //TODO(pjm): support cookies
@@ -290,7 +294,7 @@ export const msgRouter = {
             deferred: d,
             header: {
                 kind: SIREPO.APP_SCHEMA.websocketMsg.kind.httpRequest,
-                reqSeq: this.reqSeq++,
+                reqSeq: this.#reqSeq++,
                 uri: decodeURIComponent(url),
                 version: SIREPO.APP_SCHEMA.websocketMsg.version,
             },
@@ -299,13 +303,13 @@ export const msgRouter = {
         wsreq.msg = msgpack.encode(wsreq.header);
         const c = (buffers) => {
             if (buffers) {
-                this._appendBuffers(
+                this.#appendBuffers(
                     wsreq,
                     buffers.map((b) => (new msgpack.Encoder()).encodeSharedRef(b)),
                 );
             }
-            this.toSend.push(wsreq);
-            this._send();
+            this.#toSend.push(wsreq);
+            this.#send();
         };
         if (SIREPO.traceWS) {
             srlog(`wsreq#${wsreq.header.reqSeq} send:`, wsreq.header.uri, data);
@@ -314,9 +318,11 @@ export const msgRouter = {
             c();
         }
         else {
-            this._reqData(data, wsreq, c);
+            this.#reqData(data, wsreq, c);
         }
         //return wsreq.deferred.promise;
         return p;
-    },
-};
+    }
+}
+
+export const msgRouter = new MsgRouter();

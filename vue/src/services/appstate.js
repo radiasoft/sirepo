@@ -1,33 +1,8 @@
 
-import { PubSub } from '@/services/pubsub.js';
-
-export const appState = {
-    MODEL_CHANGED_EVENT: 'modelChanged',
-
-    loadModels(models) {
-        this.models = models;
-    },
-
-    saveChanges(values) {
-        for (const m in values) {
-            if (this.models[m]) {
-                for (const f in values[m]) {
-                    if (f in this.models[m]) {
-                        this.models[m][f] = values[m][f];
-                    }
-                }
-            }
-        }
-        PubSub.publish(this.MODEL_CHANGED_EVENT, Object.keys(values));
-    },
-
-    getUIContext(accessPath, fieldDef="basic", viewName=accessPath) {
-        return new UIContext(accessPath, viewName, fieldDef);
-    }
-};
+import { pubSub } from '@/services/pubsub.js';
 
 class UIContext {
-    // accessPath: keyed path into object data
+    // accessPath: keyed path into object or array data
     // ex. "electronBeam" or "beamline#3" or "volumes.air.material.components#3"
     //TODO(pjm): implement complex accessPath and view.model
     constructor(accessPath, viewName, fieldDef="basic") {
@@ -44,10 +19,10 @@ class UIContext {
         if (! this.viewSchema[this.fieldDef]) {
             throw Error(`Missing fieldDev: ${this.fieldDef} for viewName: ${this.viewName}`);
         }
-        this.fields = this._buildFields();
+        this.fields = this.#buildFields();
     }
 
-    _buildFields() {
+    #buildFields() {
         const r = {};
         const sm = appState.schema.model[this.viewSchema.model || this.viewName];
         for (const f of this.viewSchema[this.fieldDef]) {
@@ -61,12 +36,12 @@ class UIContext {
                 visible: true,
                 enabled: true,
             };
-            this._updateFieldForType(r[f], sm[f]);
+            this.#updateFieldForType(r[f], sm[f]);
         }
         return r;
     }
 
-    _updateFieldForType(field, def) {
+    #updateFieldForType(field, def) {
         field.cols = 5;
         field.tooltip = def[3];
         const t = def[1];
@@ -134,3 +109,30 @@ class UIContext {
         });
     }
 }
+
+class AppState {
+    MODEL_CHANGED_EVENT = 'modelChanged';
+
+    getUIContext(accessPath, fieldDef="basic", viewName=accessPath) {
+        return new UIContext(accessPath, viewName, fieldDef);
+    }
+
+    loadModels(models) {
+        this.models = models;
+    }
+
+    saveChanges(values) {
+        for (const m in values) {
+            if (this.models[m]) {
+                for (const f in values[m]) {
+                    if (f in this.models[m]) {
+                        this.models[m][f] = values[m][f];
+                    }
+                }
+            }
+        }
+        pubSub.publish(this.MODEL_CHANGED_EVENT, Object.keys(values));
+    }
+}
+
+export const appState = new AppState();
