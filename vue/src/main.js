@@ -2,16 +2,17 @@ import "bootstrap"
 import "bootstrap-icons/font/bootstrap-icons.css";
 import '@/assets/main.css'
 import '@/main.scss'
+import App from '@/App.vue'
 import router from '@/services/router'
-import { createApp } from 'vue'
 import { appState } from '@/services/appstate.js';
 import { authState } from '@/services/authstate.js';
+import { createApp } from 'vue'
 
-const sirepoLegacyInit = async () => {
+const sirepoLegacyInit = () => {
     //TODO(pjm): Uses the existing Sirepo API. Create a new API for this
     // that includes the simulationType, schema and authState in one websocket request?
 
-    const addScriptTag = async (url) => {
+    const addScriptTag = (url) => {
         const t = document.createElement('script');
         document.body.appendChild(Object.assign(t, {
             src: url,
@@ -21,28 +22,28 @@ const sirepoLegacyInit = async () => {
         return new Promise((resolve, reject) => t.onload = resolve);
     };
 
-    const checkHTTPResponse = async (response) => {
+    const checkHTTPResponse = (response) => {
         if (! response.ok) {
             throw new Error('request failed:', response);
         }
         if (! response.headers.get('content-type').includes('json')) {
             throw new Error(`expected json content-type: ${response.headers.get('content-type')}`);
         }
-        return await response.json();
+        return response.json();
     };
 
-    const fetchWithFormData = async (url, body) => {
+    const fetchWithFormData = (url, body) => {
         const formData = new URLSearchParams();
         for (const k in body)  {
             formData.append(k, body[k]);
         }
-        return await checkHTTPResponse(await fetch(url, {
+        return fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: formData.toString(),
-        }));
+        }).then(checkHTTPResponse);
     };
 
     //TODO(pjm): router not yet initialized so use window.location
@@ -52,14 +53,19 @@ const sirepoLegacyInit = async () => {
         throw new Error(`missing simulationType in URL path: ${window.location.pathname}`);
     }
     //TODO(pjm): initial schema call must be with form-data?
-    const schema = await fetchWithFormData('/simulation-schema', { simulationType });
-    appState.init(simulationType, schema);
-    globalThis.SIREPO = {};
-    await addScriptTag(schema.route.authState);
-    authState.init(SIREPO.authState);
-    delete globalThis.SIREPO;
+    return fetchWithFormData('/simulation-schema', { simulationType }).then(
+        (schema) => {
+            appState.init(simulationType, schema);
+            globalThis.SIREPO = {};
+            return addScriptTag(schema.route.authState);
+        }).then(() => {
+            authState.init(SIREPO.authState);
+            delete globalThis.SIREPO;
+        });
 };
 
-await sirepoLegacyInit();
-import App from '@/App.vue'
-createApp(App).use(router).mount('#app')
+sirepoLegacyInit().then(() => {
+    createApp(App).use(router).mount('#app')
+}).catch((message) => {
+    throw new Error(message);
+});
