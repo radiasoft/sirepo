@@ -4,7 +4,7 @@
 </template>
 
 <script setup>
-
+ import { appState } from '@/services/appstate.js';
  import { msgRouter } from '@/services/msgrouter.js';
 
  const fetchWithJSON = async (url, body) => {
@@ -37,9 +37,9 @@
  };
 
  const test = async () => {
-     const r1 = await fetchWithJSON('/simulation-list', { simulationType: SIREPO.simulationType });
+     const r1 = await fetchWithJSON('/simulation-list', { simulationType: appState.simulationType });
      console.log('json fetch simulations:', r1);
-     const r2 = await websocket('/simulation-list', { simulationType: SIREPO.simulationType });
+     const r2 = await websocket('/simulation-list', { simulationType: appState.simulationType });
      console.log('websocket simulations:', r2);
  };
 </script>

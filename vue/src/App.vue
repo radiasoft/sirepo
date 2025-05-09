@@ -3,9 +3,9 @@
         <HelloWorld msg="some text" />
         <div class="links">
             <!-- testing links only -->
-            <RouterLink :to="{ name: 'home', params: { simulationType: simulationType() }}">{{ routes.home.title }}</RouterLink>
-            <RouterLink :to="{ name: 'test', params: { simulationType: simulationType() }}">{{ routes.test.title }}</RouterLink>
-            <RouterLink :to="{ name: 'about', params: { simulationType: simulationType() }}">{{ routes.about.title }}</RouterLink>
+            <RouterLink :to="{ name: 'home', params: { simulationType: appState.simulationType }}">{{ routes.home.title }}</RouterLink>
+            <RouterLink :to="{ name: 'test', params: { simulationType: appState.simulationType }}">{{ routes.test.title }}</RouterLink>
+            <RouterLink :to="{ name: 'about', params: { simulationType: appState.simulationType }}">{{ routes.about.title }}</RouterLink>
         </div>
         <RouterView />
     </div>
@@ -29,13 +29,11 @@
 
 <script setup>
  import HelloWorld from '@/components/HelloWorld.vue'
- import router from '@/services/router'
  import { RouterLink, RouterView } from 'vue-router'
  import { appState } from '@/services/appstate.js';
  import { routes } from '@/services/router'
 
- const simulationType = () => SIREPO.simulationType;
-
+ //TODO(pjm): change to server call from route
  appState.loadModels({
      dog: {
          breed: 'Great Dane',

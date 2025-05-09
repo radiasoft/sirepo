@@ -1,8 +1,11 @@
 
 import * as msgpack from '@msgpack/msgpack';
+import { appState } from '@/services/appstate.js';
+import { authState } from '@/services/authstate.js';
 
 //TODO(pjm): logging service
 const srlog = console.log;
+globalThis.sirepoTraceWS = false;
 
 class CookieManager {
     #cookie = null;
@@ -12,7 +15,7 @@ class CookieManager {
         // Keep two versions for faster checking in cookieCheck
         this.#cookiesVerbatim = document.cookie;
         // save complete value: easier and better for debugging
-        const p = SIREPO.authState.cookieName + '=';
+        const p = authState.cookieName + '=';
         this.#cookie = this.#cookiesVerbatim.split(/\s*;\s*/).find(e => e.startsWith(p)) || null;
     }
 
@@ -43,7 +46,6 @@ class CookieManager {
     }
 }
 
-//SIREPO.app.factory('msgRouter', ($interval, $q, $window, authState, errorService) => {
 class MsgRouter {
     #asyncMsgMethods = {};
     #needReply = {};
@@ -71,7 +73,7 @@ class MsgRouter {
         const e = "sirepo.msgRouter protocolError=" + (errorMsg || "invalid reply from server");
         srlog(
             e,
-            header.kind === SIREPO.APP_SCHEMA.websocketMsg.kind.asyncMsg
+            header.kind === appState.schema.websocketMsg.kind.asyncMsg
                 ? ` asyncMsgMethod={header.method}`
                 : wsreq && wsreq.header ? ` wsreq={wsreq.header.reqSeq}`
                 : "wsreq=null",
@@ -91,11 +93,11 @@ class MsgRouter {
     #reply(blob) {
         let [header, content] = msgpack.decodeMulti(blob);
         const wsreq = this.#needReply[header.reqSeq];
-        if (header.version !== SIREPO.APP_SCHEMA.websocketMsg.version) {
+        if (header.version !== appState.schema.websocketMsg.version) {
             this.#protocolError(header, content, wsreq, "invalid version");
             return;
         }
-        if (header.kind === SIREPO.APP_SCHEMA.websocketMsg.kind.asyncMsg) {
+        if (header.kind === appState.schema.websocketMsg.kind.asyncMsg) {
             if (! header.method) {
                 this.#protocolError(header, content, wsreq, "missing method in content");
             }
@@ -108,7 +110,7 @@ class MsgRouter {
             return;
         }
         const _replyError = (reply) => {
-            if (SIREPO.traceWS) {
+            if (sirepoTraceWS) {
                 srlog(`wsreq#${wsreq.header.reqSeq} replyError:`, reply);
             }
             if (wsreq && wsreq.deferred !== null) {
@@ -120,7 +122,7 @@ class MsgRouter {
             return;
         }
         delete this.#needReply[header.reqSeq];
-        if (header.kind === SIREPO.APP_SCHEMA.websocketMsg.kind.srException) {
+        if (header.kind === appState.schema.websocketMsg.kind.srException) {
             const n = content.routeName;
             const r = {data: {}};
             if (n === "httpException") {
@@ -133,7 +135,7 @@ class MsgRouter {
             _replyError(r);
             return;
         }
-        if (header.kind !== SIREPO.APP_SCHEMA.websocketMsg.kind.httpReply) {
+        if (header.kind !== appState.schema.websocketMsg.kind.httpReply) {
             this.#protocolError(header, content, wsreq, "invalid websocketMsg.kind");
             return;
         }
@@ -172,7 +174,7 @@ class MsgRouter {
                 return;
             }
         }
-        if (SIREPO.traceWS) {
+        if (sirepoTraceWS) {
             srlog(`wsreq#${wsreq.header.reqSeq} reply:`, content);
         }
         if (wsreq.deferred !== null) {
@@ -333,10 +335,10 @@ class MsgRouter {
             //deferred: $q.defer(),
             deferred: d,
             header: {
-                kind: SIREPO.APP_SCHEMA.websocketMsg.kind.httpRequest,
+                kind: appState.schema.websocketMsg.kind.httpRequest,
                 reqSeq: this.#reqSeq++,
                 uri: decodeURIComponent(url),
-                version: SIREPO.APP_SCHEMA.websocketMsg.version,
+                version: appState.schema.websocketMsg.version,
             },
             ...httpConfig,
         };
@@ -351,7 +353,7 @@ class MsgRouter {
             this.#toSend.push(wsreq);
             this.#send();
         };
-        if (SIREPO.traceWS) {
+        if (sirepoTraceWS) {
             srlog(`wsreq#${wsreq.header.reqSeq} send:`, wsreq.header.uri, data);
         }
         if (data === null) {

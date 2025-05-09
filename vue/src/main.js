@@ -4,10 +4,12 @@ import '@/assets/main.css'
 import '@/main.scss'
 import router from '@/services/router'
 import { createApp } from 'vue'
+import { appState } from '@/services/appstate.js';
+import { authState } from '@/services/authstate.js';
 
-const sirepoInit = async () => {
+const sirepoLegacyInit = async () => {
     //TODO(pjm): Uses the existing Sirepo API. Create a new API for this
-    // that includes the schema and authState in one websocket request?
+    // that includes the simulationType, schema and authState in one websocket request?
 
     const addScriptTag = async (url) => {
         const t = document.createElement('script');
@@ -45,18 +47,19 @@ const sirepoInit = async () => {
 
     //TODO(pjm): router not yet initialized so use window.location
     // consider sending simulationType with initial SIREPO tag in index.html
-    SIREPO.simulationType = window.location.pathname.split('/')[1];
-    if (! SIREPO.simulationType) {
+    const simulationType = window.location.pathname.split('/')[1];
+    if (! simulationType) {
         throw new Error(`missing simulationType in URL path: ${window.location.pathname}`);
     }
     //TODO(pjm): initial schema call must be with form-data?
-    SIREPO.APP_SCHEMA = await fetchWithFormData('/simulation-schema', { simulationType: SIREPO.simulationType });
-    await addScriptTag(SIREPO.APP_SCHEMA.route.authState);
+    const schema = await fetchWithFormData('/simulation-schema', { simulationType });
+    appState.init(simulationType, schema);
+    globalThis.SIREPO = {};
+    await addScriptTag(schema.route.authState);
+    authState.init(SIREPO.authState);
+    delete globalThis.SIREPO;
 };
 
-await sirepoInit();
-//TODO(pjm): improve init and appState init, remove SIREPO global - replace with service
-import { appState } from '@/services/appstate.js';
-appState.schema = SIREPO.APP_SCHEMA;
+await sirepoLegacyInit();
 import App from '@/App.vue'
 createApp(App).use(router).mount('#app')

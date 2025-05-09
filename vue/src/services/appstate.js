@@ -112,6 +112,14 @@ class UIContext {
 
 class AppState {
 
+    init(simulationType, schema) {
+        if (this.simulationType || this.schema) {
+            throw new Error('AppState already initialized');
+        }
+        this.simulationType = simulationType;
+        this.schema = schema;
+    }
+
     getUIContext(accessPath, fieldDef="basic", viewName=accessPath) {
         return new UIContext(accessPath, viewName, fieldDef);
     }
