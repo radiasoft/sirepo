@@ -1,7 +1,7 @@
 
 class AuthState {
     init(authState) {
-        Object.assign(authState);
+        Object.assign(this, authState);
     }
 }
 
