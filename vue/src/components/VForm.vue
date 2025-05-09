@@ -30,7 +30,7 @@
 <script setup>
  import VLabelAndField from '@/components/layout/VLabelAndField.vue'
  import { pubSub } from '@/services/pubsub.js';
- import { appState } from '@/services/appstate.js';
+ import { appState, MODEL_CHANGED_EVENT } from '@/services/appstate.js';
  import { onMounted, onUnmounted, reactive } from 'vue';
 
  const props = defineProps({
@@ -65,11 +65,11 @@
  };
 
  onMounted(() => {
-     pubSub.subscribe(appState.MODEL_CHANGED_EVENT, onModelChanged);
+     pubSub.subscribe(MODEL_CHANGED_EVENT, onModelChanged);
  });
 
  onUnmounted(() => {
-     pubSub.unsubscribe(appState.MODEL_CHANGED_EVENT, onModelChanged);
+     pubSub.unsubscribe(MODEL_CHANGED_EVENT, onModelChanged);
  });
 
  defineExpose({ cancelChanges });

@@ -4,15 +4,57 @@ import * as msgpack from '@msgpack/msgpack';
 //TODO(pjm): logging service
 const srlog = console.log;
 
+class CookieManager {
+    #cookie = null;
+    #cookiesVerbatim = null;
+
+    #cookieSave() {
+        // Keep two versions for faster checking in cookieCheck
+        this.#cookiesVerbatim = document.cookie;
+        // save complete value: easier and better for debugging
+        const p = SIREPO.authState.cookieName + '=';
+        this.#cookie = this.#cookiesVerbatim.split(/\s*;\s*/).find(e => e.startsWith(p)) || null;
+    }
+
+    cookieCheck() {
+        if (this.#cookiesVerbatim === document.cookie) {
+            return false;
+        }
+        const p = this.#cookie;
+        this.#cookieSave();
+        // first time is null; server always sends a cookie
+        if (! p || p === this.#cookie) {
+            return false;
+        }
+        srlog('authState cookie changed via another browser tab, reloading application');
+        //TODO(pjm): implement this
+        //uri.globalRedirectRoot();
+        //return true;
+        throw new Error('unhandled uri.globalRedirectRoot()');
+    };
+
+    updateCookies(changeOp) {
+        if (this.cookieCheck()) {
+            return false;
+        }
+        changeOp();
+        this.#cookieSave();
+        return true;
+    }
+}
+
 //SIREPO.app.factory('msgRouter', ($interval, $q, $window, authState, errorService) => {
 class MsgRouter {
-
     #asyncMsgMethods = {};
     #needReply = {};
     #reqSeq = 1;
     #socket = null;
     #socketRetryBackoff = 0;
     #toSend = [];
+
+    constructor(cookieManager) {
+        this.cookieManager = cookieManager;
+    }
 
     #appendBuffers(wsreq, buffers) {
         buffers.splice(0, 0, wsreq.msg);
@@ -210,10 +252,9 @@ class MsgRouter {
         if (this.#socket !== null) {
             return;
         }
-        //TODO(pjm): support cookies
-        //if (authState.cookieCheck()) {
-        //    return;
-        //}
+        if (this.cookieManager.cookieCheck()) {
+            return;
+        }
         this.#socket = Object.assign(
             new WebSocket(
                 //new URL($window.location.href).origin.replace(/^http/i, "ws") + "/ws",
@@ -279,11 +320,10 @@ class MsgRouter {
     }
 
     send(url, data, httpConfig) {
-        //TODO(pjm): support cookies
-        //if (authState.cookieCheck()) {
-        //    // app will reload so return a fake promise
-        //    return {then: () => {}};
-        //}
+        if (this.cookieManager.cookieCheck()) {
+            // app will reload so return a fake promise
+            return {then: () => {}};
+        }
 
         const d = {};
         const p = new Promise((resolve, reject) => {
@@ -325,4 +365,14 @@ class MsgRouter {
     }
 }
 
-export const msgRouter = new MsgRouter();
+export const msgRouter = new MsgRouter(new CookieManager());
+
+//TODO(pjm): will there be other async messages? Otherwise move cookie handling into MsgRouter
+msgRouter.registerAsyncMsg('setCookies', (content) => {
+    console.log('updating cookies:', content);
+    msgRouter.cookieManager.updateCookies(() => {
+        for (let c of content) {
+            document.cookie = c;
+        }
+    });
+});

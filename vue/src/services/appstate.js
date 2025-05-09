@@ -111,7 +111,6 @@ class UIContext {
 }
 
 class AppState {
-    MODEL_CHANGED_EVENT = 'modelChanged';
 
     getUIContext(accessPath, fieldDef="basic", viewName=accessPath) {
         return new UIContext(accessPath, viewName, fieldDef);
@@ -131,8 +130,10 @@ class AppState {
                 }
             }
         }
-        pubSub.publish(this.MODEL_CHANGED_EVENT, Object.keys(values));
+        pubSub.publish(MODEL_CHANGED_EVENT, Object.keys(values));
     }
 }
+
+export const MODEL_CHANGED_EVENT = 'modelChanged';
 
 export const appState = new AppState();

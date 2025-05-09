@@ -7,71 +7,39 @@
 
  import { msgRouter } from '@/services/msgrouter.js';
 
- const fetchGET = async (url, body) => {
-     return await fetchWithJSON(url);
- };
-
  const fetchWithJSON = async (url, body) => {
-     return await fetch(url, {
-         method: body ? 'POST' : 'GET',
+     const r = await fetch(url, {
+         method: 'POST',
          headers: {
              'Content-Type': 'application/json',
          },
-         body: body ? JSON.stringify(body) : null,
+         body: JSON.stringify(body),
      });
+     return await checkHTTPResponse(r);
   };
 
- const fetchWithFormData = async (url, body) => {
-     const formData = new URLSearchParams();
-     for (const k in body)  {
-         formData.append(k, body[k]);
+ const websocket = async (url, body) => {
+     const r = await msgRouter.send('/simulation-list', { simulationType: 'myapp' }, {});
+     if (! r && r.status === '200') {
+         throw new Error('websocket request failed:', r);
      }
-     return await fetch(url, {
-         method: body ? 'POST' : 'GET',
-         headers: {
-             'Content-Type': 'application/x-www-form-urlencoded',
-         },
-         body: formData.toString(),
-     });
+     return r.data;
  };
 
- const checkResponse = async (response) => {
+ const checkHTTPResponse = async (response) => {
      if (! response.ok) {
-         console.log('request failed:', response);
+         throw new Error('request failed:', response);
      }
-     else {
-         if (response.headers.get('content-type').includes('json')) {
-             const json = await response.json();
-             console.log('got json response:', json);
-             return json;
-         }
-         else {
-             const text = await response.text();
-             console.log('got non-json response:', text);
-             return text;
-         }
+     if (response.headers.get('content-type').includes('json')) {
+         return await response.json();
      }
- };
-
- const addScriptTag = async (url) => {
-     const t = document.createElement('script');
-     document.body.appendChild(Object.assign(t, {
-         src: url,
-         type: 'text/javascript',
-         async: true,
-     }));
-     return new Promise((resolve, reject) => t.onload = resolve);
+     return await response.text();
  };
 
  const test = async () => {
-     //const response = await fetchWithJSON('/simulation-schema', { simulationType: 'myapp' });
-     let response = await fetchWithFormData('/simulation-schema', { simulationType: 'myapp' });
-     SIREPO.APP_SCHEMA = await checkResponse(response);
-     await addScriptTag('/auth-state');
-     console.log(SIREPO);
-     response = await fetchWithJSON('/simulation-list', { simulationType: 'myapp' });
-     await checkResponse(response);
-     response = await msgRouter.send('/simulation-list', { simulationType: 'myapp' }, {});
-     console.log('msgRouter response:', response);
+     const r1 = await fetchWithJSON('/simulation-list', { simulationType: SIREPO.simulationType });
+     console.log('json fetch simulations:', r1);
+     const r2 = await websocket('/simulation-list', { simulationType: SIREPO.simulationType });
+     console.log('websocket simulations:', r2);
  };
 </script>

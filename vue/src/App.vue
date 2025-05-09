@@ -2,9 +2,10 @@
     <div class="container-fluid">
         <HelloWorld msg="some text" />
         <div class="links">
-            <RouterLink :to="{ name: 'home' }">{{ routes.home.title }}</RouterLink>
-            <RouterLink :to="{ name: 'test' }">{{ routes.test.title }}</RouterLink>
-            <RouterLink :to="{ name: 'about' }">{{ routes.about.title }}</RouterLink>
+            <!-- testing links only -->
+            <RouterLink :to="{ name: 'home', params: { simulationType: simulationType() }}">{{ routes.home.title }}</RouterLink>
+            <RouterLink :to="{ name: 'test', params: { simulationType: simulationType() }}">{{ routes.test.title }}</RouterLink>
+            <RouterLink :to="{ name: 'about', params: { simulationType: simulationType() }}">{{ routes.about.title }}</RouterLink>
         </div>
         <RouterView />
     </div>
@@ -33,53 +34,7 @@
  import { appState } from '@/services/appstate.js';
  import { routes } from '@/services/router'
 
- //TODO(pjm): move schema and data to server call
- appState.schema = {
-     enum: {
-         DogDisposition: [
-             ["aggressive", "Aggressive"],
-             ["friendly", "Friendly"],
-             ["submissive", "Submissive"]
-         ],
-         Gender: [
-             ["male", "Male"],
-             ["female", "Female"]
-         ],
-     },
-     model: {
-         dog: {
-             breed: ["Breed", "String"],
-             gender: ["Gender", "Gender", "male"],
-             height: ["Height [cm]", "Float", 50.0, "Distance from front paws to withers"],
-             weight: ["Weight [lbs]", "Float", 60.5],
-             disposition: ["Disposition", "DogDisposition", "friendly"],
-             favoriteTreat: ["Favorite Treat", "OptionalString", ""],
-         },
-         heightWeightReport: {}
-     },
-     view: {
-         dog: {
-             title: "Dog",
-             basic: [
-                 "breed",
-                 "weight",
-                 "height",
-                 "disposition",
-                 "favoriteTreat",
-             ],
-             advanced: [
-                 "breed",
-                 "gender",
-                 "weight",
-                 "height",
-             ],
-         },
-         heightWeightReport: {
-             title: "Physical Characteristics",
-             advanced: [],
-         },
-     },
- };
+ const simulationType = () => SIREPO.simulationType;
 
  appState.loadModels({
      dog: {
