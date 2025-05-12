@@ -313,7 +313,7 @@ def start_tornado(ip, port, debug, is_primary=True):
                 )
                 self.route = _not_found_route
             # Overwrite kwarg values if present in the message body
-            if self.body_as_dict:
+            if self.get("body_as_dict"):
                 for k in self.body_as_dict:
                     if k in self.kwargs:
                         self.kwargs[k] = self.body_as_dict[k]
