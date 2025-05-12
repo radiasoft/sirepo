@@ -43,45 +43,56 @@
  };
 
  const test = async () => {
-     testSimpleRequest();
-     testLoadModelsFromSimulationList();
-     testUploadLibFile();
+     await testSimpleRequest();
+     await testLoadModelsFromSimulationList();
+     await testUploadLibFile();
+     srlog('test done');
  };
 
  const testLoadModelsFromSimulationList = () => {
-    requestSender.sendRequest(
-        'listSimulations',
-        (data) => {
-            if (data.length > 0) {
-                // test loading the first sim in the lsit
-                requestSender.sendRequest(
-                    'simulationData',
-                    (response) => {
-                        if (response.models) {
-                            appState.loadModels(response.models);
-                            srlog('loaded models:', response.models);
-                        }
-                        else {
-                            throw new Error('Missing models in response:', response);
-                        }
-                    },
-                    {
-                        simulation_id: data[0].simulationId,
-                        simulation_type: appState.simulationType,
-                    },
-                    (err) => {
-                        throw new Error(err);
-                    },
-                );
-            }
-            else {
-                throw new Error('listSimulations returned no data');
-            }
-        },
-        {
-            simulationType: appState.simulationType,
-        }
-    );
+     //TODO(pjm): consider giving requestSender.sendRequest a Promise interface like msgRouter
+     const d = {};
+     const p = new Promise((resolve, reject) => {
+         Object.assign(d, {resolve, reject });
+     });
+     requestSender.sendRequest(
+         'listSimulations',
+         (data) => {
+             if (data.length > 0) {
+                 // test loading the first sim in the lsit
+                 requestSender.sendRequest(
+                     'simulationData',
+                     (response) => {
+                         if (response.models) {
+                             appState.loadModels(response.models);
+                             srlog('loaded models:', response.models);
+                             d.resolve();
+                         }
+                         else {
+                             d.reject();
+                             throw new Error('Missing models in response:', response);
+                         }
+                     },
+                     {
+                         simulation_id: data[0].simulationId,
+                         simulation_type: appState.simulationType,
+                     },
+                     (err) => {
+                         d.reject();
+                         throw new Error(err);
+                     },
+                 );
+             }
+             else {
+                 d.reject();
+                 throw new Error('listSimulations returned no data');
+             }
+         },
+         {
+             simulationType: appState.simulationType,
+         }
+     );
+     return p;
  };
 
  const testSimpleRequest = async () => {
@@ -101,21 +112,25 @@
      if (! file.value.files.length) {
          throw new Error('No file selected');
      }
-     const fd = new FormData();
-     fd.append('file', file.value.files[0])
-     fd.append('simulation_type', appState.simulationType);
-     fd.append('simulation_id', appState.models.simulation.simulationId);
-     fd.append('file_type', 'dog-testFile');
+
+     const formData = (values) => {
+         const fd = new FormData();
+         for (const [k, v] of Object.entries(values)) {
+             fd.append(k, v);
+         }
+         return fd;
+     };
+
+     srlog('using sim_id:', appState.models.simulation.simulationId);
      const r1 = await msgRouter.send(
          appState.schema.route.uploadLibFile,
-         fd,
-         {
-             transformRequest: (v) => v,
-             headers: {
-                 'Content-Type': undefined,
-             }
-         },
+         formData({
+             file: file.value.files[0],
+             simulation_type: appState.simulationType,
+             simulation_id: appState.models.simulation.simulationId,
+             file_type: 'dog-testFile',
+         }),
      );
-     console.log('file upload result:', r1);
+     srlog('file upload result:', r1);
  };
 </script>
