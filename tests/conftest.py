@@ -18,7 +18,7 @@ def auth_fc(auth_fc_module):
 
 @pytest.fixture(scope="module")
 def auth_fc_module(request):
-    with _auth_client_module(request) as c:
+    with _auth_client_module(request, fc_args=_fc_args(request)) as c:
         yield c
 
 
@@ -29,13 +29,9 @@ def fc(request, fc_module):
 
 @pytest.fixture(scope="module")
 def fc_module(request):
-    from pykern.pkcollections import PKDict
     from sirepo import srunit_servers
 
-    a = _sirepo_args(request, "fc_module", PKDict())
-    if "setup_func" in a:
-        a.setup_func()
-    with srunit_servers.api_and_supervisor(request, fc_args=a) as c:
+    with srunit_servers.api_and_supervisor(request, fc_args=_fc_args(request)) as c:
         yield c
 
 
@@ -144,11 +140,11 @@ def pytest_configure(config):
 
 
 @contextlib.contextmanager
-def _auth_client_module(request):
+def _auth_client_module(request, fc_args):
     from pykern.pkcollections import PKDict
     from sirepo import srunit_servers
 
-    cfg = PKDict(
+    fc_args.setdefault("cfg", PKDict()).update(
         SIREPO_AUTH_BASIC_PASSWORD="pass",
         SIREPO_AUTH_BASIC_UID="dev-no-validate",
         SIREPO_SMTP_FROM_EMAIL="x@x.x",
@@ -160,11 +156,12 @@ def _auth_client_module(request):
         SIREPO_AUTH_METHODS="basic:email:guest",
         SIREPO_FEATURE_CONFIG_API_MODULES="status",
     )
+
     from pykern import pkconfig
 
-    pkconfig.reset_state_for_testing(cfg)
+    pkconfig.reset_state_for_testing(fc_args.cfg)
 
-    with srunit_servers.api_and_supervisor(request, fc_args=PKDict(cfg=cfg)) as c:
+    with srunit_servers.api_and_supervisor(request, fc_args=fc_args) as c:
         yield c
 
 
@@ -197,9 +194,16 @@ def _fc(request, fc_module, new_user=False):
     return fc_module
 
 
-def _sirepo_args(request, name, default):
+def _fc_args(request):
+    from pykern.pkcollections import PKDict
+
+    n = "fc_module"
     m = request.node.get_closest_marker("sirepo_args")
-    res = None
-    if m and m.kwargs and name in m.kwargs:
-        res = m.kwargs.get(name)
-    return default if res is None else res
+    rv = None
+    if m and m.kwargs and n in m.kwargs:
+        rv = m.kwargs.get(n)
+    if rv is None:
+        rv = PKDict()
+    if "setup_func" in rv:
+        rv.setup_func()
+    return rv

@@ -574,7 +574,6 @@
             "verticalApertureSize": ["Vertical Aperture Size [mm]", "Float", 1, "", 1e-99],
             "tipRadius": ["Radius on Tip of Parabola [µm]", "Float", 1.5e3],
             "numberOfLenses": ["Number of Lenses", "Integer", 3],
-            "wallThickness": ["Wall Thickness at Tip of Parabola [m]", "Float", 80e-6],
             "tipWallThickness": ["Wall Thickness at Tip of Parabola [µm]", "Float", 80],
             "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
             "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
