@@ -36,12 +36,15 @@
  //TODO(pjm): change to server call from route
  appState.loadModels({
      dog: {
-         breed: 'Great Dane',
-         gender: 'male',
-         weight: 70.25,
-         height: 81.28,
-         disposition: "friendly",
-         favoriteTreat: "",
+         breed: 'Poodle',
+         gender: 'female',
+         weight: 25.6,
+         height: 34.7,
+         disposition: "submissive",
+         favoriteTreat: "hotdogs",
+     },
+     simulation: {
+         simulationId: '12345678',
      },
  });
 

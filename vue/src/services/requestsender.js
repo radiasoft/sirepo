@@ -1,8 +1,8 @@
 
 import { appState } from '@/services/appstate.js';
 import { authState } from '@/services/authstate.js';
+import { browserStorage } from '@/services/browserstorage.js';
 import { msgRouter } from '@/services/msgrouter.js';
-//import { browserStorage } from '@/services/browserstorage.js';
 
 //TODO(pjm): logging service
 const srlog = console.log;
@@ -22,40 +22,59 @@ class RequestSender {
     #srExceptionHandlers = [];
     //#listFilesData = {};
 
-    #handleSRException = (srException, errorCallback) => {
-        const e = srException;
-        //TODO(robnagler) register handler
-        // if (e.routeName == "httpRedirect") {
-        //     uri.globalRedirect(e.params.uri, undefined);
-        //     return;
-        // }
-        //TODO(robnagler) register handler
-        // if (e.routeName == "serverUpgraded" && e.params && e.params.reason in SIREPO.refreshModalMap) {
-        //     $(`#${SIREPO.refreshModalMap[e.params.reason].modal}`).modal('show');
-        //     return;
-        // }
-	for (const h of this.#srExceptionHandlers) {
-	    if (h(e, errorCallback)) {
-                return;
-            }
-	}
-        //TODO(robnagler) register handler
-        // if (e.routeName == LOGIN_ROUTE_NAME) {
-        //     saveLoginRedirect();
-        //     // if redirecting to login, but the app thinks it is already logged in,
-        //     // then force a logout to avoid a login loop
-        //     if (authState.isLoggedIn) {
-        //         uri.globalRedirect('authLogout');
-        //         return;
-        //     }
-        // }
-        //uri.localRedirect(e.routeName, e.params);
-        throw new Error('uri not yet implemented');
-        return;
+    #blobResponse(resp, successCallback, errorCallback) {
+        // These two content-types are what the server might return with a 200.
+        const d = resp.data;
+        if (d instanceof Blob) {
+            successCallback(d);
+            return;
+        }
+        if (TEXT_OR_JSON.test(d.type)) {
+            d.text().then((text) => {d = text;});
+        }
+        this.#errorResponse(
+            {...resp, data: d},
+            errorCallback,
+        );
     }
 
-    #isObject(value) {
-        return value !== null && typeof value === 'object';
+    // #checkLoginRedirect(event, route) {
+    //     if (! authState.isLoggedIn
+    //         || authState.needCompleteRegistration
+    //         || route.$$route && route.$$route.sirepoNoLoginRedirect
+    //     ) {
+    //         return;
+    //     }
+
+    //     let p = browserStorage.getString(storageKey);
+    //     if (! p) {
+    //         return;
+    //     }
+    //     browserStorage.removeItem(storageKey);
+    //     p = p.split(' ');
+    //     if (p[0] !== appState.schema.simulationType) {
+    //         // wrong app so ignore
+    //         return;
+    //     }
+    //     const r = uri.firstComponent(decodeURIComponent(p[1]));
+    //     // After a reload from a login. Only redirect if
+    //     // the route is different. The firstComponent is
+    //     // always unique in our routes.
+    //     if (uri.firstComponent($location.url()) !== r) {
+    //         event.preventDefault();
+    //         uri.localRedirect(decodeURIComponent(p[1]));
+    //     }
+    // }
+
+    #defaultErrorCallback(data, status) {
+        const err = appState.schema.customErrors[status];
+        // if (err && err.route) {
+        //     uri.localRedirect(err.route);
+        // }
+        // else {
+        //     errorService.alertText('Request failed: ' + data.error);
+        // }
+        throw new Error('uri not yet implemented');
     }
 
     #errorResponse(resp, errorCallback) {
@@ -137,60 +156,41 @@ class RequestSender {
         srlog(data.error);
         errorCallback(data, status, resp.data);
     }
-    
-    #blobResponse(resp, successCallback, errorCallback) {
-        // These two content-types are what the server might return with a 200.
-        const d = resp.data;
-        if (d instanceof Blob) {
-            successCallback(d);
-            return;
-        }
-        if (TEXT_OR_JSON.test(d.type)) {
-            d.text().then((text) => {d = text;});
-        }
-        this.#errorResponse(
-            {...resp, data: d},
-            errorCallback,
-        );
+
+    #handleSRException = (srException, errorCallback) => {
+        const e = srException;
+        //TODO(robnagler) register handler
+        // if (e.routeName == "httpRedirect") {
+        //     uri.globalRedirect(e.params.uri, undefined);
+        //     return;
+        // }
+        //TODO(robnagler) register handler
+        // if (e.routeName == "serverUpgraded" && e.params && e.params.reason in SIREPO.refreshModalMap) {
+        //     $(`#${SIREPO.refreshModalMap[e.params.reason].modal}`).modal('show');
+        //     return;
+        // }
+	for (const h of this.#srExceptionHandlers) {
+	    if (h(e, errorCallback)) {
+                return;
+            }
+	}
+        //TODO(robnagler) register handler
+        // if (e.routeName == LOGIN_ROUTE_NAME) {
+        //     saveLoginRedirect();
+        //     // if redirecting to login, but the app thinks it is already logged in,
+        //     // then force a logout to avoid a login loop
+        //     if (authState.isLoggedIn) {
+        //         uri.globalRedirect('authLogout');
+        //         return;
+        //     }
+        // }
+        //uri.localRedirect(e.routeName, e.params);
+        throw new Error('uri not yet implemented');
+        return;
     }
 
-    // #checkLoginRedirect(event, route) {
-    //     if (! authState.isLoggedIn
-    //         || authState.needCompleteRegistration
-    //         || route.$$route && route.$$route.sirepoNoLoginRedirect
-    //     ) {
-    //         return;
-    //     }
-
-    //     let p = browserStorage.getString(storageKey);
-    //     if (! p) {
-    //         return;
-    //     }
-    //     browserStorage.removeItem(storageKey);
-    //     p = p.split(' ');
-    //     if (p[0] !== appState.schema.simulationType) {
-    //         // wrong app so ignore
-    //         return;
-    //     }
-    //     const r = uri.firstComponent(decodeURIComponent(p[1]));
-    //     // After a reload from a login. Only redirect if
-    //     // the route is different. The firstComponent is
-    //     // always unique in our routes.
-    //     if (uri.firstComponent($location.url()) !== r) {
-    //         event.preventDefault();
-    //         uri.localRedirect(decodeURIComponent(p[1]));
-    //     }
-    // }
-
-    #defaultErrorCallback(data, status) {
-        const err = appState.schema.customErrors[status];
-        // if (err && err.route) {
-        //     uri.localRedirect(err.route);
-        // }
-        // else {
-        //     errorService.alertText('Request failed: ' + data.error);
-        // }
-        throw new Error('uri not yet implemented');
+    #isObject(value) {
+        return value !== null && typeof value === 'object';
     }
 
     // function saveLoginRedirect() {
@@ -203,6 +203,12 @@ class RequestSender {
     //         appState.schema.simulationType + ' ' + encodeURIComponent(u),
     //     );
     // }
+
+    registerSRExceptionHandler(handler) {
+        if (this.#srExceptionHandlers.indexOf(handler) < 0) {
+            this.#srExceptionHandlers.push(handler);
+        }
+    }
 
     sendWithSimulationFields(url, successCallback, data, errorCb) {
         data.simulationId = data.simulationId || appState.models.simulation.simulationId;
@@ -261,12 +267,6 @@ class RequestSender {
     //         },
     //     );
     // };
-
-    registerSRExceptionHandler(handler) {
-        if (this.#srExceptionHandlers.indexOf(handler) < 0) {
-            this.#srExceptionHandlers.push(handler);
-        }
-    }
 
     sendAnalysisJob(callback, data) {
         sendWithSimulationFields('analysisJob', callback, data);
@@ -352,4 +352,3 @@ class RequestSender {
 }
 
 export const requestSender = new RequestSender();
-
