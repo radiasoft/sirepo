@@ -371,7 +371,6 @@ export const msgRouter = new MsgRouter(new CookieManager());
 
 //TODO(pjm): will there be other async messages? Otherwise move cookie handling into MsgRouter
 msgRouter.registerAsyncMsg('setCookies', (content) => {
-    console.log('updating cookies:', content);
     msgRouter.cookieManager.updateCookies(() => {
         for (let c of content) {
             document.cookie = c;

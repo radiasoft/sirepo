@@ -6,6 +6,7 @@
 <script setup>
  import { appState } from '@/services/appstate.js';
  import { msgRouter } from '@/services/msgrouter.js';
+ import { requestSender } from '@/services/requestsender.js';
 
  const fetchWithJSON = async (url, body) => {
      const r = await fetch(url, {
@@ -37,9 +38,25 @@
  };
 
  const test = async () => {
-     const r1 = await fetchWithJSON('/simulation-list', { simulationType: appState.simulationType });
-     console.log('json fetch simulations:', r1);
-     const r2 = await websocket('/simulation-list', { simulationType: appState.simulationType });
-     console.log('websocket simulations:', r2);
+     try {
+         const r1 = await fetchWithJSON('/simulation-list', { simulationType: appState.simulationType });
+         console.log('json fetch simulations:', r1);
+         const r2 = await websocket('/simulation-list', { simulationType: appState.simulationType });
+         console.log('websocket simulations:', r2);
+     }
+     catch(error) {
+         console.log('here err:', error);
+     }
+
+    requestSender.sendRequest(
+        'listSimulations',
+        (data) => {
+            console.log('listSimulations:', data);
+        },
+        {
+            simulationType: appState.simulationType,
+        }
+    );
+
  };
 </script>
