@@ -40,6 +40,10 @@ _TERMINATE_SECS = 3
 #: How often to poll in loop()
 _LOOP_RETRY_SECS = 1
 
+#: How many retries before the agent kills itself
+_MAX_LOOP_RETRY = 10
+
+
 #: Reasonable over the Internet connection
 _CONNECT_SECS = 10
 
@@ -118,14 +122,15 @@ def start():
 
 
 def start_sbatch():
-    def get_host():
+    def _get_host():
         h = socket.gethostname()
         if "." not in h:
             h = socket.getfqdn()
         return h
 
-    def kill_agent(pid_file):
-        if get_host() == pid_file.host:
+    def _kill_agent(pid_file):
+        pkio.unchecked_remove(_PID_FILE)
+        if _get_host() == pid_file.host:
             os.kill(pid_file.pid, signal.SIGKILL)
         else:
             try:
@@ -140,29 +145,35 @@ def start_sbatch():
                         "cmd={cmd} returncode={returncode} stderr={stderr}", **vars(e)
                     )
 
-    f = None
+    def _read_pid_file():
+        try:
+            rv = pkjson.load_any(pkio.py_path(_PID_FILE))
+            if "host" in rv and "pid" in rv:
+                return rv
+        except Exception as e:
+            if not pkio.exception_is_not_found(e):
+                pkdlog("file={} error={} stack={}", e, pkdexc())
+        return None
+
+    def _remove_own_pid_file(info):
+        try:
+            if (f := _read_pid_file()) and f.host == info.host and f.pid == info.pid:
+                # race condition but very small so probably ok
+                pkio.unchecked_remove(_PID_FILE)
+        except Exception:
+            pass
+
     try:
-        f = pkjson.load_any(pkio.py_path(_PID_FILE))
-    except Exception as e:
-        if not pkio.exception_is_not_found(e):
-            pkdlog("error={} stack={}", e, pkdexc())
-    try:
-        if f:
-            kill_agent(f)
+        if f := _read_pid_file():
+            _kill_agent(f)
     except Exception as e:
         pkdlog("error={} stack={}", e, pkdexc())
-    pkjson.dump_pretty(
-        PKDict(
-            host=get_host(),
-            pid=os.getpid(),
-        ),
-        _PID_FILE,
-    )
+    p = None
     try:
+        pkjson.dump_pretty(p := PKDict(host=_get_host(), pid=os.getpid()), _PID_FILE)
         start()
     finally:
-        # TODO(robnagler) https://github.com/radiasoft/sirepo/issues/2195
-        pkio.unchecked_remove(_PID_FILE)
+        _remove_own_pid_file(p)
 
 
 class _Dispatcher(PKDict):
@@ -233,33 +244,41 @@ class _Dispatcher(PKDict):
             raise
 
     async def loop(self):
-        while True:
+        async def _connect_and_loop():
+            self._websocket = await tornado.websocket.websocket_connect(
+                tornado.httpclient.HTTPRequest(
+                    connect_timeout=_CONNECT_SECS,
+                    url=_cfg.supervisor_uri,
+                    validate_cert=job.cfg().verify_tls,
+                ),
+                max_message_size=job.cfg().max_message_bytes,
+                ping_interval=job.cfg().ping_interval_secs,
+                ping_timeout=job.cfg().ping_timeout_secs,
+            )
+            s = self.format_op(None, job.OP_ALIVE)
+            rv = False
+            while True:
+                if s and not await self.send(s):
+                    break
+                r = await self._websocket.read_message()
+                if r is None:
+                    pkdlog(
+                        "websocket closed in response to len={} send={}",
+                        s and len(s),
+                        s,
+                    )
+                    raise tornado.iostream.StreamClosedError()
+                s = await self._op(r)
+                # One success
+                rv = True
+            return rv
+
+        t = _MAX_LOOP_RETRY
+        while t > 0:
             self._websocket = None
             try:
-                self._websocket = await tornado.websocket.websocket_connect(
-                    tornado.httpclient.HTTPRequest(
-                        connect_timeout=_CONNECT_SECS,
-                        url=_cfg.supervisor_uri,
-                        validate_cert=job.cfg().verify_tls,
-                    ),
-                    max_message_size=job.cfg().max_message_bytes,
-                    ping_interval=job.cfg().ping_interval_secs,
-                    ping_timeout=job.cfg().ping_timeout_secs,
-                )
-                s = self.format_op(None, job.OP_ALIVE)
-                while True:
-                    if s and not await self.send(s):
-                        break
-                    r = await self._websocket.read_message()
-                    if r is None:
-                        pkdlog(
-                            "websocket closed in response to len={} send={}",
-                            s and len(s),
-                            s,
-                        )
-                        raise tornado.iostream.StreamClosedError()
-                    s = await self._op(r)
-
+                if await _connect_and_loop():
+                    t = _MAX_LOOP_RETRY
             except Exception as e:
                 if not isinstance(
                     e,
@@ -269,11 +288,19 @@ class _Dispatcher(PKDict):
                         tornado.iostream.StreamClosedError,
                     ),
                 ):
-                    pkdlog("retrying, websocket; error={} stack={}", e, pkdexc())
+                    pkdlog(
+                        "retries countdown={}, websocket; error={} stack={}",
+                        t,
+                        e,
+                        pkdexc(),
+                    )
                 await tornado.gen.sleep(_LOOP_RETRY_SECS)
             finally:
                 if self._websocket:
                     self._websocket.close()
+            t -= 1
+        pkdlog("terminating after connection attempts={}", _MAX_LOOP_RETRY)
+        self.terminate()
 
     def new_run_maybe_destroy_old(self, jid):
         for c in list(self.cmds):
@@ -1354,6 +1381,8 @@ class _SbatchRunStatus(_SbatchCmd):
             return job.CANCELED
         if s == "FAILED":
             return job.ERROR
+        if s == "TIMEOUT":
+            return job.CANCELED
         pkdlog(
             "{} sbatch_id={} unexpected sbatch query state={}",
             self,
@@ -1401,5 +1430,3 @@ def _copy_truthy(src, dst, keys):
 
 def _terminate(dispatcher):
     dispatcher.terminate()
-    # just in case isn't removed by start_sbatch
-    pkio.unchecked_remove(_PID_FILE)

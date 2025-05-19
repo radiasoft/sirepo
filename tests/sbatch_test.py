@@ -12,6 +12,12 @@
 # update NodeName=debug State=RESUME
 # EOF
 
+# If you see:
+# FileNotFoundError: [Errno 2] No such file or directory: '/home/vagrant/.ssh/known_hosts'
+# ensure whatever $SIREPO_SRUNIT_SBATCH_PASSWORD is is the password for vagrant:
+#   sudo passwd vagrant
+# and then
+# ssh vagrant@localhost
 
 def test_srw_cancel(fc):
     from pykern.pkcollections import PKDict
