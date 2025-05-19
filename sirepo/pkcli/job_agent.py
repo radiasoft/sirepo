@@ -294,10 +294,10 @@ class _Dispatcher(PKDict):
                         e,
                         pkdexc(),
                     )
-                await tornado.gen.sleep(_LOOP_RETRY_SECS)
             finally:
                 if self._websocket:
                     self._websocket.close()
+            await tornado.gen.sleep(_LOOP_RETRY_SECS)
             t -= 1
         pkdlog("terminating after connection attempts={}", _MAX_LOOP_RETRY)
         self.terminate()
