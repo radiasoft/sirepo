@@ -1,34 +1,40 @@
-# -*- coding: utf-8 -*-
 """List of features available
 
-:copyright: Copyright (c) 2016 RadiaSoft LLC.  All Rights Reserved.
+To add a code that is not in the default list:
+
+    export SIREPO_FEATURE_CONFIG_SIM_TYPES=ALL_CODES:raydata
+
+:copyright: Copyright (c) 2016-2025 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 # defer all imports so *_CODES is available to testing functions
 
 
-#: Codes that depend on other codes. [x][0] depends on [x][1]
+#: Codes that depend on other codes
+_DEPENDENT_CODES = dict(
+    jspec=frozenset(("elegant",)),
+    controls=frozenset(("madx",)),
+    omega=frozenset(("elegant", "omega", "genesis")),
+)
 
-_DEPENDENT_CODES = [
-    ["jspec", "elegant"],
-    ["controls", "madx"],
-    ["omega", "elegant"],
-    ["omega", "genesis"],
-    ["omega", "opal"],
-]
-
-#: Codes on prod
-PROD_FOSS_CODES = frozenset(
+FOSS_CODES = frozenset(
     (
         "activait",
-        "openmc",
+        "canvas",
         "controls",
         "elegant",
+        "epicsllrf",
         "genesis",
+        "hellweg",
+        "impactt",
+        "impactx",
         "jspec",
         "madx",
+        "myapp",
         "omega",
         "opal",
+        "openmc",
         "radia",
         "shadow",
         "silas",
@@ -39,20 +45,7 @@ PROD_FOSS_CODES = frozenset(
     )
 )
 
-#: Codes on dev, alpha, and beta
-_NON_PROD_FOSS_CODES = frozenset(
-    (
-        "canvas",
-        "epicsllrf",
-        "impactt",
-        "impactx",
-        "myapp",
-        "hellweg",
-    )
-)
-
-#: All possible open source codes
-FOSS_CODES = PROD_FOSS_CODES.union(_NON_PROD_FOSS_CODES)
+_ALL_CODES = "ALL_CODES"
 
 #: Configuration
 _cfg = None
@@ -117,24 +110,36 @@ def proprietary_sim_types():
     )
 
 
-def _is_fedora_36():
-    from pykern import pkio
-
-    p = pkio.py_path("/etc/os-release")
-    if not p.check():
-        return False
-    return "fedora:36" in p.read()
-
-
 def _init():
     from pykern import pkconfig
     from pykern import pkio
     from pykern.pkdebug import pkdp
+    from sirepo import const
 
     global _cfg
 
+    def _check_package_path(path):
+        import importlib
+
+        for p in path:
+            importlib.import_module(p)
+
+    def _default_sim_types(sim_types):
+        if not sim_types or _ALL_CODES in sim_types:
+            sim_types.update(FOSS_CODES)
+            sim_types.discard(_ALL_CODES)
+        return sim_types
+
     def _dev(msg):
         return (pkconfig.in_dev_mode(), bool, msg)
+
+    def _is_fedora_36():
+        from pykern import pkio
+
+        p = pkio.py_path("/etc/os-release")
+        if not p.check():
+            return False
+        return "fedora:36" in p.read()
 
     def _test(msg):
         return (pkconfig.channel_in_internal_test(), bool, msg)
@@ -243,27 +248,17 @@ def _init():
             ),
         ),
     )
-    s = set(
-        _cfg.sim_types
-        or (PROD_FOSS_CODES if pkconfig.channel_in("prod") else FOSS_CODES)
-    )
+    s = _default_sim_types(set(_cfg.sim_types))
     s.update(
         _cfg.default_proprietary_sim_types,
         _cfg.moderated_sim_types,
         _cfg.proprietary_oauth_sim_types,
         _cfg.proprietary_sim_types,
     )
-    for v in _DEPENDENT_CODES:
-        if v[0] in s:
-            s.add(v[1])
+    for k, v in _DEPENDENT_CODES.items():
+        if k in s:
+            s.update(v)
     _cfg.sim_types = frozenset(s)
-    _check_packages(_cfg.package_path)
+    _check_package_path(_cfg.package_path)
     _cfg.is_fedora_36 = _is_fedora_36()
     return _cfg
-
-
-def _check_packages(packages):
-    import importlib
-
-    for p in packages:
-        importlib.import_module(p)

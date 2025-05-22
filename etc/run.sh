@@ -112,6 +112,7 @@ _op_jupyterhub() {
     if ! type configurable-http-proxy &> /dev/null; then
         npm install --global configurable-http-proxy
     fi
+    export SIREPO_FEATURE_CONFIG_ENABLE_JUPYTER=1
     _env_moderate jupyterhublogin
     sirepo service jupyterhub &
     _op_nginx_proxy
