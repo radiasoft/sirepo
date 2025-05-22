@@ -1,8 +1,45 @@
 from pykern.pkcollections import PKDict
+from xml.etree import ElementTree
+import copy
+import dagmc
 import re
 import sirepo.pkcli.openmc
 import sirepo.simulation_db
-import xml.etree.ElementTree
+
+{% if mcnpFilename %}
+def materials_for_h5m(original_materials_file, h5m_file, output_materials_file):
+
+    def h5m_volume_names(fn):
+        r = []
+        for g in dagmc.DAGModel(fn).groups_by_name.values():
+            m = re.search(r"^mat:(Cell.*)$", g.name)
+            if m:
+                r.append(m.group(1))
+        return r
+
+    def nodes_by_material_id(fn):
+        r = PKDict()
+        for child in ElementTree.parse(fn).getroot():
+            i = child.attrib.get("id")
+            e = copy.deepcopy(child)
+            del e.attrib["id"]
+            r[int(i)] = e
+        return r
+
+    nodes = nodes_by_material_id(original_materials_file)
+    r = ElementTree.Element("materials")
+    for n in h5m_volume_names(h5m_file):
+        m = re.search(r"^.*?\_(\d+)$", n)
+        assert m
+        i = int(m.group(1))
+        if i in nodes:
+            e = copy.deepcopy(nodes[i])
+            e.set("name", n)
+            r.append(e)
+    ElementTree.ElementTree(r).write(
+        output_materials_file, encoding="unicode", xml_declaration=True
+    )
+{% endif %}
 
 {% if materialsFile %}
 def _name(material_name):
@@ -14,7 +51,7 @@ def _name(material_name):
 
 
 def add_materials(volumes):
-    e = xml.etree.ElementTree.parse("{{ materialsFile }}").getroot()
+    e = ElementTree.parse("{{ materialsFile }}").getroot()
     if e.find("materials"):
         e = e.find("materials")
     for child in e:
@@ -56,10 +93,17 @@ def add_materials(volumes):
                     c.percent = float(m.attrib["wo"])
 {% endif %}
 
+{% if mcnpFilename %}
+sirepo.pkcli.openmc.geometry_xml_to_h5m("geometry.xml", "{{ dagmcFilename }}")
+{% endif %}
 {% if stepFilename %}
 sirepo.pkcli.openmc.step_to_dagmc("{{ stepFilename }}", "{{ dagmcFilename }}")
 {% endif %}
 volumes = sirepo.pkcli.openmc.extract_dagmc("{{ dagmcFilename }}")
+
+{% if mcnpFilename %}
+materials_for_h5m("materials.xml", "{{ dagmcFilename }}", "{{ materialsFile }}")
+{% endif %}
 {% if materialsFile %}
 add_materials(volumes)
 {% endif %}
