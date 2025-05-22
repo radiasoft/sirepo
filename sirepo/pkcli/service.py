@@ -147,7 +147,7 @@ def nginx_proxy():
     with pkio.save_chdir(run_dir) as d:
         f = run_dir.join("default.conf")
         c = PKDict(_cfg()).pkupdate(run_dir=str(d))
-        if sirepo.feature_config.jupyter_is_enabled():
+        if sirepo.util.is_jupyter_enabled():
             c.pkupdate(
                 jupyterhub_root=sirepo.sim_api.jupyterhublogin.cfg().uri_root,
             )

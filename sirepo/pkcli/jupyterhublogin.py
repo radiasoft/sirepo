@@ -15,6 +15,7 @@ import sirepo.feature_config
 import sirepo.quest
 import sirepo.sim_api.jupyterhublogin
 import sirepo.template
+import sirepo.util
 
 
 def create_user(email, display_name):
@@ -50,7 +51,7 @@ def create_user(email, display_name):
 
     if not pyisemail.is_email(email):
         pkcli.command_error("invalid email={}", email)
-    if not sirepo.feature_config.jupyter_is_enabled():
+    if not sirepo.util.is_jupyter_enabled():
         pkcli.command_error("jupyter must be enabled")
     with sirepo.quest.start() as qcall:
         u = maybe_create_sirepo_user(
