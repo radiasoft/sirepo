@@ -1,4 +1,5 @@
 
+import router from '@/services/router.js';
 import { appState } from '@/services/appstate.js';
 import { authState } from '@/services/authstate.js';
 import { browserStorage } from '@/services/browserstorage.js';
@@ -68,13 +69,16 @@ class RequestSender {
 
     #defaultErrorCallback(data, status) {
         const err = appState.schema.customErrors[status];
-        // if (err && err.route) {
-        //     uri.localRedirect(err.route);
-        // }
-        // else {
-        //     errorService.alertText('Request failed: ' + data.error);
-        // }
-        throw new Error('uri not yet implemented');
+        if (err && err.route) {
+            //uri.localRedirect(err.route);
+            //TODO(pjm): centralize this, and validate route
+            const r = appState.schema.localRoutes[err.route].route;
+            router.push('/' + appState.simulationType + r);
+        }
+        else {
+            //errorService.alertText('Request failed: ' + data.error);
+            throw new Error('errorService not yet implemented');
+        }
     }
 
     #errorResponse(resp, errorCallback) {
@@ -185,7 +189,13 @@ class RequestSender {
         //     }
         // }
         //uri.localRedirect(e.routeName, e.params);
-        throw new Error('uri not yet implemented');
+        //TODO(pjm): currently ignoring params
+        router.push({
+            name: e.routeName,
+            params: {
+                simulationType: appState.simulationType,
+            },
+        });
         return;
     }
 
@@ -272,7 +282,10 @@ class RequestSender {
         sendWithSimulationFields('analysisJob', callback, data);
     }
 
-    sendRequest(urlOrParams, successCallback, requestData, errorCallback) {
+    sendRequest(routeName, successCallback, requestData, errorCallback) {
+        if (typeof(routeName) != 'string') {
+            throw new Error(`Invalid routeName, expecting string: ${routeName}`);
+        }
         const httpConfig = {};
         if (! errorCallback) {
             errorCallback = this.#defaultErrorCallback;
@@ -285,10 +298,7 @@ class RequestSender {
             delete requestData.responseType;
         }
         msgRouter.send(
-            // typeof urlOrParams === 'string' && urlOrParams.indexOf('/') >= 0
-            //     ? urlOrParams
-            //     : uri.format(urlOrParams),
-            appState.schema.route[urlOrParams],
+            appState.schema.route[routeName],
             requestData,
             httpConfig,
         ).then(
@@ -352,3 +362,10 @@ class RequestSender {
 }
 
 export const requestSender = new RequestSender();
+
+requestSender.registerSRExceptionHandler((srException, errorCallback) => {
+    if (srException.routeName === 'httpRedirect') {
+        router.push(srException.params.uri);
+        return true;
+    }
+});

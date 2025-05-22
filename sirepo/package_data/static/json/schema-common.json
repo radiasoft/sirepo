@@ -237,25 +237,6 @@
             "plansUrl": "/plans",
             "simulationSourceExtension": "py"
         },
-        "cookies": {
-            "firstVisit": {
-                "name": "1st_vis",
-                "value": "a"
-            },
-            "getStarted": {
-                "name": "strt",
-                "value": "a"
-            },
-            "listView": {
-                "name": "lv",
-                "value": false,
-                "valType": "b"
-            },
-            "previousRoute": {
-                "name": "prev",
-                "value": "a"
-            }
-        },
         "dynamicFiles": {
             "externalLibs": {
                 "js": [
@@ -526,6 +507,13 @@
             }
         },
         "model": {
+            "emailLogin": {
+                "email": ["Your Email", "Email", ""]
+            },
+            "ldapLogin": {
+                "user": ["User", "String", ""],
+                "password": ["Password", "Password", ""]
+            },
             "simFolder": {
                 "name": ["Folder Name", "SafePath"],
                 "parent": ["Parent Folder", "UserFolder"]
@@ -570,6 +558,17 @@
             "simulationSource": "Python Source"
         },
         "view": {
+            "emailLogin": {
+                "basic": [
+                    "email"
+                ]
+            },
+            "ldapLogin": {
+                "basic": [
+                    "user",
+                    "password"
+                ]
+            },
             "simDoc": {
                 "model": "simulation",
                 "title": "Simulation Documentation",

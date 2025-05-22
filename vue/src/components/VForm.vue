@@ -6,7 +6,8 @@
                 :ui_ctx="ui_ctx"
             />
         </div>
-        <div class="row" v-show="isFormDirty()">
+        <slot></slot>
+        <div class="row" v-show="showButtons()">
             <div class="col-sm-12 text-center">
                 <button
                     class="btn btn-primary sr-button-save-cancel"
@@ -36,6 +37,10 @@
  const props = defineProps({
      viewName: String,
      fieldDef: String,
+     wantButtons: {
+         type: Boolean,
+         default: true,
+     },
  });
 
  const emit = defineEmits(['dismissModal']);
@@ -50,8 +55,6 @@
      emit('dismissModal');
  };
 
- const isFormDirty = () => ui_ctx.isDirty();
-
  const isInvalid = () => ui_ctx.isInvalid();
 
  const onModelChanged = (names) => {
@@ -64,6 +67,8 @@
      emit('dismissModal');
  };
 
+ const showButtons = () => props.wantButtons && ui_ctx.isDirty();
+
  onMounted(() => {
      pubSub.subscribe(MODEL_CHANGED_EVENT, onModelChanged);
  });
@@ -71,6 +76,8 @@
  onUnmounted(() => {
      pubSub.unsubscribe(MODEL_CHANGED_EVENT, onModelChanged);
  });
+
+ appState.initViewLogic(props.viewName, ui_ctx);
 
  defineExpose({ cancelChanges });
 </script>

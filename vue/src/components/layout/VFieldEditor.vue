@@ -9,7 +9,7 @@
                 :ui_ctx="ui_ctx"
             />
         </div>
-        <div v-else-if="['text', 'float', 'integer'].includes(ui_ctx.fields[field_name].widget)">
+        <div v-else-if="['text', 'float', 'integer', 'email'].includes(ui_ctx.fields[field_name].widget)">
             <VText
                 :field_name="field_name"
                 :ui_ctx="ui_ctx"

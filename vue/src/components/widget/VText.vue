@@ -24,6 +24,7 @@
 
 <script setup>
  import { ref, watch } from 'vue';
+ import { useEmailValidation } from '@/components/widget/validation/useEmailValidation.js';
  import { useNumberValidation } from '@/components/widget/validation/useNumberValidation.js';
  import { useValidation } from '@/components/widget/validation/useValidation.js';
  import { useWidget } from '@/components/widget/useWidget.js';
@@ -38,7 +39,9 @@
  const isNumeric = ['integer', 'float'].includes(field().widget);
  const { isInvalid, parsedValue, rawValue } = isNumeric
      ? useNumberValidation(field())
-     : useValidation(field());
+     : field().widget === 'email'
+         ? useEmailValidation(field())
+         : useValidation(field());
 
  //TODO(pjm): move to a utility
  const formatExponential = (value) => {

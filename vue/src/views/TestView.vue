@@ -43,11 +43,15 @@
  };
 
  const test = async () => {
-     await testSimpleRequest();
+     //await testSimpleRequest();
      await testLoadModelsFromSimulationList();
      await testUploadLibFile();
      srlog('test done');
  };
+
+ requestSender.registerSRExceptionHandler((srException, errorCallback) => {
+     console.log('got a srException callback:', srException);
+ });
 
  const testLoadModelsFromSimulationList = () => {
      //TODO(pjm): consider giving requestSender.sendRequest a Promise interface like msgRouter
@@ -103,6 +107,7 @@
          srlog('websocket simulations:', r2);
      }
      catch(error) {
+         srlog('got error:', error);
          throw new Error(error);
      }
  };

@@ -40,12 +40,12 @@
         </div>
     </div>
     <div v-if="canEdit">
-        <VModal :viewName="viewName" :title="title" ref="modal"/>
+        <VFormModal :viewName="viewName" :title="title" ref="modal"/>
     </div>
 </template>
 
 <script setup>
- import VModal from '@/components/VModal.vue'
+ import VFormModal from '@/components/VFormModal.vue'
  import { appState } from '@/services/appstate.js';
  import { onBeforeUnmount, onMounted, ref } from 'vue';
 

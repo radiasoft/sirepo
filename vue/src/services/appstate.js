@@ -4,7 +4,7 @@ import { pubSub } from '@/services/pubsub.js';
 class UIContext {
     // accessPath: keyed path into object or array data
     // ex. "electronBeam" or "beamline#3" or "volumes.air.material.components#3"
-    //TODO(pjm): implement complex accessPath and view.model
+    //TODO(pjm): implement complex accessPath
     constructor(accessPath, viewName, fieldDef="basic") {
         if (! accessPath) {
             throw Error('Missing UIContext accessPath');
@@ -32,13 +32,21 @@ class UIContext {
             }
             r[f] = {
                 label: sm[f][0],
-                val: appState.models[this.accessPath][f],
+                val: this.#fieldValue(f, sm[f][2]),
                 visible: true,
                 enabled: true,
             };
             this.#updateFieldForType(r[f], sm[f]);
         }
         return r;
+    }
+
+    #fieldValue(fieldName, defaultValue) {
+        const m = appState.models[this.accessPath];
+        if (m && fieldName in m) {
+            return m[fieldName];
+        }
+        return defaultValue;
     }
 
     #updateFieldForType(field, def) {
@@ -64,6 +72,9 @@ class UIContext {
         else if (t === 'Float') {
             field.widget = 'float';
             field.cols = 3;
+        }
+        else if (t === 'Email') {
+            field.widget = 'email';
         }
         else {
             throw new Error(`unhandled field type: ${t}`);
@@ -111,6 +122,24 @@ class UIContext {
 }
 
 class AppState {
+
+    //TODO(pjm): AppState is not the right spot for viewLogic
+    #viewLogic = {};
+
+    initViewLogic(viewName, ui_ctx) {
+        const v = this.#viewLogic[viewName];
+        if (v) {
+            v(ui_ctx);
+        }
+    }
+
+    registerViewLogic(viewName, useFunction) {
+        //TODO(pjm): breaks on dev reload
+        //if (this.#viewLogic[viewName]) {
+        //    throw new Error(`view logic already registered for view name: ${viewName}`);
+        //}
+        this.#viewLogic[viewName] = useFunction;
+    }
 
     init(simulationType, schema) {
         if (this.simulationType || this.schema) {

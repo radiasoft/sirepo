@@ -73,7 +73,6 @@ def validate_fields(data, schema):
     Validations performed:
         enums (see _validate_enum)
         numeric values (see _validate_number)
-        cookie definitions (see _validate_cookie_def)
 
     Args:
         data (PKDict): model data
@@ -139,7 +138,6 @@ def validate(schema):
     """
     sch_models = schema.model
     sch_enums = schema.enum
-    sch_cookies = schema.cookies
     for name in sch_enums:
         for values in sch_enums[name]:
             if not isinstance(values[0], pkconfig.STRING_TYPES):
@@ -163,38 +161,10 @@ def validate(schema):
                 continue
             _validate_enum(field_default, sch_field_info, sch_enums)
             _validate_number(field_default, sch_field_info)
-    for sc in sch_cookies:
-        _validate_cookie_def(sch_cookies[sc])
     for t in schema.dynamicModules:
         for src in schema.dynamicModules[t]:
             sirepo.resource.file_path(src)
     _validate_strings(schema.strings)
-
-
-def _validate_cookie_def(c_def):
-    """Validate the cookie definitions in the schema
-
-    Validations performed:
-        cannot contain delimiters we use on the client side
-        values must match the valType if provided
-        timeout must be numeric if provided
-
-    Args:
-        data (PKDict): cookie definition object from the schema
-    """
-    c_delims = "|:;="
-    c_delim_re = re.compile("[{}]".format(c_delims))
-    if c_delim_re.search(str(c_def.name) + str(c_def.value)):
-        raise AssertionError(
-            util.err(c_def, "cookie name/value cannot include delimiters {}", c_delims)
-        )
-    if "valType" in c_def:
-        if c_def.valType == "b":
-            pkconfig.parse_bool(c_def.value)
-        if c_def.valType == "n":
-            float(c_def.value)
-    if "timeout" in c_def:
-        float(c_def.timeout)
 
 
 def _validate_enum(val, sch_field_info, sch_enums):

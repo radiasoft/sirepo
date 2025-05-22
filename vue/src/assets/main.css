@@ -28,7 +28,7 @@ select.sr-invalid, select.sr-invalid:focus {
 
 .btn.sr-button-save-cancel {
   min-width: 6em;
-  margin: 0 0.5ex;
+  margin-right: 0.5ex;
 }
 
 /* bootstrap css overrides */
@@ -53,4 +53,12 @@ select.sr-invalid, select.sr-invalid:focus {
 }
 .btn-outline-secondary {
   --bs-btn-color: #333;
+}
+.navbar {
+  --bs-navbar-padding-x: 0;
+  --bs-navbar-padding-y: 0;
+}
+
+body {
+  --bs-body-font-size: 14px;
 }

@@ -1,12 +1,14 @@
-import "bootstrap"
+import "bootstrap";
 import "bootstrap-icons/font/bootstrap-icons.css";
-import '@/assets/main.css'
-import '@/main.scss'
-import App from '@/App.vue'
-import router from '@/services/router'
+import '@/main.scss';
+import App from '@/App.vue';
+import router from '@/services/router.js';
 import { appState } from '@/services/appstate.js';
 import { authState } from '@/services/authstate.js';
-import { createApp } from 'vue'
+import { createApp } from 'vue';
+
+// this must come last to override bootstrap css values
+import '@/assets/main.css';
 
 const sirepoLegacyInit = () => {
     //TODO(pjm): Uses the existing Sirepo API. Create a new API for this

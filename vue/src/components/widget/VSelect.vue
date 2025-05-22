@@ -5,7 +5,7 @@
     <div>
         <select
             v-model="ui_ctx.fields[field_name].val"
-            class="form-select form-select-sm"
+            class="form-control form-select form-select-sm"
             :class="{
                 'sr-invalid': error,
             }"

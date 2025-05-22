@@ -1,11 +1,11 @@
 <template>
+    <VHeader />
     <div class="container-fluid">
-        <HelloWorld msg="some text" />
         <div class="links">
             <!-- testing links only -->
-            <RouterLink :to="{ name: 'home', params: { simulationType: appState.simulationType }}">{{ routes.home.title }}</RouterLink>
-            <RouterLink :to="{ name: 'test', params: { simulationType: appState.simulationType }}">{{ routes.test.title }}</RouterLink>
-            <RouterLink :to="{ name: 'about', params: { simulationType: appState.simulationType }}">{{ routes.about.title }}</RouterLink>
+            <RouterLink :to="{ name: 'home', params: { simulationType: appState.simulationType }}">Home</RouterLink>
+            <RouterLink :to="{ name: 'test', params: { simulationType: appState.simulationType }}">Test</RouterLink>
+            <RouterLink :to="{ name: 'about', params: { simulationType: appState.simulationType }}">About</RouterLink>
         </div>
         <RouterView />
     </div>
@@ -28,10 +28,11 @@
 </style>
 
 <script setup>
- import HelloWorld from '@/components/HelloWorld.vue'
- import { RouterLink, RouterView } from 'vue-router'
+ import VHeader from '@/components/VHeader.vue';
+ import { RouterLink, RouterView } from 'vue-router';
  import { appState } from '@/services/appstate.js';
- import { routes } from '@/services/router'
+ import { routes } from '@/services/router.js';
+ import router from '@/services/router.js';
 
  //TODO(pjm): change to server call from route
  appState.loadModels({
@@ -47,5 +48,4 @@
          simulationId: '12345678',
      },
  });
-
 </script>

@@ -13,7 +13,8 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            '@': fileURLToPath(new URL('./src', import.meta.url))
+            '@': fileURLToPath(new URL('./src', import.meta.url)),
+            '/static': fileURLToPath(new URL('../sirepo/package_data/static', import.meta.url))
         },
     },
     server: {
