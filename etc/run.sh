@@ -122,7 +122,7 @@ _op_jupyterhub() {
     # POSIT: same as sirepo.smtp.DEV_SMTP_SERVER
     export SIREPO_SMTP_SERVER=dev
     _env_mail_common
-    export SIREPO_FEATURE_CONFIG_SIM_TYPES=ALL_CODES:jupyterhublogin
+    export SIREPO_FEATURE_CONFIG_SIM_TYPES=jupyterhublogin:DEFAULT
     sirepo service jupyterhub &
     # jupyterhub/conf.py uses local spawner not rsdockerspawner
     _msg_login 'To test:
