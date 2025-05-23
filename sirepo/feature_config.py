@@ -2,7 +2,7 @@
 
 To add a code that is not in the default list:
 
-    export SIREPO_FEATURE_CONFIG_SIM_TYPES=ALL_CODES:raydata
+    export SIREPO_FEATURE_CONFIG_SIM_TYPES=raydata:DEFAULT
 
 :copyright: Copyright (c) 2016-2025 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -45,7 +45,7 @@ FOSS_CODES = frozenset(
     )
 )
 
-_ALL_CODES = "ALL_CODES"
+_ALL_CODES = "DEFAULT"
 
 #: Configuration
 _cfg = None
