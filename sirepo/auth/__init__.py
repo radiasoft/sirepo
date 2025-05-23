@@ -519,8 +519,6 @@ class _Auth(sirepo.quest.Attr):
             raise sirepo.util.Forbidden(f"method={m} is not email for uid={i}")
 
     def require_plan(self):
-        from sirepo import auth_role_moderation
-
         u = self.require_user()
         if not self.qcall.auth_db.model("UserRole").has_active_plan(uid=u):
             raise sirepo.util.PlanExpired(f"uid={u} has no active plans")
