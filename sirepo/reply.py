@@ -22,6 +22,7 @@ import mimetypes
 import pykern.pkinspect
 import re
 import sirepo.const
+import sirepo.feature_config
 import sirepo.html
 import sirepo.resource
 import sirepo.uri
@@ -634,6 +635,8 @@ class _SReply(sirepo.quest.Attr):
         Returns:
             _SReply: reply object
         """
+        if self.qcall.sim_type_uget() in sirepo.feature_config.cfg().vue_sim_types:
+            uri = uri.replace("#", "")
         return self.from_kwargs(
             content=_Redirect(
                 PKDict(

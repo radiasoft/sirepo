@@ -904,7 +904,6 @@ def _init_schemas():
             "appDefaults",
             "appModes",
             "constants",
-            "cookies",
             "enum",
             "localRoutes",
             "model",
