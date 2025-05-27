@@ -237,7 +237,7 @@ def _init():
             "whether the UI should use a websocket",
         ),
         vue_sim_types=(
-            (("myapp",) if pkconfig.channel_in("dev") else ()),
+            (()),
             set,
             "Vue apps",
         ),

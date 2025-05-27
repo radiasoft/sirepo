@@ -30,6 +30,16 @@ _cfg = None
 #: default compute_model
 _ANIMATION_NAME = "animation"
 
+#: models which should not get persisted
+_CLIENT_ONLY_MODELS = frozenset(
+    (
+        "completeRegistration",
+        "emailLogin",
+        "ldapLogin",
+        "moderationRequest",
+    )
+)
+
 _MODEL_RE = re.compile(r"^[\w-]+$")
 
 _IS_PARALLEL_RE = re.compile("animation", re.IGNORECASE)
@@ -1048,6 +1058,8 @@ class SimDataBase(object):
         if names:
             names = set(list(names) + ["simulation"])
         for n in names or cls.schema().model:
+            if n in _CLIENT_ONLY_MODELS:
+                continue
             cls.update_model_defaults(
                 models.setdefault(n, PKDict()),
                 n,

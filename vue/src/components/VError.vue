@@ -1,3 +1,0 @@
-<template>
-    an error
-</template>

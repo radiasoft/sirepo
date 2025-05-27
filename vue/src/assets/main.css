@@ -15,6 +15,10 @@ select.sr-invalid, select.sr-invalid:focus {
   box-shadow: 0 0 0 0.25rem var(--bs-warning);
   border-color: var(--bs-form-invalid-border-color);
 }
+textarea.sr-invalid, textarea.sr-invalid:focus {
+  box-shadow: 0 0 0 0.25rem var(--bs-warning);
+  border-color: var(--bs-form-invalid-border-color);
+}
 .sr-invalid ~ .invalid-feedback {
   display: block;
   white-space: nowrap;
@@ -24,6 +28,9 @@ select.sr-invalid, select.sr-invalid:focus {
   .sr-form-label {
     text-align: right;
   }
+}
+.sr-form-longlabel .col-form-label {
+  font-weight: normal;
 }
 
 .btn.sr-button-save-cancel {

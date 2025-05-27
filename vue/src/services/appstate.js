@@ -65,6 +65,11 @@ class UIContext {
         else if (t === 'String') {
             field.widget = 'text';
         }
+        else if (t == 'LongText') {
+            field.widget = 'longtext';
+            field.cols = 12;
+            field.labelcols = 12;
+        }
         else if (t === 'OptionalString') {
             field.widget = 'text';
             field.optional = true;

@@ -8,50 +8,20 @@
  import { appState } from '@/services/appstate.js';
  import { msgRouter } from '@/services/msgrouter.js';
  import { requestSender } from '@/services/requestsender.js';
- import { ref } from "vue";
+ import { onUnmounted, ref } from "vue";
 
  const srlog = console.log;
  const file = ref(null);
 
- const fetchWithJSON = async (url, body) => {
-     const r = await fetch(url, {
-         method: 'POST',
-         headers: {
-             'Content-Type': 'application/json',
-         },
-         body: JSON.stringify(body),
-     });
-     return await checkHTTPResponse(r);
-  };
-
- const websocket = async (url, body) => {
-     const r = await msgRouter.send('/simulation-list', { simulationType: 'myapp' }, {});
-     if (! r && r.status === '200') {
-         throw new Error('websocket request failed:', r);
-     }
-     return r.data;
- };
-
- const checkHTTPResponse = async (response) => {
-     if (! response.ok) {
-         throw new Error('request failed:', response);
-     }
-     if (response.headers.get('content-type').includes('json')) {
-         return await response.json();
-     }
-     return await response.text();
- };
-
  const test = async () => {
-     //await testSimpleRequest();
      await testLoadModelsFromSimulationList();
      await testUploadLibFile();
      srlog('test done');
  };
 
- requestSender.registerSRExceptionHandler((srException, errorCallback) => {
-     console.log('got a srException callback:', srException);
- });
+ const srExceptionHandler = (srException, errorCallback) => {
+     srlog('got a srException callback:', srException);
+ };
 
  const testLoadModelsFromSimulationList = () => {
      //TODO(pjm): consider giving requestSender.sendRequest a Promise interface like msgRouter
@@ -79,7 +49,6 @@
                      },
                      {
                          simulation_id: data[0].simulationId,
-                         simulation_type: appState.simulationType,
                      },
                      (err) => {
                          d.reject();
@@ -92,24 +61,9 @@
                  throw new Error('listSimulations returned no data');
              }
          },
-         {
-             simulationType: appState.simulationType,
-         }
+         {},
      );
      return p;
- };
-
- const testSimpleRequest = async () => {
-     try {
-         const r1 = await fetchWithJSON('/simulation-list', { simulationType: appState.simulationType });
-         srlog('json fetch simulations:', r1);
-         const r2 = await websocket('/simulation-list', { simulationType: appState.simulationType });
-         srlog('websocket simulations:', r2);
-     }
-     catch(error) {
-         srlog('got error:', error);
-         throw new Error(error);
-     }
  };
 
  const testUploadLibFile = async () => {
@@ -131,11 +85,18 @@
          appState.schema.route.uploadLibFile,
          formData({
              file: file.value.files[0],
-             simulation_type: appState.simulationType,
-             simulation_id: appState.models.simulation.simulationId,
              file_type: 'dog-testFile',
+             simulation_id: appState.models.simulation.simulationId,
+             simulation_type: appState.simulationType,
          }),
      );
      srlog('file upload result:', r1);
  };
+
+ requestSender.registerSRExceptionHandler(srExceptionHandler);
+
+ onUnmounted(() => {
+     requestSender.unregisterSRExceptionHandler(srExceptionHandler);
+ });
+
 </script>

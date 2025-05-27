@@ -1,9 +1,9 @@
-
-import router from '@/services/router.js';
 import { appState } from '@/services/appstate.js';
 import { authState } from '@/services/authstate.js';
 import { browserStorage } from '@/services/browserstorage.js';
 import { msgRouter } from '@/services/msgrouter.js';
+import { router } from '@/services/router.js';
+import { uri } from '@/services/uri.js';
 
 //TODO(pjm): logging service
 const srlog = console.log;
@@ -70,10 +70,7 @@ class RequestSender {
     #defaultErrorCallback(data, status) {
         const err = appState.schema.customErrors[status];
         if (err && err.route) {
-            //uri.localRedirect(err.route);
-            //TODO(pjm): centralize this, and validate route
-            const r = appState.schema.localRoutes[err.route].route;
-            router.push('/' + appState.simulationType + r);
+            uri.localRedirect(err.route);
         }
         else {
             //errorService.alertText('Request failed: ' + data.error);
@@ -93,14 +90,8 @@ class RequestSender {
             msg = 'Server unavailable';
         }
         else if (appState.schema.customErrors[status]) {
-            msg = appState.schema.customErrors[status].msg;
-            const r = appState.schema.customErrors[status].route;
-            if (r === 'planRequired') {
-                // special handling for plan required
-                //uri.localRedirect(r);
-                throw new Error('uri not yet implemented');
-                return;
-            }
+            uri.localRedirect(appState.schema.customErrors[status].route);
+            return;
         }
         if (typeof data === 'string' && IS_HTML_ERROR_RE.exec(data)) {
             // Try to parse javascript-redirect.html
@@ -178,6 +169,7 @@ class RequestSender {
                 return;
             }
 	}
+
         //TODO(robnagler) register handler
         // if (e.routeName == LOGIN_ROUTE_NAME) {
         //     saveLoginRedirect();
@@ -188,15 +180,8 @@ class RequestSender {
         //         return;
         //     }
         // }
-        //uri.localRedirect(e.routeName, e.params);
-        //TODO(pjm): currently ignoring params
-        router.push({
-            name: e.routeName,
-            params: {
-                simulationType: appState.simulationType,
-            },
-        });
-        return;
+
+        uri.localRedirect(e.routeName, e.params);
     }
 
     #isObject(value) {
@@ -218,6 +203,14 @@ class RequestSender {
         if (this.#srExceptionHandlers.indexOf(handler) < 0) {
             this.#srExceptionHandlers.push(handler);
         }
+    }
+
+    unregisterSRExceptionHandler(handler) {
+        const i = this.#srExceptionHandlers.indexOf(handler) < 0;
+        if (i < 0) {
+            throw new Error('Unknown SRExceptionHandler:', handler);
+        }
+        this.#srExceptionHandlers.splice(i, 1);
     }
 
     sendWithSimulationFields(url, successCallback, data, errorCb) {
@@ -293,7 +286,16 @@ class RequestSender {
         if (! successCallback) {
             successCallback = () => {};
         }
-        if (requestData && requestData.responseType) {
+        if (appState.schema.route[routeName].includes('<simulation_type>')) {
+            //for (const f of ['simulation_type', 'simulationType']) {
+            //requestData[f] = appState.simulationType;
+            //}
+            requestData.simulation_type = appState.simulationType;
+        }
+        else {
+            requestData.simulationType = appState.simulationType;
+        }
+        if (requestData.responseType) {
             httpConfig.responseType = requestData.responseType;
             delete requestData.responseType;
         }
@@ -365,7 +367,7 @@ export const requestSender = new RequestSender();
 
 requestSender.registerSRExceptionHandler((srException, errorCallback) => {
     if (srException.routeName === 'httpRedirect') {
-        router.push(srException.params.uri);
+        uri.globalRedirect(srException.params.uri);
         return true;
     }
 });

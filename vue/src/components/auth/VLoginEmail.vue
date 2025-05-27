@@ -47,8 +47,9 @@
          return;
      }
      ui_ctx.fields.email.val = '';
-     ui_ctx.fields.email.error =
-         response.error || `Server reported an error, please contact ${appState.schema.feature_config.support_email}`;
+     //TODO(pjm): share message with authState
+     ui_ctx.fields.email.error = response.error
+         || `Server reported an error, please contact ${appState.schema.feature_config.support_email}`;
  };
 
  const isInvalid = () => ! ui_ctx.fields.email.val || ui_ctx.fields.email.invalid;
@@ -64,8 +65,6 @@
          handleResponse,
          {
              email: ui_ctx.fields.email.val,
-             //TODO(pjm): automatically include this on sendRequest calls
-             simulationType: appState.simulationType,
          },
          handleResponse,
      );

@@ -507,12 +507,19 @@
             }
         },
         "model": {
+            "completeRegistration": {
+                "fullName": ["You full name", "String", ""],
+                "reason": ["To prevent abuse of our systems all new users must supply a reason for requesting access to Sirepo. In a few sentences please describe how you plan to use Sirepo", "LongText", ""]
+            },
             "emailLogin": {
                 "email": ["Your Email", "Email", ""]
             },
             "ldapLogin": {
                 "user": ["User", "String", ""],
                 "password": ["Password", "Password", ""]
+            },
+            "moderationRequest": {
+                "reason": ["Please describe your reason for requesting access", "LongText", ""]
             },
             "simFolder": {
                 "name": ["Folder Name", "SafePath"],
@@ -558,6 +565,12 @@
             "simulationSource": "Python Source"
         },
         "view": {
+            "completeRegistration": {
+                "basic": [
+                    "fullName",
+                    "reason"
+                ]
+            },
             "emailLogin": {
                 "basic": [
                     "email"
@@ -567,6 +580,11 @@
                 "basic": [
                     "user",
                     "password"
+                ]
+            },
+            "moderationRequest": {
+                "basic": [
+                    "reason"
                 ]
             },
             "simDoc": {

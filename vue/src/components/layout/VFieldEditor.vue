@@ -15,6 +15,12 @@
                 :ui_ctx="ui_ctx"
             />
         </div>
+        <div v-else-if="ui_ctx.fields[field_name].widget == 'longtext'">
+            <VLongText
+                :field_name="field_name"
+                :ui_ctx="ui_ctx"
+            />
+        </div>
         <div v-else-if="ui_ctx.fields[field_name].widget == 'static'">
             <VStatic
                 :field_name="field_name"
@@ -28,6 +34,7 @@
 </template>
 
 <script setup>
+ import VLongText from '@/components/widget/VLongText.vue';
  import VSelect from '@/components/widget/VSelect.vue';
  import VStatic from '@/components/widget/VStatic.vue';
  import VText from '@/components/widget/VText.vue';

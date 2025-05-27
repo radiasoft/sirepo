@@ -1,14 +1,15 @@
-import VCompleteRegistration from '@/components/VCompleteRegistration.vue'
-import VError from '@/components/VError.vue'
-import HomeView from '@/views/HomeView.vue'
-import VLoginConfirm from '@/components/VLoginConfirm.vue'
-import VLogin from '@/components/VLogin.vue'
-import NotFoundView from '@/views/NotFound.vue'
-import VSimulations from '@/components/VSimulations.vue'
-import TestView from '@/views/TestView.vue'
+import HomeView from '@/views/HomeView.vue';
+import NotFoundView from '@/views/NotFound.vue';
+import TestView from '@/views/TestView.vue';
+import VRouteMessage from '@/components/VRouteMessage.vue';
+import VLogin from '@/components/auth/VLogin.vue';
+import VLoginConfirm from '@/components/auth/VLoginConfirm.vue';
+import VLoginFail from '@/components/auth/VLoginFail.vue';
+import VModerationRequest from '@/components/auth/VModerationRequest.vue';
+import VSimulations from '@/components/VSimulations.vue';
 import { appState } from '@/services/appstate.js';
 import { authState } from '@/services/authstate.js';
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router';
 
 const storageKey = "previousRoute";
 
@@ -44,7 +45,7 @@ export const routes = {
     },
 };
 
-const router = createRouter({
+export const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
         {
@@ -79,7 +80,7 @@ const router = createRouter({
         {
             path: routes.completeRegistration.path,
             name: routes.completeRegistration.name,
-            component: VCompleteRegistration,
+            component: () => import('@/components/auth/VCompleteRegistration.vue'),
         },
         {
             path: routes.about.path,
@@ -92,11 +93,31 @@ const router = createRouter({
         {
             path: '/:simulationType/error',
             name: 'error',
-            component: VError,
+            component: VRouteMessage,
+        },
+        {
+            path: '/:simulationType/login-fail/:method/:reason',
+            name: 'loginFail',
+            component: VLoginFail,
         },
         {
             path: '/:pathMatch(.*)*',
             component: NotFoundView,
+        },
+        {
+            path: '/:simulationType/subscription-required',
+            name: 'planRequired',
+            component: VRouteMessage,
+        },
+        {
+            path: '/:simulationType/moderation-request/:role',
+            name: 'moderationRequest',
+            component: VModerationRequest,
+        },
+        {
+            path: '/:simulationType/moderation-pending',
+            name: 'moderationPending',
+            component: VRouteMessage,
         },
     ],
 })
@@ -148,5 +169,3 @@ router.beforeEach(async (to, from) => {
     //     };
     // }
 });
-
-export default router
