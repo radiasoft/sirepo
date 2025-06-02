@@ -13,6 +13,7 @@ import asyncio
 import base64
 import hashlib
 import importlib
+import io
 import inspect
 import numconv
 import pykern.pkinspect
@@ -20,7 +21,7 @@ import pykern.pkio
 import pykern.pkjson
 import re
 import random
-import six
+import sirepo.const
 import unicodedata
 import zipfile
 
@@ -350,6 +351,10 @@ def import_submodule(submodule, type_or_data):
     )
 
 
+def is_jupyter_enabled():
+    return is_sim_type(sirepo.const.SIM_TYPE_JUPYTERHUBLOGIN)
+
+
 def is_python_identifier(name):
     return _VALID_PYTHON_IDENTIFIER.search(name)
 
@@ -410,7 +415,7 @@ def read_zip(path_or_bytes):
     """
     p = path_or_bytes
     if isinstance(p, bytes):
-        p = six.BytesIO(p)
+        p = io.BytesIO(p)
     with zipfile.ZipFile(p, "r") as z:
         for i in z.infolist():
             if i.is_dir():

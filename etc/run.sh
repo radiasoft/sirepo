@@ -69,10 +69,16 @@ _msg() {
     echo "$@" 1>&2
 }
 
+_msg_login() {
+    #TODO(robnagler) delay output somehow. wait -n below makes this difficult.
+    _msg "$@"
+}
+
+
 _op_bluesky() {
     export SIREPO_AUTH_BLUESKY_SECRET=bluesky-secret
     export SIREPO_AUTH_METHODS=email:bluesky
-    _msg "To test, you need a sim, but this is the structure:
+    _msg_login "To test, you need a sim, but this is the structure:
 
 curl -H 'Content-Type: application/json' -D - -X POST http://localhost:8000/auth-bluesky-login -d '{\"simulationId\": \"kRfyDC2q\", \"simulationType\": \"srw\"}'
 "
@@ -100,7 +106,7 @@ _op_jupyterhub() {
         jupyterhub==1.4.2 \
         jupyterlab==3.1.14  \
         'notebook>=6.5.6' \
-        jupyterlab-server==2.8.2\
+        jupyterlab-server==2.8.2 \
         ; do
         if ! [[ $p =~ $f ]]; then
             i+=( $f )
@@ -110,10 +116,25 @@ _op_jupyterhub() {
         pip install "${i[@]}"
     fi
     if ! type configurable-http-proxy &> /dev/null; then
-        npm install --global configurable-http-proxy
+        # POSIT: same version in radiasoft/container-jupyterhub
+        npm install --global configurable-http-proxy@4.6.3
     fi
-    _env_moderate jupyterhublogin
+    # POSIT: same as sirepo.smtp.DEV_SMTP_SERVER
+    export SIREPO_SMTP_SERVER=dev
+    _env_mail_common
+    export SIREPO_FEATURE_CONFIG_SIM_TYPES=jupyterhublogin:DEFAULT
     sirepo service jupyterhub &
+    # jupyterhub/conf.py uses local spawner not rsdockerspawner
+    _msg_login 'To test:
+
+Login as vagrant@<anything>
+
+Look for URL in logs for completing email login
+
+Then:
+
+sirepo roles add vagrant@<anything> premium user
+'
     _op_nginx_proxy
 }
 
@@ -123,7 +144,7 @@ _op_ldap() {
        bash setup-ldap.sh
     fi
     export SIREPO_AUTH_METHODS=guest:ldap
-    _msg 'To test:
+    _msg_login 'To test:
 
 Login as vagrant@radiasoft.net/vagrant
 '
@@ -145,6 +166,10 @@ _op_nginx_proxy() {
     sirepo service tornado &
     sirepo service nginx-proxy &
     sirepo job_supervisor &
+    _msg_login '
+
+Visit proxy on http://localhost:8080
+'
     _wait_on_jobs
 }
 
@@ -175,7 +200,7 @@ _op_server_status() {
     export SIREPO_AUTH_BASIC_UID=$u
     export SIREPO_AUTH_METHODS=guest:basic
     export SIREPO_FEATURE_CONFIG_API_MODULES=status
-    _msg "To test:
+    _msg_login "To test:
 
 curl -u '$u:$SIREPO_AUTH_BASIC_PASSWORD' http://localhost:8000/server-status
 "

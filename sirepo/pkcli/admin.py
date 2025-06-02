@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
-"""?
+"""Application administration
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkio, pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -20,6 +20,7 @@ import json
 import os.path
 import re
 import shutil
+import sirepo.const
 import sirepo.quest
 
 
@@ -85,7 +86,7 @@ def delete_user(uid):
         if qcall.auth.unchecked_get_user(uid) is None:
             return
         with qcall.auth.logged_in_user_set(uid):
-            if sirepo.template.is_sim_type("jupyterhublogin"):
+            if sirepo.util.is_jupyter_enabled():
                 from sirepo.sim_api import jupyterhublogin
 
                 jupyterhublogin.delete_user_dir(qcall=qcall)

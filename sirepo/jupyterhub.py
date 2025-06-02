@@ -14,7 +14,7 @@ import requests
 import tornado.web
 import traitlets
 
-_SIM_TYPE = "jupyterhublogin"
+SIM_TYPE = "jupyterhublogin"
 
 
 def template_dirs():
