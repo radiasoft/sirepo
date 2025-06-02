@@ -6,6 +6,7 @@
             <RouterLink :to="{ name: 'home', params: { simulationType: appState.simulationType }}">Home</RouterLink>
             <RouterLink :to="{ name: 'test', params: { simulationType: appState.simulationType }}">Test</RouterLink>
             <RouterLink :to="{ name: 'about', params: { simulationType: appState.simulationType }}">About</RouterLink>
+            <RouterLink :to="{ name: 'simulations', params: { simulationType: appState.simulationType }}">Simulations</RouterLink>
         </div>
         <RouterView />
     </div>

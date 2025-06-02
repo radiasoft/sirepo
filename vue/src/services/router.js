@@ -1,12 +1,12 @@
 import HomeView from '@/views/HomeView.vue';
 import NotFoundView from '@/views/NotFound.vue';
 import TestView from '@/views/TestView.vue';
-import VRouteMessage from '@/components/VRouteMessage.vue';
 import VLogin from '@/components/auth/VLogin.vue';
 import VLoginConfirm from '@/components/auth/VLoginConfirm.vue';
 import VLoginFail from '@/components/auth/VLoginFail.vue';
 import VModerationRequest from '@/components/auth/VModerationRequest.vue';
-import VSimulations from '@/components/VSimulations.vue';
+import VRouteMessage from '@/components/VRouteMessage.vue';
+import VSimOrganizer from '@/components/VSimOrganizer.vue';
 import { appState } from '@/services/appstate.js';
 import { authState } from '@/services/authstate.js';
 import { createRouter, createWebHistory } from 'vue-router';
@@ -73,9 +73,9 @@ export const router = createRouter({
             component: VLoginConfirm,
         },
         {
-            path: routes.simulations.path,
-            name: routes.simulations.name,
-            component: VSimulations,
+            path: '/:simulationType/simulations/:folderName?',
+            name: 'simulations',
+            component: VSimOrganizer,
         },
         {
             path: routes.completeRegistration.path,
@@ -117,6 +117,11 @@ export const router = createRouter({
         {
             path: '/:simulationType/moderation-pending',
             name: 'moderationPending',
+            component: VRouteMessage,
+        },
+        {
+            path: '/:simulationType/not-found',
+            name: 'notFound',
             component: VRouteMessage,
         },
     ],

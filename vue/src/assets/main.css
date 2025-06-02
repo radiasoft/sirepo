@@ -38,7 +38,65 @@ textarea.sr-invalid, textarea.sr-invalid:focus {
   margin-right: 0.5ex;
 }
 
+
+.sr-sidebar {
+  margin-top: -10px;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid #e7e7e7;
+  min-height: 80ex;
+  max-height: calc(100vh - 65px);
+  border-radius: 4px;
+  margin-left: 1ex;
+  margin-right: -1ex;
+  background-color: #f8f8f8;
+}
+ul.sr-nav-sidebar {
+  padding-left: 12px;
+  display: block;
+}
+ul.sr-nav-sidebar-root {
+  padding-left: 0;
+}
+.sr-nav-sidebar > li > a {
+  padding: 7px 0 7px 16px;
+  display: block;
+  font-weight: 500;
+}
+/*
+.sr-nav-sidebar > li > a:hover {
+  background-color: transparent;
+}
+*/
+.sr-nav-sidebar > li.active > a {
+  color: #555;
+  background-color: #e7e7e7;
+}
+.sr-icon-col {
+  float: left;
+  margin-bottom: 9px;
+  margin-right: 9px;
+  height: 100px;
+  width: 140px;
+}
+.sr-thumbnail {
+  padding-top: 10px;
+}
+.sr-item-icon {
+  font-size: 32px;
+/*  display: block; */
+  cursor: pointer;
+}
+.sr-nav-icon {
+  margin-right: 4px;
+}
+
+
 /* bootstrap css overrides */
+.dropdown-menu {
+  --bs-dropdown-font-size: auto;
+}
 .tooltip {
   --bs-tooltip-color: #000;
   --bs-tooltip-bg: #f9f9f9;
@@ -68,4 +126,7 @@ textarea.sr-invalid, textarea.sr-invalid:focus {
 
 body {
   --bs-body-font-size: 14px;
+}
+a {
+  text-decoration: none;
 }

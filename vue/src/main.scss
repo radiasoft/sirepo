@@ -29,5 +29,7 @@ $grid-breakpoints: (
 $modal-md: 600px;
 $modal-lg: 945px;
 
+$enable-shadows: true;
+
 // Include Bootstrap SCSS files
 @import 'bootstrap/scss/bootstrap.scss';
