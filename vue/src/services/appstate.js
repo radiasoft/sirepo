@@ -35,8 +35,9 @@ class UIContext {
                 val: this.#fieldValue(f, sm[f][2]),
                 visible: true,
                 enabled: true,
+                tooltip: sm[f][3],
+                widget: sm[f][1],
             };
-            this.#updateFieldForType(r[f], sm[f]);
         }
         return r;
     }
@@ -47,43 +48,6 @@ class UIContext {
             return m[fieldName];
         }
         return defaultValue;
-    }
-
-    #updateFieldForType(field, def) {
-        field.cols = 5;
-        field.tooltip = def[3];
-        const t = def[1];
-        if (t in appState.schema.enum) {
-            field.widget = 'select';
-            field.choices = appState.schema.enum[t].map((v) => {
-                return {
-                    code: v[0],
-                    display: v[1],
-                };
-            });
-        }
-        else if (t === 'String') {
-            field.widget = 'text';
-        }
-        else if (t == 'LongText') {
-            field.widget = 'longtext';
-            field.cols = 12;
-            field.labelcols = 12;
-        }
-        else if (t === 'OptionalString') {
-            field.widget = 'text';
-            field.optional = true;
-        }
-        else if (t === 'Float') {
-            field.widget = 'float';
-            field.cols = 3;
-        }
-        else if (t === 'Email') {
-            field.widget = 'email';
-        }
-        else {
-            throw new Error(`unhandled field type: ${t}`);
-        }
     }
 
     cancelChanges(proxy) {
@@ -128,14 +92,23 @@ class UIContext {
 
 class AppState {
 
-    //TODO(pjm): AppState is not the right spot for viewLogic
+    //TODO(pjm): AppState is not the right spot for viewLogic or widgets
     #viewLogic = {};
+    #widgets = {};
 
     initViewLogic(viewName, ui_ctx) {
         const v = this.#viewLogic[viewName];
         if (v) {
             v(ui_ctx);
         }
+    }
+
+    registerWidget(name, component) {
+        this.#widgets[name] = component;
+    }
+
+    getWidget(name) {
+        return this.#widgets[name];
     }
 
     registerViewLogic(viewName, useFunction) {

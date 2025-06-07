@@ -521,6 +521,9 @@
             "moderationRequest": {
                 "reason": ["Please describe your reason for requesting access", "LongText", ""]
             },
+            "renameItem": {
+                "newName": ["New Name", "SafePath"]
+            },
             "simFolder": {
                 "name": ["Folder Name", "SafePath"],
                 "parent": ["Parent Folder", "UserFolder"]
@@ -585,6 +588,11 @@
             "moderationRequest": {
                 "basic": [
                     "reason"
+                ]
+            },
+            "renameItem": {
+                "advanced": [
+                    "newName"
                 ]
             },
             "simDoc": {

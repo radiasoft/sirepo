@@ -37,6 +37,9 @@
 
  const { isInvalid, parsedValue, rawValue } = useValidation(field());
 
+ field().cols = 12;
+ field().labelcols = 12;
+
  //TODO(pjm): could share these watch() calls with VText.vue
  watch(() => field().val, () => {
      if (field().val !== parsedValue.value) {

@@ -63,11 +63,15 @@ const sirepoLegacyInit = () => {
         }).then(() => {
             authState.init(SIREPO.authState);
             delete globalThis.SIREPO;
+            return simulationType;
         });
 };
 
-sirepoLegacyInit().then(() => {
-    createApp(App).use(router).mount('#app')
+sirepoLegacyInit().then((simulationType) => {
+    const app = createApp(App);
+    import(`@/apps/${simulationType}/main.js`).then(() => {
+        app.use(router).mount('#app');
+    });
 }).catch((message) => {
     throw new Error(message);
 });

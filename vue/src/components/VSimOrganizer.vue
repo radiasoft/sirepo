@@ -73,6 +73,8 @@
         </div>
     </div>
 
+    <VFormModal viewName="renameItem" title="Rename" ref="renameModal"/>
+
     <!--
     <script type="text/ng-template" id="sr-folder">
         <a href data-ng-click="simulations.toggleFolder(item)">
@@ -193,6 +195,7 @@
 
 <script setup>
  import VFolderNav from '@/components/VFolderNav.vue';
+ import VFormModal from '@/components/VFormModal.vue'
  import VTooltip from '@/components/VTooltip.vue';
  import { reactive, ref } from 'vue';
  import { simManager } from '@/services/simmanager.js';
@@ -209,6 +212,8 @@
  const items = ref([]);
  const root = ref(null);
  const selectedFolder = ref(null);
+
+ const renameModal = ref(null);
 
  const init = () => {
      root.value = simManager.root;
@@ -243,6 +248,10 @@
  const exportArchiveUrl = (item) => {
      //TODO(pjm): implement this
      return '/';
+ };
+
+ const renameItem = (item) => {
+     renameModal.value.showModal();
  };
 
  const sourceCodeUrl = (item) => {
