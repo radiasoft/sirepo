@@ -31,7 +31,6 @@
  const submitted = ref(false);
  let ui_ctx;
 
-
  const canSubmit = () => {
      return ui_ctx.fields.reason.val && ! ui_ctx.fields.reason.invalid;
  }
@@ -55,6 +54,9 @@
      );
  };
 
+ appstate.clearModels({
+     moderationRequest: {},
+ });
  appState.registerViewLogic('moderationRequest', (ctx) => {
      ui_ctx = ctx;
  });

@@ -74,6 +74,9 @@
      );
  };
 
+ appState.clearModels({
+     completeRegistration: {},
+ });
  appState.registerViewLogic('completeRegistration', (ctx) => {
      ui_ctx = ctx;
      ui_ctx.fields.fullName.cols = 7;

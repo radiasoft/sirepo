@@ -64,11 +64,6 @@ ul.sr-nav-sidebar-root {
   display: block;
   font-weight: 500;
 }
-/*
-.sr-nav-sidebar > li > a:hover {
-  background-color: transparent;
-}
-*/
 .sr-nav-sidebar > li.active > a {
   color: #555;
   background-color: #e7e7e7;
@@ -85,13 +80,11 @@ ul.sr-nav-sidebar-root {
 }
 .sr-item-icon {
   font-size: 32px;
-/*  display: block; */
   cursor: pointer;
 }
 .sr-nav-icon {
   margin-right: 4px;
 }
-
 
 /* bootstrap css overrides */
 .dropdown-menu {
@@ -120,8 +113,13 @@ ul.sr-nav-sidebar-root {
   --bs-btn-color: #333;
 }
 .navbar {
-  --bs-navbar-padding-x: 0;
   --bs-navbar-padding-y: 0;
+}
+.nav-link {
+  --bs-nav-link-padding-y: 15px;
+}
+.nav-link.active {
+  background-color: #e7e7e7;
 }
 
 body {

@@ -70,6 +70,9 @@
      );
  };
 
+ appState.clearModels({
+     emailLogin: {},
+ });
  appState.registerViewLogic('emailLogin', (ctx) => {
      ui_ctx = ctx;
      ui_ctx.fields.email.cols = 7;

@@ -31,14 +31,20 @@
  const props = defineProps({
      field_name: String,
      ui_ctx: Object,
+     defaultCols: Number,
  });
 
  const { enabled, error, field, onInput } = useWidget(props.ui_ctx, props.field_name);
 
  const { isInvalid, parsedValue, rawValue } = useValidation(field());
 
- field().cols = 12;
- field().labelcols = 12;
+ if (props.defaultCols && ! field().cols) {
+     field().cols = props.defaultCols;
+     }
+ else {
+     field().cols = 12;
+     field().labelcols = 12;
+ }
 
  //TODO(pjm): could share these watch() calls with VText.vue
  watch(() => field().val, () => {

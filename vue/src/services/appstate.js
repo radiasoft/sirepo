@@ -1,5 +1,6 @@
 
 import { pubSub } from '@/services/pubsub.js';
+import { requestSender } from '@/services/requestsender.js';
 
 class UIContext {
     // accessPath: keyed path into object or array data
@@ -96,6 +97,97 @@ class AppState {
     #viewLogic = {};
     #widgets = {};
 
+    #lastAutoSaveData = null;
+
+    #resetAutoSaveTimer() {
+    }
+
+    #deepEqualsNoSimulationStatus() {
+        return false;
+    }
+
+    //TODO(pjm): currently no autosave timer. Is it needed?
+    autoSave(callback) {
+        if (! this.isLoaded() ||
+            this.#lastAutoSaveData && this.#deepEqualsNoSimulationStatus(
+                this.#lastAutoSaveData.models, this.models)
+        ) {
+            if (callback) {
+                callback({'state': 'noChanges'});
+            }
+            return;
+        }
+        this.#resetAutoSaveTimer();
+        this.#lastAutoSaveData = {
+            models: this.clone(this.models),
+        };
+        console.log('saving:', this.models);
+        requestSender.sendRequest(
+            'saveSimulationData',
+            (response) => {
+                if (response.error) {
+                    //TODO(pjm): errorService
+                    //errorService.alertText(resp.error);
+                    throw new Error(resp.error);
+                    return;
+                }
+                this.#lastAutoSaveData = this.clone(response);
+                console.log('save response:', response);
+                ['simulationSerial', 'name', 'lastModified'].forEach(f => {
+                    this.models.simulation[f] = this.#lastAutoSaveData.models.simulation[f];
+                });
+                if (callback) {
+                    callback(response);
+                }
+            },
+            this.#lastAutoSaveData,
+            (response) => {
+                // give the user some feedback that the save failed
+                if (! response || response.error === 'Server Error') {
+                    //TODO(pjm): errorService
+                    //errorService.alertText('Save failed due to a server error');
+                    throw new Error('Save failed due to a server error');
+                }
+                else {
+                    //TODO(pjm): errorService
+                    //errorService.alertText(response.error);
+                    throw new Error(response.error);
+                }
+            },
+        );
+    }
+
+    clearModels(emptyValues) {
+        if (this.isLoaded()) {
+            this.autoSave(() => this.#clearModels(emptyValues));
+        }
+        else {
+            this.#clearModels(emptyValues);
+        }
+    }
+
+    #clearModels(emptyValues) {
+        this.models = emptyValues || {};
+        console.log('cleared models');
+        pubSub.publish(MODELS_UNLOADED_EVENT);
+    }
+
+    clone(obj) {
+        return window.structuredClone
+             ? window.structuredClone(obj)
+             : JSON.parse(JSON.stringify(obj));
+    }
+
+    deleteSimulation(simulationId, callback) {
+        requestSender.sendRequest(
+            'deleteSimulation',
+            callback,
+            {
+                simulationId,
+            },
+        );
+    }
+
     initViewLogic(viewName, ui_ctx) {
         const v = this.#viewLogic[viewName];
         if (v) {
@@ -107,16 +199,12 @@ class AppState {
         this.#widgets[name] = component;
     }
 
-    getWidget(name) {
-        return this.#widgets[name];
+    getUIContext(accessPath, fieldDef="basic", viewName=accessPath) {
+        return new UIContext(accessPath, viewName, fieldDef);
     }
 
-    registerViewLogic(viewName, useFunction) {
-        //TODO(pjm): breaks on dev reload
-        //if (this.#viewLogic[viewName]) {
-        //    throw new Error(`view logic already registered for view name: ${viewName}`);
-        //}
-        this.#viewLogic[viewName] = useFunction;
+    getWidget(name) {
+        return this.#widgets[name];
     }
 
     init(simulationType, schema) {
@@ -127,15 +215,43 @@ class AppState {
         this.schema = schema;
     }
 
-    getUIContext(accessPath, fieldDef="basic", viewName=accessPath) {
-        return new UIContext(accessPath, viewName, fieldDef);
+    isLoaded() {
+        return this.models && this.models.simulation && this.models.simulation.simulationId ? true : false;
     }
 
-    loadModels(models) {
-        this.models = models;
+    loadModels(simulationId, callback) {
+        if (this.isLoaded() && this.models.simulation.simulationId == simulationId) {
+            console.log('already loaded');
+            return;
+        }
+        this.clearModels();
+        requestSender.sendRequest(
+            'simulationData',
+            (response) => {
+                if (response.notFoundCopyRedirect) {
+                    throw new Error('not yet implemented:', response);
+                }
+                this.models = response.models;
+                pubSub.publish(MODELS_LOADED_EVENT);
+                if (callback) {
+                    callback();
+                }
+            },
+            {
+                simulation_id: simulationId,
+                pretty: false
+            });
     }
 
-    saveChanges(values) {
+    registerViewLogic(viewName, useFunction) {
+        //TODO(pjm): breaks on dev reload
+        //if (this.#viewLogic[viewName]) {
+        //    throw new Error(`view logic already registered for view name: ${viewName}`);
+        //}
+        this.#viewLogic[viewName] = useFunction;
+    }
+
+    saveChanges(values, callback) {
         for (const m in values) {
             if (this.models[m]) {
                 for (const f in values[m]) {
@@ -146,9 +262,33 @@ class AppState {
             }
         }
         pubSub.publish(MODEL_CHANGED_EVENT, Object.keys(values));
+        this.autoSave(() => {
+            //TODO(pjm): update reports
+            if (callback) {
+                callback();
+            }
+        });
     }
+
+    setModelDefaults(model, modelName) {
+        // set model defaults from schema
+        const m = this.schema.model[modelName];
+        for (const f of Object.keys(m)) {
+            if (! model[f]) {
+                const v = m[f][2];
+                model[f] = v && typeof b === 'object'
+                             ? this.clone(v)
+                             : v;
+            }
+        }
+        return model;
+    };
 }
 
 export const MODEL_CHANGED_EVENT = 'modelChanged';
+
+export const MODELS_LOADED_EVENT = 'modelsLoaded';
+
+export const MODELS_UNLOADED_EVENT = 'modelsUnloaded';
 
 export const appState = new AppState();

@@ -1,6 +1,12 @@
 <template>
     <VModal ref="modal" :title="title" @modalClosed="modalClosed">
-        <VForm :viewName="viewName" fieldDef="advanced" ref="form" @dismissModal="closeModal"/>
+        <VForm
+            v-if="isShown"
+            :viewName="viewName"
+            fieldDef="advanced"
+            ref="form"
+            @dismissModal="closeModal"
+        />
     </VModal>
 </template>
 
@@ -16,12 +22,19 @@
 
  const form = ref(null);
  const modal = ref(null);
+ const isShown = ref(false);
 
  const closeModal = () => modal.value.closeModal();
 
- const modalClosed = () => form.value.cancelChanges();
+ const modalClosed = () => {
+     form.value.cancelChanges();
+     isShown.value = false;
+ }
 
- const showModal = () => modal.value.showModal();
+ const showModal = () => {
+     isShown.value = true;
+     modal.value.showModal();
+ }
 
  defineExpose({ showModal });
 </script>

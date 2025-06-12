@@ -1,5 +1,5 @@
 <template>
-    <nav class="navbar static-top bg-light navbar-light">
+    <nav class="navbar navbar-expand-sm static-top bg-light navbar-light">
         <div class="container-fluid">
 
             <div class="navbar-brand">
@@ -15,6 +15,27 @@
                 <div class="d-inline-block ms-3">{{ appName }}</div>
             </div>
 
+            <ul class="navbar-nav me-auto mb-2 mb-sm-0">
+                <li class="nav-item">
+                    <RouterLink
+                        class="nav-link"
+                        :class="{ active: isSimulationList }"
+                        :to="{
+                             name: 'simulations',
+                             params: {
+                                 folderPath: folderPath,
+                             },
+                        }">
+                        <span class="bi bi-list-task"></span>
+                        Simulations
+                    </RouterLink>
+                </li>
+
+                <li @if="simName" class="nav-item nav-text">
+                    <a class="nav-link" href><span class="glyphicon glyphicon-pencil"></span> <strong>{{ simName }}</strong></a>
+                </li>
+
+            </ul>
             <div class="d-flex">
 
                 <!--
@@ -104,12 +125,29 @@
                 </ul>
                 -->
 
-                <a
-                    v-if="authState.isLoggedIn && ! authState.guestIsOnlyMethod"
-                    :href="logoutURL()"
-                >
-                    Sign out
-                </a>
+                <ul class="navbar-nav me-auto mb-2 mb-sm-0">
+                    <li class="nav-item">
+                        <a
+                            class="nav-link"
+                            v-if="! appState.isLoaded()"
+                            href
+                            @click.prevent="newSimulation"
+                        >
+                            <span class="bi bi-file-earmark-plus"></span>
+                            New Simulation
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a
+                            class="nav-link"
+                            v-if="authState.isLoggedIn && ! authState.guestIsOnlyMethod"
+                            :href="logoutURL()"
+                        >
+                            Sign out
+                        </a>
+                    </li>
+                </ul>
 
                 <!--
                 <app-settings>
@@ -119,19 +157,83 @@
             </div>
         </div>
     </nav>
+    <VFormModal viewName="simulation" title="New Simulation" ref="newModal">
+    </VFormModal>
 </template>
 
 <script setup>
- import { appState } from '@/services/appstate.js';
+ import VFormModal from '@/components/VFormModal.vue'
+ import { RouterLink } from 'vue-router';
+ import { appState, MODEL_CHANGED_EVENT, MODELS_LOADED_EVENT, MODELS_UNLOADED_EVENT } from '@/services/appstate.js';
  import { authState } from '@/services/authstate.js';
+ import { onMounted, onUnmounted, ref } from 'vue';
+ import { pubSub } from '@/services/pubsub.js';
  import { requestSender } from '@/services/requestsender.js';
+ import { simManager } from '@/services/simmanager.js';
+ import { uri } from '@/services/uri.js';
+
+ const newModal = ref(null);
+ const folderPath = ref('');
+ const isSimulationList = ref(false);
+ const simName = ref(null);
 
  //TODO(pjm): longName vs shortName should be dependent on window width
  const appName = appState.schema.appInfo[appState.simulationType].longName;
 
  const logoutURL = () => {
-     //TODO(pjm): need uri formatter
-     return `/auth-logout/${appState.simulationType}`;
+     return uri.format('authLogout');
  };
+
+ const newSimulation = () => {
+     if (appState.isLoaded()) {
+         throw new Error('newSimulation expects an unloaded state');
+     }
+     appState.clearModels({
+         simulation: appState.setModelDefaults({
+             folder: simManager.getFolderPath(simManager.selectedFolder),
+         }, 'simulation'),
+     });
+     newModal.value.showModal();
+ };
+
+ const onLoaded = () => {
+     folderPath.value = simManager.formatFolderPath(appState.models.simulation.folder);
+     isSimulationList.value = false;
+     simName.value = appState.models.simulation.name;
+ };
+
+ const onModelChanged = (names) => {
+     if (names[0] === 'simulation') {
+         // call newSimulation
+         appState.models.simulation.folder = simManager.getFolderPath(simManager.selectedFolder);
+         requestSender.sendRequest(
+             'newSimulation',
+             (response) => {
+                 //TODO(pjm): implement response handling
+             },
+             appState.models.simulation,
+         );
+         // add sim to simManager
+         // call openSim
+     }
+ };
+
+ const onUnloaded = () => {
+     isSimulationList.value = true;
+     simName.value = null;
+ };
+
+ onMounted(() => {
+     pubSub.subscribe(MODELS_LOADED_EVENT, onLoaded);
+     pubSub.subscribe(MODELS_UNLOADED_EVENT, onUnloaded);
+     pubSub.subscribe(MODEL_CHANGED_EVENT, onModelChanged);
+ });
+
+ onUnmounted(() => {
+     pubSub.unsubscribe(MODELS_LOADED_EVENT, onLoaded);
+     pubSub.unsubscribe(MODELS_UNLOADED_EVENT, onUnmounted);
+     pubSub.unsubscribe(MODEL_CHANGED_EVENT, onModelChanged);
+ });
+
 
 </script>

@@ -49,7 +49,13 @@
                 :defaultCols="3"
             />
         </div>
-        <div v-else-if="widgetName === 'SafePath'">
+        <div v-else-if="widgetName === 'UserFolder'">
+            <VFolders
+                :field_name="field_name"
+                :ui_ctx="ui_ctx"
+            />
+        </div>
+        <div v-else-if="['SafePath', 'SimulationName'].includes(widgetName)">
             <VText
                 :field_name="field_name"
                 :ui_ctx="ui_ctx"
@@ -62,6 +68,13 @@
                 :ui_ctx="ui_ctx"
             />
         </div>
+        <div v-else-if="widgetName === 'Text'">
+            <VLongText
+                :field_name="field_name"
+                :ui_ctx="ui_ctx"
+                :defaultCols="7"
+            />
+        </div>
         <div v-else>
             Unknown widget type {{ widgetName }}
         </div>
@@ -71,6 +84,7 @@
 <script setup>
  import VEnum from '@/components/widget/VEnum.vue';
  import VLongText from '@/components/widget/VLongText.vue';
+ import VFolders from '@/components/widget/VFolders.vue';
  import VSelect from '@/components/widget/VSelect.vue';
  import VStatic from '@/components/widget/VStatic.vue';
  import VText from '@/components/widget/VText.vue';

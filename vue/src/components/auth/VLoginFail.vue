@@ -2,15 +2,17 @@
     <div class="col-md-8 offset-md-2">
         <VWell>
             <p>{{ message() }}</p>
-            <a :href="uri.formatLocal('login')">Please try to login again.</a>
+            <RouterLink :to="{ name: 'login', params: { simulationType: appState.simulationType }}">
+                Please try to login again.
+            </RouterLink>
         </VWell>
     </div>
 </template>
 
 <script setup>
  import VWell from '@/components/layout/VWell.vue';
- import { uri } from '@/services/uri.js';
- import { useRoute } from 'vue-router';
+ import { RouterLink, useRoute } from 'vue-router';
+ import { appState } from '@/services/appstate.js';
 
  const route = useRoute();
 

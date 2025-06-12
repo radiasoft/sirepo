@@ -1,17 +1,77 @@
 
-
 import { requestSender } from '@/services/requestsender.js';
 
 const COMPOUND_PATH_SEPARATOR = ':';
 
 class SimManager{
 
-    addFolder(parentNode, folderName) {
+    //TODO(pjm): need better API for this
+    selectedFolder = {
+        path: '',
+    };
+
+    addFolder(parentNode, folderPath) {
     }
 
-    openFolder(folderName) {
+    formatFolderPath(folderPath) {
+        return folderPath.substring(1).replaceAll('/', COMPOUND_PATH_SEPARATOR);
+    }
+
+    getFolders() {
+        return this.folders;
+    }
+
+    getFolderPathFromRoute(route) {
+        let p = route.params.folderPath;
+        if (p) {
+            p = decodeURIComponent(p).replaceAll(COMPOUND_PATH_SEPARATOR, '/');
+            return p;
+        }
+        return this.root.name;
+    }
+
+    getFolderPath(folder) {
+        return '/' + folder.path.replaceAll(COMPOUND_PATH_SEPARATOR, '/');
+    }
+
+    getRelatedSims(sim) {
+    }
+
+    getSims(callback) {
+        if (this.tree) {
+            callback();
+            return;
+        }
+        this.loadSims(callback);
+    }
+
+    loadSims(callback) {
+        this.tree = [
+            {
+                name: '/',
+                children: [],
+                isFolder: true,
+                path: '',
+            },
+        ];
+        this.root = this.tree[0];
+        this.folders = [];
+        requestSender.sendRequest(
+            'listSimulations',
+            (response) => {
+                for (const s of response) {
+                    this.#addToTree(s.simulation);
+                }
+                this.#sortTree(this.root);
+                callback();
+            },
+            {},
+        );
+    }
+
+    openFolder(folderPath) {
         let c = this.root;
-        for (const f of this.#folderPath(folderName)) {
+        for (const f of this.#splitFolderPath(folderPath)) {
             let nc = null;
             for (const n of c.children) {
                 if (n.isFolder && n.name === f) {
@@ -28,57 +88,16 @@ class SimManager{
         return c;
     }
 
-    getFolderNameFromRoute(route) {
-        let p = route.params.folderName;
-        if (p) {
-            p = decodeURIComponent(p).replaceAll(COMPOUND_PATH_SEPARATOR, '/');
-            return p;
-        }
-        return this.root.name;
-    }
-
-    getRelatedSims(sim) {
-    }
-
-    loadSims(callback) {
-        this.tree = [
-            {
-                name: '/',
-                children: [],
-                path: '',
-            },
-        ];
-        this.root = this.tree[0];
-        requestSender.sendRequest(
-            'listSimulations',
-            (response) => {
-                for (const s of response) {
-                    this.#addToTree(s.simulation);
-                }
-                this.#sortTree(this.root);
-                callback();
-            },
-            {},
-        );
+    removeSim(simulationId) {
     }
 
     #addToTree(sim) {
         let c = this.root;
-        for (const f of this.#folderPath(sim.folder)) {
+        for (const f of this.#splitFolderPath(sim.folder)) {
             c = this.#getOrCreateFolder(c, f);
         }
         sim.key = sim.simulationId;
         c.children.push(sim);
-    }
-
-    #folderPath(folderName) {
-        const p = [];
-        for (const f of folderName.split('/')) {
-            if (f !== '') {
-                p.push(f);
-            }
-        }
-        return p;
     }
 
     #getOrCreateFolder(parent, folderName) {
@@ -101,6 +120,9 @@ class SimManager{
     }
 
     #sortTree(node) {
+        if (node.isFolder) {
+            this.folders.push('/' + node.path.replace(COMPOUND_PATH_SEPARATOR, '/'));
+        }
         node.children.sort((a, b) => {
             if (a.isFolder) {
                 if (b.isFolder) {
@@ -118,6 +140,16 @@ class SimManager{
                 this.#sortTree(c);
             }
         }
+    }
+
+    #splitFolderPath(folderPath) {
+        const p = [];
+        for (const f of folderPath.split('/')) {
+            if (f !== '') {
+                p.push(f);
+            }
+        }
+        return p;
     }
 }
 

@@ -5,33 +5,41 @@
         themeColor="warning"
         :canDismiss="canDismiss"
         size="default"
-        @modalClosed="modalClosed"
     >
-        <slot></slot>
+        <div class="row">
+            <div class="col-sm-12">
+                <slot></slot>
+            </div>
+            <div v-if="canDismiss" class="col-sm-12 text-center" style="margin-top: 1em">
+                <button v-if="okText" @click="okClicked" class="btn btn-outline-secondary sr-button-save-cancel">{{ okText }}</button>
+                <button type="button" @click="closeModal" class="btn btn-outline-secondary sr-button-save-cancel">{{ cancelText || 'Cancel' }}</button>
+            </div>
+        </div>
     </VModal>
 </template>
 
 <script setup>
  import VModal from '@/components/VModal.vue'
- import { ref } from 'vue';
+ import { defineEmits, ref } from 'vue';
 
  const props = defineProps({
      title: String,
+     okText: String,
+     cancelText: String,
      canDismiss: {
          type: Boolean,
          default: true,
      },
  });
 
+ const emit = defineEmits(['okClicked']);
  const modal = ref(null);
 
- //TODO(pjm): maybe export this?
- const closeModal = () => modal.value.closeModal();
+ const okClicked = () => emit('okClicked');
 
- //TODO(pjm): maybe propagate this back?
- const modalClosed = () => {};
+ const closeModal = () => modal.value.closeModal();
 
  const showModal = () => modal.value.showModal();
 
- defineExpose({ showModal });
+ defineExpose({ closeModal, showModal });
 </script>

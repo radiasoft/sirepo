@@ -60,7 +60,7 @@
                         <li v-if="! item.isFolder"><a :href="sourceCodeUrl(item)" class="dropdown-item">
                             <span class="sr-nav-icon bi bi-cloud-download"></span> Source Code
                         </a></li>
-                        <li v-if="canDelete(item)" class="divider"></li>
+                        <li v-if="canDelete(item)" class="dropdown-divider"></li>
                         <li v-if="canDelete(item)"><a href @click.prevent="deleteItem(item)" class="dropdown-item">
                             <span class="bi bi-trash"></span> Delete</a></li>
                     </ul>
@@ -74,6 +74,15 @@
     </div>
 
     <VFormModal viewName="renameItem" title="Rename" ref="renameModal"/>
+
+    <VConfirmationModal
+        ref="deleteModal"
+        title="Delete Simulation?"
+        okText="Delete"
+        @okClicked="deleteSelected"
+    >
+        Delete simulation &quot;{{ selectedItem && selectedItem.name }}&quot;?
+    </VConfirmationModal>
 
     <!--
     <script type="text/ng-template" id="sr-folder">
@@ -194,10 +203,14 @@
 </template>
 
 <script setup>
+ import VConfirmationModal from '@/components/VConfirmationModal.vue';
  import VFolderNav from '@/components/VFolderNav.vue';
  import VFormModal from '@/components/VFormModal.vue'
  import VTooltip from '@/components/VTooltip.vue';
- import { reactive, ref } from 'vue';
+ import { appState, MODEL_CHANGED_EVENT } from '@/services/appstate.js';
+ import { onMounted, onUnmounted, reactive, ref } from 'vue';
+ import { pubSub } from '@/services/pubsub.js';
+ import { requestSender } from '@/services/requestsender.js';
  import { simManager } from '@/services/simmanager.js';
  import { uri } from '@/services/uri.js';
  import { useRoute, useRouter } from 'vue-router';
@@ -212,15 +225,18 @@
  const items = ref([]);
  const root = ref(null);
  const selectedFolder = ref(null);
+ const selectedItem = ref(null);
 
  const renameModal = ref(null);
+ const deleteModal = ref(null);
 
  const init = () => {
      root.value = simManager.root;
      root.value.isOpen = true;
      if (! selectedFolder.value) {
-         const n = simManager.getFolderNameFromRoute(route);
+         const n = simManager.getFolderPathFromRoute(route);
          selectedFolder.value = simManager.openFolder(n);
+         simManager.selectedFolder = selectedFolder.value;
          if (! selectedFolder.value) {
              uri.localRedirect('notFound');
              return;
@@ -237,10 +253,12 @@
          f.isOpen = true;
      }
      selectedFolder.value = f;
+     simManager.selectedFolder = selectedFolder.value;
      items.value = selectedFolder.value.children;
      router.push({
+         name: 'simulations',
          params: {
-             folderName: selectedFolder.value.path,
+             folderPath: selectedFolder.value.path,
          },
      });
  };
@@ -251,6 +269,14 @@
  };
 
  const renameItem = (item) => {
+     appState.clearModels({
+         renameItem: {
+             newName: item.name,
+             oldName: item.name,
+             isFolder: item.isFolder,
+             simulationId: item.simulationId,
+         },
+     });
      renameModal.value.showModal();
  };
 
@@ -266,5 +292,49 @@
      return ! item.isExample;
  };
 
- simManager.loadSims(init);
+ const deleteItem = (item) => {
+     if (item.isFolder) {
+         //TODO(pjm): remove folder
+     }
+     else {
+         selectedItem.value = item;
+         deleteModal.value.showModal();
+     }
+ };
+
+ const deleteSelected = () => {
+     appState.deleteSimulation(
+         selectedItem.value.simulationId,
+         () => {
+             selectedItem.value = null;
+             deleteModal.value.closeModal();
+         },
+     );
+ };
+
+ const onModelChanged = (names) => {
+     if (names[0] === 'renameItem') {
+         //TODO(pjm): requestSender call to save
+     }
+ };
+
+ const openItem = (item) => {
+     if (item.isFolder) {
+         folderSelected(item);
+         return;
+     }
+     uri.localRedirectHome(item.simulationId);
+ };
+
+ onMounted(() => {
+     appState.clearModels();
+     //TODO(pjm): simManager should keep state and not reload from scratch each visit
+     simManager.loadSims(init);
+     pubSub.subscribe(MODEL_CHANGED_EVENT, onModelChanged);
+ });
+
+ onUnmounted(() => {
+     pubSub.unsubscribe(MODEL_CHANGED_EVENT, onModelChanged);
+ });
+
 </script>

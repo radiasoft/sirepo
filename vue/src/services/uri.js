@@ -3,9 +3,24 @@ import { appState } from '@/services/appstate.js';
 import { router } from '@/services/router.js';
 
 class URI {
-    formatLocal(routeName, params) {
-        //TODO(pjm): improve to use params
-        return `/${appState.simulationType}${appState.schema.localRoutes[routeName].route}`;
+    format(routeName, params) {
+        params = params || {};
+        params.simulation_type = appState.simulationType;
+        const u = appState.schema.route[routeName];
+        let r = u;
+        for (const m of u.matchAll(/([\?\*]?)<(\w+)>/g)) {
+            const [token, optional, name] = m;
+            if (name in params) {
+                r = r.replaceAll(token, params[name]);
+            }
+            else if (! optional) {
+                throw new Error(`Mising uri param: ${name}`);
+            }
+            else {
+                r = r.replaceAll(token, '');
+            }
+        }
+        return r;
     }
 
     globalRedirect(uri) {
@@ -15,11 +30,17 @@ class URI {
     localRedirect(routeName, params) {
         router.push({
             name: routeName,
-            params: {
-                ...(params || {}),
-                simulationType: appState.simulationType,
-            },
+            params: params || {},
         });
+    }
+
+    localRedirectHome(simulationId) {
+        uri.localRedirect(
+            appState.schema.appModes.default.localRoute,
+            {
+                simulationId: simulationId,
+            }
+        );
     }
 
     redirectAppRoot() {

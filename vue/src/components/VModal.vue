@@ -60,7 +60,7 @@
  const modalClosed = () => emit('modalClosed');
 
  const modalShown = () => {
-     // focus on the first input field and select the text 
+     // focus on the first input field and select the text
      const f = modal.value.querySelector('.form-control');
      if (f && f.focus) {
          f.focus();

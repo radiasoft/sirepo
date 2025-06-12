@@ -1,6 +1,3 @@
-import HomeView from '@/views/HomeView.vue';
-import NotFoundView from '@/views/NotFound.vue';
-import TestView from '@/views/TestView.vue';
 import VLogin from '@/components/auth/VLogin.vue';
 import VLoginConfirm from '@/components/auth/VLoginConfirm.vue';
 import VLoginFail from '@/components/auth/VLoginFail.vue';
@@ -13,127 +10,43 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 const storageKey = "previousRoute";
 
-//TODO(pjm): get from local routes in schema
-export const routes = {
-    completeRegistration: {
-        path: '/:simulationType/complete-registration',
-        name: 'completeRegistration',
-    },
-    simulations: {
-        path: '/:simulationType/simulations',
-        name: 'simulations',
-    },
-    home: {
-        path: '/:simulationType',
-        name: 'home',
-    },
-    about: {
-        path: '/:simulationType/about',
-        name: 'about',
-    },
-    test: {
-        path: '/:simulationType/test',
-        name: 'test',
-    },
-    login: {
-        path: '/:simulationType/login',
-        name: 'login',
-    },
-    loginWithEmailConfirm: {
-        path: '/:simulationType/login-with-email-confirm/:token/:needCompleteRegistration',
-        name: 'loginWithEmailConfirm',
-    },
+const routeComponents = {
+    completeRegistration: () => import('@/components/auth/VCompleteRegistration.vue'),
+    error: VRouteMessage,
+    login: VLogin,
+    loginFail: VLoginFail,
+    loginWithEmailConfirm: VLoginConfirm,
+    moderationPending: VRouteMessage,
+    moderationRequest: VModerationRequest,
+    notFound: VRouteMessage,
+    planRequired: VRouteMessage,
+    simulations: VSimOrganizer,
+};
+
+export const initRouter = () => {
+    const t = appState.simulationType;
+    router.addRoute({
+        path: `/${t}`,
+        redirect: `/${t}/${appState.schema.appDefaults.route}`,
+    });
+    for (const [n, r] of Object.entries(appState.schema.localRoutes)) {
+        if (routeComponents[n]) {
+            router.addRoute({
+                name: n,
+                path: `/${t}${r.route}`,
+                component: routeComponents[n],
+            });
+        }
+    }
+    return router
 };
 
 export const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
-        {
-            path: '/',
-            redirect: routes.home.path,
-        },
-        {
-            path: routes.home.path,
-            name: routes.home.name,
-            component: HomeView,
-        },
-        {
-            path: routes.test.path,
-            name: routes.test.name,
-            component: TestView,
-        },
-        {
-            path: routes.login.path,
-            name: routes.login.name,
-            component: VLogin,
-        },
-        {
-            path: routes.loginWithEmailConfirm.path,
-            name: routes.loginWithEmailConfirm.name,
-            component: VLoginConfirm,
-        },
-        {
-            path: '/:simulationType/simulations/:folderName?',
-            name: 'simulations',
-            component: VSimOrganizer,
-        },
-        {
-            path: routes.completeRegistration.path,
-            name: routes.completeRegistration.name,
-            component: () => import('@/components/auth/VCompleteRegistration.vue'),
-        },
-        {
-            path: routes.about.path,
-            name: routes.about.name,
-            // route level code-splitting
-            // this generates a separate chunk (About.[hash].js) for this route
-            // which is lazy-loaded when the route is visited.
-            component: () => import('@/views/AboutView.vue'),
-        },
-        {
-            path: '/:simulationType/error',
-            name: 'error',
-            component: VRouteMessage,
-        },
-        {
-            path: '/:simulationType/login-fail/:method/:reason',
-            name: 'loginFail',
-            component: VLoginFail,
-        },
-        {
-            path: '/:pathMatch(.*)*',
-            component: NotFoundView,
-        },
-        {
-            path: '/:simulationType/subscription-required',
-            name: 'planRequired',
-            component: VRouteMessage,
-        },
-        {
-            path: '/:simulationType/moderation-request/:role',
-            name: 'moderationRequest',
-            component: VModerationRequest,
-        },
-        {
-            path: '/:simulationType/moderation-pending',
-            name: 'moderationPending',
-            component: VRouteMessage,
-        },
-        {
-            path: '/:simulationType/not-found',
-            name: 'notFound',
-            component: VRouteMessage,
-        },
+        //TODO(pjm): need default not-found handler
     ],
-})
-
-/* router.beforeEach((to, from, next) => {
- *     console.log('to.name:', to.name);
- *     document.title = routes[to.name].title;
- *     next();
- * });
- * */
-
+});
 
     // #checkLoginRedirect(event, route) {
     //     if (! authState.isLoggedIn
@@ -163,14 +76,17 @@ export const router = createRouter({
     //     }
     // }
 
-router.beforeEach(async (to, from) => {
-    //TODO(pjm): not needed, server will return redirect to login if necessary
-    // if (to.name && ! to.name.startsWith('login') && to.params.simulationType && ! authState.isLoggedIn) {
-    //     return {
-    //         name: 'login',
-    //         params: {
-    //             simulationType: to.params.simulationType,
-    //         },
-    //     };
-    // }
+router.beforeEach((to, from) => {
+    const t = appState.schema.appInfo[appState.simulationType].shortName + ' - '
+            + appState.schema.productInfo.shortName
+    document.title = t;
+    if (to.params.simulationId) {
+        // if route param contains a simulationId, wait for loadModels() to resolve
+        return new Promise((resolve, reject) => {
+            appState.loadModels(to.params.simulationId, () => {
+                document.title = `${appState.models.simulation.name} - ${t}`;
+                resolve();
+            });
+        });
+    }
 });
