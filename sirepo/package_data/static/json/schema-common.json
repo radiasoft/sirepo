@@ -489,13 +489,6 @@
                 }
             },
             "simulations": {
-                "route": "/simulations",
-                "config": {
-                  "controller": "SimulationsController as simulations",
-                  "templateUrl": "/static/html/simulations.html"
-                }
-            },
-            "simulationsFolder": {
                 "route": "/simulations/:folderPath?",
                 "config": {
                   "controller": "SimulationsController as simulations",

@@ -237,9 +237,6 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
         $routeProvider.when(routeInfo.route, cfg);
         if (routeName === SIREPO.APP_SCHEMA.appDefaults.route) {
             defaultRoute = routeName;
-            if (routeInfo.route.indexOf(':') >= 0) {
-                throw new Error('default route must not have params: ' + routeInfo.route);
-            }
             cfg.redirectTo = routeInfo.route;
             $routeProvider.otherwise(cfg);
         }
@@ -4461,7 +4458,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         }
         else {
             requestSender.localRedirect(
-                'simulationsFolder',
+                'simulations',
                 {
                     ':folderPath?': compoundPath,
                 }
@@ -4487,11 +4484,6 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
     }
 
     function sectionParams(name) {
-        if (name === 'simulationsFolder') {
-            return {
-                ':folderPath?': ''
-            };
-        }
         if (requestSender.isRouteParameter(name, 'simulationId')) {
             return {
                 ':simulationId': appState.isLoaded() ? appState.models.simulation.simulationId : '',
