@@ -238,7 +238,7 @@ class PlotPolygon extends AbstractPlotShape2D {
     }
 }
 
-SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, requestQueue, simulationQueue, $interval, $rootScope, $window) {
+SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilities, simulationQueue, $interval, $rootScope, $window) {
 
     var INITIAL_HEIGHT = 400;
     var MAX_PLOTS = 11;

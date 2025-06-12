@@ -23,6 +23,7 @@ FOSS_CODES = frozenset(
         "activait",
         "canvas",
         "controls",
+        "cortex",
         "elegant",
         "epicsllrf",
         "genesis",
