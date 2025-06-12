@@ -31,8 +31,10 @@
                     </RouterLink>
                 </li>
 
-                <li @if="simName" class="nav-item nav-text">
-                    <a class="nav-link" href><span class="glyphicon glyphicon-pencil"></span> <strong>{{ simName }}</strong></a>
+                <li v-if="simName" class="nav-item nav-text">
+                    <a class="nav-link" href @click.prevent="editSimulation">
+                        <span class="bi bi-pencil-fill"></span> <strong>{{ simName }}</strong>
+                    </a>
                 </li>
 
             </ul>
@@ -196,6 +198,10 @@
      newModal.value.showModal();
  };
 
+ const editSimulation = () => {
+     newModal.value.showModal();
+ };
+
  const onLoaded = () => {
      folderPath.value = simManager.formatFolderPath(appState.models.simulation.folder);
      isSimulationList.value = false;
@@ -203,7 +209,10 @@
  };
 
  const onModelChanged = (names) => {
-     if (names[0] === 'simulation') {
+     if (appState.isLoaded()) {
+         simName.value = appState.models.simulation.name;
+     }
+     else if (names[0] === 'simulation') {
          // call newSimulation
          appState.models.simulation.folder = simManager.getFolderPath(simManager.selectedFolder);
          requestSender.sendRequest(

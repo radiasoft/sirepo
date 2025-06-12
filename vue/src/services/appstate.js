@@ -121,7 +121,6 @@ class AppState {
         this.#lastAutoSaveData = {
             models: this.clone(this.models),
         };
-        console.log('saving:', this.models);
         requestSender.sendRequest(
             'saveSimulationData',
             (response) => {
@@ -132,7 +131,6 @@ class AppState {
                     return;
                 }
                 this.#lastAutoSaveData = this.clone(response);
-                console.log('save response:', response);
                 ['simulationSerial', 'name', 'lastModified'].forEach(f => {
                     this.models.simulation[f] = this.#lastAutoSaveData.models.simulation[f];
                 });
@@ -168,7 +166,6 @@ class AppState {
 
     #clearModels(emptyValues) {
         this.models = emptyValues || {};
-        console.log('cleared models');
         pubSub.publish(MODELS_UNLOADED_EVENT);
     }
 
@@ -221,7 +218,6 @@ class AppState {
 
     loadModels(simulationId, callback) {
         if (this.isLoaded() && this.models.simulation.simulationId == simulationId) {
-            console.log('already loaded');
             return;
         }
         this.clearModels();
