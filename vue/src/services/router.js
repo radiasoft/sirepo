@@ -77,10 +77,17 @@ export const router = createRouter({
     // }
 
 router.beforeEach((to, from) => {
+    //TODO(pjm): document.title should update on modelChanged as well
     const t = appState.schema.appInfo[appState.simulationType].shortName + ' - '
             + appState.schema.productInfo.shortName
-    document.title = t;
     if (to.params.simulationId) {
+        if (appState.isLoadedRef.value) {
+            if (appState.models.simulation.simulationId !== to.params.simulationId) {
+                throw new Error('simulationId is loaded, but navigated to a different simulationId');
+            }
+            return;
+        }
+        document.title = t;
         // if route param contains a simulationId, wait for loadModels() to resolve
         return new Promise((resolve, reject) => {
             appState.loadModels(to.params.simulationId, () => {
@@ -89,4 +96,5 @@ router.beforeEach((to, from) => {
             });
         });
     }
+    document.title = t;
 });

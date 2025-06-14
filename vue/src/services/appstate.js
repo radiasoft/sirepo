@@ -1,5 +1,6 @@
 
 import { pubSub } from '@/services/pubsub.js';
+import { ref } from 'vue';
 import { requestSender } from '@/services/requestsender.js';
 
 class UIContext {
@@ -93,10 +94,7 @@ class UIContext {
 
 class AppState {
 
-    //TODO(pjm): AppState is not the right spot for viewLogic or widgets
-    #viewLogic = {};
-    #widgets = {};
-
+    isLoadedRef = ref(false);
     #lastAutoSaveData = null;
 
     #resetAutoSaveTimer() {
@@ -108,7 +106,7 @@ class AppState {
 
     //TODO(pjm): currently no autosave timer. Is it needed?
     autoSave(callback) {
-        if (! this.isLoaded() ||
+        if (! this.isLoadedRef.value ||
             this.#lastAutoSaveData && this.#deepEqualsNoSimulationStatus(
                 this.#lastAutoSaveData.models, this.models)
         ) {
@@ -156,7 +154,7 @@ class AppState {
     }
 
     clearModels(emptyValues) {
-        if (this.isLoaded()) {
+        if (this.isLoadedRef.value) {
             this.autoSave(() => this.#clearModels(emptyValues));
         }
         else {
@@ -166,7 +164,7 @@ class AppState {
 
     #clearModels(emptyValues) {
         this.models = emptyValues || {};
-        pubSub.publish(MODELS_UNLOADED_EVENT);
+        this.isLoadedRef.value = false;
     }
 
     clone(obj) {
@@ -185,23 +183,8 @@ class AppState {
         );
     }
 
-    initViewLogic(viewName, ui_ctx) {
-        const v = this.#viewLogic[viewName];
-        if (v) {
-            v(ui_ctx);
-        }
-    }
-
-    registerWidget(name, component) {
-        this.#widgets[name] = component;
-    }
-
     getUIContext(accessPath, fieldDef="basic", viewName=accessPath) {
         return new UIContext(accessPath, viewName, fieldDef);
-    }
-
-    getWidget(name) {
-        return this.#widgets[name];
     }
 
     init(simulationType, schema) {
@@ -212,13 +195,9 @@ class AppState {
         this.schema = schema;
     }
 
-    isLoaded() {
-        return this.models && this.models.simulation && this.models.simulation.simulationId ? true : false;
-    }
-
     loadModels(simulationId, callback) {
-        if (this.isLoaded() && this.models.simulation.simulationId == simulationId) {
-            return;
+        if (this.isLoadedRef.value) {
+            throw new Error('loadModels() may only be called in an unloaded state');
         }
         this.clearModels();
         requestSender.sendRequest(
@@ -228,7 +207,7 @@ class AppState {
                     throw new Error('not yet implemented:', response);
                 }
                 this.models = response.models;
-                pubSub.publish(MODELS_LOADED_EVENT);
+                this.isLoadedRef.value = true;
                 if (callback) {
                     callback();
                 }
@@ -237,14 +216,6 @@ class AppState {
                 simulation_id: simulationId,
                 pretty: false
             });
-    }
-
-    registerViewLogic(viewName, useFunction) {
-        //TODO(pjm): breaks on dev reload
-        //if (this.#viewLogic[viewName]) {
-        //    throw new Error(`view logic already registered for view name: ${viewName}`);
-        //}
-        this.#viewLogic[viewName] = useFunction;
     }
 
     saveChanges(values, callback) {
@@ -282,9 +253,5 @@ class AppState {
 }
 
 export const MODEL_CHANGED_EVENT = 'modelChanged';
-
-export const MODELS_LOADED_EVENT = 'modelsLoaded';
-
-export const MODELS_UNLOADED_EVENT = 'modelsUnloaded';
 
 export const appState = new AppState();

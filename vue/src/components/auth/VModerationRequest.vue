@@ -37,7 +37,6 @@
 
  const submitForm = () => {
      const handleResponse = (response) => {
-         console.log('response:', response);
          if (response.state === 'error') {
              ui_ctx.fields.reason.val = '';
              ui_ctx.fields.reason.error = response.error;

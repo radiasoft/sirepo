@@ -88,6 +88,7 @@
  import VSelect from '@/components/widget/VSelect.vue';
  import VStatic from '@/components/widget/VStatic.vue';
  import VText from '@/components/widget/VText.vue';
+ import { appResources } from '@/services/appresources.js';
  import { appState } from '@/services/appstate.js';
  import { useEmailValidation } from '@/components/widget/validation/useEmailValidation.js';
  import { useNumberValidation } from '@/components/widget/validation/useNumberValidation.js';
@@ -101,7 +102,7 @@
 
  const getWidgetName = () => {
      let n = props.ui_ctx.fields[props.field_name].widget;
-     const w = appState.getWidget(n);
+     const w = appResources.getWidget(n);
      if (! w && n.startsWith('Optional')) {
          n = n.replace('Optional', '');
          props.ui_ctx.fields[props.field_name].optional = true;

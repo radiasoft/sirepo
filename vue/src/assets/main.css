@@ -38,7 +38,10 @@ textarea.sr-invalid, textarea.sr-invalid:focus {
   margin-right: 0.5ex;
 }
 
-
+.sr-nav-icon {
+  line-height: 20px;
+  font-size: larger;
+}
 .sr-sidebar {
   margin-top: -10px;
   padding: 0;
@@ -82,9 +85,6 @@ ul.sr-nav-sidebar-root {
   font-size: 32px;
   cursor: pointer;
 }
-.sr-nav-icon {
-  margin-right: 4px;
-}
 
 /* bootstrap css overrides */
 .dropdown-menu {
@@ -112,8 +112,22 @@ ul.sr-nav-sidebar-root {
 .btn-outline-secondary {
   --bs-btn-color: #333;
 }
+
+.navbar-nav.nav-tabs {
+  margin-bottom: -1px;
+}
+
+.nav-tabs .nav-item a {
+  margin-top: 5px;
+  padding-top: 10px;
+}
+
 .navbar {
   --bs-navbar-padding-y: 0;
+}
+
+.navbar-nav {
+  --bs-navbar-nav-link-padding-x: 15px;
 }
 .nav-link {
   --bs-nav-link-padding-y: 15px;

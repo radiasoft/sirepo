@@ -30,9 +30,10 @@
 
 <script setup>
  import VLabelAndField from '@/components/layout/VLabelAndField.vue'
- import { pubSub } from '@/services/pubsub.js';
+ import { appResources } from '@/services/appresources.js';
  import { appState, MODEL_CHANGED_EVENT } from '@/services/appstate.js';
  import { onMounted, onUnmounted, reactive } from 'vue';
+ import { pubSub } from '@/services/pubsub.js';
 
  const props = defineProps({
      viewName: String,
@@ -77,7 +78,7 @@
      pubSub.unsubscribe(MODEL_CHANGED_EVENT, onModelChanged);
  });
 
- appState.initViewLogic(props.viewName, ui_ctx);
+ appResources.initViewLogic(props.viewName, ui_ctx);
 
  defineExpose({ cancelChanges });
 </script>

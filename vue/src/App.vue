@@ -1,5 +1,5 @@
 <template>
-    <VHeader />
+    <component :is="headerComponent" />
     <br />
     <div class="container-fluid">
         <RouterView />
@@ -7,6 +7,8 @@
 </template>
 
 <script setup>
- import VHeader from '@/components/VHeader.vue';
+ import { appResources } from '@/services/appresources.js';
  import { RouterView } from 'vue-router';
+
+ const headerComponent = appResources.headerComponent();
 </script>
