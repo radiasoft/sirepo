@@ -60,4 +60,5 @@
      }
  });
 
+ rawValue.value = field().val;
 </script>

@@ -56,7 +56,7 @@
 </template>
 
 <script setup>
- import VBrand from '@/components/header/VBrand.vue';
+ import VBrand from '@/components/nav/VBrand.vue';
  import VFormModal from '@/components/VFormModal.vue';
  import { RouterLink } from 'vue-router';
  import { appState, MODEL_CHANGED_EVENT } from '@/services/appstate.js';

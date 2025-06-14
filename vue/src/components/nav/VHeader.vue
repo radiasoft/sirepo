@@ -11,8 +11,8 @@
 </template>
 
 <script setup>
- import VBrand from '@/components/header/VBrand.vue';
- import VHelpAndLogout from '@/components/header/VHelpAndLogout.vue';
- import VHomeNav from '@/components/header/VHomeNav.vue';
- import VSimNav from '@/components/header/VSimNav.vue';
+ import VBrand from '@/components/nav/VBrand.vue';
+ import VHelpAndLogout from '@/components/nav/VHelpAndLogout.vue';
+ import VHomeNav from '@/components/nav/VHomeNav.vue';
+ import VSimNav from '@/components/nav/VSimNav.vue';
 </script>

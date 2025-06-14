@@ -1,5 +1,5 @@
 
-import VHeader from '@/components/header/VHeader.vue';
+import VHeader from '@/components/nav/VHeader.vue';
 import VSource from '@/apps/myapp/VSource.vue';
 import VVisualization from '@/apps/myapp/VVisualization.vue';
 import { appState } from '@/services/appstate.js';
