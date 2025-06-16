@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
 """exporter test
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-import pytest
+
+import contextlib
 
 
 def test_create_zip(fc):
-    from pykern import pkio
     from pykern import pkunit
     from pykern import pkcompat
     from pykern.pkcollections import PKDict
@@ -19,39 +18,50 @@ def test_create_zip(fc):
     import re
     import zipfile
 
-    imported = _import(fc)
-    for sim_type, sim_name, expect in imported + [
-        (
-            "elegant",
-            "bunchComp - fourDipoleCSR",
-            ["WAKE-inputfile.knsl45.liwake.sdds", "run.py", "sirepo-data.json"],
-        ),
-        (
-            "srw",
-            "Tabulated Undulator Example",
-            ["anything/magnetic_measurements.zip", "run.py", "sirepo-data.json"],
-        ),
-        ("warppba", "Laser Pulse", ["run.py", "sirepo-data.json"]),
-        (
-            "opal",
-            "CSR Bend Drift",
-            ["opal.in", "sirepo-data.json"],
-        ),
-        (
-            "genesis",
-            "PEGASUS FEL",
-            ["genesis.in", "sirepo-data.json"],
-        ),
-        (
-            "madx",
-            "FODO PTC",
-            ["madx.madx", "sirepo-data.json"],
-        ),
-    ]:
-        sim_id = fc.sr_sim_data(sim_name, sim_type)["models"]["simulation"][
-            "simulationId"
-        ]
-        with pkio.save_chdir(pkunit.work_dir()) as d:
+    @contextlib.contextmanager
+    def _out_dir():
+        from pykern import pkio, pkunit
+
+        with pkio.save_chdir(pkunit.work_dir()) as rv:
+            d = fc.sr_db_dir()
+            p = d.stat().mode & 0o777
+            try:
+                d.chmod(0o500)
+                yield rv
+            finally:
+                d.chmod(p)
+
+    with _out_dir() as out_dir:
+        imported = _import(fc)
+        for sim_type, sim_name, expect in imported + [
+            (
+                "elegant",
+                "bunchComp - fourDipoleCSR",
+                ["WAKE-inputfile.knsl45.liwake.sdds", "run.py", "sirepo-data.json"],
+            ),
+            (
+                "srw",
+                "Tabulated Undulator Example",
+                ["anything/magnetic_measurements.zip", "run.py", "sirepo-data.json"],
+            ),
+            ("warppba", "Laser Pulse", ["run.py", "sirepo-data.json"]),
+            (
+                "opal",
+                "CSR Bend Drift",
+                ["opal.in", "sirepo-data.json"],
+            ),
+            (
+                "genesis",
+                "PEGASUS FEL",
+                ["genesis.in", "sirepo-data.json"],
+            ),
+            (
+                "madx",
+                "FODO PTC",
+                ["madx.madx", "sirepo-data.json"],
+            ),
+        ]:
+            sim_id = fc.sr_sim_data(sim_name, sim_type).models.simulation.simulationId
             r = fc.sr_get(
                 "exportArchive",
                 PKDict(
@@ -60,9 +70,9 @@ def test_create_zip(fc):
                     filename="anything.zip",
                 ),
             )
-            p = d.join(sim_name + ".zip")
-            x = r.data
-            p.write_binary(x)
+            r.assert_success()
+            p = out_dir.join(sim_name + ".zip")
+            p.write_binary(r.data)
             pkeq(
                 expect,
                 sorted(zipfile.ZipFile(str(p)).namelist()),

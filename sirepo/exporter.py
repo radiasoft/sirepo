@@ -1,17 +1,19 @@
-# -*- coding: utf-8 -*-
 """Export simulations in a single archive
 
 :copyright: Copyright (c) 2017 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern import pkcollections
+
 from pykern import pkio
 from pykern import pkjson
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp
 from sirepo import sim_data
 from sirepo import simulation_db
 from sirepo import template
+import copy
 import sirepo.sim_run
+import sirepo.template
 import sirepo.util
 
 
@@ -47,8 +49,7 @@ def _create_zip(sim, out_dir, qcall):
     data = s.sim_run_input_fixup(data)
     data.pkdel("report")
     files = s.lib_files_for_export(data, qcall=qcall)
-    for f in _run_file(data, sim, qcall):
-        files.append(f)
+    files.extend(_run_file(data, sim.template, out_dir, qcall))
     with sirepo.util.write_zip(str(path)) as z:
         for f in files:
             if hasattr(sim.template, "export_filename"):
@@ -85,41 +86,19 @@ def _create_zip(sim, out_dir, qcall):
     return path
 
 
-def _run_file(data, sim, qcall):
-    """Generate the run file in current directory
+def _run_file(data, template, out_dir, qcall):
+    def _default_path():
+        s = template.SCHEMA.constants.simulationSourceExtension
+        if s != "py":
+            return "{}.{}".format(template.SIM_TYPE, s)
+        return "run.py"
 
-    Args:
-        data (dict): simulation
+    def _files(python_source):
+        if isinstance(python_source, PKDict):
+            return t
+        yield _default_path(), python_source
 
-    Returns:
-        py.path.Local: file to append
-    """
-    import sirepo.template
-    import copy
-
-    template = sirepo.template.import_module(data)
-    res = pkio.py_path(_run_filename(data))
-    d = copy.deepcopy(data)
-    d.file_ext = ".zip"
-    t = template.python_source_for_model(d, model=None, qcall=qcall)
-    if type(t) == pkcollections.PKDict:
-        return _write_multiple_export_files(t)
-    res.write(t)
-    return [res]
-
-
-def _run_filename(data):
-    t = data.simulationType
-    s = simulation_db.get_schema(t).constants.simulationSourceExtension
-    if s != "py":
-        return "{}.{}".format(t, s)
-    return "run.py"
-
-
-def _write_multiple_export_files(source):
-    r = []
-    for k in source.keys():
-        p = pkio.py_path(k)
-        p.write(source[k])
-        r.append(p)
-    return r
+    for k, v in _files(template.python_source_for_model(data, model=None, qcall=qcall)):
+        p = out_dir.join(k)
+        p.write(v)
+        yield p

@@ -287,6 +287,12 @@ class _TestClient:
         res.cookie_jar = res._session.cookies
         return res
 
+    def sr_db_dir(self):
+        """Database directory of the server"""
+        from pykern import pkunit
+
+        return pkunit.work_dir().join(_DB_DIR)
+
     def sr_email_confirm(self, resp, display_name=None):
         from pykern.pkdebug import pkdlog
 
@@ -629,11 +635,9 @@ class _TestClient:
 
     def sr_user_dir(self, uid=None):
         """User's db dir"""
-        from pykern import pkunit
-
         if not uid:
             uid = self.sr_auth_state().uid
-        return pkunit.work_dir().join(_DB_DIR, "user", uid)
+        return self.sr_db_dir().join("user", uid)
 
     def timeout_secs(self):
         if not hasattr(self, "_timeout_secs"):
