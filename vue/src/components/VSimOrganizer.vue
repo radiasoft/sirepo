@@ -268,8 +268,8 @@
      return '/';
  };
 
- const renameItem = (item) => {
-     appState.clearModels({
+ const renameItem = async (item) => {
+     await appState.clearModels({
          renameItem: {
              newName: item.name,
              oldName: item.name,
@@ -302,14 +302,10 @@
      }
  };
 
- const deleteSelected = () => {
-     appState.deleteSimulation(
-         selectedItem.value.simulationId,
-         () => {
-             selectedItem.value = null;
-             deleteModal.value.closeModal();
-         },
-     );
+ const deleteSelected = async () => {
+     await appState.deleteSimulation(selectedItem.value.simulationId);
+     selectedItem.value = null;
+     deleteModal.value.closeModal();
  };
 
  const onModelChanged = (names) => {
@@ -326,10 +322,11 @@
      uri.localRedirectHome(item.simulationId);
  };
 
- onMounted(() => {
+ onMounted(async () => {
      appState.clearModels();
      //TODO(pjm): simManager should keep state and not reload from scratch each visit
-     simManager.loadSims(init);
+     await simManager.loadSims();
+     init();
      pubSub.subscribe(MODEL_CHANGED_EVENT, onModelChanged);
  });
 

@@ -9,20 +9,13 @@
 <script setup>
  import VWell from '@/components/layout/VWell.vue';
  import { authState } from '@/services/authstate.js';
- import { ref } from 'vue';
+ import { ref, onMounted } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
 
  const message = ref('Creating your account. Please wait...');
 
- const handleResponse = (response) => {
+ onMounted(async () => {
+     const r = await requestSender.sendRequest('authGuestLogin', {});
      message.value = authState.handleLogin(response);
- };
-
- //TODO(pjm): on mounted?
- requestSender.sendRequest(
-     'authGuestLogin',
-     handleResponse,
-     {},
-     handleResponse,
- );
+ });
 </script>

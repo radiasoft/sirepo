@@ -71,11 +71,11 @@
 
  const newFolder = () => {};
 
- const newSimulation = () => {
+ const newSimulation = async () => {
      if (isLoadedRef.value) {
          throw new Error('newSimulation expects an unloaded state');
      }
-     appState.clearModels({
+     await appState.clearModels({
          simulation: appState.setModelDefaults({
              folder: simManager.getFolderPath(simManager.selectedFolder),
          }, 'simulation'),
@@ -89,19 +89,20 @@
      }
  });
 
- const onModelChanged = (names) => {
-     if (! isLoadedRef.value && names[0] === 'simulation') {
-         // call newSimulation
-         appState.models.simulation.folder = simManager.getFolderPath(simManager.selectedFolder);
-         requestSender.sendRequest(
-             'newSimulation',
-             (response) => {
-                 //TODO(pjm): implement response handling
-             },
-             appState.models.simulation,
-         );
-         // add sim to simManager
-         // call openSim
+ const onModelChanged = async (names) => {
+     if (names[0] === 'simulation') {
+         if (isLoadedRef.value) {
+             folderPath.value = simManager.formatFolderPath(appState.models.simulation.folder);
+         }
+         else {
+             // call newSimulation
+             appState.models.simulation.folder = simManager.getFolderPath(simManager.selectedFolder);
+             const r = await requestSender.sendRequest(
+                 'newSimulation',
+                 appState.models.simulation,
+             );
+             //TODO(pjm): add sim to simManager, call openSim()
+         }
      }
  };
 

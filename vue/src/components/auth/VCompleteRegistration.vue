@@ -28,6 +28,7 @@
 <script setup>
  import VConfirmationModal from '@/components/VConfirmationModal.vue';
  import VForm from '@/components/VForm.vue';
+ import { appResources } from '@/services/appresources.js';
  import { appState } from '@/services/appstate.js';
  import { authState } from '@/services/authstate.js';
  import { ref, watch } from 'vue';
@@ -50,8 +51,15 @@
      return true;
  };
 
- const handleResponse = (response) => {
-     if (response.state === 'ok' && authState.needCompleteRegistration && authState.isModerated()) {
+ const submitForm = async () => {
+     const r = await requestSender.sendRequest(
+         'authCompleteRegistration',
+         {
+             displayName: ui_ctx.fields.fullName.val,
+             reason: ui_ctx.fields.reason.val,
+         },
+     );
+     if (r.state === 'ok' && authState.needCompleteRegistration && authState.isModerated()) {
          confirm.value.showModal();
          return;
      }
@@ -62,28 +70,15 @@
      }
  };
 
- const submitForm = () => {
-     requestSender.sendRequest(
-         'authCompleteRegistration',
-         handleResponse,
-         {
-             displayName: ui_ctx.fields.fullName.val,
-             reason: ui_ctx.fields.reason.val,
-         },
-         handleResponse,
-     );
- };
-
  appState.clearModels({
      completeRegistration: {},
  });
- appState.registerViewLogic('completeRegistration', (ctx) => {
+ appResources.registerViewLogic('completeRegistration', (ctx) => {
      ui_ctx = ctx;
      ui_ctx.fields.fullName.cols = 7;
      if (! authState.isModerated()) {
          ui_ctx.fields.reason.visible = false;
      }
  });
-
  authState.checkNeedsCompleteRegistration();
 </script>

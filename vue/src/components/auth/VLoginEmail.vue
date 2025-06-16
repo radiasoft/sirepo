@@ -33,47 +33,45 @@
 <script setup>
  import VConfirmationModal from '@/components/VConfirmationModal.vue';
  import VForm from '@/components/VForm.vue';
+ import { appResources } from '@/services/appresources.js';
  import { appState } from '@/services/appstate.js';
  import { ref, watch } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
+
  const confirm = ref(null);
  const isBusy = ref(false);
  let ui_ctx;
 
- const handleResponse = (response) => {
-     isBusy.value = false;
-     if (response.state === 'ok') {
-         confirm.value.showModal();
-         return;
-     }
-     ui_ctx.fields.email.val = '';
-     //TODO(pjm): share message with authState
-     ui_ctx.fields.email.error = response.error
-         || `Server reported an error, please contact ${appState.schema.feature_config.support_email}`;
- };
-
  const isInvalid = () => ! ui_ctx.fields.email.val || ui_ctx.fields.email.invalid;
 
- const submitForm = () => {
+ const submitForm = async () => {
      if (isInvalid()) {
          ui_ctx.fields.email.error = 'Email address is invalid. Please update and resubmit.';
          return;
      }
      isBusy.value = true;
-     requestSender.sendRequest(
+     const r = await requestSender.sendRequest(
          'authEmailLogin',
-         handleResponse,
          {
              email: ui_ctx.fields.email.val,
          },
-         handleResponse,
      );
+     isBusy.value = false;
+     if (r.state === 'ok') {
+         confirm.value.showModal();
+         return;
+     }
+     ui_ctx.fields.email.val = '';
+     //TODO(pjm): share message with authState
+     ui_ctx.fields.email.error = r.error
+         || `Server reported an error, please contact ${appState.schema.feature_config.support_email}`;
  };
 
  appState.clearModels({
      emailLogin: {},
  });
- appState.registerViewLogic('emailLogin', (ctx) => {
+
+ appResources.registerViewLogic('emailLogin', (ctx) => {
      ui_ctx = ctx;
      ui_ctx.fields.email.cols = 7;
      watch(ui_ctx, () => {

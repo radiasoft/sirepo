@@ -37,15 +37,13 @@ class SimManager{
     getRelatedSims(sim) {
     }
 
-    getSims(callback) {
-        if (this.tree) {
-            callback();
-            return;
+    async getSims() {
+        if (! this.tree) {
+            await this.loadSims();
         }
-        this.loadSims(callback);
     }
 
-    loadSims(callback) {
+    async loadSims() {
         this.tree = [
             {
                 name: '/',
@@ -56,17 +54,11 @@ class SimManager{
         ];
         this.root = this.tree[0];
         this.folders = [];
-        requestSender.sendRequest(
-            'listSimulations',
-            (response) => {
-                for (const s of response) {
-                    this.#addToTree(s.simulation);
-                }
-                this.#sortTree(this.root);
-                callback();
-            },
-            {},
-        );
+        const r = await requestSender.sendRequest('listSimulations', {});
+        for (const s of r) {
+            this.#addToTree(s.simulation);
+        }
+        this.#sortTree(this.root);
     }
 
     openFolder(folderPath) {

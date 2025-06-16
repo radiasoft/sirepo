@@ -21,18 +21,13 @@
  const route = useRoute();
  const message = ref('');
 
- const handleResponse = (response) => {
-     message.value = authState.handleLogin(response);
- };
-
- const confirm = () => {
-     requestSender.sendRequest(
+ const confirm = async () => {
+     const r = await requestSender.sendRequest(
          'authEmailAuthorized',
-         handleResponse,
          {
              token: route.params.token,
          },
-         handleResponse,
      );
+     message.value = authState.handleLogin(r);
  };
 </script>

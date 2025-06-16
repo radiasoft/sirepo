@@ -5,6 +5,7 @@ import App from '@/App.vue';
 import { appState } from '@/services/appstate.js';
 import { authState } from '@/services/authstate.js';
 import { createApp } from 'vue';
+import { onError } from '@/services/errorhandler.js';
 import { initRouter } from '@/services/router.js';
 
 // this must come last to override bootstrap css values
@@ -69,9 +70,11 @@ const sirepoLegacyInit = () => {
 
 sirepoLegacyInit().then((simulationType) => {
     const app = createApp(App);
-
+    app.config.errorHandler = onError;
     import(`@/apps/${simulationType}/main.js`).then(() => {
-        app.use(initRouter()).mount('#app');
+        const r = initRouter();
+        r.onError(onError);
+        app.use(r).mount('#app');
     });
 }).catch((message) => {
     throw new Error(message);

@@ -24,6 +24,7 @@
 
 <script setup>
  import VForm from '@/components/VForm.vue';
+ import { appResources } from '@/services/appresources.js';
  import { appState } from '@/services/appstate.js';
  import { ref } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
@@ -35,28 +36,25 @@
      return ui_ctx.fields.reason.val && ! ui_ctx.fields.reason.invalid;
  }
 
- const submitForm = () => {
-     const handleResponse = (response) => {
-         if (response.state === 'error') {
-             ui_ctx.fields.reason.val = '';
-             ui_ctx.fields.reason.error = response.error;
-         }
-     };
+ const submitForm = async () => {
      submitted.value = true;
-     requestSender.sendRequest(
+     const r = requestSender.sendRequest(
          'saveModerationReason',
-         handleResponse,
          {
              reason: ui_ctx.fields.reason.val,
          },
-         handleResponse,
      );
+     if (r.state === 'error') {
+         ui_ctx.fields.reason.val = '';
+         ui_ctx.fields.reason.error = r.error;
+     }
  };
 
- appstate.clearModels({
+ appState.clearModels({
      moderationRequest: {},
  });
- appState.registerViewLogic('moderationRequest', (ctx) => {
+
+ appResources.registerViewLogic('moderationRequest', (ctx) => {
      ui_ctx = ctx;
  });
 </script>

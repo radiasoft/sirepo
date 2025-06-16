@@ -19,7 +19,7 @@
  });
 
  const f = props.ui_ctx.fields[props.field_name];
- simManager.getSims(() => {
+ simManager.getSims().then(() => {
      f.choices = simManager.getFolders().map((v) => {
          return {
              code: v,

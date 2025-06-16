@@ -4,7 +4,6 @@
             <img
                 width="40"
                 height="38"
-                xclass="d-inline-block align-text-top"
                 src="/static/img/sirepo.gif"
                 alt="Sirepo"
             >

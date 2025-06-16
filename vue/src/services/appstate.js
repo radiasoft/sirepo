@@ -13,7 +13,14 @@ class UIContext {
         }
         this.accessPath = accessPath;
         this.viewName = viewName || accessPath;
-        this.fieldDef = fieldDef
+        this.fieldDef = fieldDef;
+        if (! appState.schema) {
+            //TODO(pjm): consider changing appState interface to support reloads
+            throw new Error(`
+                appState.schema is not set, possibly HMR reload lost the state.
+                Refresh the browser window to continue.
+            `);
+        }
         this.viewSchema = appState.schema.view[this.viewName];
         if (! this.viewSchema) {
             throw Error(`No schema view for name: ${this.viewName}`);
@@ -81,12 +88,12 @@ class UIContext {
         return false;
     }
 
-    saveChanges() {
+    async saveChanges() {
         const v = {};
         for (const f in this.fields) {
             v[f] = this.fields[f].val;
         }
-        appState.saveChanges({
+        await appState.saveChanges({
             [this.accessPath]: v,
         });
     }
@@ -94,6 +101,8 @@ class UIContext {
 
 class AppState {
 
+    // for components, appState.isLoadedRef must be imported into the root level for reactivity:
+    //   ex. const isLoadedRef = appState.isLoadedRef;
     isLoadedRef = ref(false);
     #lastAutoSaveData = null;
 
@@ -105,7 +114,7 @@ class AppState {
     }
 
     //TODO(pjm): currently no autosave timer. Is it needed?
-    autoSave(callback) {
+    async autoSave() {
         if (! this.isLoadedRef.value ||
             this.#lastAutoSaveData && this.#deepEqualsNoSimulationStatus(
                 this.#lastAutoSaveData.models, this.models)
@@ -119,43 +128,21 @@ class AppState {
         this.#lastAutoSaveData = {
             models: this.clone(this.models),
         };
-        requestSender.sendRequest(
-            'saveSimulationData',
-            (response) => {
-                if (response.error) {
-                    //TODO(pjm): errorService
-                    //errorService.alertText(resp.error);
-                    throw new Error(resp.error);
-                    return;
-                }
-                this.#lastAutoSaveData = this.clone(response);
-                ['simulationSerial', 'name', 'lastModified'].forEach(f => {
-                    this.models.simulation[f] = this.#lastAutoSaveData.models.simulation[f];
-                });
-                if (callback) {
-                    callback(response);
-                }
-            },
-            this.#lastAutoSaveData,
-            (response) => {
-                // give the user some feedback that the save failed
-                if (! response || response.error === 'Server Error') {
-                    //TODO(pjm): errorService
-                    //errorService.alertText('Save failed due to a server error');
-                    throw new Error('Save failed due to a server error');
-                }
-                else {
-                    //TODO(pjm): errorService
-                    //errorService.alertText(response.error);
-                    throw new Error(response.error);
-                }
-            },
-        );
+        const r = await requestSender.sendRequest('saveSimulationData', this.#lastAutoSaveData);
+        if (r.error) {
+            throw new Error(r);
+        }
+        this.#lastAutoSaveData = this.clone(r);
+        ['simulationSerial', 'name', 'lastModified'].forEach(f => {
+            this.models.simulation[f] = this.#lastAutoSaveData.models.simulation[f];
+        });
+        return r;
     }
 
-    clearModels(emptyValues) {
+    async clearModels(emptyValues) {
         if (this.isLoadedRef.value) {
-            this.autoSave(() => this.#clearModels(emptyValues));
+            await this.autoSave();
+            this.#clearModels(emptyValues);
         }
         else {
             this.#clearModels(emptyValues);
@@ -173,14 +160,8 @@ class AppState {
              : JSON.parse(JSON.stringify(obj));
     }
 
-    deleteSimulation(simulationId, callback) {
-        requestSender.sendRequest(
-            'deleteSimulation',
-            callback,
-            {
-                simulationId,
-            },
-        );
+    deleteSimulation(simulationId) {
+        return requestSender.sendRequest('deleteSimulation', { simulationId });
     }
 
     getUIContext(accessPath, fieldDef="basic", viewName=accessPath) {
@@ -195,30 +176,25 @@ class AppState {
         this.schema = schema;
     }
 
-    loadModels(simulationId, callback) {
+    async loadModels(simulationId) {
         if (this.isLoadedRef.value) {
             throw new Error('loadModels() may only be called in an unloaded state');
         }
         this.clearModels();
-        requestSender.sendRequest(
+        const r = await requestSender.sendRequest(
             'simulationData',
-            (response) => {
-                if (response.notFoundCopyRedirect) {
-                    throw new Error('not yet implemented:', response);
-                }
-                this.models = response.models;
-                this.isLoadedRef.value = true;
-                if (callback) {
-                    callback();
-                }
-            },
             {
                 simulation_id: simulationId,
-                pretty: false
+                pretty: false,
             });
+        if (r.notFoundCopyRedirect) {
+            throw new Error('not yet implemented:', r);
+        }
+        this.models = r.models;
+        this.isLoadedRef.value = true;
     }
 
-    saveChanges(values, callback) {
+    async saveChanges(values) {
         for (const m in values) {
             if (this.models[m]) {
                 for (const f in values[m]) {
@@ -229,12 +205,8 @@ class AppState {
             }
         }
         pubSub.publish(MODEL_CHANGED_EVENT, Object.keys(values));
-        this.autoSave(() => {
-            //TODO(pjm): update reports
-            if (callback) {
-                callback();
-            }
-        });
+        await this.autoSave();
+        //TODO(pjm): update reports
     }
 
     setModelDefaults(model, modelName) {

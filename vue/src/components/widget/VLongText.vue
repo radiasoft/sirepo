@@ -61,4 +61,6 @@
  });
 
  rawValue.value = field().val;
+ //TODO(pjm): legacy default is optional for LongText
+ field().optional = true;
 </script>

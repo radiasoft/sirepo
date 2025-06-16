@@ -63,8 +63,8 @@
      cancelChanges();
  };
 
- const saveChanges = () => {
-     ui_ctx.saveChanges();
+ const saveChanges = async () => {
+     await ui_ctx.saveChanges();
      emit('dismissModal');
  };
 
