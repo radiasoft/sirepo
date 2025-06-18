@@ -3683,10 +3683,6 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         }
     };
 
-    self.stopRunStatus = (qi) => {
-        cancelInterval(qi);
-    };
-
     $rootScope.$on('clearCache', self.cancelTransientItems);
 
     return self;
@@ -3955,14 +3951,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             return ! state.isProcessing();
         };
 
-        state.isWaitingOnAnotherSimulation = function() {
-            return state.jobStatusMessage() === 'Waiting for another simulation to complete';
-        };
-
-        state.jobStatusMessage = function() {
-            return simulationStatus().jobStatusMessage;
-        };
-
         state.resetSimulation = function() {
             // ensure the selected jobRunMode is present
             const m = appState.models[state.model];
@@ -4022,10 +4010,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
                 }
             }
             return stringsService.ucfirst(simulationStatus().state);
-        };
-
-        state.stopRunStatus = () => {
-            simulationQueue.stopRunStatus(state.simulationQueueItem);
         };
 
         state.resetSimulation();
