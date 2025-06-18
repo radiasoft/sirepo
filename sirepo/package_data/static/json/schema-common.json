@@ -237,25 +237,6 @@
             "plansUrl": "/plans",
             "simulationSourceExtension": "py"
         },
-        "cookies": {
-            "firstVisit": {
-                "name": "1st_vis",
-                "value": "a"
-            },
-            "getStarted": {
-                "name": "strt",
-                "value": "a"
-            },
-            "listView": {
-                "name": "lv",
-                "value": false,
-                "valType": "b"
-            },
-            "previousRoute": {
-                "name": "prev",
-                "value": "a"
-            }
-        },
         "dynamicFiles": {
             "externalLibs": {
                 "js": [
@@ -508,13 +489,6 @@
                 }
             },
             "simulations": {
-                "route": "/simulations",
-                "config": {
-                  "controller": "SimulationsController as simulations",
-                  "templateUrl": "/static/html/simulations.html"
-                }
-            },
-            "simulationsFolder": {
                 "route": "/simulations/:folderPath?",
                 "config": {
                   "controller": "SimulationsController as simulations",
@@ -526,6 +500,23 @@
             }
         },
         "model": {
+            "completeRegistration": {
+                "fullName": ["You full name", "String", ""],
+                "reason": ["To prevent abuse of our systems all new users must supply a reason for requesting access to Sirepo. In a few sentences please describe how you plan to use Sirepo", "LongText", ""]
+            },
+            "emailLogin": {
+                "email": ["Your Email", "Email", ""]
+            },
+            "ldapLogin": {
+                "user": ["User", "String", ""],
+                "password": ["Password", "Password", ""]
+            },
+            "moderationRequest": {
+                "reason": ["Please describe your reason for requesting access", "LongText", ""]
+            },
+            "renameItem": {
+                "newName": ["New Name", "SafePath"]
+            },
             "simFolder": {
                 "name": ["Folder Name", "SafePath"],
                 "parent": ["Parent Folder", "UserFolder"]
@@ -570,6 +561,33 @@
             "simulationSource": "Python Source"
         },
         "view": {
+            "completeRegistration": {
+                "basic": [
+                    "fullName",
+                    "reason"
+                ]
+            },
+            "emailLogin": {
+                "basic": [
+                    "email"
+                ]
+            },
+            "ldapLogin": {
+                "basic": [
+                    "user",
+                    "password"
+                ]
+            },
+            "moderationRequest": {
+                "basic": [
+                    "reason"
+                ]
+            },
+            "renameItem": {
+                "advanced": [
+                    "newName"
+                ]
+            },
             "simDoc": {
                 "model": "simulation",
                 "title": "Simulation Documentation",

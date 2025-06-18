@@ -2,6 +2,7 @@ User-agent: *
 Disallow: /activait
 Disallow: /canvas
 Disallow: /controls
+Disallow: /cortex
 Disallow: /elegant
 Disallow: /epicsllrf
 Disallow: /genesis

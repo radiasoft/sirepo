@@ -23,6 +23,7 @@ FOSS_CODES = frozenset(
         "activait",
         "canvas",
         "controls",
+        "cortex",
         "elegant",
         "epicsllrf",
         "genesis",
@@ -240,6 +241,11 @@ def _init():
             True,
             bool,
             "whether the UI should use a websocket",
+        ),
+        vue_sim_types=(
+            (()),
+            set,
+            "Vue apps",
         ),
         warpvnd=dict(
             allow_3d_mode=(True, bool, "Include 3D features in the Warp VND UI"),

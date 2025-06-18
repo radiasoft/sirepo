@@ -1,0 +1,7 @@
+{
+    "models": {
+        "simulation": {
+        }
+    },
+    "simulationType": "cortex"
+}

@@ -237,9 +237,6 @@ SIREPO.app.config(function(localRoutesProvider, $compileProvider, $locationProvi
         $routeProvider.when(routeInfo.route, cfg);
         if (routeName === SIREPO.APP_SCHEMA.appDefaults.route) {
             defaultRoute = routeName;
-            if (routeInfo.route.indexOf(':') >= 0) {
-                throw new Error('default route must not have params: ' + routeInfo.route);
-            }
             cfg.redirectTo = routeInfo.route;
             $routeProvider.otherwise(cfg);
         }
@@ -3686,10 +3683,6 @@ SIREPO.app.factory('simulationQueue', function($rootScope, $interval, requestSen
         }
     };
 
-    self.stopRunStatus = (qi) => {
-        cancelInterval(qi);
-    };
-
     $rootScope.$on('clearCache', self.cancelTransientItems);
 
     return self;
@@ -3958,14 +3951,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
             return ! state.isProcessing();
         };
 
-        state.isWaitingOnAnotherSimulation = function() {
-            return state.jobStatusMessage() === 'Waiting for another simulation to complete';
-        };
-
-        state.jobStatusMessage = function() {
-            return simulationStatus().jobStatusMessage;
-        };
-
         state.resetSimulation = function() {
             // ensure the selected jobRunMode is present
             const m = appState.models[state.model];
@@ -4025,10 +4010,6 @@ SIREPO.app.factory('persistentSimulation', function(simulationQueue, appState, a
                 }
             }
             return stringsService.ucfirst(simulationStatus().state);
-        };
-
-        state.stopRunStatus = () => {
-            simulationQueue.stopRunStatus(state.simulationQueueItem);
         };
 
         state.resetSimulation();
@@ -4461,7 +4442,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
         }
         else {
             requestSender.localRedirect(
-                'simulationsFolder',
+                'simulations',
                 {
                     ':folderPath?': compoundPath,
                 }
@@ -4487,11 +4468,6 @@ SIREPO.app.controller('NavController', function (activeSection, appState, fileMa
     }
 
     function sectionParams(name) {
-        if (name === 'simulationsFolder') {
-            return {
-                ':folderPath?': ''
-            };
-        }
         if (requestSender.isRouteParameter(name, 'simulationId')) {
             return {
                 ':simulationId': appState.isLoaded() ? appState.models.simulation.simulationId : '',
