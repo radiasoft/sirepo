@@ -37,9 +37,7 @@ class URI {
     localRedirectHome(simulationId) {
         uri.localRedirect(
             appState.schema.appModes.default.localRoute,
-            {
-                simulationId: simulationId,
-            }
+            { simulationId },
         );
     }
 

@@ -143,6 +143,8 @@ class SimManager{
         }
         return p;
     }
+
+    //TODO(pjm): could subscribe to modelChange and update the sim list (and delete)
 }
 
 export const simManager = new SimManager();

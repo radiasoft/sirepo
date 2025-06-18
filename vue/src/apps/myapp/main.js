@@ -11,21 +11,21 @@ import { appResources } from '@/services/appresources.js';
 import { appState } from '@/services/appstate.js';
 import { watch } from 'vue';
 
-appResources.setLocalRoutes([
+appResources.setAppRoutes([
     {
         name: 'source',
-        path: `/${appState.simulationType}/source/:simulationId`,
+        path: `/source/:simulationId`,
         component: VSource,
-        displayName: 'Source',
-        iconClass: 'bi-lightning',
+        tabName: 'Source',
+        tabIconClass: 'bi-lightning',
     },
     {
         name: 'visualization',
-        path: `/${appState.simulationType}/visualization/:simulationId`,
+        path: `/visualization/:simulationId`,
         component: VVisualization,
-        displayName: 'Visualization',
-        iconClass: 'bi-card-image',
-        visible: () => appState.models.dog.weight > 100,
+        tabName: 'Visualization',
+        tabIconClass: 'bi-card-image',
+        tabVisible: () => appState.models.dog.weight > 100,
     },
 ]);
 

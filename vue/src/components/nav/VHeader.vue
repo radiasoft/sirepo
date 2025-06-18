@@ -1,18 +1,17 @@
 
 <template>
-    <nav class="navbar border-bottom navbar-expand-sm static-top bg-light navbar-light">
-        <div class="container-fluid">
-            <VBrand />
-            <VHomeNav />
-            <VSimNav />
-            <VHelpAndLogout />
-        </div>
-    </nav>
+    <VNavHolder>
+        <VBrand />
+        <VHomeNav />
+        <VSimNav />
+        <VHelpAndLogout />
+    </VNavHolder>
 </template>
 
 <script setup>
  import VBrand from '@/components/nav/VBrand.vue';
  import VHelpAndLogout from '@/components/nav/VHelpAndLogout.vue';
  import VHomeNav from '@/components/nav/VHomeNav.vue';
+ import VNavHolder from '@/components/nav/VNavHolder.vue';
  import VSimNav from '@/components/nav/VSimNav.vue';
 </script>

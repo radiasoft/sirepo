@@ -89,8 +89,6 @@ router.beforeEach(async (to, from) => {
             return;
         }
         await appState.loadModels(to.params.simulationId);
-        if (appState.isLoadedRef.value) {
-            document.title = `${appState.models.simulation.name} - ${t}`;
-        }
+        document.title = `${appState.models.simulation.name} - ${t}`;
     }
 });

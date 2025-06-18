@@ -18,8 +18,8 @@
      ui_ctx: Object,
  });
 
- const f = props.ui_ctx.fields[props.field_name];
  simManager.getSims().then(() => {
+     const f = props.ui_ctx.fields[props.field_name];
      f.choices = simManager.getFolders().map((v) => {
          return {
              code: v,

@@ -8,11 +8,6 @@
     "appDefaults": {
         "route": "search"
     },
-    "appModes": {
-        "default": {
-            "localRoute": "material"
-        }
-    },
     "dynamicFiles": {
     },
     "enum": {
@@ -42,23 +37,6 @@
             ["wo", "Weight %"]
         ]
     },
-    "localRoutes": {
-        "material": {
-            "route": "/material/:simulationId",
-            "config": {
-                "controller": "MaterialController as material",
-                "templateUrl": "",
-                "reloadOnSearch": false
-            }
-        },
-        "search": {
-            "route": "/search",
-            "config": {
-                "controller": "SearchController",
-                "template": ""
-            }
-        }
-    },
     "model": {
         "material": {
             "name": ["Name", "String", ""],
@@ -86,6 +64,9 @@
             "wall_loading_name": ["Neutron Wall Loading", "NeutronWallLoadingName", "ITER"],
             "wall_loading_Value": ["Neutron Wall Loading MW/m²", "Float", 0.57],
             "availability_factor": ["Availability Factor %", "Float", 25]
+        },
+        "simulation": {
+            "isConfirmed": ["", "Boolean", "0"]
         }
     },
     "view": {

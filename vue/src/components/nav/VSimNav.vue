@@ -1,14 +1,14 @@
 <template>
-    <ul class="navbar-nav me-auto" v-if="isLoadedRef">
+    <ul class="navbar-nav me-auto" v-if="isLoaded">
         <li class="nav-item nav-text">
             <a class="nav-link" href @click.prevent="editSimulation">
                 <span class="bi bi-pencil-fill sr-nav-icon"></span> <strong>{{ simName }}</strong>
             </a>
         </li>
     </ul>
-    <ul class="navbar-nav nav-tabs" v-if="isLoadedRef">
+    <ul class="navbar-nav nav-tabs" v-if="isLoaded">
         <template
-            v-for="r in localRoutes"
+            v-for="r in appRoutes"
             :key="r.name"
         >
             <li
@@ -27,14 +27,14 @@
                 >
                     <span
                         class="bi sr-nav-icon"
-                        :class="r.iconClass"
+                        :class="r.tabIconClass"
                     ></span>
-                    {{ r.displayName }}
+                    {{ r.tabName }}
                 </RouterLink>
             </li>
         </template>
     </ul>
-    <ul class="navbar-nav" v-if="isLoadedRef">
+    <ul class="navbar-nav" v-if="isLoaded">
         <li class="nav-item nav-text">
             <a class="nav-link" href @click.prevent="openDocumentation">
                 <span class="bi bi-book sr-nav-icon"></span>
@@ -50,7 +50,7 @@
     </ul>
 
     <VFormModal
-        v-if="isLoadedRef"
+        v-if="isLoaded"
         viewName="simulation"
         title="Simulation"
         ref="editModal"
@@ -66,11 +66,11 @@
  import { pubSub } from '@/services/pubsub.js';
 
  const editModal = ref(null);
- const isLoadedRef = appState.isLoadedRef;
+ const isLoaded = appState.isLoadedRef;
  const simName = ref(null);
- const localRoutes = appResources.getLocalRoutes();
+ const appRoutes = appResources.getAppRoutes();
  const showRoute = reactive(Object.fromEntries(
-     localRoutes.map((r) => [r.name, true]),
+     appRoutes.map((r) => [r.name, true]),
  ));
 
  const editSimulation = () => {
@@ -78,11 +78,11 @@
  };
 
  const update = () => {
-     if (isLoadedRef.value) {
+     if (isLoaded.value) {
          simName.value = appState.models.simulation.name;
-         for (const r of localRoutes) {
-             if (r.visible) {
-                 showRoute[r.name] = r.visible();
+         for (const r of appRoutes) {
+             if (r.tabVisible) {
+                 showRoute[r.name] = r.tabVisible();
              }
          }
      }
@@ -92,7 +92,7 @@
  };
 
  const onModelChanged = (names) => {
-     if (isLoadedRef.value) {
+     if (isLoaded.value) {
          update();
      }
  };
@@ -100,7 +100,7 @@
  const openDocumentation = () => {
  };
 
- watch(isLoadedRef, update);
+ watch(isLoaded, update);
 
  onMounted(() => {
      pubSub.subscribe(MODEL_CHANGED_EVENT, onModelChanged);

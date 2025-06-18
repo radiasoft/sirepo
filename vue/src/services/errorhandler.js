@@ -30,6 +30,7 @@ class ErrorHandler {
             uri.localRedirect(appState.schema.customErrors[err.status].route);
             return;
         }
+        srlog(err.message, err.stack);
         this.logToServer('clientException', err.message, '', err.stack);
         //TODO(pjm): show error alert on client
     }

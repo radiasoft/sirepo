@@ -3,7 +3,7 @@
         <li class="nav-item">
             <RouterLink
                 class="nav-link"
-                :class="{ active: ! isLoadedRef }"
+                :class="{ active: ! isLoaded }"
                 :to="{
                     name: 'simulations',
                     params: {
@@ -16,7 +16,7 @@
             </RouterLink>
         </li>
     </ul>
-    <ul class="navbar-nav ms-auto" v-if="! isLoadedRef">
+    <ul class="navbar-nav ms-auto" v-if="! isLoaded">
         <li class="nav-item">
             <a
                 class="nav-link"
@@ -48,7 +48,7 @@
 
     </ul>
     <VFormModal
-        v-if="! isLoadedRef"
+        v-if="! isLoaded"
         viewName="simulation"
         title="New Simulation"
         ref="newModal"
@@ -66,13 +66,13 @@
  import { simManager } from '@/services/simmanager.js';
 
  const folderPath = ref('');
- const isLoadedRef = appState.isLoadedRef;
+ const isLoaded = appState.isLoadedRef;
  const newModal = ref(null);
 
  const newFolder = () => {};
 
  const newSimulation = async () => {
-     if (isLoadedRef.value) {
+     if (isLoaded.value) {
          throw new Error('newSimulation expects an unloaded state');
      }
      await appState.clearModels({
@@ -83,15 +83,15 @@
      newModal.value.showModal();
  };
 
- watch(isLoadedRef, (v) => {
-     if (isLoadedRef.value) {
+ watch(isLoaded, (v) => {
+     if (isLoaded.value) {
          folderPath.value = simManager.formatFolderPath(appState.models.simulation.folder);
      }
  });
 
  const onModelChanged = async (names) => {
      if (names[0] === 'simulation') {
-         if (isLoadedRef.value) {
+         if (isLoaded.value) {
              folderPath.value = simManager.formatFolderPath(appState.models.simulation.folder);
          }
          else {

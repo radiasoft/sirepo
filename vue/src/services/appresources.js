@@ -7,10 +7,22 @@ import { appState } from '@/services/appstate.js';
 import { router } from '@/services/router.js';
 
 class AppResources {
+    #appRoutes = [];
     #headerComponent = VHeader;
-    #localRoutes = [];
     #viewLogic = {};
     #widgets = {};
+
+    getAppRoutes() {
+        return this.#appRoutes;
+    }
+
+    getWidget(name) {
+        return this.#widgets[name];
+    }
+
+    headerComponent() {
+        return this.#headerComponent;
+    }
 
     initViewLogic(viewName, ui_ctx) {
         const v = this.#viewLogic[viewName];
@@ -27,32 +39,20 @@ class AppResources {
         this.#widgets[name] = component;
     }
 
-    getWidget(name) {
-        return this.#widgets[name];
-    }
-
-    headerComponent() {
-        return this.#headerComponent;
+    setAppRoutes(routes) {
+        for (const r of routes) {
+            router.addRoute({
+                name: r.name,
+                path: `/${appState.simulationType}${r.path}`,
+                component: r.component,
+            });
+        }
+        this.#appRoutes = routes.filter(v => v.tabName);
     }
 
     // allow an app to override the default app header
     setHeaderComponent(component) {
         this.#headerComponent = component;
-    }
-
-    getLocalRoutes() {
-        return this.#localRoutes;
-    }
-
-    setLocalRoutes(routes) {
-        this.#localRoutes = routes;
-        for (const r of routes) {
-            router.addRoute({
-                name: r.name,
-                path: r.path,
-                component: r.component,
-            });
-        }
     }
 }
 

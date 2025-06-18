@@ -6,16 +6,6 @@ class RequestSender {
         return value !== null && typeof value === 'object';
     }
 
-    async #sendWithSimulationFields(url, data) {
-        data.simulationId = data.simulationId || appState.models.simulation.simulationId;
-        data.simulationType = appState.schema.simulationType;
-        return await this.sendRequest(url, data);
-    }
-
-    async sendAnalysisJob(data) {
-        return await this.#sendWithSimulationFields('analysisJob', data);
-    }
-
     async sendRequest(routeName, requestData) {
         if (typeof(routeName) != 'string') {
             throw new Error(`Invalid routeName, expecting string: ${routeName}`);
@@ -29,21 +19,14 @@ class RequestSender {
                 ? 'simulation_type'
                 : 'simulationType'
         ] = appState.simulationType;
+        if (appState.isLoadedRef.value && ! requestData.simulationId) {
+            requestData.simulationId = appState.models.simulation.simulationId;
+        }
         const resp = await msgRouter.send(r, requestData, {});
-        // POSIT: typeof [] returns true
         if (! this.#isObject(resp.data) || resp.data.state === 'srException') {
             throw new Error(resp);
         }
-        //TODO(pjm): may need to also provide resp.status
         return resp.data;
-    }
-
-    async sendStatefulCompute(data) {
-        return await this.#sendWithSimulationFields('statefulCompute', data);
-    }
-
-    async sendStatelessCompute(data) {
-        return await this.#sendWithSimulationFields('statelessCompute', data);
     }
 }
 

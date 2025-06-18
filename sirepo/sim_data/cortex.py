@@ -14,3 +14,7 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         pass
+
+    @classmethod
+    def _lib_file_basenames(cls, data):
+        return []
