@@ -14,7 +14,7 @@
             </strong>
             for reference.
         </p>
-        <div class="text-end">
+        <div class="text-end" v-if="! isProcessing">
             <button
                 type="button"
                 class="btn btn-outline-secondary"
@@ -22,6 +22,9 @@
             >
                 Upload Material XLS
             </button>
+        </div>
+        <div v-if="isProcessing">
+            <VProgress :percentComplete="percentComplete" />
         </div>
     </div>
 </template>
@@ -33,11 +36,15 @@
  import { simQueue } from '@/services/simqueue.js';
  import { uri } from '@/services/uri.js';
  import { useFileDrop } from '@/apps/cortex/useFileDrop.js';
+ import VProgress from '@/components/VProgress.vue';
 
  const dropPanel = ref(null);
  const isLoaded = appState.isLoadedRef;
+ const isProcessing = ref(false);
+ const percentComplete = ref(0);
 
  const onDrop = async (files) => {
+     isProcessing.value = true;
      // create new sim
      const r = await requestSender.sendRequest(
          'newSimulation',
@@ -70,6 +77,9 @@
          appState.models,
          (resp) => {
              console.log('got response:', resp);
+             if (resp.state === 'completed' || resp.state === 'error') {
+                 isProcessing.value = false;
+             }
          },
      );
 
