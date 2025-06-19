@@ -55,12 +55,109 @@ Enter the composition of your material. The components of a material must ALL be
 
 # Known list https://nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all
 
-_COMPONENT_FROM_UPPER = None
+_COMPONENT_FROM_LOWER = None
 
+_LABEL_TO_COL = PKDict({
+    "name": "material_name",
+    "density": "density_g_cm3",
+    "neutron source": "neutron_source",
+    "neutron wall loading": "neutron_wall_loading_mw_m2",
+    "availability factor": "availability_factor",
+    "bare tile": "is_bare_tile",
+    "homogenized wcll": "is_homogenized wcll",
+    "homogenized divertor": "is_homogenized_divertor",
+    "material type": "is_plasma_facing",
+})
 
 class Parser:
     def __init__(self, path, qcall=None):
-        self.result = self.rows = list(self._read_and_split(path))
+        self._parse_rows(reversed(self._read_and_split(path)))
+# >         "Simple One",
+
+# >         "Density",
+# >         3.33,
+
+# >         "Density Unit",
+# >         "g/cm3",
+
+# >         "Neutron Source",
+# >         "dt",
+
+# >         "Neutron Wall Loading",
+# >         "iter",
+
+# >         "Availability Factor",
+# >         0.66,
+
+# >         "Bare Tile",
+# >         "n"
+
+# >         "Homogenized WCLL",
+# >         "yes"
+
+# >         "Homogenized divertor",
+# >         true
+
+# >         "Material Type",
+# >         "face"
+
+    def _parse_rows(self, reversed_rows):
+        def _col_availability_factor(value):
+            return value
+
+        def _col_density_g_cm3(value):
+            return value
+
+        def _col_is_bare_tile(value):
+            return value
+
+        def _col_is_homogenized wcll(value):
+            return value
+
+        def _col_homogenized_divertor(value):
+            return value
+
+        def _col_material_name(value):
+            return value
+
+        def _col_is_plasma_facing(value):
+            return value
+
+        def _col_neutron_source(value):
+            return value
+
+        def _col_neutron_wall_loading_mw_m2(value):
+            return value
+
+        def _dispatch(label, value, row, reversed_rows):
+            if x := _LABEL_TO_COL.get(label):
+                e = _dispatch(x, value)
+            elif "nuclide" in label:
+                e = _parse_components(reversed_rows)
+            else:
+                e = _maybe_error(r)
+            if e:
+                errors
+        while r := next(reversed_rows):
+            if len(r) >= 2 and r[0]:
+                _dispatch(r[0].lower(), r[1], r, reversed_rows)
+
+
+
+#         "Weight %",
+#         NaN,
+#         NaN,
+#         "Atom %",
+#         NaN,
+#         NaN
+#         NaN,
+#         "Element or Nuclide",
+#         "Target",
+#         "Min",
+#         "Max",
+#         "Target",
+#         "Min",
+#         "Max"
 
     def _read_and_split(self, path):
         n = None
@@ -78,10 +175,10 @@ def _init():
     def _iter():
         for x in "elements", "nuclides":
             for y in _COMPONENTS[x]:
-                yield y.upper(), y
+                yield y.lower(), y
 
-    global _COMPONENT_FROM_UPPER
-    _COMPONENT_FROM_UPPER = PKDict(_convert())
+    global _COMPONENT_FROM_LOWER
+    _COMPONENT_FROM_LOWER = PKDict(_convert())
 
 
 _COMPONENTS = PKDict(
