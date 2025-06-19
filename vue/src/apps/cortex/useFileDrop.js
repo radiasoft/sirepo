@@ -1,18 +1,22 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-export function useFileDrop(dropPanel, onDrop) {
+export function useFileDrop(dropPanel, onDrop, acceptMimeType) {
     const dragEnterCount = ref(0);
     const isOverDropZone = ref(false);
+    const isInvalidMimeType = ref(false);
     const events = ['dragenter', 'dragover', 'dragleave', 'drop']
 
     function handleDragEvent(e) {
         e.preventDefault()
+        isInvalidMimeType.value = acceptMimeType && e?.dataTransfer?.items[0].type !== acceptMimeType;
         if (e.type === 'dragover') {
             return;
         }
         if (e.type === 'drop') {
             dragEnterCount.value = 0;
-            onDrop(e.dataTransfer.files);
+            if (! isInvalidMimeType.value) {
+                onDrop(e.dataTransfer.files);
+            }
         }
         if (e.type === 'dragenter') {
             dragEnterCount.value++;
@@ -38,5 +42,5 @@ export function useFileDrop(dropPanel, onDrop) {
         isOverDropZone.value = dragEnterCount.value > 0;
     });
 
-    return { isOverDropZone };
+    return { isOverDropZone, isInvalidMimeType };
 }

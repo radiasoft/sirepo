@@ -38,6 +38,9 @@
         ]
     },
     "model": {
+        "materialImport": {
+            "xlsFile": ["", "InputFile"]
+        },
         "material": {
             "name": ["Name", "String", ""],
             "density_with_units": ["Density", "DensityWithUnits"],
@@ -62,7 +65,7 @@
         "operatingConditions": {
             "neutron_source": ["Neutron Source", "NeutronSource", "DT"],
             "wall_loading_name": ["Neutron Wall Loading", "NeutronWallLoadingName", "ITER"],
-            "wall_loading_Value": ["Neutron Wall Loading MW/m²", "Float", 0.57],
+            "wall_loading_value": ["Neutron Wall Loading MW/m²", "Float", 0.57],
             "availability_factor": ["Availability Factor %", "Float", 25]
         },
         "simulation": {

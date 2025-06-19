@@ -164,6 +164,10 @@ class AppState {
         return requestSender.sendRequest('deleteSimulation', { simulationId });
     }
 
+    formatFileType(modelName, fieldName) {
+        return `${modelName}-${fieldName}`;
+    }
+
     getUIContext(accessPath, fieldDef="basic", viewName=accessPath) {
         return new UIContext(accessPath, viewName, fieldDef);
     }
@@ -206,6 +210,7 @@ class AppState {
         }
         pubSub.publish(MODEL_CHANGED_EVENT, Object.keys(values));
         await this.autoSave();
+        pubSub.publish(MODEL_SAVED_EVENT, Object.keys(values));
         //TODO(pjm): update reports
     }
 
@@ -225,5 +230,7 @@ class AppState {
 }
 
 export const MODEL_CHANGED_EVENT = 'modelChanged';
+
+export const MODEL_SAVED_EVENT = 'modelSaved';
 
 export const appState = new AppState();
