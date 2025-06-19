@@ -6,11 +6,14 @@
 
 
 def test_cases():
-    from pykern import pkdebug, pkjson, pkunit
-    from sirepo.template import cortex_xlsx
+    from sirepo import srunit
 
-    for d in pkunit.case_dirs():
-        pkjson.dump_pretty(
-            cortex_xlsx.Parser(d.join("input.xlsx")).result,
-            filename=d.join("result.json"),
-        )
+    with srunit.quest_start(want_user=True) as qcall:
+        from pykern import pkdebug, pkjson, pkunit
+        from sirepo.template import cortex_xlsx
+
+        for d in pkunit.case_dirs():
+            pkjson.dump_pretty(
+                cortex_xlsx.Parser(d.join("input.xlsx"), qcall=qcall).result,
+                filename=d.join("result.json"),
+            )
