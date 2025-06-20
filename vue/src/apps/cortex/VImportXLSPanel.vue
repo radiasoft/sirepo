@@ -1,36 +1,32 @@
 <template>
     <div class="card card-body bg-light sr-drop-zone"
-         :class="{
+         v-bind:class="{
              'sr-drag-over': isOverDropZone || isProcessing,
              'sr-invalid': isInvalidMimeType,
          }"
          ref=dropPanel
     >
-        <p>Drag and drop an XLSX material file here to process a new material.</p>
+        <p>Drag and drop an Excel material file here to process a new material.</p>
         <p>
-            Use this
             <strong>
-                <a :href="templateURL">
-                    template XLSX
+                <a v-bind:href="templateURL">
+                    Use this Excel template
                     <span class="bi bi-cloud-download"></span>
                 </a>
             </strong>
             for reference.
         </p>
         <div class="text-end" v-if="! isProcessing">
-            <label for="dropZoneFile" class="btn btn-outline-secondary">Upload Material XLSX</label>
-            <input
-                style="display: none"
-                id="dropZoneFile"
-                type="file"
-                @change="onFileChanged"
-                :accept="xlsMimeType"
-                ref="fileInput"
-            />
+            <VFileUploadButton
+                v-on:fileChanged="onDrop"
+                v-bind:mimeType="xlsMimeType"
+            >
+                Upload Material Spreadsheet
+            </VFileUploadButton>
         </div>
         <div v-if="isProcessing">
             Processing, please wait...
-            <VProgress :percentComplete="percentComplete" />
+            <VProgress v-bind:percentComplete="percentComplete" />
         </div>
     </div>
     <VConfirmationModal
@@ -38,29 +34,29 @@
         title="Verify Material"
         okText="Save"
         cancelText="Discard"
-        @okClicked="confirmMaterial"
-        @modalClosed="modalClosed"
+        v-on:okClicked="confirmMaterial"
+        v-on:modalClosed="modalClosed"
     >
         TODO: Show imported material info here
     </VConfirmationModal>
 </template>
 
 <script setup>
+ import VConfirmationModal from '@/components/VConfirmationModal.vue';
+ import VFileUploadButton from '@/apps/cortex/VFileUploadButton.vue';
+ import VProgress from '@/components/VProgress.vue';
  import { appState } from '@/services/appstate.js';
  import { ref, watch } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
  import { simQueue } from '@/services/simqueue.js';
  import { uri } from '@/services/uri.js';
  import { useFileDrop } from '@/apps/cortex/useFileDrop.js';
- import VProgress from '@/components/VProgress.vue';
- import VConfirmationModal from '@/components/VConfirmationModal.vue';
 
  const confirm = ref(null);
  const dropPanel = ref(null);
  const isLoaded = appState.isLoadedRef;
  const isProcessing = ref(false);
  const percentComplete = ref(0);
- let fileInput = ref(null);
  let file = null;
 
  const xlsMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -92,13 +88,6 @@
  const onDrop = (files) => {
      if (! isProcessing.value) {
          file = files[0];
-         startProcessing();
-     }
- };
-
- const onFileChanged = () => {
-     if (fileInput.value && fileInput.value.files.length) {
-         file = fileInput.value.files[0];
          startProcessing();
      }
  };
