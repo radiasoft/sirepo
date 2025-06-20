@@ -13,7 +13,8 @@ def test_cases():
         from sirepo.template import cortex_xlsx
 
         for d in pkunit.case_dirs():
+            p = cortex_xlsx.Parser(d.join("input.xlsx"), qcall=qcall)
             pkjson.dump_pretty(
-                cortex_xlsx.Parser(d.join("input.xlsx"), qcall=qcall).result,
-                filename=d.join("result.json"),
+                getattr(p, "errors" if p.errors else "result"),
+                filename=d.join(f"out.json"),
             )

@@ -21,65 +21,41 @@ _WALL_RE = re.compile(r"^(?:(iter)|demo)$", re.IGNORECASE)
 
 _SOURCE_RE = re.compile(r"\b(?:(d\W?t)|d\W?d)\b", re.IGNORECASE)
 
-
-"""
-k
-Operating Conditions
-
-Neutron Source        D-T fusion        (options: D-T, D-D)
-
-Neutron Wall Loading        1 MW/m2        (options: ITER, DEMO, ...)
-        "NeutronWallLoadingName": [
-            ["ITER", "ITER 0.57"],
-            ["DEMO", "DEMO 1.04"],
-            ["OTHER", "Other"]
-
-Availability Factor        25%
-
-
-Multi-Layer Geometry Options
-Select the geometry scenarios you would like to simulate for your material.
-
-Bare Tile                YES
-Homogenized WCLL                NO
-Homogenized HCPB                YES
-Homogenized divertor                NO
-
-Material Type                plasma-facing
-
-Material Name
-
-Name        Simple One        Enter the name of your material for storage in the database.
-
-Density        3.33        Enter the density of your material during in-service conditions.
-Density Unit        g/cm3
-
-Composition
-Enter the composition of your material. The components of a material must ALL be given in weight % or ALL be given in atomic percent. Neutronics simulations will use the "target" value if provided. If the "target" value is not provided, the midpoint of the max/min range will be used, unless the "min" value is zero in which case the maximum is used (assuming a conservative approach for impurities). One element or nuclide can be indicated as "balance" in order to fill the remaining material components to 100% weight percent or 100% atomic percent.
-
-        Weight %                        Atom %
-        Element or Nuclide        Target        Min        Max        Target        Min        Max
-        C        20
-        Cr        5
-        W        10
-        Fe        65
-"""
-
-# Known list https://nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all
+_IGNORE_FIRST_CELL_RE = re.compile(
+    r"^(?:select|enter|please|choose)\s|^(?:material\s+name|multi-layer\s+geometry|operating\s+condition|composition|density\s+unit)",
+)
+_COMPONENTS_COL = "components"
 
 _COMPONENT_FROM_LOWER = None
 
 _LABEL_TO_COL = None
 
+_VALID_COLS = None
+
 
 class Parser:
     def __init__(self, path, qcall=None):
         self.errors = []
-        self.result = PKDict()
+        self._sheet = self._run_now = self._col_num = None
+        self.result = PKDict(components=[])
         self._parse_rows(self._read_and_split(path))
-        self.result.errors = self.errors
+        if not self.errors:
+            self._validate_result()
 
-    def _error(self, msg, is_exc=False):
+    def _error(self, msg, is_exc=False, **kwargs):
+        """Append to errors and log
+
+        Args:
+            msg (str): to user
+            is_exc (bool): to print stack
+            col_num (int): if supplied else self._col_num
+        """
+        if s := self._sheet:
+            msg += f" sheet={s}"
+            if r := self._row_num:
+                msg += f" row={r}"
+                if c := kwargs.get("col_num", self._col_num):
+                    msg += f" col={c}"
         self.errors.append(msg)
         pkdlog(
             "{}{}{}",
@@ -88,22 +64,36 @@ class Parser:
         )
 
     def _parse_rows(self, rows):
-        def _components():
-            pass
+        #TODO(robnagler) track the sheet/row of each element so
+        # can provide more context in _validate_result
 
-        def _dispatch(label, value, row, rows):
+        def _component(name, cols):
+            if not (n := _COMPONENT_FROM_LOWER.get(name)):
+                self._error(f"unknown nuclide or element cell='{cols[0]}'", col_num=1)
+            balance
+            Target, Min, Max, Target, Min, Max
+
+        def _dispatch(cols):
             e = None
-            if x := _LABEL_TO_COL.get(label):
-                e = _simple(x, value)
-            elif "nuclide" in label:
-                e = _components()
+            if not isinstance(cols[0], str):
+                self._error(f"expected string cell='{cols[0]}'", col_num=1)
+                return
+            l = cols[0].lower()
+            if _IGNORE_FIRST_CELL_RE.search(l):
+                if self._in_components:
+                    self._in_components = False
+            elif x := _LABEL_TO_COL.get(l):
+                if self._in_components:
+                    self._in_components = False
+                if e := _simple(x, cols[1]):
+                    self._error(f"invalid {l}='{cols[1]}' {e}", col_num=2)
+            elif "nuclide" in l:
+                assert self._in_components is None
+                self._in_components = True
+            elif self._in_components:
+                _component(l, cols)
             else:
-                e = _maybe_error(row)
-            if e:
-                self._error(f"{label}='{value}' {e}")
-
-        def _maybe_error(row):
-            pass
+                self._error(f"unable to parse row='{cols}'")
 
         def _next_row():
             try:
@@ -112,26 +102,29 @@ class Parser:
                 return None
 
         def _simple(col, value):
-            if isinstance(value, str):
-                value = value.strip()
-                if not len(value):
-                    return "may not be blank"
+            if isinstance(value, str) and not len(value):
+                return "may not be blank"
             v, e = col.parser(value)
             if e:
                 return e
             self.result[col.name] = v
             return None
 
+        self._in_components = None
         while r := _next_row():
-            if len(r.col) < 2 or not r.col[0]:
-                continue
             try:
-                _dispatch(r.col[0].lower(), r.col[1], r.col, rows)
+                # first case probably doesn't happen, but need the check anyway
+                if len(r) < 2 or not r[0]:
+                    continue
+                _dispatch(r)
             except Exception as e:
-                self._error(f"error={e} sheet={r.sheet} row={r.row_num}", is_exc=True)
+                self._error(f"error={e}", is_exc=True)
+            finally:
+                self._col_num = None
 
     def _read_and_split(self, path):
-        def _fix(v):
+        def _fix(col_num, v):
+            self._col_num = col_num
             if isinstance(v, bool):
                 return v
             if isinstance(v, float):
@@ -139,22 +132,36 @@ class Parser:
             if isinstance(v, int):
                 # TODO(robnagler) seems reasonable
                 return float(v)
-            return str(v)
+            # Always strip strings
+            return str(v).strip()
 
         n = None
         try:
             for n, s in pandas.read_excel(
                 str(path), header=None, sheet_name=None
             ).items():
+                self._sheet = n
                 for i, r in enumerate(s.itertuples(index=False), start=1):
                     # Remove pandas objects to avoid problems in string
                     # conversions later. See also
                     # https://github.com/radiasoft/pykern/issues/574
-                    yield PKDict(
-                        col=tuple(_fix(c) for c in r), sheet=str(n), row_num=int(i)
-                    )
+                    self._row_num = i
+                    rv = tuple(_fix(*x) for x in enumerate(r, start=1))
+                    self._col_num = None
+                    yield rv
         except Exception as e:
-            self._error(f"unable to parse sheet={n} error={e}", is_exc=True)
+            self._error(f"error={e}", is_exc=True)
+        finally:
+            self._sheet = None
+
+    def _validate_result(self):
+        def _labels(names):
+            ", ".join(sorted(_VALID_COLS[n].label for n in names))
+
+        if x := set(_VALID_COLS) - set(self.result.keys()):
+            self._error(f"missing values=({_labels(x)})")
+        if not (x := self.result.get(_COMPONENTS_COL)):
+            self._error("at least one element or nuclide must be provided")
 
 
 def _parse_bool(value):
@@ -246,27 +253,28 @@ def _parse_neutron_wall_loading(value):
 def _init():
     def _cols():
         for k, v in (
-            ("availability factor", "availability_factor"),
-            ("bare tile", "is_bare_tile"),
-            ("density", "density_g_cm3"),
-            ("homogenized divertor", "is_homogenized_divertor"),
-            ("homogenized hcpb", "is_homogenized_hcpb"),
-            ("homogenized wcll", "is_homogenized_wcll"),
-            ("material type", "is_plasma_facing"),
-            ("name", "material_name"),
-            ("neutron source", "is_neutron_source_dt"),
-            ("neutron wall loading", "neutron_wall_loading"),
+            ("Availability Factor", "availability_factor"),
+            ("Bare Tile", "is_bare_tile"),
+            ("Density", "density_g_cm3"),
+            ("Homogenized Divertor", "is_homogenized_divertor"),
+            ("Homogenized HCPB", "is_homogenized_hcpb"),
+            ("Homogenized WCLL", "is_homogenized_wcll"),
+            ("Material Type", "is_plasma_facing"),
+            ("Name", "material_name"),
+            ("Neutron Source", "is_neutron_source_dt"),
+            ("Neutron Wall Loading", "neutron_wall_loading"),
         ):
-            yield k, PKDict(name=v, parser=globals()[f"_parse_{v}"])
+            yield k.lower(), PKDict(label=k, name=v, parser=globals()[f"_parse_{v}"])
 
     def _components():
         for x in "elements", "nuclides":
             for y in _COMPONENTS[x]:
                 yield y.lower(), y
 
-    global _COMPONENT_FROM_LOWER, _LABEL_TO_COL
+    global _COMPONENT_FROM_LOWER, _LABEL_TO_COL, _VALID_COLS
     _COMPONENT_FROM_LOWER = PKDict(_components())
     _LABEL_TO_COL = PKDict(_cols())
+    _VALID_COLS = PKDict({c.name: c for c in _LABEL_TO_COL.values()})
 
 
 # _COMPONENTS generated from
