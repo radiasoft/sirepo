@@ -5,7 +5,8 @@
 """
 
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdlog, pkdp
+from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
+import math
 import pandas
 import pykern.pkcompat
 
@@ -57,128 +58,185 @@ Enter the composition of your material. The components of a material must ALL be
 
 _COMPONENT_FROM_LOWER = None
 
-_LABEL_TO_COL = PKDict({
-    "name": "material_name",
-    "density": "density_g_cm3",
-    "neutron source": "neutron_source",
-    "neutron wall loading": "neutron_wall_loading_mw_m2",
-    "availability factor": "availability_factor",
-    "bare tile": "is_bare_tile",
-    "homogenized wcll": "is_homogenized wcll",
-    "homogenized divertor": "is_homogenized_divertor",
-    "material type": "is_plasma_facing",
-})
+_LABEL_TO_COL = None
+
 
 class Parser:
     def __init__(self, path, qcall=None):
-        self._parse_rows(reversed(self._read_and_split(path)))
-# >         "Simple One",
+        self.errors = []
+        self.result = PKDict()
+        self._parse_rows(self._read_and_split(path))
+        self.result.errors = self.errors
 
-# >         "Density",
-# >         3.33,
+    # >         "Simple One",
 
-# >         "Density Unit",
-# >         "g/cm3",
+    # >         "Density",
+    # >         3.33,
 
-# >         "Neutron Source",
-# >         "dt",
+    # >         "Density Unit",
+    # >         "g/cm3",
 
-# >         "Neutron Wall Loading",
-# >         "iter",
+    # >         "Neutron Source",
+    # >         "dt",
 
-# >         "Availability Factor",
-# >         0.66,
+    # >         "Neutron Wall Loading",
+    # >         "iter",
 
-# >         "Bare Tile",
-# >         "n"
+    # >         "Availability Factor",
+    # >         0.66,
 
-# >         "Homogenized WCLL",
-# >         "yes"
+    # >         "Bare Tile",
+    # >         "n"
 
-# >         "Homogenized divertor",
-# >         true
+    # >         "Homogenized WCLL",
+    # >         "yes"
 
-# >         "Material Type",
-# >         "face"
+    # >         "Homogenized divertor",
+    # >         true
 
-    def _parse_rows(self, reversed_rows):
-        def _col_availability_factor(value):
-            return value
+    # >         "Material Type",
+    # >         "face"
 
-        def _col_density_g_cm3(value):
-            return value
+    def _error(self, msg, is_exc=False):
+        self.errors.append(msg)
+        pkdlog(
+            "{}{}{}",
+            msg,
+            *(("stack=", pkdexc()) if is_exc else ("", "")),
+        )
 
-        def _col_is_bare_tile(value):
-            return value
+    def _parse_rows(self, rows):
+        def _components(rows):
+            pass
 
-        def _col_is_homogenized wcll(value):
-            return value
-
-        def _col_homogenized_divertor(value):
-            return value
-
-        def _col_material_name(value):
-            return value
-
-        def _col_is_plasma_facing(value):
-            return value
-
-        def _col_neutron_source(value):
-            return value
-
-        def _col_neutron_wall_loading_mw_m2(value):
-            return value
-
-        def _dispatch(label, value, row, reversed_rows):
+        def _dispatch(label, value, row, rows):
+            e = None
             if x := _LABEL_TO_COL.get(label):
-                e = _dispatch(x, value)
+                v = x.parser(value)
+                self.result[_LABEL_TO_COL[label].col] = v
             elif "nuclide" in label:
-                e = _parse_components(reversed_rows)
+                e = _components(rows)
             else:
-                e = _maybe_error(r)
+                e = _maybe_error(row)
             if e:
-                errors
-        while r := next(reversed_rows):
-            if len(r) >= 2 and r[0]:
-                _dispatch(r[0].lower(), r[1], r, reversed_rows)
+                self._error(f"{label}={value} error={e}")
 
+        def _maybe_error(row):
+            pass
 
+        def _next_row():
+            try:
+                return next(rows)
+            except StopIteration:
+                return None
 
-#         "Weight %",
-#         NaN,
-#         NaN,
-#         "Atom %",
-#         NaN,
-#         NaN
-#         NaN,
-#         "Element or Nuclide",
-#         "Target",
-#         "Min",
-#         "Max",
-#         "Target",
-#         "Min",
-#         "Max"
+        while r := _next_row():
+            if len(r.col) < 2 or not r.col[0]:
+                continue
+            try:
+                _dispatch(r.col[0].lower(), r.col[1], r.col, rows)
+            except Exception as e:
+                self._error(f"error={e} sheet={r.sheet} row={r.row_num}", is_exc=True)
+
+    #         "Weight %",
+    #         NaN,
+    #         NaN,
+    #         "Atom %",
+    #         NaN,
+    #         NaN
+    #         NaN,
+    #         "Element or Nuclide",
+    #         "Target",
+    #         "Min",
+    #         "Max",
+    #         "Target",
+    #         "Min",
+    #         "Max"
 
     def _read_and_split(self, path):
+        def _fix(v):
+            pkdp(v)
+            if isinstance(v, float):
+                return "" if math.isnan(v) else v
+            if isinstance(v, int):
+                return float(v)
+            return str(v)
+
         n = None
         try:
             for n, s in pandas.read_excel(
                 str(path), header=None, sheet_name=None
             ).items():
-                for r in s.itertuples(index=False):
-                    yield list(r)
-        except Exception:
-            pkdlog("ERROR path={} sheet={}", path, n)
-            raise
+                for i, r in enumerate(s.itertuples(index=False), start=1):
+                    # Remove pandas objects to avoid problems in string
+                    # conversions later. See also
+                    # https://github.com/radiasoft/pykern/issues/574
+                    yield PKDict(
+                        col=tuple(_fix(c) for c in r), sheet=str(n), row_num=int(i)
+                    )
+        except Exception as e:
+            self._error(f"unable to parse sheet={n} error={e}", is_exc=True)
+
+
+def _parse_availability_factor(value):
+    return value
+
+
+def _parse_density_g_cm3(value):
+    return value
+
+
+def _parse_is_bare_tile(value):
+    return value
+
+
+def _parse_is_homogenized_divertor(value):
+    return value
+
+
+def _parse_is_homogenized_wcll(value):
+    return value
+
+
+def _parse_material_name(value):
+    return value
+
+
+def _parse_is_plasma_facing(value):
+    return value
+
+
+def _parse_neutron_source(value):
+    return value
+
+
+def _parse_neutron_wall_loading_mw_m2(value):
+    return value
+
 
 def _init():
-    def _iter():
+    def _cols():
+        for k, v in (
+            ("name", "material_name"),
+            ("density", "density_g_cm3"),
+            ("neutron source", "neutron_source"),
+            ("neutron wall loading", "neutron_wall_loading_mw_m2"),
+            ("availability factor", "availability_factor"),
+            ("bare tile", "is_bare_tile"),
+            ("homogenized wcll", "is_homogenized_wcll"),
+            ("homogenized divertor", "is_homogenized_divertor"),
+            ("material type", "is_plasma_facing"),
+        ):
+            yield k, PKDict(col=v, parser=globals()[f"_parse_{v}"])
+
+    def _components():
         for x in "elements", "nuclides":
             for y in _COMPONENTS[x]:
                 yield y.lower(), y
 
-    global _COMPONENT_FROM_LOWER
-    _COMPONENT_FROM_LOWER = PKDict(_convert())
+    global _COMPONENT_FROM_LOWER, _LABEL_TO_COL
+    _COMPONENT_FROM_LOWER = PKDict(_components())
+    _LABEL_TO_COL = PKDict(_cols())
 
 
 _COMPONENTS = PKDict(
