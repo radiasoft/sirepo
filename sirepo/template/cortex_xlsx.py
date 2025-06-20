@@ -9,6 +9,17 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import math
 import pandas
 import pykern.pkcompat
+import re
+
+# true expressions return a group(1) that's true (not None)
+_BOOL_RE = re.compile(r"^(?:(t|true|y|yes)|f|false|n|no)$", re.IGNORECASE)
+
+# Loose
+_TYPE_RE = re.compile(r"(?:(fac(?:e|ing))|structur)", re.IGNORECASE)
+
+_WALL_RE = re.compile(r"^(?:(iter)|demo)$", re.IGNORECASE)
+
+_SOURCE_RE = re.compile(r"\b(?:(d\W?t)|d\W?d)\b", re.IGNORECASE)
 
 
 """
@@ -68,35 +79,6 @@ class Parser:
         self._parse_rows(self._read_and_split(path))
         self.result.errors = self.errors
 
-    # >         "Simple One",
-
-    # >         "Density",
-    # >         3.33,
-
-    # >         "Density Unit",
-    # >         "g/cm3",
-
-    # >         "Neutron Source",
-    # >         "dt",
-
-    # >         "Neutron Wall Loading",
-    # >         "iter",
-
-    # >         "Availability Factor",
-    # >         0.66,
-
-    # >         "Bare Tile",
-    # >         "n"
-
-    # >         "Homogenized WCLL",
-    # >         "yes"
-
-    # >         "Homogenized divertor",
-    # >         true
-
-    # >         "Material Type",
-    # >         "face"
-
     def _error(self, msg, is_exc=False):
         self.errors.append(msg)
         pkdlog(
@@ -106,20 +88,19 @@ class Parser:
         )
 
     def _parse_rows(self, rows):
-        def _components(rows):
+        def _components():
             pass
 
         def _dispatch(label, value, row, rows):
             e = None
             if x := _LABEL_TO_COL.get(label):
-                v = x.parser(value)
-                self.result[_LABEL_TO_COL[label].col] = v
+                e = _simple(x, value)
             elif "nuclide" in label:
-                e = _components(rows)
+                e = _components()
             else:
                 e = _maybe_error(row)
             if e:
-                self._error(f"{label}={value} error={e}")
+                self._error(f"{label}='{value}' {e}")
 
         def _maybe_error(row):
             pass
@@ -130,6 +111,17 @@ class Parser:
             except StopIteration:
                 return None
 
+        def _simple(col, value):
+            if isinstance(value, str):
+                value = value.strip()
+                if not len(value):
+                    return "may not be blank"
+            v, e = col.parser(value)
+            if e:
+                return e
+            self.result[col.name] = v
+            return None
+
         while r := _next_row():
             if len(r.col) < 2 or not r.col[0]:
                 continue
@@ -138,27 +130,14 @@ class Parser:
             except Exception as e:
                 self._error(f"error={e} sheet={r.sheet} row={r.row_num}", is_exc=True)
 
-    #         "Weight %",
-    #         NaN,
-    #         NaN,
-    #         "Atom %",
-    #         NaN,
-    #         NaN
-    #         NaN,
-    #         "Element or Nuclide",
-    #         "Target",
-    #         "Min",
-    #         "Max",
-    #         "Target",
-    #         "Min",
-    #         "Max"
-
     def _read_and_split(self, path):
         def _fix(v):
-            pkdp(v)
+            if isinstance(v, bool):
+                return v
             if isinstance(v, float):
                 return "" if math.isnan(v) else v
             if isinstance(v, int):
+                # TODO(robnagler) seems reasonable
                 return float(v)
             return str(v)
 
@@ -178,56 +157,107 @@ class Parser:
             self._error(f"unable to parse sheet={n} error={e}", is_exc=True)
 
 
+def _parse_bool(value):
+    if isinstance(value, bool):
+        return value, None
+    if isinstance(value, str) and (m := _BOOL_RE.match(value)):
+        return bool(m.group(1)), None
+    return None, "must be yes, no, true, false"
+
+
+def _parse_float(value, is_percent=False):
+    if isinstance(value, float):
+        return value
+    if not isinstance(value, str):
+        return None
+    if is_percent:
+        value = value.rstrip("%")
+    try:
+        return float(value)
+    except Exception:
+        return None
+
+
 def _parse_availability_factor(value):
-    return value
+    if (rv := _parse_float(value, is_percent=True)) is None:
+        return None, "must be a percentage"
+    # 1 is unreasonable
+    if 1 < rv < 100:
+        return rv / 100, None
+    if 0 < rv < 1:
+        return rv, None
+    return None, "must be between 1 and 100"
 
 
 def _parse_density_g_cm3(value):
-    return value
+    if (rv := _parse_float(value, is_percent=True)) is None:
+        return None, "must be number (g/cm3)"
+    # 1 is unreasonable
+    if 1 <= rv <= 25:
+        return rv, None
+    return None, "must be between 1 and 25 g/cm3"
 
 
 def _parse_is_bare_tile(value):
-    return value
+    return _parse_bool(value)
 
 
 def _parse_is_homogenized_divertor(value):
-    return value
+    return _parse_bool(value)
+
+
+def _parse_is_homogenized_hcpb(value):
+    return _parse_bool(value)
 
 
 def _parse_is_homogenized_wcll(value):
-    return value
+    return _parse_bool(value)
 
 
 def _parse_material_name(value):
-    return value
+    return value, None
 
 
 def _parse_is_plasma_facing(value):
-    return value
+    if isinstance(value, str) and (m := _TYPE_RE.match(value)):
+        return bool(m.group(1)), None
+    return None, "must be structural or plasma-facing"
 
 
-def _parse_neutron_source(value):
-    return value
+def _parse_is_neutron_source_dt(value):
+    if isinstance(value, str) and (m := _SOURCE_RE.match(value)):
+        return bool(m.group(1)), None
+    return None, "must be D-T or D-D"
 
 
-def _parse_neutron_wall_loading_mw_m2(value):
-    return value
+def _parse_neutron_wall_loading(value):
+    if isinstance(value, str) and (m := _WALL_RE.match(value)):
+        # ITER is true
+        return ("ITER" if m.group(1) else "DEMO"), None
+    return None, "must be ITER or DEMO"
+
+
+#    if isinstance(value, float):
+#        if 0.1 <= value <= 10.0:
+#            return value, None
+#    return None, "must be iter, demo, or MW/m2 between .1 and 10"
 
 
 def _init():
     def _cols():
         for k, v in (
-            ("name", "material_name"),
-            ("density", "density_g_cm3"),
-            ("neutron source", "neutron_source"),
-            ("neutron wall loading", "neutron_wall_loading_mw_m2"),
             ("availability factor", "availability_factor"),
             ("bare tile", "is_bare_tile"),
-            ("homogenized wcll", "is_homogenized_wcll"),
+            ("density", "density_g_cm3"),
             ("homogenized divertor", "is_homogenized_divertor"),
+            ("homogenized hcpb", "is_homogenized_hcpb"),
+            ("homogenized wcll", "is_homogenized_wcll"),
             ("material type", "is_plasma_facing"),
+            ("name", "material_name"),
+            ("neutron source", "is_neutron_source_dt"),
+            ("neutron wall loading", "neutron_wall_loading"),
         ):
-            yield k, PKDict(col=v, parser=globals()[f"_parse_{v}"])
+            yield k, PKDict(name=v, parser=globals()[f"_parse_{v}"])
 
     def _components():
         for x in "elements", "nuclides":
@@ -239,6 +269,35 @@ def _init():
     _LABEL_TO_COL = PKDict(_cols())
 
 
+# _COMPONENTS generated from
+# https://nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all
+#
+# from pykern.pkcollections import PKDict
+# import csv
+#
+# _CENTURY = 100. * 365 * 24 * 60 * 60
+#
+# rv = PKDict(elements=set(), nuclides=set())
+# with open('livechart.csv', 'r') as f:
+#     first = True
+#     for r in csv.reader(f):
+#         if not r:
+#             continue
+#         if first:
+#             first = False
+#             continue
+#         # num protons
+#         if int(r[0]) > 0:
+#             rv.elements.add(r[2])
+#         # half_life or from stephen:
+#         # "Actually, there may be some short-lived lithium isotopes that may be embedded in 1st wall materials, so let’s include all the Lithiums"
+#         if r[12] != "STABLE" and r[2] != "Li":
+#             # half_life_sec
+#             if r[16] in ("", "?") or float(r[16]) < _CENTURY:
+#                 continue
+#         rv.nuclides.add(r[2] + r[1])
+#
+# print(rv)
 _COMPONENTS = PKDict(
     elements={
         "Ac",
@@ -717,31 +776,3 @@ _COMPONENTS = PKDict(
 )
 
 _init()
-
-# https://nds.iaea.org/relnsd/v1/data?fields=ground_states&nuclides=all
-# from pykern.pkcollections import PKDict
-# import csv
-#
-# _CENTURY = 100. * 365 * 24 * 60 * 60
-#
-# rv = PKDict(elements=set(), nuclides=set())
-# with open('livechart.csv', 'r') as f:
-#     first = True
-#     for r in csv.reader(f):
-#         if not r:
-#             continue
-#         if first:
-#             first = False
-#             continue
-#         # num protons
-#         if int(r[0]) > 0:
-#             rv.elements.add(r[2])
-#         # half_life or from stephen:
-#         # "Actually, there may be some short-lived lithium isotopes that may be embedded in 1st wall materials, so let’s include all the Lithiums"
-#         if r[12] != "STABLE" and r[2] != "Li":
-#             # half_life_sec
-#             if r[16] in ("", "?") or float(r[16]) < _CENTURY:
-#                 continue
-#         rv.nuclides.add(r[2] + r[1])
-#
-# print(rv)
