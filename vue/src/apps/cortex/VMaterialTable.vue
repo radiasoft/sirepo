@@ -1,9 +1,5 @@
 <template>
-    <div v-if="! state.materials.length">
-        <p class="lead">Welcome to the Material Database</p>
-        <p>Use the panel to import a new material definition for analysis.</p>
-    </div>
-    <table v-if="state.materials.length" class="table table-striped">
+    <table class="table table-striped">
         <thead>
             <tr>
                 <th
@@ -22,7 +18,7 @@
         <tbody>
             <tr
                 v-for="mat in state.materials"
-                :key="mat.simulationId"
+                :key="mat.material_id"
             >
                 <td
                     v-for="col in cols"
@@ -33,15 +29,23 @@
             </tr>
         </tbody>
     </table>
-
 </template>
 
 <script setup>
  import { appState, MODEL_SAVED_EVENT } from '@/services/appstate.js';
  import { onMounted, onUnmounted, reactive } from 'vue';
  import { pubSub } from '@/services/pubsub.js';
- import { simManager } from '@/services/simmanager.js';
+ import { db } from '@/apps/cortex/db.js';
 
+ const emit = defineEmits(['materialCount']);
+
+ const _dateFormat = Intl.DateTimeFormat('en-US', {
+     year: 'numeric',
+     month: 'short',
+     day: 'numeric',
+     hour: 'numeric',
+     minute: 'numeric',
+ });
  const cols = [
      {
          name: 'name',
@@ -50,16 +54,9 @@
      {
          name: 'lastModified',
          heading: 'Date Uploaded',
-         format: (v) => dateFormat.format(v),
+         format: (v) => _dateFormat.format(v),
      },
  ];
- const dateFormat = Intl.DateTimeFormat('en-US', {
-     year: 'numeric',
-     month: 'short',
-     day: 'numeric',
-     hour: 'numeric',
-     minute: 'numeric',
- });
  const state = reactive({
      sort: ['name', true],
      materials: [],
@@ -77,7 +74,7 @@
      else {
          state.sort = [col.name, true];
      }
-     sortMaterials();
+     _sortMaterials();
  };
 
  const sortIcon = (col) => {
@@ -87,7 +84,13 @@
      return '';
  }
 
- const sortMaterials = () => {
+ const _loadMaterials = async () => {
+     state.materials = await db.loadMaterials();
+     emit('materialCount', state.materials.length);
+     _sortMaterials();
+ };
+
+ const _sortMaterials = () => {
      state.materials.sort(
          (a, b) => {
              let v;
@@ -106,22 +109,15 @@
      );
  };
 
- const loadSims = async () => {
-     await simManager.loadSims();
-     state.materials = simManager.openFolder('').children.filter((n) => ! n.isFolder && n.isConfirmed === '1')
-     sortMaterials();
- };
-
  onMounted(async () => {
-     pubSub.subscribe(MODEL_SAVED_EVENT, loadSims);
+     pubSub.subscribe(MODEL_SAVED_EVENT, _loadMaterials);
      appState.clearModels();
-     await loadSims();
+     await _loadMaterials();
  });
 
  onUnmounted(() => {
-     pubSub.unsubscribe(MODEL_SAVED_EVENT, loadSims);
+     pubSub.unsubscribe(MODEL_SAVED_EVENT, _loadMaterials);
  });
-
 </script>
 
 <style scoped>

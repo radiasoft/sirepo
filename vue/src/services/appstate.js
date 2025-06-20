@@ -2,6 +2,7 @@
 import { pubSub } from '@/services/pubsub.js';
 import { ref } from 'vue';
 import { requestSender } from '@/services/requestsender.js';
+import { util } from '@/services/util.js';
 
 class UIContext {
     // accessPath: keyed path into object or array data
@@ -107,32 +108,35 @@ class AppState {
     #lastAutoSaveData = null;
 
     #resetAutoSaveTimer() {
+        //TODO(pjm): currently no autosave timer. Is it needed?
     }
 
-    #deepEqualsNoSimulationStatus() {
-        return false;
+    #deepEqualsNoSimulationStatus(models1, models2) {
+        const status = [models1.simulationStatus, models2.simulationStatus];
+        delete models1.simulationStatus;
+        delete models2.simulationStatus;
+        const res = util.deepEquals(models1, models2);
+        models1.simulationStatus = status[0];
+        models2.simulationStatus = status[1];
+        return res;
     }
 
-    //TODO(pjm): currently no autosave timer. Is it needed?
     async autoSave() {
         if (! this.isLoadedRef.value ||
             this.#lastAutoSaveData && this.#deepEqualsNoSimulationStatus(
                 this.#lastAutoSaveData.models, this.models)
         ) {
-            if (callback) {
-                callback({'state': 'noChanges'});
-            }
             return;
         }
         this.#resetAutoSaveTimer();
         this.#lastAutoSaveData = {
-            models: this.clone(this.models),
+            models: util.clone(this.models),
         };
         const r = await requestSender.sendRequest('saveSimulationData', this.#lastAutoSaveData);
         if (r.error) {
             throw new Error(r);
         }
-        this.#lastAutoSaveData = this.clone(r);
+        this.#lastAutoSaveData = util.clone(r);
         ['simulationSerial', 'name', 'lastModified'].forEach(f => {
             this.models.simulation[f] = this.#lastAutoSaveData.models.simulation[f];
         });
@@ -152,12 +156,6 @@ class AppState {
     #clearModels(emptyValues) {
         this.models = emptyValues || {};
         this.isLoadedRef.value = false;
-    }
-
-    clone(obj) {
-        return window.structuredClone
-             ? window.structuredClone(obj)
-             : JSON.parse(JSON.stringify(obj));
     }
 
     deleteSimulation(simulationId) {
@@ -195,6 +193,9 @@ class AppState {
             throw new Error('not yet implemented:', r);
         }
         this.models = r.models;
+        this.#lastAutoSaveData = {
+            models: util.clone(this.models),
+        };
         this.isLoadedRef.value = true;
     }
 
@@ -221,7 +222,7 @@ class AppState {
             if (! model[f]) {
                 const v = m[f][2];
                 model[f] = v && typeof b === 'object'
-                             ? this.clone(v)
+                             ? util.clone(v)
                              : v;
             }
         }

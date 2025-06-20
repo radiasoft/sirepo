@@ -37,6 +37,7 @@
         ref="confirm"
         title="Verify Material"
         okText="Save"
+        cancelText="Discard"
         @okClicked="confirmMaterial"
         @modalClosed="modalClosed"
     >
@@ -89,8 +90,10 @@
  }
 
  const onDrop = (files) => {
-     file = files[0];
-     startProcessing();
+     if (! isProcessing.value) {
+         file = files[0];
+         startProcessing();
+     }
  };
 
  const onFileChanged = () => {
@@ -144,7 +147,7 @@
      }
 
      const runSimulation = () => {
-         const simComputeModel = 'animation';
+         const simComputeModel = 'materialImport';
          simQueue.addPersistentItem(
              simComputeModel,
              appState.models,
@@ -156,6 +159,7 @@
                      return;
                  }
                  if (resp.state === 'completed') {
+                     isProcessing.value = false;
                      confirm.value.showModal();
                      return;
                  }
