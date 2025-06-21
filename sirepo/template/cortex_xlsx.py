@@ -32,12 +32,20 @@ _LABEL_TO_COL = None
 
 _VALID_COLS = None
 
+_COMPONENT_VALUE_KINDS = ("Weight %", "Atom %")
+
+_COMPONENT_VALUE_LABELS = ("Target", "Min", "Max")
+
+_COMPONENT_ERROR = "error"
+
+_BALANCE = "balance"
+
 
 class Parser:
     def __init__(self, path, qcall=None):
         self.errors = []
         self._sheet = self._run_now = self._col_num = None
-        self.result = PKDict(components=[])
+        self.result = PKDict(components=PKDict())
         self._parse_rows(self._read_and_split(path))
         if not self.errors:
             self._validate_result()
@@ -63,24 +71,44 @@ class Parser:
             *(("stack=", pkdexc()) if is_exc else ("", "")),
         )
 
-    def _parse_component(self, cols):
-        def _floats(cols, names, col_num):
-            for c in cols:
-                if _parse_float
-            if isinstance(value, str) and not len(value):
-                return None
-            rv = _parse_float(value)
+    def _parse_component(self, name, cols):
+        def _floats(kind, values, start):
+            for k, v, i in zip(
+                _COMPONENT_VALUE_LABELS, values, range(start, start + 3)
+            ):
+                if isinstance(v, str):
+                    if not len(v):
+                        # indicate it is missing by not entering it
+                        continue
+                    if v.lower() == _BALANCE and k == _COMPONENT_VALUE_LABELS[0]:
+                        yield k, _BALANCE
+                        continue
+                if (x := _parse_float(v, is_percent=True)) is None:
+                    self._error(f"{kind} {n} must be a percentage cell={v}", col_num=i)
+                yield k, x
 
         if not (n := _COMPONENT_FROM_LOWER.get(name)):
             self._error(f"unknown nuclide or element cell='{cols[0]}'", col_num=1)
-        structure hierach?
-        c = _floats(cols[1:7], ("weight_target", "weight_min", "weight_max", "atom_target", "atom_min", "atom_max"), col_num=2)
-        # target = balance
-        # only one of:
-        # Target, Min, Max, Target, Min, Max
+            return None
+        if n in self.result.components:
+            self._error(f"duplicate nuclide or element cell='{cols[0]}'", col_num=1)
+            return None
+        rv = PKDict()
+        for i, k in zip((1, 4), _COMPONENT_VALUE_KINDS):
+            if x := PKDict(_floats(k, cols[i : i + 3], start=i + 1)):
+                if any(v is None for v in x.values()):
+                    self.result.components[name] = None
+                    return
+                rv[k] = x
+        if len(rv) > 1:
+            self._error(
+                f"provide {_COMPONENT_VALUE_KINDS[0]} or {_COMPONENT_VALUE_KINDS[1]} not both for component={cols[0]}"
+            )
+            return None
+        return rv
 
     def _parse_rows(self, rows):
-        #TODO(robnagler) track the sheet/row of each element so
+        # TODO(robnagler) track the sheet/row of each element so
         # can provide more context in _validate_result
 
         def _dispatch(cols):
@@ -99,9 +127,18 @@ class Parser:
                     self._error(f"invalid {l}='{cols[1]}' {e}", col_num=2)
             elif "nuclide" in l:
                 assert self._in_components is None
-                self._in_components = True
+                if tuple(cols[1:7]) == _COMPONENT_VALUE_LABELS * 2:
+                    self._in_components = True
+                else:
+                    self._in_components = _COMPONENT_ERROR
+                    self._error(
+                        f"Element and Nuclide column labels incorrect cols={cols[1:7]}"
+                    )
             elif self._in_components:
-                self._parse_component(l, cols)
+                if self._in_components is not _COMPONENT_ERROR:
+                    self.result.components[l] = PKDict(
+                        name=l, label=cols[0], values=self._parse_component(l, cols)
+                    )
             else:
                 self._error(f"unable to parse row='{cols}'")
 
