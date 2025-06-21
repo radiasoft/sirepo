@@ -63,15 +63,25 @@ class Parser:
             *(("stack=", pkdexc()) if is_exc else ("", "")),
         )
 
+    def _parse_component(self, cols):
+        def _floats(cols, names, col_num):
+            for c in cols:
+                if _parse_float
+            if isinstance(value, str) and not len(value):
+                return None
+            rv = _parse_float(value)
+
+        if not (n := _COMPONENT_FROM_LOWER.get(name)):
+            self._error(f"unknown nuclide or element cell='{cols[0]}'", col_num=1)
+        structure hierach?
+        c = _floats(cols[1:7], ("weight_target", "weight_min", "weight_max", "atom_target", "atom_min", "atom_max"), col_num=2)
+        # target = balance
+        # only one of:
+        # Target, Min, Max, Target, Min, Max
+
     def _parse_rows(self, rows):
         #TODO(robnagler) track the sheet/row of each element so
         # can provide more context in _validate_result
-
-        def _component(name, cols):
-            if not (n := _COMPONENT_FROM_LOWER.get(name)):
-                self._error(f"unknown nuclide or element cell='{cols[0]}'", col_num=1)
-            balance
-            Target, Min, Max, Target, Min, Max
 
         def _dispatch(cols):
             e = None
@@ -91,7 +101,7 @@ class Parser:
                 assert self._in_components is None
                 self._in_components = True
             elif self._in_components:
-                _component(l, cols)
+                self._parse_component(l, cols)
             else:
                 self._error(f"unable to parse row='{cols}'")
 
