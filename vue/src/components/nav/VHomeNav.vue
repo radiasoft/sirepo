@@ -64,6 +64,7 @@
  import { pubSub } from '@/services/pubsub.js';
  import { requestSender } from '@/services/requestsender.js';
  import { simManager } from '@/services/simmanager.js';
+ import { uri } from '@/services/uri.js';
 
  const folderPath = ref('');
  const isLoaded = appState.isLoadedRef;
@@ -101,7 +102,8 @@
                  'newSimulation',
                  appState.models.simulation,
              );
-             //TODO(pjm): add sim to simManager, call openSim()
+             //TODO(pjm): add sim to simManager
+             uri.localRedirectHome(r.models.simulation.simulationId);
          }
      }
  };

@@ -1,9 +1,30 @@
 import { appState } from '@/services/appstate.js';
 import { msgRouter } from '@/services/msgrouter.js';
+import { util } from '@/services/util.js';
 
 class RequestSender {
-    #isObject(value) {
-        return value !== null && typeof value === 'object';
+    async uploadLibFile(file, fileType, confirm=false) {
+         const formData = (values) => {
+             const fd = new FormData();
+             for (const [k, v] of Object.entries(values)) {
+                 fd.append(k, v);
+             }
+             return fd;
+         };
+
+        const d = {
+            file: file,
+            file_type: fileType,
+            simulation_id: appState.models.simulation.simulationId,
+            simulation_type: appState.simulationType,
+        };
+        if (confirm) {
+            d.confirm = confirm;
+        }
+        return await msgRouter.send(
+            appState.schema.route.uploadLibFile,
+            formData(d),
+        );
     }
 
     async sendRequest(routeName, requestData) {
@@ -23,7 +44,7 @@ class RequestSender {
             requestData.simulationId = appState.models.simulation.simulationId;
         }
         const resp = await msgRouter.send(r, requestData, {});
-        if (! this.#isObject(resp.data) || resp.data.state === 'srException') {
+        if (! util.isObject(resp.data) || resp.data.state === 'srException') {
             throw new Error(resp);
         }
         return resp.data;

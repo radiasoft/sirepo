@@ -20,12 +20,9 @@
             ["sum", "sum"],
             ["macro", "macro"]
         ],
-        "MaterialType": [
-            ["plasma-facing", "plasma-facing"]
-        ],
         "NeutronSource": [
-            ["DT", "D-T fusion"],
-            ["DD", "D-D fusion"]
+            ["D-T", "D-T fusion"],
+            ["D-D", "D-D fusion"]
         ],
         "NeutronWallLoadingName": [
             ["ITER", "ITER 0.57"],
@@ -38,6 +35,9 @@
         ]
     },
     "model": {
+        "materialImport": {
+            "xlsFile": ["", "InputFile"]
+        },
         "material": {
             "name": ["Name", "String", ""],
             "density_with_units": ["Density", "DensityWithUnits"],
@@ -57,12 +57,11 @@
             "homogenized_vcll": ["Homogenized WCLL", "Boolean", "0"],
             "homogenized_hcpb": ["Homogenized HCPB", "Boolean", "1"],
             "homogenized_divertor": ["Homogenized divertor", "Boolean", "0"],
-            "materialType": ["Material type", "MaterialType", "plasma-facing"]
+            "is_plasma_facing": ["Plasma facing", "Boolean", "1"]
         },
         "operatingConditions": {
-            "neutron_source": ["Neutron Source", "NeutronSource", "DT"],
+            "neutron_source": ["Neutron Source", "NeutronSource", "D-T"],
             "wall_loading_name": ["Neutron Wall Loading", "NeutronWallLoadingName", "ITER"],
-            "wall_loading_Value": ["Neutron Wall Loading MW/m²", "Float", 0.57],
             "availability_factor": ["Availability Factor %", "Float", 25]
         },
         "simulation": {

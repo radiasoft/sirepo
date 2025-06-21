@@ -91,7 +91,8 @@
          modal.value.removeEventListener('hidden.bs.modal', modalClosed);
          modal.value.removeEventListener('hide.bs.modal', blurActiveElement);
          modal.value.removeEventListener('shown.bs.modal', modalShown);
-         bootstrapModal.dispose();
+         // cleanup modal after .3s hide transition has completed
+         setTimeout(() => bootstrapModal.dispose(), 1000);
      }
  });
 
