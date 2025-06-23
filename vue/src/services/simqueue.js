@@ -4,12 +4,13 @@ const srlog = console.log;
 
 import { appState } from '@/services/appstate.js';
 import { requestSender } from '@/services/requestsender.js';
+import { util } from '@/services/util.js';
 
 class SimQueue {
     runQueue = [];
 
     #addItem(report, models, responseHandler, qMode) {
-        models = appState.clone(models);
+        models = util.clone(models);
         // simulationStatus is not used server side
         delete models.simulationStatus;
         const qi = {

@@ -243,7 +243,7 @@ def _init():
             "whether the UI should use a websocket",
         ),
         vue_sim_types=(
-            (()),
+            ("cortex",),
             set,
             "Vue apps",
         ),
