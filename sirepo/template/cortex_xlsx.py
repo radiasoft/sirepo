@@ -1,4 +1,4 @@
-"""cortex spreadsheet parser
+"""cortex input spreadsheet parser
 
 :copyright: Copyright (c) 2025 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -134,11 +134,11 @@ class Parser:
         def _name():
             if not _COMPONENT_FROM_LOWER.get(name):
                 return self._error(
-                    f"unknown nuclide or element in cell='{cols[0]}'", col_num=1
+                    f"unknown nuclide or element in cell={cols[0]}", col_num=1
                 )
             if name in self.result.components:
                 return self._error(
-                    f"duplicate nuclide or element in cell='{cols[0]}'", col_num=1
+                    f"duplicate nuclide or element in cell={cols[0]}", col_num=1
                 )
             return True
 
@@ -161,7 +161,7 @@ class Parser:
             if (rv := percentage.get(_TARGET)) is None:
                 if percentage[_MIN] == 0.0:
                     return x
-                return (x - percentage[_MIN]) / 2.0
+                return (x - percentage[_MIN]) / 2.0 + percentage[_MIN]
             if x is None:
                 return rv
             if rv == _BALANCE:
@@ -196,7 +196,7 @@ class Parser:
         def _dispatch(cols):
             e = None
             if not isinstance(cols[0], str):
-                self._error(f"expected string cell='{cols[0]}'", col_num=1)
+                self._error(f"expected string cell={cols[0]}", col_num=1)
                 return
             l = cols[0].lower()
             if _IGNORE_FIRST_CELL_RE.search(l):
@@ -206,7 +206,7 @@ class Parser:
                 if self._in_components:
                     self._in_components = False
                 if e := _simple(x, cols[1]):
-                    self._error(f"invalid {l}='{cols[1]}' {e}", col_num=2)
+                    self._error(f"invalid {l}={cols[1]} {e}", col_num=2)
             elif "nuclide" in l:
                 assert self._in_components is None
                 if tuple(cols[1:7]) == _COMPONENT_VALUE_LABELS * 2:
@@ -222,7 +222,7 @@ class Parser:
                         name=l, label=cols[0], percentage=self._parse_component(l, cols)
                     )
             else:
-                self._error(f"unable to parse row='{cols}'")
+                self._error(f"unable to parse row={cols}")
 
         def _next_row():
             try:
@@ -296,14 +296,14 @@ class Parser:
                 else:
                     s += t
             if s > _SUM_MAX:
-                return self._error(f"{kind} sum={s:.4%} greater than 1.0")
+                return self._error(f"{kind} sum={s:g} greater than 1.0")
             if not b:
                 if s < _SUM_MIN:
-                    return self._error(f"{kind} sum={s:.4%} less than 1.0")
+                    return self._error(f"{kind} sum={s:g} less than 1.0")
             else:
-                b.target = 1.0 - s
-                if b.target < 0.0:
-                    b.target = 0.0
+                b[_TARGET] = 1.0 - s
+                if b[_TARGET] < 0.0:
+                    b[_TARGET] = 0.0
             return True
 
         def _kind():
@@ -371,10 +371,9 @@ def _parse_bool(value):
 def _parse_density_g_cm3(value):
     if (rv := _parse_float(value)) is None:
         return None, "must be number (g/cm3)"
-    # 1 is unreasonable
-    if 1 <= rv <= 25:
+    if 0.0 < rv < 100:
         return rv, None
-    return None, "must be between 1 and 25 g/cm3"
+    return None, "must be between 0 and 100 g/cm3"
 
 
 def _parse_float(value):
@@ -409,19 +408,19 @@ def _parse_material_name(value):
 
 
 def _parse_is_plasma_facing(value):
-    if isinstance(value, str) and (m := _TYPE_RE.match(value)):
+    if isinstance(value, str) and (m := _TYPE_RE.search(value)):
         return bool(m.group(1)), None
     return None, "must be structural or plasma-facing"
 
 
 def _parse_is_neutron_source_dt(value):
-    if isinstance(value, str) and (m := _SOURCE_RE.match(value)):
+    if isinstance(value, str) and (m := _SOURCE_RE.search(value)):
         return bool(m.group(1)), None
     return None, "must be D-T or D-D"
 
 
 def _parse_neutron_wall_loading(value):
-    if isinstance(value, str) and (m := _WALL_RE.match(value)):
+    if isinstance(value, str) and (m := _WALL_RE.search(value)):
         # ITER is true
         return ("ITER" if m.group(1) else "DEMO"), None
     return None, "must be ITER or DEMO"

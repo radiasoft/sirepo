@@ -5,9 +5,9 @@
             "label": "C",
             "name": "c",
             "percentage": {
-                "Max": 20.0,
+                "Max": 0.2,
                 "Min": 0.0,
-                "Target": 20.0,
+                "Target": 0.2,
                 "kind": "Weight %"
             }
         },
@@ -15,9 +15,9 @@
             "label": "Cr",
             "name": "cr",
             "percentage": {
-                "Max": 5.0,
+                "Max": 0.05,
                 "Min": 0.0,
-                "Target": 5.0,
+                "Target": 0.05,
                 "kind": "Weight %"
             }
         },
@@ -25,9 +25,9 @@
             "label": "Fe",
             "name": "fe",
             "percentage": {
-                "Max": 100.0,
-                "Min": 65.0,
-                "Target": 65.0,
+                "Max": 1.0,
+                "Min": 0.65,
+                "Target": 0.65,
                 "kind": "Weight %"
             }
         },
@@ -35,9 +35,9 @@
             "label": "W",
             "name": "w",
             "percentage": {
-                "Max": 15.0,
-                "Min": 5.0,
-                "Target": 5.0,
+                "Max": 0.15,
+                "Min": 0.05,
+                "Target": 0.1,
                 "kind": "Weight %"
             }
         }

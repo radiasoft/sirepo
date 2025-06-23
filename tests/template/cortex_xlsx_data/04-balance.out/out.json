@@ -1,1 +1,55 @@
-{}
+{
+    "availability_factor": 0.3,
+    "components": {
+        "c": {
+            "label": "C",
+            "name": "c",
+            "percentage": {
+                "Max": 0.2,
+                "Min": 0.0,
+                "Target": 0.2,
+                "kind": "Weight %"
+            }
+        },
+        "cr": {
+            "label": "Cr",
+            "name": "cr",
+            "percentage": {
+                "Max": 0.05,
+                "Min": 0.0,
+                "Target": 0.05,
+                "kind": "Weight %"
+            }
+        },
+        "fe": {
+            "Target": 0.65,
+            "label": "Fe",
+            "name": "fe",
+            "percentage": {
+                "Max": 1.0,
+                "Min": 0.6,
+                "Target": "balance",
+                "kind": "Weight %"
+            }
+        },
+        "w": {
+            "label": "W",
+            "name": "w",
+            "percentage": {
+                "Max": 0.15,
+                "Min": 0.05,
+                "Target": 0.1,
+                "kind": "Weight %"
+            }
+        }
+    },
+    "density_g_cm3": 3.33,
+    "is_bare_tile": false,
+    "is_homogenized_divertor": true,
+    "is_homogenized_hcpb": true,
+    "is_homogenized_wcll": true,
+    "is_neutron_source_dt": false,
+    "is_plasma_facing": false,
+    "material_name": "Balance",
+    "neutron_wall_loading": "ITER"
+}
