@@ -86,7 +86,7 @@ class Parser:
         return None
 
     def _parse_component(self, name, cols):
-        c_err = " for component={cols[0]}"
+        c_err = f" for component={cols[0]}"
 
         def _floats(kind, values, start):
             for l, v, i in zip(
@@ -104,6 +104,22 @@ class Parser:
                     )
                 yield l, rv
 
+        def _min_max(percentage):
+            if _MAX not in percentage and _MIN not in percentage:
+                return True
+            if _MAX not in percentage:
+                self._error(f"{percentage.kind} {_MAX} must be provided with {_MIN}{c_err}")
+                return False
+            if percentage[_MAX] == 0.0:
+                self._error(f"{percentage.kind} {_MAX} must not be 0{c_err}")
+                return False
+            if _MIN not in percentage:
+                percentage[_MIN] = 0.0
+            elif percentage[_MIN] > percentage[_MAX]:
+                self._error(f"{percentage.kind} {_MAX} may not be less than {_MIN}{c_err}")
+                return False
+            return True
+
         def _name():
             if not _COMPONENT_FROM_LOWER.get(name):
                 return self._error(
@@ -116,7 +132,18 @@ class Parser:
             return True
 
         def _target(percentage):
-            return True
+            x = percentage.get(_MAX)
+            if (rv := percentage.get(_TARGET)) is None:
+                if percentage[_MIN] == 0.0:
+                    return x
+                return (x - percentage[_MIN]) / 2.0
+            if x is None:
+                return rv
+            if rv < percentage[_MIN]:
+                return self._error(f"{percentage.kind} {_TARGET}={rv} must not be less than {_MIN}={percentage[_MIN]}{_c_err}")
+            if rv > percentage[_MAX]:
+                return self._error(f"{percentage.kind} {_TARGET}={rv} must not be greater than {_MAX}={x}{_c_err}")
+            return rv
 
         def _percentage():
             rv = PKDict()
@@ -136,10 +163,13 @@ class Parser:
             return None
         if not (p := _percentage()):
             return None
-        k = list(p.keys())[0]
-        rv = p[k].pkupdate(kind=k)
-        if not _target(rv):
+        x = list(p.keys())[0]
+        rv = p[x].pkupdate(kind=x)
+        if not _min_max(rv):
             return None
+        if (x := _target(rv)) is None:
+            return None
+        rv[_TARGET] = x
         return rv
 
     def _parse_rows(self, rows):
