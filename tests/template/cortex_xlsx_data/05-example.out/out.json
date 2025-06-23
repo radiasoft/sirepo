@@ -1,0 +1,193 @@
+{
+    "availability_factor": 0.25,
+    "components": {
+        "al": {
+            "label": "Al",
+            "name": "al",
+            "percentage": {
+                "Max": 0.0001,
+                "Min": 0.0,
+                "Target": 0.0001,
+                "kind": "Weight %"
+            }
+        },
+        "b": {
+            "label": "B",
+            "name": "b",
+            "percentage": {
+                "Target": 2e-05,
+                "kind": "Weight %"
+            }
+        },
+        "c": {
+            "label": "C",
+            "name": "c",
+            "percentage": {
+                "Target": 0.0011,
+                "kind": "Weight %"
+            }
+        },
+        "co": {
+            "label": "Co",
+            "name": "co",
+            "percentage": {
+                "Max": 0.0001,
+                "Min": 0.0,
+                "Target": 0.0001,
+                "kind": "Weight %"
+            }
+        },
+        "cr": {
+            "label": "Cr",
+            "name": "cr",
+            "percentage": {
+                "Target": 0.09,
+                "kind": "Weight %"
+            }
+        },
+        "cu": {
+            "label": "Cu",
+            "name": "cu",
+            "percentage": {
+                "Max": 0.0001,
+                "Min": 0.0,
+                "Target": 0.0001,
+                "kind": "Weight %"
+            }
+        },
+        "fe": {
+            "Target": 0.88898,
+            "label": "Fe",
+            "name": "fe",
+            "percentage": {
+                "Target": "balance",
+                "kind": "Weight %"
+            }
+        },
+        "mn": {
+            "label": "Mn",
+            "name": "mn",
+            "percentage": {
+                "Target": 0.004,
+                "kind": "Weight %"
+            }
+        },
+        "mo": {
+            "label": "Mo",
+            "name": "mo",
+            "percentage": {
+                "Max": 5e-05,
+                "Min": 0.0,
+                "Target": 5e-05,
+                "kind": "Weight %"
+            }
+        },
+        "n": {
+            "label": "N",
+            "name": "n",
+            "percentage": {
+                "Target": 0.0003,
+                "kind": "Weight %"
+            }
+        },
+        "nb": {
+            "label": "Nb",
+            "name": "nb",
+            "percentage": {
+                "Max": 5e-05,
+                "Min": 0.0,
+                "Target": 5e-05,
+                "kind": "Weight %"
+            }
+        },
+        "ni": {
+            "label": "Ni",
+            "name": "ni",
+            "percentage": {
+                "Max": 0.0001,
+                "Min": 0.0,
+                "Target": 0.0001,
+                "kind": "Weight %"
+            }
+        },
+        "o": {
+            "label": "O",
+            "name": "o",
+            "percentage": {
+                "Target": 0.0001,
+                "kind": "Weight %"
+            }
+        },
+        "p": {
+            "label": "P",
+            "name": "p",
+            "percentage": {
+                "Target": 5e-05,
+                "kind": "Weight %"
+            }
+        },
+        "s": {
+            "label": "S",
+            "name": "s",
+            "percentage": {
+                "Target": 5e-05,
+                "kind": "Weight %"
+            }
+        },
+        "si": {
+            "label": "Si",
+            "name": "si",
+            "percentage": {
+                "Max": 0.0005,
+                "Min": 0.0,
+                "Target": 0.0005,
+                "kind": "Weight %"
+            }
+        },
+        "ta": {
+            "label": "Ta",
+            "name": "ta",
+            "percentage": {
+                "Target": 0.0012,
+                "kind": "Weight %"
+            }
+        },
+        "ti": {
+            "label": "Ti",
+            "name": "ti",
+            "percentage": {
+                "Max": 0.0002,
+                "Min": 0.0,
+                "Target": 0.0002,
+                "kind": "Weight %"
+            }
+        },
+        "v": {
+            "label": "V",
+            "name": "v",
+            "percentage": {
+                "Max": 0.0025,
+                "Min": 0.0015,
+                "Target": 0.002,
+                "kind": "Weight %"
+            }
+        },
+        "w": {
+            "label": "W",
+            "name": "w",
+            "percentage": {
+                "Target": 0.011,
+                "kind": "Weight %"
+            }
+        }
+    },
+    "density_g_cm3": 19.0,
+    "is_bare_tile": true,
+    "is_homogenized_divertor": false,
+    "is_homogenized_hcpb": true,
+    "is_homogenized_wcll": false,
+    "is_neutron_source_dt": true,
+    "is_plasma_facing": true,
+    "material_name": "Eurofer 97",
+    "neutron_wall_loading": "ITER"
+}
