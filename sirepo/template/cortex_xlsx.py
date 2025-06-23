@@ -10,6 +10,7 @@ import math
 import pandas
 import pykern.pkcompat
 import re
+import sirepo.template.openmc_util
 
 # true expressions return a group(1) that's true (not None)
 _BOOL_RE = re.compile(r"^(?:(t|true|y|yes)|f|false|n|no)$", re.IGNORECASE)
@@ -54,11 +55,13 @@ _COMPONENT_ERROR = "error"
 _BALANCE = "balance"
 
 # TODO(robnagler) what's reasonable?
-_EPSILON = 1e-10
+_EPSILON = 1e-8
 
-_SUM_MAX = 1.0 + _EPSILON
+_SUM = 100.0
 
-_SUM_MIN = 1.0 - _EPSILON
+_SUM_MAX = _SUM + _EPSILON
+
+_SUM_MIN = _SUM - _EPSILON
 
 
 class Parser:
@@ -286,7 +289,7 @@ class Parser:
     def _validate_components(self, rows):
         def _balance(kind):
             if not kind:
-                return
+                return None
             s = 0.0
             b = None
             for r in rows.values():
@@ -296,15 +299,29 @@ class Parser:
                 else:
                     s += t
             if s > _SUM_MAX:
-                return self._error(f"{kind} sum={s:g} greater than 1.0")
+                return self._error(f"{kind} sum={s:g} greater than {_SUM:g}")
             if not b:
                 if s < _SUM_MIN:
-                    return self._error(f"{kind} sum={s:g} less than 1.0")
+                    return self._error(f"{kind} sum={s:g} less than {_SUM:g}")
             else:
-                b[_TARGET] = 1.0 - s
+                b[_TARGET] = _SUM - s
                 if b[_TARGET] < 0.0:
                     b[_TARGET] = 0.0
-            return True
+            return kind
+
+        def _db_fields(kind):
+            if not kind:
+                return None
+            rv = PKDict()
+            for r in rows.values():
+                if kind == _WEIGHT:
+                    r = _wo_to_ao(r)
+                rv[component_name] = PKDict(
+                    atom_target=r[_TARGET],
+                    atom_min=r[_MIN],
+                    atom_max=r[_MAX],
+                )
+            return rv
 
         def _kind():
             k = list(rows.values())[0].percentage.kind
@@ -312,10 +329,17 @@ class Parser:
                 return self._error(f"do not provide both {_KINDS_ERR}")
             return k
 
+        # def _wo_to_ao(row):
+        #     try:
+        #         wo_
+        #         except Exception as e:
+
         if any(v.percentage is None for v in rows.values()):
             # error for at least one component output
             return
         _balance(_kind())
+        # if x := _db_fields(_balance(_kind())):
+        #   self.result[_COMPONENTS_COL] = x
 
     def _validate_result(self):
         def _labels(names):
@@ -431,8 +455,8 @@ def _parse_percent(value):
         return None, "must be a number (percentage)"
     if value < 0.0:
         return None, "must not be negative"
-    if value > 1.0:
-        return None, "must not be greater than 1.0"
+    if value > _SUM:
+        return None, f"must not be greater than {_SUM:g}"
     return value, None
 
 

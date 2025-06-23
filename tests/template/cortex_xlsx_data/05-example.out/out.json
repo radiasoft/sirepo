@@ -1,13 +1,13 @@
 {
-    "availability_factor": 0.25,
+    "availability_factor": 66.0,
     "components": {
         "al": {
             "label": "Al",
             "name": "al",
             "percentage": {
-                "Max": 0.0001,
+                "Max": 0.01,
                 "Min": 0.0,
-                "Target": 0.0001,
+                "Target": 0.01,
                 "kind": "Weight %"
             }
         },
@@ -15,7 +15,7 @@
             "label": "B",
             "name": "b",
             "percentage": {
-                "Target": 2e-05,
+                "Target": 0.002,
                 "kind": "Weight %"
             }
         },
@@ -23,7 +23,7 @@
             "label": "C",
             "name": "c",
             "percentage": {
-                "Target": 0.0011,
+                "Target": 0.11,
                 "kind": "Weight %"
             }
         },
@@ -31,9 +31,9 @@
             "label": "Co",
             "name": "co",
             "percentage": {
-                "Max": 0.0001,
+                "Max": 0.01,
                 "Min": 0.0,
-                "Target": 0.0001,
+                "Target": 0.01,
                 "kind": "Weight %"
             }
         },
@@ -41,7 +41,7 @@
             "label": "Cr",
             "name": "cr",
             "percentage": {
-                "Target": 0.09,
+                "Target": 9.0,
                 "kind": "Weight %"
             }
         },
@@ -49,14 +49,14 @@
             "label": "Cu",
             "name": "cu",
             "percentage": {
-                "Max": 0.0001,
+                "Max": 0.01,
                 "Min": 0.0,
-                "Target": 0.0001,
+                "Target": 0.01,
                 "kind": "Weight %"
             }
         },
         "fe": {
-            "Target": 0.88898,
+            "Target": 88.898,
             "label": "Fe",
             "name": "fe",
             "percentage": {
@@ -68,7 +68,7 @@
             "label": "Mn",
             "name": "mn",
             "percentage": {
-                "Target": 0.004,
+                "Target": 0.4,
                 "kind": "Weight %"
             }
         },
@@ -76,9 +76,9 @@
             "label": "Mo",
             "name": "mo",
             "percentage": {
-                "Max": 5e-05,
+                "Max": 0.005,
                 "Min": 0.0,
-                "Target": 5e-05,
+                "Target": 0.005,
                 "kind": "Weight %"
             }
         },
@@ -86,7 +86,7 @@
             "label": "N",
             "name": "n",
             "percentage": {
-                "Target": 0.0003,
+                "Target": 0.03,
                 "kind": "Weight %"
             }
         },
@@ -94,9 +94,9 @@
             "label": "Nb",
             "name": "nb",
             "percentage": {
-                "Max": 5e-05,
+                "Max": 0.005,
                 "Min": 0.0,
-                "Target": 5e-05,
+                "Target": 0.005,
                 "kind": "Weight %"
             }
         },
@@ -104,9 +104,9 @@
             "label": "Ni",
             "name": "ni",
             "percentage": {
-                "Max": 0.0001,
+                "Max": 0.01,
                 "Min": 0.0,
-                "Target": 0.0001,
+                "Target": 0.01,
                 "kind": "Weight %"
             }
         },
@@ -114,7 +114,7 @@
             "label": "O",
             "name": "o",
             "percentage": {
-                "Target": 0.0001,
+                "Target": 0.01,
                 "kind": "Weight %"
             }
         },
@@ -122,7 +122,7 @@
             "label": "P",
             "name": "p",
             "percentage": {
-                "Target": 5e-05,
+                "Target": 0.005,
                 "kind": "Weight %"
             }
         },
@@ -130,7 +130,7 @@
             "label": "S",
             "name": "s",
             "percentage": {
-                "Target": 5e-05,
+                "Target": 0.005,
                 "kind": "Weight %"
             }
         },
@@ -138,9 +138,9 @@
             "label": "Si",
             "name": "si",
             "percentage": {
-                "Max": 0.0005,
+                "Max": 0.05,
                 "Min": 0.0,
-                "Target": 0.0005,
+                "Target": 0.05,
                 "kind": "Weight %"
             }
         },
@@ -148,7 +148,7 @@
             "label": "Ta",
             "name": "ta",
             "percentage": {
-                "Target": 0.0012,
+                "Target": 0.12,
                 "kind": "Weight %"
             }
         },
@@ -156,9 +156,9 @@
             "label": "Ti",
             "name": "ti",
             "percentage": {
-                "Max": 0.0002,
+                "Max": 0.02,
                 "Min": 0.0,
-                "Target": 0.0002,
+                "Target": 0.02,
                 "kind": "Weight %"
             }
         },
@@ -166,9 +166,9 @@
             "label": "V",
             "name": "v",
             "percentage": {
-                "Max": 0.0025,
-                "Min": 0.0015,
-                "Target": 0.002,
+                "Max": 0.25,
+                "Min": 0.15,
+                "Target": 0.2,
                 "kind": "Weight %"
             }
         },
@@ -176,7 +176,7 @@
             "label": "W",
             "name": "w",
             "percentage": {
-                "Target": 0.011,
+                "Target": 1.1,
                 "kind": "Weight %"
             }
         }

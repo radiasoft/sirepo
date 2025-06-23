@@ -1,13 +1,13 @@
 {
-    "availability_factor": 0.66,
+    "availability_factor": 66.0,
     "components": {
         "c": {
             "label": "C",
             "name": "c",
             "percentage": {
-                "Max": 0.2,
+                "Max": 20.0,
                 "Min": 0.0,
-                "Target": 0.2,
+                "Target": 20.0,
                 "kind": "Weight %"
             }
         },
@@ -15,9 +15,9 @@
             "label": "Cr",
             "name": "cr",
             "percentage": {
-                "Max": 0.05,
+                "Max": 5.0,
                 "Min": 0.0,
-                "Target": 0.05,
+                "Target": 5.0,
                 "kind": "Weight %"
             }
         },
@@ -25,9 +25,9 @@
             "label": "Fe",
             "name": "fe",
             "percentage": {
-                "Max": 1.0,
-                "Min": 0.65,
-                "Target": 0.65,
+                "Max": 100.0,
+                "Min": 60.0,
+                "Target": 65.0,
                 "kind": "Weight %"
             }
         },
@@ -35,9 +35,9 @@
             "label": "W",
             "name": "w",
             "percentage": {
-                "Max": 0.15,
-                "Min": 0.05,
-                "Target": 0.1,
+                "Max": 15.0,
+                "Min": 5.0,
+                "Target": 10.0,
                 "kind": "Weight %"
             }
         }
