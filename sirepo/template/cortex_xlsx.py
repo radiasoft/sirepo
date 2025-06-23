@@ -53,7 +53,13 @@ _COMPONENT_ERROR = "error"
 
 _BALANCE = "balance"
 
-_EPSILON = 1e-6
+# TODO(robnagler) what's reasonable?
+_EPSILON = 1e-10
+
+_SUM_MAX = 1.0 + _EPSILON
+
+_SUM_MIN = 1.0 - _EPSILON
+
 
 class Parser:
     def __init__(self, path, qcall=None):
@@ -99,17 +105,19 @@ class Parser:
                     if v.lower() == _BALANCE and l == _TARGET:
                         yield l, _BALANCE
                         continue
-                if (rv := _parse_float(v, is_percent=True)) is None:
-                    self._error(
-                        f"{kind} {n} must be a percentage in cell={v}{c_err}", col_num=i
-                    )
+                rv, e = _parse_percent(v)
+                if e:
+                    self._error(f"{kind} {l} {e} in cell={v}{c_err}", col_num=i)
+                    rv = None
                 yield l, rv
 
         def _min_max(percentage):
             if _MAX not in percentage and _MIN not in percentage:
                 return True
             if _MAX not in percentage:
-                self._error(f"{percentage.kind} {_MAX} must be provided with {_MIN}{c_err}")
+                self._error(
+                    f"{percentage.kind} {_MAX} must be provided with {_MIN}{c_err}"
+                )
                 return False
             if percentage[_MAX] == 0.0:
                 self._error(f"{percentage.kind} {_MAX} must not be 0{c_err}")
@@ -117,7 +125,9 @@ class Parser:
             if _MIN not in percentage:
                 percentage[_MIN] = 0.0
             elif percentage[_MIN] > percentage[_MAX]:
-                self._error(f"{percentage.kind} {_MAX}={percentage[_MAX]} must not be less than {_MIN}={percentage[_MIN]}{c_err}")
+                self._error(
+                    f"{percentage.kind} {_MAX}={percentage[_MAX]} must not be less than {_MIN}={percentage[_MIN]}{c_err}"
+                )
                 return False
             return True
 
@@ -132,22 +142,6 @@ class Parser:
                 )
             return True
 
-        def _target(percentage):
-            x = percentage.get(_MAX)
-            if (rv := percentage.get(_TARGET)) is None:
-                if percentage[_MIN] == 0.0:
-                    return x
-                return (x - percentage[_MIN]) / 2.0
-            if x is None:
-                return rv
-            if rv == _BALANCE:
-                return rv
-            if rv < percentage[_MIN]:
-                return self._error(f"{percentage.kind} {_TARGET}={rv} must not be less than {_MIN}={percentage[_MIN]}{c_err}")
-            if rv > percentage[_MAX]:
-                return self._error(f"{percentage.kind} {_TARGET}={rv} must not be greater than {_MAX}={x}{c_err}")
-            return rv
-
         def _percentage():
             rv = PKDict()
             for i, k in zip((1, 4), _COMPONENT_VALUE_KINDS):
@@ -160,6 +154,26 @@ class Parser:
             if any(v is None for v in list(rv.values())[0].values()):
                 # Message already output above
                 return None
+            return rv
+
+        def _target(percentage):
+            x = percentage.get(_MAX)
+            if (rv := percentage.get(_TARGET)) is None:
+                if percentage[_MIN] == 0.0:
+                    return x
+                return (x - percentage[_MIN]) / 2.0
+            if x is None:
+                return rv
+            if rv == _BALANCE:
+                return rv
+            if rv < percentage[_MIN]:
+                return self._error(
+                    f"{percentage.kind} {_TARGET}={rv} must not be less than {_MIN}={percentage[_MIN]}{c_err}"
+                )
+            if rv > percentage[_MAX]:
+                return self._error(
+                    f"{percentage.kind} {_TARGET}={rv} must not be greater than {_MAX}={x}{c_err}"
+                )
             return rv
 
         if not _name():
@@ -276,13 +290,21 @@ class Parser:
             s = 0.0
             b = None
             for r in rows.values():
-                if r.percentage.target == _BALANCE:
+                t = r.percentage[_TARGET]
+                if t == _BALANCE:
                     b = r
                 else:
-                    s += r.percentage.target
+                    s += t
             if s > _SUM_MAX:
-                self._error(f"{k} sum={s} greater 100.0")
-
+                return self._error(f"{kind} sum={s:.4%} greater than 1.0")
+            if not b:
+                if s < _SUM_MIN:
+                    return self._error(f"{kind} sum={s:.4%} less than 1.0")
+            else:
+                b.target = 1.0 - s
+                if b.target < 0.0:
+                    b.target = 0.0
+            return True
 
         def _kind():
             k = list(rows.values())[0].percentage.kind
@@ -294,8 +316,6 @@ class Parser:
             # error for at least one component output
             return
         _balance(_kind())
-
-
 
     def _validate_result(self):
         def _labels(names):
@@ -309,6 +329,37 @@ class Parser:
         self._validate_components(x)
 
 
+def _init():
+    def _cols():
+        for k, v in (
+            ("Availability Factor", "availability_factor"),
+            ("Bare Tile", "is_bare_tile"),
+            ("Density", "density_g_cm3"),
+            ("Homogenized Divertor", "is_homogenized_divertor"),
+            ("Homogenized HCPB", "is_homogenized_hcpb"),
+            ("Homogenized WCLL", "is_homogenized_wcll"),
+            ("Material Type", "is_plasma_facing"),
+            ("Name", "material_name"),
+            ("Neutron Source", "is_neutron_source_dt"),
+            ("Neutron Wall Loading", "neutron_wall_loading"),
+        ):
+            yield k.lower(), PKDict(label=k, name=v, parser=globals()[f"_parse_{v}"])
+
+    def _components():
+        for x in "elements", "nuclides":
+            for y in _COMPONENTS[x]:
+                yield y.lower(), y
+
+    global _COMPONENT_FROM_LOWER, _LABEL_TO_COL, _VALID_COLS
+    _COMPONENT_FROM_LOWER = PKDict(_components())
+    _LABEL_TO_COL = PKDict(_cols())
+    _VALID_COLS = PKDict({c.name: c for c in _LABEL_TO_COL.values()})
+
+
+def _parse_availability_factor(value):
+    return _parse_percent(value)
+
+
 def _parse_bool(value):
     if isinstance(value, bool):
         return value, None
@@ -317,37 +368,24 @@ def _parse_bool(value):
     return None, "must be yes, no, true, false"
 
 
-def _parse_float(value, is_percent=False):
-    if isinstance(value, float):
-        return value
-    if not isinstance(value, str):
-        return None
-    if is_percent:
-        value = value.rstrip("%")
-    try:
-        return float(value)
-    except Exception:
-        return None
-
-
-def _parse_availability_factor(value):
-    if (rv := _parse_float(value, is_percent=True)) is None:
-        return None, "must be a percentage"
-    # 1 is unreasonable
-    if 1 < rv < 100:
-        return rv / 100, None
-    if 0 < rv < 1:
-        return rv, None
-    return None, "must be between 1 and 100"
-
-
 def _parse_density_g_cm3(value):
-    if (rv := _parse_float(value, is_percent=True)) is None:
+    if (rv := _parse_float(value)) is None:
         return None, "must be number (g/cm3)"
     # 1 is unreasonable
     if 1 <= rv <= 25:
         return rv, None
     return None, "must be between 1 and 25 g/cm3"
+
+
+def _parse_float(value):
+    if isinstance(value, float):
+        return value
+    if not isinstance(value, str):
+        return None
+    try:
+        return float(value)
+    except Exception:
+        return None
 
 
 def _parse_is_bare_tile(value):
@@ -389,37 +427,14 @@ def _parse_neutron_wall_loading(value):
     return None, "must be ITER or DEMO"
 
 
-#    if isinstance(value, float):
-#        if 0.1 <= value <= 10.0:
-#            return value, None
-#    return None, "must be iter, demo, or MW/m2 between .1 and 10"
-
-
-def _init():
-    def _cols():
-        for k, v in (
-            ("Availability Factor", "availability_factor"),
-            ("Bare Tile", "is_bare_tile"),
-            ("Density", "density_g_cm3"),
-            ("Homogenized Divertor", "is_homogenized_divertor"),
-            ("Homogenized HCPB", "is_homogenized_hcpb"),
-            ("Homogenized WCLL", "is_homogenized_wcll"),
-            ("Material Type", "is_plasma_facing"),
-            ("Name", "material_name"),
-            ("Neutron Source", "is_neutron_source_dt"),
-            ("Neutron Wall Loading", "neutron_wall_loading"),
-        ):
-            yield k.lower(), PKDict(label=k, name=v, parser=globals()[f"_parse_{v}"])
-
-    def _components():
-        for x in "elements", "nuclides":
-            for y in _COMPONENTS[x]:
-                yield y.lower(), y
-
-    global _COMPONENT_FROM_LOWER, _LABEL_TO_COL, _VALID_COLS
-    _COMPONENT_FROM_LOWER = PKDict(_components())
-    _LABEL_TO_COL = PKDict(_cols())
-    _VALID_COLS = PKDict({c.name: c for c in _LABEL_TO_COL.values()})
+def _parse_percent(value):
+    if (rv := _parse_float(value)) is None:
+        return None, "must be a number (percentage)"
+    if value < 0.0:
+        return None, "must not be negative"
+    if value > 1.0:
+        return None, "must not be greater than 1.0"
+    return value, None
 
 
 # _COMPONENTS generated from
