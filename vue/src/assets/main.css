@@ -1,0 +1,144 @@
+.sr-panel-header {
+  font-weight: 350;
+  line-height: 1.4;
+  font-size: 21px;
+  margin-bottom: 0;
+}
+.sr-panel-options > a, .sr-panel-options > div {
+  margin-left: 1em;
+}
+input.sr-invalid, input.sr-invalid:focus {
+  box-shadow: 0 0 0 0.25rem var(--bs-warning);
+  border-color: var(--bs-form-invalid-border-color);
+}
+select.sr-invalid, select.sr-invalid:focus {
+  box-shadow: 0 0 0 0.25rem var(--bs-warning);
+  border-color: var(--bs-form-invalid-border-color);
+}
+textarea.sr-invalid, textarea.sr-invalid:focus {
+  box-shadow: 0 0 0 0.25rem var(--bs-warning);
+  border-color: var(--bs-form-invalid-border-color);
+}
+.sr-invalid ~ .invalid-feedback {
+  display: block;
+  white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+  .sr-form-label {
+    text-align: right;
+  }
+}
+.sr-form-longlabel .col-form-label {
+  font-weight: normal;
+}
+
+.btn.sr-button-save-cancel {
+  min-width: 6em;
+  margin-right: 0.5ex;
+}
+
+.sr-nav-icon {
+  line-height: 20px;
+  font-size: larger;
+}
+.sr-sidebar {
+  margin-top: -10px;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid #e7e7e7;
+  min-height: 80ex;
+  max-height: calc(100vh - 65px);
+  border-radius: 4px;
+  margin-left: 1ex;
+  margin-right: -1ex;
+  background-color: #f8f8f8;
+}
+ul.sr-nav-sidebar {
+  padding-left: 12px;
+  display: block;
+}
+ul.sr-nav-sidebar-root {
+  padding-left: 0;
+}
+.sr-nav-sidebar > li > a {
+  padding: 7px 0 7px 16px;
+  display: block;
+  font-weight: 500;
+}
+.sr-nav-sidebar > li.active > a {
+  color: #555;
+  background-color: #e7e7e7;
+}
+.sr-icon-col {
+  float: left;
+  margin-bottom: 9px;
+  margin-right: 9px;
+  height: 100px;
+  width: 140px;
+}
+.sr-thumbnail {
+  padding-top: 10px;
+}
+.sr-item-icon {
+  font-size: 32px;
+  cursor: pointer;
+}
+
+/* bootstrap css overrides */
+.dropdown-menu {
+  --bs-dropdown-font-size: auto;
+}
+.tooltip {
+  --bs-tooltip-color: #000;
+  --bs-tooltip-bg: #f9f9f9;
+  --bs-tooltip-font-size: 0.75rem;
+  --bs-tooltip-opacity: 1;
+}
+.tooltip-inner {
+  border: 1px solid black;
+}
+.bs-tooltip-auto[data-popper-placement^=bottom] .tooltip-arrow::before
+{
+  border-bottom-color: black;
+  bottom: 0;
+}
+.bs-tooltip-auto[data-popper-placement^=top] .tooltip-arrow::before
+{
+  border-top-color: black;
+  top: 0;
+}
+.btn-outline-secondary {
+  --bs-btn-color: #333;
+}
+
+.navbar-nav.nav-tabs {
+  margin-bottom: -1px;
+}
+
+.nav-tabs .nav-item a {
+  margin-top: 5px;
+  padding-top: 10px;
+}
+
+.navbar {
+  --bs-navbar-padding-y: 0;
+}
+
+.navbar-nav {
+  --bs-navbar-nav-link-padding-x: 15px;
+}
+.nav-link {
+  --bs-nav-link-padding-y: 15px;
+}
+.nav-link.active {
+  background-color: #e7e7e7;
+}
+
+body {
+  --bs-body-font-size: 14px;
+}
+a {
+  text-decoration: none;
+}
