@@ -32,9 +32,22 @@ _LABEL_TO_COL = None
 
 _VALID_COLS = None
 
-_COMPONENT_VALUE_KINDS = ("Weight %", "Atom %")
+_WEIGHT = "Weight %"
+_ATOM = "Atom %"
 
-_COMPONENT_VALUE_LABELS = ("Target", "Min", "Max")
+# Order in spreadsheet
+_COMPONENT_VALUE_KINDS = (_WEIGHT, _ATOM)
+
+_KINDS_OR_STR = " or ".join(_COMPONENT_VALUE_KINDS)
+
+_TARGET = "Target"
+
+_MIN = "Min"
+
+_MAX = "Max"
+
+# Order in spreadsheet
+_COMPONENT_VALUE_LABELS = (_TARGET, _MIN, _MAX)
 
 _COMPONENT_ERROR = "error"
 
@@ -70,40 +83,62 @@ class Parser:
             msg,
             *(("stack=", pkdexc()) if is_exc else ("", "")),
         )
+        return None
 
     def _parse_component(self, name, cols):
+        c_err = " for component={cols[0]}"
+
         def _floats(kind, values, start):
-            for k, v, i in zip(
+            for l, v, i in zip(
                 _COMPONENT_VALUE_LABELS, values, range(start, start + 3)
             ):
                 if isinstance(v, str):
                     if not len(v):
-                        # indicate it is missing by not entering it
                         continue
-                    if v.lower() == _BALANCE and k == _COMPONENT_VALUE_LABELS[0]:
-                        yield k, _BALANCE
+                    if v.lower() == _BALANCE and l == _TARGET:
+                        yield l, _BALANCE
                         continue
-                if (x := _parse_float(v, is_percent=True)) is None:
-                    self._error(f"{kind} {n} must be a percentage cell={v}", col_num=i)
-                yield k, x
+                if (rv := _parse_float(v, is_percent=True)) is None:
+                    self._error(
+                        f"{kind} {n} must be a percentage in cell={v}{c_err}", col_num=i
+                    )
+                yield l, rv
 
-        if not (n := _COMPONENT_FROM_LOWER.get(name)):
-            self._error(f"unknown nuclide or element cell='{cols[0]}'", col_num=1)
+        def _name():
+            if not _COMPONENT_FROM_LOWER.get(name):
+                return self._error(
+                    f"unknown nuclide or element in cell='{cols[0]}'", col_num=1
+                )
+            if name in self.result.components:
+                return self._error(
+                    f"duplicate nuclide or element in cell='{cols[0]}'", col_num=1
+                )
+            return True
+
+        def _target(percentage):
+            return True
+
+        def _percentage():
+            rv = PKDict()
+            for i, k in zip((1, 4), _COMPONENT_VALUE_KINDS):
+                if x := PKDict(_floats(k, cols[i : i + 3], start=i + 1)):
+                    rv[k] = x
+            if len(rv) == 0:
+                return self._error(f"either {_KINDS_OR_STR} must be provided{c_err}")
+            if len(rv) > 1:
+                return self._error(f"provide {_KINDS_OR_STR} not both{c_err}")
+            if any(v is None for v in list(rv.values())[0].values()):
+                # Message already output above
+                return None
+            return rv
+
+        if not _name():
             return None
-        if n in self.result.components:
-            self._error(f"duplicate nuclide or element cell='{cols[0]}'", col_num=1)
+        if not (p := _percentage()):
             return None
-        rv = PKDict()
-        for i, k in zip((1, 4), _COMPONENT_VALUE_KINDS):
-            if x := PKDict(_floats(k, cols[i : i + 3], start=i + 1)):
-                if any(v is None for v in x.values()):
-                    self.result.components[name] = None
-                    return
-                rv[k] = x
-        if len(rv) > 1:
-            self._error(
-                f"provide {_COMPONENT_VALUE_KINDS[0]} or {_COMPONENT_VALUE_KINDS[1]} not both for component={cols[0]}"
-            )
+        k = list(p.keys())[0]
+        rv = p[k].pkupdate(kind=k)
+        if not _target(rv):
             return None
         return rv
 
@@ -137,7 +172,7 @@ class Parser:
             elif self._in_components:
                 if self._in_components is not _COMPONENT_ERROR:
                     self.result.components[l] = PKDict(
-                        name=l, label=cols[0], values=self._parse_component(l, cols)
+                        name=l, label=cols[0], percentage=self._parse_component(l, cols)
                     )
             else:
                 self._error(f"unable to parse row='{cols}'")
@@ -201,14 +236,37 @@ class Parser:
         finally:
             self._sheet = None
 
+    def _validate_components(self, rows):
+        def _kind():
+            rv = list(rows.values())[0].percentage.kind
+            if any(r.percentage.kind != rv for r in rows.values()):
+                self._error(f"do not provide both {_KINDS_OR_STR}")
+                return None
+            return rv
+
+        # def _targets(kind_values):
+        #     rv = []
+        #     if _TARGET not in v:
+        #         if
+
+        if any(v.percentage is None for v in rows.values()):
+            # error for at least one component output
+            return
+        if not (k := _kind()):
+            return
+
+    #        _balance(_targets(r.values[k] for r in rows.values()), rows)
+
     def _validate_result(self):
         def _labels(names):
             ", ".join(sorted(_VALID_COLS[n].label for n in names))
 
         if x := set(_VALID_COLS) - set(self.result.keys()):
-            self._error(f"missing values=({_labels(x)})")
+            self._error(f"missing properties=({_labels(x)})")
         if not (x := self.result.get(_COMPONENTS_COL)):
             self._error("at least one element or nuclide must be provided")
+            return
+        self._validate_components(x)
 
 
 def _parse_bool(value):
