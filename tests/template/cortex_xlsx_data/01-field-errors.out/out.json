@@ -1,0 +1,20 @@
+[
+    "invalid name='' may not be blank sheet=Materials row=3 col=2",
+    "invalid density='1e+16' must be between 1 and 25 g/cm3 sheet=Materials row=5 col=2",
+    "unknown nuclide or element in cell='Unknown' sheet=Materials row=12 col=1",
+    "either Weight % or Atom % must be provided for component=C7 sheet=Materials row=13",
+    "Weight % Target=5.0 must not be greater than Max=4.0 for component=Cr sheet=Materials row=14",
+    "Weight % Max must be provided with Min for component=W sheet=Materials row=15",
+    "Weight % Target=65.0 must not be less than Min=66.0 for component=Fe sheet=Materials row=16",
+    "Weight % Max must be provided with Min for component=Si sheet=Materials row=17",
+    "Weight % Target=10.0 must not be greater than Max=9.0 for component=Li sheet=Materials row=18",
+    "Weight % Max=10.0 must not be less than Min=11.0 for component=O sheet=Materials row=20",
+    "provide Weight % or Atom % not both for component=Fl sheet=Materials row=21",
+    "invalid neutron source='do-do' must be D-T or D-D sheet=Operating Conditions row=3 col=2",
+    "invalid neutron wall loading='39.0' must be ITER or DEMO sheet=Operating Conditions row=5 col=2",
+    "invalid bare tile='x' must be yes, no, true, false sheet=Geometry row=4 col=2",
+    "invalid homogenized wcll='yup' must be yes, no, true, false sheet=Geometry row=5 col=2",
+    "invalid homogenized hcpb='nope' must be yes, no, true, false sheet=Geometry row=6 col=2",
+    "invalid homogenized divertor='' may not be blank sheet=Geometry row=7 col=2",
+    "invalid material type='wrong-type' must be structural or plasma-facing sheet=Geometry row=9 col=2"
+]

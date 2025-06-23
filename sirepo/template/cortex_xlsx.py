@@ -1,4 +1,4 @@
-"""?
+"""cortex spreadsheet parser
 
 :copyright: Copyright (c) 2025 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -116,7 +116,7 @@ class Parser:
             if _MIN not in percentage:
                 percentage[_MIN] = 0.0
             elif percentage[_MIN] > percentage[_MAX]:
-                self._error(f"{percentage.kind} {_MAX} may not be less than {_MIN}{c_err}")
+                self._error(f"{percentage.kind} {_MAX}={percentage[_MAX]} must not be less than {_MIN}={percentage[_MIN]}{c_err}")
                 return False
             return True
 
@@ -140,9 +140,9 @@ class Parser:
             if x is None:
                 return rv
             if rv < percentage[_MIN]:
-                return self._error(f"{percentage.kind} {_TARGET}={rv} must not be less than {_MIN}={percentage[_MIN]}{_c_err}")
+                return self._error(f"{percentage.kind} {_TARGET}={rv} must not be less than {_MIN}={percentage[_MIN]}{c_err}")
             if rv > percentage[_MAX]:
-                return self._error(f"{percentage.kind} {_TARGET}={rv} must not be greater than {_MAX}={x}{_c_err}")
+                return self._error(f"{percentage.kind} {_TARGET}={rv} must not be greater than {_MAX}={x}{c_err}")
             return rv
 
         def _percentage():

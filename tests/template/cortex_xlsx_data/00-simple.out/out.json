@@ -1,1 +1,54 @@
-{}
+{
+    "availability_factor": 0.66,
+    "components": {
+        "c": {
+            "label": "C",
+            "name": "c",
+            "percentage": {
+                "Max": 20.0,
+                "Min": 0.0,
+                "Target": 20.0,
+                "kind": "Weight %"
+            }
+        },
+        "cr": {
+            "label": "Cr",
+            "name": "cr",
+            "percentage": {
+                "Max": 5.0,
+                "Min": 0.0,
+                "Target": 5.0,
+                "kind": "Weight %"
+            }
+        },
+        "fe": {
+            "label": "Fe",
+            "name": "fe",
+            "percentage": {
+                "Max": 100.0,
+                "Min": 65.0,
+                "Target": 65.0,
+                "kind": "Weight %"
+            }
+        },
+        "w": {
+            "label": "W",
+            "name": "w",
+            "percentage": {
+                "Max": 15.0,
+                "Min": 5.0,
+                "Target": 5.0,
+                "kind": "Weight %"
+            }
+        }
+    },
+    "density_g_cm3": 3.33,
+    "is_bare_tile": false,
+    "is_homogenized_divertor": true,
+    "is_homogenized_hcpb": true,
+    "is_homogenized_wcll": true,
+    "is_neutron_source_dt": false,
+    "is_plasma_facing": false,
+    "material_name": "Simple One",
+    "neutron_wall_loading": "ITER"
+}
