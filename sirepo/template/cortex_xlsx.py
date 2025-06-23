@@ -38,7 +38,7 @@ _ATOM = "Atom %"
 # Order in spreadsheet
 _COMPONENT_VALUE_KINDS = (_WEIGHT, _ATOM)
 
-_KINDS_OR_STR = " or ".join(_COMPONENT_VALUE_KINDS)
+_KINDS_ERR = " or ".join(_COMPONENT_VALUE_KINDS)
 
 _TARGET = "Target"
 
@@ -53,6 +53,7 @@ _COMPONENT_ERROR = "error"
 
 _BALANCE = "balance"
 
+_EPSILON = 1e-6
 
 class Parser:
     def __init__(self, path, qcall=None):
@@ -139,6 +140,8 @@ class Parser:
                 return (x - percentage[_MIN]) / 2.0
             if x is None:
                 return rv
+            if rv == _BALANCE:
+                return rv
             if rv < percentage[_MIN]:
                 return self._error(f"{percentage.kind} {_TARGET}={rv} must not be less than {_MIN}={percentage[_MIN]}{c_err}")
             if rv > percentage[_MAX]:
@@ -151,9 +154,9 @@ class Parser:
                 if x := PKDict(_floats(k, cols[i : i + 3], start=i + 1)):
                     rv[k] = x
             if len(rv) == 0:
-                return self._error(f"either {_KINDS_OR_STR} must be provided{c_err}")
+                return self._error(f"either {_KINDS_ERR} must be provided{c_err}")
             if len(rv) > 1:
-                return self._error(f"provide {_KINDS_OR_STR} not both{c_err}")
+                return self._error(f"provide {_KINDS_ERR} not both{c_err}")
             if any(v is None for v in list(rv.values())[0].values()):
                 # Message already output above
                 return None
@@ -267,25 +270,32 @@ class Parser:
             self._sheet = None
 
     def _validate_components(self, rows):
-        def _kind():
-            rv = list(rows.values())[0].percentage.kind
-            if any(r.percentage.kind != rv for r in rows.values()):
-                self._error(f"do not provide both {_KINDS_OR_STR}")
-                return None
-            return rv
+        def _balance(kind):
+            if not kind:
+                return
+            s = 0.0
+            b = None
+            for r in rows.values():
+                if r.percentage.target == _BALANCE:
+                    b = r
+                else:
+                    s += r.percentage.target
+            if s > _SUM_MAX:
+                self._error(f"{k} sum={s} greater 100.0")
 
-        # def _targets(kind_values):
-        #     rv = []
-        #     if _TARGET not in v:
-        #         if
+
+        def _kind():
+            k = list(rows.values())[0].percentage.kind
+            if any(r.percentage.kind != k for r in rows.values()):
+                return self._error(f"do not provide both {_KINDS_ERR}")
+            return k
 
         if any(v.percentage is None for v in rows.values()):
             # error for at least one component output
             return
-        if not (k := _kind()):
-            return
+        _balance(_kind())
 
-    #        _balance(_targets(r.values[k] for r in rows.values()), rows)
+
 
     def _validate_result(self):
         def _labels(names):
