@@ -10,7 +10,6 @@ import math
 import pandas
 import pykern.pkcompat
 import re
-import sirepo.template.openmc_util
 
 # true expressions return a group(1) that's true (not None)
 _BOOL_RE = re.compile(r"^(?:(t|true|y|yes)|f|false|n|no)$", re.IGNORECASE)
@@ -288,8 +287,6 @@ class Parser:
 
     def _validate_components(self, rows):
         def _balance(kind):
-            if not kind:
-                return None
             s = 0.0
             b = None
             for r in rows.values():
@@ -309,37 +306,28 @@ class Parser:
                     b[_TARGET] = 0.0
             return kind
 
-        def _db_fields(kind):
-            if not kind:
-                return None
+        def _db_fields():
             rv = PKDict()
             for r in rows.values():
-                if kind == _WEIGHT:
-                    r = _wo_to_ao(r)
-                rv[component_name] = PKDict(
-                    atom_target=r[_TARGET],
-                    atom_min=r[_MIN],
-                    atom_max=r[_MAX],
+                rv[r.name] = PKDict(
+                    max_pct=r.percentage.get(_MAX),
+                    min_pct=r.percentage.get(_MIN),
+                    target_pct=r.percentage[_TARGET],
                 )
-            return rv
+            self.result.components = rv
 
         def _kind():
             k = list(rows.values())[0].percentage.kind
             if any(r.percentage.kind != k for r in rows.values()):
                 return self._error(f"do not provide both {_KINDS_ERR}")
+            self.result.is_atom_pct = k == _ATOM
             return k
-
-        # def _wo_to_ao(row):
-        #     try:
-        #         wo_
-        #         except Exception as e:
 
         if any(v.percentage is None for v in rows.values()):
             # error for at least one component output
             return
-        _balance(_kind())
-        # if x := _db_fields(_balance(_kind())):
-        #   self.result[_COMPONENTS_COL] = x
+        if _balance(_kind()):
+            _db_fields()
 
     def _validate_result(self):
         def _labels(names):

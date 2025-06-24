@@ -2,186 +2,108 @@
     "availability_factor": 66.0,
     "components": {
         "al": {
-            "label": "Al",
-            "name": "al",
-            "percentage": {
-                "Max": 0.01,
-                "Min": 0.0,
-                "Target": 0.01,
-                "kind": "Weight %"
-            }
+            "max_pct": 0.01,
+            "min_pct": 0.0,
+            "target_pct": 0.01
         },
         "b": {
-            "label": "B",
-            "name": "b",
-            "percentage": {
-                "Target": 0.002,
-                "kind": "Weight %"
-            }
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.002
         },
         "c": {
-            "label": "C",
-            "name": "c",
-            "percentage": {
-                "Target": 0.11,
-                "kind": "Weight %"
-            }
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.11
         },
         "co": {
-            "label": "Co",
-            "name": "co",
-            "percentage": {
-                "Max": 0.01,
-                "Min": 0.0,
-                "Target": 0.01,
-                "kind": "Weight %"
-            }
+            "max_pct": 0.01,
+            "min_pct": 0.0,
+            "target_pct": 0.01
         },
         "cr": {
-            "label": "Cr",
-            "name": "cr",
-            "percentage": {
-                "Target": 9.0,
-                "kind": "Weight %"
-            }
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 9.0
         },
         "cu": {
-            "label": "Cu",
-            "name": "cu",
-            "percentage": {
-                "Max": 0.01,
-                "Min": 0.0,
-                "Target": 0.01,
-                "kind": "Weight %"
-            }
+            "max_pct": 0.01,
+            "min_pct": 0.0,
+            "target_pct": 0.01
         },
         "fe": {
-            "Target": 88.898,
-            "label": "Fe",
-            "name": "fe",
-            "percentage": {
-                "Target": "balance",
-                "kind": "Weight %"
-            }
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": "balance"
         },
         "mn": {
-            "label": "Mn",
-            "name": "mn",
-            "percentage": {
-                "Target": 0.4,
-                "kind": "Weight %"
-            }
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.4
         },
         "mo": {
-            "label": "Mo",
-            "name": "mo",
-            "percentage": {
-                "Max": 0.005,
-                "Min": 0.0,
-                "Target": 0.005,
-                "kind": "Weight %"
-            }
+            "max_pct": 0.005,
+            "min_pct": 0.0,
+            "target_pct": 0.005
         },
         "n": {
-            "label": "N",
-            "name": "n",
-            "percentage": {
-                "Target": 0.03,
-                "kind": "Weight %"
-            }
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.03
         },
         "nb": {
-            "label": "Nb",
-            "name": "nb",
-            "percentage": {
-                "Max": 0.005,
-                "Min": 0.0,
-                "Target": 0.005,
-                "kind": "Weight %"
-            }
+            "max_pct": 0.005,
+            "min_pct": 0.0,
+            "target_pct": 0.005
         },
         "ni": {
-            "label": "Ni",
-            "name": "ni",
-            "percentage": {
-                "Max": 0.01,
-                "Min": 0.0,
-                "Target": 0.01,
-                "kind": "Weight %"
-            }
+            "max_pct": 0.01,
+            "min_pct": 0.0,
+            "target_pct": 0.01
         },
         "o": {
-            "label": "O",
-            "name": "o",
-            "percentage": {
-                "Target": 0.01,
-                "kind": "Weight %"
-            }
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.01
         },
         "p": {
-            "label": "P",
-            "name": "p",
-            "percentage": {
-                "Target": 0.005,
-                "kind": "Weight %"
-            }
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.005
         },
         "s": {
-            "label": "S",
-            "name": "s",
-            "percentage": {
-                "Target": 0.005,
-                "kind": "Weight %"
-            }
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.005
         },
         "si": {
-            "label": "Si",
-            "name": "si",
-            "percentage": {
-                "Max": 0.05,
-                "Min": 0.0,
-                "Target": 0.05,
-                "kind": "Weight %"
-            }
+            "max_pct": 0.05,
+            "min_pct": 0.0,
+            "target_pct": 0.05
         },
         "ta": {
-            "label": "Ta",
-            "name": "ta",
-            "percentage": {
-                "Target": 0.12,
-                "kind": "Weight %"
-            }
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.12
         },
         "ti": {
-            "label": "Ti",
-            "name": "ti",
-            "percentage": {
-                "Max": 0.02,
-                "Min": 0.0,
-                "Target": 0.02,
-                "kind": "Weight %"
-            }
+            "max_pct": 0.02,
+            "min_pct": 0.0,
+            "target_pct": 0.02
         },
         "v": {
-            "label": "V",
-            "name": "v",
-            "percentage": {
-                "Max": 0.25,
-                "Min": 0.15,
-                "Target": 0.2,
-                "kind": "Weight %"
-            }
+            "max_pct": 0.25,
+            "min_pct": 0.15,
+            "target_pct": 0.2
         },
         "w": {
-            "label": "W",
-            "name": "w",
-            "percentage": {
-                "Target": 1.1,
-                "kind": "Weight %"
-            }
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 1.1
         }
     },
     "density_g_cm3": 19.0,
+    "is_atom_pct": false,
     "is_bare_tile": true,
     "is_homogenized_divertor": false,
     "is_homogenized_hcpb": true,

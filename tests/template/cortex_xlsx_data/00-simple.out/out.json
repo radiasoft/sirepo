@@ -2,47 +2,28 @@
     "availability_factor": 66.0,
     "components": {
         "c": {
-            "label": "C",
-            "name": "c",
-            "percentage": {
-                "Max": 20.0,
-                "Min": 0.0,
-                "Target": 20.0,
-                "kind": "Weight %"
-            }
+            "max_pct": 20.0,
+            "min_pct": 0.0,
+            "target_pct": 20.0
         },
         "cr": {
-            "label": "Cr",
-            "name": "cr",
-            "percentage": {
-                "Max": 5.0,
-                "Min": 0.0,
-                "Target": 5.0,
-                "kind": "Weight %"
-            }
+            "max_pct": 5.0,
+            "min_pct": 0.0,
+            "target_pct": 5.0
         },
         "fe": {
-            "label": "Fe",
-            "name": "fe",
-            "percentage": {
-                "Max": 100.0,
-                "Min": 60.0,
-                "Target": 65.0,
-                "kind": "Weight %"
-            }
+            "max_pct": 100.0,
+            "min_pct": 60.0,
+            "target_pct": 65.0
         },
         "w": {
-            "label": "W",
-            "name": "w",
-            "percentage": {
-                "Max": 15.0,
-                "Min": 5.0,
-                "Target": 10.0,
-                "kind": "Weight %"
-            }
+            "max_pct": 15.0,
+            "min_pct": 5.0,
+            "target_pct": 10.0
         }
     },
     "density_g_cm3": 3.33,
+    "is_atom_pct": false,
     "is_bare_tile": false,
     "is_homogenized_divertor": true,
     "is_homogenized_hcpb": true,
