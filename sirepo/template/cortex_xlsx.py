@@ -292,6 +292,8 @@ class Parser:
             for r in rows.values():
                 t = r.percentage[_TARGET]
                 if t == _BALANCE:
+                    if b:
+                        self._error(f"'balance' may only be used once components=({r.label}, {b.label})")
                     b = r
                 else:
                     s += t
