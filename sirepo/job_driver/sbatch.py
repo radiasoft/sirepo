@@ -13,6 +13,9 @@ from sirepo import job
 from sirepo import job_driver
 from sirepo import util
 import asyncssh
+import asyncio
+import tempfile
+from urllib.parse import urlparse
 import datetime
 import errno
 import sirepo.const
@@ -67,6 +70,10 @@ class SbatchDriver(job_driver.DriverBase):
         except tornado.websocket.WebSocketClosedError:
             self._websocket = None
             pkdlog("websocket closed {}", self)
+        except Exception as e:
+            pkdlog("{} error={} stack={}", self, e, pkdexc())
+        try:
+            await self.conn.close()
         except Exception as e:
             pkdlog("{} error={} stack={}", self, e, pkdexc())
 
@@ -225,6 +232,93 @@ class SbatchDriver(job_driver.DriverBase):
         agent_start_dir = self._srdb_root
         if pkconfig.in_dev_mode():
             pkdlog("agent_log={}/{}", agent_start_dir, log_file)
+
+        try:
+            self.conn = await asyncssh.connect(self.cfg.host, **_creds())
+            c = self.conn
+
+            supervisor_uri = urlparse(self.cfg.supervisor_uri)
+            supervisor_port = supervisor_uri.port
+
+            # Create temporary directory owned by the user, and place the domain socket in it
+            remote_tmp_dir = await c.run("mktemp -d /tmp/sirepo-sbatch-XXXXXX", check=True)
+            remote_tmp_dir_path = remote_tmp_dir.stdout.strip()
+            dest_domain_socket0 = f"{remote_tmp_dir_path}/sbatch0.sock"
+            listener0 = await c.forward_remote_path_to_port(dest_domain_socket0, '', supervisor_port)
+            self.conn_listener0 = asyncio.create_task(listener0.wait_closed())
+
+            # Copy over the python script run it and retrieve the port number assigned to the script
+            py_script  = """#!/usr/bin/env python3
+# This script forwards an existing unix domain socket to a socket on a random port and reports the port number
+import socket, sys, threading
+
+def forward_unix_socket(unix_socket_path):
+    # Accept any incoming connection and forward it to the Unix socket
+    try:
+        lan_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        lan_socket.bind(('', 0))  # Bind to a random port
+        lan_socket.listen()
+        print(lan_socket.getsockname()[1])
+
+        while True:
+            try:
+                # Accept a connection from the LAN socket
+                lan_conn, _ = lan_socket.accept()
+                unix_socket = socket.create_connection((unix_socket_path,),family=socket.AF_UNIX)
+                # Handle the connection in a separate thread for each direction
+                threading.Thread(target=handle_connection, args=(lan_conn, unix_socket)).start()
+                threading.Thread(target=handle_connection, args=(unix_socket, lan_conn)).start()
+            except Exception as e:
+                print(f"Error handling connection: {e}")
+    finally:
+        lan_socket.close()
+
+def handle_connection(src, dst):
+    try:
+        while (data := src.recv(1024)): dst.send(data)
+    finally:
+        src.close()
+        dst.close()
+
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        sys.exit("Usage: " + sys.argv[0] + " <unix_socket_path>")
+    forward_unix_socket(sys.argv[1])
+"""
+            py_script_write = await c.run(
+                f"echo -n '{py_script}' > {remote_tmp_dir_path}/forward_unix_socket.py",
+                check=True,
+            )
+            if py_script_write.exit_status != 0:
+                raise Exception(f"Failed to write script: {py_script_write.stderr}")
+            py_script_run0 = await c.create_process(
+                f"python3 {remote_tmp_dir_path}/forward_unix_socket.py {dest_domain_socket0}"
+            )
+            #Make sure the process has not exited and retrieve the port number
+            port_forward_output0, _ = await py_script_run0.communicate()
+            # Parse the port number from the output
+            port_forward0 = int(port_forward_output0.strip())
+            pkdlog("Port {} forwarded to: {}", supervisor_port, port_forward0)
+
+            #Get the hostname and update the supervisor URI
+            hostname = await c.run("hostname", check=True)
+            if hostname.exit_status != 0:
+                raise Exception(f"Failed to get hostname: {hostname.stderr}")
+            hostname = hostname.stdout.strip()
+            self.cfg.supervisor_uri = f"{supervisor_uri.scheme}://{hostname}:{port_forward0}{supervisor_uri.path}"
+
+        except Exception as e:
+            pkdlog("error={} stack={}", e, pkdexc())
+            self._srdb_root = None
+            self._raise_sbatch_login_srexception(
+                (
+                    "invalid-creds"
+                    if isinstance(e, asyncssh.misc.PermissionDenied)
+                    else "general-connection-error"
+                ),
+                original_msg,
+            )
+
         script = f"""#!/bin/bash
 set -euo pipefail
 {_agent_start_dev()}
@@ -235,17 +329,29 @@ cd '{self._srdb_root}'
 disown
 """
         try:
-            async with asyncssh.connect(self.cfg.host, **_creds()) as c:
-                async with c.create_process("/bin/bash --noprofile --norc -l") as p:
-                    await _get_agent_log(c, before_start=True)
-                    o, e = await p.communicate(input=script)
-                    if o or e:
-                        _write_to_log(o, e, "start")
-                self.driver_details.pkupdate(
-                    host=self.cfg.host,
-                    username=self._creds.username,
-                )
-                await _get_agent_log(c, before_start=False)
+            c = self.conn
+            async with c.create_process("/bin/bash --noprofile --norc -l") as p:
+                await _get_agent_log(c, before_start=True)
+                o, e = await p.communicate(input=script)
+                if o or e:
+                    _write_to_log(o, e, "start")
+            self.driver_details.pkupdate(
+                host=self.cfg.host,
+                username=self._creds.username,
+            )
+            await _get_agent_log(c, before_start=False)
+
+            #async with asyncssh.connect(self.cfg.host, **_creds()) as c:
+            #    async with c.create_process("/bin/bash --noprofile --norc -l") as p:
+            #        await _get_agent_log(c, before_start=True)
+            #        o, e = await p.communicate(input=script)
+            #        if o or e:
+            #            _write_to_log(o, e, "start")
+            #    self.driver_details.pkupdate(
+            #        host=self.cfg.host,
+            #        username=self._creds.username,
+            #    )
+            #    await _get_agent_log(c, before_start=False)
         except Exception as e:
             pkdlog("error={} stack={}", e, pkdexc())
             self._srdb_root = None
