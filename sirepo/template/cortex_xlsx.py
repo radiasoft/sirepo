@@ -314,6 +314,7 @@ class Parser:
             rv = PKDict()
             for r in rows.values():
                 rv[r.name] = PKDict(
+                    material_component_name=r.name,
                     max_pct=r.percentage.get(_MAX),
                     min_pct=r.percentage.get(_MIN),
                     target_pct=r.percentage[_TARGET],

@@ -344,6 +344,11 @@ class SimDataBase(object):
         )
 
     @classmethod
+    def hack_for_cortex_is_agent_side(cls):
+        """DO NOT USE"""
+        return cls._is_agent_side()
+
+    @classmethod
     def is_run_mpi(cls):
         raise NotImplementedError()
 

@@ -40,18 +40,12 @@ def write_parameters(data, run_dir, is_parallel):
 
 
 def _import_file(data, qcall=None):
-    def _write_db(result):
-        f = "materials.sqlite3"
-        p = _SIM_DATA.lib_file_exists(f, qcall=qcall) or pykern.pkio.py_path(f)
-        sirepo.template.cortex_sql_db.add_parsed_material(p, result)
-        _SIM_DATA.lib_file_write(f, p, qcall=qcall)
-
     p = sirepo.template.cortex_xlsx.Parser(
         _SIM_DATA.lib_file_abspath(data.args.lib_file, qcall=qcall)
     )
     if p.errors:
         return PKDict(error="\n".join(p.errors))
-    #    _write_db(p.result)
+    sirepo.template.cortex_sql_db.insert_material(p.result, qcall=qcall)
     rv = sirepo.simulation_db.default_data(SIM_TYPE)
     rv.models.simulation.name = p.result.material_name
     # TODO(robnagler) define in schema?
