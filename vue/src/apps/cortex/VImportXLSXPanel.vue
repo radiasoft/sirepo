@@ -61,12 +61,6 @@
 
  const xlsxMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
- const clearAndRedirectHome = () => {
-     isProcessing.value = false;
-     appState.clearModels();
-     uri.redirectAppRoot();
- };
-
  const confirmMaterial = async () => {
      appState.models.simulation.isConfirmed = '1';
      await appState.saveChanges('simulation');
@@ -79,7 +73,6 @@
  });
 
  const modalClosed = async () => {
-     clearAndRedirectHome();
      if (appState.models.simulation.isConfirmed === '0') {
          await appState.deleteSimulation(appState.models.simulation.simulationId);
      }
@@ -94,40 +87,26 @@
 
  const startProcessing = async () => {
      isProcessing.value = true;
-     return;
-     // redirect to simulation url, isLoaded will activate below
-     uri.localRedirect(
-         'importXLSX',
-         {
-             simulationId: r.models.simulation.simulationId,
-         },
-     );
- };
-
- const { isOverDropZone, isInvalidMimeType } = useFileDrop(dropPanel, onDrop, xlsxMimeType);
-
- watch(isLoaded, async () => {
-     if (! isLoaded.value || ! file) {
-         return;
-     }
-
      const importFile = async () => {
          const r = await requestSender.importFile(
              file,
              appState.formatFileType("materialImport", "xlsxFile"),
          );
+         isProcessing.value = false;
          file = null;
          if (r.data.error) {
              //TODO(pjm): display the error
              console.log('has error in response:\n', r.data.error);
-             clearAndRedirectHome();
              return;
          }
          await appState.saveChanges('materialImport');
      }
 
      await importFile();
- });
+ };
+
+ const { isOverDropZone, isInvalidMimeType } = useFileDrop(dropPanel, onDrop, xlsxMimeType);
+
 </script>
 
 <style scoped>

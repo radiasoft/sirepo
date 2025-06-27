@@ -15,7 +15,7 @@ def _session(path):
     return pykern.sql_db.Meta(
         uri=pykern.sql_db.sqlite_uri(path),
         schema=PKDict(
-            material_meta=PKDict(
+            material=PKDict(
                 material_id="primary_id 1",
                 material_name="str 100 primary_key",
                 availability_factor="float",
