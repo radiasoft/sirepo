@@ -99,7 +99,7 @@
              console.log('has error in response:\n', r.data.error);
              return;
          }
-         confirm.value.showModal();
+         //        confirm.value.showModal();
          await appState.saveChanges('materialImport');
      }
 
