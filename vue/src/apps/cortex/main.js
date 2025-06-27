@@ -16,8 +16,8 @@ appResources.setAppRoutes([
         component: VSearch,
     },
     {
-        name: 'importXLS',
-        path: `/import-xls/:simulationId`,
+        name: 'importXLSX',
+        path: `/import-xlsX/:simulationId`,
         component: VSearch,
     },
 ]);

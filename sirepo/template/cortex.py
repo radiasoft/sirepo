@@ -4,12 +4,12 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern import pkio
-from pykern.pkcollections import PKDict
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common
+import pykern.pkio
 import sirepo.sim_data
+import sirepo.simulation_db
 import sirepo.template.cortex_sql_db
 import sirepo.template.cortex_xlsx
 
@@ -47,15 +47,16 @@ def _import_file(data):
         _SIM_DATA.lib_file_write(f, p)
 
     f = "material.xlsx"
-    pykern.pkio.write(f, data.args.pknested_get("import_file_arguments.file_as_bytes"))
+    pykern.pkio.write_binary(
+        f,
+        data.args.pknested_get("import_file_arguments.file_as_bytes"),
+    )
     p = sirepo.template.cortex_xlsx.Parser(f)
     if p.errors:
         return PKDict(error="\n".join(p.errors))
-    _write_db(p.result)
-    return PKDict(
-        imported_data=simulation_db.default_data(SIM_TYPE).pknested_set(
-            "models.simulation.name", p.result.material_name,
-            # TODO(robnagler) define in schema?
-            "models.parsed_material", p.result,
-        )
-    )
+    #    _write_db(p.result)
+    rv = sirepo.simulation_db.default_data(SIM_TYPE)
+    rv.models.simulation.name = p.result.material_name
+    # TODO(robnagler) define in schema?
+    rv.models.parsed_material = (p.result,)
+    return PKDict(imported_data=rv)

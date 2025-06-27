@@ -35,16 +35,3 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         cls._init_models(data.models)
-
-    @classmethod
-    def _lib_file_basenames(cls, data):
-        dm = data.models
-        if "xlsFile" in dm.materialImport:
-            return [
-                cls.lib_file_name_with_model_field(
-                    "materialImport",
-                    "xlsFile",
-                    data.models.materialImport.xlsFile,
-                ),
-            ]
-        return []
