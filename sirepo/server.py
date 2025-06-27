@@ -270,23 +270,6 @@ class API(sirepo.quest.API):
         """
         from sirepo import importer
 
-        async def _import_file(req):
-            if not hasattr(req.template, "import_file"):
-                raise sirepo.util.Error(
-                    "Only zip files are supported",
-                    "no import_file in template req={}",
-                    req,
-                )
-            with sirepo.sim_run.tmp_dir(qcall=self) as d:
-                return await req.template.import_file(
-                    req,
-                    tmp_dir=d,
-                    qcall=self,
-                    # SRW needs a simulation created to be able to start
-                    # a background import.
-                    srw_save_sim=lambda data: _save_sim(req, data),
-                )
-
         def _save_sim(req, data):
             data.models.simulation.folder = req.folder
             data.models.simulation.isExample = False
@@ -330,7 +313,11 @@ class API(sirepo.quest.API):
             elif hasattr(req.template, "stateful_compute_import_file"):
                 data = await _stateful_compute(req)
             else:
-                data = await _import_file(req)
+                raise sirepo.util.Error(
+                    "Only zip files are supported",
+                    "no stateful_compute_import_file req={}",
+                    req,
+                )
             if "error" in data:
                 return self.reply_dict(data)
             return _save_sim(req, data)
