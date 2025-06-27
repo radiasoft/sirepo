@@ -28,7 +28,7 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def stateful_compute_import_file(data):
+def stateful_compute_import_file(data, **kwargs):
     return _import_file(data)
 
 
@@ -39,19 +39,16 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-def _import_file(data):
+def _import_file(data, qcall=None):
     def _write_db(result):
-        f = "materials.sqlite"
-        p = _SIM_DATA.lib_file_exists(f) or pykern.pkio.py_path(f)
+        f = "materials.sqlite3"
+        p = _SIM_DATA.lib_file_exists(f, qcall=qcall) or pykern.pkio.py_path(f)
         sirepo.template.cortex_sql_db.add_parsed_material(p, result)
-        _SIM_DATA.lib_file_write(f, p)
+        _SIM_DATA.lib_file_write(f, p, qcall=qcall)
 
-    f = "material.xlsx"
-    pykern.pkio.write_binary(
-        f,
-        data.args.pknested_get("import_file_arguments.file_as_bytes"),
+    p = sirepo.template.cortex_xlsx.Parser(
+        _SIM_DATA.lib_file_abspath(data.args.lib_file, qcall=qcall)
     )
-    p = sirepo.template.cortex_xlsx.Parser(f)
     if p.errors:
         return PKDict(error="\n".join(p.errors))
     #    _write_db(p.result)

@@ -28,9 +28,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             )
 
         rv = cls._prepare_import_file_name_args(req)
-        d = req.form_file.as_bytes()
-        cls.lib_file_write(_path(rv.ext_lower), d, qcall=req.qcall)
-        return rv.pkupdate(file_as_bytes=d)
+        p = _path(rv.ext_lower)
+        cls.lib_file_write(p, req.form_file.as_bytes(), qcall=req.qcall)
+        return rv.pkupdate(lib_file=p)
 
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):

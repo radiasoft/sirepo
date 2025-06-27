@@ -29,7 +29,7 @@
             <VProgress v-bind:percentComplete="percentComplete" />
         </div>
     </div>
-    <VConfirmationModal
+    <!--VConfirmationModal
         ref="confirm"
         title="Verify Material"
         okText="Save"
@@ -38,7 +38,7 @@
         v-on:modalClosed="modalClosed"
     >
         TODO: Show imported material info here
-    </VConfirmationModal>
+    </VConfirmationModal-->
 </template>
 
 <script setup>
@@ -99,6 +99,7 @@
              console.log('has error in response:\n', r.data.error);
              return;
          }
+         confirm.value.showModal();
          await appState.saveChanges('materialImport');
      }
 

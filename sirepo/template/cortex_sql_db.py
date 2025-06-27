@@ -32,9 +32,9 @@ def _session(path):
             material_component=PKDict(
                 material_component_id="primary_id",
                 material_id="primary_id",
-                target_pct="float",
-                min_pct="float nullable",
                 max_pct="float nullable",
+                min_pct="float nullable",
+                target_pct="float",
             ),
         ),
     ).session()
