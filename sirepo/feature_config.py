@@ -166,6 +166,11 @@ def _init():
             bool,
             "enable the global resources allocation system",
         ),
+        is_moderated=(
+            False,
+            bool,
+            "Enable moderated access to Sirepo",
+        ),
         jspec=dict(
             derbenevskrinsky_force_formula=_test(
                 "Include Derbenev-Skrinsky force formula"

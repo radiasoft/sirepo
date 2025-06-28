@@ -3580,7 +3580,7 @@ SIREPO.app.directive('completeRegistration', function() {
         `,
         controller: function(authState, $scope) {
             $scope.shortName = SIREPO.APP_SCHEMA.productInfo.shortName;
-            $scope.isModerated = authState.isModerated();
+            $scope.isModerated = authState.isModerated;
 
             $scope.canSubmit = () => {
                 if (! $scope.loginConfirm.data.displayName) {
