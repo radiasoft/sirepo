@@ -160,19 +160,13 @@ class API(sirepo.quest.API):
             u.token = None
             u.expires = None
             u.save()
-            try:
-                self.auth.login(
-                    this_module,
-                    sim_type=req.type,
-                    model=u,
-                    display_name=d.get("displayName"),
-                )
-            except sirepo.util.SReplyExc:
-                # email confirmation with moderation include a "reason" value
-                if d.get("reason"):
-                    return await self.call_api("saveModerationReason", body=d)
-                raise
-            raise AssertionError("auth.login returned unexpectedly")
+            self.auth.login(
+                this_module,
+                sim_type=req.type,
+                model=u,
+                display_name=d.get("displayName"),
+                moderation_reason=d.get("reason"),
+            )
         if not u:
             pkdlog("login with invalid token={}", token)
         else:

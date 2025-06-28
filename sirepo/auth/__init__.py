@@ -340,6 +340,7 @@ class _Auth(sirepo.quest.Attr):
         sim_type=None,
         display_name=None,
         want_redirect=False,
+        moderation_reason=None,
     ):
         """Login the user
 
@@ -353,6 +354,8 @@ class _Auth(sirepo.quest.Attr):
             display_name (str): to save as the display_name [None]
             want_redirect (bool): http redirect on success [False]
         """
+        from sirepo import auth_role_moderation
+
         mm = _METHOD_MODULES[method] if isinstance(method, str) else method
         self._validate_method(mm)
         guest_uid = None
@@ -392,6 +395,13 @@ class _Auth(sirepo.quest.Attr):
                 model.save()
         if display_name:
             self.complete_registration(self.parse_display_name(display_name))
+        if sirepo.feature_config.cfg().is_moderated:
+            auth_role_moderation.save_moderation_reason(
+                self.qcall,
+                uid,
+                sim_type,
+                moderation_reason,
+            )
         if sim_type:
             if guest_uid and guest_uid != uid:
                 self.qcall.auth_db.commit()
@@ -474,6 +484,7 @@ class _Auth(sirepo.quest.Attr):
                 guestIsOnlyMethod=not non_guest_methods,
                 isGuestUser=False,
                 isLoggedIn=False,
+                isModerated=sirepo.feature_config.cfg().is_moderated,
                 roles=PKDict(),
                 userName=None,
                 uiWebSocket=sirepo.feature_config.cfg().ui_websocket,
@@ -663,6 +674,7 @@ class _Auth(sirepo.quest.Attr):
             guestIsOnlyMethod=not non_guest_methods,
             isGuestUser=False,
             isLoggedIn=self.is_logged_in(s),
+            isModerated=sirepo.feature_config.cfg().is_moderated,
             jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
             max_message_bytes=sirepo.job.cfg().max_message_bytes,
             method=self._qcall_bound_method(),
