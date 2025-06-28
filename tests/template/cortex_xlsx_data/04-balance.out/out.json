@@ -2,21 +2,25 @@
     "availability_factor": 35.0,
     "components": {
         "c": {
+            "material_component_name": "c",
             "max_pct": 20.0,
             "min_pct": 0.0,
             "target_pct": 20.0
         },
         "cr": {
+            "material_component_name": "cr",
             "max_pct": 5.0,
             "min_pct": 0.0,
             "target_pct": 5.0
         },
         "fe": {
+            "material_component_name": "fe",
             "max_pct": 100.0,
             "min_pct": 60.0,
-            "target_pct": "balance"
+            "target_pct": 65.0
         },
         "w": {
+            "material_component_name": "w",
             "max_pct": 15.0,
             "min_pct": 5.0,
             "target_pct": 10.0

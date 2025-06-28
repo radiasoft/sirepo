@@ -12,7 +12,7 @@ import sqlalchemy
 import sirepo.sim_data
 import pykern.pkio
 
-_BASE = "materials.sqlite3"
+_BASE = "cortex.sqlite3"
 
 
 def insert_material(parsed, qcall=None):

@@ -305,9 +305,9 @@ class Parser:
                 if s < _SUM_MIN:
                     return self._error(f"{kind} sum={s:g} less than {_SUM:g}")
             else:
-                b[_TARGET] = _SUM - s
-                if b[_TARGET] < 0.0:
-                    b[_TARGET] = 0.0
+                b.percentage[_TARGET] = _SUM - s
+                if b.percentage[_TARGET] < 0.0:
+                    b.percentage[_TARGET] = 0.0
             return kind
 
         def _db_fields():
