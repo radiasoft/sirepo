@@ -19,7 +19,7 @@
         <div class="text-end" v-if="! isProcessing">
             <VFileUploadButton
                 v-on:fileChanged="onDrop"
-                v-bind:mimeType="xlsMimeType"
+                v-bind:mimeType="xlsxMimeType"
             >
                 Upload Material Spreadsheet
             </VFileUploadButton>
@@ -29,7 +29,7 @@
             <VProgress v-bind:percentComplete="percentComplete" />
         </div>
     </div>
-    <VConfirmationModal
+    <!--VConfirmationModal
         ref="confirm"
         title="Verify Material"
         okText="Save"
@@ -38,7 +38,7 @@
         v-on:modalClosed="modalClosed"
     >
         TODO: Show imported material info here
-    </VConfirmationModal>
+    </VConfirmationModal-->
 </template>
 
 <script setup>
@@ -59,13 +59,7 @@
  const percentComplete = ref(0);
  let file = null;
 
- const xlsMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
- const clearAndRedirectHome = () => {
-     isProcessing.value = false;
-     appState.clearModels();
-     uri.redirectAppRoot();
- };
+ const xlsxMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
  const confirmMaterial = async () => {
      appState.models.simulation.isConfirmed = '1';
@@ -75,11 +69,10 @@
 
  const templateURL = uri.format('downloadLibFile', {
      simulation_type: appState.simulationType,
-     filename: `${appState.formatFileType('materialImport', 'xlsFile')}.neutronics_input.xlsx`,
+     filename: `${appState.formatFileType('materialImport', 'xlsxFile')}.neutronics_input.xlsx`,
  });
 
  const modalClosed = async () => {
-     clearAndRedirectHome();
      if (appState.models.simulation.isConfirmed === '0') {
          await appState.deleteSimulation(appState.models.simulation.simulationId);
      }
@@ -94,71 +87,27 @@
 
  const startProcessing = async () => {
      isProcessing.value = true;
-     // create new sim
-     const r = await requestSender.sendRequest(
-         'newSimulation',
-         appState.setModelDefaults({
-             name: 'imported material',
-         }, 'simulation'),
-     );
-     // redirect to simulation url, isLoaded will activate below
-     uri.localRedirect(
-         'importXLS',
-         {
-             simulationId: r.models.simulation.simulationId,
-         },
-     );
- };
-
- const { isOverDropZone, isInvalidMimeType } = useFileDrop(dropPanel, onDrop, xlsMimeType);
-
- watch(isLoaded, async () => {
-     if (! isLoaded.value || ! file) {
-         return;
-     }
-
-     const addLibFile = async () => {
-         const r = await requestSender.uploadLibFile(
+     const importFile = async () => {
+         const r = await requestSender.importFile(
              file,
-             appState.formatFileType("materialImport", "xlsFile"),
-             // confirm - overwrite if exists
-             true,
+             appState.formatFileType("materialImport", "xlsxFile"),
          );
+         isProcessing.value = false;
          file = null;
          if (r.data.error) {
              //TODO(pjm): display the error
-             console.log('has error in response:', r.data.error);
-             clearAndRedirectHome();
+             console.log('has error in response:\n', r.data.error);
              return;
          }
-         appState.models.materialImport.xlsFile = r.data.filename;
+         //        confirm.value.showModal();
          await appState.saveChanges('materialImport');
      }
 
-     const runSimulation = () => {
-         const simComputeModel = 'materialImport';
-         simQueue.addPersistentItem(
-             simComputeModel,
-             appState.models,
-             (resp) => {
-                 console.log('got sim response:', resp);
-                 if (resp.state === 'error') {
-                     //TODO(pjm): display error in banner
-                     clearAndRedirectHome();
-                     return;
-                 }
-                 if (resp.state === 'completed') {
-                     isProcessing.value = false;
-                     confirm.value.showModal();
-                     return;
-                 }
-             },
-         );
-     }
+     await importFile();
+ };
 
-     await addLibFile();
-     runSimulation();
- });
+ const { isOverDropZone, isInvalidMimeType } = useFileDrop(dropPanel, onDrop, xlsxMimeType);
+
 </script>
 
 <style scoped>

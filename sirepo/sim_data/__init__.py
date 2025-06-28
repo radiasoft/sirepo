@@ -344,6 +344,11 @@ class SimDataBase(object):
         )
 
     @classmethod
+    def hack_for_cortex_is_agent_side(cls):
+        """DO NOT USE"""
+        return cls._is_agent_side()
+
+    @classmethod
     def is_run_mpi(cls):
         raise NotImplementedError()
 
@@ -561,7 +566,7 @@ class SimDataBase(object):
             cls.sim_db_client().put(cls.LIB_DIR, basename, path_or_content)
             return
         if isinstance(path_or_content, pkconst.PY_PATH_LOCAL_TYPE):
-            path_or_content.write_binary(_target())
+            path_or_content.copy(_target())
         else:
             _target().write_binary(pkcompat.to_bytes(path_or_content))
 

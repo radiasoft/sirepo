@@ -1,0 +1,135 @@
+{
+    "availability_factor": 66.0,
+    "components": {
+        "al": {
+            "material_component_name": "al",
+            "max_pct": 0.01,
+            "min_pct": 0.0,
+            "target_pct": 0.01
+        },
+        "b": {
+            "material_component_name": "b",
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.002
+        },
+        "c": {
+            "material_component_name": "c",
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.11
+        },
+        "co": {
+            "material_component_name": "co",
+            "max_pct": 0.01,
+            "min_pct": 0.0,
+            "target_pct": 0.01
+        },
+        "cr": {
+            "material_component_name": "cr",
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 9.0
+        },
+        "cu": {
+            "material_component_name": "cu",
+            "max_pct": 0.01,
+            "min_pct": 0.0,
+            "target_pct": 0.01
+        },
+        "fe": {
+            "material_component_name": "fe",
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 88.898
+        },
+        "mn": {
+            "material_component_name": "mn",
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.4
+        },
+        "mo": {
+            "material_component_name": "mo",
+            "max_pct": 0.005,
+            "min_pct": 0.0,
+            "target_pct": 0.005
+        },
+        "n": {
+            "material_component_name": "n",
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.03
+        },
+        "nb": {
+            "material_component_name": "nb",
+            "max_pct": 0.005,
+            "min_pct": 0.0,
+            "target_pct": 0.005
+        },
+        "ni": {
+            "material_component_name": "ni",
+            "max_pct": 0.01,
+            "min_pct": 0.0,
+            "target_pct": 0.01
+        },
+        "o": {
+            "material_component_name": "o",
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.01
+        },
+        "p": {
+            "material_component_name": "p",
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.005
+        },
+        "s": {
+            "material_component_name": "s",
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.005
+        },
+        "si": {
+            "material_component_name": "si",
+            "max_pct": 0.05,
+            "min_pct": 0.0,
+            "target_pct": 0.05
+        },
+        "ta": {
+            "material_component_name": "ta",
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.12
+        },
+        "ti": {
+            "material_component_name": "ti",
+            "max_pct": 0.02,
+            "min_pct": 0.0,
+            "target_pct": 0.02
+        },
+        "v": {
+            "material_component_name": "v",
+            "max_pct": 0.25,
+            "min_pct": 0.15,
+            "target_pct": 0.2
+        },
+        "w": {
+            "material_component_name": "w",
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 1.1
+        }
+    },
+    "density_g_cm3": 19.0,
+    "is_atom_pct": false,
+    "is_bare_tile": true,
+    "is_homogenized_divertor": false,
+    "is_homogenized_hcpb": true,
+    "is_homogenized_wcll": false,
+    "is_neutron_source_dt": true,
+    "is_plasma_facing": true,
+    "material_name": "Eurofer 97",
+    "neutron_wall_loading": "ITER"
+}

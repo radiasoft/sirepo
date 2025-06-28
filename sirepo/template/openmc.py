@@ -25,6 +25,7 @@ import sirepo.sim_run
 import subprocess
 
 STANDARD_MATERIALS_DB = "pnnl-materials.h5"
+_STANDARD_MATERIALS_DB_GZ = f"{STANDARD_MATERIALS_DB}.gz"
 _OPENMC_CACHE_DIR = "openmc-cache"
 _STANDARD_MATERIAL_CACHE_DIR = "openmc-standard-materials"
 _OUTLINES_FILE = "outlines.h5"
@@ -237,7 +238,7 @@ def stateful_compute_verify_geometry(data, **kwargs):
     #     key=lambda v: v[1],
     # )]
 
-    _prep_standard_material_cache()
+    _standard_material_path()
     return PKDict(
         hasGeometry=simulation_db.simulation_dir(SIM_TYPE, sid=data.simulationId)
         .join(data.args.modelName)
@@ -259,17 +260,13 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
 
 def stateful_compute_get_standard_material_names(data, **kwargs):
     res = []
-    with h5py.File(_prep_standard_material_cache(), mode="r") as f:
-        for n in f:
-            res.append(n)
-    return PKDict(
-        names=res,
-    )
+    with _standard_material_open() as f:
+        return PKDict(names=tuple(f))
 
 
 def stateful_compute_get_standard_material(data, **kwargs):
     v = None
-    with h5py.File(_prep_standard_material_cache(), mode="r") as f:
+    with _standard_material_open() as f:
         g = f[f"/{data.args.name}"]
         v = PKDict(
             density_g_cc=g.attrs["density_g_cc"],
@@ -1182,27 +1179,6 @@ def _planes(data):
     return res
 
 
-def _prep_standard_material_cache():
-    m = sirepo.sim_run.cache_dir(_STANDARD_MATERIAL_CACHE_DIR).join(
-        STANDARD_MATERIALS_DB
-    )
-    if not m.exists():
-        n = f"{STANDARD_MATERIALS_DB}.gz"
-        if not _SIM_DATA.lib_file_exists(n):
-            c = _SIM_DATA.sim_db_client()
-            c.save_from_url(
-                "{}/{}".format(
-                    sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
-                    n,
-                ),
-                c.uri(_SIM_DATA.LIB_DIR, n),
-            )
-        with gzip.open(str(_SIM_DATA.lib_file_abspath(n)), "rb") as f_in:
-            with open(str(m), "wb") as f_out:
-                shutil.copyfileobj(f_in, f_out)
-    return str(m)
-
-
 def _region(data):
     res = ""
     for i, p in enumerate(data.models.reflectivePlanes.planesList):
@@ -1217,6 +1193,31 @@ def _region(data):
 
 def _source_filename(data):
     return f"source.{data.models.settings.batches}.h5"
+
+
+def _standard_material_open():
+    return h5py.File(_standard_material_path(), mode="r")
+
+
+def _standard_material_path():
+    def _remote_uri(base):
+        return "/".join(
+            sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
+            base,
+        )
+
+    m = sirepo.sim_run.cache_dir(_STANDARD_MATERIAL_CACHE_DIR).join(
+        STANDARD_MATERIALS_DB
+    )
+    if m.exists():
+        return m
+    n = STANDARD_MATERIALS_DB_GZ
+    if not _SIM_DATA.lib_file_exists(n):
+        c = _SIM_DATA.sim_db_client(n)
+        c.save_from_url(_remote_uri(), c.uri(_SIM_DATA.LIB_DIR, n))
+    with gzip.open(str(_SIM_DATA.lib_file_abspath(n)), "rb") as f:
+        m.write_binary(f)
+    return m
 
 
 def _statepoint_filename(data, frame_index=None):

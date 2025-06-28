@@ -12,13 +12,13 @@
                 'col-sm-6 offset-sm-3': materialCount === 0,
             }"
         >
-            <VImportXLSPanel />
+            <VImportXLSXPanel />
         </div>
     </div>
 </template>
 
 <script setup>
- import VImportXLSPanel from '@/apps/cortex/VImportXLSPanel.vue';
+ import VImportXLSXPanel from '@/apps/cortex/VImportXLSXPanel.vue';
  import VMaterialTable from '@/apps/cortex/VMaterialTable.vue';
  import { ref } from 'vue';
 
