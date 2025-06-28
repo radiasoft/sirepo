@@ -20,11 +20,23 @@ def insert_material(parsed, qcall=None):
         return PKDict((c, vals[c]) for c in cols if c in vals)
 
     with _session(qcall=qcall) as s:
-        i = s.insert("material", _values(s.t.material.columns.keys(), parsed)).material_id
-        for v in parsed.components:
-            i = s.insert("material", _values(s.t.material.columns.keys(), parsed)).material_id
-
-
+        i = s.insert(
+            "material",
+            # TODO(robnagler) need uid. we will have to have a db server of some sort
+            # it will have to validate incoming uid.
+            # sim_db_file is a model that could be used for writing to
+            # the database, because it validates the uid.
+            # sim_db_file should have a multithreaded worker queue. the serialization
+            # is already there.
+            _values(s.t.material.columns.keys(), parsed).pkupdate(uid="TODO RJN"),
+        ).material_id
+        for v in parsed.components.values():
+            s.insert(
+                "material_component",
+                _values(s.t.material_component.columns.keys(), v).pkupdate(
+                    material_id=i
+                ),
+            )
 
 
 @contextlib.contextmanager
@@ -41,21 +53,25 @@ def _session(qcall):
 
 def _meta(path):
     f = "float 64"
+    b = "bool"
+    u = "str 8"
     return pykern.sql_db.Meta(
         uri=pykern.sql_db.sqlite_uri(path),
         schema=PKDict(
             material=PKDict(
                 material_id="primary_id 1",
+                uid=u + " index",
+                created="datetime index",
                 material_name="str 100 unique",
                 availability_factor=f,
                 density_g_cm3=f,
-                is_atom_pct="bool",
-                is_bare_tile="bool",
-                is_homogenized_divertor="bool",
-                is_homogenized_hcpb="bool",
-                is_homogenized_wcll="bool",
-                is_neutron_source_dt="bool",
-                is_plasma_facing="bool",
+                is_atom_pct=b,
+                is_bare_tile=b,
+                is_homogenized_divertor=b,
+                is_homogenized_hcpb=b,
+                is_homogenized_wcll=b,
+                is_neutron_source_dt=b,
+                is_plasma_facing=b,
                 neutron_wall_loading="str 32",
             ),
             material_component=PKDict(
