@@ -395,7 +395,7 @@ class _Auth(sirepo.quest.Attr):
                 model.save()
         if display_name:
             self.complete_registration(self.parse_display_name(display_name))
-        if sirepo.feature_config.cfg().is_moderated:
+        if sirepo.feature_config.cfg().is_registration_moderated:
             auth_role_moderation.save_moderation_reason(
                 self.qcall,
                 uid,
@@ -484,7 +484,7 @@ class _Auth(sirepo.quest.Attr):
                 guestIsOnlyMethod=not non_guest_methods,
                 isGuestUser=False,
                 isLoggedIn=False,
-                isModerated=sirepo.feature_config.cfg().is_moderated,
+                isModerated=sirepo.feature_config.cfg().is_registration_moderated,
                 roles=PKDict(),
                 userName=None,
                 uiWebSocket=sirepo.feature_config.cfg().ui_websocket,
@@ -674,7 +674,7 @@ class _Auth(sirepo.quest.Attr):
             guestIsOnlyMethod=not non_guest_methods,
             isGuestUser=False,
             isLoggedIn=self.is_logged_in(s),
-            isModerated=sirepo.feature_config.cfg().is_moderated,
+            isModerated=sirepo.feature_config.cfg().is_registration_moderated,
             jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
             max_message_bytes=sirepo.job.cfg().max_message_bytes,
             method=self._qcall_bound_method(),

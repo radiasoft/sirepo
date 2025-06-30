@@ -166,10 +166,10 @@ def _init():
             bool,
             "enable the global resources allocation system",
         ),
-        is_moderated=(
+        is_registration_moderated=(
             False,
             bool,
-            "Enable moderated access to Sirepo",
+            "moderation required before adding role 'user'",
         ),
         jspec=dict(
             derbenevskrinsky_force_formula=_test(
