@@ -452,6 +452,7 @@ def _parse_percent(value):
         return None, f"must not be greater than {_SUM:g}"
     return value, None
 
+
 # See pkcli.cortex.gen_components
 _COMPONENTS = PKDict(
     elements={
