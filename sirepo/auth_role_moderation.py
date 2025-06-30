@@ -154,9 +154,7 @@ class API(sirepo.quest.API):
             ),
         )
 
-    @sirepo.quest.Spec(
-        "allow_sim_typeless_require_email_user", reason="AuthModerationReason"
-    )
+    @sirepo.quest.Spec("require_login", reason="AuthModerationReason")
     async def api_saveModerationReason(self):
         req = self.parse_post()
         return save_moderation_reason(

@@ -451,17 +451,19 @@ class _Auth(sirepo.quest.Attr):
         self._create_user(_METHOD_MODULES[METHOD_GUEST], want_login=True)
 
     def need_complete_registration(self, model_or_uid):
-        """Does unauthenticated user need to complete registration?
+        """Does un/authenticated user need to complete registration?
 
         If the current method is deprecated, then we will end up asking
         the user for a name again, but that's ok.
 
         Does not work for guest (which don't have their own models anyway).
 
+        If is_registration_moderated and no user role,
+
         Args:
             model_or_uid (object): unauthenticated user record or uid
         Returns:
-            bool: True if user will be redirected to needCompleteRegistration
+            bool: True if user needs to complete registration
         """
         u = model_or_uid if isinstance(model_or_uid, str) else model_or_uid.uid
         if not u:
@@ -523,22 +525,13 @@ class _Auth(sirepo.quest.Attr):
         self.qcall.cookie.set_sentinel()
         self._login_user(m, uid)
 
-    def require_email_user(self):
-        i = self.require_user()
+    def require_email_login(self):
+        i = self.require_login()
         m = self._qcall_bound_method()
         if m != METHOD_EMAIL:
             raise sirepo.util.Forbidden(f"method={m} is not email for uid={i}")
 
-    def require_plan(self):
-        u = self.require_user()
-        if not self.qcall.auth_db.model("UserRole").has_active_plan(uid=u):
-            raise sirepo.util.PlanExpired(f"uid={u} has no active plans")
-
-    def require_premium(self):
-        if not self.is_premium_user():
-            raise sirepo.util.Forbidden("not premium user")
-
-    def require_user(self):
+    def require_login(self):
         """Asserts whether user is logged in
 
         Returns:
@@ -588,6 +581,26 @@ class _Auth(sirepo.quest.Attr):
         raise sirepo.util.SRException(
             r, p, *(("user not logged in: {}", e) if e else ())
         )
+
+    def require_plan(self):
+        u = self.require_user()
+        if not self.qcall.auth_db.model("UserRole").has_active_plan(uid=u):
+            raise sirepo.util.PlanExpired(f"uid={u} has no active plans")
+
+    def require_premium(self):
+        if not self.is_premium_user():
+            raise sirepo.util.Forbidden("not premium user")
+
+    def require_user(self):
+        u = self.require_login()
+        if not self.qcall.auth_db.model("UserRole").has_active_role(
+            role=sirepo.auth_role.ROLE_USER,
+        ):
+            raise sirepo.util.Forbidden(
+                f"uid={u} role={sirepo.auth_role.ROLE_USER} not found"
+            )
+        return u
+
 
     def reset_state(self):
         self.qcall.cookie.unchecked_remove(_COOKIE_USER)

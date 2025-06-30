@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """decorators for API permissions and the permissions themselves
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
@@ -20,8 +19,8 @@ class APIPerm(aenum.Flag):
     ALLOW_COOKIELESS_SET_USER = aenum.auto()
     #: anybody can view this page, even without cookies
     ALLOW_VISITOR = aenum.auto()
-    #: a logged in email user is required but they don't have to have a role for the sim type
-    ALLOW_SIM_TYPELESS_REQUIRE_EMAIL_USER = aenum.auto()
+    #: a user is logged in without user role
+    REQUIRE_EMAIL_LOGIN = aenum.auto()
     #: only users with role adm
     REQUIRE_ADM = aenum.auto()
     #: use basic auth authentication (only)
@@ -39,12 +38,12 @@ class APIPerm(aenum.Flag):
 
 
 #: A user can access APIs decorated with these permissions even if they don't have the role
-SIM_TYPELESS_PERMS = {
+SIM_TYPELESS_PERMS = frozenset({
     APIPerm.ALLOW_COOKIELESS_SET_USER,
     APIPerm.ALLOW_SIM_TYPELESS_REQUIRE_EMAIL_USER,
     APIPerm.ALLOW_VISITOR,
     APIPerm.REQUIRE_COOKIE_SENTINEL,
-}
+})
 
 
 def _init():

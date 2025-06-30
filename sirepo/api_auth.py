@@ -29,7 +29,7 @@ def check_api_call(qcall, func):
     expect = getattr(func, sirepo.api_perm.ATTR)
     a = sirepo.api_perm.APIPerm
     if expect in (
-        a.ALLOW_SIM_TYPELESS_REQUIRE_EMAIL_USER,
+        a.REQUIRE_LOGIN,
         a.REQUIRE_COOKIE_SENTINEL,
         a.REQUIRE_USER,
         a.REQUIRE_PLAN,
@@ -42,8 +42,8 @@ def check_api_call(qcall, func):
             qcall.auth.require_plan()
         elif expect == a.REQUIRE_USER:
             qcall.auth.require_user()
-        elif expect == a.ALLOW_SIM_TYPELESS_REQUIRE_EMAIL_USER:
-            qcall.auth.require_email_user()
+        elif expect == a.REQUIRE_EMAIL_LOGIN:
+            qcall.auth.require_email_login()
         elif expect == a.REQUIRE_ADM:
             qcall.auth.require_adm()
         elif expect == a.REQUIRE_PREMIUM:

@@ -131,9 +131,7 @@ class API(sirepo.quest.API):
                         "loginWithEmailConfirm",
                         PKDict(
                             token=user.token,
-                            needCompleteRegistration=self.auth.need_complete_registration(
-                                user,
-                            ),
+                            registrationStatus=self.auth.registration_status(user),
                         ),
                     ),
                 )
@@ -150,6 +148,13 @@ class API(sirepo.quest.API):
 
         if self.sreq.is_spider():
             raise sirepo.util.Forbidden("robots not allowed")
+
+        we redirect to the confirm page if there is no registration requirement
+        otherwise, we reidrect to registration page, because we know
+        the email is valid even if it is the mail program clicking on the link
+        and more information is required from a user anyway. this satisfies the
+        "require_login" problem without extra complexity in the ui
+
         req = self.parse_params(type=simulation_type)
         m = self.auth_db.model(UserModel)
         u = m.unchecked_search_by(token=token)

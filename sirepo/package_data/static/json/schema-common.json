@@ -412,9 +412,9 @@
                 }
             },
             "loginWithEmailConfirm": {
-                "route": "/login-with-email-confirm/:token/:needCompleteRegistration",
+                "route": "/login-with-email-confirm/:token/:registrationStatus",
                 "config": {
-                  "controller": "LoginConfirmController as loginConfirm",
+                  "controller": "LoginConfirmWithEmailController as loginWithEmailConfirm",
                   "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/login-with-email-confirm.html"
                 }

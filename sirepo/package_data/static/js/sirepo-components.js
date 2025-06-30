@@ -3542,7 +3542,7 @@ SIREPO.app.directive('completeRegistration', function() {
         template: `
             <div class="col-sm-12 col-md-offset-2 col-md-8 col-lg-offset-3 col-lg-6">
               <form class="form-horizontal" autocomplete="off" novalidate>
-                <h2 data-ng-if="isModerated">Moderation Request</h2>
+                <h2 data-ng-if="isRegistrationModerated">Moderation Request</h2>
                 <p>Please enter your full name to complete your Sirepo registration.</p>
                 <div class="form-group">
                   <label class="col-sm-3 control-label">Your full name</label>
@@ -3552,7 +3552,7 @@ SIREPO.app.directive('completeRegistration', function() {
                     <div class="sr-input-warning" data-ng-show="showWarning">{{ loginConfirm.warningText }}</div>
                   </div>
                 </div>
-                <div data-ng-if="isModerated">
+                <div data-ng-if="isRegistrationModerated">
                     <p>To prevent abuse of our systems all new users must supply a reason for
                       requesting access to {{ shortName }}. In a few sentences please describe
                       how you plan to use {{ shortName }}</p>
@@ -3572,7 +3572,7 @@ SIREPO.app.directive('completeRegistration', function() {
               </form>
             </div>
             <div data-confirmation-modal="" data-is-required="true"
-              data-id="sr-complete-registration-done" data-title="Thank you for your request"
+              data-id="sr-registration-moderation-sent" data-title="Thank you for your request"
               data-ok-text="" data-cancel-text="">
               <p>Your response has been submitted. You will received an email from Sirepo support
                 after your request has been reviewed.</p>
@@ -3580,13 +3580,13 @@ SIREPO.app.directive('completeRegistration', function() {
         `,
         controller: function(authState, $scope) {
             $scope.shortName = SIREPO.APP_SCHEMA.productInfo.shortName;
-            $scope.isModerated = authState.isModerated;
+            $scope.isRegistrationModerated = authState.isRegistrationModerated;
 
             $scope.canSubmit = () => {
                 if (! $scope.loginConfirm.data.displayName) {
                     return false;
                 }
-                if ($scope.isModerated) {
+                if ($scope.isRegistrationModerated) {
                     return !!$scope.loginConfirm.data.reason;
                 }
                 return true;
@@ -4432,7 +4432,7 @@ SIREPO.app.directive('moderationRequest', function(appState, errorService, panel
                     'saveModerationReason',
                     handleResponse,
                     {
-                        reason: $scope.data.reason,
+                        moderationReason: $scope.data.reason,
                         simulationType: SIREPO.APP_NAME
                     }
                 );

@@ -4592,7 +4592,7 @@ SIREPO.app.controller('NotFoundCopyController', function (requestSender, uri, $r
     };
 });
 
-SIREPO.app.controller('LoginController', function (authService, authState, requestSender) {
+SIREPO.app.controller('LoginController', (authService, authState, requestSender) => {
     var self = this;
     self.authService = authService;
 
@@ -4649,53 +4649,64 @@ SIREPO.app.controller('LoginConfirmController', function (authState, requestSend
     self.showWarning = false;
     self.warningText = '';
 
-    if ($route.current.templateUrl.indexOf('complete-registration') >= 0) {
-        if (! SIREPO.authState.isLoggedIn) {
-            requestSender.localRedirect('login');
-            return;
-        }
-        if (! SIREPO.authState.needCompleteRegistration) {
-            requestSender.localRedirect(SIREPO.APP_SCHEMA.appDefaults.route);
-            return;
-        }
-        self.submit = function() {
-            requestSender.sendRequest(
-                'authCompleteRegistration',
-                function (data) {
-                    authState.handleLogin(data, self);
-                },
-                {
-                    displayName: self.data.displayName,
-                    simulationType: SIREPO.APP_NAME
-                }
-            );
-        };
+    if (! SIREPO.authState.isLoggedIn) {
+        requestSender.localRedirect('login');
         return;
     }
-    self.needCompleteRegistration = parseInt(p.needCompleteRegistration);
-    self.submit = function() {
+    if (! SIREPO.authState.needCompleteRegistration) {
+        requestSender.localRedirect(SIREPO.APP_SCHEMA.appDefaults.route);
+        return;
+    }
+    self.submit = () => {
+        requestSender.sendRequest(
+            'authCompleteRegistration',
+            function (data) {
+                authState.handleLogin(data, self);
+            },
+            {
+                displayName: self.data.displayName,
+                simulationType: SIREPO.APP_NAME
+            }
+        );
+    };
+});
+
+SIREPO.app.controller('LoginConfirmWithEmailController', function (authState, requestSender, $route) {
+    const self = this;
+    self.data = {};
+    self.showWarning = false;
+    self.warningText = '';
+    self.registrationStatus = $route.current.params.registrationStatus;
+    self.isConfirmOnly = self.registrationStatus == "confirm_only";
+    const token = $route.current.params.token;
+
+    self.submit = () => {
         requestSender.sendRequest(
             {
                 routeName: 'authEmailAuthorized',
                 '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                '<token>': p.token,
+                '<token>': token,
             },
             function (data) {
-                if (data.state === 'ok' && self.needCompleteRegistration && authState.isModerated) {
-                    $('#sr-complete-registration-done').modal('show');
+                // any other response requires going through login process.
+                if (data.registrationStatus == "pending") {
+                    $('#sr-registration-moderation-sent').modal('show');
+                    return;
+                }
+                if (data.registrationStatus == "denied") {
+                    $('#sr-registration-moderation-denied').modal('show');
                     return;
                 }
                 authState.handleLogin(data, self);
             },
             {
-                token: p.token,
+                token: token,
                 displayName: self.data.displayName,
-                reason: self.data.reason,
+                moderationReason: self.data.reason,
                 simulationType: SIREPO.APP_SCHEMA.simulationType,
             }
         );
     };
-    return;
 });
 
 SIREPO.app.controller('LoginFailController', function (requestSender, stringsService, uri, $route, $sce) {
