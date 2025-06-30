@@ -4,7 +4,7 @@
         :title="title"
         themeColor="warning"
         :canDismiss="canDismiss"
-        size="default"
+        :size="size"
     >
         <div class="row">
             <div class="col-sm-12">
@@ -29,6 +29,11 @@
      canDismiss: {
          type: Boolean,
          default: true,
+     },
+     // size: lg, md, sm, default
+     size: {
+         type: String,
+         default: 'default'
      },
  });
 

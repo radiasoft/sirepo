@@ -30,7 +30,7 @@
         </div>
     </div>
     <!--VConfirmationModal
-        ref="confirm"
+        ref="confirmModal"
         title="Verify Material"
         okText="Save"
         cancelText="Discard"
@@ -39,6 +39,23 @@
     >
         TODO: Show imported material info here
     </VConfirmationModal-->
+    <VConfirmationModal
+        ref="errorsModal"
+        title="Import Errors"
+        cancelText="Close"
+        size="lg"
+    >
+        <div v-for="err in errorList" :key="err.line">
+            <div class="lead" v-if="err.sheet">{{ err.sheet }} Sheet</div>
+            <div>
+                <span v-if="err.row">
+                    row {{ err.row }}<span v-if="err.col">, col {{ err.col }}</span>:
+                </span>
+                <span v-if="err.value">{{ err.value }}:</span>
+                {{ err.msg }}
+            </div>
+        </div>
+    </VConfirmationModal>
 </template>
 
 <script setup>
@@ -48,12 +65,13 @@
  import { appState } from '@/services/appstate.js';
  import { ref, watch } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
- import { simQueue } from '@/services/simqueue.js';
  import { uri } from '@/services/uri.js';
  import { useFileDrop } from '@/apps/cortex/useFileDrop.js';
 
- const confirm = ref(null);
+ const confirmModal = ref(null);
  const dropPanel = ref(null);
+ const errorList = ref(null);
+ const errorsModal = ref(null);
  const isLoaded = appState.isLoadedRef;
  const isProcessing = ref(false);
  const percentComplete = ref(0);
@@ -64,12 +82,12 @@
  const confirmMaterial = async () => {
      appState.models.simulation.isConfirmed = '1';
      await appState.saveChanges('simulation');
-     confirm.value.closeModal();
+     confirmModal.value.closeModal();
  };
 
  const templateURL = uri.format('downloadLibFile', {
      simulation_type: appState.simulationType,
-     filename: `${appState.formatFileType('materialImport', 'xlsxFile')}.neutronics_input.xlsx`,
+     filename: `neutronics_input.xlsx`,
  });
 
  const modalClosed = async () => {
@@ -85,6 +103,43 @@
      }
  };
 
+ const parseErrors = (errorMessage) => {
+     const p = {
+         col: /\scol=(\d+)/,
+         row: /\srow=(\d+)/,
+         sheet: /\ssheet=(.*)/,
+         value: /(invalid\s.*?=\w*\s)/,
+     };
+     const res = [];
+     let sheet = undefined;
+     for (let line of errorMessage.split("\n")) {
+         const e = {
+             line: line,
+         };
+         for (const f in p) {
+             const m = line.match(p[f]);
+             if (m) {
+                 e[f] = m[1];
+                 line = line.replace(p[f], '');
+             }
+         }
+         if (line) {
+             e.msg = line;
+             if (e.value) {
+                 e.value = e.value.trim().replace(/=$/, '');
+             }
+             if (e.sheet && e.sheet === sheet) {
+                 delete e.sheet;
+             }
+             else {
+                 sheet = e.sheet;
+             }
+             res.push(e);
+         }
+     }
+     return res;
+ };
+
  const startProcessing = async () => {
      isProcessing.value = true;
      const importFile = async () => {
@@ -95,14 +150,13 @@
          isProcessing.value = false;
          file = null;
          if (r.data.error) {
-             //TODO(pjm): display the error
-             console.log('has error in response:\n', r.data.error);
+             errorList.value = parseErrors(r.data.error);
+             errorsModal.value.showModal();
              return;
          }
-         //        confirm.value.showModal();
+         // confirmModal.value.showModal();
          await appState.saveChanges('materialImport');
      }
-
      await importFile();
  };
 
