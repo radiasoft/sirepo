@@ -158,62 +158,13 @@ class API(sirepo.quest.API):
         "allow_sim_typeless_require_email_user", reason="AuthModerationReason"
     )
     async def api_saveModerationReason(self):
-        def _send_request_email(info):
-            sirepo.smtp.send(
-                recipient=_cfg.moderator_email,
-                subject=f"{info.sim_type} Access Request",
-                body=pkjinja.render_resource(
-                    "auth_role_moderation/moderation_email", info
-                ),
-            )
-
         req = self.parse_post()
-        u = self.auth.logged_in_user()
-        r = sirepo.auth_role.ROLE_PLAN_TRIAL
-        # SECURITY: type has been validated to be a known sim type. If it is
-        # not in moderated_sim_types then we know the user is just requesting
-        # access to start using Sirepo (ROLE_PLAN_TRIAL).
-        if req.type in sirepo.feature_config.cfg().moderated_sim_types:
-            r = sirepo.auth_role.for_sim_type(req.type)
-        if self.auth_db.model("UserRole").has_active_role(role=r):
-            raise sirepo.util.Redirect(sirepo.uri.local_route(req.type))
-        if self.auth_db.model("UserRole").has_expired_role(role=r):
-            raise AssertionError(
-                f"uid={u} trying to request moderation for expired role={r}"
-            )
-        try:
-            self.auth_db.model(
-                "UserRoleModeration",
-                uid=u,
-                role=r,
-                status=sirepo.auth_role.ModerationStatus.PENDING,
-            ).save()
-        except sqlalchemy.exc.IntegrityError as e:
-            pkdlog(
-                "Error={} saving UserRoleModeration for uid={} role={} stack={}",
-                e,
-                u,
-                r,
-                pkdexc(),
-            )
-            raise sirepo.util.UserAlert(
-                "You've already submitted a moderation request.",
-            )
-        l = self.absolute_uri(self.uri_for_api("admModerateRedirect"))
-        if len(req.req_data.get("reason", "").strip()) == 0:
-            raise sirepo.util.UserAlert("Reason for requesting access not provided")
-        _send_request_email(
-            PKDict(
-                display_name=self.auth.user_display_name(u),
-                email_addr=self.auth.logged_in_user_name(),
-                link=l,
-                reason=req.req_data.reason,
-                role=r,
-                sim_type=req.type,
-                uid=u,
-            ).pkupdate(self.user_agent_headers())
+        return save_moderation_reason(
+            self,
+            self.auth.logged_in_user(),
+            req.type,
+            req.req_data.get("reason"),
         )
-        return self.reply_ok()
 
 
 def _datetime_to_str(rows):
@@ -250,3 +201,56 @@ def init_apis(*args, **kwargs):
         raise AssertionError(
             f"{x} not same as {sirepo.auth_role.ModerationStatus.VALID_SET}"
         )
+
+
+def save_moderation_reason(qcall, uid, sim_type, reason):
+    r = sirepo.auth_role.ROLE_PLAN_TRIAL
+    # SECURITY: type has been validated to be a known sim type. If it is
+    # not in moderated_sim_types then we know the user is just requesting
+    # access to start using Sirepo (ROLE_PLAN_TRIAL).
+    if sim_type in sirepo.feature_config.cfg().moderated_sim_types:
+        r = sirepo.auth_role.for_sim_type(sim_type)
+    if qcall.auth_db.model("UserRole").has_active_role(role=r):
+        raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type))
+    if qcall.auth_db.model("UserRole").has_expired_role(role=r):
+        raise AssertionError(
+            f"uid={uid} trying to request moderation for expired role={r}"
+        )
+    try:
+        qcall.auth_db.model(
+            "UserRoleModeration",
+            uid=uid,
+            role=r,
+            status=sirepo.auth_role.ModerationStatus.PENDING,
+        ).save()
+    except sqlalchemy.exc.IntegrityError as e:
+        pkdlog(
+            "Error={} saving UserRoleModeration for uid={} role={} stack={}",
+            e,
+            uid,
+            r,
+            pkdexc(),
+        )
+        raise sirepo.util.UserAlert(
+            "You've already submitted a moderation request.",
+        )
+    l = qcall.absolute_uri(qcall.uri_for_api("admModerateRedirect"))
+    if not reason or len(reason.strip()) == 0:
+        raise sirepo.util.UserAlert("Reason for requesting access not provided")
+    sirepo.smtp.send(
+        recipient=_cfg.moderator_email,
+        subject=f"{sim_type} Access Request",
+        body=pkjinja.render_resource(
+            "auth_role_moderation/moderation_email",
+            PKDict(
+                display_name=qcall.auth.user_display_name(uid),
+                email_addr=qcall.auth.logged_in_user_name(),
+                link=l,
+                reason=reason,
+                role=r,
+                sim_type=sim_type,
+                uid=uid,
+            ).pkupdate(qcall.user_agent_headers()),
+        ),
+    )
+    return qcall.reply_ok()
