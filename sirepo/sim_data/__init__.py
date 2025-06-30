@@ -344,11 +344,6 @@ class SimDataBase(object):
         )
 
     @classmethod
-    def hack_for_cortex_is_agent_side(cls):
-        """DO NOT USE"""
-        return cls._is_agent_side()
-
-    @classmethod
     def is_run_mpi(cls):
         raise NotImplementedError()
 
@@ -362,6 +357,7 @@ class SimDataBase(object):
 
         Args:
             basename (str): lib file basename
+            data: DEPRECATED
         Returns:
             object: py.path.local to files (duplicates removed) OR py.path.local
         """

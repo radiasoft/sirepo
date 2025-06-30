@@ -42,13 +42,12 @@ def insert_material(parsed, qcall=None):
 @contextlib.contextmanager
 def _session(qcall):
     s = sirepo.sim_data.get_class("cortex")
-    if w := (not (p := s.lib_file_exists(_BASE, qcall=qcall))):
-        p = pykern.pkio.py_path(_BASE)
-
+    p = pykern.pkio.py_path(_BASE)
+    if s.lib_file_exists(_BASE, qcall=qcall):
+        p.write_binary(s.lib_file_read_binary(_BASE, qcall=qcall))
     with _meta(p).session() as rv:
         yield rv
-    if w or s.hack_for_cortex_is_agent_side():
-        s.lib_file_write(_BASE, p, qcall=qcall)
+    s.lib_file_write(_BASE, p, qcall=qcall)
 
 
 def _meta(path):
@@ -77,10 +76,11 @@ def _meta(path):
             material_component=PKDict(
                 material_component_id="primary_id 2",
                 material_id="primary_id",
-                material_component_name="str 8 unique",
+                material_component_name="str 8",
                 max_pct=f + " nullable",
                 min_pct=f + " nullable",
                 target_pct=f,
+                unique=(("material_id", "material_component_name"),),
             ),
         ),
     )
