@@ -9,10 +9,15 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 import contextlib
 import pykern.sql_db
 import sqlalchemy
+import sqlalchemy.exc
 import sirepo.sim_data
 import pykern.pkio
 
 _BASE = "cortex.sqlite3"
+
+
+class Error(RuntimeError):
+    pass
 
 
 def insert_material(parsed, qcall=None):
@@ -20,16 +25,22 @@ def insert_material(parsed, qcall=None):
         return PKDict((c, vals[c]) for c in cols if c in vals)
 
     with _session(qcall=qcall) as s:
-        i = s.insert(
-            "material",
-            # TODO(robnagler) need uid. we will have to have a db server of some sort
-            # it will have to validate incoming uid.
-            # sim_db_file is a model that could be used for writing to
-            # the database, because it validates the uid.
-            # sim_db_file should have a multithreaded worker queue. the serialization
-            # is already there.
-            _values(s.t.material.columns.keys(), parsed).pkupdate(uid="TODO RJN"),
-        ).material_id
+        try:
+            i = s.insert(
+                "material",
+                # TODO(robnagler) need uid. we will have to have a db server of some sort
+                # it will have to validate incoming uid.
+                # sim_db_file is a model that could be used for writing to
+                # the database, because it validates the uid.
+                # sim_db_file should have a multithreaded worker queue. the serialization
+                # is already there.
+                _values(s.t.material.columns.keys(), parsed).pkupdate(uid="TODO RJN"),
+            ).material_id
+        except sqlalchemy.exc.IntegrityError as e:
+            if "unique" in str(e).lower():
+                # Needs to raise to signal to the session to rollback
+                raise Error("material name already exists")
+            raise
         for v in parsed.components.values():
             s.insert(
                 "material_component",
@@ -45,9 +56,13 @@ def _session(qcall):
     p = pykern.pkio.py_path(_BASE)
     if s.lib_file_exists(_BASE, qcall=qcall):
         p.write_binary(s.lib_file_read_binary(_BASE, qcall=qcall))
-    with _meta(p).session() as rv:
-        yield rv
-    s.lib_file_write(_BASE, p, qcall=qcall)
+    try:
+        with _meta(p).session() as rv:
+            yield rv
+    except:
+        raise
+    else:
+        s.lib_file_write(_BASE, p, qcall=qcall)
 
 
 def _meta(path):

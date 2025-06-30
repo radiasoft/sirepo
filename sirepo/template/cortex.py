@@ -45,7 +45,10 @@ def _import_file(data, qcall=None):
     )
     if p.errors:
         return PKDict(error="\n".join(p.errors))
-    sirepo.template.cortex_sql_db.insert_material(p.result, qcall=qcall)
+    try:
+        sirepo.template.cortex_sql_db.insert_material(p.result, qcall=qcall)
+    except sirepo.template.cortex_sql_db.Error as e:
+        return PKDict(error=e.args[0])
     rv = sirepo.simulation_db.default_data(SIM_TYPE)
     rv.models.simulation.name = p.result.material_name
     # TODO(robnagler) define in schema?
