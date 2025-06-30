@@ -166,6 +166,11 @@ def _init():
             bool,
             "enable the global resources allocation system",
         ),
+        is_registration_moderated=(
+            False,
+            bool,
+            "moderation required before adding role 'user'",
+        ),
         jspec=dict(
             derbenevskrinsky_force_formula=_test(
                 "Include Derbenev-Skrinsky force formula"
