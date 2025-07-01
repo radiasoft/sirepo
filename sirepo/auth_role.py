@@ -1,10 +1,12 @@
-# -*- coding: utf-8 -*-
 """User roles
 
 :copyright: Copyright (c) 2021 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig
+from pykern import pkinspect
+from pykern import pkunit
 from pykern.pkdebug import pkdp
 import aenum
 import sirepo.feature_config
@@ -15,8 +17,12 @@ ROLE_PLAN_PREMIUM = "premium"
 ROLE_PLAN_TRIAL = "trial"
 ROLE_USER = "user"
 PLAN_ROLES_PAID = frozenset((ROLE_PLAN_BASIC, ROLE_PLAN_PREMIUM))
-PLAN_ROLES = PLAN_ROLES_PAID.union((ROLE_PLAN_TRIAL,))
+PLAN_ROLES = PLAN_ROLES_PAID.union([ROLE_PLAN_TRIAL])
 _SIM_TYPE_ROLE_PREFIX = "sim_type_"
+
+_FOR_NEW_USER = frozenset((ROLE_USER,))
+
+_ADM_SET = frozenset([ROLE_ADM])
 
 
 class ModerationStatus(aenum.NamedConstant):
@@ -30,49 +36,76 @@ class ModerationStatus(aenum.NamedConstant):
 
     @classmethod
     def check(cls, value):
-        assert (
-            value in cls.VALID_SET
-        ), f"status={value} is not in  valied_set={cls.VALID_SET}"
+        if value not in cls.VALID_SET:
+            raise AssertionError(
+                f"status={value} is not in  valied_set={cls.VALID_SET}"
+            )
         return value
 
 
+def check(role):
+    if role not in _all():
+        raise AssertionError(f"invalid role={role}")
+    return role
+
+
 def for_moderated_sim_types():
-    return [for_sim_type(s) for s in sirepo.feature_config.cfg().moderated_sim_types]
+    return _memoize(_for_sim_types("moderated_sim_types"))
 
 
 def for_new_user(auth_method):
-    import sirepo.auth
+    from sirepo import auth
 
     if pkconfig.in_dev_mode:
-        if auth_method == sirepo.auth.METHOD_GUEST:
-            return get_all()
-        # the email auth method on dev has limited roles for unit tests
-        if auth_method != sirepo.auth.METHOD_EMAIL:
-            return list(filter(lambda r: r != ROLE_ADM, get_all()))
-    return [ROLE_USER]
+        if auth_method == auth.METHOD_GUEST:
+            return _all()
+        if auth_method != auth.METHOD_EMAIL and pkunit.is_test_run():
+            return _all() - _ADM_SET
+    return _FOR_NEW_USER
 
 
 def for_proprietary_oauth_sim_types():
-    return [
-        for_sim_type(s) for s in sirepo.feature_config.cfg().proprietary_oauth_sim_types
-    ]
+    return _memoize(_for_sim_types("proprietary_oauth_sim_types"))
 
 
 def for_sim_type(sim_type):
-    return _SIM_TYPE_ROLE_PREFIX + sim_type
-
-
-def get_all():
-    return [
-        for_sim_type(t) for t in sirepo.feature_config.auth_controlled_sim_types()
-    ] + [
-        ROLE_ADM,
-        ROLE_PLAN_BASIC,
-        ROLE_PLAN_PREMIUM,
-        ROLE_PLAN_TRIAL,
-        ROLE_USER,
-    ]
+    return check(_unchecked_for_sim_type(sim_type))
 
 
 def sim_type(role):
-    return role[len(_SIM_TYPE_ROLE_PREFIX) :]
+    if not role.startswith(_SIM_TYPE_ROLE_PREFIX):
+        raise AssertionError(f"not a sim_type role={role}")
+    return assert_valid(role[len(_SIM_TYPE_ROLE_PREFIX) :])
+
+
+def _all():
+    return _memoize(
+        _for_sim_types("auth_controlled_sim_types").union(
+            (
+                ROLE_ADM,
+                ROLE_PLAN_BASIC,
+                ROLE_PLAN_PREMIUM,
+                ROLE_PLAN_TRIAL,
+                ROLE_USER,
+            )
+        ),
+    )
+
+
+def _for_sim_types(attr):
+    # a bit goofy, but simplified above
+    if (x := sirepo.feature_config.cfg().get(attr)) is None:
+        x = getattr(sirepo.feature_config, attr)()
+    return frozenset(_unchecked_for_sim_type(s) for s in x)
+
+
+def _memoize(value):
+    def wrap():
+        return value
+
+    setattr(pkinspect.this_module(), pkinspect.caller_func_name(), wrap)
+    return value
+
+
+def _unchecked_for_sim_type(sim_type):
+    return _SIM_TYPE_ROLE_PREFIX + sim_type

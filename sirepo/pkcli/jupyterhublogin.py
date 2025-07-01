@@ -65,6 +65,7 @@ def create_user(email, display_name):
             )
             qcall.auth_db.model("UserRole").add_roles(
                 roles=[sirepo.auth_role.for_sim_type("jupyterhublogin")],
+                uid=u,
             )
         return PKDict(email=email, jupyterhub_user_name=n)
 

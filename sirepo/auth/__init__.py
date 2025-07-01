@@ -59,7 +59,7 @@ _STATE_LOGGED_OUT = "lo"
 _STATE_COMPLETE_REGISTRATION = "cr"
 
 #: name to module object
-_METHOD_MODULES = pkcollections.Dict()
+_METHOD_MODULES = PKDict()
 
 # TODO(robnagler) probably from the schema
 #: For formatting the size parameter to an avatar_uri
@@ -177,7 +177,7 @@ class _Auth(sirepo.quest.Attr):
             return
         u = self.logged_in_user()
         r = sirepo.auth_role.for_sim_type(t)
-        if self.qcall.auth_db.model("UserRole").has_active_role(role=r):
+        if self.qcall.auth_db.model("UserRole").has_active_role(role=r, uid=u):
             return
         if r in sirepo.auth_role.for_proprietary_oauth_sim_types():
             oauth.raise_authorize_redirect(self.qcall, sirepo.auth_role.sim_type(r))
@@ -189,6 +189,7 @@ class _Auth(sirepo.quest.Attr):
         u = self.logged_in_user()
         if not self.qcall.auth_db.model("UserRole").has_active_role(
             role=sirepo.auth_role.ROLE_USER,
+            uid=u,
         ):
             raise sirepo.util.Forbidden(
                 f"uid={u} role={sirepo.auth_role.ROLE_USER} not found"
@@ -279,6 +280,7 @@ class _Auth(sirepo.quest.Attr):
     def is_premium_user(self):
         return self.qcall.auth_db.model("UserRole").has_active_role(
             role=sirepo.auth_role.ROLE_PLAN_PREMIUM,
+            uid=self.logged_in_user(),
         )
 
     def logged_in_user(self, check_path=True):
@@ -509,6 +511,7 @@ class _Auth(sirepo.quest.Attr):
         u = self.require_user()
         if not self.qcall.auth_db.model("UserRole").has_active_role(
             role=sirepo.auth_role.ROLE_ADM,
+            uid=u,
         ):
             raise sirepo.util.Forbidden(
                 f"uid={u} role={sirepo.auth_role.ROLE_ADM} not found"
@@ -667,7 +670,7 @@ class _Auth(sirepo.quest.Attr):
 
     def _auth_state(self):
         s = self._qcall_bound_state()
-        v = pkcollections.Dict(
+        v = PKDict(
             avatarUrl=None,
             cookieName=_cookie_http_name,
             displayName=None,
@@ -703,7 +706,9 @@ class _Auth(sirepo.quest.Attr):
                     v.displayName = r.display_name
             v.roles = {
                 x.role: (x.expiration.timestamp() if x.expiration else None)
-                for x in self.qcall.auth_db.model("UserRole").get_roles_and_expiration()
+                for x in self.qcall.auth_db.model("UserRole").get_roles_and_expiration(
+                    u
+                )
             }
             self._plan(v)
             self._method_auth_state(v, u)
@@ -717,10 +722,10 @@ class _Auth(sirepo.quest.Attr):
         u = simulation_db.user_create()
         if want_login:
             self._login_user(module, u)
-        with self.logged_in_user_set(u, method=module.AUTH_METHOD):
-            self.qcall.auth_db.model("UserRole").add_roles(
-                roles=sirepo.auth_role.for_new_user(module.AUTH_METHOD)
-            )
+        self.qcall.auth_db.model("UserRole").add_roles(
+            roles=sirepo.auth_role.for_new_user(module.AUTH_METHOD),
+            uid=u,
+        )
         return u
 
     def _handle_user_dir_not_found(self, user_dir, uid):

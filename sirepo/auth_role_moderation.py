@@ -89,10 +89,13 @@ class API(sirepo.quest.API):
         def _set_moderation_status(info):
             if info.status == "approve":
                 self.auth_db.model("UserRole").add_roles(
-                    roles=[info.role], expiration=info.get("expiration")
+                    roles=[info.role],
+                    uid=info.uid,
+                    expiration=info.get("expiration")
                 )
             self.auth_db.model("UserRoleModeration").set_status(
                 role=info.role,
+                uid=info.uid,
                 status=info.status,
                 moderator_uid=info.moderator_uid,
             )
@@ -130,6 +133,7 @@ class API(sirepo.quest.API):
                 )
             p.pkupdate(
                 display_name=self.auth.user_display_name(i.uid),
+                uid=i.uid,
                 user_name=u,
             )
             _set_moderation_status(p)
@@ -212,7 +216,7 @@ def save_moderation_reason(qcall, uid, sim_type, reason):
         r = sirepo.auth_role.for_sim_type(sim_type)
     if qcall.auth_db.model("UserRole").has_active_role(role=r):
         raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type))
-    if qcall.auth_db.model("UserRole").has_expired_role(role=r):
+    if qcall.auth_db.model("UserRole").has_expired_role(role=r, uid=uid):
         raise AssertionError(
             f"uid={uid} trying to request moderation for expired role={r}"
         )

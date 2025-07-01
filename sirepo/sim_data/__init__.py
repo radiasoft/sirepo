@@ -67,7 +67,7 @@ _TEMPLATE_RESOURCE_DIR = "template"
 _RSMANIFEST_PATH = pkio.py_path("/rsmanifest" + sirepo.const.JSON_SUFFIX)
 
 
-def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
+def audit_proprietary_lib_files(qcall, force=False, sim_types=None, uid=None):
     """Add/removes proprietary files based on a user's roles
 
     For example, add the Flash tarball if user has the flash role.
@@ -102,29 +102,39 @@ def audit_proprietary_lib_files(qcall, force=False, sim_types=None):
                 if force or f not in e:
                     t.join(f).rename(l.join(f))
 
-    s = sirepo.feature_config.proprietary_sim_types()
-    if sim_types:
-        assert sim_types.issubset(
-            s
-        ), f"sim_types={sim_types} not a subset of proprietary_sim_types={s}"
-        s = sim_types
-    for t in s:
-        c = get_class(t)
-        if not c.proprietary_code_tarball():
-            continue
-        d = sirepo.srdb.proprietary_code_dir(t)
-        assert d.exists(), f"{d} proprietary_code_dir must exist" + (
-            "; run: sirepo setup_dev" if pkconfig.in_dev_mode() else ""
-        )
-        r = qcall.auth_db.model("UserRole").has_active_role(
-            role=sirepo.auth_role.for_sim_type(t),
-        )
-        if r:
-            _add(d, t, c)
-            continue
-        # SECURITY: User no longer has access so remove all artifacts
-        pkio.unchecked_remove(simulation_db.simulation_dir(t, qcall=qcall))
+    def _iter(stypes, uid):
+        for t in stypes:
+            c = get_class(t)
+            if not c.proprietary_code_tarball():
+                continue
+            d = sirepo.srdb.proprietary_code_dir(t)
+            assert d.exists(), f"{d} proprietary_code_dir must exist" + (
+                "; run: sirepo setup_dev" if pkconfig.in_dev_mode() else ""
+            )
+            r = qcall.auth_db.model("UserRole").has_active_role(
+                role=sirepo.auth_role.for_sim_type(t),
+                uid=uid,
+            )
+            if r:
+                _add(d, t, c)
+                continue
+            # SECURITY: User no longer has access so remove all artifacts
+            pkio.unchecked_remove(simulation_db.simulation_dir(t, qcall=qcall))
 
+    def _sim_types():
+        rv = sirepo.feature_config.proprietary_sim_types()
+        if not sim_types:
+            return rv
+        if not sim_types.issubset(rv):
+            raise AssertionError(f"sim_types={sim_types} not a subset of proprietary_sim_types={rv}")
+        return sim_types
+
+    s = _sim_types()
+    if uid:
+        with qcall.auth.logged_in_user_set(uid):
+            _iter(s, uid)
+    else:
+        _iter(s, qcall.auth.logged_in_user(check_path=False))
 
 def get_class(type_or_data):
     """Simulation data class

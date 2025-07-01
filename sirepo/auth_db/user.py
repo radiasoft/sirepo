@@ -30,52 +30,47 @@ class UserRole(sirepo.auth_db.UserDbBase):
         cls = self.__class__
         return [r[0] for r in self.query().distinct(cls.role).all()]
 
-    def add_roles(self, roles, expiration=None, uid=None):
+    def add_roles(self, roles, uid, expiration=None):
+        """Add roles or update expiration"""
         from sirepo import sim_data
 
-        u = uid or self.logged_in_user()
         for r in roles:
+            # Check here, because sqlite doesn't throw IntegrityErrors
+            # at the point of the new() operation.
+            if x := self._has_role(r, uid):
+                x.expiration = expiration
             try:
-                # Check here, because sqlite doesn't throw IntegrityErrors
-                # at the point of the new() operation.
-                if not self._has_role(r, uid=u):
-                    self.new(uid=u, role=r, expiration=expiration).save()
+                # The save() is probably what throws the integrity constraint
+                self.new(uid=uid, role=r, expiration=expiration).save()
             except sqlalchemy.exc.IntegrityError:
-                # role already exists
-                pass
-        sim_data.audit_proprietary_lib_files(qcall=self.auth_db.qcall)
+                self.set_role_expiration(r, uid, expiration)
+        sim_data.audit_proprietary_lib_files(qcall=self.auth_db.qcall, uid=uid)
 
-    def add_role_or_update_expiration(self, role, expiration):
-        if not self._has_role(role):
-            self.add_roles(roles=[role], expiration=expiration)
-            return
-        self.set_role_expiration(role, expiration)
-
-    def delete_roles(self, roles, uid=None):
+    def delete_roles(self, roles, uid):
         from sirepo import sim_data
 
         cls = self.__class__
         self.auth_db.execute(
             sqlalchemy.delete(cls)
             .where(
-                cls.uid == (uid or self.logged_in_user()),
+                cls.uid == uid,
             )
             .where(
                 cls.role.in_(roles),
             )
         )
-        sim_data.audit_proprietary_lib_files(qcall=self.auth_db.qcall)
+        sim_data.audit_proprietary_lib_files(qcall=self.auth_db.qcall, uid=uid)
 
-    def expire_role(self, role, uid=None):
-        self.set_role_expiration(role, sirepo.srtime.utc_now(), uid=uid)
+    def expire_role(self, role, uid):
+        self.set_role_expiration(role, uid, sirepo.srtime.utc_now())
 
-    def get_roles(self):
-        return self.search_all_for_column("role", uid=self.logged_in_user())
+    def get_roles(self, uid):
+        return self.search_all_for_column("role", uid=uid)
 
-    def get_roles_and_expiration(self):
+    def get_roles_and_expiration(self, uid):
         return [
             PKDict(role=r.role, expiration=r.expiration)
-            for r in self.query().filter_by(uid=self.logged_in_user())
+            for r in self.query().filter_by(uid=uid)
         ]
 
     def has_active_plan(self, uid):
@@ -93,16 +88,16 @@ class UserRole(sirepo.auth_db.UserDbBase):
             .first()
         )
 
-    def has_active_role(self, role, uid=None):
-        r = self._has_role(role, uid=uid)
+    def has_active_role(self, role, uid):
+        r = self._has_role(role, uid)
         return r and not self._is_expired_role(r)
 
-    def has_expired_role(self, role, uid=None):
-        r = self._has_role(role, uid=uid)
+    def has_expired_role(self, role, uid):
+        r = self._has_role(role, uid)
         return r and self._is_expired_role(r)
 
-    def set_role_expiration(self, role, expiration, uid=None):
-        r = self.search_by(uid=uid or self.logged_in_user(), role=role)
+    def set_role_expiration(self, role, uid, expiration):
+        r = self.search_by(uid=uid, role=role)
         r.expiration = expiration
         r.save()
 
@@ -110,8 +105,8 @@ class UserRole(sirepo.auth_db.UserDbBase):
         return self.uids_with_roles(sirepo.auth_role.PLAN_ROLES_PAID)
 
     def uids_with_roles(self, roles):
-        a = sirepo.auth_role.get_all()
-        assert not (d := set(roles) - set(a)), f"roles={d} unknown all_roles={a}"
+        for r in roles:
+            sirepo.auth_role.check(r)
         cls = self.__class__
         return [
             x[0]
@@ -124,8 +119,8 @@ class UserRole(sirepo.auth_db.UserDbBase):
             .all()
         ]
 
-    def _has_role(self, role, uid=None):
-        return self.unchecked_search_by(uid=uid or self.logged_in_user(), role=role)
+    def _has_role(self, role, uid):
+        return self.unchecked_search_by(uid=uid, role=role)
 
     def _is_expired_role(self, role_record):
         return (
@@ -165,14 +160,14 @@ class UserRoleModeration(sirepo.auth_db.UserDbBase):
         )
         return [PKDict(zip(r.keys(), r)) for r in q]
 
-    def get_status(self, role, uid=None):
-        s = self.unchecked_search_by(uid=uid or self.logged_in_user(), role=role)
+    def get_status(self, role, uid):
+        s = self.unchecked_search_by(uid=uid, role=role)
         if not s:
             return None
         return sirepo.auth_role.ModerationStatus.check(s.status)
 
-    def set_status(self, role, status, moderator_uid):
-        s = self.search_by(uid=self.logged_in_user(), role=role)
+    def set_status(self, role, uid, status, moderator_uid):
+        s = self.search_by(uid=uid, role=role)
         s.status = sirepo.auth_role.ModerationStatus.check(status)
         if moderator_uid:
             s.moderator_uid = moderator_uid

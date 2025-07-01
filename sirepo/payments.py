@@ -110,8 +110,9 @@ class API(sirepo.quest.API):
             b.sessionId,
             s.get("current_period_end"),
         )
+        u = s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY]
         self.auth_db.model("StripeSubscription").new(
-            uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
+            uid=u,
             customer_id=s.customer,
             checkout_session_id=b.sessionId,
             subscription_id=s.id,
@@ -129,12 +130,12 @@ class API(sirepo.quest.API):
             # current_period_end may not be present, see #7546
             # TODO(pjm): use date library to add year
             # TODO(pjm): consider removing current_period_end and always compute from current date
+            uid=u,
             expiration=(
                 datetime.datetime.fromtimestamp(s.current_period_end)
                 if s.get("current_period_end")
                 else datetime.datetime.utcnow() + datetime.timedelta(days=365)
             ),
-            uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
         )
         return _res(c)
 
