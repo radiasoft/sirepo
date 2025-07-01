@@ -8,7 +8,7 @@ class DB {
         return simManager
             .openFolder('').children
             .filter(
-                (n) => ! n.isFolder && n.isConfirmed === '1',
+                (n) => ! n.isFolder// && n.isConfirmed === '1',
             ).map(
                 (m) => {
                     m.material_id = m.simulationId;

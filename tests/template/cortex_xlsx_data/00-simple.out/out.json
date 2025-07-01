@@ -1,0 +1,39 @@
+{
+    "availability_factor": 66.0,
+    "components": {
+        "c": {
+            "material_component_name": "c",
+            "max_pct": 20.0,
+            "min_pct": 0.0,
+            "target_pct": 20.0
+        },
+        "cr": {
+            "material_component_name": "cr",
+            "max_pct": 5.0,
+            "min_pct": 0.0,
+            "target_pct": 5.0
+        },
+        "fe": {
+            "material_component_name": "fe",
+            "max_pct": 100.0,
+            "min_pct": 60.0,
+            "target_pct": 65.0
+        },
+        "w182": {
+            "material_component_name": "w182",
+            "max_pct": 15.0,
+            "min_pct": 5.0,
+            "target_pct": 10.0
+        }
+    },
+    "density_g_cm3": 3.33,
+    "is_atom_pct": false,
+    "is_bare_tile": false,
+    "is_homogenized_divertor": true,
+    "is_homogenized_hcpb": true,
+    "is_homogenized_wcll": true,
+    "is_neutron_source_dt": false,
+    "is_plasma_facing": false,
+    "material_name": "Simple One",
+    "neutron_wall_loading": "ITER"
+}

@@ -3,15 +3,15 @@ import { msgRouter } from '@/services/msgrouter.js';
 import { util } from '@/services/util.js';
 
 class RequestSender {
-    async uploadLibFile(file, fileType, confirm=false) {
-         const formData = (values) => {
-             const fd = new FormData();
-             for (const [k, v] of Object.entries(values)) {
-                 fd.append(k, v);
-             }
-             return fd;
-         };
+    #formData(values) {
+        const fd = new FormData();
+        for (const [k, v] of Object.entries(values)) {
+            fd.append(k, v);
+        }
+        return fd;
+    }
 
+    async uploadLibFile(file, fileType, confirm=false) {
         const d = {
             file: file,
             file_type: fileType,
@@ -23,7 +23,18 @@ class RequestSender {
         }
         return await msgRouter.send(
             appState.schema.route.uploadLibFile,
-            formData(d),
+            this.#formData(d),
+        );
+    }
+
+    async importFile(file) {
+        return await msgRouter.send(
+            appState.schema.route.importFile,
+            this.#formData({
+                file: file,
+                folder: '/',
+                simulation_type: appState.simulationType,
+            }),
         );
     }
 

@@ -19,7 +19,7 @@
         <div class="text-end" v-if="! isProcessing">
             <VFileUploadButton
                 v-on:fileChanged="onDrop"
-                v-bind:mimeType="xlsMimeType"
+                v-bind:mimeType="xlsxMimeType"
             >
                 Upload Material Spreadsheet
             </VFileUploadButton>
@@ -29,8 +29,8 @@
             <VProgress v-bind:percentComplete="percentComplete" />
         </div>
     </div>
-    <VConfirmationModal
-        ref="confirm"
+    <!--VConfirmationModal
+        ref="confirmModal"
         title="Verify Material"
         okText="Save"
         cancelText="Discard"
@@ -38,6 +38,23 @@
         v-on:modalClosed="modalClosed"
     >
         TODO: Show imported material info here
+    </VConfirmationModal-->
+    <VConfirmationModal
+        ref="errorsModal"
+        title="Import Errors"
+        cancelText="Close"
+        size="lg"
+    >
+        <div v-for="err in errorList" :key="err.line">
+            <div class="lead" v-if="err.sheet">{{ err.sheet }} Sheet</div>
+            <div>
+                <span v-if="err.row">
+                    row {{ err.row }}<span v-if="err.col">, col {{ err.col }}</span>:
+                </span>
+                <span v-if="err.value">{{ err.value }}:</span>
+                {{ err.msg }}
+            </div>
+        </div>
     </VConfirmationModal>
 </template>
 
@@ -48,38 +65,32 @@
  import { appState } from '@/services/appstate.js';
  import { ref, watch } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
- import { simQueue } from '@/services/simqueue.js';
  import { uri } from '@/services/uri.js';
  import { useFileDrop } from '@/apps/cortex/useFileDrop.js';
 
- const confirm = ref(null);
+ const confirmModal = ref(null);
  const dropPanel = ref(null);
+ const errorList = ref(null);
+ const errorsModal = ref(null);
  const isLoaded = appState.isLoadedRef;
  const isProcessing = ref(false);
  const percentComplete = ref(0);
  let file = null;
 
- const xlsMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
- const clearAndRedirectHome = () => {
-     isProcessing.value = false;
-     appState.clearModels();
-     uri.redirectAppRoot();
- };
+ const xlsxMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
  const confirmMaterial = async () => {
      appState.models.simulation.isConfirmed = '1';
      await appState.saveChanges('simulation');
-     confirm.value.closeModal();
+     confirmModal.value.closeModal();
  };
 
  const templateURL = uri.format('downloadLibFile', {
      simulation_type: appState.simulationType,
-     filename: `${appState.formatFileType('materialImport', 'xlsFile')}.neutronics_input.xlsx`,
+     filename: `neutronics_input.xlsx`,
  });
 
  const modalClosed = async () => {
-     clearAndRedirectHome();
      if (appState.models.simulation.isConfirmed === '0') {
          await appState.deleteSimulation(appState.models.simulation.simulationId);
      }
@@ -92,73 +103,65 @@
      }
  };
 
- const startProcessing = async () => {
-     isProcessing.value = true;
-     // create new sim
-     const r = await requestSender.sendRequest(
-         'newSimulation',
-         appState.setModelDefaults({
-             name: 'imported material',
-         }, 'simulation'),
-     );
-     // redirect to simulation url, isLoaded will activate below
-     uri.localRedirect(
-         'importXLS',
-         {
-             simulationId: r.models.simulation.simulationId,
-         },
-     );
+ const parseErrors = (errorMessage) => {
+     const p = {
+         col: /\scol=(\d+)/,
+         row: /\srow=(\d+)/,
+         sheet: /\ssheet=(.*)/,
+         value: /(invalid\s.*?=\w*\s)/,
+     };
+     const res = [];
+     let sheet = undefined;
+     for (let line of errorMessage.split("\n")) {
+         const e = {
+             line: line,
+         };
+         for (const f in p) {
+             const m = line.match(p[f]);
+             if (m) {
+                 e[f] = m[1];
+                 line = line.replace(p[f], '');
+             }
+         }
+         if (line) {
+             e.msg = line;
+             if (e.value) {
+                 e.value = e.value.trim().replace(/=$/, '');
+             }
+             if (e.sheet && e.sheet === sheet) {
+                 delete e.sheet;
+             }
+             else {
+                 sheet = e.sheet;
+             }
+             res.push(e);
+         }
+     }
+     return res;
  };
 
- const { isOverDropZone, isInvalidMimeType } = useFileDrop(dropPanel, onDrop, xlsMimeType);
-
- watch(isLoaded, async () => {
-     if (! isLoaded.value || ! file) {
-         return;
-     }
-
-     const addLibFile = async () => {
-         const r = await requestSender.uploadLibFile(
+ const startProcessing = async () => {
+     isProcessing.value = true;
+     const importFile = async () => {
+         const r = await requestSender.importFile(
              file,
-             appState.formatFileType("materialImport", "xlsFile"),
-             // confirm - overwrite if exists
-             true,
+             appState.formatFileType("materialImport", "xlsxFile"),
          );
+         isProcessing.value = false;
          file = null;
          if (r.data.error) {
-             //TODO(pjm): display the error
-             console.log('has error in response:', r.data.error);
-             clearAndRedirectHome();
+             errorList.value = parseErrors(r.data.error);
+             errorsModal.value.showModal();
              return;
          }
-         appState.models.materialImport.xlsFile = r.data.filename;
+         // confirmModal.value.showModal();
          await appState.saveChanges('materialImport');
      }
+     await importFile();
+ };
 
-     const runSimulation = () => {
-         const simComputeModel = 'materialImport';
-         simQueue.addPersistentItem(
-             simComputeModel,
-             appState.models,
-             (resp) => {
-                 console.log('got sim response:', resp);
-                 if (resp.state === 'error') {
-                     //TODO(pjm): display error in banner
-                     clearAndRedirectHome();
-                     return;
-                 }
-                 if (resp.state === 'completed') {
-                     isProcessing.value = false;
-                     confirm.value.showModal();
-                     return;
-                 }
-             },
-         );
-     }
+ const { isOverDropZone, isInvalidMimeType } = useFileDrop(dropPanel, onDrop, xlsxMimeType);
 
-     await addLibFile();
-     runSimulation();
- });
 </script>
 
 <style scoped>
