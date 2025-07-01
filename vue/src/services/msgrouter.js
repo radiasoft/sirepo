@@ -273,7 +273,6 @@ class MsgRouter {
     }
 
     #socketError(event) {
-        console.log('socketError:', event);
         // close: event.code : short, event.reason : str, wasClean : bool
         // error: app specific
         const retrySocket = () => {
