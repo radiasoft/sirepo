@@ -89,9 +89,7 @@ class API(sirepo.quest.API):
         def _set_moderation_status(info):
             if info.status == "approve":
                 self.auth_db.model("UserRole").add_roles(
-                    roles=[info.role],
-                    uid=info.uid,
-                    expiration=info.get("expiration")
+                    roles=[info.role], uid=info.uid, expiration=info.get("expiration")
                 )
             self.auth_db.model("UserRoleModeration").set_status(
                 role=info.role,
@@ -214,7 +212,7 @@ def save_moderation_reason(qcall, uid, sim_type, reason):
     # access to start using Sirepo (ROLE_PLAN_TRIAL).
     if sim_type in sirepo.feature_config.cfg().moderated_sim_types:
         r = sirepo.auth_role.for_sim_type(sim_type)
-    if qcall.auth_db.model("UserRole").has_active_role(role=r):
+    if qcall.auth_db.model("UserRole").has_active_role(role=r, uid=uid):
         raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type))
     if qcall.auth_db.model("UserRole").has_expired_role(role=r, uid=uid):
         raise AssertionError(
