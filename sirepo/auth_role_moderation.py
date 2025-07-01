@@ -32,10 +32,10 @@ _STATUS_TO_SUBJECT = PKDict(
 _cfg = None
 
 _ACTIVE = frozenset(
-    [
+    (
         sirepo.auth_role.ModerationStatus.CLARIFY,
         sirepo.auth_role.ModerationStatus.PENDING,
-    ]
+    )
 )
 
 
@@ -46,24 +46,34 @@ class API(sirepo.quest.API):
     async def api_admModerate(self):
         def _role_info(role, status):
             res = PKDict(
-                role=role,
-                status=status,
+                # TODO(robnagler) maybe save the sim_type in the client so
+                # when there's a redirect, it goes back to the app you were in
+                # when you registered?
                 moderator_uid=self.auth.logged_in_user(),
                 product_name=sirepo.simulation_db.SCHEMA_COMMON.productInfo.shortName,
+                role=role,
+                status=status,
             )
             if role == sirepo.auth_role.ROLE_PLAN_TRIAL:
                 return res.pkupdate(
-                    role_display_name="Trial",
+                    additional_text=f"Your trial is active for {sirepo.feature_config.cfg().trial_expiration_days} days.",
                     expiration=datetime.datetime.utcnow()
                     + datetime.timedelta(
                         days=sirepo.feature_config.cfg().trial_expiration_days
                     ),
-                    additional_text=f"Your trial is active for {sirepo.feature_config.cfg().trial_expiration_days} days.",
+                    link=self.absolute_uri(self.uri_for_app_root()),
+                    role_display_name="Trial",
                 )
+            # Must be a sym_type
             return res.pkupdate(
                 role_display_name=sirepo.simulation_db.SCHEMA_COMMON.appInfo[
                     sirepo.auth_role.sim_type(role)
-                ].longName
+                ].longName,
+                link=self.absolute_uri(
+                    self.uri_for_app_root(
+                        sirepo.auth_role.sim_type(role),
+                    ),
+                ),
             )
 
         def _send_moderation_status_email(info):
@@ -77,11 +87,7 @@ class API(sirepo.quest.API):
                         product_name=info.product_name,
                         role_display_name=info.role_display_name,
                         display_name=info.display_name,
-                        link=self.absolute_uri(
-                            self.uri_for_app_root(
-                                sirepo.auth_role.sim_type(info.role),
-                            ),
-                        ),
+                        link=info.link,
                     ),
                 ),
             )
