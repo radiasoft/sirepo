@@ -10,7 +10,7 @@
 
             <div v-for="item in items" :key="item.key" class="sr-icon-col">
                 <div class="sr-thumbnail text-center dropdown-center">
-                    <a href @dblclick="openItem(item)"data-bs-toggle="dropdown" style="padding-bottom: 30px">
+                    <a href @dblclick="openItem(item)" data-bs-toggle="dropdown" style="padding-bottom: 30px">
                         <span
                             class="sr-item-icon"
                             :class="{

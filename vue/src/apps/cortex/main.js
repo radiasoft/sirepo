@@ -4,8 +4,7 @@
 import VHeader from '@/apps/cortex/VHeader.vue';
 import VSearch from '@/apps/cortex/VSearch.vue';
 import { appResources } from '@/services/appresources.js';
-import { appState } from '@/services/appstate.js';
-import { router } from '@/services/router.js';
+import { schema } from '@/services/schema.js';
 
 appResources.setHeaderComponent(VHeader);
 
@@ -16,3 +15,6 @@ appResources.setAppRoutes([
         component: VSearch,
     },
 ]);
+
+// no simulations page for this app
+delete schema.localRoutes['simulations'];

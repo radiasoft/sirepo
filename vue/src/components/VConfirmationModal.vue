@@ -10,7 +10,7 @@
             <div class="col-sm-12">
                 <slot></slot>
             </div>
-            <div v-if="canDismiss" class="col-sm-12 text-center" style="margin-top: 1em">
+            <div v-if="canDismiss" class="col-sm-12 text-center mt-3">
                 <button v-if="okText" @click="okClicked" class="btn btn-outline-secondary sr-button-save-cancel">{{ okText }}</button>
                 <button type="button" @click="closeModal" class="btn btn-outline-secondary sr-button-save-cancel">{{ cancelText || 'Cancel' }}</button>
             </div>
@@ -20,7 +20,7 @@
 
 <script setup>
  import VModal from '@/components/VModal.vue'
- import { defineEmits, ref } from 'vue';
+ import { ref } from 'vue';
 
  const props = defineProps({
      title: String,

@@ -2,8 +2,8 @@
 //TODO(pjm): logging service
 const srlog = console.log;
 
-import { appState } from '@/services/appstate.js';
 import { requestSender } from '@/services/requestsender.js';
+import { schema } from '@/services/schema.js';
 import { util } from '@/services/util.js';
 
 class SimQueue {
@@ -24,7 +24,7 @@ class SimQueue {
                 forceRun: qMode === 'persistent',
                 report: report,
                 models: models,
-                simulationType: appState.simulationType,
+                simulationType: schema.simulationType,
                 simulationId: models.simulation.simulationId,
             },
             responseHandler: responseHandler,

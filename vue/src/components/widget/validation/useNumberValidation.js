@@ -12,7 +12,7 @@ export function useNumberValidation(field) {
             return true;
         }
         parsedValue.value = parseFloat(rawValue.value);
-        if (field.widget === 'integer') {
+        if (field.widget === 'Integer') {
             parsedValue.value = parseInt(parsedValue.value);
         }
         if ('min' in field) {

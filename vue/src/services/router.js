@@ -7,6 +7,7 @@ import VSimOrganizer from '@/components/VSimOrganizer.vue';
 import { appState } from '@/services/appstate.js';
 import { authState } from '@/services/authstate.js';
 import { createRouter, createWebHistory } from 'vue-router';
+import { schema } from '@/services/schema.js';
 
 const storageKey = "previousRoute";
 
@@ -24,12 +25,12 @@ const routeComponents = {
 };
 
 export const initRouter = () => {
-    const t = appState.simulationType;
+    const t = schema.simulationType;
     router.addRoute({
         path: `/${t}`,
-        redirect: `/${t}/${appState.schema.appDefaults.route}`,
+        redirect: `/${t}/${schema.appDefaults.route}`,
     });
-    for (const [n, r] of Object.entries(appState.schema.localRoutes)) {
+    for (const [n, r] of Object.entries(schema.localRoutes)) {
         if (routeComponents[n]) {
             router.addRoute({
                 name: n,
@@ -38,6 +39,11 @@ export const initRouter = () => {
             });
         }
     }
+    router.addRoute({
+        name: 'noRoute',
+        path: '/:pathMatch(.*)*',
+        component: VRouteMessage,
+    });
     return router
 };
 
@@ -62,7 +68,7 @@ export const router = createRouter({
     //     }
     //     browserStorage.removeItem(storageKey);
     //     p = p.split(' ');
-    //     if (p[0] !== appState.schema.simulationType) {
+    //     if (p[0] !== schema.simulationType) {
     //         // wrong app so ignore
     //         return;
     //     }
@@ -78,8 +84,8 @@ export const router = createRouter({
 
 router.beforeEach(async (to, from) => {
     //TODO(pjm): document.title should update on modelChanged as well
-    const t = appState.schema.appInfo[appState.simulationType].shortName + ' - '
-            + appState.schema.productInfo.shortName
+    const t = schema.appInfo[schema.simulationType].shortName + ' - '
+            + schema.productInfo.shortName
     document.title = t;
     if (to.params.simulationId) {
         if (appState.isLoadedRef.value) {

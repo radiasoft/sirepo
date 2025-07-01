@@ -1,7 +1,7 @@
 
 import * as msgpack from '@msgpack/msgpack';
-import { appState } from '@/services/appstate.js';
 import { authState } from '@/services/authstate.js';
+import { schema } from '@/services/schema.js';
 
 //TODO(pjm): logging service
 const srlog = console.log;
@@ -52,6 +52,7 @@ class MsgRouter {
     #reqSeq = 1;
     #socket = null;
     #socketRetryBackoff = 0;
+    #timeout = null;
     #toSend = [];
 
     constructor(cookieManager) {
@@ -73,7 +74,7 @@ class MsgRouter {
         const e = "sirepo.msgRouter protocolError=" + (errorMsg || "invalid reply from server");
         srlog(
             e,
-            header.kind === appState.schema.websocketMsg.kind.asyncMsg
+            header.kind === schema.websocketMsg.kind.asyncMsg
                 ? ` asyncMsgMethod={header.method}`
                 : wsreq && wsreq.header ? ` wsreq={wsreq.header.reqSeq}`
                 : "wsreq=null",
@@ -93,11 +94,11 @@ class MsgRouter {
     #reply(blob) {
         let [header, content] = msgpack.decodeMulti(blob);
         const wsreq = this.#needReply[header.reqSeq];
-        if (header.version !== appState.schema.websocketMsg.version) {
+        if (header.version !== schema.websocketMsg.version) {
             this.#protocolError(header, content, wsreq, "invalid version");
             return;
         }
-        if (header.kind === appState.schema.websocketMsg.kind.asyncMsg) {
+        if (header.kind === schema.websocketMsg.kind.asyncMsg) {
             if (! header.method) {
                 this.#protocolError(header, content, wsreq, "missing method in content");
             }
@@ -122,7 +123,7 @@ class MsgRouter {
             return;
         }
         delete this.#needReply[header.reqSeq];
-        if (header.kind === appState.schema.websocketMsg.kind.srException) {
+        if (header.kind === schema.websocketMsg.kind.srException) {
             const n = content.routeName;
             const r = {data: {}};
             if (n === "httpException") {
@@ -135,7 +136,7 @@ class MsgRouter {
             _replyError(r);
             return;
         }
-        if (header.kind !== appState.schema.websocketMsg.kind.httpReply) {
+        if (header.kind !== schema.websocketMsg.kind.httpReply) {
             this.#protocolError(header, content, wsreq, "invalid websocketMsg.kind");
             return;
         }
@@ -272,9 +273,17 @@ class MsgRouter {
     }
 
     #socketError(event) {
+        console.log('socketError:', event);
         // close: event.code : short, event.reason : str, wasClean : bool
         // error: app specific
+        const retrySocket = () => {
+            this.#timeout = null;
+            this.#socketCreate();
+        };
         this.#socket = null;
+        if (this.#timeout) {
+            return;
+        }
         if (this.#socketRetryBackoff <= 0) {
             this.#socketRetryBackoff = 1;
             srlog("WebSocket failed: event=", event);
@@ -285,8 +294,10 @@ class MsgRouter {
         }
         //TODO(robnagler) some type of set status to communicate connection lost
         //$interval(_socket, this.#socketRetryBackoff * 1000, 1);
-        setTimeout(this.#socket.bind(this), this.#socketRetryBackoff * 1000);
-
+        this.#timeout = setTimeout(
+            retrySocket.bind(this),
+            this.#socketRetryBackoff * 1000,
+        );
         if (this.#socketRetryBackoff < 60) {
             this.#socketRetryBackoff *= 2;
         }
@@ -335,10 +346,10 @@ class MsgRouter {
             //deferred: $q.defer(),
             deferred: d,
             header: {
-                kind: appState.schema.websocketMsg.kind.httpRequest,
+                kind: schema.websocketMsg.kind.httpRequest,
                 reqSeq: this.#reqSeq++,
                 uri: decodeURIComponent(url),
-                version: appState.schema.websocketMsg.version,
+                version: schema.websocketMsg.version,
             },
             ...httpConfig,
         };

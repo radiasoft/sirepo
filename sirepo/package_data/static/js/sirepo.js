@@ -2827,6 +2827,7 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, authState, error
     const toSend = [];
     let needReply = {};
     let reqSeq = 1;
+    let retryInterval = null;
     let socket = null;
     let socketRetryBackoff = 0;
 
@@ -3067,6 +3068,9 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, authState, error
         // close: event.code : short, event.reason : str, wasClean : bool
         // error: app specific
         socket = null;
+        if (retryInterval) {
+            return;
+        }
         if (socketRetryBackoff <= 0) {
             socketRetryBackoff = 1;
             srlog("WebSocket failed: event=", event);
@@ -3076,7 +3080,14 @@ SIREPO.app.factory('msgRouter', ($http, $interval, $q, $window, authState, error
             }
         }
         //TODO(robnagler) some type of set status to communicate connection lost
-        $interval(_socket, socketRetryBackoff * 1000, 1);
+        retryInterval = $interval(
+            () => {
+                retryInterval = null;
+                _socket();
+            },
+            socketRetryBackoff * 1000,
+            1,
+        );
         if (socketRetryBackoff < 60) {
             socketRetryBackoff *= 2;
         }

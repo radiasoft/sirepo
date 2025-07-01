@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
- import { appState } from '@/services/appstate.js';
+ import { schema } from '@/services/schema.js';
  //TODO(pjm): longName vs shortName should be dependent on window width
- const appName = appState.schema.appInfo[appState.simulationType].longName;
+ const appName = schema.appInfo[schema.simulationType].longName;
 </script>

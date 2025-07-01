@@ -14,7 +14,7 @@
 </template>
 
 <script setup>
- import { defineEmits, ref } from 'vue';
+ import { ref } from 'vue';
  import { simManager } from '@/services/simmanager.js';
 
  const props = defineProps({

@@ -10,7 +10,6 @@
 
 <script setup>
  import VSelect from '@/components/widget/VSelect.vue';
- import { appState } from '@/services/appstate.js';
  import { simManager } from '@/services/simmanager.js';
 
  const props = defineProps({

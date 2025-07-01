@@ -1,5 +1,7 @@
 
 class Util {
+    uniqueIdCount = 0;
+
     clone(obj) {
         return window.structuredClone
              ? window.structuredClone(obj)
@@ -37,6 +39,10 @@ class Util {
 
     isObject(value) {
         return value !== null && typeof value === 'object';
+    }
+
+    uniqueId() {
+        return `srid${this.uniqueIdCount += 1}`;
     }
 }
 

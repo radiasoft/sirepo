@@ -10,7 +10,7 @@
 
 <script setup>
  import VSelect from '@/components/widget/VSelect.vue';
- import { appState } from '@/services/appstate.js';
+ import { schema } from '@/services/schema.js';
 
  const props = defineProps({
      field_name: String,
@@ -18,7 +18,7 @@
  });
 
  const f = props.ui_ctx.fields[props.field_name];
- f.choices = appState.schema.enum[f.widget].map((v) => {
+ f.choices = schema.enum[f.widget].map((v) => {
      return {
          code: v[0],
          display: v[1],

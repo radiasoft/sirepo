@@ -2,7 +2,7 @@
 import VHeader from '@/components/nav/VHeader.vue';
 import VSource from '@/apps/myapp/VSource.vue';
 import VVisualization from '@/apps/myapp/VVisualization.vue';
-import { appState } from '@/services/appstate.js';
+import { schema } from '@/services/schema.js';
 
 import { router } from '@/services/router.js';
 
@@ -43,7 +43,7 @@ class AppResources {
         for (const r of routes) {
             router.addRoute({
                 name: r.name,
-                path: `/${appState.simulationType}${r.path}`,
+                path: `/${schema.simulationType}${r.path}`,
                 component: r.component,
             });
         }

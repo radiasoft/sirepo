@@ -1,5 +1,6 @@
 import { appState } from '@/services/appstate.js';
 import { msgRouter } from '@/services/msgrouter.js';
+import { schema } from '@/services/schema.js';
 import { util } from '@/services/util.js';
 
 class RequestSender {
@@ -16,24 +17,24 @@ class RequestSender {
             file: file,
             file_type: fileType,
             simulation_id: appState.models.simulation.simulationId,
-            simulation_type: appState.simulationType,
+            simulation_type: schema.simulationType,
         };
         if (confirm) {
             d.confirm = confirm;
         }
         return await msgRouter.send(
-            appState.schema.route.uploadLibFile,
+            schema.route.uploadLibFile,
             this.#formData(d),
         );
     }
 
     async importFile(file) {
         return await msgRouter.send(
-            appState.schema.route.importFile,
+            schema.route.importFile,
             this.#formData({
                 file: file,
                 folder: '/',
-                simulation_type: appState.simulationType,
+                simulation_type: schema.simulationType,
             }),
         );
     }
@@ -45,12 +46,12 @@ class RequestSender {
         if (requestData.responseType) {
             throw new Error(`requestData.responseType not yet supported: ${requestData.responseType}`);
         }
-        const r = appState.schema.route[routeName];
+        const r = schema.route[routeName];
         requestData[
             r.includes('<simulation_type>')
                 ? 'simulation_type'
                 : 'simulationType'
-        ] = appState.simulationType;
+        ] = schema.simulationType;
         if (appState.isLoadedRef.value && ! requestData.simulationId) {
             requestData.simulationId = appState.models.simulation.simulationId;
         }

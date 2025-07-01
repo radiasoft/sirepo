@@ -89,7 +89,7 @@
  import VStatic from '@/components/widget/VStatic.vue';
  import VText from '@/components/widget/VText.vue';
  import { appResources } from '@/services/appresources.js';
- import { appState } from '@/services/appstate.js';
+ import { schema } from '@/services/schema.js';
  import { useEmailValidation } from '@/components/widget/validation/useEmailValidation.js';
  import { useNumberValidation } from '@/components/widget/validation/useNumberValidation.js';
  import { usePathValidation } from '@/components/widget/validation/usePathValidation.js';
@@ -112,7 +112,7 @@
 
  const [widgetName, widgetComponent] = getWidgetName();
 
- const isEnum = (widgetName) => appState.schema.enum[widgetName] ? true : false;
+ const isEnum = (widgetName) => schema.enum[widgetName] ? true : false;
 
  //TODO(pjm): move to a utility
  const formatExponential = (value) => {

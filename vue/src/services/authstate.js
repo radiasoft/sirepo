@@ -1,6 +1,6 @@
 
-import { appState } from '@/services/appstate.js';
 import { reactive } from 'vue';
+import { schema } from '@/services/schema.js';
 import { uri } from '@/services/uri.js';
 
 class AuthState {
@@ -44,7 +44,7 @@ class AuthState {
         }
         return response.error
         //TODO(pjm): support_email should be a clickable link
-            || `Server reported an error, please contact ${appState.schema.feature_config.support_email}`;
+            || `Server reported an error, please contact ${schema.feature_config.support_email}`;
     }
 
     isModerated() {
