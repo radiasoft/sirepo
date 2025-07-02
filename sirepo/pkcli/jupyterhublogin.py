@@ -34,6 +34,7 @@ def create_user(email, display_name):
     Returns:
         user_name (str): The jupyterhub user_name of the user
     """
+    from sirepo.pkcli import admin
 
     def maybe_create_sirepo_user(qcall, email, display_name):
         m = qcall.auth_db.model("AuthEmailUser")
@@ -47,7 +48,7 @@ def create_user(email, display_name):
         if u:
             pkcli.command_error("email={} is not verified", email)
         # Completely new Sirepo user
-        return qcall.auth.create_user_from_email(email=email, display_name=display_name)
+        return admin.create_user(email, display_name)
 
     if not pyisemail.is_email(email):
         pkcli.command_error("invalid email={}", email)
@@ -63,10 +64,14 @@ def create_user(email, display_name):
             n = sirepo.sim_api.jupyterhublogin.create_user(
                 qcall=qcall,
             )
-            qcall.auth_db.model("UserRole").add_roles(
-                roles=[sirepo.auth_role.for_sim_type("jupyterhublogin")],
-                uid=u,
-            )
+            if (
+                sirepo.const.SIM_TYPE_JUPYTERHUBLOGIN
+                in sirepo.feature_config.cfg().moderated_sim_types
+            ):
+                qcall.auth_db.model("UserRole").add_roles(
+                    roles=[sirepo.auth_role.for_sim_type("jupyterhublogin")],
+                    uid=u,
+                )
         return PKDict(email=email, jupyterhub_user_name=n)
 
 

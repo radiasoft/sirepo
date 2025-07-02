@@ -598,9 +598,16 @@ class _Auth(sirepo.quest.Attr):
         self.qcall.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         self._set_log_user()
 
-    def unchecked_get_user(self, uid):
-        u = self.qcall.auth_db.model("UserRegistration").unchecked_search_by(uid=uid)
-        if u:
+    def unchecked_get_user(self, uid_or_user_name):
+        # support other user_name types
+        # POSIT: Uid's are from the base62 charset so an '@' implies an email.
+        if "@" in uid_or_user_name:
+            a = PKDict(user_name=uid_or_user_name)
+            m = self.qcall.auth_db.model(_METHOD_MODULES[METHOD_EMAIL].UserModel)
+        else:
+            a = PKDict(uid=simulation_db.assert_uid(uid_or_user_name))
+            m = self.qcall.auth_db.model("UserRegistration")
+        if u := m.unchecked_search_by(**a):
             return u.uid
         return None
 

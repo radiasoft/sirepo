@@ -45,35 +45,32 @@ class API(sirepo.quest.API):
     )
     async def api_admModerate(self):
         def _role_info(role, status):
-            res = PKDict(
+            s = sirepo.simulation_db.SCHEMA_COMMON
+            rv = PKDict(
                 # TODO(robnagler) maybe save the sim_type in the client so
                 # when there's a redirect, it goes back to the app you were in
                 # when you registered?
                 moderator_uid=self.auth.logged_in_user(),
-                product_name=sirepo.simulation_db.SCHEMA_COMMON.productInfo.shortName,
+                product_name=s.productInfo.shortName,
                 role=role,
                 status=status,
             )
             if role == sirepo.auth_role.ROLE_PLAN_TRIAL:
-                return res.pkupdate(
-                    additional_text=f"Your trial is active for {sirepo.feature_config.cfg().trial_expiration_days} days.",
-                    expiration=datetime.datetime.utcnow()
-                    + datetime.timedelta(
-                        days=sirepo.feature_config.cfg().trial_expiration_days
+                e = sirepo.util.plan_role_expiration(role)
+                return rv.pkupdate(
+                    additional_text=(
+                        f"Your free trial ends on {e.strftime('%d %B %Y')}."
+                        if e
+                        else ""
                     ),
+                    expiration=e,
                     link=self.absolute_uri(self.uri_for_app_root()),
                     role_display_name="Trial",
                 )
-            # Must be a sym_type
-            return res.pkupdate(
-                role_display_name=sirepo.simulation_db.SCHEMA_COMMON.appInfo[
-                    sirepo.auth_role.sim_type(role)
-                ].longName,
-                link=self.absolute_uri(
-                    self.uri_for_app_root(
-                        sirepo.auth_role.sim_type(role),
-                    ),
-                ),
+            t = sirepo.auth_role.sim_type(role)
+            return rv.pkupdate(
+                role_display_name=s.appInfo[t].longName,
+                link=self.absolute_uri(self.uri_for_app_root(t)),
             )
 
         def _send_moderation_status_email(info):
@@ -94,9 +91,12 @@ class API(sirepo.quest.API):
 
         def _set_moderation_status(info):
             if info.status == "approve":
-                self.auth_db.model("UserRole").add_roles(
-                    roles=[info.role], uid=info.uid, expiration=info.get("expiration")
-                )
+                m = self.auth_db.model("UserRole")
+                if info.role in sirepo.auth_role.PLAN_ROLES:
+                    m.add_plan(info.role, info.uid)
+                else:
+                    # No expiration for non-plan roles
+                    m.add_roles([info.role], info.uid)
             self.auth_db.model("UserRoleModeration").set_status(
                 role=info.role,
                 uid=info.uid,

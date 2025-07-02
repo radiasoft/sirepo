@@ -30,6 +30,14 @@ class UserRole(sirepo.auth_db.UserDbBase):
         cls = self.__class__
         return [r[0] for r in self.query().distinct(cls.role).all()]
 
+    def add_plan(self, role, uid, expiration=None):
+        # TODO(robnagler) always trust stripe?
+        # Assert role and probably need sanity check...
+        e = sirepo.util.plan_role_expiration(role)
+        if expiration:
+            e = expiration
+        self.add_roles([role], uid, expiration=e)
+
     def add_roles(self, roles, uid, expiration=None):
         """Add roles or update expiration"""
         from sirepo import sim_data

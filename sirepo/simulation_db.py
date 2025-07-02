@@ -110,6 +110,11 @@ def assert_sim_db_basename(basename):
     return basename
 
 
+def assert_uid(uid):
+    if _ID_RE.search(uid):
+        return uid
+    raise AssertionError(f"invalid uid={uid}")
+
 def cfg():
     return _cfg
 

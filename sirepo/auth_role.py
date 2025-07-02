@@ -61,7 +61,10 @@ def for_new_user(auth_method):
             return _all()
         if auth_method != auth.METHOD_EMAIL and pkunit.is_test_run():
             return _all() - _ADM_SET
-    return _FOR_NEW_USER
+    rv = _FOR_NEW_USER
+    if not sirepo.feature_config.have_payments():
+        return rv.union(ROLE_PLAN_PREMIUM)
+    return rv
 
 
 def for_proprietary_oauth_sim_types():

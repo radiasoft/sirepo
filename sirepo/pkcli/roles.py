@@ -29,6 +29,11 @@ def add(uid_or_email, *roles, expiration=None):
         )
 
 
+def add_plan(uid_or_email, plan, expiration=None):
+    with _parse_args(uid_or_email, [plan], expiration) as a:
+        qcall.auth_db.model("UserRole").add_plan(a.roles[0], a.uid, expiration)
+
+
 def add_roles(*args, **kwargs):
     """DEPRECATED: Use add"""
     add(*args, **kwargs)
@@ -57,13 +62,15 @@ def disable_user(uid_or_email, moderator):
         moderator (str): Uid or email
     """
     with _parse_args(uid_or_email) as a:
-        a.qcall.auth_db.model("UserRole").delete_roles([sirepo.auth_role.ROLE_USER], a.uid)
+        a.qcall.auth_db.model("UserRole").delete_roles(
+            [sirepo.auth_role.ROLE_USER], a.uid
+        )
         a.qcall.auth_db.model(
             "UserRoleModeration",
             uid=a.uid,
             role=sirepo.auth_role.ROLE_USER,
             status=sirepo.auth_role.ModerationStatus.DENY,
-            moderator_uid=_lookup_uid(a.qcall, moderator),
+            moderator_uid=_uid(a.qcall, moderator),
         ).save()
 
 
@@ -92,14 +99,11 @@ def list_roles(*args):
     return list(*args)
 
 
-def _lookup_uid(qcall, uid_or_email):
-    # POSIT: Uid's are from the base62 charset so an '@' implies an email.
-    if "@" in uid_or_email:
-        return qcall.auth_db.model("AuthEmailUser").unchecked_uid(
-            user_name=uid_or_email
-        )
-    else:
-        return qcall.auth.unchecked_get_user(uid_or_email)
+def _uid(qcall, uid_or_email):
+    rv = qcall.auth.unchecked_get_user(uid_or_email)
+    if not rv:
+        pykern.pkcli.command_error("uid_or_email={} not found", uid_or_email)
+    return rv
 
 
 # TODO(e-carlin): This only works for email auth or using a uid
@@ -115,9 +119,7 @@ def _parse_args(uid_or_email, roles=None, expiration=None):
 
     rv = PKDict()
     with sirepo.quest.start() as rv.qcall:
-        rv.uid = _lookup_uid(rv.qcall, uid_or_email)
-        if not rv.uid:
-            pykern.pkcli.command_error("uid_or_email={} not found", uid_or_email)
+        rv.uid = _uid(rv.qcall, uid_or_email)
         if roles is not None:
             if not roles:
                 pykern.pkcli.command_error("must supply at least one role")
