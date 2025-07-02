@@ -62,7 +62,7 @@ def create_user(email, display_name, plan=sirepo.auth_role.ROLE_PLAN_BASIC):
     with sirepo.quest.start() as qcall:
         u = qcall.auth.create_user_from_email(email, display_name=display_name)
         if plan:
-            qcall.auth_db.model("UserRole").add_plan(pkdp(plan), u)
+            qcall.auth_db.model("UserRole").add_plan(plan, u)
     return u
 
 

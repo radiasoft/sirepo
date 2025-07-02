@@ -30,8 +30,14 @@ def add(uid_or_email, *roles, expiration=None):
 
 
 def add_plan(uid_or_email, plan, expiration=None):
+    """Assign a plan to a user.
+    Args:
+        uid_or_email (str): Uid or email of the user
+        plan (str): The plan to assign to the user
+        expiration (int): Days until expiration
+    """
     with _parse_args(uid_or_email, [plan], expiration) as a:
-        qcall.auth_db.model("UserRole").add_plan(a.roles[0], a.uid, expiration)
+        a.qcall.auth_db.model("UserRole").add_plan(a.roles[0], a.uid, a.expiration)
 
 
 def add_roles(*args, **kwargs):
