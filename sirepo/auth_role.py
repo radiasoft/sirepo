@@ -63,7 +63,7 @@ def for_new_user(auth_method):
             return _all() - _ADM_SET
     rv = _FOR_NEW_USER
     if not sirepo.feature_config.have_payments():
-        return rv.union(ROLE_PLAN_PREMIUM)
+        return rv.union([ROLE_PLAN_PREMIUM])
     return rv
 
 

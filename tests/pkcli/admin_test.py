@@ -4,9 +4,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-import pytest
-
-
 _UID_IN_DB = "IYgnLlSy"
 
 _UID_NOT_IN_DB = "notexist"
@@ -19,6 +16,24 @@ def setup_module(module):
     srunit.setup_srdb_root()
     os.environ.update(
         SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES="jupyterhublogin",
+        SIREPO_AUTH_METHODS="email:guest",
+    )
+
+
+def test_create_user():
+    from pykern import pkunit
+    from sirepo.pkcli import admin, roles
+
+    _init_db()
+    pkunit.pkok(admin.create_user("a@a.a", "a"), "unable to create user")
+    pkunit.pkok(admin.create_user("b@a.a", "b", plan="trial"), "unable to create user")
+    pkunit.pkeq(
+        [
+            {"role": "premium", "expiration": None},
+            {"role": "trial", "expiration": None},
+            {"role": "user", "expiration": None},
+        ],
+        roles.list_with_expiration("b@a.a"),
     )
 
 
