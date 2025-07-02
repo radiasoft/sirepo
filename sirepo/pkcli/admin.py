@@ -44,6 +44,21 @@ def audit_proprietary_lib_files(*uid):
 
 
 def create_user(email, display_name, plan=sirepo.auth_role.ROLE_PLAN_BASIC):
+    """Creates a new user account with the specified email, display name, and plan.
+
+    This function initializes a new user in the system using the provided email and display name.
+    Optionally, a user plan can be specified. If no plan is provided, the default is
+    `sirepo.auth_role.ROLE_PLAN_BASIC`.
+
+    Args:
+        email (str): The email address associated with the new user.
+        display_name (str): The display name to associate with the user.
+        plan (str, optional): The user’s subscription or access level plan.
+            Defaults to `sirepo.auth_role.ROLE_PLAN_BASIC`.
+
+    Returns:
+        str: the new user's UID
+    """
     with sirepo.quest.start() as qcall:
         u = qcall.auth.create_user_from_email(email, display_name=display_name)
         if plan:
@@ -64,10 +79,10 @@ def delete_user(uid_or_user_name):
     this script runs all records are blown away from the db's so if you
     forget to configure something you will have to delete manually.
 
-    Does nothing if `uid` does not exist.
+    Does nothing if `uid_or_user_name` does not exist.
 
     Args:
-        user (str): user to delete
+        uid_or_user_name (str): UID or email for user to delete
     """
     import sirepo.template
 
@@ -130,6 +145,9 @@ def move_user_sims(uid):
 
 
 def reset_examples():
+    """Resets examples which haven't been modified recently.
+    Deletes user examples which have been removed from the example list.
+    """
     with sirepo.quest.start() as qcall:
         e = _get_examples_by_type(qcall)
         for t, s in _iterate_sims_by_users(qcall, e.keys()):
