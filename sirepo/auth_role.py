@@ -78,7 +78,7 @@ def for_sim_type(sim_type):
 def sim_type(role):
     if not check(role).startswith(_SIM_TYPE_ROLE_PREFIX):
         raise AssertionError(f"not a sim_type role={role}")
-    return role[len(_SIM_TYPE_ROLE_PREFIX):]
+    return role[len(_SIM_TYPE_ROLE_PREFIX) :]
 
 
 def _all():

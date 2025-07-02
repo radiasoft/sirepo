@@ -126,7 +126,9 @@ def audit_proprietary_lib_files(qcall, force=False, sim_types=None, uid=None):
         if not sim_types:
             return rv
         if not sim_types.issubset(rv):
-            raise AssertionError(f"sim_types={sim_types} not a subset of proprietary_sim_types={rv}")
+            raise AssertionError(
+                f"sim_types={sim_types} not a subset of proprietary_sim_types={rv}"
+            )
         return sim_types
 
     s = _sim_types()
@@ -135,6 +137,7 @@ def audit_proprietary_lib_files(qcall, force=False, sim_types=None, uid=None):
             _iter(s, uid)
     else:
         _iter(s, qcall.auth.logged_in_user(check_path=False))
+
 
 def get_class(type_or_data):
     """Simulation data class

@@ -115,6 +115,7 @@ def assert_uid(uid):
         return uid
     raise AssertionError(f"invalid uid={uid}")
 
+
 def cfg():
     return _cfg
 
