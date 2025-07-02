@@ -43,6 +43,8 @@ class UserRole(sirepo.auth_db.UserDbBase):
         from sirepo import sim_data
 
         for r in roles:
+            if len(r) <= 1:
+                raise AssertionError(f"no single letter role={r}")
             # Check here, because sqlite doesn't throw IntegrityErrors
             # at the point of the new() operation.
             if x := self._has_role(r, uid):
