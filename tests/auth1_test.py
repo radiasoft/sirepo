@@ -32,6 +32,7 @@ def test_login():
         pkeq(True, a.isLoggedIn)
         pkeq(False, a.needCompleteRegistration)
         u = qcall.auth.logged_in_user()
+        pkdebug.pkdp(qcall.auth_db.model("UserRole").get_roles(a.uid))
         pkok(u, "user should exist")
         # guests do not require completeRegistration
         qcall.auth.require_user()

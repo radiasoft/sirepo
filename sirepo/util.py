@@ -390,6 +390,31 @@ def json_dump(obj, path=None, pretty=False, **kwargs):
     return res
 
 
+def plan_role_expiration(role):
+    """Get expiration for an (asserted) plan
+
+    Args:
+        role (str): plan to change to
+    Returns:
+        datetime: new expiration
+    """
+    from sirepo import auth_role, feature_config, srtime
+    import datetime
+
+    def _duration():
+        return datetime.timedelta(
+            feature_config.cfg().trial_expiration_days
+            if role == auth_role.ROLE_PLAN_TRIAL
+            else 365
+        )
+
+    if role not in auth_role.PLAN_ROLES:
+        raise AssertionError(f"invalid plan role={role}")
+    if not feature_config.have_payments():
+        return None
+    return srtime.utc_now() + _duration()
+
+
 def random_base62(length=32, prefix=None):
     """Returns a safe string of sufficient length to be a nonce
 

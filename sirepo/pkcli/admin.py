@@ -20,6 +20,7 @@ import json
 import os.path
 import re
 import shutil
+import sirepo.auth_role
 import sirepo.const
 import sirepo.quest
 
@@ -42,9 +43,61 @@ def audit_proprietary_lib_files(*uid):
                 sim_data.audit_proprietary_lib_files(qcall=qcall)
 
 
+def create_user(email, display_name, plan=sirepo.auth_role.ROLE_PLAN_BASIC):
+    """Creates a new user account with the specified email, display name, and plan.
+
+    This function initializes a new user in the system using the provided email and display name.
+    Optionally, a user plan can be specified. If no plan is provided, the default is
+    `sirepo.auth_role.ROLE_PLAN_BASIC`.
+
+    Args:
+        email (str): The email address associated with the new user.
+        display_name (str): The display name to associate with the user.
+        plan (str, optional): The user’s subscription or access level plan.
+            Defaults to `sirepo.auth_role.ROLE_PLAN_BASIC`.
+
+    Returns:
+        str: the new user's UID
+    """
+    with sirepo.quest.start() as qcall:
+        u = qcall.auth.create_user_from_email(email, display_name=display_name)
+        if plan:
+            qcall.auth_db.model("UserRole").add_plan(plan, u)
+    return u
+
+
 def db_upgrade():
     with sirepo.quest.start() as qcall:
         qcall.auth_db.create_or_upgrade()
+
+
+def delete_user(uid_or_user_name):
+    """Delete a user and all of their data across Sirepo and Jupyter
+
+    This will delete information based on what is configured. So configure
+    all service (jupyterhublogin, email, etc.) that may be relevant. Once
+    this script runs all records are blown away from the db's so if you
+    forget to configure something you will have to delete manually.
+
+    Does nothing if `uid_or_user_name` does not exist.
+
+    Args:
+        uid_or_user_name (str): UID or email for user to delete
+    """
+    import sirepo.template
+
+    with sirepo.quest.start() as qcall:
+        if (u := qcall.auth.unchecked_get_user(uid_or_user_name)) is None:
+            return
+        with qcall.auth.logged_in_user_set(u):
+            if sirepo.util.is_jupyter_enabled():
+                from sirepo.sim_api import jupyterhublogin
+
+                jupyterhublogin.delete_user_dir(qcall=qcall)
+            simulation_db.delete_user(qcall=qcall)
+        # This needs to be done last so we have access to the records in
+        # previous steps.
+        qcall.auth_db.delete_user(uid=u)
 
 
 def create_examples():
@@ -55,45 +108,6 @@ def create_examples():
             for e in examples[t]:
                 if e.models.simulation.name not in s[t].keys():
                     _create_example(qcall, e)
-
-
-def reset_examples():
-    with sirepo.quest.start() as qcall:
-        e = _get_examples_by_type(qcall)
-        for t, s in _iterate_sims_by_users(qcall, e.keys()):
-            o = _build_ops(list(s[t].values()), t, e)
-            _revert(qcall, o, e)
-            _delete(qcall, o)
-
-
-# TODO(e-carlin): more than uid (ex email)
-def delete_user(uid):
-    """Delete a user and all of their data across Sirepo and Jupyter
-
-    This will delete information based on what is configured. So configure
-    all service (jupyterhublogin, email, etc.) that may be relevant. Once
-    this script runs all records are blown away from the db's so if you
-    forget to configure something you will have to delete manually.
-
-    Does nothing if `uid` does not exist.
-
-    Args:
-        uid (str): user to delete
-    """
-    import sirepo.template
-
-    with sirepo.quest.start() as qcall:
-        if qcall.auth.unchecked_get_user(uid) is None:
-            return
-        with qcall.auth.logged_in_user_set(uid):
-            if sirepo.util.is_jupyter_enabled():
-                from sirepo.sim_api import jupyterhublogin
-
-                jupyterhublogin.delete_user_dir(qcall=qcall)
-            simulation_db.delete_user(qcall=qcall)
-        # This needs to be done last so we have access to the records in
-        # previous steps.
-        qcall.auth_db.delete_user(uid=uid)
 
 
 def move_user_sims(uid):
@@ -128,6 +142,18 @@ def move_user_sims(uid):
             continue
         pkdlog(lib_file)
         shutil.move(lib_file, target)
+
+
+def reset_examples():
+    """Resets examples which haven't been modified recently.
+    Deletes user examples which have been removed from the example list.
+    """
+    with sirepo.quest.start() as qcall:
+        e = _get_examples_by_type(qcall)
+        for t, s in _iterate_sims_by_users(qcall, e.keys()):
+            o = _build_ops(list(s[t].values()), t, e)
+            _revert(qcall, o, e)
+            _delete(qcall, o)
 
 
 def _build_ops(simulations, sim_type, examples):

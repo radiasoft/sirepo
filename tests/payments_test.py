@@ -40,7 +40,9 @@ def test_auditor(monkeypatch):
         from sirepo.pkcli import roles
 
         qcall.auth_db.model("UserRole").set_role_expiration(
-            auth_role.ROLE_PLAN_BASIC, _EXPIRATION, uid=_UID_IN_DB
+            auth_role.ROLE_PLAN_BASIC,
+            uid=_UID_IN_DB,
+            expiration=_EXPIRATION,
         )
     with srunit.quest_start(cfg=_state_for_testing()) as qcall:
         pkunit.pkeq(

@@ -37,7 +37,7 @@ def test_myapp(auth_fc):
         "listSimulations", {"simulationType": fc.sr_sim_type}, raw_response=True
     )
     r.assert_http_status(403)
-    sirepo.pkcli.roles.add_roles(
+    sirepo.pkcli.roles.add(
         fc.sr_uid,
         sirepo.auth_role.for_sim_type(fc.sr_sim_type),
     )
