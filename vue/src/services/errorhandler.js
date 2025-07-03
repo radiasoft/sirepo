@@ -1,5 +1,5 @@
 
-import { appState } from '@/services/appstate.js';
+import { schema } from '@/services/schema.js';
 import { uri } from '@/services/uri.js';
 
 //TODO(pjm): logging service
@@ -26,8 +26,8 @@ class ErrorHandler {
             uri.localRedirect(e.routeName, e.params);
             return;
         }
-        if (err && err.status && appState.schema.customErrors[err.status]) {
-            uri.localRedirect(appState.schema.customErrors[err.status].route);
+        if (err && err.status && schema.customErrors[err.status]) {
+            uri.localRedirect(schema.customErrors[err.status].route);
             return;
         }
         srlog(err.message, err.stack);
@@ -36,7 +36,7 @@ class ErrorHandler {
     }
 
     logToServer = function(errorType, message, cause, stackTrace) {
-        fetch(appState.schema.route.errorLogging, {
+        fetch(schema.route.errorLogging, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

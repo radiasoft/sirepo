@@ -2,7 +2,7 @@
     <div class="col-md-8 offset-md-2">
         <VWell>
             <p>{{ message() }}</p>
-            <RouterLink :to="{ name: 'login', params: { simulationType: appState.simulationType }}">
+            <RouterLink :to="{ name: 'login', params: { simulationType: schema.simulationType }}">
                 Please try to login again.
             </RouterLink>
         </VWell>
@@ -12,7 +12,7 @@
 <script setup>
  import VWell from '@/components/layout/VWell.vue';
  import { RouterLink, useRoute } from 'vue-router';
- import { appState } from '@/services/appstate.js';
+ import { schema } from '@/services/schema.js';
 
  const route = useRoute();
 

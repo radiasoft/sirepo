@@ -5,7 +5,7 @@
             {{ title }}
             <div class="sr-panel-options float-end">
                 <a v-if="canEdit" href title="Edit" @click.prevent="showModal"><span class="bi bi-pencil-fill"></span></a>
-                <div class="dropdown-menu-end" style="display: inline-block" title="Download">
+                <div class="dropdown-menu-end d-inline-block" title="Download">
                     <a href data-bs-toggle="dropdown"><span class="bi bi-cloud-download-fill"></span></a>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" href="#">Action</a></li>
@@ -46,18 +46,18 @@
 
 <script setup>
  import VFormModal from '@/components/VFormModal.vue'
- import { appState } from '@/services/appstate.js';
  import { onBeforeUnmount, onMounted, ref } from 'vue';
+ import { schema } from '@/services/schema.js';
 
  const props = defineProps({
      viewName: String,
  });
 
- const canEdit = appState.schema.view[props.viewName].advanced.length > 0;
+ const canEdit = schema.view[props.viewName].advanced.length > 0;
  const cardStyle = ref({});
  const hidden = ref(false);
  const modal = ref(null);
- const title = appState.schema.view[props.viewName].title;
+ const title = schema.view[props.viewName].title;
 
  const onKeydown = (event) => {
      if (event.key == 'Escape' && isFullscreen()) {

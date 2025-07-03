@@ -1,13 +1,13 @@
 <template>
     <label
-        v-bind:for="elementId"
+        v-bind:for="elId"
         class="btn btn-outline-secondary"
     >
         <slot></slot>
     </label>
     <input
-        style="display: none"
-        v-bind:id="elementId"
+        class="d-none"
+        v-bind:id="elId"
         type="file"
         v-on:change="onFileChanged"
         v-bind:accept="mimeType"
@@ -17,11 +17,12 @@
 
 <script setup>
  import { ref } from 'vue';
+ import { util } from '@/services/util.js';
 
  defineProps({
      mimeType: String,
  });
- const elementId = 'dropZoneFile';
+ const elId = util.uniqueId();
  const emit = defineEmits(['fileChanged']);
  let fileInput = ref(null);
 

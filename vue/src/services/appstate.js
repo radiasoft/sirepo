@@ -2,6 +2,7 @@
 import { pubSub } from '@/services/pubsub.js';
 import { ref } from 'vue';
 import { requestSender } from '@/services/requestsender.js';
+import { schema } from '@/services/schema.js';
 import { util } from '@/services/util.js';
 
 class UIContext {
@@ -15,14 +16,7 @@ class UIContext {
         this.accessPath = accessPath;
         this.viewName = viewName || accessPath;
         this.fieldDef = fieldDef;
-        if (! appState.schema) {
-            //TODO(pjm): consider changing appState interface to support reloads
-            throw new Error(`
-                appState.schema is not set, possibly HMR reload lost the state.
-                Refresh the browser window to continue.
-            `);
-        }
-        this.viewSchema = appState.schema.view[this.viewName];
+        this.viewSchema = schema.view[this.viewName];
         if (! this.viewSchema) {
             throw Error(`No schema view for name: ${this.viewName}`);
         }
@@ -34,7 +28,7 @@ class UIContext {
 
     #buildFields() {
         const r = {};
-        const sm = appState.schema.model[this.viewSchema.model || this.viewName];
+        const sm = schema.model[this.viewSchema.model || this.viewName];
         for (const f of this.viewSchema[this.fieldDef]) {
             //TODO(pjm): could be a structure of tabs or columns of fields
             if (f.includes('.')) {
@@ -170,14 +164,6 @@ class AppState {
         return new UIContext(accessPath, viewName, fieldDef);
     }
 
-    init(simulationType, schema) {
-        if (this.simulationType || this.schema) {
-            throw new Error('AppState already initialized');
-        }
-        this.simulationType = simulationType;
-        this.schema = schema;
-    }
-
     async loadModels(simulationId) {
         if (this.isLoadedRef.value) {
             throw new Error('loadModels() may only be called in an unloaded state');
@@ -217,7 +203,7 @@ class AppState {
 
     setModelDefaults(model, modelName) {
         // set model defaults from schema
-        const m = this.schema.model[modelName];
+        const m = schema.model[modelName];
         for (const f of Object.keys(m)) {
             if (! model[f]) {
                 const v = m[f][2];

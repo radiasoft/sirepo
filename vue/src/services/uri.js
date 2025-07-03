@@ -1,12 +1,12 @@
 
-import { appState } from '@/services/appstate.js';
 import { router } from '@/services/router.js';
+import { schema } from '@/services/schema.js';
 
 class URI {
     format(routeName, params) {
         params = params || {};
-        params.simulation_type = appState.simulationType;
-        const u = appState.schema.route[routeName];
+        params.simulation_type = schema.simulationType;
+        const u = schema.route[routeName];
         let r = u;
         for (const m of u.matchAll(/([\?\*]?)<(\w+)>/g)) {
             const [token, optional, name] = m;
@@ -36,14 +36,14 @@ class URI {
 
     localRedirectHome(simulationId) {
         uri.localRedirect(
-            appState.schema.appModes.default.localRoute,
+            schema.appModes.default.localRoute,
             { simulationId },
         );
     }
 
     redirectAppRoot() {
         //TODO(pjm): use formatter
-        router.push('/' + appState.simulationType);
+        router.push('/' + schema.simulationType);
     }
 }
 

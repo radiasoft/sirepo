@@ -37,6 +37,7 @@
  import { appState } from '@/services/appstate.js';
  import { ref, watch } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
+ import { schema } from '@/services/schema.js';
 
  const confirm = ref(null);
  const isBusy = ref(false);
@@ -64,7 +65,7 @@
      ui_ctx.fields.email.val = '';
      //TODO(pjm): share message with authState
      ui_ctx.fields.email.error = r.error
-         || `Server reported an error, please contact ${appState.schema.feature_config.support_email}`;
+         || `Server reported an error, please contact ${schema.feature_config.support_email}`;
  };
 
  appState.clearModels({

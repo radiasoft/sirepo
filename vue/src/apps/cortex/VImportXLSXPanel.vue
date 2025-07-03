@@ -65,6 +65,7 @@
  import { appState } from '@/services/appstate.js';
  import { ref, watch } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
+ import { schema } from '@/services/schema.js';
  import { uri } from '@/services/uri.js';
  import { useFileDrop } from '@/apps/cortex/useFileDrop.js';
 
@@ -86,7 +87,7 @@
  };
 
  const templateURL = uri.format('downloadLibFile', {
-     simulation_type: appState.simulationType,
+     simulation_type: schema.simulationType,
      filename: `neutronics_input.xlsx`,
  });
 

@@ -2,11 +2,11 @@ import "bootstrap";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import '@/main.scss';
 import App from '@/App.vue';
-import { appState } from '@/services/appstate.js';
 import { authState } from '@/services/authstate.js';
 import { createApp } from 'vue';
-import { onError } from '@/services/errorhandler.js';
 import { initRouter } from '@/services/router.js';
+import { onError } from '@/services/errorhandler.js';
+import { schema } from '@/services/schema.js';
 
 // this must come last to override bootstrap css values
 import '@/assets/main.css';
@@ -57,8 +57,8 @@ const sirepoLegacyInit = () => {
     }
     //TODO(pjm): initial schema call must be with form-data?
     return fetchWithFormData('/simulation-schema', { simulationType }).then(
-        (schema) => {
-            appState.init(simulationType, schema);
+        (simSchema) => {
+            schema.init(simulationType, simSchema);
             globalThis.SIREPO = {};
             return addScriptTag(schema.route.authState);
         }).then(() => {
