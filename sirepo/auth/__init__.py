@@ -616,7 +616,6 @@ class _Auth(sirepo.quest.Attr):
                 _cfg.logged_in_user = p
                 simulation_db.srunit_logged_in_user(p)
 
-
     def unchecked_get_user(self, uid_or_user_name):
         # support other user_name types
         # POSIT: Uid's are from the base62 charset so an '@' implies an email.
