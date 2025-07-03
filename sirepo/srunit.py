@@ -76,7 +76,7 @@ def http_client(
 
 
 @contextlib.contextmanager
-def quest_start(want_user=False, cfg=None):
+def quest_start(want_user=False, want_global_user=False, cfg=None):
     if cfg is None:
         cfg = {}
     setup_srdb_root(cfg=cfg)
@@ -89,9 +89,11 @@ def quest_start(want_user=False, cfg=None):
 
     with quest.start(in_pkcli=True) as qcall:
         qcall.auth_db.create_or_upgrade()
-        if want_user:
-            qcall.auth.create_and_login_user()
-        yield qcall
+        if want_global_user or want_user:
+            with qcall.auth.srunit_user(want_global=want_global_user):
+                yield qcall
+        else:
+            yield qcall
 
 
 def setup_srdb_root(cfg=None):

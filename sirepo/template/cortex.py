@@ -39,14 +39,14 @@ def write_parameters(data, run_dir, is_parallel):
     )
 
 
-def _import_file(data, qcall=None):
+def _import_file(data):
     p = sirepo.template.cortex_xlsx.Parser(
-        _SIM_DATA.lib_file_abspath(data.args.lib_file, qcall=qcall)
+        _SIM_DATA.lib_file_abspath(data.args.lib_file)
     )
     if p.errors:
         return PKDict(error="\n".join(p.errors))
     try:
-        sirepo.template.cortex_sql_db.insert_material(p.result, qcall=qcall)
+        sirepo.template.cortex_sql_db.insert_material(p.result)
     except sirepo.template.cortex_sql_db.Error as e:
         return PKDict(error=e.args[0])
     rv = sirepo.simulation_db.default_data(SIM_TYPE)
