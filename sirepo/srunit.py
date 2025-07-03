@@ -88,14 +88,9 @@ def quest_start(want_user=False, want_global_user=False, cfg=None):
     from sirepo import quest
 
     with quest.start(in_pkcli=True) as qcall:
-        from sirepo import simulation_db
-
         qcall.auth_db.create_or_upgrade()
         if want_global_user or want_user:
-            from pykern.pkdebug import pkdp
-
-            with qcall.auth.srunit_user(want_global=want_global_user) as u:
-                pkdp(u)
+            with qcall.auth.srunit_user(want_global=want_global_user):
                 yield qcall
         else:
             yield qcall
