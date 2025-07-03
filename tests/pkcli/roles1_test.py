@@ -52,10 +52,9 @@ def test_flash_list_role_by_email(auth_fc):
     from sirepo.pkcli import roles
 
     e = "a@b.c"
-    r = "premium"
     pkunit.data_dir().join("db").copy(srdb.root())
     auth_fc.sr_email_login(e, sim_type="flash")
-    roles.add(e, r)
+    r = "premium"
     pkunit.pkok(r in roles.list(e), "expected user {} to have role {}", e, r)
     pkunit.pkok(
         r in roles.list(auth_fc.sr_uid),

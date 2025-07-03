@@ -24,6 +24,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
     from pykern import pkunit, pkcollections, pkio, pkunit
     from pykern.pkdebug import pkdp
     from sirepo import auth_role, const, srdb
+    from sirepo.pkcli import roles
     import time
 
     model = "heightWeightReport"
@@ -49,10 +50,6 @@ def test_myapp_free_user_sim_purged(auth_fc):
         from sirepo import srunit
         from sirepo.pkcli import roles
 
-        roles.add(
-            uid,
-            auth_role.ROLE_PLAN_PREMIUM,
-        )
         with srunit.quest_start() as qcall:
             r = qcall.auth_db.model("UserRole").search_all_for_column(
                 "uid", role=auth_role.ROLE_PLAN_PREMIUM
@@ -70,6 +67,7 @@ def test_myapp_free_user_sim_purged(auth_fc):
     user_free = "free@b.c"
     user_premium = "premium@x.y"
     fc.sr_email_login(user_free)
+    roles.delete(user_free, "premium")
     fc.add_plan_trial_role()
     fc.sr_email_login(user_premium)
     _make_user_premium(fc.sr_uid)
@@ -91,11 +89,13 @@ def test_elegant_no_frame_after_purge(auth_fc):
     from pykern import pkunit
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
+    from sirepo.pkcli import roles
     import time
 
     fc = auth_fc
     user_free = "free@b.c"
     fc.sr_email_login(user_free)
+    roles.delete(user_free, "premium")
     fc.add_plan_trial_role()
     d = fc.sr_sim_data(sim_name="Compact Storage Ring", sim_type="elegant")
     r = fc.sr_run_sim(d, "animation")

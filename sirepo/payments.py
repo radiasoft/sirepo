@@ -32,14 +32,6 @@ class API(sirepo.quest.API):
             str: Stripe client secret
         """
 
-        def _plan_to_price(plan):
-            return PKDict(
-                {
-                    sirepo.auth_role.ROLE_PLAN_BASIC: cfg().stripe_plan_basic_price_id,
-                    sirepo.auth_role.ROLE_PLAN_PREMIUM: cfg().stripe_plan_premium_price_id,
-                }
-            )[plan]
-
         def _return_url():
             # Need to put braces in url for stripe but local_route escapes them.
             # POSIT: CHECKOUT_SESSION_ID is unique in our uri map.
@@ -53,6 +45,7 @@ class API(sirepo.quest.API):
             ).replace(x, "{" + x + "}")
 
         u = self.auth.logged_in_user()
+        p = self.body_as_dict().plan
         return self.reply_ok(
             PKDict(
                 clientSecret=(
@@ -61,7 +54,7 @@ class API(sirepo.quest.API):
                         ui_mode="embedded",
                         line_items=[
                             PKDict(
-                                price=_plan_to_price(self.body_as_dict().plan),
+                                price=self._plan_to_price(p),
                                 quantity=1,
                             ),
                         ],
@@ -79,64 +72,50 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_user")
     async def api_paymentCheckoutSessionStatus(self):
-        def _price_to_role(subscription):
-            return PKDict(
-                {
-                    cfg().stripe_plan_basic_price_id: sirepo.auth_role.ROLE_PLAN_BASIC,
-                    cfg().stripe_plan_premium_price_id: sirepo.auth_role.ROLE_PLAN_PREMIUM,
-                }
-            )[subscription["items"].data[0].price.id]
-
-        def _res(checkout_session):
-            return self.reply_ok(PKDict(sessionStatus=checkout_session.status))
-
-        b = self.body_as_dict()
-        c = await stripe.checkout.Session.retrieve_async(
-            b.sessionId,
-        )
-        if not c.status == "complete":
-            return _res(c)
-        s = await stripe.Subscription.retrieve_async(c.subscription)
-        if (
-            not s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY]
-            == self.auth.logged_in_user()
-        ):
-            raise AssertionError(
-                f"stripe_uid={s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY]} does not match logged_in_user={self.auth.logged_in_user()}"
+        def _update_db(stripe_sub, session_id, uid, exp):
+            pkdlog(
+                "Stripe subscription for uid={} sessionId={} current_period_end={}",
+                uid,
+                session_id,
+                exp,
             )
-        pkdlog(
-            "Stripe subscription for uid: {} sessionId: {} current_period_end: {}",
-            self.auth.logged_in_user(),
-            b.sessionId,
-            s.get("current_period_end"),
-        )
-        self.auth_db.model("StripeSubscription").new(
-            uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
-            customer_id=s.customer,
-            checkout_session_id=b.sessionId,
-            subscription_id=s.id,
-            created=sirepo.srtime.utc_now(),
-            revocation_reason=None,
-            revoked=None,
-            role=_price_to_role(s),
-        ).save()
-        # We aren't 100% positive the user has fully paid at this
-        # point. But, we are pretty sure. So, proactively give them the
-        # role and _ROLE_AUDITOR_CRON will remove if it finds out they
-        # didn't end up paying.
-        self.auth_db.model("UserRole").add_roles(
-            roles=[_price_to_role(s)],
-            # current_period_end may not be present, see #7546
-            # TODO(pjm): use date library to add year
-            # TODO(pjm): consider removing current_period_end and always compute from current date
-            expiration=(
-                datetime.datetime.fromtimestamp(s.current_period_end)
-                if s.get("current_period_end")
-                else datetime.datetime.utcnow() + datetime.timedelta(days=365)
-            ),
-            uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
-        )
-        return _res(c)
+            p = self._price_to_plan(stripe_sub["items"].data[0].price.id)
+            self.auth_db.model("StripeSubscription").new(
+                uid=uid,
+                customer_id=stripe_sub.customer,
+                checkout_session_id=session_id,
+                subscription_id=stripe_sub.id,
+                created=sirepo.srtime.utc_now(),
+                revocation_reason=None,
+                revoked=None,
+                role=p,
+            ).save()
+            # We aren't 100% positive the user has fully paid at this
+            # point. But, we are pretty sure. So, proactively give them the
+            # role and _ROLE_AUDITOR_CRON will remove if it finds out they
+            # didn't end up paying.
+            if exp:
+                # Renewals are calculated by Stripe so we trust them
+                exp = datetime.datetime.fromtimestamp(exp)
+            self.auth_db.model("UserRole").add_plan(p, uid, expiration=exp)
+
+        def _uid(uid):
+            u = self.auth.logged_in_user()
+            if uid == u:
+                return uid
+            raise AssertionError(f"stripe_uid={uid} does not match logged_in_user={u}")
+
+        i = self.body_as_dict().sessionId
+        c = await stripe.checkout.Session.retrieve_async(i)
+        if c.status == "complete":
+            s = await stripe.Subscription.retrieve_async(c.subscription)
+            _update_db(
+                s,
+                i,
+                _uid(s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY]),
+                s.get("current_period_end"),
+            )
+        return self.reply_ok(PKDict(sessionStatus=c.status))
 
     @sirepo.quest.Spec("allow_visitor")
     async def api_paymentPlanRedirect(self, plan):
@@ -188,6 +167,18 @@ class API(sirepo.quest.API):
                 uid=s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY],
             ).save()
         return self.reply_ok()
+
+    def _plan_to_price(self, plan):
+        return {
+            sirepo.auth_role.ROLE_PLAN_BASIC: cfg().stripe_plan_basic_price_id,
+            sirepo.auth_role.ROLE_PLAN_PREMIUM: cfg().stripe_plan_premium_price_id,
+        }[plan]
+
+    def _price_to_plan(self, price):
+        return {
+            cfg().stripe_plan_basic_price_id: sirepo.auth_role.ROLE_PLAN_BASIC,
+            cfg().stripe_plan_premium_price_id: sirepo.auth_role.ROLE_PLAN_PREMIUM,
+        }[price]
 
 
 def init_apis(*args, **kwargs):
