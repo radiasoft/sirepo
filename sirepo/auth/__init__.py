@@ -395,9 +395,11 @@ class _Auth(sirepo.quest.Attr):
             if model:
                 model.uid = uid
                 model.save()
+        # see if the user has completed registration already (must be done before setting display_name)
+        nr = self.need_complete_registration(uid)
         if display_name:
             self.complete_registration(self.parse_display_name(display_name))
-        if sirepo.feature_config.cfg().is_registration_moderated:
+        if nr and sirepo.feature_config.cfg().is_registration_moderated:
             auth_role_moderation.save_moderation_reason(
                 self.qcall,
                 uid,
