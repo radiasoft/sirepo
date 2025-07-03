@@ -12,6 +12,7 @@ def test_guest_trial_no_expiration(auth_fc):
     from sirepo.pkcli import roles
 
     u = auth_fc.sr_login_as_guest()
+    roles.delete(u, "premium")
     l = roles.list_with_expiration(u)
     for r in l:
         if r.role == "trial" and r.expiration is None:
@@ -25,6 +26,7 @@ def test_expired_trial_no_run_sim(auth_fc):
     import datetime
 
     u = auth_fc.sr_email_login("e@e.e")
+    roles.delete(u, "premium")
     roles.add(u, "trial", expiration=_EXPIRATION_DAYS)
     d = auth_fc.sr_sim_data()
     auth_fc.sr_run_sim(d, "heightWeightReport")
