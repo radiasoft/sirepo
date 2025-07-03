@@ -447,13 +447,6 @@ class _Auth(sirepo.quest.Attr):
             sreply=self.qcall.reply_ok(PKDict(authState=self._auth_state())),
         )
 
-    def create_and_login_user(self):
-        """Create a new guest user and log them in
-
-        Only useful for testing.
-        """
-        self._create_user(_METHOD_MODULES[METHOD_GUEST], want_login=True)
-
     def need_complete_registration(self, model_or_uid):
         """Does unauthenticated user need to complete registration?
 
@@ -599,6 +592,30 @@ class _Auth(sirepo.quest.Attr):
         self.qcall.cookie.unchecked_remove(_COOKIE_METHOD)
         self.qcall.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         self._set_log_user()
+
+    @contextlib.contextmanager
+    def srunit_user(self, want_global):
+        """Create a new guest user and log them in
+
+        **Only called from srunit**
+        """
+        from pykern import pkunit
+
+        if not pkunit.is_test_run():
+            raise AssertionError("must be in pkunit test run")
+        rv = self._create_user(_METHOD_MODULES[METHOD_GUEST], want_login=True)
+        p = None
+        try:
+            if want_global:
+                p = _cfg.logged_in_user
+                _cfg.logged_in_user = rv
+                simulation_db.srunit_logged_in_user(rv)
+            yield rv
+        finally:
+            if want_global:
+                _cfg.logged_in_user = p
+                simulation_db.srunit_logged_in_user(p)
+
 
     def unchecked_get_user(self, uid_or_user_name):
         # support other user_name types

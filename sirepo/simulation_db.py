@@ -738,6 +738,14 @@ def simulation_run_dir(req_or_data, remove_dir=False, qcall=None):
     return d
 
 
+def srunit_logged_in_user(uid):
+    from pykern import pkunit
+
+    if not pkunit.is_test_run():
+        raise AssertionError("must be in pkunit test run")
+    _cfg.logged_in_user = uid
+
+
 def static_libs():
     return _files_in_schema(SCHEMA_COMMON.common.staticFiles)
 

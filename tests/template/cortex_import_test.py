@@ -35,7 +35,7 @@ def test_cases():
             subprocess.check_output(["sqlite3", path, _SQL], text=True),
         )
 
-    with srunit.quest_start(want_user=True) as qcall:
+    with srunit.quest_start(want_global_user=True) as qcall:
         from pykern import pkdebug, pkjson, pkunit
         from pykern.pkcollections import PKDict
         from sirepo.template import cortex, cortex_sql_db
@@ -47,8 +47,8 @@ def test_cases():
             )
             pkjson.dump_pretty(
                 _out_content(
-                    cortex._import_file(
-                        PKDict(args=PKDict(lib_file=_INPUT)), qcall=qcall
+                    cortex.stateful_compute_import_file(
+                        PKDict(args=PKDict(lib_file=_INPUT)),
                     )
                 ),
                 filename=d.join(f"out.json"),
