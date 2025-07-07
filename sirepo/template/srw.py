@@ -1163,7 +1163,7 @@ def _beamline_animation_percent_complete(run_dir, res):
     ]
     dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
     for item in dm.beamline:
-        if "isDisabled" in item and item.isDisabled:
+        if _is_item_disabled(item):
             continue
         if item.type == "watch":
             res.outputInfo.append(
@@ -1861,6 +1861,9 @@ def _format_energy(energy):
 def _generate_beamline_optics(report, data, qcall=None):
     res = PKDict(names=[], exclude=[], last_id=None, watches=PKDict())
     models = data.models
+    # remove trailing disabled items
+    while len(models.beamline) and _is_item_disabled(models.beamline[-1]):
+        models.beamline.pop()
     if len(models.beamline) == 0 or not (
         _SIM_DATA.srw_is_beamline_report(report) or report == "beamlineAnimation"
     ):
@@ -1879,7 +1882,6 @@ def _generate_beamline_optics(report, data, qcall=None):
     zero_drift_count = 0
 
     for item in models.beamline:
-        is_disabled = "isDisabled" in item and item.isDisabled
         name = _safe_beamline_item_name(item.title, res.names)
         max_name_size = max(max_name_size, len(name))
 
@@ -1905,7 +1907,7 @@ def _generate_beamline_optics(report, data, qcall=None):
         item.propagation = pp[0]
         item.drift_propagation = pp[1]
         item.name = name
-        if not is_disabled:
+        if not _is_item_disabled(item):
             if item.type == "watch" and (
                 not items
                 or (items[-1].type == "watch" and items[-1].position == item.position)
@@ -2233,6 +2235,10 @@ def _intensity_units(sim_in):
             i = sim_in.models.simulation.fieldUnits
         return SCHEMA.enum.FieldUnits[int(i)][1]
     return "ph/s/.1%bw/mm^2"
+
+
+def _is_item_disabled(item):
+    return item.get("isDisabled", False)
 
 
 def _is_for_rsopt(report):

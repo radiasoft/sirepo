@@ -384,6 +384,16 @@ SIREPO.app.factory('srwService', function(appDataService, appState, beamlineServ
         return res;
     };
 
+    self.getLastElementPosition = () => {
+        let res = 0;
+        for (const b of appState.models.beamline) {
+            if (! b.isDisabled) {
+                res = b.position;
+            }
+        }
+        return res;
+    };
+
     self.getReportTitle = function(modelName, itemId) {
         if (! appState.isLoaded()) {
             return '';
@@ -718,6 +728,7 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
             var d = parseFloat(beamline[i + 1].position) - parseFloat(beamline[i].position);
             if (d > 0) {
                 self.propagations.push({
+                    position: beamline[i].position,
                     title: 'Drift ' + srwService.formatFloat4(d) + ' m',
                     params: p[1],
                     defaultparams: [p[1][12], p[1][13], p[1][14], p[1][15], p[1][16] ],
@@ -2335,7 +2346,7 @@ SIREPO.app.directive('propagationParametersModal', function(appState) {
     };
 });
 
-SIREPO.app.directive('propagationParametersTable', function(appState) {
+SIREPO.app.directive('propagationParametersTable', function(appState, srwService) {
     return {
         restrict: 'A',
         scope: {
@@ -2399,6 +2410,9 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
                 if (prop.item) {
                     return prop.item.isDisabled;
                 }
+                if (prop.position && prop.position >= srwService.getLastElementPosition()) {
+                    return true;
+                }
                 return false;
             };
 
@@ -2406,7 +2420,6 @@ SIREPO.app.directive('propagationParametersTable', function(appState) {
                 var p = prop ? (prop.params || []) : [];
                 return $scope.isControlDisabledForParams(p);
             };
-            $scope.isPostPropagationDisabled = function() { return true; };
             $scope.isControlDisabledForParams = function(params) {
                 if (params[$scope.propTypeIndex] == 0) {
                     return false;
