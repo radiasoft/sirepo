@@ -1,18 +1,18 @@
 <template>
     <VModal
         ref="modal"
-        :title="title"
+        v-bind:title="title"
         themeColor="warning"
-        :canDismiss="canDismiss"
-        :size="size"
+        v-bind:canDismiss="canDismiss"
+        v-bind:size="size"
     >
         <div class="row">
             <div class="col-sm-12">
                 <slot></slot>
             </div>
             <div v-if="canDismiss" class="col-sm-12 text-center mt-3">
-                <button v-if="okText" @click="okClicked" class="btn btn-outline-secondary sr-button-save-cancel">{{ okText }}</button>
-                <button type="button" @click="closeModal" class="btn btn-outline-secondary sr-button-save-cancel">{{ cancelText || 'Cancel' }}</button>
+                <button v-if="okText" v-on:click="okClicked" class="btn btn-outline-secondary sr-button-save-cancel">{{ okText }}</button>
+                <button type="button" v-on:click="closeModal" class="btn btn-outline-secondary sr-button-save-cancel">{{ cancelText || 'Cancel' }}</button>
             </div>
         </div>
     </VModal>

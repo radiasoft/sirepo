@@ -1,5 +1,5 @@
 <template>
-    <a :href="plansUrl"><slot></slot></a>
+    <a v-bind:href="plansUrl"><slot></slot></a>
 </template>
 
 <script setup>

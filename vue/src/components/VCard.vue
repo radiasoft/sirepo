@@ -1,10 +1,10 @@
 //TODO(pjm): dropdown-menu should be a named slot
 <template>
-    <div class="card mb-4" :style="cardStyle">
+    <div class="card mb-4" v-bind:style="cardStyle">
         <div class="sr-panel-header card-header lead text-bg-info bg-opacity-25">
             {{ title }}
             <div class="sr-panel-options float-end">
-                <a v-if="canEdit" href title="Edit" @click.prevent="showModal"><span class="bi bi-pencil-fill"></span></a>
+                <a v-if="canEdit" href title="Edit" v-on:click.prevent="showModal"><span class="bi bi-pencil-fill"></span></a>
                 <div class="dropdown-menu-end d-inline-block" title="Download">
                     <a href data-bs-toggle="dropdown"><span class="bi bi-cloud-download-fill"></span></a>
                     <ul class="dropdown-menu">
@@ -14,21 +14,21 @@
                     </ul>
                 </div>
                 <a href
-                   @click.prevent="toggleFullscreen()"
+                   v-on:click.prevent="toggleFullscreen()"
                    v-if="! hidden"
-                   :title="isFullscreen() ? 'Exit Full Screen' : 'Full Screen'"
+                   v-bind:title="isFullscreen() ? 'Exit Full Screen' : 'Full Screen'"
                 >
-                    <span :class="{
+                    <span v-bind:class="{
                         'bi bi-fullscreen-exit': isFullscreen(),
                         'bi bi-fullscreen': ! isFullscreen()
                     }"></span>
                 </a>
                 <a href
-                   @click.prevent="toggleHidden()"
+                   v-on:click.prevent="toggleHidden()"
                    v-if="! isFullscreen()"
-                   :title="hidden ? 'Show' : 'Hide'"
+                   v-bind:title="hidden ? 'Show' : 'Hide'"
                 >
-                    <span :class="{
+                    <span v-bind:class="{
                         'bi bi-chevron-down': hidden,
                         'bi bi-chevron-up': ! hidden
                     }"></span>
@@ -40,7 +40,7 @@
         </div>
     </div>
     <div v-if="canEdit">
-        <VFormModal :viewName="viewName" :title="title" ref="modal"/>
+        <VFormModal v-bind:viewName="viewName" v-bind:title="title" ref="modal"/>
     </div>
 </template>
 

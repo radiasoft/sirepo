@@ -1,11 +1,11 @@
 <template>
-    <VModal ref="modal" :title="title" @modalClosed="modalClosed">
+    <VModal ref="modal" v-bind:title="title" v-on:modalClosed="modalClosed">
         <VForm
             v-if="isShown"
-            :viewName="viewName"
+            v-bind:viewName="viewName"
             fieldDef="advanced"
             ref="form"
-            @dismissModal="closeModal"
+            v-on:dismissModal="closeModal"
         />
     </VModal>
 </template>

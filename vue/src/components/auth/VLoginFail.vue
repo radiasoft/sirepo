@@ -2,7 +2,7 @@
     <div class="col-md-8 offset-md-2">
         <VWell>
             <p>{{ message() }}</p>
-            <RouterLink :to="{ name: 'login', params: { simulationType: schema.simulationType }}">
+            <RouterLink v-bind:to="{ name: 'login', params: { simulationType: schema.simulationType }}">
                 Please try to login again.
             </RouterLink>
         </VWell>

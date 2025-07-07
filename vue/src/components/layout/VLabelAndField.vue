@@ -1,14 +1,14 @@
 <template>
-    <div :class="columnClass('labelcols')" v-if="visible">
+    <div v-bind:class="columnClass('labelcols')" v-if="visible">
         <VLabel
-            :field_name="props.field_name"
-            :ui_ctx="props.ui_ctx"
+            v-bind:field_name="props.field_name"
+            v-bind:ui_ctx="props.ui_ctx"
         />
     </div>
-    <div :class="columnClass('cols')" v-if="visible">
+    <div v-bind:class="columnClass('cols')" v-if="visible">
         <VFieldEditor
-            :field_name="props.field_name"
-            :ui_ctx="props.ui_ctx"
+            v-bind:field_name="props.field_name"
+            v-bind:ui_ctx="props.ui_ctx"
         />
     </div>
 </template>

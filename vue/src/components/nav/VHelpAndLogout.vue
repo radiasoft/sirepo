@@ -36,7 +36,7 @@
                     <li data-ng-if="isAdm()"><a data-ng-href="{{ getUrl('admUsers') }}">Admin Users</a></li>
                     <li><a data-ng-click="showJobsList()" style="cursor:pointer">Jobs</a></li>
 
-                    <li><a href @click="logout">Sign out</a></li>
+                    <li><a href v-on:click="logout">Sign out</a></li>
                 </ul>
             </li>
 
@@ -47,7 +47,7 @@
             <a
                 class="nav-link"
                 v-if="authState.isLoggedIn && ! authState.guestIsOnlyMethod"
-                :href="logoutURL()"
+                v-bind:href="logoutURL()"
             >
                 Sign out
             </a>

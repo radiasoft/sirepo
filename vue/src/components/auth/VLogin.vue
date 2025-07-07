@@ -1,5 +1,5 @@
 <template>
-    <component :is="loginComponent"></component>
+    <component v-bind:is="loginComponent"></component>
 </template>
 
 <script setup>
@@ -12,7 +12,7 @@
 
  let loginComponent;
 
- if (authState.checkNeedsLogin()) {
+ if (authState.checkNeedLogin()) {
      const m = authState.getAuthMethod();
      loginComponent = {
          email: VLoginEmail,

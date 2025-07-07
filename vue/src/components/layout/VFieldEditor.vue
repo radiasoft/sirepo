@@ -5,74 +5,74 @@
     <div class="mb-3">
         <div v-if="widgetComponent">
             <component
-                :is="widgetComponent"
-                :field_name="field_name"
-                :ui_ctx="ui_ctx"
+                v-bind:is="widgetComponent"
+                v-bind:field_name="field_name"
+                v-bind:ui_ctx="ui_ctx"
             ></component>
         </div>
         <div v-else-if="isEnum(widgetName)">
             <VEnum
-                :field_name="field_name"
-                :ui_ctx="ui_ctx"
+                v-bind:field_name="field_name"
+                v-bind:ui_ctx="ui_ctx"
             />
         </div>
         <div v-else-if="widgetName === 'String'">
             <VText
-                :field_name="field_name"
-                :ui_ctx="ui_ctx"
-                :validation="useValidation"
+                v-bind:field_name="field_name"
+                v-bind:ui_ctx="ui_ctx"
+                v-bind:validation="useValidation"
             />
         </div>
         <div v-else-if="widgetName === 'Email'">
             <VText
-                :field_name="field_name"
-                :ui_ctx="ui_ctx"
-                :validation="useEmailValidation"
+                v-bind:field_name="field_name"
+                v-bind:ui_ctx="ui_ctx"
+                v-bind:validation="useEmailValidation"
             />
         </div>
         <div v-else-if="widgetName === 'Integer'">
             <VText
                 class="text-end"
-                :field_name="field_name"
-                :ui_ctx="ui_ctx"
-                :validation="useNumberValidation"
-                :defaultCols="3"
+                v-bind:field_name="field_name"
+                v-bind:ui_ctx="ui_ctx"
+                v-bind:validation="useNumberValidation"
+                v-bind:defaultCols="3"
             />
         </div>
         <div v-else-if="widgetName === 'Float'">
             <VText
                 class="text-end"
-                :field_name="field_name"
-                :ui_ctx="ui_ctx"
-                :validation="useNumberValidation"
-                :formatter="formatExponential"
-                :defaultCols="3"
+                v-bind:field_name="field_name"
+                v-bind:ui_ctx="ui_ctx"
+                v-bind:validation="useNumberValidation"
+                v-bind:formatter="formatExponential"
+                v-bind:defaultCols="3"
             />
         </div>
         <div v-else-if="widgetName === 'UserFolder'">
             <VFolders
-                :field_name="field_name"
-                :ui_ctx="ui_ctx"
+                v-bind:field_name="field_name"
+                v-bind:ui_ctx="ui_ctx"
             />
         </div>
         <div v-else-if="['SafePath', 'SimulationName'].includes(widgetName)">
             <VText
-                :field_name="field_name"
-                :ui_ctx="ui_ctx"
-                :validation="usePathValidation"
+                v-bind:field_name="field_name"
+                v-bind:ui_ctx="ui_ctx"
+                v-bind:validation="usePathValidation"
             />
         </div>
         <div v-else-if="widgetName === 'LongText'">
             <VLongText
-                :field_name="field_name"
-                :ui_ctx="ui_ctx"
+                v-bind:field_name="field_name"
+                v-bind:ui_ctx="ui_ctx"
             />
         </div>
         <div v-else-if="widgetName === 'Text'">
             <VLongText
-                :field_name="field_name"
-                :ui_ctx="ui_ctx"
-                :defaultCols="7"
+                v-bind:field_name="field_name"
+                v-bind:ui_ctx="ui_ctx"
+                v-bind:defaultCols="7"
             />
         </div>
         <div v-else>

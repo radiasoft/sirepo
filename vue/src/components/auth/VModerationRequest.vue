@@ -4,12 +4,12 @@
             <div class="row">
                 <div class="col-sm-7 offset-sm-5">
                     <h2>Moderation Request</h2>
-                    <VForm v-if="! submitted" viewName="moderationRequest" fieldDef="basic" :wantButtons="false">
+                    <VForm v-if="! submitted" viewName="moderationRequest" fieldDef="basic" v-bind:wantButtons="false">
                         <div class="col-sm-7 offset-sm-5">
                             <p><button
                                    class="btn btn-primary sr-button-save-cancel"
-                                   :disabled="! canSubmit()"
-                                   @click="submitForm"
+                                   v-bind:disabled="! canSubmit()"
+                                   v-on:click="submitForm"
                                >
                                 Submit
                             </button></p>

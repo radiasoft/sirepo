@@ -1,14 +1,14 @@
 <template>
-    <li :class="{active: folder == selected_folder}">
-        <a href @click.prevent="selectFolder">
-            <span :class="{
+    <li v-bind:class="{active: folder == selected_folder}">
+        <a href v-on:click.prevent="selectFolder">
+            <span v-bind:class="{
                 'bi bi-chevron-right': ! folder.isOpen,
                 'bi bi-chevron-down': folder.isOpen,
             }"></span> <span class="bi bi-folder2"></span>
             {{ folder.name }}
         </a>
-        <ul v-if="folder.isOpen" v-for="item in getFolders()" :key="item.key" class="nav sr-nav-sidebar">
-            <VFolderNav :folder="item" :selected_folder="selected_folder" @folderSelected="folderSelected" />
+        <ul v-if="folder.isOpen" v-for="item in getFolders()" v-bind:key="item.key" class="nav sr-nav-sidebar">
+            <VFolderNav v-bind:folder="item" v-bind:selected_folder="selected_folder" v-on:folderSelected="folderSelected" />
         </ul>
     </li>
 </template>
