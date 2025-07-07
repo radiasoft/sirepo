@@ -6,8 +6,6 @@
 
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
-from sirepo.template import template_common
-import pykern.pkio
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.template.cortex_sql_db
@@ -16,27 +14,16 @@ import sirepo.template.cortex_xlsx
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
-def background_percent_complete(report, run_dir, is_running):
-    if is_running:
+def stateful_compute_cortex_db(data, **kwargs):
+    if data.args.api_name == "list_materials":
         return PKDict(
-            percentComplete=0,
-            frameCount=0,
+            api_result=sirepo.template.cortex_sql_db.list_materials(),
         )
-    return PKDict(
-        percentComplete=100,
-        frameCount=1,
-    )
+    raise AssertionError("Unhandled api_name: {}", data.args.api_name)
 
 
 def stateful_compute_import_file(data, **kwargs):
     return _import_file(data)
-
-
-def write_parameters(data, run_dir, is_parallel):
-    pkio.write_text(
-        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
-        "print('done')",
-    )
 
 
 def _import_file(data, qcall=None):

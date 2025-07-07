@@ -50,6 +50,18 @@ def insert_material(parsed, qcall=None):
             )
 
 
+def list_materials():
+    def _convert(row):
+        return PKDict(
+            material_id=row.material_id,
+            created=int(row.created.timestamp()),
+            material_name=row.material_name,
+        )
+
+    with _session(None) as s:
+        return [_convert(r) for r in s.select("material").all()]
+
+
 @contextlib.contextmanager
 def _session(qcall):
     s = sirepo.sim_data.get_class("cortex")
