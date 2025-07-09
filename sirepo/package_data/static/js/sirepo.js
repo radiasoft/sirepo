@@ -1889,7 +1889,7 @@ SIREPO.app.factory('frameCache', function(appState, panelState, requestSender, s
                 if (! loadingTimer) {
                     loadingTimer = $timeout(() => {
                         panelState.setLoading(modelKey, true);
-                    }, 5000);
+                    }, 1000);
                 }
                 requestByModelKey[modelKey] = index;
                 requestSender.sendRequest(

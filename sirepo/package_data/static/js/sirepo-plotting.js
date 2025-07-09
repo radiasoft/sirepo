@@ -2590,6 +2590,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             };
             $scope.rightPanelWidth = $scope.bottomPanelHeight = 55;
             $scope.dataCleared = true;
+            $scope.wantCrossHairs = ! SIREPO.PLOTTING_SUMMED_LINEOUTS;
             $scope.focusPoints = [];
 
             var canvas, ctx, fullDomain, heatmap, lineOuts, prevDomain, scaleFunction, xyZoom;

@@ -7,6 +7,10 @@
           <text class="focus-text-close close" text-anchor="end" ng-attr-x="{{ canvasSize.width }}" y="-10" dy=".35em">&times;</text>
           <text class="main-title" ng-attr-x="{{ (canvasSize.width + rightPanelWidth - margin.right) / 2 }}" ng-attr-y="{{ -margin.top / 2 }}"></text>
           <text class="sub-title" ng-attr-x="{{ (canvasSize.width + rightPanelWidth - margin.right) / 2 }}" y="0" dy="-.5em"></text>
+          <g data-ng-if="wantCrossHairs">
+            <line class="cross-hair" ng-attr-x1="{{ canvasSize.width / 2 }}" y1="0" ng-attr-x2="{{ canvasSize.width / 2 }}" ng-attr-y2="{{ canvasSize.height }}"></line>
+            <line class="cross-hair" x1="0" ng-attr-y1="{{ canvasSize.height / 2 }}" ng-attr-x2="{{ canvasSize.width }}" ng-attr-y2="{{ canvasSize.height / 2 }}"></line>
+          </g>
           <g class="y axis grid"></g>
           <defs>
             <clippath id="{{ modelName }}-bottomclip">
@@ -30,6 +34,7 @@
             <g class="focus" style="display: none;" data-focus-circle="" data-focus-point="focusPointX" data-is-solo-point="true"><circle r="6"></circle></g>
             <g class="x axis bottom" ng-attr-transform="translate(0, {{ bottomPanelHeight - pad - margin.bottom }})"></g>
             <g class="x axis grid" ng-attr-transform="translate(0, {{ bottomPanelHeight - pad - margin.bottom }})"></g>
+            <text data-ng-if="wantCrossHairs" style="user-select: none; text-anchor: middle" ng-attr-x="{{ canvasSize.width / 2 }}" ng-attr-y="-4">&and;</text>
             <text class="x-axis-label" ng-attr-x="{{ canvasSize.width / 2 }}" ng-attr-y="{{ bottomPanelHeight }}"></text>
             <text class="x-base" text-anchor="end" ng-attr-x="{{ canvasSize.width + rightPanelWidth - pad }}" ng-attr-y="{{ bottomPanelHeight }}"></text>
             <g class="y axis bottom"></g>
@@ -56,6 +61,7 @@
             <g class="focus" style="display: none;" data-focus-circle="" data-focus-point="focusPointY" data-is-solo-point="true"><circle r="6"></circle></g>
             <g class="y axis right" ng-attr-transform="translate({{ rightPanelWidth - pad - margin.right }}, 0)"></g>
             <g class="x axis right" ng-attr-transform="translate(0, {{ canvasSize.height }})"></g>
+            <text data-ng-if="wantCrossHairs" style="user-select: none; text-anchor: middle" ng-attr-x="{{ -canvasSize.height / 2 }}" ng-attr-y="-4" transform="rotate(270)">&and;</text>
             <text class="y-axis-label" ng-attr-x="{{ - canvasSize.height / 2 }}" ng-attr-y="{{ rightPanelWidth - 15 }}" transform="rotate(270)"></text>
             <text class="y-base" text-anchor="end" ng-attr-x="{{ rightPanelWidth - 2 * pad }}" ng-attr-y="-14"></text>
           </g>
