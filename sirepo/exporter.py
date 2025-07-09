@@ -98,7 +98,9 @@ def _run_file(data, template, out_dir, qcall):
             return t
         yield _default_path(), python_source
 
-    for k, v in _files(template.python_source_for_model(data, model=None, qcall=qcall)):
+    for k, v in _files(
+        template.python_source_for_model(copy.deepcopy(data), model=None, qcall=qcall)
+    ):
         p = out_dir.join(k)
         p.write(v)
         yield p
