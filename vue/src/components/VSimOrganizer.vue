@@ -3,17 +3,17 @@
     <div class="row">
         <div v-if="root" class="col-sm-4 col-md-3 sr-sidebar">
             <ul class="nav sr-nav-sidebar sr-nav-sidebar-root">
-                <VFolderNav :folder="root" :selected_folder="selectedFolder" @folderSelected="folderSelected"/>
+                <VFolderNav v-bind:folder="root" v-bind:selected_folder="selectedFolder" v-on:folderSelected="folderSelected"/>
             </ul>
         </div>
         <div class="col-sm-8 col-md-9">
 
-            <div v-for="item in items" :key="item.key" class="sr-icon-col">
+            <div v-for="item in items" v-bind:key="item.key" class="sr-icon-col">
                 <div class="sr-thumbnail text-center dropdown-center">
-                    <a href @dblclick="openItem(item)" data-bs-toggle="dropdown" style="padding-bottom: 30px">
+                    <a href v-on:dblclick="openItem(item)" data-bs-toggle="dropdown" style="padding-bottom: 30px">
                         <span
                             class="sr-item-icon"
-                            :class="{
+                            v-bind:class="{
                                 'sr-user-item': ! item.isExample,
                                 'bi bi-folder2': item.isFolder,
                                 'bi bi-file-earmark': ! item.isFolder,
@@ -24,44 +24,44 @@
                     </a>
 
                     <div>
-                        <a href @click.prevent="openItem(item)">
-                            <span :class="{
+                        <a href v-on:click.prevent="openItem(item)">
+                            <span v-bind:class="{
                                 'sr-user-item': ! item.isExample
                             }">
                                 {{ item.name }}
                             </span>
-                        </a> <VTooltip v-if="item.notes" :tooltip="item.notes" />
+                        </a> <VTooltip v-if="item.notes" v-bind:tooltip="item.notes" />
                     </div>
 
                     <ul class="dropdown-menu">
 
-                        <li><a href @click.prevent="openItem(item)" class="dropdown-item">
+                        <li><a href v-on:click.prevent="openItem(item)" class="dropdown-item">
                             <span
                                 class="sr-nav-icon"
-                                :class="{
+                                v-bind:class="{
                                     'bi bi-folder2-open': item.isFolder,
                                     'bi bi-file-earmark-arrow-up': ! item.isFolder
                                 }"></span> Open
                         </a></li>
-                        <li v-if="! item.isFolder"><a href @click.prevent="copyItem(item)" class="dropdown-item">
+                        <li v-if="! item.isFolder"><a href v-on:click.prevent="copyItem(item)" class="dropdown-item">
                             <span
                                 class="sr-nav-icon bi bi-copy"></span> Open as a New Copy
                         </a></li>
-                        <li v-if="! item.isExample"><a href @click.prevent="renameItem(item)" class="dropdown-item">
+                        <li v-if="! item.isExample"><a href v-on:click.prevent="renameItem(item)" class="dropdown-item">
                             <span
                                 class="sr-nav-icon bi bi-pencil-square"></span> Rename
                         </a></li>
-                        <li v-if="! item.isExample"><a href @click.prevent="moveItem(item)" class="dropdown-item">
+                        <li v-if="! item.isExample"><a href v-on:click.prevent="moveItem(item)" class="dropdown-item">
                             <span class="sr-nav-icon bi bi-box-arrow-right"></span> Move
                         </a></li>
-                        <li v-if="! item.isFolder"><a :href="exportArchiveUrl(item)" class="dropdown-item">
+                        <li v-if="! item.isFolder"><a v-bind:href="exportArchiveUrl(item)" class="dropdown-item">
                             <span class="sr-nav-icon bi bi-save"></span> Export as Zip
                         </a></li>
-                        <li v-if="! item.isFolder"><a :href="sourceCodeUrl(item)" class="dropdown-item">
+                        <li v-if="! item.isFolder"><a v-bind:href="sourceCodeUrl(item)" class="dropdown-item">
                             <span class="sr-nav-icon bi bi-cloud-download"></span> Source Code
                         </a></li>
                         <li v-if="canDelete(item)" class="dropdown-divider"></li>
-                        <li v-if="canDelete(item)"><a href @click.prevent="deleteItem(item)" class="dropdown-item">
+                        <li v-if="canDelete(item)"><a href v-on:click.prevent="deleteItem(item)" class="dropdown-item">
                             <span class="bi bi-trash"></span> Delete</a></li>
                     </ul>
 
@@ -79,7 +79,7 @@
         ref="deleteModal"
         title="Delete Simulation?"
         okText="Delete"
-        @okClicked="deleteSelected"
+        v-on:okClicked="deleteSelected"
     >
         Delete simulation &quot;{{ selectedItem && selectedItem.name }}&quot;?
     </VConfirmationModal>

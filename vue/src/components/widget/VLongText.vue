@@ -10,12 +10,12 @@
             class="form-control form-control-sm"
             rows="4"
             cols="50"
-            :class="{
+            v-bind:class="{
                 'sr-invalid': isInvalid || error,
             }"
-            :disabled="! enabled"
-            :readonly="! enabled"
-            @input="onInput"
+            v-bind:disabled="! enabled"
+            v-bind:readonly="! enabled"
+            v-on:input="onInput"
         />
         <div v-if="error" class="invalid-feedback">
             {{ error }}

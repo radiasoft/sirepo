@@ -512,13 +512,12 @@ class API(sirepo.quest.API):
     # visitor rather than user because error pages are rendered by the application
     @sirepo.quest.Spec("allow_visitor")
     async def api_simulationSchema(self):
-        return self.reply_dict(
-            simulation_db.get_schema(
-                self.parse_params(
-                    type=self.sreq.form_get("simulationType", "simulationType-missing"),
-                ).type,
-            ),
-        )
+        if not (t := self.sreq.form_get("simulationType", "")):
+            raise sirepo.util.NotFound("missing simulationType")
+        req = self.parse_params(type=t)
+        if self.auth.is_logged_in():
+            simulation_db.simulation_dir(req.type, qcall=self)
+        return self.reply_dict(simulation_db.get_schema(req.type))
 
     @sirepo.quest.Spec("allow_visitor")
     async def api_srwLight(self):
