@@ -4,11 +4,11 @@
         class="modal fade"
         tabindex="-1"
         ref="modal"
-        :data-bs-backdrop="canDismiss ? 'true' : 'static'"
+        v-bind:data-bs-backdrop="canDismiss ? 'true' : 'static'"
     >
-        <div class="modal-dialog" :class="'modal-' + size">
+        <div class="modal-dialog" v-bind:class="'modal-' + size">
             <div class="modal-content">
-                <div class="modal-header text-bg-info bg-opacity-25" :class="'text-bg-' + themeColor">
+                <div class="modal-header text-bg-info bg-opacity-25" v-bind:class="'text-bg-' + themeColor">
                     <span class="sr-panel-header lead">{{ title }}</span>
                     <button v-if="canDismiss" type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>

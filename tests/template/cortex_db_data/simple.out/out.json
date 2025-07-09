@@ -1,0 +1,14 @@
+{
+    "api_result": [
+        {
+            "created": 1751571171,
+            "material_id": 1001,
+            "material_name": "Eurofer 97"
+        },
+        {
+            "created": 1751571309,
+            "material_id": 2001,
+            "material_name": "Tungsten carbide"
+        }
+    ]
+}

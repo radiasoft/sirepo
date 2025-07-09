@@ -1,9 +1,9 @@
 <template>
-    <form @submit.prevent autocomplete="off" novalidate>
+    <form v-on:submit.prevent autocomplete="off" novalidate>
         <div class="row" v-for="f of layout">
             <VLabelAndField
-                :field_name="f"
-                :ui_ctx="ui_ctx"
+                v-bind:field_name="f"
+                v-bind:ui_ctx="ui_ctx"
             />
         </div>
         <slot></slot>
@@ -11,15 +11,15 @@
             <div class="col-sm-12 text-center">
                 <button
                     class="btn btn-primary sr-button-save-cancel"
-                    :disabled="isInvalid()"
-                    @click="saveChanges"
+                    v-bind:disabled="isInvalid()"
+                    v-on:click="saveChanges"
                 >
                     Save
                 </button>
                 <button
                     type="button"
                     class="btn btn-outline-secondary sr-button-save-cancel"
-                    @click="cancelChanges"
+                    v-on:click="cancelChanges"
                 >
                     Cancel
                 </button>

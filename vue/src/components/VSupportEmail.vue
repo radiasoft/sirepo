@@ -1,5 +1,5 @@
 <template>
-    <a :href="'mailto:' + supportEmail">{{ supportEmail }}</a>
+    <a v-bind:href="'mailto:' + supportEmail">{{ supportEmail }}</a>
 </template>
 
 <script setup>

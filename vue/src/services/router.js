@@ -1,5 +1,5 @@
+import VCompleteRegistration from '@/components/auth/VCompleteRegistration.vue';
 import VLogin from '@/components/auth/VLogin.vue';
-import VLoginConfirm from '@/components/auth/VLoginConfirm.vue';
 import VLoginFail from '@/components/auth/VLoginFail.vue';
 import VModerationRequest from '@/components/auth/VModerationRequest.vue';
 import VRouteMessage from '@/components/VRouteMessage.vue';
@@ -12,11 +12,11 @@ import { schema } from '@/services/schema.js';
 const storageKey = "previousRoute";
 
 const routeComponents = {
-    completeRegistration: () => import('@/components/auth/VCompleteRegistration.vue'),
+    completeRegistration: VCompleteRegistration,
     error: VRouteMessage,
     login: VLogin,
     loginFail: VLoginFail,
-    loginWithEmailConfirm: VLoginConfirm,
+    loginWithEmailConfirm: VCompleteRegistration,
     moderationPending: VRouteMessage,
     moderationRequest: VModerationRequest,
     notFound: VRouteMessage,

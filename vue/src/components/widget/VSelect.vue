@@ -6,16 +6,16 @@
         <select
             v-model="ui_ctx.fields[field_name].val"
             class="form-control form-select form-select-sm"
-            :class="{
+            v-bind:class="{
                 'sr-invalid': error,
             }"
-            @input="onInput"
-            :disabled="! enabled"
+            v-on:input="onInput"
+            v-bind:disabled="! enabled"
         >
             <option
                 v-for="v of ui_ctx.fields[field_name].choices"
-                :key="v.code"
-                :value="v.code">{{ v.display }}
+                v-bind:key="v.code"
+                v-bind:value="v.code">{{ v.display }}
             </option>
         </select>
         <div v-if="error" class="invalid-feedback">

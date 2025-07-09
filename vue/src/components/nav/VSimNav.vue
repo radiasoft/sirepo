@@ -1,7 +1,7 @@
 <template>
     <ul class="navbar-nav me-auto" v-if="isLoaded">
         <li class="nav-item nav-text">
-            <a class="nav-link" href @click.prevent="editSimulation">
+            <a class="nav-link" href v-on:click.prevent="editSimulation">
                 <span class="bi bi-pencil-fill sr-nav-icon"></span> <strong>{{ simName }}</strong>
             </a>
         </li>
@@ -9,7 +9,7 @@
     <ul class="navbar-nav nav-tabs" v-if="isLoaded">
         <template
             v-for="r in appRoutes"
-            :key="r.name"
+            v-bind:key="r.name"
         >
             <li
                 class="nav-item"
@@ -18,7 +18,7 @@
                 <RouterLink
                     class="nav-link"
                     activeClass="active"
-                    :to="{
+                    v-bind:to="{
                          name: r.name,
                          params: {
                              simulationId: appState.models.simulation.simulationId,
@@ -27,7 +27,7 @@
                 >
                     <span
                         class="bi sr-nav-icon"
-                        :class="r.tabIconClass"
+                        v-bind:class="r.tabIconClass"
                     ></span>
                     {{ r.tabName }}
                 </RouterLink>
@@ -36,7 +36,7 @@
     </ul>
     <ul class="navbar-nav" v-if="isLoaded">
         <li class="nav-item nav-text">
-            <a class="nav-link" href @click.prevent="openDocumentation">
+            <a class="nav-link" href v-on:click.prevent="openDocumentation">
                 <span class="bi bi-book sr-nav-icon"></span>
                 Notes
             </a>

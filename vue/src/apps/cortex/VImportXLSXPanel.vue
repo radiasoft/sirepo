@@ -26,19 +26,16 @@
         </div>
         <div v-if="isProcessing">
             Processing, please wait...
-            <VProgress v-bind:percentComplete="percentComplete" />
+            <VProgress v-bind:percentComplete="0" />
         </div>
     </div>
-    <!--VConfirmationModal
+    <VConfirmationModal
         ref="confirmModal"
-        title="Verify Material"
-        okText="Save"
-        cancelText="Discard"
-        v-on:okClicked="confirmMaterial"
-        v-on:modalClosed="modalClosed"
+        title="Material Imported"
+        cancelText="Close"
     >
-        TODO: Show imported material info here
-    </VConfirmationModal-->
+        Imported {{ materialName }} successfully
+    </VConfirmationModal>
     <VConfirmationModal
         ref="errorsModal"
         title="Import Errors"
@@ -62,8 +59,8 @@
  import VConfirmationModal from '@/components/VConfirmationModal.vue';
  import VFileUploadButton from '@/apps/cortex/VFileUploadButton.vue';
  import VProgress from '@/components/VProgress.vue';
- import { appState } from '@/services/appstate.js';
- import { ref, watch } from 'vue';
+ import { db } from '@/apps/cortex/db.js';
+ import { ref } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
  import { schema } from '@/services/schema.js';
  import { uri } from '@/services/uri.js';
@@ -73,34 +70,18 @@
  const dropPanel = ref(null);
  const errorList = ref(null);
  const errorsModal = ref(null);
- const isLoaded = appState.isLoadedRef;
  const isProcessing = ref(false);
- const percentComplete = ref(0);
- let file = null;
-
+ const materialName = ref('');
  const xlsxMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-
- const confirmMaterial = async () => {
-     appState.models.simulation.isConfirmed = '1';
-     await appState.saveChanges('simulation');
-     confirmModal.value.closeModal();
- };
 
  const templateURL = uri.format('downloadLibFile', {
      simulation_type: schema.simulationType,
      filename: `neutronics_input.xlsx`,
  });
 
- const modalClosed = async () => {
-     if (appState.models.simulation.isConfirmed === '0') {
-         await appState.deleteSimulation(appState.models.simulation.simulationId);
-     }
- }
-
  const onDrop = (files) => {
      if (! isProcessing.value) {
-         file = files[0];
-         startProcessing();
+         processFile(files[0]);
      }
  };
 
@@ -141,24 +122,18 @@
      return res;
  };
 
- const startProcessing = async () => {
+ const processFile = async (file) => {
      isProcessing.value = true;
-     const importFile = async () => {
-         const r = await requestSender.importFile(
-             file,
-             appState.formatFileType("materialImport", "xlsxFile"),
-         );
-         isProcessing.value = false;
-         file = null;
-         if (r.data.error) {
-             errorList.value = parseErrors(r.data.error);
-             errorsModal.value.showModal();
-             return;
-         }
-         // confirmModal.value.showModal();
-         await appState.saveChanges('materialImport');
+     const r = await requestSender.importFile(file);
+     isProcessing.value = false;
+     if (r.data.error) {
+         errorList.value = parseErrors(r.data.error);
+         errorsModal.value.showModal();
+         return;
      }
-     await importFile();
+     db.updated();
+     materialName.value = r.data.models.parsed_material[0].material_name;
+     confirmModal.value.showModal();
  };
 
  const { isOverDropZone, isInvalidMimeType } = useFileDrop(dropPanel, onDrop, xlsxMimeType);

@@ -8,17 +8,17 @@ class AuthState {
         Object.assign(this, authState);
     }
 
-    checkNeedsCompleteRegistration() {
+    checkNeedCompleteRegistration() {
         if (this.isLoggedIn && ! this.needCompleteRegistration) {
-            this.redirectAppRoot();
+            uri.redirectAppRoot();
             return false;
         }
         return true;
     }
 
-    checkNeedsLogin() {
+    checkNeedLogin() {
         if (this.isLoggedIn) {
-            this.redirectAppRoot();
+            uri.redirectAppRoot();
             return false;
         }
         return true;
@@ -36,23 +36,14 @@ class AuthState {
     handleLogin(response) {
         if (response.state === 'ok' && response.authState) {
             this.init(response.authState);
-            this.redirectAppRoot();
+            uri.redirectAppRoot();
             return;
         }
-        if (response.error === 'Server Error') {
-            response.error = '';
-        }
-        return response.error
-        //TODO(pjm): support_email should be a clickable link
-            || `Server reported an error, please contact ${schema.feature_config.support_email}`;
-    }
-
-    isModerated() {
-        return this.getAuthMethod() === 'email';
-    }
-
-    redirectAppRoot() {
-        uri.redirectAppRoot();
+        throw new Error(
+            response.error
+            //TODO(pjm): support_email should be a clickable link
+            || `Server reported an error, please contact ${schema.feature_config.support_email}`
+        );
     }
 }
 

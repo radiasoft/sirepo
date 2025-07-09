@@ -2,13 +2,13 @@
    A form field label.
  -->
 <template>
-    <div :class="labelClass()">
+    <div v-bind:class="labelClass()">
         <label
             class="col-form-label col-form-label-sm"
         >
             {{ ui_ctx.fields[field_name].label }}
         <span v-if="ui_ctx.fields[field_name].tooltip">
-            <VTooltip :tooltip="ui_ctx.fields[field_name].tooltip" />
+            <VTooltip v-bind:tooltip="ui_ctx.fields[field_name].tooltip" />
         </span>
         </label>
     </div>

@@ -8,13 +8,13 @@
             type="text"
             autocomplete="off"
             class="form-control form-control-sm"
-            :class="{
+            v-bind:class="{
                 'sr-invalid': isInvalid || error,
                 [$attrs.class]: $attrs.class,
             }"
-            :disabled="! enabled"
-            :readonly="! enabled"
-            @input="onInput"
+            v-bind:disabled="! enabled"
+            v-bind:readonly="! enabled"
+            v-on:input="onInput"
         />
         <div v-if="error" class="invalid-feedback">
             {{ error }}

@@ -6,13 +6,13 @@
                     <p>Enter your <strong>institutional email address</strong>. Any email or internet address associated with providers like Gmail.com, Yahoo.com, Outlook.com, etc. will be rejected. Emails associated with <a href="https://www.state.gov/countries-of-particular-concern-special-watch-list-countries-entities-of-particular-concern" target="_blank">'Countries of Particular Concern' as designated by the US State Department</a> will also be rejected.</p>
                 </div>
             </div>
-            <VForm viewName="emailLogin" fieldDef="basic" :wantButtons="false">
+            <VForm viewName="emailLogin" fieldDef="basic" v-bind:wantButtons="false">
                 <div class="row">
                     <div class="col-sm-7 offset-sm-5">
                         <p><button
                                class="btn btn-primary sr-button-save-cancel"
-                               :disabled="isBusy"
-                               @click="submitForm"
+                               v-bind:disabled="isBusy"
+                               v-on:click="submitForm"
                            >
                             Continue
                         </button></p>
@@ -25,7 +25,7 @@
             </VForm>
         </div>
     </div>
-    <VConfirmationModal ref="confirm" title="Check your inbox" :canDismiss="false">
+    <VConfirmationModal ref="confirm" title="Check your inbox" v-bind:canDismiss="false">
         We just emailed a confirmation link to {{ ui_ctx.fields.email.val }}. Click the link and you'll be signed in. You may close this window.
     </VConfirmationModal>
 </template>

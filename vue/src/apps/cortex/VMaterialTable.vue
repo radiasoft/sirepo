@@ -4,9 +4,9 @@
             <tr>
                 <th
                     v-for="col in cols"
-                    :key="col.name"
+                    v-bind:key="col.name"
                 >
-                    <a href @click.prevent="sortCol(col)">
+                    <a href v-on:click.prevent="sortCol(col)">
                         {{ col.heading }}
                         <div class="sr-sort-icon">
                             {{ sortIcon(col) }}
@@ -18,11 +18,11 @@
         <tbody>
             <tr
                 v-for="mat in state.materials"
-                :key="mat.material_id"
+                v-bind:key="mat.material_id"
             >
                 <td
                     v-for="col in cols"
-                    :key="col.name"
+                    v-bind:key="col.name"
                 >
                     {{ formatValue(mat, col) }}
                 </td>
@@ -32,10 +32,9 @@
 </template>
 
 <script setup>
- import { appState, MODEL_SAVED_EVENT } from '@/services/appstate.js';
  import { onMounted, onUnmounted, reactive } from 'vue';
  import { pubSub } from '@/services/pubsub.js';
- import { db } from '@/apps/cortex/db.js';
+ import { db, DB_UPDATED } from '@/apps/cortex/db.js';
 
  const emit = defineEmits(['materialCount']);
 
@@ -48,17 +47,17 @@
  });
  const cols = [
      {
-         name: 'name',
+         name: 'material_name',
          heading: 'Material Name',
      },
      {
-         name: 'lastModified',
+         name: 'created',
          heading: 'Date Uploaded',
          format: (v) => _dateFormat.format(v),
      },
  ];
  const state = reactive({
-     sort: ['name', true],
+     sort: ['material_name', true],
      materials: [],
  });
 
@@ -85,6 +84,7 @@
  }
 
  const _loadMaterials = async () => {
+     emit('materialCount', undefined);
      state.materials = await db.loadMaterials();
      emit('materialCount', state.materials.length);
      _sortMaterials();
@@ -110,13 +110,12 @@
  };
 
  onMounted(async () => {
-     pubSub.subscribe(MODEL_SAVED_EVENT, _loadMaterials);
-     appState.clearModels();
+     pubSub.subscribe(DB_UPDATED, _loadMaterials);
      await _loadMaterials();
  });
 
  onUnmounted(() => {
-     pubSub.unsubscribe(MODEL_SAVED_EVENT, _loadMaterials);
+     pubSub.unsubscribe(DB_UPDATED, _loadMaterials);
  });
 </script>
 

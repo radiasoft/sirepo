@@ -3,8 +3,8 @@
         <li class="nav-item">
             <RouterLink
                 class="nav-link"
-                :class="{ active: ! isLoaded }"
-                :to="{
+                v-bind:class="{ active: ! isLoaded }"
+                v-bind:to="{
                     name: 'simulations',
                     params: {
                         folderPath: folderPath,
@@ -21,7 +21,7 @@
             <a
                 class="nav-link"
                 href
-                @click.prevent="newSimulation"
+                v-on:click.prevent="newSimulation"
             >
                 <span class="bi bi-file-earmark-plus sr-nav-icon"></span>
                 New Simulation
@@ -31,7 +31,7 @@
             <a
                 class="nav-link"
                 href
-                @click.prevent="newFolder"
+                v-on:click.prevent="newFolder"
             >
                 <span class="bi bi-folder-plus sr-nav-icon"></span>
                 New Folder
