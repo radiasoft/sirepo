@@ -1,4 +1,6 @@
 
+import { singleton } from '@/services/singleton.js';
+
 //TODO(pjm): logging service
 const srlog = console.log;
 
@@ -37,4 +39,4 @@ class BrowserStorage {
     }
 }
 
-export const browserStorage = new BrowserStorage();
+export const browserStorage = singleton.add('browserStorage', new BrowserStorage());

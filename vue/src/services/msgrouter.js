@@ -2,6 +2,7 @@
 import * as msgpack from '@msgpack/msgpack';
 import { authState } from '@/services/authstate.js';
 import { schema } from '@/services/schema.js';
+import { singleton } from '@/services/singleton.js';
 
 //TODO(pjm): logging service
 const srlog = console.log;
@@ -377,7 +378,7 @@ class MsgRouter {
     }
 }
 
-export const msgRouter = new MsgRouter(new CookieManager());
+export const msgRouter = singleton.add('msgRouter', () => new MsgRouter(new CookieManager()));
 
 //TODO(pjm): will there be other async messages? Otherwise move cookie handling into MsgRouter
 msgRouter.registerAsyncMsg('setCookies', (content) => {

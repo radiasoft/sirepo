@@ -1,16 +1,28 @@
 
+import { reactive } from 'vue';
 import { requestSender } from '@/services/requestsender.js';
+import { singleton } from '@/services/singleton.js';
 
 const COMPOUND_PATH_SEPARATOR = ':';
 
 class SimManager{
+
+    state = reactive({
+        tree: null,
+        folders: null,
+    });
 
     //TODO(pjm): need better API for this
     selectedFolder = {
         path: '',
     };
 
-    addFolder(parentNode, folderPath) {
+    addFolder(parentPath, folderName) {
+        this.#getOrCreateFolder(
+            this.openFolder(parentPath),
+            folderName,
+        );
+        this.state.folders = this.#sortTree(this.root);
     }
 
     formatFolderPath(folderPath) {
@@ -18,7 +30,7 @@ class SimManager{
     }
 
     getFolders() {
-        return this.folders;
+        return this.state.folders;
     }
 
     getFolderPathFromRoute(route) {
@@ -38,13 +50,13 @@ class SimManager{
     }
 
     async getSims() {
-        if (! this.tree) {
+        if (! this.state.tree) {
             await this.loadSims();
         }
     }
 
     async loadSims() {
-        this.tree = [
+        this.state.tree = [
             {
                 name: '/',
                 children: [],
@@ -52,13 +64,12 @@ class SimManager{
                 path: '',
             },
         ];
-        this.root = this.tree[0];
-        this.folders = [];
+        this.root = this.state.tree[0];
         const r = await requestSender.sendRequest('listSimulations', {});
         for (const s of r) {
             this.#addToTree(s.simulation);
         }
-        this.#sortTree(this.root);
+        this.state.folders = this.#sortTree(this.root);
     }
 
     openFolder(folderPath) {
@@ -81,6 +92,7 @@ class SimManager{
     }
 
     removeSim(simulationId) {
+        this.#removeSim(simulationId, this.root.children);
     }
 
     #addToTree(sim) {
@@ -101,19 +113,35 @@ class SimManager{
         const n = {
             name: folderName,
             children: [],
-            key: folderName,
             path: parent.path
                 ? `${parent.path}${COMPOUND_PATH_SEPARATOR}${folderName}`
                 : folderName,
             isFolder: true,
         };
+        n.key = n.path;
         parent.children.push(n);
         return n;
     }
 
-    #sortTree(node) {
+    #removeSim(simulationId, children) {
+        for (let i = 0; i < children.length; i++) {
+            const c = children[i];
+            if (c.isFolder) {
+                this.#removeSim(simulationId, c.children);
+            }
+            else if (c.simulationId === simulationId) {
+                children.splice(i, 1);
+                return;
+            }
+        }
+    }
+
+    #sortTree(node, folders) {
+        if (! folders) {
+            folders = []
+        }
         if (node.isFolder) {
-            this.folders.push('/' + node.path.replace(COMPOUND_PATH_SEPARATOR, '/'));
+            folders.push('/' + node.path.replaceAll(COMPOUND_PATH_SEPARATOR, '/'));
         }
         node.children.sort((a, b) => {
             if (a.isFolder) {
@@ -129,9 +157,10 @@ class SimManager{
         });
         for (const c of node.children) {
             if (c.isFolder) {
-                this.#sortTree(c);
+                this.#sortTree(c, folders);
             }
         }
+        return folders;
     }
 
     #splitFolderPath(folderPath) {
@@ -143,8 +172,6 @@ class SimManager{
         }
         return p;
     }
-
-    //TODO(pjm): could subscribe to modelChange and update the sim list (and delete)
 }
 
-export const simManager = new SimManager();
+export const simManager = singleton.add('simManager', () => new SimManager());

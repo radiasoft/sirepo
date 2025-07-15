@@ -1,3 +1,4 @@
+import { singleton } from '@/services/singleton.js';
 
 class PubSub {
     #subscribers = new Map();
@@ -29,4 +30,4 @@ class PubSub {
     }
 };
 
-export const pubSub = new PubSub();
+export const pubSub = singleton.add('pubSub', () => new PubSub());

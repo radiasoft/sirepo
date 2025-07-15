@@ -3,7 +3,11 @@
     <div class="row">
         <div v-if="root" class="col-sm-4 col-md-3 sr-sidebar">
             <ul class="nav sr-nav-sidebar sr-nav-sidebar-root">
-                <VFolderNav v-bind:folder="root" v-bind:selected_folder="selectedFolder" v-on:folderSelected="folderSelected"/>
+                <VFolderNav
+                    v-bind:folder="root"
+                    v-bind:selected_folder="selectedFolder"
+                    v-on:folderSelected="folderSelected"
+                />
             </ul>
         </div>
         <div class="col-sm-8 col-md-9">
@@ -73,67 +77,23 @@
         </div>
     </div>
 
-    <VFormModal viewName="renameItem" title="Rename" ref="renameModal"/>
+    <VFormModal viewName="renameItem" :title="itemTitle('Rename')" ref="renameModal"/>
+    <VFormModal viewName="moveItem" title="Move" ref="moveModal"/>
 
     <VConfirmationModal
         ref="deleteModal"
-        title="Delete Simulation?"
+        v-bind:title="'Delete ' + strings.formatKey('simulationDataType') + '?'"
         okText="Delete"
         v-on:okClicked="deleteSelected"
     >
-        Delete simulation &quot;{{ selectedItem && selectedItem.name }}&quot;?
+        Delete {{ strings.get('simulationDataType') }} &quot;{{ selectedItem && selectedItem.name }}&quot;?
     </VConfirmationModal>
 
     <!--
-    <script type="text/ng-template" id="sr-folder">
-        <a href data-ng-click="simulations.toggleFolder(item)">
-            <span class="glyphicon sr-small-nav-icon" data-ng-class="{'glyphicon-chevron-down': item.isOpen, 'glyphicon-chevron-right': ! item.isOpen}"></span>
-            <span class="glyphicon sr-nav-icon" data-ng-class="{'sr-user-item': ! simulations.isRootFolder(item) && ! simulations.fileManager.isFolderExample(item), 'glyphicon-folder-open': item.isOpen, 'glyphicon-folder-close': ! item.isOpen}"></span> <span data-ng-class="{ 'sr-user-item': ! simulations.isRootFolder(item) && ! simulations.fileManager.isFolderExample(item) }">{{ item.name }}</span>
-        </a>
-        <ul data-ng-if="item.isOpen" class="nav sr-nav-sidebar">
-            <li data-ng-repeat="item in item.children | filter:{isFolder: true} | orderBy:'name'" data-ng-include="'sr-folder'" data-ng-class="{'active': simulations.isActiveFolder(item)}"></li>
-        </ul>
-    </script>
-
-    <div class="container-fluid">
-        <div class="row">
-            <div class="hidden-xs col-sm-4 col-md-3 sr-sidebar">
-                <ul class="nav sr-nav-sidebar sr-nav-sidebar-root">
-                    <li data-ng-repeat="item in simulations.fileTree" data-ng-include="'sr-folder'" data-ng-class="{'active': simulations.isActiveFolder(item)}"></li>
-                </ul>
-            </div>
-            <div class="col-sm-8 col-md-9">
-                <div class="sr-iconset">
-                    <div class="sr-folder-nav visible-xs clearfix">
-                        <a href data-ng-repeat="item in simulations.activeFolderPath" data-ng-click="simulations.openItem(item)"><span data-ng-if="simulations.isRootFolder(item)" class="glyphicon glyphicon-folder-open sr-nav-icon"></span><span data-ng-if="! simulations.isRootFolder(item)" class="glyphicon glyphicon-chevron-right sr-small-nav-icon"></span><span data-ng-class="{ 'sr-user-item': ! simulations.fileManager.isFolderExample(item) }">{{ item.name }}</span> </a>
-                    </div>
                     <div class="col-sm-12" data-get-started=""></div>
                     <div class="sr-icon-view-toggle"><a href data-ng-click="simulations.toggleIconView()"><span class="glyphicon" data-ng-class="{'glyphicon-th-list': simulations.isIconView, 'glyphicon-th-large': ! simulations.isIconView }"></span> View as {{ simulations.isIconView ? 'List' : 'Icons' }}</a></div>
                     <div class="col-sm-6" data-list-search="simulations.getSimPaths()" data-on-select="simulations.openItem" data-placeholder-text="search"></div>
                     <div class="clearfix"></div>
-
-                    <div style="margin-left: 2em; margin-top: 1ex;" class="lead" data-ng-show="simulations.isWaitingForList"><img src="/static/img/sirepo_animated.gif" /> Building simulation list, please wait.</div>
-                    <div data-ng-hide="simulations.isIconView" class="row"><div class="col-sm-offset-1 col-sm-10">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th data-ng-repeat="col in simulations.listColumns"><a data-ng-class="{'dropup': simulations.isSortAscending()}" href data-ng-click="simulations.toggleSort(col.field)">{{ col.heading }} <span data-ng-if="simulations.sortField.indexOf(col.field) >= 0" class="caret"></span></a></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr data-ng-repeat="item in simulations.activeFolder.children | orderBy:['isFolder', simulations.sortField]">
-                                    <td><a href data-ng-click="simulations.openItem(item)"><span class="glyphicon" data-ng-class="{'sr-user-item': ! simulations.fileManager.isItemExample(item), 'glyphicon-folder-close': item.isFolder, 'glyphicon-file': ! item.isFolder, 'sr-transparent-icon': ! item.isFolder && item.isExample, 'sr-transparent-icon-user': ! item.isFolder && ! item.isExample}"></span> <span data-ng-class="{ 'sr-user-item': ! simulations.fileManager.isItemExample(item) }">{{ item.name | simulationName }}</span></a> <span data-sr-tooltip="{{ item.notes }}"><span></td>
-                                        <td>{{ item.lastModified | date:'medium' }}</td>
-                                </tr>
-                                <tr data-ng-show="simulations.isWaitingForSim">
-                                    <td>
-                                        <img src="/static/img/sirepo_animated.gif" width="24px"/>
-                                        <a>Creating {{ simulations.newSimName }}...</a>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div></div>
 
                     <div data-ng-show="simulations.isIconView" style="margin-right: 65px">
                         <div data-ng-repeat="item in simulations.activeFolder.children | orderBy:['isFolder', 'name']" class="sr-icon-col">
@@ -168,67 +128,85 @@
                                 <a class="sr-item-text">Creating {{ simulations.newSimName }}...</a>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div data-confirmation-modal="" data-id="sr-delete-confirmation" data-title="Delete Simulation?" data-ok-text="Delete" data-ok-clicked="simulations.deleteSelected()">Delete simulation &quot;{{ simulations.selectedItem.name }}&quot;?</div>
-
-    <div data-confirmation-modal="" data-id="sr-rename-confirmation" data-title="Rename {{ simulations.selectedItemType() }}" data-ok-text="Rename" data-ok-clicked="simulations.renameSelected()">
-        <form class="form-horizontal" autocomplete="off">
-            <label class="col-sm-3 control-label">New Name</label>
-            <div class="col-sm-9">
-                <input data-safe-path="" class="form-control" data-ng-model="simulations.renameName" required/>
-                <div class="sr-input-warning" data-ng-show="showWarning">{{warningText}}</div>
-            </div>
-        </form>
-    </div>
-
-
-    <div data-copy-confirmation="" data-sim-id="simulations.selectedItem.simulationId" data-copy-cfg="simulations.copyCfg" data-disabled="false">
-    </div>
-
-    <div data-confirmation-modal="" data-id="sr-move-confirmation" data-title="Move {{ simulations.selectedItemType() }}" data-ok-text="Move" data-ok-clicked="simulations.moveSelected()">
-        <form class="form-horizontal" autocomplete="off">
-            <label class="col-sm-3 control-label">New Folder</label>
-            <div class="col-sm-9">
-                <select class="form-control" data-ng-model="simulations.targetFolder" data-ng-options="folder as simulations.pathName(folder) for folder in simulations.moveFolderList"></select>
-            </div>
-        </form>
-    </div>
 -->
 
 </template>
 
 <script setup>
  import VConfirmationModal from '@/components/VConfirmationModal.vue';
- import VFolderNav from '@/components/VFolderNav.vue';
+ import VFolderNav from '@/components/nav/VFolderNav.vue';
  import VFormModal from '@/components/VFormModal.vue'
  import VTooltip from '@/components/VTooltip.vue';
- import { appState, MODEL_CHANGED_EVENT } from '@/services/appstate.js';
- import { onMounted, onUnmounted, reactive, ref } from 'vue';
- import { pubSub } from '@/services/pubsub.js';
+ import { appResources } from '@/services/appresources.js';
+ import { appState } from '@/services/appstate.js';
+ import { onMounted, ref, watch } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
  import { simManager } from '@/services/simmanager.js';
+ import { strings } from '@/services/strings.js';
  import { uri } from '@/services/uri.js';
  import { useRoute, useRouter } from 'vue-router';
+ import { useSimModal } from '@/components/nav/useSimModal.js';
 
  // example: open, open as a new copy, export as zip, python source
  // open, open as a new copy, rename, move, export as zip, python source | delete
 
  const route = useRoute();
  const router = useRouter();
-
- const folders = ref([]);
  const items = ref([]);
  const root = ref(null);
  const selectedFolder = ref(null);
  const selectedItem = ref(null);
-
- const renameModal = ref(null);
  const deleteModal = ref(null);
+
+ const itemTitle = (prefix) => {
+     if (selectedItem.value) {
+         return prefix + ' ' + (
+             selectedItem.value.isFolder
+                 ? 'Folder'
+                 : strings.formatKey('simulationDataType')
+             );
+     }
+ };
+
+ const { modalRef: moveModal, showModal: moveItem } = useSimModal(
+     'moveItem',
+     (item) => {
+         selectedItem.value = item;
+         return {
+             folder: simManager.getFolderPath(simManager.selectedFolder),
+             isFolder: item.isFolder,
+             folderItem: item,
+             simulationId: item.simulationId,
+         };
+     },
+     (moveItem) => {
+         if (moveItem.isFolder) {
+         }
+         else {
+             updateSim(moveItem.simulationId, 'folder', moveItem.folder);
+         }
+     },
+ );
+
+ const { modalRef: renameModal, showModal: renameItem } = useSimModal(
+     'renameItem',
+     (item) => {
+         selectedItem.value = item;
+         return {
+             newName: item.name,
+             oldName: item.name,
+             isFolder: item.isFolder,
+             simulationId: item.simulationId,
+         };
+     },
+     (renameItem) => {
+         if (renameItem.isFolder) {
+         }
+         else {
+             updateSim(renameItem.simulationId, 'name', renameItem.newName);
+         }
+     },
+ );
 
  const init = () => {
      root.value = simManager.root;
@@ -268,18 +246,6 @@
      return '/';
  };
 
- const renameItem = async (item) => {
-     await appState.clearModels({
-         renameItem: {
-             newName: item.name,
-             oldName: item.name,
-             isFolder: item.isFolder,
-             simulationId: item.simulationId,
-         },
-     });
-     renameModal.value.showModal();
- };
-
  const sourceCodeUrl = (item) => {
      //TODO(pjm): implement this
      return '/';
@@ -293,10 +259,7 @@
  };
 
  const deleteItem = (item) => {
-     if (item.isFolder) {
-         //TODO(pjm): remove folder
-     }
-     else {
+     if (! item.isFolder) {
          selectedItem.value = item;
          deleteModal.value.showModal();
      }
@@ -304,15 +267,31 @@
 
  const deleteSelected = async () => {
      await appState.deleteSimulation(selectedItem.value.simulationId);
+     simManager.removeSim(selectedItem.value.simulationId);
      selectedItem.value = null;
      deleteModal.value.closeModal();
  };
 
- const onModelChanged = (names) => {
-     if (names[0] === 'renameItem') {
-         //TODO(pjm): requestSender call to save
-     }
+ const updateSim = async (simulationId, field, value) => {
+     const s = await requestSender.sendRequest(
+         'simulationData',
+         {
+             simulation_id: simulationId,
+         });
+     s.models.simulation[field] = value;
+     await requestSender.sendRequest('saveSimulationData', s);
  };
+
+ /*
+ const moveFolder = async (oldPath, newPath) => {
+     await requestSender.sendRequest(
+         'updateFolder',
+         {
+             oldName: oldPath,
+             newName: self.pathName(self.selectedItem),
+         });
+ };
+ */
 
  const openItem = (item) => {
      if (item.isFolder) {
@@ -327,11 +306,21 @@
      //TODO(pjm): simManager should keep state and not reload from scratch each visit
      await simManager.loadSims();
      init();
-     pubSub.subscribe(MODEL_CHANGED_EVENT, onModelChanged);
  });
 
- onUnmounted(() => {
-     pubSub.unsubscribe(MODEL_CHANGED_EVENT, onModelChanged);
+ appResources.registerViewLogic('moveItem', (ctx) => {
+     watch(ctx, () => {
+         if (appState.models.moveItem.isFolder) {
+             // don't allow moving a folder into itself
+             const p = simManager.getFolderPath(appState.models.moveItem.folderItem);
+             const c = ctx.fields.folder.choices;
+             for (let i = c.length - 1; i >= 0; i--) {
+                 if (c[i].code.startsWith(p)) {
+                     c.splice(i, 1);
+                 }
+             }
+         }
+     });
  });
 
 </script>

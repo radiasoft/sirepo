@@ -1,5 +1,6 @@
 
 import { schema } from '@/services/schema.js';
+import { singleton } from '@/services/singleton.js';
 import { uri } from '@/services/uri.js';
 
 //TODO(pjm): logging service
@@ -68,7 +69,7 @@ class ErrorHandler {
     }
 }
 
-export const errorHandler = new ErrorHandler();
+export const errorHandler = singleton.add('errorHandler', () => new ErrorHandler());
 
 export const onError = (err) => {
     errorHandler.handleError(err);

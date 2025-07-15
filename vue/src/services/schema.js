@@ -1,4 +1,6 @@
 
+import { singleton } from '@/services/singleton.js';
+
 class Schema {
     init(simulationType, schema) {
         if (this.simulationType) {
@@ -9,4 +11,4 @@ class Schema {
     }
 }
 
-export const schema = new Schema();
+export const schema = singleton.add('schema', () => new Schema());

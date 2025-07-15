@@ -4,6 +4,7 @@ const srlog = console.log;
 
 import { requestSender } from '@/services/requestsender.js';
 import { schema } from '@/services/schema.js';
+import { singleton } from '@/services/singleton.js';
 import { util } from '@/services/util.js';
 
 class SimQueue {
@@ -159,4 +160,4 @@ class SimQueue {
     //$rootScope.$on('clearCache', this.cancelTransientItems);
 }
 
-export const simQueue = new SimQueue();
+export const simQueue = singleton.add('simQueue, () => new SimQueue());

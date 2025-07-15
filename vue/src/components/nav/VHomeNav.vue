@@ -12,7 +12,7 @@
                 }"
             >
                 <span class="bi bi-list-task sr-nav-icon"></span>
-                Simulations
+                {{ strings.formatKey('simulationDataTypePlural') }}
             </RouterLink>
         </li>
     </ul>
@@ -24,7 +24,7 @@
                 v-on:click.prevent="newSimulation"
             >
                 <span class="bi bi-file-earmark-plus sr-nav-icon"></span>
-                New Simulation
+                {{ strings.newSimulationLabel() }}
             </a>
         </li>
         <li class="nav-item">
@@ -50,70 +50,67 @@
     <VFormModal
         v-if="! isLoaded"
         viewName="simulation"
-        title="New Simulation"
-        ref="newModal"
+        v-bind:title="strings.newSimulationLabel()"
+        ref="newSimModal"
+    />
+    <VFormModal
+        v-if="! isLoaded"
+        viewName="simFolder"
+        title="New Folder"
+        ref="simFolderModal"
     />
 </template>
 
 <script setup>
- import VBrand from '@/components/nav/VBrand.vue';
  import VFormModal from '@/components/VFormModal.vue';
  import { RouterLink } from 'vue-router';
- import { appState, MODEL_CHANGED_EVENT } from '@/services/appstate.js';
- import { onMounted, onUnmounted, ref, watch } from 'vue';
- import { pubSub } from '@/services/pubsub.js';
+ import { appState } from '@/services/appstate.js';
+ import { ref, watch } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
  import { simManager } from '@/services/simmanager.js';
+ import { strings } from '@/services/strings.js';
  import { uri } from '@/services/uri.js';
+ import { useSimModal } from '@/components/nav/useSimModal.js';
 
  const folderPath = ref('');
  const isLoaded = appState.isLoadedRef;
- const newModal = ref(null);
 
- const newFolder = () => {};
+ const { modalRef: simFolderModal, showModal: newFolder } = useSimModal(
+     'simFolder',
+     () => ({
+         parent: simManager.getFolderPath(simManager.selectedFolder),
+     }),
+     (simFolder) => {
+         simManager.addFolder(
+             simFolder.parent,
+             simFolder.name,
+         )
+     },
+ );
 
- const newSimulation = async () => {
-     if (isLoaded.value) {
-         throw new Error('newSimulation expects an unloaded state');
-     }
-     await appState.clearModels({
-         simulation: appState.setModelDefaults({
-             folder: simManager.getFolderPath(simManager.selectedFolder),
-         }, 'simulation'),
-     });
-     newModal.value.showModal();
- };
+ const { modalRef: newSimModal, showModal: newSimulation } = useSimModal(
+     'simulation',
+     () => ({
+         folder: simManager.getFolderPath(simManager.selectedFolder),
+     }),
+     async (simulation) => {
+         if (! isLoaded.value) {
+             // call newSimulation
+             simulation.folder = simManager.getFolderPath(simManager.selectedFolder);
+             const r = await requestSender.sendRequest(
+                 'newSimulation',
+                 simulation,
+             );
+             //TODO(pjm): add sim to simManager
+             uri.localRedirectHome(r.models.simulation.simulationId);
+         }
+     },
+ );
 
  watch(isLoaded, (v) => {
      if (isLoaded.value) {
          folderPath.value = simManager.formatFolderPath(appState.models.simulation.folder);
      }
- });
-
- const onModelChanged = async (names) => {
-     if (names[0] === 'simulation') {
-         if (isLoaded.value) {
-             folderPath.value = simManager.formatFolderPath(appState.models.simulation.folder);
-         }
-         else {
-             // call newSimulation
-             appState.models.simulation.folder = simManager.getFolderPath(simManager.selectedFolder);
-             const r = await requestSender.sendRequest(
-                 'newSimulation',
-                 appState.models.simulation,
-             );
-             //TODO(pjm): add sim to simManager
-             uri.localRedirectHome(r.models.simulation.simulationId);
-         }
-     }
- };
-
- onMounted(() => {
-     pubSub.subscribe(MODEL_CHANGED_EVENT, onModelChanged);
- });
-
- onUnmounted(() => {
-     pubSub.unsubscribe(MODEL_CHANGED_EVENT, onModelChanged);
  });
 
 </script>

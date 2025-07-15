@@ -3,7 +3,7 @@
     <VNavHolder>
         <VBrand />
         <VHomeNav v-if="authState.isLoggedIn"/>
-        <VSimNav />
+        <VSimNav v-if="isLoaded" />
         <VHelpAndLogout />
     </VNavHolder>
 </template>
@@ -15,4 +15,7 @@
  import VNavHolder from '@/components/nav/VNavHolder.vue';
  import VSimNav from '@/components/nav/VSimNav.vue';
  import { authState } from '@/services/authstate.js';
+ import { appState } from '@/services/appstate.js';
+
+ const isLoaded = appState.isLoadedRef;
 </script>

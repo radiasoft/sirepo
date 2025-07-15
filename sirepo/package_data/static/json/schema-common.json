@@ -514,6 +514,9 @@
             "moderationRequest": {
                 "reason": ["Please describe your reason for requesting access", "LongText", ""]
             },
+            "moveItem": {
+                "folder": ["Folder", "UserFolder"]
+            },
             "renameItem": {
                 "newName": ["New Name", "SafePath"]
             },
@@ -581,6 +584,11 @@
             "moderationRequest": {
                 "basic": [
                     "reason"
+                ]
+            },
+            "moveItem": {
+                "advanced": [
+                    "folder"
                 ]
             },
             "renameItem": {
