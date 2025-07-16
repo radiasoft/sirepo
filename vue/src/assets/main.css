@@ -85,6 +85,11 @@ ul.sr-nav-sidebar-root {
   font-size: 32px;
   cursor: pointer;
 }
+.sr-user-avatar {
+  border-radius: 3px;
+  width: 20px;
+  height: 20px;
+}
 
 /* bootstrap css overrides */
 .dropdown-menu {
@@ -118,19 +123,16 @@ ul.sr-nav-sidebar-root {
 }
 
 .nav-tabs .nav-item a {
-  margin-top: 5px;
-  padding-top: 10px;
+  margin-top: 4px;
+  padding-top: 8px;
+  padding-bottom: 13px;
 }
 
 .navbar {
   --bs-navbar-padding-y: 0;
 }
-
 .navbar-nav {
   --bs-navbar-nav-link-padding-x: 15px;
-}
-.nav-link {
-  --bs-nav-link-padding-y: 15px;
 }
 .nav-link.active {
   background-color: #e7e7e7;

@@ -2,6 +2,7 @@
 <template>
     <VNavHolder>
         <VBrand />
+        <div class="navbar-nav ms-auto"></div>
         <VHelpAndLogout />
     </VNavHolder>
 </template>

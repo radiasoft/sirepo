@@ -77,8 +77,8 @@
         </div>
     </div>
 
-    <VFormModal viewName="renameItem" :title="itemTitle('Rename')" ref="renameModal"/>
-    <VFormModal viewName="moveItem" title="Move" ref="moveModal"/>
+    <VFormModal viewName="renameItem" v-bind:title="itemTitle('Rename')" ref="renameModal"/>
+    <VFormModal viewName="moveItem" v-bind:title="itemTitle('Move')" ref="moveModal"/>
 
     <VConfirmationModal
         ref="deleteModal"
