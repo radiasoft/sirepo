@@ -2,9 +2,9 @@
 import VHeader from '@/components/nav/VHeader.vue';
 import VSource from '@/apps/myapp/VSource.vue';
 import VVisualization from '@/apps/myapp/VVisualization.vue';
-import { schema } from '@/services/schema.js';
-
 import { router } from '@/services/router.js';
+import { schema } from '@/services/schema.js';
+import { singleton } from '@/services/singleton.js';
 
 class AppResources {
     #appRoutes = [];
@@ -56,4 +56,4 @@ class AppResources {
     }
 }
 
-export const appResources = new AppResources();
+export const appResources = singleton.add('appResources', () => new AppResources());

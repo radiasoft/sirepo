@@ -1,6 +1,7 @@
 
 import { router } from '@/services/router.js';
 import { schema } from '@/services/schema.js';
+import { singleton } from '@/services/singleton.js';
 
 class URI {
     format(routeName, params) {
@@ -47,4 +48,4 @@ class URI {
     }
 }
 
-export const uri = new URI();
+export const uri = singleton.add('uri', () => new URI());

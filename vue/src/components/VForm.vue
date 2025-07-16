@@ -14,7 +14,7 @@
                     v-bind:disabled="isInvalid()"
                     v-on:click="saveChanges"
                 >
-                    Save
+                    {{ strings.saveButtonLabel(props.viewName) }}
                 </button>
                 <button
                     type="button"
@@ -31,9 +31,10 @@
 <script setup>
  import VLabelAndField from '@/components/layout/VLabelAndField.vue'
  import { appResources } from '@/services/appresources.js';
- import { appState, MODEL_CHANGED_EVENT } from '@/services/appstate.js';
- import { onMounted, onUnmounted, reactive } from 'vue';
- import { pubSub } from '@/services/pubsub.js';
+ import { appState } from '@/services/appstate.js';
+ import { reactive } from 'vue';
+ import { strings } from '@/services/strings.js';
+ import { useModelChanged } from '@/components/useModelChanged.js';
 
  const props = defineProps({
      viewName: String,
@@ -58,10 +59,10 @@
 
  const isInvalid = () => ui_ctx.isInvalid();
 
- const onModelChanged = (names) => {
+ useModelChanged((names) => {
      //TODO(pjm): only call if named models are used by UIContext
      cancelChanges();
- };
+ });
 
  const saveChanges = async () => {
      await ui_ctx.saveChanges();
@@ -69,14 +70,6 @@
  };
 
  const showButtons = () => props.wantButtons && ui_ctx.isDirty();
-
- onMounted(() => {
-     pubSub.subscribe(MODEL_CHANGED_EVENT, onModelChanged);
- });
-
- onUnmounted(() => {
-     pubSub.unsubscribe(MODEL_CHANGED_EVENT, onModelChanged);
- });
 
  appResources.initViewLogic(props.viewName, ui_ctx);
 

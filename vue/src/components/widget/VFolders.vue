@@ -11,13 +11,17 @@
 <script setup>
  import VSelect from '@/components/widget/VSelect.vue';
  import { simManager } from '@/services/simmanager.js';
+ import { watch } from 'vue';
 
  const props = defineProps({
      field_name: String,
      ui_ctx: Object,
  });
 
- simManager.getSims().then(() => {
+ const state = simManager.state;
+
+ const loadFolders = async () => {
+     await simManager.getSims();
      const f = props.ui_ctx.fields[props.field_name];
      f.choices = simManager.getFolders().map((v) => {
          return {
@@ -25,5 +29,9 @@
              display: v,
          };
      });
- });
+ };
+
+ watch(state, loadFolders);
+ loadFolders();
+
 </script>

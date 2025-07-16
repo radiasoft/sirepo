@@ -8,6 +8,7 @@ import { appState } from '@/services/appstate.js';
 import { authState } from '@/services/authstate.js';
 import { createRouter, createWebHistory } from 'vue-router';
 import { schema } from '@/services/schema.js';
+import { singleton } from '@/services/singleton.js';
 
 const storageKey = "previousRoute";
 
@@ -47,12 +48,12 @@ export const initRouter = () => {
     return router
 };
 
-export const router = createRouter({
+export const router = singleton.add('router', () => createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
         //TODO(pjm): need default not-found handler
     ],
-});
+}));
 
     // #checkLoginRedirect(event, route) {
     //     if (! authState.isLoggedIn

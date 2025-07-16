@@ -6,7 +6,6 @@
         "multiLayerOptions",
         "operatingConditions",
         "parsed_material",
-        "simFolder",
         "simulation"
     ],
     "simulation_name": "Eurofer 97"

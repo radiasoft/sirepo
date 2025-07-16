@@ -1,6 +1,7 @@
 import { appState } from '@/services/appstate.js';
 import { msgRouter } from '@/services/msgrouter.js';
 import { schema } from '@/services/schema.js';
+import { singleton } from '@/services/singleton.js';
 import { util } from '@/services/util.js';
 
 class RequestSender {
@@ -70,4 +71,4 @@ class RequestSender {
     }
 }
 
-export const requestSender = new RequestSender();
+export const requestSender = singleton.add('requestSender', () => new RequestSender());

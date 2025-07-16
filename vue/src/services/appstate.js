@@ -3,6 +3,7 @@ import { pubSub } from '@/services/pubsub.js';
 import { ref } from 'vue';
 import { requestSender } from '@/services/requestsender.js';
 import { schema } from '@/services/schema.js';
+import { singleton } from '@/services/singleton.js';
 import { util } from '@/services/util.js';
 
 class UIContext {
@@ -220,4 +221,4 @@ export const MODEL_CHANGED_EVENT = 'modelChanged';
 
 export const MODEL_SAVED_EVENT = 'modelSaved';
 
-export const appState = new AppState();
+export const appState = singleton.add('appState', () => new AppState());

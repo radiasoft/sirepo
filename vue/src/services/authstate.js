@@ -1,6 +1,7 @@
 
 import { reactive } from 'vue';
 import { schema } from '@/services/schema.js';
+import { singleton } from '@/services/singleton.js';
 import { uri } from '@/services/uri.js';
 
 class AuthState {
@@ -47,4 +48,4 @@ class AuthState {
     }
 }
 
-export const authState = reactive(new AuthState());
+export const authState = singleton.add('authState', () => reactive(new AuthState()));

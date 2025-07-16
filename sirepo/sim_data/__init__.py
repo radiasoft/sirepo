@@ -37,7 +37,9 @@ _CLIENT_ONLY_MODELS = frozenset(
         "emailLogin",
         "ldapLogin",
         "moderationRequest",
+        "moveItem",
         "renameItem",
+        "simFolder",
     )
 )
 

@@ -1,3 +1,4 @@
+import { singleton } from '@/services/singleton.js';
 
 class Util {
     uniqueIdCount = 0;
@@ -46,4 +47,4 @@ class Util {
     }
 }
 
-export const util = new Util();
+export const util = singleton.add('util', () => new Util());
