@@ -1,5 +1,6 @@
 {
-    "availability_factor": 66.0,
+    "availability_factor": 35.0,
+    "comments": null,
     "components": {
         "al": {
             "material_component_name": "al",
@@ -7,10 +8,16 @@
             "min_pct": 0.0,
             "target_pct": 0.01
         },
+        "as": {
+            "material_component_name": "as",
+            "max_pct": 0.0125,
+            "min_pct": 0.0,
+            "target_pct": 0.0125
+        },
         "b": {
             "material_component_name": "b",
-            "max_pct": null,
-            "min_pct": null,
+            "max_pct": 0.002,
+            "min_pct": 0.0,
             "target_pct": 0.002
         },
         "c": {
@@ -41,7 +48,7 @@
             "material_component_name": "fe",
             "max_pct": null,
             "min_pct": null,
-            "target_pct": 88.898
+            "target_pct": 88.848
         },
         "mn": {
             "material_component_name": "mn",
@@ -75,27 +82,39 @@
         },
         "o": {
             "material_component_name": "o",
-            "max_pct": null,
-            "min_pct": null,
+            "max_pct": 0.01,
+            "min_pct": 0.0,
             "target_pct": 0.01
         },
         "p": {
             "material_component_name": "p",
-            "max_pct": null,
-            "min_pct": null,
+            "max_pct": 0.005,
+            "min_pct": 0.0,
             "target_pct": 0.005
         },
         "s": {
             "material_component_name": "s",
-            "max_pct": null,
-            "min_pct": null,
+            "max_pct": 0.005,
+            "min_pct": 0.0,
             "target_pct": 0.005
+        },
+        "sb": {
+            "material_component_name": "sb",
+            "max_pct": 0.0125,
+            "min_pct": 0.0,
+            "target_pct": 0.0125
         },
         "si": {
             "material_component_name": "si",
             "max_pct": 0.05,
             "min_pct": 0.0,
             "target_pct": 0.05
+        },
+        "sn": {
+            "material_component_name": "sn",
+            "max_pct": 0.0125,
+            "min_pct": 0.0,
+            "target_pct": 0.0125
         },
         "ta": {
             "material_component_name": "ta",
@@ -120,16 +139,160 @@
             "max_pct": null,
             "min_pct": null,
             "target_pct": 1.1
+        },
+        "zr": {
+            "material_component_name": "zr",
+            "max_pct": 0.0125,
+            "min_pct": 0.0,
+            "target_pct": 0.0125
         }
     },
-    "density_g_cm3": 19.0,
+    "composition_comments": null,
+    "composition_doi_or_url": "10.1016/j.fusengdes.2018.06.027",
+    "composition_pointer": "T5.1",
+    "composition_source": "NOM",
+    "density_comments": "Density is available as function of temperature; value is given at 500 C",
+    "density_doi_or_url": "https://tinyurl.com/4uchnhx9",
+    "density_g_cm3": 7.625,
+    "density_pointer": "T1",
+    "density_source": "NOM",
+    "doi_or_url": null,
     "is_atom_pct": false,
     "is_bare_tile": true,
     "is_homogenized_divertor": false,
     "is_homogenized_hcpb": true,
     "is_homogenized_wcll": false,
     "is_neutron_source_dt": true,
-    "is_plasma_facing": true,
+    "is_plasma_facing": false,
     "material_name": "Eurofer 97",
-    "neutron_wall_loading": "ITER"
+    "microstructure": null,
+    "neutron_wall_loading": "DEMO",
+    "pointer": null,
+    "processing_steps": null,
+    "properties": {
+        "density": {
+            "comments": null,
+            "doi_or_url": "https://tinyurl.com/4uchnhx9",
+            "pointer": "T1",
+            "property_unit": "kg/m3",
+            "source": "NOM",
+            "vals": [
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 293.15,
+                    "uncertainty": "",
+                    "value": 7.744
+                },
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 323.15,
+                    "uncertainty": "",
+                    "value": 7.75
+                },
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 373.15,
+                    "uncertainty": "",
+                    "value": 7.74
+                },
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 473.15,
+                    "uncertainty": "",
+                    "value": 7.723
+                },
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 573.15,
+                    "uncertainty": "",
+                    "value": 7.691
+                },
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 673.15,
+                    "uncertainty": "",
+                    "value": 7.657
+                },
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 773.15,
+                    "uncertainty": "",
+                    "value": 7.625
+                },
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 873.15,
+                    "uncertainty": "",
+                    "value": 7.592
+                },
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 973.15,
+                    "uncertainty": "",
+                    "value": 7.559
+                }
+            ]
+        },
+        "thermal_conductivity": {
+            "comments": null,
+            "doi_or_url": "https://tinyurl.com/4uchnhx9",
+            "pointer": "T20.1",
+            "property_unit": "W/m/K",
+            "source": "EXP",
+            "vals": [
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 293.15,
+                    "uncertainty": "",
+                    "value": 28.08
+                },
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 323.15,
+                    "uncertainty": "",
+                    "value": 28.86
+                },
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 373.15,
+                    "uncertainty": "",
+                    "value": 29.78
+                },
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 473.15,
+                    "uncertainty": "",
+                    "value": 30.38
+                },
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 573.15,
+                    "uncertainty": "",
+                    "value": 30.01
+                },
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 673.15,
+                    "uncertainty": "",
+                    "value": 29.47
+                },
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 773.15,
+                    "uncertainty": "",
+                    "value": 29.58
+                },
+                {
+                    "neutron_fluence": 0.0,
+                    "temperature": 873.15,
+                    "uncertainty": "",
+                    "value": 31.12
+                }
+            ]
+        }
+    },
+    "property_name": null,
+    "property_unit": null,
+    "source": null,
+    "structure": null
 }
