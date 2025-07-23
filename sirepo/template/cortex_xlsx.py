@@ -56,6 +56,16 @@ _VALUE = "Value"
 
 # Order in spreadsheet
 _COMPONENT_VALUE_LABELS = (_TARGET, _MIN, _MAX)
+_COMPOSITION_PROPERTIES = PKDict(
+    density=PKDict(
+        property_name="composition_density",
+        property_unit="g/cm3",
+    ),
+    composition=PKDict(
+        property_name="composition",
+        property_unit="1",
+    ),
+)
 _PROPERTY_VALUE_LABELS = (
     _VALUE,
     "Uncertainty",
@@ -225,12 +235,15 @@ class Parser:
         return rv
 
     def _add_property_value(self, name, values):
+        # TODO(pjm): add independent variable columns
+        # TODO(pjm): don't allow duplicate "value" values
+        # TODO(pjm): only uncertainty may be empty
         self.result.properties[name].vals.append(
             PKDict(
-                value=values[0],
-                uncertainty=values[1],
-                temperature=values[2],
-                neutron_fluence=values[3],
+                value=_parse_float(values[0]),
+                uncertainty=_parse_float(values[1]),
+                temperature=_parse_float(values[2]),
+                neutron_fluence=_parse_float(values[3]),
             )
         )
 
@@ -276,6 +289,7 @@ class Parser:
                 l == _PROPERTY_VALUE_LABELS[0].lower()
                 and tuple(cols[0:4]) == _PROPERTY_VALUE_LABELS
             ):
+                # TODO(pjm): save any independent variable column headers
                 self._in_property_values = True
             else:
                 self._error(f"unable to parse row={cols}")
@@ -299,14 +313,18 @@ class Parser:
                 self._last_property = v
             n = col.name
             if col.is_property and self._last_property:
+                u = None
                 if self._sheet == "Properties":
-                    if self._last_property not in self.result.properties:
-                        self.result.properties[self._last_property] = PKDict(
-                            vals=[],
-                        )
-                    self.result.properties[self._last_property][n] = v
-                    return
-                n = f"{self._last_property}_{n}"
+                    p = self._last_property
+                elif self._last_property in _COMPOSITION_PROPERTIES:
+                    p = _COMPOSITION_PROPERTIES[self._last_property].property_name
+                    u = _COMPOSITION_PROPERTIES[self._last_property].property_unit
+                if p not in self.result.properties:
+                    self.result.properties[p] = PKDict(
+                        vals=[],
+                        property_unit=u,
+                    )
+                self.result.properties[p][n] = v
             self.result[n] = v
             return None
 
@@ -417,6 +435,11 @@ class Parser:
             self._error("at least one element or nuclide must be provided")
             return
         self._validate_components(x)
+        # TODO(pjm): validate properties
+        # remove property values at root level
+        for col in _LABEL_TO_COL.values():
+            if col.is_property and col.name in self.result:
+                del self.result[col.name]
 
 
 def _format_property(name):
@@ -492,9 +515,9 @@ def _parse_comments(value):
 def _parse_density_g_cm3(value):
     if (rv := _parse_float(value)) is None:
         return None, "must be number (g/cm3)"
-    if 0.0 < rv < 100:
+    if 0.0 < rv < 25:
         return rv, None
-    return None, "must be between 0 and 100 g/cm3"
+    return None, "must be between 0 and 25 g/cm3"
 
 
 def _parse_doi_or_url(value):

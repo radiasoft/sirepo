@@ -26,15 +26,7 @@
             "target_pct": 10.0
         }
     },
-    "composition_comments": null,
-    "composition_doi_or_url": "10.1016/j.fusengdes.2018.06.027",
-    "composition_pointer": "T5.1",
-    "composition_source": "NOM",
-    "density_comments": "Density is available as function of temperature; value is given at 500 C",
-    "density_doi_or_url": "https://tinyurl.com/4uchnhx9",
     "density_g_cm3": 3.33,
-    "density_pointer": "T1",
-    "density_source": "NOM",
     "is_atom_pct": true,
     "is_bare_tile": false,
     "is_homogenized_divertor": true,
@@ -46,6 +38,23 @@
     "microstructure": null,
     "neutron_wall_loading": "ITER",
     "processing_steps": null,
-    "properties": {},
+    "properties": {
+        "composition": {
+            "comments": null,
+            "doi_or_url": "10.1016/j.fusengdes.2018.06.027",
+            "pointer": "T5.1",
+            "property_unit": "1",
+            "source": "NOM",
+            "vals": []
+        },
+        "composition_density": {
+            "comments": "Density is available as function of temperature; value is given at 500 C",
+            "doi_or_url": "https://tinyurl.com/4uchnhx9",
+            "pointer": "T1",
+            "property_unit": "g/cm3",
+            "source": "NOM",
+            "vals": []
+        }
+    },
     "structure": null
 }

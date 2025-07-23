@@ -20,6 +20,22 @@ class Error(RuntimeError):
     pass
 
 
+def _insert_property(session, name, values):
+    vals = values.vals
+    del values["vals"]
+    i = session.insert(
+        "material_property",
+        property_name=name,
+        **values,
+    ).material_property_id
+    for v in vals:
+        session.insert(
+            "material_property_value",
+            material_property_id=i,
+            **v,
+        )
+
+
 def insert_material(parsed, qcall=None):
     def _values(cols, vals):
         return PKDict((c, vals[c]) for c in cols if c in vals)
@@ -48,6 +64,8 @@ def insert_material(parsed, qcall=None):
                     material_id=i
                 ),
             )
+        for n in parsed.properties:
+            _insert_property(s, n, parsed.properties[n].pkupdate(material_id=i))
 
 
 def list_materials():
@@ -81,6 +99,10 @@ def _meta(path):
     f = "float 64"
     b = "bool"
     u = "str 8"
+
+    def _optional(v):
+        return f"{v} nullable"
+
     return pykern.sql_db.Meta(
         uri=pykern.sql_db.sqlite_uri(path),
         schema=PKDict(
@@ -89,25 +111,62 @@ def _meta(path):
                 uid=u + " index",
                 created="datetime index",
                 material_name="str 100 unique",
-                availability_factor=f,
+                availability_factor=_optional(f),
                 density_g_cm3=f,
                 is_atom_pct=b,
-                is_bare_tile=b,
-                is_homogenized_divertor=b,
-                is_homogenized_hcpb=b,
-                is_homogenized_wcll=b,
-                is_neutron_source_dt=b,
+                is_bare_tile=_optional(b),
+                is_homogenized_divertor=_optional(b),
+                is_homogenized_hcpb=_optional(b),
+                is_homogenized_wcll=_optional(b),
+                is_neutron_source_dt=_optional(b),
                 is_plasma_facing=b,
-                neutron_wall_loading="str 32",
+                neutron_wall_loading=_optional("str 32"),
+                structure=_optional("str 100"),
+                microstructure=_optional("str 500"),
+                processing_steps=_optional("str 500"),
             ),
             material_component=PKDict(
                 material_component_id="primary_id 2",
                 material_id="primary_id",
                 material_component_name="str 8",
-                max_pct=f + " nullable",
-                min_pct=f + " nullable",
+                max_pct=_optional(f),
+                min_pct=_optional(f),
                 target_pct=f,
                 unique=(("material_id", "material_component_name"),),
+            ),
+            material_property=PKDict(
+                material_property_id="primary_id 3",
+                material_id="primary_id",
+                property_name="str 100",
+                property_unit="str 32",
+                doi_or_url=_optional("str 500"),
+                source=_optional("str 32"),
+                pointer=_optional("str 32"),
+                comments=_optional("str 5000"),
+                unique=(("material_id", "property_name"),),
+            ),
+            material_property_value=PKDict(
+                material_property_value_id="primary_id 4",
+                material_property_id="primary_id",
+                value=f,
+                uncertainty=_optional(f),
+                temperature=f,
+                neutron_fluence=f,
+            ),
+            independent_variable=PKDict(
+                independent_variable_id="primary_id 5",
+                material_property_id="primary_id",
+                name="str 100",
+                units="str 32",
+                unique=(("material_property_id", "name"),),
+            ),
+            independent_variable_value=PKDict(
+                independent_variable_value_id="primary_id 6",
+                independent_variable_id="primary_id",
+                material_property_value_id="primary_id",
+                value=f,
+                # TODO(pjm): this could be the primary key, rather than independent_variable_value_id
+                unique=(("independent_variable_id", "material_property_value_id"),),
             ),
         ),
     )

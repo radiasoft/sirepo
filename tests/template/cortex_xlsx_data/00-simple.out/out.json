@@ -8,15 +8,7 @@
             "target_pct": 100.0
         }
     },
-    "composition_comments": null,
-    "composition_doi_or_url": null,
-    "composition_pointer": null,
-    "composition_source": null,
-    "density_comments": null,
-    "density_doi_or_url": null,
     "density_g_cm3": 3.1238,
-    "density_pointer": null,
-    "density_source": null,
     "is_atom_pct": false,
     "is_bare_tile": null,
     "is_homogenized_divertor": null,
@@ -28,6 +20,23 @@
     "microstructure": null,
     "neutron_wall_loading": null,
     "processing_steps": null,
-    "properties": {},
+    "properties": {
+        "composition": {
+            "comments": null,
+            "doi_or_url": null,
+            "pointer": null,
+            "property_unit": "1",
+            "source": null,
+            "vals": []
+        },
+        "composition_density": {
+            "comments": null,
+            "doi_or_url": null,
+            "pointer": null,
+            "property_unit": "g/cm3",
+            "source": null,
+            "vals": []
+        }
+    },
     "structure": null
 }
