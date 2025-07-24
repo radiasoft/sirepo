@@ -1033,13 +1033,13 @@ class _SbatchRun(_SbatchCmd):
         self.destroy()
         return rv
 
-    def __in_file(cmd, basename, content):
-        f = self.run_dir.join(basename)
-        f.write(content)
-        return f"{cmd} {f}" if cmd else str(f)
-
-
     def _script(self):
+        def _in_file(cmd, basename, content):
+            f = self.run_dir.join(basename)
+            f.write(content)
+            return f"{cmd} {f}" if cmd else str(f)
+
+
         def _nodes_tasks():
             if n := self.msg.get("sbatchNodes"):
                 return f"#SBATCH --nodes={n}\n#SBATCH --cpus-per-task={self.msg.sbatchCores}"
@@ -1061,7 +1061,7 @@ class _SbatchRun(_SbatchCmd):
 {sirepo.nersc.sbatch_project_option(self.msg.sbatchProject)}"""
 
         def _sbatch_cmd():
-            return self.__in_file(
+            return _in_file(
                 "sbatch",
                 "in.sbatch",
                 f"""#!/bin/bash
@@ -1078,7 +1078,7 @@ exec {_srun()} {_python()} {template_common.PARAMETERS_PYTHON_FILE}
             )
 
         def _sim_prepare_cmd():
-            return self.__in_file(
+            return _in_file(
                 _python(),
                 "prepare.py",
                 f"""#!/usr/bin/env python
@@ -1087,7 +1087,6 @@ import sirepo.sim_data
 sirepo.sim_data.get_class('{self.msg.data.simulationType}').sim_run_dir_prepare(
     '{self.run_dir}',
 )
-EOF
 """,
             )
 
@@ -1107,15 +1106,16 @@ EOF
                 )
             )
 
-        return self.__in_file(
+        return _in_file(
             None,
             "run.bash",
             f"""#!/bin/bash
 set -eou pipefail
-{self._sim_prepare_cmd()}
-{self._sbatch_cmd()}
+{_sim_prepare_cmd()}
+{_sbatch_cmd()}
 """,
         )
+
 
 class _SbatchRunStatus(_SbatchCmd):
     def __init__(self, **kwargs):
