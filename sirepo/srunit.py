@@ -177,7 +177,7 @@ class _TestClient:
         """
         from pykern.pkunit import pkexcept
 
-        return pkexcept("(SRException|Error)\(")
+        return pkexcept(r"(SRException|Error)\(")
 
     def iter_sleep(self, kind, op_desc):
         import time
@@ -529,17 +529,6 @@ class _TestClient:
                 pkdlog("runCancel")
                 self.sr_post("runCancel", cancel)
             _assert_no_mpiexec()
-
-    def sr_sbatch_animation_run(self, sim_name, compute_model, reports, **kwargs):
-        self.sr_sbatch_login(compute_model, sim_name)
-        self.sr_animation_run(
-            self.sr_sim_data(sim_name, compute_model=compute_model),
-            compute_model,
-            reports,
-            # Things take longer with Slurm.
-            timeout=90,
-            **kwargs,
-        )
 
     def sr_sbatch_creds(self):
         return PKDict(sbatchCredentials=_cfg().sbatch.copy())

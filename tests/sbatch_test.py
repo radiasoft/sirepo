@@ -4,7 +4,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-# If you see: _timeout MAX_CASE_RUN_SECS=120 exceeded
+# If you see: TIMEOUT=<time> exceeded, the default
 # Run sinfo to see if slurmd is down for this node.
 # https://github.com/radiasoft/sirepo/issues/2136
 # sudo scontrol <<EOF
@@ -72,10 +72,13 @@ def test_srw_data_file(fc):
     from pykern.pkcollections import PKDict
     from pykern.pkunit import pkeq
 
-    a = "Young's Double Slit Experiment"
+    d = fc.sr_sim_data("Young's Double Slit Experiment")
+    d.models.multiElectronAnimation.numberOfMacroElectrons = 50
+    d.models.simulation.sampleFactor = 0.0001
     c = "multiElectronAnimation"
-    fc.sr_sbatch_animation_run(
-        a,
+    fc.sr_sbatch_login(c, d.models.simulation.name)
+    fc.sr_animation_run(
+        d,
         c,
         PKDict(
             multiElectronAnimation=PKDict(
@@ -84,11 +87,12 @@ def test_srw_data_file(fc):
                 expect_title="E=4.24 keV",
             ),
         ),
+        # Things take longer with Slurm.
+        timeout=90,
         expect_completed=False,
     )
     # TODO(robnagler) jobRunMode needs to be set?
     # https://github.com/radiasoft/sirepo/issues/7093
-    d = fc.sr_sim_data(a, compute_model=c)
     r = fc.sr_get(
         "downloadRunFile",
         PKDict(
