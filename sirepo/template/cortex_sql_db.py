@@ -21,19 +21,34 @@ class Error(RuntimeError):
 
 
 def _insert_property(session, name, values):
-    vals = values.vals
-    del values["vals"]
-    i = session.insert(
+    vals = values.pop("vals")
+    ivars = values.pop("independent_variables", PKDict())
+    prop_id = session.insert(
         "material_property",
         property_name=name,
         **values,
     ).material_property_id
-    for v in vals:
-        session.insert(
+    ivar_ids = {
+        name: session.insert(
+            "independent_variable",
+            material_property_id=prop_id,
+            name=name,
+        ).independent_variable_id
+        for name in ivars
+    }
+    for idx, val in enumerate(vals):
+        val_id = session.insert(
             "material_property_value",
-            material_property_id=i,
-            **v,
-        )
+            material_property_id=prop_id,
+            **val,
+        ).material_property_value_id
+        for name, values_list in ivars.items():
+            session.insert(
+                "independent_variable_value",
+                independent_variable_id=ivar_ids[name],
+                material_property_value_id=val_id,
+                value=values_list[idx],
+            )
 
 
 def insert_material(parsed, qcall=None):
@@ -157,7 +172,6 @@ def _meta(path):
                 independent_variable_id="primary_id 5",
                 material_property_id="primary_id",
                 name="str 100",
-                units="str 32",
                 unique=(("material_property_id", "name"),),
             ),
             independent_variable_value=PKDict(

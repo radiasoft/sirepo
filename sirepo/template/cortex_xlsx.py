@@ -30,6 +30,11 @@ _IGNORE_FIRST_CELL_RE = re.compile(
     r"^(?:select|enter|please|choose)\s|^(?:material\s+name|multi-layer\s+geometry|operating\s+condition|composition|density\s+unit|legend|required\s+data|optional\s+data|add\s+or\s+remove)",
 )
 
+# TODO(pjm): comment is misspelled in xlsx
+_IGNORE_INDEPENDENT_VARIABLE_HEADER_RE = re.compile(
+    r"add add+itional independent", re.IGNORECASE
+)
+
 _COMPONENTS_COL = "components"
 
 _COMPONENT_FROM_LOWER = None
@@ -246,6 +251,15 @@ class Parser:
                 neutron_fluence=_parse_float(values[3]),
             )
         )
+        for i, p in self._independent_variables.items():
+            if i < len(values):
+                if "independent_variables" not in self.result.properties[name]:
+                    self.result.properties[name].independent_variables = PKDict()
+                if p.name not in self.result.properties[name].independent_variables:
+                    self.result.properties[name].independent_variables[p.name] = []
+                self.result.properties[name].independent_variables[p.name].append(
+                    _parse_float(values[i])
+                )
 
     def _parse_rows(self, rows):
         # TODO(robnagler) track the sheet/row of each element so
@@ -289,8 +303,16 @@ class Parser:
                 l == _PROPERTY_VALUE_LABELS[0].lower()
                 and tuple(cols[0:4]) == _PROPERTY_VALUE_LABELS
             ):
-                # TODO(pjm): save any independent variable column headers
                 self._in_property_values = True
+                i = len(_PROPERTY_VALUE_LABELS)
+                while cols[i] and not _IGNORE_INDEPENDENT_VARIABLE_HEADER_RE.search(
+                    cols[i]
+                ):
+                    self._independent_variables[i] = PKDict(
+                        name=cols[i],
+                        vals=[],
+                    )
+                    i += 1
             else:
                 self._error(f"unable to parse row={cols}")
 
@@ -311,6 +333,7 @@ class Parser:
                     return e
             if col.name == "property_name":
                 self._last_property = v
+                self._independent_variables = PKDict()
             n = col.name
             if col.is_property and self._last_property:
                 u = None
@@ -329,6 +352,7 @@ class Parser:
             return None
 
         self._in_property_values = False
+        self._independent_variables = PKDict()
         self._in_components = None
         self._last_property = None
         while r := _next_row():
