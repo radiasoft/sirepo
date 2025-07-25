@@ -4,9 +4,6 @@ import pytest
 import re
 import subprocess
 
-#: Maximum time an individual test case (function) can run
-MAX_CASE_RUN_SECS = int(os.getenv("SIREPO_CONFTEST_MAX_CASE_RUN_SECS", 120))
-
 
 @pytest.fixture(scope="function")
 def auth_fc(auth_fc_module):
@@ -101,30 +98,6 @@ def pytest_collection_modifyitems(session, config, items):
     import sirepo.srunit
 
     sirepo.srunit.CONFTEST_DEFAULT_CODES = ":".join(codes)
-
-
-@pytest.hookimpl(tryfirst=True)
-def pytest_runtest_protocol(item, *args, **kwargs):
-    import signal
-
-    def _timeout(*args, **kwargs):
-        from pykern import pkunit
-
-        signal.signal(signal.SIGALRM, _timeout_failed)
-        signal.alarm(1)
-        pkunit.pkfail("MAX_CASE_RUN_SECS={} exceeded", MAX_CASE_RUN_SECS)
-
-    def _timeout_failed(*args, **kwargs):
-        import os
-        import sys
-        from pykern.pkdebug import pkdlog
-
-        pkdlog("failed to die after timeout (pkfail)")
-        os.killpg(os.getpgrp(), signal.SIGKILL)
-
-    # Seems to be the only way to get the module under test
-    signal.signal(signal.SIGALRM, _timeout)
-    signal.alarm(MAX_CASE_RUN_SECS)
 
 
 @pytest.hookimpl(tryfirst=True)

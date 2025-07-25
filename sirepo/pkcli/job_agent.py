@@ -1004,7 +1004,7 @@ class _SbatchRun(_SbatchCmd):
 
     def start(self):
         p = subprocess.run(
-            ("sbatch", self._sbatch_script()),
+            ("bash", self._script()),
             close_fds=True,
             cwd=str(self.run_dir),
             capture_output=True,
@@ -1033,26 +1033,24 @@ class _SbatchRun(_SbatchCmd):
         self.destroy()
         return rv
 
-    def _sbatch_script(self):
+    def _script(self):
+        def _in_file(cmd, basename, content):
+            f = self.run_dir.join(basename)
+            f.write(content)
+            return f"{cmd} {f}" if cmd else str(f)
+
         def _nodes_tasks():
             if n := self.msg.get("sbatchNodes"):
                 return f"#SBATCH --nodes={n}\n#SBATCH --cpus-per-task={self.msg.sbatchCores}"
             return f"#SBATCH --ntasks={self.msg.sbatchCores}"
 
-        def _sim_run_dir_prepare():
-            # python serialization does not work so use json
-            return f"""{_python()} <<'EOF'
-import sirepo.sim_data
-
-sirepo.sim_data.get_class('{self.msg.data.simulationType}').sim_run_dir_prepare(
-    '{self.run_dir}',
-)
-EOF"""
-
-        def _python():
-            return (
-                "shifter --entrypoint " if self.msg.get("shifterImage") else ""
-            ) + "python"
+        def _python(include_image=False):
+            rv = "python"
+            if i := self.msg.get("shifterImage"):
+                if include_image:
+                    rv = f"--image={i} {rv}"
+                rv = "shifter --entrypoint " + rv
+            return rv
 
         def _shifter_header():
             # POSIT: job_api has validated values
@@ -1063,6 +1061,36 @@ EOF"""
 #SBATCH --qos={self.msg.sbatchQueue}
 #SBATCH --tasks-per-node={self.msg.tasksPerNode}
 {sirepo.nersc.sbatch_project_option(self.msg.sbatchProject)}"""
+
+        def _sbatch_cmd():
+            return _in_file(
+                "sbatch",
+                "in.sbatch",
+                f"""#!/bin/bash
+#SBATCH --error={template_common.RUN_LOG}
+#SBATCH --output={template_common.RUN_LOG}
+#SBATCH --time={_time()}
+{_nodes_tasks()}
+{_shifter_header()}
+{self.job_cmd_env()}
+{self.job_cmd_source_bashrc()}
+# POSIT: same as sim_run_dir_prepare() return value
+exec {_srun()} {_python()} {template_common.PARAMETERS_PYTHON_FILE}
+""",
+            )
+
+        def _sim_prepare_cmd():
+            return _in_file(
+                _python(True),
+                "prepare.py",
+                f"""#!/usr/bin/env python
+import sirepo.sim_data
+
+sirepo.sim_data.get_class('{self.msg.data.simulationType}').sim_run_dir_prepare(
+    '{self.run_dir}',
+)
+""",
+            )
 
         def _srun():
             return "srun" + (
@@ -1080,22 +1108,15 @@ EOF"""
                 )
             )
 
-        f = self.run_dir.join(self.jid + ".sbatch")
-        f.write(
+        return _in_file(
+            None,
+            "run.bash",
             f"""#!/bin/bash
-#SBATCH --error={template_common.RUN_LOG}
-#SBATCH --output={template_common.RUN_LOG}
-#SBATCH --time={_time()}
-{_nodes_tasks()}
-{_shifter_header()}
-{self.job_cmd_env()}
-{self.job_cmd_source_bashrc()}
-{_sim_run_dir_prepare()}
-# POSIT: same as return value of sim_run_dir_prepare
-exec {_srun()} {_python()} {template_common.PARAMETERS_PYTHON_FILE}
-"""
+set -eou pipefail
+{_sim_prepare_cmd()}
+{_sbatch_cmd()}
+""",
         )
-        return f
 
 
 class _SbatchRunStatus(_SbatchCmd):

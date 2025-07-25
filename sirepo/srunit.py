@@ -47,6 +47,14 @@ _ITER_SLEEP = PKDict(
 __cfg = None
 
 
+class JobAgentError(RuntimeError):
+    pass
+
+
+class ServerRequestError(RuntimeError):
+    pass
+
+
 def http_client(
     env=None, sim_types=None, job_run_mode=None, empty_work_dir=True, port=None
 ):
@@ -177,7 +185,7 @@ class _TestClient:
         """
         from pykern.pkunit import pkexcept
 
-        return pkexcept("(SRException|Error)\(")
+        return pkexcept(r"(SRException|Error)\(")
 
     def iter_sleep(self, kind, op_desc):
         import time
@@ -530,17 +538,6 @@ class _TestClient:
                 self.sr_post("runCancel", cancel)
             _assert_no_mpiexec()
 
-    def sr_sbatch_animation_run(self, sim_name, compute_model, reports, **kwargs):
-        self.sr_sbatch_login(compute_model, sim_name)
-        self.sr_animation_run(
-            self.sr_sim_data(sim_name, compute_model=compute_model),
-            compute_model,
-            reports,
-            # Things take longer with Slurm.
-            timeout=90,
-            **kwargs,
-        )
-
     def sr_sbatch_creds(self):
         return PKDict(sbatchCredentials=_cfg().sbatch.copy())
 
@@ -667,6 +664,7 @@ class _TestClient:
 
         u = None
         r = None
+        e = None
         try:
             u = uri.server_route(route_or_uri, params, query)
             pkdc("uri={}", u)
@@ -694,18 +692,22 @@ class _TestClient:
                         __redirects=redirects,
                     )
             return res
-        except Exception as e:
-            if not isinstance(e, (util.ReplyExc)):
-                pkdlog(
-                    "Exception: {}: msg={} uri={} status={} data={} stack={}",
-                    type(e),
-                    e,
-                    u,
-                    r and r.status_code,
-                    r and r.data,
-                    pkdexc(),
-                )
+        except util.ReplyExc:
             raise
+        except Exception as e2:
+            pkdlog(
+                "Exception: {}: msg={} uri={} status={} data={} stack={}",
+                type(e2),
+                e2,
+                u,
+                r and r.status_code,
+                r and r.data,
+                pkdexc(simplify=True),
+            )
+            e = e2
+        if e:
+            # Avoids long stack traces
+            raise ServerRequestError(str(e))
 
     def _get(self, uri, **kwargs):
         return self._requests_op("get", uri, kwargs=PKDict(kwargs))
@@ -1020,6 +1022,7 @@ class _WebSocket:
     def _send(self, msg):
         from websockets.sync import client
         from sirepo import job
+        from pykern import pkdebug
 
         def _connect():
             r = requests.Request(
@@ -1033,20 +1036,35 @@ class _WebSocket:
             )
             self.req_seq = 1
 
-        if not self._connection:
-            _connect()
-        self.req_seq += 1
-        msg.header.reqSeq = self.req_seq
-        self._connection.send(_WebSocketRequest(msg).buf)
-        for _ in range(10):
-            r = _WebSocketResponse(
-                self._connection.recv(timeout=self.test_client.timeout_secs()),
-                msg,
-                self,
+        def _connect_and_send():
+            if not self._connection:
+                _connect()
+            self.req_seq += 1
+            msg.header.reqSeq = self.req_seq
+            self._connection.send(_WebSocketRequest(msg).buf)
+            for _ in range(10):
+                r = _WebSocketResponse(
+                    self._connection.recv(timeout=self.test_client.timeout_secs()),
+                    msg,
+                    self,
+                )
+                if not r.is_async_msg:
+                    return r
+            return "too many asyncMsg _WebSocketResponses"
+
+        rv = None
+        try:
+            rv = _connect_and_send()
+        except Exception as e:
+            pkdebug.pkdlog(
+                "communication error={} stack={}", e, pkdebug.pkdexc(simplify=True)
             )
-            if not r.is_async_msg:
-                return r
-        raise AssertionError("too many asyncMsg _WebSocketResponses")
+        if rv is None:
+            # Avoids complex stack traces
+            raise JobAgentError("Check job_agent.log for errors")
+        if isinstance(rv, str):
+            raise AssertionError(rv)
+        return rv
 
 
 class _WebSocketRequest:
