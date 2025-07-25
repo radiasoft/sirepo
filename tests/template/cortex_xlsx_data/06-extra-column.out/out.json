@@ -178,6 +178,19 @@
         "density": {
             "comments": null,
             "doi_or_url": "https://tinyurl.com/4uchnhx9",
+            "independent_variables": {
+                "Another [m]": [
+                    1100000.0,
+                    1200000.0,
+                    1200000.0,
+                    1300000.0,
+                    1400000.0,
+                    1400000.0,
+                    1700000.0,
+                    1800000.0,
+                    1800000.0
+                ]
+            },
             "pointer": "T1",
             "property_unit": "kg/m3",
             "source": "NOM",

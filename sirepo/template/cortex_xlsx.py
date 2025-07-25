@@ -10,6 +10,7 @@ import math
 import pandas
 import pykern.pkcompat
 import re
+import urllib
 
 # true expressions return a group(1) that's true (not None)
 _BOOL_RE = re.compile(r"^(?:(t|true|y|yes)|f|false|n|no)$", re.IGNORECASE)
@@ -19,11 +20,21 @@ _TYPE_RE = re.compile(r"(?:(fac(?:e|ing))|structur)", re.IGNORECASE)
 
 _WALL_RE = re.compile(r"^(?:(iter)|demo)$", re.IGNORECASE)
 
-_SOURCE_RE = re.compile(r"\b(?:(d\W?t)|d\W?d)\b", re.IGNORECASE)
+_NEUTRON_SOURCE_RE = re.compile(r"\b(?:(d\W?t)|d\W?d)\b", re.IGNORECASE)
+
+_POINTER_RE = re.compile(r"^((?:p|t|f)\d+(?:\.\d+)?)$", re.IGNORECASE)
+
+_SOURCE_RE = re.compile(r"^(exp|pp|nom|ml|dft)$", re.IGNORECASE)
 
 _IGNORE_FIRST_CELL_RE = re.compile(
-    r"^(?:select|enter|please|choose)\s|^(?:material\s+name|multi-layer\s+geometry|operating\s+condition|composition|density\s+unit)",
+    r"^(?:select|enter|please|choose)\s|^(?:material\s+name|multi-layer\s+geometry|operating\s+condition|composition|density\s+unit|legend|required\s+data|optional\s+data|add\s+or\s+remove)",
 )
+
+# TODO(pjm): comment is misspelled in xlsx
+_IGNORE_INDEPENDENT_VARIABLE_HEADER_RE = re.compile(
+    r"add add+itional independent", re.IGNORECASE
+)
+
 _COMPONENTS_COL = "components"
 
 _COMPONENT_FROM_LOWER = None
@@ -46,8 +57,42 @@ _MIN = "Min"
 
 _MAX = "Max"
 
+_VALUE = "Value"
+
 # Order in spreadsheet
 _COMPONENT_VALUE_LABELS = (_TARGET, _MIN, _MAX)
+_COMPOSITION_PROPERTIES = PKDict(
+    density=PKDict(
+        property_name="composition_density",
+        property_unit="g/cm3",
+    ),
+    composition=PKDict(
+        property_name="composition",
+        property_unit="1",
+    ),
+)
+_PROPERTY_VALUE_LABELS = (
+    _VALUE,
+    "Uncertainty",
+    "Temperature [K]",
+    "Neutron Fluence [1/cm2]",
+)
+
+_PROPERTY_NAMES = (
+    "density",
+    "yield strength",
+    "tensile strength",
+    "Young's modulus",
+    "Poisson ratio",
+    "fracture toughness",
+    "creep",
+    "thermal conductivity",
+    "specific heat",
+    "swelling",
+    "hardness",
+    "DBTT",
+)
+_PROPERTY_KEY_TO_NAME = None
 
 _COMPONENT_ERROR = "error"
 
@@ -67,7 +112,10 @@ class Parser:
     def __init__(self, path, qcall=None):
         self.errors = []
         self._sheet = self._run_now = self._col_num = None
-        self.result = PKDict(components=PKDict())
+        self.result = PKDict(
+            components=PKDict(),
+            properties=PKDict(),
+        )
         self._parse_rows(self._read_and_split(path))
         if not self.errors:
             self._validate_result()
@@ -191,17 +239,45 @@ class Parser:
         rv[_TARGET] = x
         return rv
 
+    def _add_property_value(self, name, values):
+        # TODO(pjm): add independent variable columns
+        # TODO(pjm): don't allow duplicate "value" values
+        # TODO(pjm): only uncertainty may be empty
+        self.result.properties[name].vals.append(
+            PKDict(
+                value=_parse_float(values[0]),
+                uncertainty=_parse_float(values[1]),
+                temperature=_parse_float(values[2]),
+                neutron_fluence=_parse_float(values[3]),
+            )
+        )
+        for i, p in self._independent_variables.items():
+            if i < len(values):
+                if "independent_variables" not in self.result.properties[name]:
+                    self.result.properties[name].independent_variables = PKDict()
+                if p.name not in self.result.properties[name].independent_variables:
+                    self.result.properties[name].independent_variables[p.name] = []
+                self.result.properties[name].independent_variables[p.name].append(
+                    _parse_float(values[i])
+                )
+
     def _parse_rows(self, rows):
         # TODO(robnagler) track the sheet/row of each element so
         # can provide more context in _validate_result
 
         def _dispatch(cols):
             e = None
-            if not isinstance(cols[0], str):
+            if not isinstance(cols[0], str) and not self._in_property_values:
                 self._error(f"expected string cell={cols[0]}", col_num=1)
                 return
+            if self._in_property_values and isinstance(cols[0], float):
+                self._add_property_value(self._last_property, cols)
+                return
+
             l = cols[0].lower()
-            if _IGNORE_FIRST_CELL_RE.search(l):
+            if isinstance(cols[1], str) and cols[1].lower() == _VALUE.lower():
+                self._last_property = _format_property(l)
+            elif _IGNORE_FIRST_CELL_RE.search(l):
                 if self._in_components:
                     self._in_components = False
             elif x := _LABEL_TO_COL.get(l):
@@ -223,6 +299,20 @@ class Parser:
                     self.result.components[l] = PKDict(
                         name=l, label=cols[0], percentage=self._parse_component(l, cols)
                     )
+            elif (
+                l == _PROPERTY_VALUE_LABELS[0].lower()
+                and tuple(cols[0:4]) == _PROPERTY_VALUE_LABELS
+            ):
+                self._in_property_values = True
+                i = len(_PROPERTY_VALUE_LABELS)
+                while cols[i] and not _IGNORE_INDEPENDENT_VARIABLE_HEADER_RE.search(
+                    cols[i]
+                ):
+                    self._independent_variables[i] = PKDict(
+                        name=cols[i],
+                        vals=[],
+                    )
+                    i += 1
             else:
                 self._error(f"unable to parse row={cols}")
 
@@ -234,14 +324,37 @@ class Parser:
 
         def _simple(col, value):
             if isinstance(value, str) and not len(value):
-                return "may not be blank"
-            v, e = col.parser(value)
-            if e:
-                return e
-            self.result[col.name] = v
+                if col.is_required:
+                    return "may not be blank"
+                v = None
+            else:
+                v, e = col.parser(value)
+                if e:
+                    return e
+            if col.name == "property_name":
+                self._last_property = v
+                self._independent_variables = PKDict()
+            n = col.name
+            if col.is_property and self._last_property:
+                u = None
+                if self._sheet == "Properties":
+                    p = self._last_property
+                elif self._last_property in _COMPOSITION_PROPERTIES:
+                    p = _COMPOSITION_PROPERTIES[self._last_property].property_name
+                    u = _COMPOSITION_PROPERTIES[self._last_property].property_unit
+                if p not in self.result.properties:
+                    self.result.properties[p] = PKDict(
+                        vals=[],
+                        property_unit=u,
+                    )
+                self.result.properties[p][n] = v
+            self.result[n] = v
             return None
 
+        self._in_property_values = False
+        self._independent_variables = PKDict()
         self._in_components = None
+        self._last_property = None
         while r := _next_row():
             try:
                 # first case probably doesn't happen, but need the check anyway
@@ -272,6 +385,8 @@ class Parser:
                 str(path), header=None, sheet_name=None
             ).items():
                 self._sheet = n
+                if self._in_components:
+                    self._in_components = False
                 for i, r in enumerate(s.itertuples(index=False), start=1):
                     # Remove pandas objects to avoid problems in string
                     # conversions later. See also
@@ -336,7 +451,7 @@ class Parser:
 
     def _validate_result(self):
         def _labels(names):
-            ", ".join(sorted(_VALID_COLS[n].label for n in names))
+            return ", ".join(sorted(_VALID_COLS[n].label for n in names))
 
         if x := set(_VALID_COLS) - set(self.result.keys()):
             self._error(f"missing properties=({_labels(x)})")
@@ -344,33 +459,65 @@ class Parser:
             self._error("at least one element or nuclide must be provided")
             return
         self._validate_components(x)
+        # TODO(pjm): validate properties
+        # remove property values at root level
+        for col in _LABEL_TO_COL.values():
+            if col.is_property and col.name in self.result:
+                del self.result[col.name]
+
+
+def _format_property(name):
+    return re.sub(r"'", "", name).replace(" ", "_").lower()
 
 
 def _init():
     def _cols():
-        for k, v in (
-            ("Availability Factor", "availability_factor"),
-            ("Bare Tile", "is_bare_tile"),
-            ("Density", "density_g_cm3"),
-            ("Homogenized Divertor", "is_homogenized_divertor"),
-            ("Homogenized HCPB", "is_homogenized_hcpb"),
-            ("Homogenized WCLL", "is_homogenized_wcll"),
-            ("Material Type", "is_plasma_facing"),
-            ("Name", "material_name"),
-            ("Neutron Source", "is_neutron_source_dt"),
-            ("Neutron Wall Loading", "neutron_wall_loading"),
+        for k, v, r, p in (
+            ("Availability Factor", "availability_factor", False, False),
+            ("Bare Tile", "is_bare_tile", False, False),
+            ("Comments", "comments", False, True),
+            ("DOI or URL", "doi_or_url", False, True),
+            ("Density", "density_g_cm3", True, False),
+            ("Homogenized Divertor", "is_homogenized_divertor", False, False),
+            ("Homogenized HCPB", "is_homogenized_hcpb", False, False),
+            ("Homogenized WCLL", "is_homogenized_wcll", False, False),
+            ("Material Type", "is_plasma_facing", True, False),
+            ("Microstructure Information", "microstructure", False, False),
+            ("Name", "material_name", True, False),
+            ("Neutron Source", "is_neutron_source_dt", False, False),
+            ("Neutron Wall Loading", "neutron_wall_loading", False, False),
+            ("Pointer", "pointer", False, True),
+            ("Processing", "processing_steps", False, False),
+            ("Property Name", "property_name", False, False),
+            ("Property Unit", "property_unit", False, True),
+            ("Source", "source", False, True),
+            ("Structure", "structure", False, False),
         ):
-            yield k.lower(), PKDict(label=k, name=v, parser=globals()[f"_parse_{v}"])
+            yield k.lower(), PKDict(
+                label=k,
+                name=v,
+                parser=globals()[f"_parse_{v}"],
+                is_required=r,
+                is_property=p,
+            )
 
     def _components():
         for x in "elements", "nuclides":
             for y in _COMPONENTS[x]:
                 yield y.lower(), y
 
-    global _COMPONENT_FROM_LOWER, _LABEL_TO_COL, _VALID_COLS
+    global _COMPONENT_FROM_LOWER, _LABEL_TO_COL, _VALID_COLS, _PROPERTY_KEY_TO_NAME
     _COMPONENT_FROM_LOWER = PKDict(_components())
     _LABEL_TO_COL = PKDict(_cols())
-    _VALID_COLS = PKDict({c.name: c for c in _LABEL_TO_COL.values()})
+    _VALID_COLS = PKDict(
+        {c.name: c for c in [v for v in _LABEL_TO_COL.values() if v.is_required]}
+    )
+    _PROPERTY_KEY_TO_NAME = PKDict(
+        zip(
+            [_format_property(v) for v in _PROPERTY_NAMES],
+            _PROPERTY_NAMES,
+        )
+    )
 
 
 def _parse_availability_factor(value):
@@ -385,12 +532,25 @@ def _parse_bool(value):
     return None, "must be yes, no, true, false"
 
 
+def _parse_comments(value):
+    return value, None
+
+
 def _parse_density_g_cm3(value):
     if (rv := _parse_float(value)) is None:
         return None, "must be number (g/cm3)"
-    if 0.0 < rv < 100:
+    if 0.0 < rv < 25:
         return rv, None
-    return None, "must be between 0 and 100 g/cm3"
+    return None, "must be between 0 and 25 g/cm3"
+
+
+def _parse_doi_or_url(value):
+    # ex. 10.1007/s11089-018-0833-1 or a url
+    if urllib.parse.urlparse(value).scheme in ("http", "https") or re.search(
+        r"^10\.\d{4}/.+", value
+    ):
+        return value, None
+    return None, "Expecting a valid URL or DOI"
 
 
 def _parse_float(value):
@@ -431,9 +591,13 @@ def _parse_is_plasma_facing(value):
 
 
 def _parse_is_neutron_source_dt(value):
-    if isinstance(value, str) and (m := _SOURCE_RE.search(value)):
+    if isinstance(value, str) and (m := _NEUTRON_SOURCE_RE.search(value)):
         return bool(m.group(1)), None
     return None, "must be D-T or D-D"
+
+
+def _parse_microstructure(value):
+    return _parse_string(value, 500)
 
 
 def _parse_neutron_wall_loading(value):
@@ -451,6 +615,43 @@ def _parse_percent(value):
     if value > _SUM:
         return None, f"must not be greater than {_SUM:g}"
     return value, None
+
+
+def _parse_pointer(value):
+    if isinstance(value, str) and (m := _POINTER_RE.search(value)):
+        return m.group(1).upper(), None
+    return None, "expected location number with P, T or F prefix"
+
+
+def _parse_property_name(value):
+    if value and _format_property(value) not in _PROPERTY_KEY_TO_NAME:
+        return None, f"unknown property name"
+    return _format_property(value), None
+
+
+def _parse_property_unit(value):
+    # TODO(pjm): expected SI unit per property type
+    return value, None
+
+
+def _parse_source(value):
+    if isinstance(value, str) and (m := _SOURCE_RE.search(value)):
+        return m.group(1).upper(), None
+    return None, "invalid source value"
+
+
+def _parse_string(value, length):
+    if value and len(value) > length:
+        return None, f"value exceeded {length} characters"
+    return value, None
+
+
+def _parse_structure(value):
+    return _parse_string(value, 100)
+
+
+def _parse_processing_steps(value):
+    return _parse_string(value, 500)
 
 
 # See pkcli.cortex.gen_components

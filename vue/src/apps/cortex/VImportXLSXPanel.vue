@@ -76,7 +76,7 @@
 
  const templateURL = uri.format('downloadLibFile', {
      simulation_type: schema.simulationType,
-     filename: `neutronics_input.xlsx`,
+     filename: 'materials_input.xlsx',
  });
 
  const onDrop = (files) => {
