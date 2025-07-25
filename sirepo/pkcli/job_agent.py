@@ -1039,7 +1039,6 @@ class _SbatchRun(_SbatchCmd):
             f.write(content)
             return f"{cmd} {f}" if cmd else str(f)
 
-
         def _nodes_tasks():
             if n := self.msg.get("sbatchNodes"):
                 return f"#SBATCH --nodes={n}\n#SBATCH --cpus-per-task={self.msg.sbatchCores}"
