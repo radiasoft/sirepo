@@ -1045,10 +1045,13 @@ class _SbatchRun(_SbatchCmd):
                 return f"#SBATCH --nodes={n}\n#SBATCH --cpus-per-task={self.msg.sbatchCores}"
             return f"#SBATCH --ntasks={self.msg.sbatchCores}"
 
-        def _python():
-            return (
-                "shifter --entrypoint " if self.msg.get("shifterImage") else ""
-            ) + "python"
+        def _python(include_image=False):
+            rv = "python"
+            if i := self.msg.get("shifterImage"):
+                if include_image:
+                    rv = f"--image={i} {rv}"
+                rv = "shifter --entrypoint " + rv
+            return rv
 
         def _shifter_header():
             # POSIT: job_api has validated values
@@ -1079,7 +1082,7 @@ exec {_srun()} {_python()} {template_common.PARAMETERS_PYTHON_FILE}
 
         def _sim_prepare_cmd():
             return _in_file(
-                _python(),
+                _python(True),
                 "prepare.py",
                 f"""#!/usr/bin/env python
 import sirepo.sim_data
