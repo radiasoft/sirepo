@@ -252,34 +252,32 @@ class _Dispatcher(PKDict):
     async def loop(self):
         async def _connect_and_loop():
             if _cfg.supervisor_uri.startswith("unix:/"): # Handle unix domain sockets
-                socket_path = _cfg.supervisor_uri.replace("unix:/", "")
-                socket_path, _, resource_path = socket_path.partition(";")
-                resource_path = resource_path.strip()
+                socket_path, _, resource_path = _cfg.supervisor_uri.replace("unix:/", "", 1).partition(";")
                 if not resource_path.startswith("/"):
                     resource_path = "/" + resource_path
-
-                self._websocket = await tornado.websocket.websocket_connect(
-                    tornado.httpclient.HTTPRequest(
-                        connect_timeout=_CONNECT_SECS,
-                        url="ws://localhost:0" + resource_path,  # POSIT: use ws://localhost for unix sockets
-                        validate_cert=job.cfg().verify_tls,
-                    ),
-                    max_message_size=job.cfg().max_message_bytes,
-                    ping_interval=job.cfg().ping_interval_secs,
-                    ping_timeout=job.cfg().ping_timeout_secs,
-                    resolver=UnixResolver(socket_path),
+                tgt_url = "ws://localhost:0" + resource_path
+                resolver = UnixResolver(socket_path)
+                pkdlog(
+                    "connecting to unix socket={} resource_path={} tgt_url={}",
+                    socket_path,
+                    resource_path,
+                    tgt_url,
                 )
             else:
-                self._websocket = await tornado.websocket.websocket_connect(
-                    tornado.httpclient.HTTPRequest(
-                        connect_timeout=_CONNECT_SECS,
-                        url=_cfg.supervisor_uri,
-                        validate_cert=job.cfg().verify_tls,
-                    ),
-                    max_message_size=job.cfg().max_message_bytes,
-                    ping_interval=job.cfg().ping_interval_secs,
-                    ping_timeout=job.cfg().ping_timeout_secs,
-                )
+                tgt_url = _cfg.supervisor_uri
+                resolver = None
+
+            self._websocket = await tornado.websocket.websocket_connect(
+                tornado.httpclient.HTTPRequest(
+                    connect_timeout=_CONNECT_SECS,
+                    url=tgt_url,
+                    validate_cert=job.cfg().verify_tls,
+                ),
+                max_message_size=job.cfg().max_message_bytes,
+                ping_interval=job.cfg().ping_interval_secs,
+                ping_timeout=job.cfg().ping_timeout_secs,
+                resolver=resolver,
+            )
             s = self.format_op(None, job.OP_ALIVE)
             rv = False
             while True:

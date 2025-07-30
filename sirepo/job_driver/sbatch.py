@@ -14,7 +14,7 @@ from sirepo import job_driver
 from sirepo import util
 import asyncssh
 import asyncio
-import tempfile
+import uuid
 from urllib.parse import urlparse
 import datetime
 import errno
@@ -236,42 +236,16 @@ class SbatchDriver(job_driver.DriverBase):
         if pkconfig.in_dev_mode():
             pkdlog("agent_log={}/{}", agent_start_dir, log_file)
 
-        supervisor_uri = urlparse(self.cfg.supervisor_uri)
         # If the supervisor URI points to localhost, while the slurm host is not localhost
-        # the supervisor URI is likely inaccessible and we should forward it 
-        # (maybe only do this if the login node actually can't access the supervisor URI?)
+        # the supervisor URI is likely inaccessible and we should forward it over SSH
+        supervisor_uri = urlparse(self.cfg.supervisor_uri)
         loopback_addresses = ['localhost', '127.0.0.1']
         is_supervisor_uri_proper = not (supervisor_uri.hostname in loopback_addresses and 
                                         self.cfg.host not in loopback_addresses)
-        try:
-            self.conn = await asyncssh.connect(self.cfg.host, **_creds())
-
-            if not is_supervisor_uri_proper:
-                # Get the port number of the supervisor URI
-                supervisor_port = supervisor_uri.port
-                if not supervisor_port:
-                    # If the port is not specified, use the default port for HTTPS or HTTP
-                    supervisor_port = 443 if supervisor_uri.scheme == 'https' else 80
-
-                # Domain socket name just needs to be unique, so we can use a timestamp
-                dest_domain_socket0 = f"sirepo-{datetime.datetime.timestamp()}.sock"
-                listener0 = await self.conn.forward_remote_path_to_port(dest_domain_socket0, 'localhost', supervisor_port)
-                self.conn_listener0 = asyncio.create_task(listener0.wait_closed())
-
-                # Update the supervisor URI to point to the new domain socket, the job agent can connect through it
-                self.cfg.supervisor_uri = f"unix:/{dest_domain_socket0};"
-
-        except Exception as e:
-            pkdlog("error={} stack={}", e, pkdexc())
-            self._srdb_root = None
-            self._raise_sbatch_login_srexception(
-                (
-                    "invalid-creds"
-                    if isinstance(e, asyncssh.misc.PermissionDenied)
-                    else "general-connection-error"
-                ),
-                original_msg,
-            )
+        pkdlog("supervisor_uri.hostname={} host={}", supervisor_uri.hostname, self.cfg.host)
+        if not is_supervisor_uri_proper:
+            dest_domain_socket0 = f"/tmp/sirepo-{uuid.uuid4().hex}.sock" # Domain socket name just needs to be unique, so we can use a UUID
+            self.cfg.supervisor_uri = f"unix:/{dest_domain_socket0};" # Semicolon is needed to separate the socket path from the resource path
 
         script = f"""#!/bin/bash
 set -euo pipefail
@@ -283,6 +257,16 @@ cd '{self._srdb_root}'
 disown
 """
         try:
+            self.conn = await asyncssh.connect(self.cfg.host, **_creds())
+            pkdlog("is_supervisor_uri_proper={} supervisor_uri={}", is_supervisor_uri_proper, self.cfg.supervisor_uri)
+            if not is_supervisor_uri_proper:
+                supervisor_port = supervisor_uri.port
+                if not supervisor_port:
+                    supervisor_port = 443 if supervisor_uri.scheme == 'https' else 80 # Default to the port for HTTPS or HTTP
+                listener0 = await self.conn.forward_remote_path_to_port(dest_domain_socket0, 'localhost', supervisor_port)
+                self.conn_listener0 = asyncio.create_task(listener0.wait_closed())
+                pkdlog("forwarding supervisor_uri={} to {}", self.cfg.supervisor_uri, dest_domain_socket0)
+
             async with self.conn.create_process("/bin/bash --noprofile --norc -l") as p:
                 await _get_agent_log(self.conn, before_start=True)
                 o, e = await p.communicate(input=script)
