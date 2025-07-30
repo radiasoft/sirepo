@@ -253,93 +253,13 @@ class SbatchDriver(job_driver.DriverBase):
                     # If the port is not specified, use the default port for HTTPS or HTTP
                     supervisor_port = 443 if supervisor_uri.scheme == 'https' else 80
 
-                #Get the server's hostname
-                hostname = await self.conn.run("hostname", check=True)
-                if hostname.exit_status != 0:
-                    raise Exception(f"Failed to get hostname: {hostname.stderr}")
-                hostname = hostname.stdout.strip()
-
-                # Create temporary directory on the server, owned by the user, and place the domain socket in it
-                remote_tmp_dir = await self.conn.run(f"mktemp -d /tmp/sirepo-sbatch-{hostname}-XXXXXX", check=True)
-                remote_tmp_dir_path = remote_tmp_dir.stdout.strip()
-                dest_domain_socket0 = f"{remote_tmp_dir_path}/sbatch0.sock"
+                # Domain socket name just needs to be unique, so we can use a timestamp
+                dest_domain_socket0 = f"sirepo-{datetime.datetime.timestamp()}.sock"
                 listener0 = await self.conn.forward_remote_path_to_port(dest_domain_socket0, 'localhost', supervisor_port)
                 self.conn_listener0 = asyncio.create_task(listener0.wait_closed())
 
-                # Copy over the python script run it and retrieve the port number assigned to the script
-                py_script  = f"""#!/usr/bin/env python3
-# This script forwards an existing unix domain socket to a socket on a random port and reports the port number
-import socket, sys, threading
-
-def forward_unix_socket(unix_socket_path, sock_file):
-    # Accept any incoming connection and forward it to the Unix socket
-    try:
-        lan_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        lan_socket.bind(('', 0))  # Bind to a random port
-        lan_socket.listen()
-        with open(sock_file, 'w') as sock_fd:
-            print(lan_socket.getsockname()[1], file=sock_fd)
-
-        while True:
-            try:
-                # Accept a connection from the LAN socket
-                lan_conn, _ = lan_socket.accept()
-                unix_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                unix_socket.connect(unix_socket_path)
-                # Handle the connection in a separate thread for each direction
-                threading.Thread(target=handle_connection, args=(lan_conn, unix_socket)).start()
-                threading.Thread(target=handle_connection, args=(unix_socket, lan_conn)).start()
-            except Exception as e:
-                print(e)
-    finally:
-        lan_socket.close()
-
-def handle_connection(src, dst):
-    try:
-        while True:
-            data = src.recv(1024)
-            if not data:
-                break
-            dst.send(data)
-    finally:
-        src.close()
-        dst.close()
-
-if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        sys.exit('Usage: ' + sys.argv[0] + ' <unix_socket_path> <sock_file>')
-    forward_unix_socket(sys.argv[1], sys.argv[2])
-"""
-                py_script_write = await self.conn.run(
-                    f"echo -n \"{py_script}\" > {remote_tmp_dir_path}/fwd_uds.py",
-                    check=True,
-                )
-                if py_script_write.exit_status != 0:
-                    raise Exception(f"Failed to write script: {py_script_write.stderr}")
-
-                # Don't disown the process, so that it exits when the connection is closed
-                await self.conn.create_process(
-                    f"python3 {remote_tmp_dir_path}/fwd_uds.py {dest_domain_socket0} {remote_tmp_dir_path}/port_number0"
-                )
-                #Make sure the process has not exited and retrieve the port number
-                port_forward_output0 = await self.conn.run(
-                    f"cat {remote_tmp_dir_path}/port_number0"
-                )
-                attempts = 0
-                while port_forward_output0.exit_status != 0 and attempts < 10:
-                    # Wait for the script to output the port number
-                    await asyncio.sleep(1)
-                    port_forward_output0 = await self.conn.run(
-                        f"cat {remote_tmp_dir_path}/port_number0"
-                    )
-                    attempts += 1
-                if port_forward_output0.exit_status != 0:
-                    raise Exception(f"Failed to retrieve port number: {port_forward_output0.stderr}")
-                # Parse the port number from the output
-                port_forward0 = int(port_forward_output0.stdout.strip())
-
-                # Update the supervisor URI to use the forwarded port on the login node
-                self.cfg.supervisor_uri = f"{supervisor_uri.scheme}://{hostname}:{port_forward0}{supervisor_uri.path}"
+                # Update the supervisor URI to point to the new domain socket, the job agent can connect through it
+                self.cfg.supervisor_uri = f"unix:/{dest_domain_socket0};"
 
         except Exception as e:
             pkdlog("error={} stack={}", e, pkdexc())
@@ -362,7 +282,6 @@ cd '{self._srdb_root}'
 (/usr/bin/env; setsid {self.cfg.sirepo_cmd} job_agent start_sbatch) &>> {log_file} &
 disown
 """
-        pkdlog("agent_start_dir={} script={}", agent_start_dir, script)
         try:
             async with self.conn.create_process("/bin/bash --noprofile --norc -l") as p:
                 await _get_agent_log(self.conn, before_start=True)
