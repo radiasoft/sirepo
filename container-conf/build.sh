@@ -25,14 +25,6 @@ build_as_run_user() {
     cd "$build_guest_conf"
     umask 022
     sirepo_boot_init
-    install_download https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh \
-        | PROFILE=/dev/null bash
-    install_source_bashrc
-    umask 022
-
-TODO: this needs to be in common
-
-    npm install node
     _sirepo_pip_install pykern "$PYKERN_BRANCH"
     _sirepo_pip_install sirepo "$SIREPO_BRANCH"
     _sirepo_pip_install rslume "$RSLUME_BRANCH"
@@ -48,9 +40,9 @@ sirepo_boot_init() {
 _sirepo_pip_install() {
     declare repo=$1
     declare branch=$2
-    git clone -q -c advice.detachedHead=false ${branch:+--branch "$branch"} --depth=1 https://github.com/radiasoft/"$repo"
+    install_git_clone ${branch:+--branch "$branch"} --depth=1 https://github.com/radiasoft/"$repo"
     cd "$repo"
-    # Install vue into package data before pip install
+    # Install vue into package_data before pip install
     if [[ $repo == sirepo ]]; then
         cd vue
         npm install
