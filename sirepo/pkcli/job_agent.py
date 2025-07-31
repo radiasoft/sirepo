@@ -251,21 +251,12 @@ class _Dispatcher(PKDict):
 
     async def loop(self):
         async def _connect_and_loop():
+            tgt_url = _cfg.supervisor_uri
+            resolver = None
             if _cfg.supervisor_uri.startswith("unix:/"): # Handle unix domain sockets
                 socket_path, _, resource_path = _cfg.supervisor_uri.replace("unix:/", "", 1).partition(";")
-                if not resource_path.startswith("/"):
-                    resource_path = "/" + resource_path
-                tgt_url = "ws://localhost:0" + resource_path
+                tgt_url = f"ws://localhost:0/{resource_path.lstrip('/')}"
                 resolver = UnixResolver(socket_path)
-                pkdlog(
-                    "connecting to unix socket={} resource_path={} tgt_url={}",
-                    socket_path,
-                    resource_path,
-                    tgt_url,
-                )
-            else:
-                tgt_url = _cfg.supervisor_uri
-                resolver = None
 
             self._websocket = await tornado.websocket.websocket_connect(
                 tornado.httpclient.HTTPRequest(

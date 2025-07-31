@@ -242,9 +242,9 @@ class SbatchDriver(job_driver.DriverBase):
         loopback_addresses = ['localhost', '127.0.0.1']
         is_supervisor_uri_proper = not (supervisor_uri.hostname in loopback_addresses and 
                                         self.cfg.host not in loopback_addresses)
-        pkdlog("supervisor_uri.hostname={} host={}", supervisor_uri.hostname, self.cfg.host)
         if not is_supervisor_uri_proper:
             dest_domain_socket0 = f"/tmp/sirepo-{uuid.uuid4().hex}.sock" # Domain socket name just needs to be unique, so we can use a UUID
+            old_supervisor_uri = self.cfg.supervisor_uri # Save the old supervisor URI to restore it later
             self.cfg.supervisor_uri = f"unix:/{dest_domain_socket0};" # Semicolon is needed to separate the socket path from the resource path
 
         script = f"""#!/bin/bash
@@ -258,14 +258,13 @@ disown
 """
         try:
             self.conn = await asyncssh.connect(self.cfg.host, **_creds())
-            pkdlog("is_supervisor_uri_proper={} supervisor_uri={}", is_supervisor_uri_proper, self.cfg.supervisor_uri)
             if not is_supervisor_uri_proper:
                 supervisor_port = supervisor_uri.port
                 if not supervisor_port:
                     supervisor_port = 443 if supervisor_uri.scheme == 'https' else 80 # Default to the port for HTTPS or HTTP
                 listener0 = await self.conn.forward_remote_path_to_port(dest_domain_socket0, 'localhost', supervisor_port)
                 self.conn_listener0 = asyncio.create_task(listener0.wait_closed())
-                pkdlog("forwarding supervisor_uri={} to {}", self.cfg.supervisor_uri, dest_domain_socket0)
+                self.cfg.supervisor_uri = old_supervisor_uri # Restore the original supervisor URI
 
             async with self.conn.create_process("/bin/bash --noprofile --norc -l") as p:
                 await _get_agent_log(self.conn, before_start=True)
