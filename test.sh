@@ -34,7 +34,6 @@ print(round(100 * timeit.timeit("str().join(str(i) for i in range(1000000))", nu
 EOF
     )
     export PYKERN_PKCLI_TEST_MAX_PROCS=4
-    export PYKERN_PKCLI_TEST_MAX_CASE_SECS=360
     export SIREPO_MPI_CORES=2
     pykern ci run
 }
