@@ -40,7 +40,7 @@ sirepo_boot_init() {
 _sirepo_pip_install() {
     declare repo=$1
     declare branch=$2
-    install_git_clone ${branch:+--branch "$branch"} --depth=1 https://github.com/radiasoft/"$repo"
+    install_git_clone "$repo" "$branch"
     cd "$repo"
     # Install vue into package_data before pip install
     if [[ $repo == sirepo ]]; then
