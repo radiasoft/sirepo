@@ -22,7 +22,6 @@ build_as_root() {
 }
 
 build_as_run_user() {
-    install_source_bashrc
     cd "$build_guest_conf"
     umask 022
     sirepo_boot_init
@@ -41,8 +40,16 @@ sirepo_boot_init() {
 _sirepo_pip_install() {
     declare repo=$1
     declare branch=$2
-    git clone -q -c advice.detachedHead=false ${branch:+--branch "$branch"} --depth=1 https://github.com/radiasoft/"$repo"
+    install_git_clone "$repo" "$branch"
     cd "$repo"
+    # Install vue into package_data before pip install
+    if [[ $repo == sirepo ]]; then
+        cd vue
+        npm install
+        npm run build
+        mv dist ../sirepo/package_data/static/vue
+        cd ..
+    fi
     pip install .
     cd - &> /dev/null
     rm -rf "$repo"

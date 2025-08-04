@@ -4,7 +4,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-# If you see: _timeout MAX_CASE_RUN_SECS=120 exceeded
+# If you see: TIMEOUT=<time> exceeded, the default
 # Run sinfo to see if slurmd is down for this node.
 # https://github.com/radiasoft/sirepo/issues/2136
 # sudo scontrol <<EOF
@@ -36,10 +36,8 @@ def test_srw_cancel(fc):
         return int(subprocess.check_output("squeue | wc -l", shell=True)) - 1
 
     pkeq(0, _squeue_num_jobs())
-    sim_name = "Young's Double Slit Experiment"
-    compute_model = "multiElectronAnimation"
-    fc.sr_sbatch_login(compute_model, sim_name)
-    d = fc.sr_sim_data(sim_name=sim_name, compute_model=compute_model)
+    d, c = _srw_login_setup()
+    fc.sr_sbatch_login(c, d.models.simulation.name)
     d.models[compute_model].jobRunMode = fc.sr_job_run_mode
     r = fc.sr_post(
         "runSimulation",
@@ -72,10 +70,10 @@ def test_srw_data_file(fc):
     from pykern.pkcollections import PKDict
     from pykern.pkunit import pkeq
 
-    a = "Young's Double Slit Experiment"
-    c = "multiElectronAnimation"
-    fc.sr_sbatch_animation_run(
-        a,
+    d, c = _srw_login_setup(fc)
+    fc.sr_sbatch_login(c, d.models.simulation.name)
+    fc.sr_animation_run(
+        d,
         c,
         PKDict(
             multiElectronAnimation=PKDict(
@@ -84,11 +82,12 @@ def test_srw_data_file(fc):
                 expect_title="E=4.24 keV",
             ),
         ),
+        # Things take longer with Slurm.
+        timeout=90,
         expect_completed=False,
     )
     # TODO(robnagler) jobRunMode needs to be set?
     # https://github.com/radiasoft/sirepo/issues/7093
-    d = fc.sr_sim_data(a, compute_model=c)
     r = fc.sr_get(
         "downloadRunFile",
         PKDict(
@@ -101,18 +100,18 @@ def test_srw_data_file(fc):
     r.assert_http_status(200)
 
 
-def test_warppba_invalid_creds(new_user_fc):
+def test_srw_invalid_creds(new_user_fc):
     from pykern.pkunit import pkexcept
 
     with pkexcept("SRException.*invalid-creds"):
-        _warppba_login(new_user_fc, invalid_password=True)
+        _srw_login(new_user_fc, invalid_password=True)
 
 
-def test_warppba_login(new_user_fc):
+def test_srw_login(new_user_fc):
     from pykern import pkunit, pkdebug
     from pykern.pkcollections import PKDict
 
-    d, c = _warppba_login(new_user_fc)
+    d, c = _srw_login(new_user_fc)
     new_user_fc.sr_run_sim(d, c, expect_completed=False, timeout=5)
     r = new_user_fc.sr_post(
         "sbatchLoginStatus",
@@ -126,15 +125,15 @@ def test_warppba_login(new_user_fc):
     pkunit.pkok(r.ready, "not ready response={}", r)
 
 
-def test_warppba_no_creds(new_user_fc):
+def test_srw_no_creds(new_user_fc):
     from pykern.pkunit import pkexcept
 
-    x = _warppba_login_setup(new_user_fc)
+    x = _srw_login_setup(new_user_fc)
     with pkexcept("SRException.*no-creds"):
         new_user_fc.sr_run_sim(*x, expect_completed=False)
 
 
-def _warppba_login(fc, invalid_password=False):
+def _srw_login(fc, invalid_password=False):
     from pykern.pkcollections import PKDict
     from pykern import pkunit, pkdebug
     from sirepo import util
@@ -145,7 +144,7 @@ def _warppba_login(fc, invalid_password=False):
             rv.sbatchCredentials.password = "invalid password"
         return rv.pkupdate(kwargs)
 
-    d, c = _warppba_login_setup(fc)
+    d, c = _srw_login_setup(fc)
     try:
         r = fc.sr_run_sim(d, c, expect_completed=False)
         pkunit.pkfail("did not raise SRException reply={}", r)
@@ -162,5 +161,9 @@ def _warppba_login(fc, invalid_password=False):
     return d, c
 
 
-def _warppba_login_setup(fc):
-    return fc.sr_sim_data("Laser Pulse", compute_model="animation"), "animation"
+def _srw_login_setup(fc):
+    c = "multiElectronAnimation"
+    d = fc.sr_sim_data("Young's Double Slit Experiment", compute_model=c)
+    d.models.multiElectronAnimation.numberOfMacroElectrons = 50
+    d.models.simulation.sampleFactor = 0.0001
+    return d, c
