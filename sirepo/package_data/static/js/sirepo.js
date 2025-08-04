@@ -358,7 +358,7 @@ SIREPO.app.factory('authState', (errorService, uri, $rootScope) => {
     return self;
 });
 
-SIREPO.app.factory('activeSection', function(authState, requestSender, uri, $location, $route, $rootScope, appState) {
+SIREPO.app.factory('activeSection', function(appState, authState, requestSender, simulationQueue, uri, $location, $route, $rootScope) {
     var self = this;
 
     self.getActiveSection = function() {
@@ -370,6 +370,9 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, uri, $loc
     };
 
     $rootScope.$on('$routeChangeSuccess', function() {
+        if (appState.isLoaded()) {
+            simulationQueue.cancelTransientItems();
+        }
         const i = uri.currentRouteParam('simulationId', '');
         if (i) {
             appState.loadModels(
@@ -383,7 +386,7 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, uri, $loc
     return self;
 });
 
-SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, requestQueue, requestSender, utilities, $document, $interval, $rootScope, $filter) {
+SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, requestQueue, requestSender, utilities, $document, $interval, $rootScope, $filter, $window) {
     var self = {
         models: {},
     };
@@ -953,6 +956,12 @@ SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, re
         $scope.$on('modelsLoaded', wrappedCallback);
         if (self.isLoaded()) {
             wrappedCallback();
+        }
+    };
+
+    $window.onbeforeunload = () => {
+        if (self.isLoaded()) {
+            self.clearModels();
         }
     };
 
