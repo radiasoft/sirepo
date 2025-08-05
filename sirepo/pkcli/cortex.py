@@ -4,11 +4,18 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
+from datetime import datetime
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+from sqlalchemy.schema import MetaData
 import csv
 import io
+import pykern.pkio
+import pykern.pkjson
+import pykern.sql_db
+import re
 import requests
+import sqlalchemy
 
 _CENTURY = 100.0 * 365 * 24 * 60 * 60
 
@@ -58,3 +65,104 @@ def gen_components():
         return rv + ")\n"
 
     return _to_str(_parse())
+
+
+def export_tea(db_file):
+    """Returns a python-compatible representation of all materials in the specified database."""
+    # TODO(pjm): pass user and find database in lib_files?
+    uri = pykern.sql_db.sqlite_uri(pykern.pkio.py_path(db_file))
+    m = _populate_materials(_dump_sqlalchemy(uri))
+    return f"MATERIALS = {_json_to_python(pykern.pkjson.dump_pretty(m))}"
+
+
+def _dump_sqlalchemy(uri):
+    e = sqlalchemy.create_engine(uri)
+    meta = MetaData()
+    meta.reflect(bind=e)
+    res = {}
+    with e.connect() as conn:
+        for table in meta.sorted_tables:
+            rows = [row._asdict() for row in conn.execute(sqlalchemy.select(table))]
+            for row in rows:
+                for col in row:
+                    if isinstance(row[col], datetime):
+                        row[col] = row[col].strftime("%Y-%m-%dT%H:%M:%SZ")
+            res[table.name] = rows
+    return res
+
+
+def _find_by_id(rows, key, value):
+    for r in rows:
+        if r[key] == value:
+            return r
+    assert False
+
+
+def _json_to_python(value):
+    return re.sub(
+        r"\bnull\b",
+        "None",
+        re.sub(r"\bfalse\b", "False", re.sub(r"\btrue\b", "True", value)),
+    )
+
+
+def _nest_values(dump, child_table, parent_table):
+    for row in dump[child_table]:
+        k = f"{parent_table}_id"
+        p = _find_by_id(dump[parent_table], k, row[k])
+        if child_table not in p:
+            p[child_table] = []
+        p[child_table].append(row)
+        del row[k]
+        k = f"{child_table}_id"
+        if k in row:
+            del row[k]
+    del dump[child_table]
+
+
+def _populate_materials(dump):
+    for child, parent in [
+        ["independent_variable_value", "independent_variable"],
+        ["independent_variable", "material_property"],
+        ["material_property_value", "material_property"],
+        ["material_property", "material"],
+        ["material_component", "material"],
+    ]:
+        _nest_values(dump, child, parent)
+
+    _remap_to_name(
+        dump["material"], "material_component", "material_component_name", "components"
+    )
+    _remap_to_name(dump["material"], "material_property", "property_name", "properties")
+
+    for m in dump["material"]:
+        for p in m["properties"].values():
+            if "independent_variable" in p:
+                for v in p["independent_variable"]:
+                    assert v["name"] not in p
+                    p[v["name"]] = [x["value"] for x in v["independent_variable_value"]]
+                del p["independent_variable"]
+            if "material_property_value" in p:
+                for v in p["material_property_value"]:
+                    for k in v:
+                        if k not in p:
+                            p[k] = []
+                        p[k].append(v[k])
+                del p["material_property_value"]
+
+    for m in dump["material"]:
+        dump[m["material_name"]] = m
+        del m["material_name"]
+        del m["material_id"]
+    del dump["material"]
+    return dump
+
+
+def _remap_to_name(rows, source, name, target):
+    for m in rows:
+        m[target] = {}
+        if source in m:
+            for p in m[source]:
+                m[target][p[name]] = p
+                del p[name]
+            del m[source]

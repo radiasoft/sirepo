@@ -196,56 +196,56 @@
             "source": "NOM",
             "vals": [
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 293.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 293.15,
                     "uncertainty": null,
                     "value": 7.744
                 },
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 323.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 323.15,
                     "uncertainty": null,
                     "value": 7.75
                 },
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 373.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 373.15,
                     "uncertainty": null,
                     "value": 7.74
                 },
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 473.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 473.15,
                     "uncertainty": null,
                     "value": 7.723
                 },
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 573.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 573.15,
                     "uncertainty": null,
                     "value": 7.691
                 },
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 673.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 673.15,
                     "uncertainty": null,
                     "value": 7.657
                 },
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 773.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 773.15,
                     "uncertainty": null,
                     "value": 7.625
                 },
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 873.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 873.15,
                     "uncertainty": null,
                     "value": 7.592
                 },
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 973.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 973.15,
                     "uncertainty": null,
                     "value": 7.559
                 }
@@ -259,50 +259,50 @@
             "source": "EXP",
             "vals": [
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 293.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 293.15,
                     "uncertainty": null,
                     "value": 28.08
                 },
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 323.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 323.15,
                     "uncertainty": null,
                     "value": 28.86
                 },
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 373.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 373.15,
                     "uncertainty": null,
                     "value": 29.78
                 },
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 473.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 473.15,
                     "uncertainty": null,
                     "value": 30.38
                 },
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 573.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 573.15,
                     "uncertainty": null,
                     "value": 30.01
                 },
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 673.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 673.15,
                     "uncertainty": null,
                     "value": 29.47
                 },
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 773.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 773.15,
                     "uncertainty": null,
                     "value": 29.58
                 },
                 {
-                    "neutron_fluence": 0.0,
-                    "temperature": 873.15,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 873.15,
                     "uncertainty": null,
                     "value": 31.12
                 }

@@ -247,8 +247,8 @@ class Parser:
             PKDict(
                 value=_parse_float(values[0]),
                 uncertainty=_parse_float(values[1]),
-                temperature=_parse_float(values[2]),
-                neutron_fluence=_parse_float(values[3]),
+                temperature_k=_parse_float(values[2]),
+                neutron_fluence_1_cm2=_parse_float(values[3]),
             )
         )
         for i, p in self._independent_variables.items():

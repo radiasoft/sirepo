@@ -13,6 +13,7 @@ def test_cases():
         from pykern.pkcollections import PKDict
         from sirepo import simulation_db
         from sirepo.template import cortex
+        from sirepo.pkcli import cortex as pkcli_cortex
 
         # from sirepo.template import cortex_xlsx
         import subprocess
@@ -40,3 +41,4 @@ def test_cases():
                 ),
                 filename="out.json",
             )
+            pkio.write_text("out.py", pkcli_cortex.export_tea(db))
