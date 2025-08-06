@@ -10,6 +10,7 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sqlalchemy.schema import MetaData
 import csv
 import io
+import openmc.data
 import pykern.pkio
 import pykern.pkjson
 import pykern.sql_db
@@ -75,11 +76,53 @@ def export_tea(db_file):
     return f"MATERIALS = {_json_to_python(pykern.pkjson.dump_pretty(m))}"
 
 
+def _convert_ao_to_wo(materials):
+
+    def _ao_to_wo(ao):
+        weight_sum = 0
+        weight = PKDict()
+        for e in ao:
+            if re.search(r"\d", e):
+                # Nuclide
+                try:
+                    w = openmc.data.atomic_mass(e)
+                except KeyError as err:
+                    raise ValueError(f"Unknown nuclide: {e}")
+            else:
+                # Element
+                if e not in openmc.data.ATOMIC_NUMBER:
+                    raise ValueError(f"Unknown element: {e}")
+                # may raise ValueError: No naturally-occuring isotopes for element
+                w = openmc.data.atomic_weight(e)
+            weight[e] = ao[e].target_pct * w / openmc.data.AVOGADRO
+            weight_sum += weight[e]
+
+        wo = PKDict()
+        for e in ao:
+            wo[e] = PKDict(
+                target_pct=100.0 * weight[e] / weight_sum,
+                min_pct=None,
+                max_pct=None,
+            )
+            if ao[e].max_pct is not None:
+                if ao[e].min_pct is None:
+                    wo[e].max_pct = wo[e].target_pct
+                else:
+                    wo[e].min_pct = ao[e].min_pct * wo[e].target_pct / ao[e].target_pct
+                    wo[e].max_pct = ao[e].max_pct * wo[e].target_pct / ao[e].target_pct
+        return wo
+
+    for m in materials.values():
+        if m.is_atom_pct:
+            m.components = _ao_to_wo(m.components)
+        del m["is_atom_pct"]
+
+
 def _dump_sqlalchemy(uri):
     e = sqlalchemy.create_engine(uri)
     meta = MetaData()
     meta.reflect(bind=e)
-    res = {}
+    res = PKDict()
     with e.connect() as conn:
         for table in meta.sorted_tables:
             rows = [row._asdict() for row in conn.execute(sqlalchemy.select(table))]
@@ -87,7 +130,7 @@ def _dump_sqlalchemy(uri):
                 for col in row:
                     if isinstance(row[col], datetime):
                         row[col] = row[col].strftime("%Y-%m-%dT%H:%M:%SZ")
-            res[table.name] = rows
+            res[table.name] = [PKDict(r) for r in rows]
     return res
 
 
@@ -131,38 +174,41 @@ def _populate_materials(dump):
         _nest_values(dump, child, parent)
 
     _remap_to_name(
-        dump["material"], "material_component", "material_component_name", "components"
+        dump.material, "material_component", "material_component_name", "components"
     )
-    _remap_to_name(dump["material"], "material_property", "property_name", "properties")
+    _remap_to_name(dump.material, "material_property", "property_name", "properties")
 
-    for m in dump["material"]:
-        for p in m["properties"].values():
+    for m in dump.material:
+        for p in m.properties.values():
             if "independent_variable" in p:
-                for v in p["independent_variable"]:
-                    assert v["name"] not in p
-                    p[v["name"]] = [x["value"] for x in v["independent_variable_value"]]
+                for v in p.independent_variable:
+                    assert v.name not in p
+                    p[v.name] = [x.value for x in v.independent_variable_value]
                 del p["independent_variable"]
             if "material_property_value" in p:
-                for v in p["material_property_value"]:
+                for v in p.material_property_value:
                     for k in v:
                         if k not in p:
                             p[k] = []
                         p[k].append(v[k])
                 del p["material_property_value"]
 
-    for m in dump["material"]:
-        dump[m["material_name"]] = m
+    for m in dump.material:
+        dump[m.material_name] = m
         del m["material_name"]
         del m["material_id"]
     del dump["material"]
+    _convert_ao_to_wo(dump)
     return dump
 
 
 def _remap_to_name(rows, source, name, target):
     for m in rows:
-        m[target] = {}
+        m[target] = PKDict()
         if source in m:
             for p in m[source]:
-                m[target][p[name]] = p
+                m[target][
+                    p[name].capitalize() if target == "components" else p[name]
+                ] = p
                 del p[name]
             del m[source]

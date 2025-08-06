@@ -2,122 +2,122 @@ MATERIALS = {
     "Eurofer 97": {
         "availability_factor": 35.0,
         "components": {
-            "al": {
+            "Al": {
                 "max_pct": 0.01,
                 "min_pct": 0.0,
                 "target_pct": 0.01
             },
-            "as": {
+            "As": {
                 "max_pct": 0.0125,
                 "min_pct": 0.0,
                 "target_pct": 0.0125
             },
-            "b": {
+            "B": {
                 "max_pct": 0.002,
                 "min_pct": 0.0,
                 "target_pct": 0.002
             },
-            "c": {
+            "C": {
                 "max_pct": None,
                 "min_pct": None,
                 "target_pct": 0.11
             },
-            "co": {
+            "Co": {
                 "max_pct": 0.01,
                 "min_pct": 0.0,
                 "target_pct": 0.01
             },
-            "cr": {
+            "Cr": {
                 "max_pct": None,
                 "min_pct": None,
                 "target_pct": 9.0
             },
-            "cu": {
+            "Cu": {
                 "max_pct": 0.01,
                 "min_pct": 0.0,
                 "target_pct": 0.01
             },
-            "fe": {
+            "Fe": {
                 "max_pct": None,
                 "min_pct": None,
                 "target_pct": 88.848
             },
-            "mn": {
+            "Mn": {
                 "max_pct": None,
                 "min_pct": None,
                 "target_pct": 0.4
             },
-            "mo": {
+            "Mo": {
                 "max_pct": 0.005,
                 "min_pct": 0.0,
                 "target_pct": 0.005
             },
-            "n": {
+            "N": {
                 "max_pct": None,
                 "min_pct": None,
                 "target_pct": 0.03
             },
-            "nb": {
+            "Nb": {
                 "max_pct": 0.005,
                 "min_pct": 0.0,
                 "target_pct": 0.005
             },
-            "ni": {
+            "Ni": {
                 "max_pct": 0.01,
                 "min_pct": 0.0,
                 "target_pct": 0.01
             },
-            "o": {
+            "O": {
                 "max_pct": 0.01,
                 "min_pct": 0.0,
                 "target_pct": 0.01
             },
-            "p": {
+            "P": {
                 "max_pct": 0.005,
                 "min_pct": 0.0,
                 "target_pct": 0.005
             },
-            "s": {
+            "S": {
                 "max_pct": 0.005,
                 "min_pct": 0.0,
                 "target_pct": 0.005
             },
-            "sb": {
+            "Sb": {
                 "max_pct": 0.0125,
                 "min_pct": 0.0,
                 "target_pct": 0.0125
             },
-            "si": {
+            "Si": {
                 "max_pct": 0.05,
                 "min_pct": 0.0,
                 "target_pct": 0.05
             },
-            "sn": {
+            "Sn": {
                 "max_pct": 0.0125,
                 "min_pct": 0.0,
                 "target_pct": 0.0125
             },
-            "ta": {
+            "Ta": {
                 "max_pct": None,
                 "min_pct": None,
                 "target_pct": 0.12
             },
-            "ti": {
+            "Ti": {
                 "max_pct": 0.02,
                 "min_pct": 0.0,
                 "target_pct": 0.02
             },
-            "v": {
+            "V": {
                 "max_pct": 0.25,
                 "min_pct": 0.15,
                 "target_pct": 0.2
             },
-            "w": {
+            "W": {
                 "max_pct": None,
                 "min_pct": None,
                 "target_pct": 1.1
             },
-            "zr": {
+            "Zr": {
                 "max_pct": 0.0125,
                 "min_pct": 0.0,
                 "target_pct": 0.0125
@@ -125,7 +125,6 @@ MATERIALS = {
         },
         "created": "2025-07-23T17:08:21Z",
         "density_g_cm3": 7.625,
-        "is_atom_pct": False,
         "is_bare_tile": True,
         "is_homogenized_divertor": False,
         "is_homogenized_hcpb": True,
@@ -255,35 +254,34 @@ MATERIALS = {
     "Tungsten carbide": {
         "availability_factor": 0.25,
         "components": {
-            "c12": {
+            "C12": {
                 "max_pct": None,
                 "min_pct": None,
-                "target_pct": 49.99969
+                "target_pct": 6.127008411630046
             },
-            "w182": {
+            "W182": {
                 "max_pct": None,
                 "min_pct": None,
-                "target_pct": 13.210272
+                "target_pct": 24.54479762377749
             },
-            "w183": {
+            "W183": {
                 "max_pct": None,
                 "min_pct": None,
-                "target_pct": 7.140018
+                "target_pct": 13.339273342108234
             },
-            "w184": {
+            "W184": {
                 "max_pct": None,
                 "min_pct": None,
-                "target_pct": 15.35042
+                "target_pct": 28.83514746621842
             },
-            "w186": {
+            "W186": {
                 "max_pct": None,
                 "min_pct": None,
-                "target_pct": 14.2996
+                "target_pct": 27.153773156265803
             }
         },
         "created": "2025-07-23T18:00:22Z",
         "density_g_cm3": 15.63,
-        "is_atom_pct": True,
         "is_bare_tile": True,
         "is_homogenized_divertor": False,
         "is_homogenized_hcpb": True,
