@@ -13,6 +13,7 @@
                         </div>
                     </a>
                 </th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -25,6 +26,19 @@
                     v-bind:key="col.name"
                 >
                     {{ formatValue(mat, col) }}
+                </td>
+                <td class="sr-button-bar-td">
+                    <div class="sr-button-bar-parent">
+                        <div class="sr-button-bar">
+                            <button
+                                type="button"
+                                v-on:click="removeMaterial(mat)"
+                                class="btn btn-danger btn-sm"
+                            >
+                                <span class="bi bi-trash3"></span>
+                            </button>
+                        </div>
+                    </div>
                 </td>
             </tr>
         </tbody>
@@ -64,6 +78,10 @@
  const formatValue = (material, col) => {
      const v = material[col.name];
      return col.format ? col.format(v) : v;
+ };
+
+ const removeMaterial = (material) => {
+     //TODO(pjm): call db
  };
 
  const sortCol = (col) => {
