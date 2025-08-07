@@ -73,7 +73,8 @@ def export_tea(db_file):
     # TODO(pjm): pass user and find database in lib_files?
     uri = pykern.sql_db.sqlite_uri(pykern.pkio.py_path(db_file))
     m = _populate_materials(_dump_sqlalchemy(uri))
-    return f"MATERIALS = {_json_to_python(pykern.pkjson.dump_pretty(m))}"
+    return f"""# Generated on {datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")}
+MATERIALS = {_json_to_python(pykern.pkjson.dump_pretty(m))}"""
 
 
 def _convert_ao_to_wo(materials):
@@ -116,29 +117,42 @@ def _convert_ao_to_wo(materials):
         if m.is_atom_pct:
             m.components = _ao_to_wo(m.components)
         del m["is_atom_pct"]
+    return materials
 
 
 def _dump_sqlalchemy(uri):
+    _DUMP = PKDict(
+        material=set(
+            [
+                "material_id",
+                "material_name",
+                "is_plasma_facing",
+                "structure",
+                "microstructure",
+                "processing_steps",
+                "density_g_cm3",
+                "is_atom_pct",
+            ]
+        ),
+        material_component=None,
+    )
     e = sqlalchemy.create_engine(uri)
     meta = MetaData()
     meta.reflect(bind=e)
     res = PKDict()
     with e.connect() as conn:
-        for table in meta.sorted_tables:
-            rows = [row._asdict() for row in conn.execute(sqlalchemy.select(table))]
-            for row in rows:
-                for col in row:
-                    if isinstance(row[col], datetime):
-                        row[col] = row[col].strftime("%Y-%m-%dT%H:%M:%SZ")
-            res[table.name] = [PKDict(r) for r in rows]
+        for t in meta.sorted_tables:
+            if t.name not in _DUMP:
+                continue
+            res[t.name] = [
+                PKDict(r._asdict()) for r in conn.execute(sqlalchemy.select(t))
+            ]
+            if _DUMP[t.name]:
+                for r in res[t.name]:
+                    for c in t.columns:
+                        if c.name not in _DUMP[t.name]:
+                            del r[c.name]
     return res
-
-
-def _find_by_id(rows, key, value):
-    for r in rows:
-        if r[key] == value:
-            return r
-    assert False
 
 
 def _json_to_python(value):
@@ -149,66 +163,21 @@ def _json_to_python(value):
     )
 
 
-def _nest_values(dump, child_table, parent_table):
-    for row in dump[child_table]:
-        k = f"{parent_table}_id"
-        p = _find_by_id(dump[parent_table], k, row[k])
-        if child_table not in p:
-            p[child_table] = []
-        p[child_table].append(row)
-        del row[k]
-        k = f"{child_table}_id"
-        if k in row:
-            del row[k]
-    del dump[child_table]
-
-
 def _populate_materials(dump):
-    for child, parent in [
-        ["independent_variable_value", "independent_variable"],
-        ["independent_variable", "material_property"],
-        ["material_property_value", "material_property"],
-        ["material_property", "material"],
-        ["material_component", "material"],
-    ]:
-        _nest_values(dump, child, parent)
-
-    _remap_to_name(
-        dump.material, "material_component", "material_component_name", "components"
-    )
-    _remap_to_name(dump.material, "material_property", "property_name", "properties")
-
+    res = PKDict()
     for m in dump.material:
-        for p in m.properties.values():
-            if "independent_variable" in p:
-                for v in p.independent_variable:
-                    assert v.name not in p
-                    p[v.name] = [x.value for x in v.independent_variable_value]
-                del p["independent_variable"]
-            if "material_property_value" in p:
-                for v in p.material_property_value:
-                    for k in v:
-                        if k not in p:
-                            p[k] = []
-                        p[k].append(v[k])
-                del p["material_property_value"]
-
-    for m in dump.material:
-        dump[m.material_name] = m
-        del m["material_name"]
-        del m["material_id"]
-    del dump["material"]
-    _convert_ao_to_wo(dump)
-    return dump
-
-
-def _remap_to_name(rows, source, name, target):
-    for m in rows:
-        m[target] = PKDict()
-        if source in m:
-            for p in m[source]:
-                m[target][
-                    p[name].capitalize() if target == "components" else p[name]
-                ] = p
-                del p[name]
-            del m[source]
+        res[m.material_name] = m
+        m.components = PKDict()
+        for c in dump.material_component:
+            if c.material_id == m.material_id:
+                mc = c.copy()
+                for n in (
+                    "material_component_id",
+                    "material_component_name",
+                    "material_id",
+                ):
+                    del mc[n]
+                m.components[c.material_component_name.capitalize()] = mc
+        for n in ("material_id", "material_name"):
+            del m[n]
+    return _convert_ao_to_wo(res)
