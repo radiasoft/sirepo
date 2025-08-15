@@ -43,14 +43,25 @@
             </tr>
         </tbody>
     </table>
+    <VConfirmationModal
+        ref="confirmDeleteModal"
+        title="Delete Material"
+        okText="Delete"
+        v-on:okClicked="deleteSelectedMaterial"
+    >
+        Delete material <strong>{{ selectedMaterial.material_name }}</strong>?
+    </VConfirmationModal>
 </template>
 
 <script setup>
- import { onMounted, onUnmounted, reactive } from 'vue';
- import { pubSub } from '@/services/pubsub.js';
+ import VConfirmationModal from '@/components/VConfirmationModal.vue';
  import { db, DB_UPDATED } from '@/apps/cortex/db.js';
+ import { onMounted, onUnmounted, reactive, ref } from 'vue';
+ import { pubSub } from '@/services/pubsub.js';
 
  const emit = defineEmits(['materialCount']);
+ const confirmDeleteModal = ref(null);
+ const selectedMaterial = ref(null);
 
  const _dateFormat = Intl.DateTimeFormat('en-US', {
      year: 'numeric',
@@ -75,13 +86,20 @@
      materials: [],
  });
 
+ const deleteSelectedMaterial = async () => {
+     confirmDeleteModal.value.closeModal();
+     await db.deleteMaterial(selectedMaterial.value.material_id);
+     _loadMaterials();
+ };
+
  const formatValue = (material, col) => {
      const v = material[col.name];
      return col.format ? col.format(v) : v;
  };
 
  const removeMaterial = (material) => {
-     //TODO(pjm): call db
+     selectedMaterial.value = material;
+     confirmDeleteModal.value.showModal();
  };
 
  const sortCol = (col) => {
@@ -102,6 +120,7 @@
  }
 
  const _loadMaterials = async () => {
+     // don't show the import panel until we know how many materials are present
      emit('materialCount', undefined);
      state.materials = await db.loadMaterials();
      emit('materialCount', state.materials.length);

@@ -15,11 +15,24 @@ class DB {
         });
         if (r.api_result) {
             for (const row of r.api_result) {
+                // convert python datetime to javascript datetime
                 row.created *= 1000;
             }
             return r.api_result;
         }
         return [];
+    }
+
+    async deleteMaterial(material_id) {
+        const r = await requestSender.sendStatefulCompute({
+            method: 'cortex_db',
+            args: {
+                api_name: 'delete_material',
+                api_args: {
+                    material_id,
+                },
+            },
+        });
     }
 
     updated() {
