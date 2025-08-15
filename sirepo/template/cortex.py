@@ -19,6 +19,9 @@ def stateful_compute_cortex_db(data, **kwargs):
         return PKDict(
             api_result=sirepo.template.cortex_sql_db.list_materials(),
         )
+    if data.args.api_name == "delete_material":
+        sirepo.template.cortex_sql_db.delete_material(data.args.api_args.material_id)
+        return PKDict()
     raise AssertionError("Unhandled api_name: {}", data.args.api_name)
 
 

@@ -20,6 +20,32 @@ class Error(RuntimeError):
     pass
 
 
+def delete_material(material_id):
+    """Cascade delete all rows for a material"""
+
+    def _delete(session, table_name, field, value):
+        session.delete(table_name, PKDict({field: value}))
+
+    def _select_id(session, table_name, field, value):
+        return [
+            v[f"{table_name}_id"]
+            for v in s.select(table_name, PKDict({field: value})).all()
+        ]
+
+    with _session(None) as s:
+        for mp in _select_id(s, "material_property", "material_id", material_id):
+            for mpv in _select_id(
+                s, "material_property_value", "material_property_id", mp
+            ):
+                _delete(
+                    s, "independent_variable_value", "material_property_value_id", mpv
+                )
+            _delete(s, "material_property_value", "material_property_id", mp)
+            _delete(s, "independent_variable", "material_property_id", mp)
+        for t in ("material_property", "material_component", "material"):
+            _delete(s, t, "material_id", material_id)
+
+
 def insert_material(parsed, qcall=None):
     def _insert_property(session, name, values):
         vals = values.pop("vals")
@@ -94,21 +120,6 @@ def list_materials():
         return [_convert(r) for r in s.select("material").all()]
 
 
-@contextlib.contextmanager
-def _session(qcall):
-    s = sirepo.sim_data.get_class("cortex")
-    p = pykern.pkio.py_path(_BASE)
-    if s.lib_file_exists(_BASE, qcall=qcall):
-        p.write_binary(s.lib_file_read_binary(_BASE, qcall=qcall))
-    try:
-        with _meta(p).session() as rv:
-            yield rv
-    except:
-        raise
-    else:
-        s.lib_file_write(_BASE, p, qcall=qcall)
-
-
 def _meta(path):
     f = "float 64"
 
@@ -178,3 +189,18 @@ def _meta(path):
             ),
         ),
     )
+
+
+@contextlib.contextmanager
+def _session(qcall):
+    s = sirepo.sim_data.get_class("cortex")
+    p = pykern.pkio.py_path(_BASE)
+    if s.lib_file_exists(_BASE, qcall=qcall):
+        p.write_binary(s.lib_file_read_binary(_BASE, qcall=qcall))
+    try:
+        with _meta(p).session() as rv:
+            yield rv
+    except:
+        raise
+    else:
+        s.lib_file_write(_BASE, p, qcall=qcall)

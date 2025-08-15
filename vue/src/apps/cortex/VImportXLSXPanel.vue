@@ -34,7 +34,7 @@
         title="Material Imported"
         cancelText="Close"
     >
-        Imported {{ materialName }} successfully
+        Imported <strong>{{ materialName }}</strong> successfully
     </VConfirmationModal>
     <VConfirmationModal
         ref="errorsModal"
@@ -131,9 +131,9 @@
          errorsModal.value.showModal();
          return;
      }
-     db.updated();
      materialName.value = r.data.models.parsed_material[0].material_name;
      confirmModal.value.showModal();
+     db.updated();
  };
 
  const { isOverDropZone, isInvalidMimeType } = useFileDrop(dropPanel, onDrop, xlsxMimeType);

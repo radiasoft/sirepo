@@ -1,3 +1,21 @@
+table .sr-button-bar-td {
+  width: 1%;
+  padding: 3px;
+}
+.sr-button-bar-parent {
+  display: none;
+  position: relative;
+}
+tr:hover .sr-button-bar-parent {
+  display: inline;
+}
+.sr-button-bar {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  white-space: nowrap;
+  padding-left: 15px;
+}
 .sr-panel-header {
   font-weight: 350;
   line-height: 1.4;

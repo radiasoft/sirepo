@@ -8,7 +8,7 @@
             <VMaterialTable v-on:materialCount="updateMaterialCount" />
         </div>
         <div
-            v-if="materialCount !== undefined"
+            v-show="materialCount !== undefined"
             v-bind:class="{
                 'col-sm-4 col-lg-3 offset-lg-1': materialCount > 0,
                 'col-sm-6 offset-sm-3': materialCount === 0,
