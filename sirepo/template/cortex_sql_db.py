@@ -162,8 +162,8 @@ def _meta(path):
                 material_property_id="primary_id",
                 value=f,
                 uncertainty=_optional(f),
-                temperature=f,
-                neutron_fluence=f,
+                temperature_k=f,
+                neutron_fluence_1_cm2=f,
             ),
             independent_variable=PKDict(
                 independent_variable_id="primary_id 5",
