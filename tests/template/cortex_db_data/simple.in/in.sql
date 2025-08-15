@@ -84,8 +84,8 @@ CREATE TABLE material_property_value (
 	material_property_id BIGINT NOT NULL,
 	value FLOAT NOT NULL,
 	uncertainty FLOAT,
-	temperature FLOAT NOT NULL,
-	neutron_fluence FLOAT NOT NULL,
+	temperature_k FLOAT NOT NULL,
+	neutron_fluence_1_cm2 FLOAT NOT NULL,
 	PRIMARY KEY (material_property_value_id),
 	FOREIGN KEY(material_property_id) REFERENCES material_property (material_property_id)
 );
