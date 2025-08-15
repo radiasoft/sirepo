@@ -12,7 +12,9 @@ def test_cases():
         from pykern import pkdebug, pkunit, pkio, pkjson
         from pykern.pkcollections import PKDict
         from sirepo import simulation_db
+        from sirepo.pkcli import cortex as pkcli_cortex
         from sirepo.template import cortex
+        import re
 
         # from sirepo.template import cortex_xlsx
         import subprocess
@@ -40,3 +42,5 @@ def test_cases():
                 ),
                 filename="out.json",
             )
+            v = pkcli_cortex.export_tea(db)
+            pkio.write_text("out.py", re.sub(r"# Generated on .*\n", "", v))
