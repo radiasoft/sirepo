@@ -155,7 +155,6 @@ class API(sirepo.quest.API):
         u = m.unchecked_search_by(token=token)
         if u and u.expires >= sirepo.srtime.utc_now():
             d = _verify_confirm(req.type, u)
-            m.delete_changed_email(user=u)
             u.user_name = u.unverified_email
             u.token = None
             u.expires = None
