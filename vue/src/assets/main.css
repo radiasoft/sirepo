@@ -16,6 +16,9 @@ tr:hover .sr-button-bar-parent {
   white-space: nowrap;
   padding-left: 15px;
 }
+.sr-button-bar .btn {
+  margin-left: 5px;
+}
 .sr-panel-header {
   font-weight: 350;
   line-height: 1.4;
@@ -154,6 +157,10 @@ ul.sr-nav-sidebar-root {
 }
 .nav-link.active {
   background-color: #e7e7e7;
+}
+.nav-item > a {
+  padding-top: 13px;
+  padding-bottom: 13px;
 }
 
 body {

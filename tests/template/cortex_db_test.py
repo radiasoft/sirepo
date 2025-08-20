@@ -45,6 +45,22 @@ def test_cases():
                 input=d.join("in.sql").read_binary(),
             )
             _dump_list("out.json")
+            v = pkcli_cortex.export_tea(db)
+            pkio.write_text("out.py", re.sub(r"# Generated on .*\n", "", v))
+
+            pkjson.dump_pretty(
+                cortex.stateful_compute_cortex_db(
+                    PKDict(
+                        args=PKDict(
+                            api_name="material_detail",
+                            api_args=PKDict(
+                                material_id=1001,
+                            ),
+                        )
+                    )
+                ).api_result,
+                "detail.json",
+            )
             cortex.stateful_compute_cortex_db(
                 PKDict(
                     args=PKDict(
@@ -56,5 +72,3 @@ def test_cases():
                 )
             )
             _dump_list("out2.json")
-            v = pkcli_cortex.export_tea(db)
-            pkio.write_text("out.py", re.sub(r"# Generated on .*\n", "", v))

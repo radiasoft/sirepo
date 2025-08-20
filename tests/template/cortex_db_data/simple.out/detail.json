@@ -1,0 +1,397 @@
+{
+    "availability_factor": 35.0,
+    "components": [
+        {
+            "material_component_id": 1002,
+            "material_component_name": "c",
+            "material_id": 1001,
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.11
+        },
+        {
+            "material_component_id": 2002,
+            "material_component_name": "cr",
+            "material_id": 1001,
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 9.0
+        },
+        {
+            "material_component_id": 3002,
+            "material_component_name": "w",
+            "material_id": 1001,
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 1.1
+        },
+        {
+            "material_component_id": 4002,
+            "material_component_name": "mn",
+            "material_id": 1001,
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.4
+        },
+        {
+            "material_component_id": 5002,
+            "material_component_name": "v",
+            "material_id": 1001,
+            "max_pct": 0.25,
+            "min_pct": 0.15,
+            "target_pct": 0.2
+        },
+        {
+            "material_component_id": 6002,
+            "material_component_name": "ta",
+            "material_id": 1001,
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.12
+        },
+        {
+            "material_component_id": 7002,
+            "material_component_name": "n",
+            "material_id": 1001,
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 0.03
+        },
+        {
+            "material_component_id": 8002,
+            "material_component_name": "p",
+            "material_id": 1001,
+            "max_pct": 0.005,
+            "min_pct": 0.0,
+            "target_pct": 0.005
+        },
+        {
+            "material_component_id": 9002,
+            "material_component_name": "s",
+            "material_id": 1001,
+            "max_pct": 0.005,
+            "min_pct": 0.0,
+            "target_pct": 0.005
+        },
+        {
+            "material_component_id": 10002,
+            "material_component_name": "b",
+            "material_id": 1001,
+            "max_pct": 0.002,
+            "min_pct": 0.0,
+            "target_pct": 0.002
+        },
+        {
+            "material_component_id": 11002,
+            "material_component_name": "o",
+            "material_id": 1001,
+            "max_pct": 0.01,
+            "min_pct": 0.0,
+            "target_pct": 0.01
+        },
+        {
+            "material_component_id": 12002,
+            "material_component_name": "fe",
+            "material_id": 1001,
+            "max_pct": null,
+            "min_pct": null,
+            "target_pct": 88.848
+        },
+        {
+            "material_component_id": 13002,
+            "material_component_name": "nb",
+            "material_id": 1001,
+            "max_pct": 0.005,
+            "min_pct": 0.0,
+            "target_pct": 0.005
+        },
+        {
+            "material_component_id": 14002,
+            "material_component_name": "mo",
+            "material_id": 1001,
+            "max_pct": 0.005,
+            "min_pct": 0.0,
+            "target_pct": 0.005
+        },
+        {
+            "material_component_id": 15002,
+            "material_component_name": "ni",
+            "material_id": 1001,
+            "max_pct": 0.01,
+            "min_pct": 0.0,
+            "target_pct": 0.01
+        },
+        {
+            "material_component_id": 16002,
+            "material_component_name": "cu",
+            "material_id": 1001,
+            "max_pct": 0.01,
+            "min_pct": 0.0,
+            "target_pct": 0.01
+        },
+        {
+            "material_component_id": 17002,
+            "material_component_name": "al",
+            "material_id": 1001,
+            "max_pct": 0.01,
+            "min_pct": 0.0,
+            "target_pct": 0.01
+        },
+        {
+            "material_component_id": 18002,
+            "material_component_name": "ti",
+            "material_id": 1001,
+            "max_pct": 0.02,
+            "min_pct": 0.0,
+            "target_pct": 0.02
+        },
+        {
+            "material_component_id": 19002,
+            "material_component_name": "si",
+            "material_id": 1001,
+            "max_pct": 0.05,
+            "min_pct": 0.0,
+            "target_pct": 0.05
+        },
+        {
+            "material_component_id": 20002,
+            "material_component_name": "co",
+            "material_id": 1001,
+            "max_pct": 0.01,
+            "min_pct": 0.0,
+            "target_pct": 0.01
+        },
+        {
+            "material_component_id": 21002,
+            "material_component_name": "as",
+            "material_id": 1001,
+            "max_pct": 0.0125,
+            "min_pct": 0.0,
+            "target_pct": 0.0125
+        },
+        {
+            "material_component_id": 22002,
+            "material_component_name": "sn",
+            "material_id": 1001,
+            "max_pct": 0.0125,
+            "min_pct": 0.0,
+            "target_pct": 0.0125
+        },
+        {
+            "material_component_id": 23002,
+            "material_component_name": "sb",
+            "material_id": 1001,
+            "max_pct": 0.0125,
+            "min_pct": 0.0,
+            "target_pct": 0.0125
+        },
+        {
+            "material_component_id": 24002,
+            "material_component_name": "zr",
+            "material_id": 1001,
+            "max_pct": 0.0125,
+            "min_pct": 0.0,
+            "target_pct": 0.0125
+        }
+    ],
+    "created": "2025-07-23 17:08:21.707047",
+    "density_g_cm3": 7.625,
+    "is_atom_pct": false,
+    "is_bare_tile": true,
+    "is_homogenized_divertor": false,
+    "is_homogenized_hcpb": true,
+    "is_homogenized_wcll": false,
+    "is_neutron_source_dt": true,
+    "is_plasma_facing": false,
+    "material_id": 1001,
+    "material_name": "Eurofer 97",
+    "microstructure": null,
+    "neutron_wall_loading": "DEMO",
+    "processing_steps": null,
+    "properties": [
+        {
+            "comments": "Density is available as function of temperature; value is given at 500 C",
+            "doi_or_url": "https://tinyurl.com/4uchnhx9",
+            "material_id": 1001,
+            "material_property_id": 1003,
+            "pointer": "T1",
+            "property_name": "composition_density",
+            "property_unit": "g/cm3",
+            "source": "NOM",
+            "vals": []
+        },
+        {
+            "comments": null,
+            "doi_or_url": "10.1016/j.fusengdes.2018.06.027",
+            "material_id": 1001,
+            "material_property_id": 2003,
+            "pointer": "T5.1",
+            "property_name": "composition",
+            "property_unit": "1",
+            "source": "NOM",
+            "vals": []
+        },
+        {
+            "comments": null,
+            "doi_or_url": "https://tinyurl.com/4uchnhx9",
+            "material_id": 1001,
+            "material_property_id": 3003,
+            "pointer": "T1",
+            "property_name": "density",
+            "property_unit": "kg/m3",
+            "source": "NOM",
+            "vals": [
+                {
+                    "material_property_id": 3003,
+                    "material_property_value_id": 1004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 293.15,
+                    "uncertainty": null,
+                    "value": 7.744
+                },
+                {
+                    "material_property_id": 3003,
+                    "material_property_value_id": 2004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 323.15,
+                    "uncertainty": null,
+                    "value": 7.75
+                },
+                {
+                    "material_property_id": 3003,
+                    "material_property_value_id": 3004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 373.15,
+                    "uncertainty": null,
+                    "value": 7.74
+                },
+                {
+                    "material_property_id": 3003,
+                    "material_property_value_id": 4004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 473.15,
+                    "uncertainty": null,
+                    "value": 7.723
+                },
+                {
+                    "material_property_id": 3003,
+                    "material_property_value_id": 5004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 573.15,
+                    "uncertainty": null,
+                    "value": 7.691
+                },
+                {
+                    "material_property_id": 3003,
+                    "material_property_value_id": 6004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 673.15,
+                    "uncertainty": null,
+                    "value": 7.657
+                },
+                {
+                    "material_property_id": 3003,
+                    "material_property_value_id": 7004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 773.15,
+                    "uncertainty": null,
+                    "value": 7.625
+                },
+                {
+                    "material_property_id": 3003,
+                    "material_property_value_id": 8004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 873.15,
+                    "uncertainty": null,
+                    "value": 7.592
+                },
+                {
+                    "material_property_id": 3003,
+                    "material_property_value_id": 9004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 973.15,
+                    "uncertainty": null,
+                    "value": 7.559
+                }
+            ]
+        },
+        {
+            "comments": null,
+            "doi_or_url": "https://tinyurl.com/4uchnhx9",
+            "material_id": 1001,
+            "material_property_id": 4003,
+            "pointer": "T20.1",
+            "property_name": "thermal_conductivity",
+            "property_unit": "W/m/K",
+            "source": "EXP",
+            "vals": [
+                {
+                    "material_property_id": 4003,
+                    "material_property_value_id": 10004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 293.15,
+                    "uncertainty": null,
+                    "value": 28.08
+                },
+                {
+                    "material_property_id": 4003,
+                    "material_property_value_id": 11004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 323.15,
+                    "uncertainty": null,
+                    "value": 28.86
+                },
+                {
+                    "material_property_id": 4003,
+                    "material_property_value_id": 12004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 373.15,
+                    "uncertainty": null,
+                    "value": 29.78
+                },
+                {
+                    "material_property_id": 4003,
+                    "material_property_value_id": 13004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 473.15,
+                    "uncertainty": null,
+                    "value": 30.38
+                },
+                {
+                    "material_property_id": 4003,
+                    "material_property_value_id": 14004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 573.15,
+                    "uncertainty": null,
+                    "value": 30.01
+                },
+                {
+                    "material_property_id": 4003,
+                    "material_property_value_id": 15004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 673.15,
+                    "uncertainty": null,
+                    "value": 29.47
+                },
+                {
+                    "material_property_id": 4003,
+                    "material_property_value_id": 16004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 773.15,
+                    "uncertainty": null,
+                    "value": 29.58
+                },
+                {
+                    "material_property_id": 4003,
+                    "material_property_value_id": 17004,
+                    "neutron_fluence_1_cm2": 0.0,
+                    "temperature_k": 873.15,
+                    "uncertainty": null,
+                    "value": 31.12
+                }
+            ]
+        }
+    ],
+    "structure": null,
+    "uid": "TODO RJN"
+}

@@ -6,6 +6,8 @@
 
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
+import pykern.sql_db
+import sirepo.util
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.template.cortex_sql_db
@@ -22,6 +24,15 @@ def stateful_compute_cortex_db(data, **kwargs):
     if data.args.api_name == "delete_material":
         sirepo.template.cortex_sql_db.delete_material(data.args.api_args.material_id)
         return PKDict()
+    if data.args.api_name == "material_detail":
+        try:
+            return PKDict(
+                api_result=sirepo.template.cortex_sql_db.material_detail(
+                    data.args.api_args.material_id
+                ),
+            )
+        except pykern.sql_db.NoRows:
+            raise sirepo.util.NotFound("Material not found")
     raise AssertionError("Unhandled api_name: {}", data.args.api_name)
 
 

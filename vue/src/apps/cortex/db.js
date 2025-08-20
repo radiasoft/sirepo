@@ -24,7 +24,7 @@ class DB {
     }
 
     async deleteMaterial(material_id) {
-        const r = await requestSender.sendStatefulCompute({
+        await requestSender.sendStatefulCompute({
             method: 'cortex_db',
             args: {
                 api_name: 'delete_material',
@@ -33,6 +33,18 @@ class DB {
                 },
             },
         });
+    }
+
+    async materialDetail(material_id) {
+        return (await requestSender.sendStatefulCompute({
+            method: 'cortex_db',
+            args: {
+                api_name: 'material_detail',
+                api_args: {
+                    material_id,
+                },
+            },
+        })).api_result;
     }
 
     updated() {
