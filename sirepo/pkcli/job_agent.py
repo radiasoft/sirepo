@@ -99,6 +99,7 @@ def start():
             str,
             "how to connect to sim db files",
         ),
+        supervisor_unix_path=(None, str, "how to connect to supervisor with want_persistent_ssh"),
         supervisor_uri=pkconfig.Required(
             str,
             "how to connect to the supervisor",
@@ -174,7 +175,6 @@ def start_sbatch():
         start()
     finally:
         _remove_own_pid_file(p)
-
 
 class _Dispatcher(PKDict):
     def __init__(self):
@@ -254,6 +254,7 @@ class _Dispatcher(PKDict):
                 max_message_size=job.cfg().max_message_bytes,
                 ping_interval=job.cfg().ping_interval_secs,
                 ping_timeout=job.cfg().ping_timeout_secs,
+                resolver=_unix_resolver(),
             )
             s = self.format_op(None, job.OP_ALIVE)
             rv = False
@@ -272,6 +273,9 @@ class _Dispatcher(PKDict):
                 # One success
                 rv = True
             return rv
+
+        def _unix_resolver(uri):
+            return UnixResolver() if _cfg.supervisor_unix_path else None
 
         t = _MAX_LOOP_RETRY
         while t > 0:
@@ -1431,6 +1435,11 @@ class _SbatchRunStatus(_SbatchCmd):
         )
         if self._sbatch_status.job_cmd_state in job.EXIT_STATUSES:
             self.destroy()
+
+
+class _UnixResolver(tornado.netutil.Resolver):
+    async def resolve(self, host, port, *args, **kwargs):
+        return [(socket.AF_UNIX, _cfg.supervisor_unix_path)]
 
 
 def _assert_run_dir_exists(run_dir):

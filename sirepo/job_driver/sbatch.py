@@ -12,7 +12,9 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from sirepo import job
 from sirepo import job_driver
 from sirepo import util
+import asyncio
 import asyncssh
+import asyncssh.process
 import datetime
 import errno
 import sirepo.const
@@ -22,6 +24,7 @@ import sirepo.util
 import tornado.gen
 import tornado.ioloop
 import tornado.websocket
+import urllib.parse
 
 _RUN_DIR_OPS = job.SLOT_OPS.union((job.OP_RUN_STATUS,))
 
@@ -56,19 +59,28 @@ class SbatchDriver(job_driver.DriverBase):
         )
         self.__instances[self.uid] = self
 
-    async def kill(self):
-        if not self.get("_websocket"):
-            # if there is no websocket then we don't know about the agent
-            # so we can't do anything
-            return
+    async def free_resources(self, *args, **kwargs):
         try:
-            # hopefully the agent is nice and listens to the kill
-            self._websocket.write_message(PKDict(opName=job.OP_KILL))
-        except tornado.websocket.WebSocketClosedError:
-            self._websocket = None
-            pkdlog("websocket closed {}", self)
+            self._srdb_root = None
         except Exception as e:
             pkdlog("{} error={} stack={}", self, e, pkdexc())
+        return await super().free_resources(*args, **kwargs)
+
+    async def kill(self):
+        def _websocket_close():
+            if (w := not self.get("_websocket")) is None:
+                return
+            try:
+                # hopefully the agent is nice and listens to the kill
+                w.write_message(PKDict(opName=job.OP_KILL))
+            except tornado.websocket.WebSocketClosedError:
+                self._websocket = None
+                pkdlog("websocket closed {}", self)
+            except Exception as e:
+                pkdlog("{} error={} stack={}", self, e, pkdexc())
+
+        _websocket_close()
+        await self._ssh_close()
 
     @classmethod
     def get_instance(cls, op):
@@ -101,6 +113,7 @@ class SbatchDriver(job_driver.DriverBase):
                 _cfg_srdb_root, "where to run job_agent, must include {sbatch_user}"
             ),
             supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
+            want_persistent_ssh=(False, bool, "maintain ssh connection and forward supervisor via unix domain socket"),
         )
         cls._KNOWN_HOSTS = (
             cls.cfg.host_key
@@ -116,7 +129,7 @@ class SbatchDriver(job_driver.DriverBase):
         def _add_dirs(msg):
             msg.userDir = "/".join(
                 (
-                    str(self._srdb_root),
+                    self._srdb_root,
                     sirepo.simulation_db.USER_ROOT_DIR,
                     self.uid,
                 )
@@ -147,10 +160,11 @@ class SbatchDriver(job_driver.DriverBase):
             m.shifterImage = self.cfg.shifter_image
         return await super().prepare_send(op)
 
-    def _agent_env(self, op):
+    def _agent_env(self, op, ctx):
         return super()._agent_env(
             op,
             env=PKDict(
+                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_UNIX_PATH=ctx.forward_remote_path,
                 SIREPO_SRDB_ROOT=self._srdb_root,
             ),
         )
@@ -175,6 +189,18 @@ class SbatchDriver(job_driver.DriverBase):
                 )
             return res
 
+        def _ctx():
+            s = self._srdb_root
+            rv = PKDict(
+                forward_remote_path=s + "/supervisor.sock" if self.cfg.want_persistent_ssh else "",
+                log_path=s + "/job_agent.log"
+                msg=op.msg
+                start_dir=s,
+            )
+            if pkconfig.in_dev_mode():
+                pkdlog("agent_log={}", rv.log_path)
+            return rv
+
         def _creds():
             self._assert_creds(op.msg)
             return PKDict(
@@ -187,15 +213,32 @@ class SbatchDriver(job_driver.DriverBase):
                 username=self._creds.username,
             )
 
-        async def _get_agent_log(connection, before_start=True):
+        async def _forward_remote_path(ctx):
+            if not self.cfg.want_persistent_ssh:
+                return
+            try:
+                async with self._ssh.create_process(
+                    f"rm -f '{ctx.forward_remote_path}'",
+                    stderr=asyncssh.process.DEVNULL,
+                    stdin=asyncssh.process.DEVNULL,
+                    stdout=asyncssh.process.DEVNULL,
+                ) as p:
+                    p.communicate()
+            except Exception as e:
+                pkdlog("rm file={} error={}; continuing", ctx.ctx.forward_remote_path, e)
+            u = urllib.parse.urlparse(self.cfg.supervisor_uri)
+            if (p := u.port) is None:
+                p = 443 if u.scheme == 'https' else 80
+            self._ssh_forward = await self._ssh.forward_remote_path_to_port(ctx.forward_remote_path, u.hostname, p)
+
+        async def _get_agent_log(cfg, before_start=True):
             try:
                 if not before_start:
                     await tornado.gen.sleep(self.cfg.agent_log_read_sleep)
-                f = f"{agent_start_dir}/{log_file}"
-                async with connection.create_process(
+                async with self._ssh.create_process(
                     # test is a shell-builtin so no abs path. tail varies in
                     # location. can trust that it will be in the path
-                    f"test -e {f} && tail --lines=200 {f}"
+                    f"test -e {cfg.log_path} && tail --lines=200 {f}"
                 ) as p:
                     o, e = await p.communicate()
                     _write_to_log(
@@ -219,35 +262,32 @@ class SbatchDriver(job_driver.DriverBase):
             if pkconfig.in_dev_mode():
                 pkdlog(r)
 
-        # must be saved, because op is only valid before first await
-        original_msg = op.msg
-        log_file = "job_agent.log"
-        agent_start_dir = self._srdb_root
-        if pkconfig.in_dev_mode():
-            pkdlog("agent_log={}/{}", agent_start_dir, log_file)
+        c = _ctx()
         script = f"""#!/bin/bash
 set -euo pipefail
 {_agent_start_dev()}
-mkdir -p '{agent_start_dir}'
-cd '{self._srdb_root}'
-{self._agent_env(op)}
-(/usr/bin/env; setsid {self.cfg.sirepo_cmd} job_agent start_sbatch) &>> {log_file} &
+mkdir -p '{c.start_dir}'
+cd '{c.start_dir}'
+{self._agent_env(op, c)}
+(/usr/bin/env; setsid {self.cfg.sirepo_cmd} job_agent start_sbatch) &>> {c.log_path} &
 disown
 """
         try:
-            async with asyncssh.connect(self.cfg.host, **_creds()) as c:
-                async with c.create_process("/bin/bash --noprofile --norc -l") as p:
-                    await _get_agent_log(c, before_start=True)
-                    o, e = await p.communicate(input=script)
-                    if o or e:
-                        _write_to_log(o, e, "start")
-                self.driver_details.pkupdate(
-                    host=self.cfg.host,
-                    username=self._creds.username,
-                )
-                await _get_agent_log(c, before_start=False)
+            self._ssh = await asyncssh.connect(self.cfg.host, **_creds())
+            await _forward_remote_path(c)
+            async with self._ssh.create_process("/bin/bash --noprofile --norc -l") as p:
+                await _get_agent_log(c, before_start=True)
+                o, e = await p.communicate(input=script)
+                if o or e:
+                    _write_to_log(o, e, "start")
+            self.driver_details.pkupdate(
+                host=self.cfg.host,
+                username=self._creds.username,
+            )
+            await _get_agent_log(c, before_start=False)
         except Exception as e:
             pkdlog("error={} stack={}", e, pkdexc())
+            self._ssh_close()
             self._srdb_root = None
             self._raise_sbatch_login_srexception(
                 (
@@ -255,10 +295,12 @@ disown
                     if isinstance(e, asyncssh.misc.PermissionDenied)
                     else "general-connection-error"
                 ),
-                original_msg,
+                c.msg,
             )
         finally:
             self.pkdel("_creds")
+            if not self.cfg.want_persistent_ssh:
+                self._ssh_close()
 
     def _raise_sbatch_login_srexception(self, reason, msg):
         raise util.SRException(
@@ -272,16 +314,20 @@ disown
             ),
         )
 
+    async def _ssh_close():
+        for a in "_ssh_forward", "_ssh":
+            if (c := getattr(self, a, None)) is None:
+                continue
+            setattr(self, a, None)
+            try:
+                c.close()
+                await c.wait_close()
+            except Exception as e:
+                pkdlog("attr={} {} error={} stack={}", a, self, e, pkdexc())
+
     def _start_idle_timeout(self):
         """Sbatch agents should be kept alive as long as possible"""
         pass
-
-    async def free_resources(self, *args, **kwargs):
-        try:
-            self._srdb_root = None
-        except Exception as e:
-            pkdlog("{} error={} stack={}", self, e, pkdexc())
-        return await super().free_resources(*args, **kwargs)
 
 
 CLASS = SbatchDriver
