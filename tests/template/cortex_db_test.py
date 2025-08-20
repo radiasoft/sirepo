@@ -47,7 +47,6 @@ def test_cases():
             _dump_list("out.json")
             v = pkcli_cortex.export_tea(db)
             pkio.write_text("out.py", re.sub(r"# Generated on .*\n", "", v))
-
             pkjson.dump_pretty(
                 cortex.stateful_compute_cortex_db(
                     PKDict(
