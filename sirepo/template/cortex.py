@@ -16,24 +16,28 @@ import sirepo.template.cortex_xlsx
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 
-def stateful_compute_cortex_db(data, **kwargs):
-    if data.args.api_name == "list_materials":
+def stateful_compute_delete_material(data, **kwargs):
+    sirepo.template.cortex_sql_db.delete_material(data.args.material_id)
+    return PKDict()
+
+
+def stateful_compute_list_materials(data, **kwargs):
+    res = sirepo.template.cortex_sql_db.list_materials()
+    for r in res:
+        # convert python datetime to javascript datetime
+        r.created *= 1000
+    return PKDict(
+        result=res,
+    )
+
+
+def stateful_compute_material_detail(data, **kwargs):
+    try:
         return PKDict(
-            api_result=sirepo.template.cortex_sql_db.list_materials(),
+            result=sirepo.template.cortex_sql_db.material_detail(data.args.material_id),
         )
-    if data.args.api_name == "delete_material":
-        sirepo.template.cortex_sql_db.delete_material(data.args.api_args.material_id)
-        return PKDict()
-    if data.args.api_name == "material_detail":
-        try:
-            return PKDict(
-                api_result=sirepo.template.cortex_sql_db.material_detail(
-                    data.args.api_args.material_id
-                ),
-            )
-        except pykern.sql_db.NoRows:
-            raise sirepo.util.NotFound("Material not found")
-    raise AssertionError("Unhandled api_name: {}", data.args.api_name)
+    except pykern.sql_db.NoRows:
+        raise sirepo.util.NotFound("Material not found")
 
 
 def stateful_compute_import_file(data, **kwargs):

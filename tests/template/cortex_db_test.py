@@ -21,13 +21,7 @@ def test_cases():
 
         def _dump_list(outfile):
             pkjson.dump_pretty(
-                cortex.stateful_compute_cortex_db(
-                    PKDict(
-                        args=PKDict(
-                            api_name="list_materials",
-                        ),
-                    )
-                ),
+                cortex.stateful_compute_list_materials(PKDict()),
                 filename=outfile,
             )
 
@@ -48,25 +42,19 @@ def test_cases():
             v = pkcli_cortex.export_tea(db)
             pkio.write_text("out.py", re.sub(r"# Generated on .*\n", "", v))
             pkjson.dump_pretty(
-                cortex.stateful_compute_cortex_db(
+                cortex.stateful_compute_material_detail(
                     PKDict(
                         args=PKDict(
-                            api_name="material_detail",
-                            api_args=PKDict(
-                                material_id=1001,
-                            ),
+                            material_id=1001,
                         )
                     )
-                ).api_result,
+                ).result,
                 "detail.json",
             )
-            cortex.stateful_compute_cortex_db(
+            cortex.stateful_compute_delete_material(
                 PKDict(
                     args=PKDict(
-                        api_name="delete_material",
-                        api_args=PKDict(
-                            material_id=1001,
-                        ),
+                        material_id=1001,
                     )
                 )
             )
