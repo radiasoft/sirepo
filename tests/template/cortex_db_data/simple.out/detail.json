@@ -1,9 +1,8 @@
 {
-    "availability_factor": 35.0,
     "components": [
         {
             "material_component_id": 1002,
-            "material_component_name": "c",
+            "material_component_name": "C",
             "material_id": 1001,
             "max_pct": null,
             "min_pct": null,
@@ -11,7 +10,7 @@
         },
         {
             "material_component_id": 2002,
-            "material_component_name": "cr",
+            "material_component_name": "Cr",
             "material_id": 1001,
             "max_pct": null,
             "min_pct": null,
@@ -19,7 +18,7 @@
         },
         {
             "material_component_id": 3002,
-            "material_component_name": "w",
+            "material_component_name": "W",
             "material_id": 1001,
             "max_pct": null,
             "min_pct": null,
@@ -27,7 +26,7 @@
         },
         {
             "material_component_id": 4002,
-            "material_component_name": "mn",
+            "material_component_name": "Mn",
             "material_id": 1001,
             "max_pct": null,
             "min_pct": null,
@@ -35,7 +34,7 @@
         },
         {
             "material_component_id": 5002,
-            "material_component_name": "v",
+            "material_component_name": "V",
             "material_id": 1001,
             "max_pct": 0.25,
             "min_pct": 0.15,
@@ -43,7 +42,7 @@
         },
         {
             "material_component_id": 6002,
-            "material_component_name": "ta",
+            "material_component_name": "Ta",
             "material_id": 1001,
             "max_pct": null,
             "min_pct": null,
@@ -51,7 +50,7 @@
         },
         {
             "material_component_id": 7002,
-            "material_component_name": "n",
+            "material_component_name": "N",
             "material_id": 1001,
             "max_pct": null,
             "min_pct": null,
@@ -59,7 +58,7 @@
         },
         {
             "material_component_id": 8002,
-            "material_component_name": "p",
+            "material_component_name": "P",
             "material_id": 1001,
             "max_pct": 0.005,
             "min_pct": 0.0,
@@ -67,7 +66,7 @@
         },
         {
             "material_component_id": 9002,
-            "material_component_name": "s",
+            "material_component_name": "S",
             "material_id": 1001,
             "max_pct": 0.005,
             "min_pct": 0.0,
@@ -75,7 +74,7 @@
         },
         {
             "material_component_id": 10002,
-            "material_component_name": "b",
+            "material_component_name": "B",
             "material_id": 1001,
             "max_pct": 0.002,
             "min_pct": 0.0,
@@ -83,7 +82,7 @@
         },
         {
             "material_component_id": 11002,
-            "material_component_name": "o",
+            "material_component_name": "O",
             "material_id": 1001,
             "max_pct": 0.01,
             "min_pct": 0.0,
@@ -91,7 +90,7 @@
         },
         {
             "material_component_id": 12002,
-            "material_component_name": "fe",
+            "material_component_name": "Fe",
             "material_id": 1001,
             "max_pct": null,
             "min_pct": null,
@@ -99,7 +98,7 @@
         },
         {
             "material_component_id": 13002,
-            "material_component_name": "nb",
+            "material_component_name": "Nb",
             "material_id": 1001,
             "max_pct": 0.005,
             "min_pct": 0.0,
@@ -107,7 +106,7 @@
         },
         {
             "material_component_id": 14002,
-            "material_component_name": "mo",
+            "material_component_name": "Mo",
             "material_id": 1001,
             "max_pct": 0.005,
             "min_pct": 0.0,
@@ -115,7 +114,7 @@
         },
         {
             "material_component_id": 15002,
-            "material_component_name": "ni",
+            "material_component_name": "Ni",
             "material_id": 1001,
             "max_pct": 0.01,
             "min_pct": 0.0,
@@ -123,7 +122,7 @@
         },
         {
             "material_component_id": 16002,
-            "material_component_name": "cu",
+            "material_component_name": "Cu",
             "material_id": 1001,
             "max_pct": 0.01,
             "min_pct": 0.0,
@@ -131,7 +130,7 @@
         },
         {
             "material_component_id": 17002,
-            "material_component_name": "al",
+            "material_component_name": "Al",
             "material_id": 1001,
             "max_pct": 0.01,
             "min_pct": 0.0,
@@ -139,7 +138,7 @@
         },
         {
             "material_component_id": 18002,
-            "material_component_name": "ti",
+            "material_component_name": "Ti",
             "material_id": 1001,
             "max_pct": 0.02,
             "min_pct": 0.0,
@@ -147,7 +146,7 @@
         },
         {
             "material_component_id": 19002,
-            "material_component_name": "si",
+            "material_component_name": "Si",
             "material_id": 1001,
             "max_pct": 0.05,
             "min_pct": 0.0,
@@ -155,7 +154,7 @@
         },
         {
             "material_component_id": 20002,
-            "material_component_name": "co",
+            "material_component_name": "Co",
             "material_id": 1001,
             "max_pct": 0.01,
             "min_pct": 0.0,
@@ -163,7 +162,7 @@
         },
         {
             "material_component_id": 21002,
-            "material_component_name": "as",
+            "material_component_name": "As",
             "material_id": 1001,
             "max_pct": 0.0125,
             "min_pct": 0.0,
@@ -171,7 +170,7 @@
         },
         {
             "material_component_id": 22002,
-            "material_component_name": "sn",
+            "material_component_name": "Sn",
             "material_id": 1001,
             "max_pct": 0.0125,
             "min_pct": 0.0,
@@ -179,7 +178,7 @@
         },
         {
             "material_component_id": 23002,
-            "material_component_name": "sb",
+            "material_component_name": "Sb",
             "material_id": 1001,
             "max_pct": 0.0125,
             "min_pct": 0.0,
@@ -187,52 +186,83 @@
         },
         {
             "material_component_id": 24002,
-            "material_component_name": "zr",
+            "material_component_name": "Zr",
             "material_id": 1001,
             "max_pct": 0.0125,
             "min_pct": 0.0,
             "target_pct": 0.0125
         }
     ],
-    "created": "2025-07-23 17:08:21.707047",
-    "density_g_cm3": 7.625,
+    "composition": {
+        "comments": null,
+        "doi": {
+            "linkText": "10.1016/j.fusengdes.2018.06.027",
+            "rows": {
+                "Comments": null,
+                "Pointer": "T5.1",
+                "Source": "NOM, nominal (design target) value"
+            },
+            "type": "DOI",
+            "url": "https://doi.org/10.1016/j.fusengdes.2018.06.027"
+        },
+        "doi_or_url": "10.1016/j.fusengdes.2018.06.027",
+        "material_id": 1001,
+        "material_property_id": 2003,
+        "pointer": "T5.1",
+        "property_name": "composition",
+        "property_unit": "1",
+        "source": "NOM",
+        "vals": [],
+        "valueHeadings": {
+            "neutron_fluence_1_cm2": "Neutron Fluence [1/cm\u00b2]",
+            "temperature_k": "Temperature [K]",
+            "uncertainty": "Uncertainty",
+            "value": "Value [1]"
+        }
+    },
+    "composition_density": {
+        "comments": "Density is available as function of temperature; value is given at 500 C",
+        "doi": {
+            "linkText": "https://tinyurl.com/4uchnhx9",
+            "rows": {
+                "Comments": "Density is available as function of temperature; value is given at 500 C",
+                "Pointer": "T1",
+                "Source": "NOM, nominal (design target) value"
+            },
+            "type": "URL",
+            "url": "https://tinyurl.com/4uchnhx9"
+        },
+        "doi_or_url": "https://tinyurl.com/4uchnhx9",
+        "material_id": 1001,
+        "material_property_id": 1003,
+        "pointer": "T1",
+        "property_name": "composition_density",
+        "property_unit": "g/cm3",
+        "source": "NOM",
+        "vals": [],
+        "valueHeadings": {
+            "neutron_fluence_1_cm2": "Neutron Fluence [1/cm\u00b2]",
+            "temperature_k": "Temperature [K]",
+            "uncertainty": "Uncertainty",
+            "value": "Value [g/cm3]"
+        }
+    },
+    "density": "7.625 g/cm\u00b3",
     "is_atom_pct": false,
-    "is_bare_tile": true,
-    "is_homogenized_divertor": false,
-    "is_homogenized_hcpb": true,
-    "is_homogenized_wcll": false,
-    "is_neutron_source_dt": true,
-    "is_plasma_facing": false,
-    "material_id": 1001,
-    "material_name": "Eurofer 97",
-    "microstructure": null,
-    "neutron_wall_loading": "DEMO",
-    "processing_steps": null,
+    "name": "Eurofer 97",
     "properties": [
         {
-            "comments": "Density is available as function of temperature; value is given at 500 C",
-            "doi_or_url": "https://tinyurl.com/4uchnhx9",
-            "material_id": 1001,
-            "material_property_id": 1003,
-            "pointer": "T1",
-            "property_name": "composition_density",
-            "property_unit": "g/cm3",
-            "source": "NOM",
-            "vals": []
-        },
-        {
             "comments": null,
-            "doi_or_url": "10.1016/j.fusengdes.2018.06.027",
-            "material_id": 1001,
-            "material_property_id": 2003,
-            "pointer": "T5.1",
-            "property_name": "composition",
-            "property_unit": "1",
-            "source": "NOM",
-            "vals": []
-        },
-        {
-            "comments": null,
+            "doi": {
+                "linkText": "https://tinyurl.com/4uchnhx9",
+                "rows": {
+                    "Comments": null,
+                    "Pointer": "T1",
+                    "Source": "NOM, nominal (design target) value"
+                },
+                "type": "URL",
+                "url": "https://tinyurl.com/4uchnhx9"
+            },
             "doi_or_url": "https://tinyurl.com/4uchnhx9",
             "material_id": 1001,
             "material_property_id": 3003,
@@ -313,10 +343,26 @@
                     "uncertainty": null,
                     "value": 7.559
                 }
-            ]
+            ],
+            "valueHeadings": {
+                "neutron_fluence_1_cm2": "neutron_fluence_1_cm2",
+                "temperature_k": "Temperature [K]",
+                "uncertainty": "Uncertainty",
+                "value": "Value [kg/m3]"
+            }
         },
         {
             "comments": null,
+            "doi": {
+                "linkText": "https://tinyurl.com/4uchnhx9",
+                "rows": {
+                    "Comments": null,
+                    "Pointer": "T20.1",
+                    "Source": "EXP, experiment"
+                },
+                "type": "URL",
+                "url": "https://tinyurl.com/4uchnhx9"
+            },
             "doi_or_url": "https://tinyurl.com/4uchnhx9",
             "material_id": 1001,
             "material_property_id": 4003,
@@ -389,9 +435,30 @@
                     "uncertainty": null,
                     "value": 31.12
                 }
-            ]
+            ],
+            "valueHeadings": {
+                "neutron_fluence_1_cm2": "neutron_fluence_1_cm2",
+                "temperature_k": "Temperature [K]",
+                "uncertainty": "Uncertainty",
+                "value": "Value [W/m/K]"
+            }
         }
     ],
-    "structure": null,
-    "uid": "TODO RJN"
+    "section1": {
+        "Material Type": "structural",
+        "Microstructure Information": null,
+        "Processing": null,
+        "Structure": null
+    },
+    "section2": {
+        "Availability Factor": "35.0%",
+        "Neutron Source": "D-T",
+        "Neutron Wall Loading": "DEMO"
+    },
+    "section3": {
+        "Bare Tile": "Yes",
+        "Homogenized Divertor": "No",
+        "Homogenized HCPB": "Yes",
+        "Homogenized WCLL": "No"
+    }
 }

@@ -95,7 +95,7 @@ def insert_material(parsed, qcall=None):
         except sqlalchemy.exc.IntegrityError as e:
             if "unique" in str(e).lower():
                 # Needs to raise to signal to the session to rollback
-                raise Error("material name already exists")
+                raise Error("Material name already exists")
             raise
         for v in parsed.components.values():
             s.insert(
