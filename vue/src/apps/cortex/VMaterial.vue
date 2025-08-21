@@ -53,11 +53,11 @@
                                 </td>
                             </tr></tbody>
                             <VDOIRows
-                                v-bind:property="material.composition_density"
+                                v-bind:doi="material.composition_density?.doi"
                             />
                             <VDOIRows
                                 title="Composition"
-                                v-bind:property="material.composition"
+                                v-bind:doi="material.composition?.doi"
                             />
                         </table>
                     </div>
@@ -85,9 +85,9 @@
                                     v-bind:key="r.material_component_name"
                                 >
                                     <td>{{ r.material_component_name }}</td>
-                                    <td class="text-end">{{ r.max_pct ? '' : r.target_pct }}</td>
-                                    <td class="text-end">{{ r.min_pct }}</td>
-                                    <td class="text-end">{{ r.max_pct }}</td>
+                                    <td class="text-end">{{ formatNumber(r.target_pct) }}</td>
+                                    <td class="text-end">{{ formatNumber(r.min_pct) }}</td>
+                                    <td class="text-end">{{ formatNumber(r.max_pct) }}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -120,7 +120,7 @@
                             <div class="col-sm-6">
                                 <table class="table">
                                     <VDOIRows
-                                        v-bind:property="selectedProperty"
+                                        v-bind:doi="selectedProperty.doi"
                                     />
                                 </table>
                             </div>
@@ -164,76 +164,24 @@
  import { onMounted, ref } from 'vue';
  import { useRoute } from 'vue-router';
 
- const route = useRoute();
  const material = ref(null);
+ const route = useRoute();
  const selectedProperty = ref(null);
-
- const capitalize = (value) => value[0].toUpperCase() + value.slice(1);
 
  const formatName = (property) => {
      return property.property_name.replaceAll('_', ' ');
+ };
+
+ const formatNumber = (value) => {
+     return value ? value.toFixed(4) : value;
  };
 
  const selectProperty = (property) => {
      selectedProperty.value = property;
  };
 
- const toYesNo = (value) => {
-     if (value === null) {
-         return '';
-     }
-     return value ? 'Yes' : 'No';
- };
-
  onMounted(async () => {
-     const info = await db.materialDetail(route.params.materialId);
-     material.value = {
-         name: info.material_name,
-         density: info.density_g_cm3 + " g/cm³",
-         section1: {
-             'Material Type': info.is_plasma_facing ? 'plasma-facing' : 'structural',
-             Structure: info.structure,
-             'Microstructure Information': info.microstructure,
-             Processing: info.processing_steps,
-         },
-         section2: {
-             'Neutron Source': info.is_neutron_source_dt ? 'D-T' : 'D-D',
-             'Neutron Wall Loading': info.neutron_wall_loading,
-             'Availability Factor': info.availability_factor + '%',
-         },
-         section3: {
-             'Bare Tile': toYesNo(info.is_bare_tile),
-             'Homogenized WCLL': toYesNo(info.is_homogenized_wcll),
-             'Homogenized HCPB': toYesNo(info.is_homogenized_hcpb),
-             'Homogenized Divertor': toYesNo(info.is_homogenized_divertor),
-         },
-         components: info.components,
-         composition: info.properties.find((p) => p.property_name === 'composition'),
-         composition_density: info.properties.find((p) => p.property_name === 'composition_density'),
-         properties: info.properties.filter(p => ! p.property_name.startsWith('composition')),
-     };
-     for (const c of material.value.components) {
-         c.material_component_name = capitalize(c.material_component_name);
-         for (const f of ['target_pct', 'min_pct', 'max_pct']) {
-             c[f] = c[f] ? c[f].toFixed(4) : c[f];
-         }
-     }
-     for (const p of material.value.properties) {
-         p.valueHeadings = {
-             value: 'Value' + (p.property_unit ? ` [${p.property_unit}]` : ''),
-             uncertainty: 'Uncertainty',
-             temperature_k: 'Temperature [K]',
-             neutron_fluence_1_cm2: 'Neutron Fluence [1/cm²]',
-         };
-         if (p.vals && p.vals.length) {
-             for (const k in p.vals[0]) {
-                 if (k in p.valueHeadings || k.includes('_id')) {
-                     continue;
-                 }
-                 p.valueHeadings[k] = k;
-             }
-         }
-     }
+     material.value = await db.materialDetail(route.params.materialId);
      if (material.value.properties.length) {
          selectedProperty.value = material.value.properties[0];
      }
