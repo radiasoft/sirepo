@@ -231,6 +231,9 @@ def _meta(path):
     )
 
 
+# TODO(pjm): This method creates the database if it doesn't exist.
+#  This works for sqlite only. When there is a real database server,
+#  it would only connect.
 @contextlib.contextmanager
 def _session(qcall):
     s = sirepo.sim_data.get_class("cortex")

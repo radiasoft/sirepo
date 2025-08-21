@@ -39,23 +39,27 @@ def test_cases():
                 input=d.join("in.sql").read_binary(),
             )
             _dump_list("out.json")
-            v = pkcli_cortex.export_tea(db)
-            pkio.write_text("out.py", re.sub(r"# Generated on .*\n", "", v))
-            pkjson.dump_pretty(
-                cortex.stateful_compute_material_detail(
+
+            if d.basename == "tea":
+                v = pkcli_cortex.export_tea(db)
+                pkio.write_text("tea.py", re.sub(r"# Generated on .*\n", "", v))
+            if d.basename == "simple":
+                pkjson.dump_pretty(
+                    cortex.stateful_compute_material_detail(
+                        PKDict(
+                            args=PKDict(
+                                material_id=1001,
+                            )
+                        )
+                    ).result,
+                    "detail.json",
+                )
+            if d.basename == "delete_material":
+                cortex.stateful_compute_delete_material(
                     PKDict(
                         args=PKDict(
                             material_id=1001,
                         )
                     )
-                ).result,
-                "detail.json",
-            )
-            cortex.stateful_compute_delete_material(
-                PKDict(
-                    args=PKDict(
-                        material_id=1001,
-                    )
                 )
-            )
-            _dump_list("out2.json")
+                _dump_list("after-delete.json")
