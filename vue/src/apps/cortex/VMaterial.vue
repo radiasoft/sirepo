@@ -1,8 +1,8 @@
 <template>
-    <div v-if="material" class="container-lg">
+    <div v-if="material" class="container-xl">
         <div class="h2">{{ material.name }}</div>
-        <div class="row">
-            <div class="col-md-6">
+        <VMasonry>
+            <div v-bind:class="smallPanel">
                 <div class="card mb-4 shadow-sm">
                     <div class="card-body">
                         <table class="table"><tbody>
@@ -37,33 +37,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card mb-4 shadow-sm">
-                    <div class="card-body">
-                        <table class="table">
-                            <tbody><tr>
-                                <td>
-                                    <div style="display: inline-block" class="lead">
-                                        Density
-                                    </div> <VTooltip
-                                        tooltip="Density of your material during in-service conditions; a single value of density will be used for the neutronics calculations" />
-                                </td>
-                                <td>
-                                    <div class="lead">{{ material.density }}</div>
-                                </td>
-                            </tr></tbody>
-                            <VDOIRows
-                                v-bind:doi="material.composition_density?.doi"
-                            />
-                            <VDOIRows
-                                title="Composition"
-                                v-bind:doi="material.composition?.doi"
-                            />
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
+            <div v-bind:class="smallPanel">
                 <div class="card mb-4 shadow-sm">
                     <div class="card-body">
                         <div class="h4">
@@ -94,7 +68,33 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-12" v-if="material.properties.length">
+            <div v-bind:class="smallPanel">
+                <div class="card mb-4 shadow-sm">
+                    <div class="card-body">
+                        <table class="table">
+                            <tbody><tr>
+                                <td>
+                                    <div style="display: inline-block" class="lead">
+                                        Density
+                                    </div> <VTooltip
+                                        tooltip="Density of your material during in-service conditions; a single value of density will be used for the neutronics calculations" />
+                                </td>
+                                <td>
+                                    <div class="lead">{{ material.density }}</div>
+                                </td>
+                            </tr></tbody>
+                            <VDOIRows
+                                v-bind:doi="material.composition_density?.doi"
+                            />
+                            <VDOIRows
+                                title="Composition"
+                                v-bind:doi="material.composition?.doi"
+                            />
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div v-bind:class="largePanel" v-if="material.properties.length">
                 <div class="card mb-4 shadow-sm">
                     <div class="card-body">
                         <div class="h4">Properties</div>
@@ -149,21 +149,23 @@
                                 </tr>
                             </tbody>
                         </table>
-
                     </div>
                 </div>
-            </div>
-        </div>
+              </div>
+        </VMasonry>
     </div>
 </template>
 
 <script setup>
  import VDOIRows from '@/apps/cortex/VDOIRows.vue';
+ import VMasonry from '@/components/layout/VMasonry.vue'
  import VTooltip from '@/components/VTooltip.vue'
  import { db } from '@/apps/cortex/db.js';
  import { onMounted, ref } from 'vue';
  import { useRoute } from 'vue-router';
 
+ const smallPanel = 'col-md-6';
+ const largePanel = 'col-md-12';
  const material = ref(null);
  const route = useRoute();
  const selectedProperty = ref(null);
