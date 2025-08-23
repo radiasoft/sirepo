@@ -196,7 +196,6 @@ def _session(qcall):
     s = sirepo.sim_data.get_class("cortex")
     p = pykern.pkio.py_path(_BASE)
     if s.lib_file_exists(_BASE, qcall=qcall):
-        pkdp("exists")
         p.write_binary(s.lib_file_read_binary(_BASE, qcall=qcall))
     try:
         with _meta(p).session() as rv:

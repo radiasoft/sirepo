@@ -109,7 +109,7 @@ _SUM_MIN = _SUM - _EPSILON
 
 
 class Parser:
-    def __init__(self, path, qcall=None):
+    def __init__(self, path):
         self.errors = []
         self._sheet = self._run_now = self._col_num = None
         self.result = PKDict(
