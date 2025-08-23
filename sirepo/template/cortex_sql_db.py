@@ -20,7 +20,7 @@ class Error(RuntimeError):
     pass
 
 
-def delete_material(material_id):
+def delete_material(qcall, material_id):
     """Cascade delete all rows for a material"""
 
     def _delete(session, table_name, field, value):
