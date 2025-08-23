@@ -32,7 +32,7 @@ def delete_material(material_id):
             for v in s.select(table_name, PKDict({field: value})).all()
         ]
 
-    with _session(None) as s:
+    with _session(qcall) as s:
         for mp in _select_id(s, "material_property", "material_id", material_id):
             for mpv in _select_id(
                 s, "material_property_value", "material_property_id", mp
@@ -108,7 +108,7 @@ def insert_material(parsed, qcall=None):
             _insert_property(s, n, parsed.properties[n].pkupdate(material_id=i))
 
 
-def list_materials():
+def list_materials(qcall):
     def _convert(row):
         return PKDict(
             material_id=row.material_id,
@@ -116,7 +116,7 @@ def list_materials():
             material_name=row.material_name,
         )
 
-    with _session(None) as s:
+    with _session(qcall) as s:
         return [_convert(r) for r in s.select("material").all()]
 
 
@@ -196,6 +196,7 @@ def _session(qcall):
     s = sirepo.sim_data.get_class("cortex")
     p = pykern.pkio.py_path(_BASE)
     if s.lib_file_exists(_BASE, qcall=qcall):
+        pkdp("exists")
         p.write_binary(s.lib_file_read_binary(_BASE, qcall=qcall))
     try:
         with _meta(p).session() as rv:

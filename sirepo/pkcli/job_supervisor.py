@@ -9,6 +9,7 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
+import aiofiles
 import asyncio
 import signal
 import sirepo.const
@@ -197,7 +198,8 @@ class _DataFileReq(tornado.web.RequestHandler):
         assert d.check(dir=True), "directory does not exist={}".format(d)
         # (tornado ensures no '..' and '.'), but a bit of sanity doesn't hurt
         assert not f.startswith("."), "invalid file={}".format(f)
-        d.join(f).write_binary(self.request.body)
+        async with aiofiles.open(d.join(f), "wb") as f:
+            await f.write(self.request.body)
 
 
 async def _terminate():

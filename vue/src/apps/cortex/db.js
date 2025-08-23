@@ -7,31 +7,23 @@ export const DB_UPDATED = 'DbUpdated';
 class DB {
     async loadMaterials() {
         const r = await requestSender.sendStatefulCompute({
-            method: 'cortex_db',
-            args: {
-                api_name: 'list_materials',
-                api_args: {},
-            },
+            op_name: 'list_materials',
+            op_args: {},
         });
-        if (r.api_result) {
-            for (const row of r.api_result) {
+        if (r.op_result) {
+            for (const row of r.op_result) {
                 // convert python datetime to javascript datetime
                 row.created *= 1000;
             }
-            return r.api_result;
+            return r.op_result;
         }
         return [];
     }
 
     async deleteMaterial(material_id) {
         const r = await requestSender.sendStatefulCompute({
-            method: 'cortex_db',
-            args: {
-                api_name: 'delete_material',
-                api_args: {
-                    material_id,
-                },
-            },
+            op_name: 'delete_material',
+            op_args: {material_id},
         });
     }
 

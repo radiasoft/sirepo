@@ -41,10 +41,7 @@ class RequestSender {
     }
 
     async sendStatefulCompute(data) {
-        return this.sendRequest(
-            'statefulCompute',
-            data,
-        );
+        return this.sendRequest('cortexDb', data);
     }
 
     async sendRequest(routeName, requestData) {
