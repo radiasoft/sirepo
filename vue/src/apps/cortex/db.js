@@ -13,15 +13,16 @@ class DB {
         return await this.#send('insert_material', {}, file);
     }
 
-    async loadMaterials() {
+    async listMaterials() {
         const r = await this.#send('list_materials');
         if (r.op_result) {
-            for (const row of r.op_result) {
+            for (const row of r.op_result.rows) {
                 // convert python datetime to javascript datetime
                 row.created *= 1000;
             }
-            return r.op_result;
+            return r.op_result.rows;
         }
+        //TODO(robnagler) should no op_result be logged?
         return [];
     }
 

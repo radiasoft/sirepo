@@ -11,16 +11,21 @@ import pykern.sql_db
 import sqlalchemy
 import sqlalchemy.exc
 import sirepo.sim_data
-import pykern.pkio
+import sirepo.srdb
 
 _BASE = "cortex.sqlite3"
 
+meta is global
+
+propertyname and uid uique?
+
+_meta = None
 
 class Error(RuntimeError):
     pass
 
 
-def delete_material(qcall, material_id):
+def delete_material(material_id, uid):
     """Cascade delete all rows for a material"""
 
     def _delete(session, table_name, field, value):
@@ -32,7 +37,7 @@ def delete_material(qcall, material_id):
             for v in s.select(table_name, PKDict({field: value})).all()
         ]
 
-    with _session(qcall) as s:
+    with _session:
         for mp in _select_id(s, "material_property", "material_id", material_id):
             for mpv in _select_id(
                 s, "material_property_value", "material_property_id", mp
@@ -46,7 +51,7 @@ def delete_material(qcall, material_id):
             _delete(s, t, "material_id", material_id)
 
 
-def insert_material(parsed, qcall=None):
+def insert_material(parsed, uid):
     def _insert_property(session, name, values):
         vals = values.pop("vals")
         ivars = values.pop("independent_variables", PKDict())
@@ -80,17 +85,11 @@ def insert_material(parsed, qcall=None):
     def _values(cols, vals):
         return PKDict((c, vals[c]) for c in cols if c in vals)
 
-    with _session(qcall=qcall) as s:
+    with _session():
         try:
             i = s.insert(
                 "material",
-                # TODO(robnagler) need uid. we will have to have a db server of some sort
-                # it will have to validate incoming uid.
-                # sim_db_file is a model that could be used for writing to
-                # the database, because it validates the uid.
-                # sim_db_file should have a multithreaded worker queue. the serialization
-                # is already there.
-                _values(s.t.material.columns.keys(), parsed).pkupdate(uid="TODO RJN"),
+                _values(s.t.material.columns.keys(), parsed).pkupdate(uid=uid),
             ).material_id
         except sqlalchemy.exc.IntegrityError as e:
             if "unique" in str(e).lower():
@@ -108,7 +107,7 @@ def insert_material(parsed, qcall=None):
             _insert_property(s, n, parsed.properties[n].pkupdate(material_id=i))
 
 
-def list_materials(qcall):
+def list_materials(uid):
     def _convert(row):
         return PKDict(
             material_id=row.material_id,
@@ -116,24 +115,24 @@ def list_materials(qcall):
             material_name=row.material_name,
         )
 
-    with _session(qcall) as s:
-        return [_convert(r) for r in s.select("material").all()]
+    with _session:
+        return [_convert(r) for r in s.select("material").all(uid=uid)]
 
 
-def _meta(path):
-    f = "float 64"
-
+def init_from_api():
+    global _meta
     def _optional(v):
         return f"{v} nullable"
 
-    return pykern.sql_db.Meta(
+    f = "float 64"
+    _meta = pykern.sql_db.Meta(
         uri=pykern.sql_db.sqlite_uri(path),
         schema=PKDict(
             material=PKDict(
                 material_id="primary_id 1",
                 uid="str 8 index",
                 created="datetime index",
-                material_name="str 100 unique",
+                material_name="str 100",
                 availability_factor=_optional(f),
                 density_g_cm3=f,
                 is_atom_pct="bool",
@@ -147,6 +146,7 @@ def _meta(path):
                 structure=_optional("str 100"),
                 microstructure=_optional("str 500"),
                 processing_steps=_optional("str 500"),
+                unique=(("uid", "material_name"),),
             ),
             material_component=PKDict(
                 material_component_id="primary_id 2",
@@ -191,16 +191,5 @@ def _meta(path):
     )
 
 
-@contextlib.contextmanager
-def _session(qcall):
-    s = sirepo.sim_data.get_class("cortex")
-    p = pykern.pkio.py_path(_BASE)
-    if s.lib_file_exists(_BASE, qcall=qcall):
-        p.write_binary(s.lib_file_read_binary(_BASE, qcall=qcall))
-    try:
-        with _meta(p).session() as rv:
-            yield rv
-    except:
-        raise
-    else:
-        s.lib_file_write(_BASE, p, qcall=qcall)
+def _session():
+    return _meta.session()

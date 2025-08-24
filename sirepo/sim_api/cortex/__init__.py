@@ -1,0 +1,100 @@
+"""api for cortex
+
+:copyright: Copyright (c) 2025 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
+
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
+import pykern.pkasyncio
+import sirepo.quest
+import sirepo.sim_api.cortex.material_db
+import sirepo.sim_api.cortex.material_xslx
+import sirepo.sim_data
+
+_SIM_DATA, SIM_TYPE, _ = sirepo.sim_data.template_globals(sim_type="cortex")
+
+#: These operations are all fast. There shouldn't be much contention
+_ACTION_TIMEOUT = 30
+
+_EXT = ".xlsx"
+
+_action_loop = None
+
+def init_apis(**kwargs):
+    global _action_loop
+
+    sirepo.sim_api.cortex.material_db.init_from_api()
+    _action_loop = _CortexDb()
+
+
+class API(sirepo.quest.API):
+
+    @sirepo.quest.Spec("require_plan", sim_type=f"SimType const={SIM_TYPE}")
+    async def api_cortexDb(self):
+        a = self.parse_post(type=SIM_TYPE).req_data
+        self.__loop = asyncio.get_event_loop()
+        self.__result = self.asyncio.Queue()
+        try:
+            _action_loop.action(self, a.op_name, a.op_args.pkupdate(qcall=self))
+            r = await asyncio.wait_for(self.__result.get(), timeout=_ACTION_TIMEOUT)
+            self.__result.task_done()
+            if isinstance(r, Exception):
+                raise r
+            return r
+        except TimeoutError:
+            pkdlog("timed out secs={} req_data={}", _ACTION_TIMEOUT, a)
+
+        return getattr(self, f"_cortext_db_{a.op_name}")(**a.op_args)
+
+    def op_done(self, result):
+        self.__loop.call_soon_threadsafe(self.__result.put_nowait, result)
+
+
+class _CortexDb(pykern.pkasyncio.ActionLoop):
+
+    def action_delete_material(self, arg):
+        sirepo.template.cortex_sql_db.delete_material(arg.qcall, arg.material_id)
+        return PKDict()
+
+    def action_insert_material(self, arg):
+        def _save():
+            f = self.sreq.form_file_get()
+            if not f.filename.lower().endswith(_EXT):
+                arg.qcall.reply_error(f"invalid file='{f.filename}' must be '{_EXT}'")
+            p = _SIM_DATA.lib_file_name_with_type(
+                sirepo.srtime.utc_now().strftime("%Y%m%d%H%M%S") + _EXT,
+                "import-material",
+            )
+            _SIM_DATA.lib_file_write(p, f.as_bytes(), qcall=arg.qcall)
+            return _SIM_DATA.lib_file_abspath(p, qcall=arg.qcall)
+
+        p = sirepo.template.cortex_xlsx.Parser(_save())
+        if p.errors:
+            return "\n".join(p.errors)
+        try:
+            sirepo.template.cortex_sql_db.insert_material(
+                parsed=p.result, qcall=arg.qcall
+            )
+        except sirepo.template.cortex_sql_db.Error as e:
+            return str(e.args[0])
+        return PKDict(material_name=p.result.material_name)
+
+    def action_list_materials(self, arg):
+        return PKDict(rows=sirepo.sim_api.cortex.material_db.list_materials(arg.qcall))
+
+    def _dispatch_action(self, method, arg):
+        qcall = arg.qcall
+        try:
+            r = super()._dispatch_action(method, arg)
+            if isinstance(r, PKDict):
+                return qcall.reply_ok(PKDict(op_result=r))
+            if isinstance(r, str):
+                return qcall.reply_error(r)
+            raise AssertionError(
+                f"invalid action result type={type(r)} method={method}"
+            )
+        except Exception as e:
+            r = e
+        qcall.op_done(r)
+        return None
