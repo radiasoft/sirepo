@@ -84,9 +84,7 @@ def http_client(
 
 
 @contextlib.contextmanager
-def quest_start(
-    want_user=False, want_global_user=False, cfg=None, api_module_name=None
-):
+def quest_start(want_user=False, want_global_user=False, cfg=None):
     if cfg is None:
         cfg = {}
     setup_srdb_root(cfg=cfg)
@@ -97,7 +95,7 @@ def quest_start(
 
     from sirepo import quest
 
-    with quest.start(in_pkcli=True, api_module_name=api_module_name) as qcall:
+    with quest.start(in_pkcli=True) as qcall:
         qcall.auth_db.create_or_upgrade()
         if want_global_user or want_user:
             with qcall.auth.srunit_user(want_global=want_global_user):
@@ -419,7 +417,7 @@ class _TestClient:
     def sr_post(self, route_or_uri, data, params=None, raw_response=False, **kwargs):
         """Posts JSON data to route_or_uri to server
 
-        File parameters are posted as::
+        File parameters are posted as `file_handle`.
 
         Args:
             route_or_uri (str): string name of route or uri if contains '/' (http:// or '/foo')

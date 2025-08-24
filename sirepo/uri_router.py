@@ -26,8 +26,8 @@ import sirepo.util
 #: prefix for api functions
 _FUNC_PREFIX = "api_"
 
-#: modules that must be initialized
-_REQUIRED_MODULES = ("auth_api", "job_api", "server", "srtime", "auth_role_moderation")
+#: modules that must be initialized (convenient as a list)
+_REQUIRED_MODULES = ["auth_api", "job_api", "server", "srtime", "auth_role_moderation"]
 
 #: uri for default dispatches
 _ROUTE_URI_DEFAULT = ""
@@ -82,12 +82,6 @@ def init_module(want_apis, **imports):
     """
     global _uri_to_route
 
-    def _api_modules():
-        return (
-            *_REQUIRED_MODULES,
-            *sorted(sirepo.feature_config.cfg().api_modules),
-        )
-
     if _uri_to_route is not None:
         return
     # import simulation_db
@@ -95,11 +89,12 @@ def init_module(want_apis, **imports):
     if not want_apis:
         _uri_to_route = PKDict()
         return
-    for n in _api_modules():
+    f = sirepo.feature_config.cfg()
+    for n in _REQUIRED_MODULES + sorted(f.api_modules):
         register_api_module("sirepo." + n)
-    _register_sim_api_modules()
-    _register_sim_oauth_modules(sirepo.feature_config.cfg().proprietary_oauth_sim_types)
-    _init_uris(simulation_db, sirepo.feature_config.cfg().sim_types)
+    _register_sim_modules("sim_api", f.sim_types)
+    _register_sim_modules("sim_oauth", f.proprietary_oauth_sim_types)
+    _init_uris(simulation_db, f.sim_types)
 
 
 def maybe_sim_type_required_for_api(qcall):
@@ -565,24 +560,11 @@ def _path_to_route(path):
     return (None, route, kwargs)
 
 
-def _register_sim_api_modules():
-    _register_sim_modules_from_package("sim_api")
-
-
-def _register_sim_modules_from_package(package, valid_sim_types=None):
+def _register_sim_modules(package, sim_types):
     p = pkinspect.module_name_join(("sirepo", package))
     for n in pkinspect.package_module_names(p):
-        if not sirepo.template.is_sim_type(n) or (
-            valid_sim_types is not None and n not in valid_sim_types
-        ):
-            pkdc(f"not adding apis for unknown sim_type={n}")
-            continue
-        register_api_module(pkinspect.module_name_join((p, n)))
-
-
-def _register_sim_oauth_modules(oauth_sim_types):
-    _register_sim_modules_from_package("sim_oauth", oauth_sim_types)
-
+        if n in sim_types:
+            register_api_module(pkinspect.module_name_join((p, n)))
 
 def _split_uri(uri):
     """Parse the URL for parameters

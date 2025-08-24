@@ -6,6 +6,7 @@
 
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+import asyncio
 import pykern.pkasyncio
 import sirepo.quest
 import sirepo.sim_api.cortex.material_db
@@ -15,7 +16,7 @@ import sirepo.sim_data
 _SIM_DATA, SIM_TYPE, _ = sirepo.sim_data.template_globals(sim_type="cortex")
 
 #: These operations are all fast. There shouldn't be much contention
-_ACTION_TIMEOUT = 30
+_ACTION_TIMEOUT = 20
 
 _EXT = ".xlsx"
 
@@ -35,7 +36,7 @@ class API(sirepo.quest.API):
     async def api_cortexDb(self):
         a = self.parse_post(type=SIM_TYPE).req_data
         self.__loop = asyncio.get_event_loop()
-        self.__result = self.asyncio.Queue()
+        self.__result = asyncio.Queue()
         try:
             _action_loop.action(a.op_name, a.op_args.pkupdate(qcall=self))
             r = await asyncio.wait_for(self.__result.get(), timeout=_ACTION_TIMEOUT)
@@ -45,8 +46,8 @@ class API(sirepo.quest.API):
             return r
         except TimeoutError:
             pkdlog("timed out secs={} req_data={}", _ACTION_TIMEOUT, a)
-
-        return getattr(self, f"_cortext_db_{a.op_name}")(**a.op_args)
+            # TODO(robnagler) is there a better way?
+            raise
 
     def cortex_db_done(self, result):
         self.__loop.call_soon_threadsafe(self.__result.put_nowait, result)
@@ -62,7 +63,7 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
 
     def action_insert_material(self, arg, uid):
         def _save():
-            f = qcal.sreq.form_file_get()
+            f = arg.qcall.sreq.form_file_get()
             if not f.filename.lower().endswith(_EXT):
                 arg.qcall.reply_error(f"invalid file='{f.filename}' must be '{_EXT}'")
             p = _SIM_DATA.lib_file_name_with_type(
@@ -76,7 +77,7 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         if p.errors:
             return "\n".join(p.errors)
         try:
-            sirepo.template.cortex_sql_db.insert_material(parsed=p.result, uid=uid)
+            sirepo.sim_api.cortex.material_db.insert_material(parsed=p.result, uid=uid)
         except sirepo.sim_api.cortex.material_db.Error as e:
             return str(e.args[0])
         return PKDict(material_name=p.result.material_name)
@@ -89,12 +90,13 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         try:
             r = method(arg, uid=qcall.auth.logged_in_user())
             if isinstance(r, PKDict):
-                return qcall.reply_ok(PKDict(op_result=r))
-            if isinstance(r, str):
-                return qcall.reply_error(r)
-            raise AssertionError(
-                f"invalid action result type={type(r)} method={method}"
-            )
+                r = qcall.reply_ok(PKDict(op_result=r))
+            elif isinstance(r, str):
+                r = qcall.reply_error(r)
+            else:
+                raise AssertionError(
+                    f"invalid action result type={type(r)} method={method}"
+                )
         except Exception as e:
             pkdlog(
                 "returning error={} method={} arg={} stack={}",

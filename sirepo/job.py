@@ -295,7 +295,7 @@ def init_module():
             "how long to wait between sending keep alive pings",
         ),
         ping_timeout_secs=(
-            4 * 60,
+            15,
             pkconfig.parse_seconds,
             "how long to wait for a ping response",
         ),

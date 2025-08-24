@@ -10,7 +10,6 @@ import contextlib
 import copy
 import dns.resolver
 import dns.reversename
-import importlib
 import pykern.quest
 import sirepo.api_perm
 import sirepo.modules
@@ -388,22 +387,16 @@ def init_module(**imports):
     sirepo.util.setattr_imports(imports)
 
 @contextlib.contextmanager
-def start(in_pkcli=False, api_module_name=None):
+def start(in_pkcli=False):
     """Create a qcall after importing and initializing `sirepo.auth`
-
-    Note that `api_module_name` is fully qualified and must defined
-    its class in a module attribute named ``API``.
 
     Args:
         in_pkcli (bool): if is inside a pkcli
-        api_module_name (str): for unit testing, loads module and uses ``API`` class
     Yields:
         API: newly created qcall
-
     """
     auth = sirepo.modules.import_and_init("sirepo.auth")
-    a = importlib.import_module(api_module_name).API if api_module_name else API
-    qcall = a(in_pkcli=in_pkcli)
+    qcall = API(in_pkcli=in_pkcli)
     c = False
     try:
         auth.init_quest(qcall)
