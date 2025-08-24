@@ -1,9 +1,7 @@
-{
-    "api_result": [
-        {
-            "created": 1753293622,
-            "material_id": 2001,
-            "material_name": "Tungsten carbide"
-        }
-    ]
-}
+[
+    {
+        "created": 1753293622,
+        "material_id": 2001,
+        "material_name": "Tungsten carbide"
+    }
+]

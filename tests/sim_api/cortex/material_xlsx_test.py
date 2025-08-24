@@ -10,10 +10,10 @@ def test_cases():
 
     with srunit.quest_start(want_user=True) as qcall:
         from pykern import pkdebug, pkjson, pkunit
-        from sirepo.template import cortex_xlsx
+        from sirepo.sim_api.cortex import material_xlsx
 
         for d in pkunit.case_dirs():
-            p = cortex_xlsx.Parser(d.join("input.xlsx"))
+            p = material_xlsx.Parser(d.join("input.xlsx"))
             pkjson.dump_pretty(
                 getattr(p, "errors" if p.errors else "result"),
                 filename=d.join(f"out.json"),

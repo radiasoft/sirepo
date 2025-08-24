@@ -84,7 +84,9 @@ def http_client(
 
 
 @contextlib.contextmanager
-def quest_start(want_user=False, want_global_user=False, cfg=None):
+def quest_start(
+    want_user=False, want_global_user=False, cfg=None, api_module_name=None
+):
     if cfg is None:
         cfg = {}
     setup_srdb_root(cfg=cfg)
@@ -95,7 +97,7 @@ def quest_start(want_user=False, want_global_user=False, cfg=None):
 
     from sirepo import quest
 
-    with quest.start(in_pkcli=True) as qcall:
+    with quest.start(in_pkcli=True, api_module_name=api_module_name) as qcall:
         qcall.auth_db.create_or_upgrade()
         if want_global_user or want_user:
             with qcall.auth.srunit_user(want_global=want_global_user):

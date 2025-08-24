@@ -13,13 +13,10 @@ import sqlalchemy.exc
 import sirepo.sim_data
 import sirepo.srdb
 
-_BASE = "cortex.sqlite3"
-
-meta is global
-
-propertyname and uid uique?
+_BASE = "cortex_material.sqlite3"
 
 _meta = None
+
 
 class Error(RuntimeError):
     pass
@@ -28,105 +25,46 @@ class Error(RuntimeError):
 def delete_material(material_id, uid):
     """Cascade delete all rows for a material"""
 
-    def _delete(session, table_name, field, value):
-        session.delete(table_name, PKDict({field: value}))
+    def _delete(session, table_name, **where):
+        session.delete(table_name, _where(table_name, where))
 
-    def _select_id(session, table_name, field, value):
+    def _select_id(session, table_name, **where):
         return [
             v[f"{table_name}_id"]
-            for v in s.select(table_name, PKDict({field: value})).all()
+            for v in session.select(table_name, _where(table_name, where)).all()
         ]
 
-    with _session:
-        for mp in _select_id(s, "material_property", "material_id", material_id):
-            for mpv in _select_id(
-                s, "material_property_value", "material_property_id", mp
-            ):
-                _delete(
-                    s, "independent_variable_value", "material_property_value_id", mpv
-                )
-            _delete(s, "material_property_value", "material_property_id", mp)
-            _delete(s, "independent_variable", "material_property_id", mp)
+    def _where(table_name, fields):
+        rv = PKDict(fields)
+        if table_name == "material":
+            rv.uid = uid
+        return rv
+
+    with _session() as s:
+        if len(_select_id(s, "material", material_id=material_id)) < 1:
+            # Possible with two simultaneous deletes, but highly unlikely
+            # TODO(robnagler) assert?
+            pkdlog("unexpected not found material_id={} uid={}", material_id, uid)
+            return False
+        for p in _select_id(s, "material_property", material_id=material_id):
+            for v in _select_id(s, "material_property_value", material_property_id=p):
+                _delete(s, "independent_variable_value", material_property_value_id=v)
+            _delete(s, "material_property_value", material_property_id=p)
+            _delete(s, "independent_variable", material_property_id=p)
         for t in ("material_property", "material_component", "material"):
-            _delete(s, t, "material_id", material_id)
-
-
-def insert_material(parsed, uid):
-    def _insert_property(session, name, values):
-        vals = values.pop("vals")
-        ivars = values.pop("independent_variables", PKDict())
-        prop_id = session.insert(
-            "material_property",
-            property_name=name,
-            **values,
-        ).material_property_id
-        ivar_ids = {
-            name: session.insert(
-                "independent_variable",
-                material_property_id=prop_id,
-                name=name,
-            ).independent_variable_id
-            for name in ivars
-        }
-        for idx, val in enumerate(vals):
-            val_id = session.insert(
-                "material_property_value",
-                material_property_id=prop_id,
-                **val,
-            ).material_property_value_id
-            for name, values_list in ivars.items():
-                session.insert(
-                    "independent_variable_value",
-                    independent_variable_id=ivar_ids[name],
-                    material_property_value_id=val_id,
-                    value=values_list[idx],
-                )
-
-    def _values(cols, vals):
-        return PKDict((c, vals[c]) for c in cols if c in vals)
-
-    with _session():
-        try:
-            i = s.insert(
-                "material",
-                _values(s.t.material.columns.keys(), parsed).pkupdate(uid=uid),
-            ).material_id
-        except sqlalchemy.exc.IntegrityError as e:
-            if "unique" in str(e).lower():
-                # Needs to raise to signal to the session to rollback
-                raise Error("material name already exists")
-            raise
-        for v in parsed.components.values():
-            s.insert(
-                "material_component",
-                _values(s.t.material_component.columns.keys(), v).pkupdate(
-                    material_id=i
-                ),
-            )
-        for n in parsed.properties:
-            _insert_property(s, n, parsed.properties[n].pkupdate(material_id=i))
-
-
-def list_materials(uid):
-    def _convert(row):
-        return PKDict(
-            material_id=row.material_id,
-            created=int(row.created.timestamp()),
-            material_name=row.material_name,
-        )
-
-    with _session:
-        return [_convert(r) for r in s.select("material").all(uid=uid)]
+            _delete(s, t, material_id=material_id)
+    return True
 
 
 def init_from_api():
     global _meta
+
     def _optional(v):
         return f"{v} nullable"
 
     f = "float 64"
     _meta = pykern.sql_db.Meta(
-        uri=pykern.sql_db.sqlite_uri(path),
+        uri=pykern.sql_db.sqlite_uri(_path()),
         schema=PKDict(
             material=PKDict(
                 material_id="primary_id 1",
@@ -189,6 +127,78 @@ def init_from_api():
             ),
         ),
     )
+
+
+def insert_material(parsed, uid):
+    def _insert_property(session, name, values):
+        vals = values.pop("vals")
+        ivars = values.pop("independent_variables", PKDict())
+        prop_id = session.insert(
+            "material_property",
+            property_name=name,
+            **values,
+        ).material_property_id
+        ivar_ids = {
+            name: session.insert(
+                "independent_variable",
+                material_property_id=prop_id,
+                name=name,
+            ).independent_variable_id
+            for name in ivars
+        }
+        for idx, val in enumerate(vals):
+            val_id = session.insert(
+                "material_property_value",
+                material_property_id=prop_id,
+                **val,
+            ).material_property_value_id
+            for name, values_list in ivars.items():
+                session.insert(
+                    "independent_variable_value",
+                    independent_variable_id=ivar_ids[name],
+                    material_property_value_id=val_id,
+                    value=values_list[idx],
+                )
+
+    def _values(cols, vals):
+        return PKDict((c, vals[c]) for c in cols if c in vals)
+
+    with _session() as s:
+        try:
+            i = s.insert(
+                "material",
+                _values(s.t.material.columns.keys(), parsed).pkupdate(uid=uid),
+            ).material_id
+        except sqlalchemy.exc.IntegrityError as e:
+            if "unique" in str(e).lower():
+                # Needs to raise to signal to the session to rollback
+                raise Error("material name already exists")
+            raise
+        for v in parsed.components.values():
+            s.insert(
+                "material_component",
+                _values(s.t.material_component.columns.keys(), v).pkupdate(
+                    material_id=i
+                ),
+            )
+        for n in parsed.properties:
+            _insert_property(s, n, parsed.properties[n].pkupdate(material_id=i))
+
+
+def list_materials(uid):
+    def _convert(row):
+        return PKDict(
+            material_id=row.material_id,
+            created=int(row.created.timestamp()),
+            material_name=row.material_name,
+        )
+
+    with _session() as s:
+        return [_convert(r) for r in s.select("material", where=PKDict(uid=uid)).all()]
+
+
+def _path():
+    return sirepo.srdb.root().join(_BASE)
 
 
 def _session():

@@ -9,7 +9,7 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 import pykern.pkasyncio
 import sirepo.quest
 import sirepo.sim_api.cortex.material_db
-import sirepo.sim_api.cortex.material_xslx
+import sirepo.sim_api.cortex.material_xlsx
 import sirepo.sim_data
 
 _SIM_DATA, SIM_TYPE, _ = sirepo.sim_data.template_globals(sim_type="cortex")
@@ -20,6 +20,7 @@ _ACTION_TIMEOUT = 30
 _EXT = ".xlsx"
 
 _action_loop = None
+
 
 def init_apis(**kwargs):
     global _action_loop
@@ -36,7 +37,7 @@ class API(sirepo.quest.API):
         self.__loop = asyncio.get_event_loop()
         self.__result = self.asyncio.Queue()
         try:
-            _action_loop.action(self, a.op_name, a.op_args.pkupdate(qcall=self))
+            _action_loop.action(a.op_name, a.op_args.pkupdate(qcall=self))
             r = await asyncio.wait_for(self.__result.get(), timeout=_ACTION_TIMEOUT)
             self.__result.task_done()
             if isinstance(r, Exception):
@@ -47,19 +48,21 @@ class API(sirepo.quest.API):
 
         return getattr(self, f"_cortext_db_{a.op_name}")(**a.op_args)
 
-    def op_done(self, result):
+    def cortex_db_done(self, result):
         self.__loop.call_soon_threadsafe(self.__result.put_nowait, result)
 
 
 class _CortexDb(pykern.pkasyncio.ActionLoop):
 
-    def action_delete_material(self, arg):
-        sirepo.template.cortex_sql_db.delete_material(arg.qcall, arg.material_id)
+    def action_delete_material(self, arg, uid):
+        sirepo.template.cortex_sql_db.delete_material(
+            material_id=arg.material_id, uid=uid
+        )
         return PKDict()
 
-    def action_insert_material(self, arg):
+    def action_insert_material(self, arg, uid):
         def _save():
-            f = self.sreq.form_file_get()
+            f = qcal.sreq.form_file_get()
             if not f.filename.lower().endswith(_EXT):
                 arg.qcall.reply_error(f"invalid file='{f.filename}' must be '{_EXT}'")
             p = _SIM_DATA.lib_file_name_with_type(
@@ -69,24 +72,22 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
             _SIM_DATA.lib_file_write(p, f.as_bytes(), qcall=arg.qcall)
             return _SIM_DATA.lib_file_abspath(p, qcall=arg.qcall)
 
-        p = sirepo.template.cortex_xlsx.Parser(_save())
+        p = sirepo.sim_api.cortex.material_xlsx.Parser(_save())
         if p.errors:
             return "\n".join(p.errors)
         try:
-            sirepo.template.cortex_sql_db.insert_material(
-                parsed=p.result, qcall=arg.qcall
-            )
-        except sirepo.template.cortex_sql_db.Error as e:
+            sirepo.template.cortex_sql_db.insert_material(parsed=p.result, uid=uid)
+        except sirepo.sim_api.cortex.material_db.Error as e:
             return str(e.args[0])
         return PKDict(material_name=p.result.material_name)
 
-    def action_list_materials(self, arg):
-        return PKDict(rows=sirepo.sim_api.cortex.material_db.list_materials(arg.qcall))
+    def action_list_materials(self, arg, uid):
+        return PKDict(rows=sirepo.sim_api.cortex.material_db.list_materials(uid=uid))
 
     def _dispatch_action(self, method, arg):
         qcall = arg.qcall
         try:
-            r = super()._dispatch_action(method, arg)
+            r = method(arg, uid=qcall.auth.logged_in_user())
             if isinstance(r, PKDict):
                 return qcall.reply_ok(PKDict(op_result=r))
             if isinstance(r, str):
@@ -95,6 +96,13 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
                 f"invalid action result type={type(r)} method={method}"
             )
         except Exception as e:
+            pkdlog(
+                "returning error={} method={} arg={} stack={}",
+                e,
+                method,
+                arg,
+                pkdexc(simplify=True),
+            )
             r = e
-        qcall.op_done(r)
+        qcall.cortex_db_done(r)
         return None
