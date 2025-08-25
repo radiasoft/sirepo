@@ -7,24 +7,30 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import contextlib
+import pykern.pkio
 import pykern.sql_db
+import sirepo.sim_data
+import sirepo.simulation_db
 import sqlalchemy
 import sqlalchemy.exc
-import sirepo.sim_data
-import pykern.pkio
+
 
 _BASE = "cortex.sqlite3"
+_SIM_DATA, _, _ = sirepo.sim_data.template_globals(sim_type="cortex")
 
 
 class Error(RuntimeError):
     pass
 
 
-def delete_material(material_id):
+def delete_material(material_id, qcall=None):
     """Cascade delete all rows for a material"""
 
     def _delete(session, table_name, field, value):
-        session.delete(table_name, PKDict({field: value}))
+        w = PKDict({field: value})
+        if table_name == "material":
+            w.uid = _uid(qcall)
+        session.delete(table_name, w)
 
     def _select_id(session, table_name, field, value):
         return [
@@ -32,7 +38,7 @@ def delete_material(material_id):
             for v in s.select(table_name, PKDict({field: value})).all()
         ]
 
-    with _session(None) as s:
+    with _session(qcall=qcall) as s:
         for mp in _select_id(s, "material_property", "material_id", material_id):
             for mpv in _select_id(
                 s, "material_property_value", "material_property_id", mp
@@ -90,7 +96,7 @@ def insert_material(parsed, qcall=None):
                 # the database, because it validates the uid.
                 # sim_db_file should have a multithreaded worker queue. the serialization
                 # is already there.
-                _values(s.t.material.columns.keys(), parsed).pkupdate(uid="TODO RJN"),
+                _values(s.t.material.columns.keys(), parsed).pkupdate(uid=_uid(qcall)),
             ).material_id
         except sqlalchemy.exc.IntegrityError as e:
             if "unique" in str(e).lower():
@@ -108,7 +114,7 @@ def insert_material(parsed, qcall=None):
             _insert_property(s, n, parsed.properties[n].pkupdate(material_id=i))
 
 
-def list_materials():
+def list_materials(qcall=None):
     def _convert(row):
         return PKDict(
             material_id=row.material_id,
@@ -116,11 +122,11 @@ def list_materials():
             material_name=row.material_name,
         )
 
-    with _session(None) as s:
+    with _session(qcall=qcall) as s:
         return [_convert(r) for r in s.select("material").all()]
 
 
-def material_detail(material_id):
+def material_detail(material_id, qcall=None):
 
     def _record(session, table_name, row):
         return PKDict(
@@ -136,7 +142,7 @@ def material_detail(material_id):
             for r in session.select(table_name, where={field: record[field]}).all()
         ]
 
-    with _session(None) as s:
+    with _session(qcall=qcall) as s:
         res = _record(
             s, "material", s.select_one("material", where=dict(material_id=material_id))
         )
@@ -236,14 +242,19 @@ def _meta(path):
 #  it would only connect.
 @contextlib.contextmanager
 def _session(qcall):
-    s = sirepo.sim_data.get_class("cortex")
     p = pykern.pkio.py_path(_BASE)
-    if s.lib_file_exists(_BASE, qcall=qcall):
-        p.write_binary(s.lib_file_read_binary(_BASE, qcall=qcall))
+    if _SIM_DATA.lib_file_exists(_BASE, qcall=qcall):
+        p.write_binary(_SIM_DATA.lib_file_read_binary(_BASE, qcall=qcall))
     try:
         with _meta(p).session() as rv:
             yield rv
     except:
         raise
     else:
-        s.lib_file_write(_BASE, p, qcall=qcall)
+        _SIM_DATA.lib_file_write(_BASE, p, qcall=qcall)
+
+
+def _uid(qcall):
+    return sirepo.simulation_db.uid_from_dir_name(
+        sirepo.simulation_db.user_path(qcall=qcall)
+    )

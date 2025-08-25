@@ -36,14 +36,16 @@ def test_cases():
                     str(db),
                 ],
                 check=True,
-                input=d.join("in.sql").read_binary(),
+                input=pkio.read_text(d.join("in.sql"))
+                .replace("<UID>", simulation_db._cfg.logged_in_user)
+                .encode(encoding=pkio.TEXT_ENCODING),
             )
             _dump_list("out.json")
 
             if d.basename == "tea":
                 v = pkcli_cortex.export_tea(db)
                 pkio.write_text("tea.py", re.sub(r"# Generated on .*\n", "", v))
-            if d.basename == "simple":
+            elif d.basename == "simple":
                 pkjson.dump_pretty(
                     cortex.stateful_compute_material_detail(
                         PKDict(
@@ -54,7 +56,7 @@ def test_cases():
                     ).result,
                     "detail.json",
                 )
-            if d.basename == "delete_material":
+            elif d.basename == "delete_material":
                 cortex.stateful_compute_delete_material(
                     PKDict(
                         args=PKDict(
