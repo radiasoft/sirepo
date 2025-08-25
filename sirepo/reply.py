@@ -143,8 +143,6 @@ class _SReply(sirepo.quest.Attr):
         Args:
             exc (Exception): valid convert into a response
         """
-        # If an exception occurs here, we'll fall through
-        # to the server, which will have code to handle this case.
         try:
             if isinstance(exc, sirepo.util.ReplyExc):
                 return self._gen_exception_reply(exc)

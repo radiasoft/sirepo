@@ -122,7 +122,7 @@
  const _loadMaterials = async () => {
      // don't show the import panel until we know how many materials are present
      emit('materialCount', undefined);
-     state.materials = await db.loadMaterials();
+     state.materials = await db.listMaterials();
      emit('materialCount', state.materials.length);
      _sortMaterials();
  };

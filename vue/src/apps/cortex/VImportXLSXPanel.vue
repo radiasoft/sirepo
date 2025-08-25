@@ -124,14 +124,14 @@
 
  const processFile = async (file) => {
      isProcessing.value = true;
-     const r = await requestSender.importFile(file);
+     const r = await db.insertMaterial(file);
      isProcessing.value = false;
-     if (r.data.error) {
-         errorList.value = parseErrors(r.data.error);
+     if (r.error) {
+         errorList.value = parseErrors(r.error);
          errorsModal.value.showModal();
          return;
      }
-     materialName.value = r.data.models.parsed_material[0].material_name;
+     materialName.value = r.op_result.material_name;
      confirmModal.value.showModal();
      db.updated();
  };

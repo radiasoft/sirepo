@@ -187,36 +187,17 @@ class MsgRouter {
         }
     }
 
-    #reqData(data, wsreq, done) {
-        if (! (data instanceof FormData)) {
+    #reqData(data, done) {
+        if (! data.hasOwnProperty("reqDataFile")) {
             done([data]);
             return;
         }
-        var d = {};
-        var f = null;
-        for (const [k, v] of data.entries()) {
-            if (v instanceof File) {
-                if (f) {
-                    throw new Error(`too many form fields ${f.file.name} and ${v.name}`);
-                }
-                f = {key: k, file: v};
-            }
-            else {
-                d[k] = v;
-            }
-        }
-        if (! f) {
-            done([data]);
-            return;
-        }
-        // a bit of sanity since we assume this on the server side
-        if (f.key !== "file") {
-            throw new Error("file form fields must be named 'file' name=" + f.key);
-        }
-        this.#reqDataFile(d, f.key, f.file, done);
+        const f = data.reqDataFile;
+        delete data.reqDataFile;
+        this.#reqDataFile(data, f, done);
     }
 
-    #reqDataFile(data, key, file, done) {
+    #reqDataFile(data, file, done) {
         var r = new FileReader();
         r.readAsArrayBuffer(file);
         r.onerror = (event) => {
@@ -225,10 +206,9 @@ class MsgRouter {
             return;
         };
         r.onloadend = () => {
-            delete data[key];
             done([
                 data,
-                {filename: file.name, blob: new Uint8Array(r.result),},
+                {filename: file.name, blob: new Uint8Array(r.result)},
             ]);
         };
     }
@@ -371,7 +351,7 @@ class MsgRouter {
             c();
         }
         else {
-            this.#reqData(data, wsreq, c);
+            this.#reqData(data, c);
         }
         //return wsreq.deferred.promise;
         return p;
