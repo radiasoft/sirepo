@@ -30,6 +30,17 @@
                 <td class="sr-button-bar-td">
                     <div class="sr-button-bar-parent">
                         <div class="sr-button-bar">
+                            <RouterLink
+                                class="btn btm-sm btn-info"
+                                v-bind:to="{
+                                    name: 'material',
+                                    params: {
+                                        materialId: mat.material_id,
+                                    },
+                                }"
+                            >
+                                View
+                            </RouterLink>
                             <button
                                 type="button"
                                 v-on:click="removeMaterial(mat)"
@@ -55,6 +66,7 @@
 
 <script setup>
  import VConfirmationModal from '@/components/VConfirmationModal.vue';
+ import { RouterLink } from 'vue-router';
  import { db, DB_UPDATED } from '@/apps/cortex/db.js';
  import { onMounted, onUnmounted, reactive, ref } from 'vue';
  import { pubSub } from '@/services/pubsub.js';

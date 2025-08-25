@@ -21,13 +21,7 @@ def test_cases():
 
         def _dump_list(outfile):
             pkjson.dump_pretty(
-                cortex.stateful_compute_cortex_db(
-                    PKDict(
-                        args=PKDict(
-                            api_name="list_materials",
-                        ),
-                    )
-                ),
+                cortex.stateful_compute_list_materials(PKDict()),
                 filename=outfile,
             )
 
@@ -42,19 +36,32 @@ def test_cases():
                     str(db),
                 ],
                 check=True,
-                input=d.join("in.sql").read_binary(),
+                input=pkio.read_text(d.join("in.sql"))
+                .replace("<UID>", simulation_db._cfg.logged_in_user)
+                .encode(encoding=pkio.TEXT_ENCODING),
             )
             _dump_list("out.json")
-            v = pkcli_cortex.export_tea(db)
-            pkio.write_text("out.py", re.sub(r"# Generated on .*\n", "", v))
-            cortex.stateful_compute_cortex_db(
-                PKDict(
-                    args=PKDict(
-                        api_name="delete_material",
-                        api_args=PKDict(
+
+            if d.basename == "tea":
+                v = pkcli_cortex.export_tea(db)
+                pkio.write_text("tea.py", re.sub(r"# Generated on .*\n", "", v))
+            elif d.basename == "simple":
+                pkjson.dump_pretty(
+                    cortex.stateful_compute_material_detail(
+                        PKDict(
+                            args=PKDict(
+                                material_id=1001,
+                            )
+                        )
+                    ).result,
+                    "detail.json",
+                )
+            elif d.basename == "delete_material":
+                cortex.stateful_compute_delete_material(
+                    PKDict(
+                        args=PKDict(
                             material_id=1001,
-                        ),
+                        )
                     )
                 )
-            )
-            _dump_list("out2.json")
+                _dump_list("after-delete.json")
