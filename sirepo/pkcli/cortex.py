@@ -68,7 +68,7 @@ def gen_components():
     return _to_str(_parse())
 
 
-#TODO(robnagler) move to material_db and use pprint
+# TODO(robnagler) move to material_db and use pprint
 def export_tea(db_file):
     """Returns a python-compatible representation of all materials in
     the specified database."""

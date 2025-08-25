@@ -566,6 +566,7 @@ def _register_sim_modules(package, sim_types):
         if n in sim_types:
             register_api_module(pkinspect.module_name_join((p, n)))
 
+
 def _split_uri(uri):
     """Parse the URL for parameters
 

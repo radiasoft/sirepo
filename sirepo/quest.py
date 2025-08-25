@@ -386,6 +386,7 @@ def init_module(**imports):
     # import http_request, uri_router, simulation_db
     sirepo.util.setattr_imports(imports)
 
+
 @contextlib.contextmanager
 def start(in_pkcli=False):
     """Create a qcall after importing and initializing `sirepo.auth`

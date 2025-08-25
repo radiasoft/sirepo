@@ -24,4 +24,7 @@ def test_cases(fc):
             file_handle=d.join(_INPUT).open("rb"),
         )
         pkjson.dump_pretty(r, filename="reply.json")
-        pkio.write_text("tables.csv", subprocess.check_output(["sqlite3", "-csv", db_path, _SQL], text=True))
+        pkio.write_text(
+            "tables.csv",
+            subprocess.check_output(["sqlite3", "-csv", db_path, _SQL], text=True),
+        )
