@@ -26,6 +26,10 @@ class DB {
         return [];
     }
 
+    async materialDetail(material_id) {
+        const r = await this.#send('material_detail', {material_id});
+        return r.op_result ? r.op_result.detail : {};
+    }
     updated() {
         pubSub.publish(DB_UPDATED);
     }

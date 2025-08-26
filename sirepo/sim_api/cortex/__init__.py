@@ -55,6 +55,14 @@ class API(sirepo.quest.API):
 
 class _CortexDb(pykern.pkasyncio.ActionLoop):
 
+    _SOURCE_DESC = PKDict(
+        EXP="experiment",
+        PP="predictive physics model",
+        NOM="nominal (design target) value",
+        ML="maching learning",
+        DFT="Density Functional Theory",
+    )
+
     def action_delete_material(self, arg, uid):
         sirepo.template.cortex_sql_db.delete_material(
             material_id=arg.material_id, uid=uid
@@ -85,6 +93,13 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
     def action_list_materials(self, arg, uid):
         return PKDict(rows=sirepo.sim_api.cortex.material_db.list_materials(uid=uid))
 
+    def action_material_detail(self, arg, uid):
+        try:
+            r = sirepo.sim_api.cortex.material_db.material_detail(arg.material_id, uid)
+        except pykern.sql_db.NoRows:
+            raise sirepo.util.NotFound("Material not found")
+        return PKDict(detail=self._format_material(r))
+
     def _dispatch_action(self, method, arg):
         qcall = arg.qcall
         try:
@@ -108,3 +123,96 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
             r = e
         qcall.cortex_db_done(r)
         return None
+
+    def _format_material(self, material):
+
+        def _find_property(properties, name):
+            for p in properties:
+                if p.property_name == name:
+                    return p
+            return None
+
+        def _to_yes_no(value):
+            if value is None:
+                return ""
+            return "Yes" if value else "No"
+
+        res = PKDict(
+            name=material.material_name,
+            density=f"{material.density_g_cm3} g/cm³",
+            is_atom_pct=material.is_atom_pct,
+            section1=PKDict(
+                {
+                    "Material Type": (
+                        "plasma-facing" if material.is_plasma_facing else "structural"
+                    ),
+                    "Structure": material.structure,
+                    "Microstructure Information": material.microstructure,
+                    "Processing": material.processing_steps,
+                }
+            ),
+            section2=PKDict(
+                {
+                    "Neutron Source": "D-T" if material.is_neutron_source_dt else "D-D",
+                    "Neutron Wall Loading": material.neutron_wall_loading,
+                    "Availability Factor": f"{material.availability_factor}%",
+                }
+            ),
+            section3=PKDict(
+                {
+                    "Bare Tile": _to_yes_no(material.is_bare_tile),
+                    "Homogenized WCLL": _to_yes_no(material.is_homogenized_wcll),
+                    "Homogenized HCPB": _to_yes_no(material.is_homogenized_hcpb),
+                    "Homogenized Divertor": _to_yes_no(
+                        material.is_homogenized_divertor
+                    ),
+                }
+            ),
+            components=material.components,
+            composition=_find_property(material.properties, "composition"),
+            composition_density=_find_property(
+                material.properties, "composition_density"
+            ),
+            properties=[
+                p
+                for p in material.properties
+                if not p.property_name.startswith("composition")
+            ],
+        )
+        for c in res.components:
+            c.material_component_name = c.material_component_name.capitalize()
+        for p in material.properties:
+            p.valueHeadings = PKDict(
+                value="Value" + (f" [{p.property_unit}]" if p.property_unit else ""),
+                uncertainty="Uncertainty",
+                temperature_k="Temperature [K]",
+                neutron_fluence_1_cm2="Neutron Fluence [1/cm²]",
+            )
+            if "vals" in p and len(p.vals):
+                for k in p.vals[0]:
+                    if k in p.valueHeadings or k.endswith("_id"):
+                        continue
+                p.valueHeadings[k] = k
+
+            if p.doi_or_url:
+                if p.doi_or_url.lower().startswith("http"):
+                    t = "URL"
+                    u = p.doi_or_url
+                else:
+                    t = "DOI"
+                    u = f"https://doi.org/{p.doi_or_url}"
+                p.doi = PKDict(
+                    type=t,
+                    url=u,
+                    linkText=p.doi_or_url,
+                    rows=PKDict(
+                        Source=(
+                            f"{p.source}, {_SOURCE_DESC[p.source]}"
+                            if p.source in _SOURCE_DESC
+                            else p.source
+                        ),
+                        Pointer=p.pointer,
+                        Comments=p.comments,
+                    ),
+                )
+        return res
