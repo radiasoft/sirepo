@@ -181,7 +181,9 @@ def insert_material(parsed, uid):
                 ),
             )
         for n in parsed.properties:
-            _insert_property(s, n, parsed.properties[n].pkupdate(material_id=rv.material_id))
+            _insert_property(
+                s, n, parsed.properties[n].pkupdate(material_id=rv.material_id)
+            )
         return PKDict((k, rv[k]) for k in ("material_id", "material_name"))
 
 
