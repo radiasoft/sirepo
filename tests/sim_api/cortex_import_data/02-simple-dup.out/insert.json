@@ -1,3 +1,8 @@
 {
-    "error": "material name already exists"
+    "error": [
+        {
+            "msg": "material name already exists"
+        }
+    ],
+    "state": "error"
 }

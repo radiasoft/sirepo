@@ -10,7 +10,7 @@ _SQL = """select material_name, availability_factor from material order by mater
 select material_component_name, target_pct from material_component order by material_component_name;"""
 
 
-def test_cases(fc):
+def test_all(fc):
     from pykern import pkdebug, pkjson, pkunit, pkio
     from pykern.pkcollections import PKDict
     from sirepo.sim_api.cortex import material_db
@@ -30,6 +30,7 @@ def test_cases(fc):
             "tables.csv",
             subprocess.check_output(["sqlite3", "-csv", db_path, _SQL], text=True),
         )
+        pkdebug.pkdp(r)
         pkjson.dump_pretty(
             fc.sr_post(
                 "cortexDb",

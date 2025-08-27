@@ -73,26 +73,6 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         return PKDict()
 
     def action_insert_material(self, arg, uid):
-        def _format_errors(errors):
-            sheet = None
-            for line in errors:
-                e = PKDict(
-                    line=line,
-                )
-                for f, r in _ERRORS_RE.items():
-                    if m := re.search(r, line):
-                        e[f] = m[1]
-                        line = r.sub("", line)
-                if line:
-                    e.msg = line
-                    if "value" in e:
-                        e.value = re.sub(r"=$", "", e.value.strip())
-                    if "sheet" in e and e.sheet == sheet:
-                        del e["sheet"]
-                    else:
-                        sheet = e.get("sheet")
-                    yield e
-
         def _save():
             f = arg.qcall.sreq.form_file_get()
             if not f.filename.lower().endswith(_EXT):
@@ -106,13 +86,13 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
 
         p = sirepo.sim_api.cortex.material_xlsx.Parser(_save())
         if p.errors:
-            return "\n".join(p.errors)
+            return PKDict(error=p.errors)
         try:
             return sirepo.sim_api.cortex.material_db.insert_material(
                 parsed=p.result, uid=uid
             )
         except sirepo.sim_api.cortex.material_db.Error as e:
-            return str(e.args[0])
+            return PKDict(error=[PKDict(msg=str(e.args[0]))])
 
     def action_list_materials(self, arg, uid):
         return PKDict(rows=sirepo.sim_api.cortex.material_db.list_materials(uid=uid))
@@ -128,14 +108,14 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         qcall = arg.qcall
         try:
             r = method(arg, uid=qcall.auth.logged_in_user())
-            if isinstance(r, PKDict):
-                r = qcall.reply_ok(PKDict(op_result=r))
-            elif isinstance(r, str):
-                r = qcall.reply_error(r)
-            else:
+            if not isinstance(r, PKDict):
                 raise AssertionError(
                     f"invalid action result type={type(r)} method={method}"
                 )
+            if e := r.get("error"):
+                r = qcall.reply_error(e)
+            else:
+                r = qcall.reply_ok(PKDict(op_result=r))
         except Exception as e:
             pkdlog(
                 "returning error={} method={} arg={} stack={}",

@@ -172,7 +172,7 @@ class API(pykern.quest.API):
         return self.sreply.gen_dict(value)
 
     def reply_error(self, error):
-        return self.sreply.gen_dict(PKDict(error=error))
+        return self.sreply.gen_dict_error(error)
 
     def reply_file(self, path, filename=None):
         return self.sreply.gen_file(path=path, filename=filename)

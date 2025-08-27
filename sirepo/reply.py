@@ -217,6 +217,16 @@ class _SReply(sirepo.quest.Attr):
             return self._gen_exception_reply_SRException(value[SR_EXCEPTION_STATE])
         return self.from_kwargs(content=_Object(value))
 
+    def gen_dict_error(self, error):
+        """Generate state=error dict response
+
+        Args:
+            error (object): bound to `ERROR_STATE`
+        Returns:
+            _SReply: reply object
+        """
+        return self.gen_dict(PKDict({STATE: ERROR_STATE, ERROR_STATE: error}))
+
     def gen_dict_ok(self, value):
         """Generate state=ok dict response
 
