@@ -1,0 +1,189 @@
+{
+    "detail": {
+        "components": [
+            {
+                "material_component_id": 1002,
+                "material_component_name": "C",
+                "material_id": 1001,
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 0.11
+            },
+            {
+                "material_component_id": 2002,
+                "material_component_name": "Cr",
+                "material_id": 1001,
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 9.0
+            },
+            {
+                "material_component_id": 3002,
+                "material_component_name": "W",
+                "material_id": 1001,
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 1.1
+            },
+            {
+                "material_component_id": 4002,
+                "material_component_name": "Mn",
+                "material_id": 1001,
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 0.4
+            },
+            {
+                "material_component_id": 5002,
+                "material_component_name": "V",
+                "material_id": 1001,
+                "max_pct": 0.25,
+                "min_pct": 0.15,
+                "target_pct": 0.2
+            },
+            {
+                "material_component_id": 6002,
+                "material_component_name": "Ta",
+                "material_id": 1001,
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 0.12
+            },
+            {
+                "material_component_id": 7002,
+                "material_component_name": "N",
+                "material_id": 1001,
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 0.03
+            },
+            {
+                "material_component_id": 8002,
+                "material_component_name": "P",
+                "material_id": 1001,
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 0.005
+            },
+            {
+                "material_component_id": 9002,
+                "material_component_name": "S",
+                "material_id": 1001,
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 0.005
+            },
+            {
+                "material_component_id": 10002,
+                "material_component_name": "B",
+                "material_id": 1001,
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 0.002
+            },
+            {
+                "material_component_id": 11002,
+                "material_component_name": "O",
+                "material_id": 1001,
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 0.01
+            },
+            {
+                "material_component_id": 12002,
+                "material_component_name": "Fe",
+                "material_id": 1001,
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 88.898
+            },
+            {
+                "material_component_id": 13002,
+                "material_component_name": "Nb",
+                "material_id": 1001,
+                "max_pct": 0.005,
+                "min_pct": 0.0,
+                "target_pct": 0.005
+            },
+            {
+                "material_component_id": 14002,
+                "material_component_name": "Mo",
+                "material_id": 1001,
+                "max_pct": 0.005,
+                "min_pct": 0.0,
+                "target_pct": 0.005
+            },
+            {
+                "material_component_id": 15002,
+                "material_component_name": "Ni",
+                "material_id": 1001,
+                "max_pct": 0.01,
+                "min_pct": 0.0,
+                "target_pct": 0.01
+            },
+            {
+                "material_component_id": 16002,
+                "material_component_name": "Cu",
+                "material_id": 1001,
+                "max_pct": 0.01,
+                "min_pct": 0.0,
+                "target_pct": 0.01
+            },
+            {
+                "material_component_id": 17002,
+                "material_component_name": "Al",
+                "material_id": 1001,
+                "max_pct": 0.01,
+                "min_pct": 0.0,
+                "target_pct": 0.01
+            },
+            {
+                "material_component_id": 18002,
+                "material_component_name": "Ti",
+                "material_id": 1001,
+                "max_pct": 0.02,
+                "min_pct": 0.0,
+                "target_pct": 0.02
+            },
+            {
+                "material_component_id": 19002,
+                "material_component_name": "Si",
+                "material_id": 1001,
+                "max_pct": 0.05,
+                "min_pct": 0.0,
+                "target_pct": 0.05
+            },
+            {
+                "material_component_id": 20002,
+                "material_component_name": "Co",
+                "material_id": 1001,
+                "max_pct": 0.01,
+                "min_pct": 0.0,
+                "target_pct": 0.01
+            }
+        ],
+        "composition": null,
+        "composition_density": null,
+        "density": "19.0 g/cm\u00b3",
+        "is_atom_pct": false,
+        "name": "Eurofer 97",
+        "properties": [],
+        "section1": {
+            "Material Type": "plasma-facing",
+            "Microstructure Information": null,
+            "Processing": null,
+            "Structure": null
+        },
+        "section2": {
+            "Availability Factor": "66.0%",
+            "Neutron Source": "D-T",
+            "Neutron Wall Loading": "ITER"
+        },
+        "section3": {
+            "Bare Tile": "Yes",
+            "Homogenized Divertor": "No",
+            "Homogenized HCPB": "Yes",
+            "Homogenized WCLL": "No"
+        }
+    }
+}

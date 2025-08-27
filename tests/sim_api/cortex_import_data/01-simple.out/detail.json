@@ -1,0 +1,61 @@
+{
+    "detail": {
+        "components": [
+            {
+                "material_component_id": 21002,
+                "material_component_name": "C",
+                "material_id": 2001,
+                "max_pct": 20.0,
+                "min_pct": 0.0,
+                "target_pct": 20.0
+            },
+            {
+                "material_component_id": 22002,
+                "material_component_name": "Cr",
+                "material_id": 2001,
+                "max_pct": 5.0,
+                "min_pct": 0.0,
+                "target_pct": 5.0
+            },
+            {
+                "material_component_id": 23002,
+                "material_component_name": "W",
+                "material_id": 2001,
+                "max_pct": 15.0,
+                "min_pct": 5.0,
+                "target_pct": 10.0
+            },
+            {
+                "material_component_id": 24002,
+                "material_component_name": "Fe",
+                "material_id": 2001,
+                "max_pct": 100.0,
+                "min_pct": 60.0,
+                "target_pct": 65.0
+            }
+        ],
+        "composition": null,
+        "composition_density": null,
+        "density": "3.33 g/cm\u00b3",
+        "is_atom_pct": false,
+        "name": "Simple One",
+        "properties": [],
+        "section1": {
+            "Material Type": "structural",
+            "Microstructure Information": null,
+            "Processing": null,
+            "Structure": null
+        },
+        "section2": {
+            "Availability Factor": "66.0%",
+            "Neutron Source": "D-D",
+            "Neutron Wall Loading": "ITER"
+        },
+        "section3": {
+            "Bare Tile": "No",
+            "Homogenized Divertor": "Yes",
+            "Homogenized HCPB": "Yes",
+            "Homogenized WCLL": "Yes"
+        }
+    }
+}

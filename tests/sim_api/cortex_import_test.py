@@ -23,7 +23,9 @@ def test_cases(fc):
             data=PKDict(op_name="insert_material", op_args=PKDict()),
             file_handle=d.join(_INPUT).open("rb"),
         )
-        pkjson.dump_pretty(r, filename="reply.json")
+        pkjson.dump_pretty(r, filename="insert.json")
+        if "error" in r:
+            continue
         pkio.write_text(
             "tables.csv",
             subprocess.check_output(["sqlite3", "-csv", db_path, _SQL], text=True),
@@ -35,6 +37,6 @@ def test_cases(fc):
                     op_name="material_detail",
                     op_args=PKDict(material_id=r.op_result.material_id),
                 ),
-            ),
-            filename="detail.json.json",
+            ).op_result,
+            filename="detail.json",
         )
