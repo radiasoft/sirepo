@@ -164,10 +164,10 @@ def insert_material(parsed, uid):
 
     with _session() as s:
         try:
-            i = s.insert(
+            rv = s.insert(
                 "material",
                 _values(s.t.material.columns.keys(), parsed).pkupdate(uid=uid),
-            ).material_id
+            )
         except sqlalchemy.exc.IntegrityError as e:
             if "unique" in str(e).lower():
                 # Needs to raise to signal to the session to rollback
@@ -177,11 +177,12 @@ def insert_material(parsed, uid):
             s.insert(
                 "material_component",
                 _values(s.t.material_component.columns.keys(), v).pkupdate(
-                    material_id=i
+                    material_id=rv.material_id
                 ),
             )
         for n in parsed.properties:
-            _insert_property(s, n, parsed.properties[n].pkupdate(material_id=i))
+            _insert_property(s, n, parsed.properties[n].pkupdate(material_id=rv.material_id))
+        return PKDict((k, rv[k]) for k in ("material_id", "material_name"))
 
 
 def list_materials(uid):
@@ -217,6 +218,8 @@ def material_detail(material_id, uid):
             "material",
             s.select_one("material", where=PKDict(material_id=material_id, uid=uid)),
         )
+        # Makes testing hard, and don't need to return
+        rv.pkdel("uid")
         rv.components = _records(s, "material_component", rv, "material_id")
         rv.properties = _records(s, "material_property", rv, "material_id")
         for p in rv.properties:

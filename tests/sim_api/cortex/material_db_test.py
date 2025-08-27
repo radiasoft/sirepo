@@ -45,5 +45,5 @@ def test_all():
                 material_db.material_detail(material_id=1001, uid=uid),
             )
             material_db.delete_material(material_id=1001, uid=uid)
-            with pkunit.pkexcept("not found"):
+            with pkunit.pkexcept("NoRows"):
                 material_db.material_detail(material_id=1001, uid=uid)

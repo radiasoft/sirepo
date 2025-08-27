@@ -85,10 +85,9 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         if p.errors:
             return "\n".join(p.errors)
         try:
-            sirepo.sim_api.cortex.material_db.insert_material(parsed=p.result, uid=uid)
+            return sirepo.sim_api.cortex.material_db.insert_material(parsed=p.result, uid=uid)
         except sirepo.sim_api.cortex.material_db.Error as e:
             return str(e.args[0])
-        return PKDict(material_name=p.result.material_name)
 
     def action_list_materials(self, arg, uid):
         return PKDict(rows=sirepo.sim_api.cortex.material_db.list_materials(uid=uid))

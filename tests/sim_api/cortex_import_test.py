@@ -28,3 +28,13 @@ def test_cases(fc):
             "tables.csv",
             subprocess.check_output(["sqlite3", "-csv", db_path, _SQL], text=True),
         )
+        pkjson.dump_pretty(
+            fc.sr_post(
+                "cortexDb",
+                data=PKDict(
+                    op_name="material_detail",
+                    op_args=PKDict(material_id=r.op_result.material_id),
+                ),
+            ),
+            filename="detail.json.json",
+        )
