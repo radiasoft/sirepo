@@ -85,49 +85,17 @@
      }
  };
 
- const parseErrors = (errorMessage) => {
-     const p = {
-         col: /\scol=(\d+)/,
-         row: /\srow=(\d+)/,
-         sheet: /\ssheet=(.*)/,
-         value: /(invalid\s.*?=\w*\s)/,
-     };
-     const res = [];
-     let sheet = undefined;
-     for (let line of errorMessage.split("\n")) {
-         const e = {
-             line: line,
-         };
-         for (const f in p) {
-             const m = line.match(p[f]);
-             if (m) {
-                 e[f] = m[1];
-                 line = line.replace(p[f], '');
-             }
-         }
-         if (line) {
-             e.msg = line;
-             if (e.value) {
-                 e.value = e.value.trim().replace(/=$/, '');
-             }
-             if (e.sheet && e.sheet === sheet) {
-                 delete e.sheet;
-             }
-             else {
-                 sheet = e.sheet;
-             }
-             res.push(e);
-         }
-     }
-     return res;
- };
-
  const processFile = async (file) => {
      isProcessing.value = true;
      const r = await db.insertMaterial(file);
      isProcessing.value = false;
+<<<<<<< HEAD
      if (r.error) {
          errorList.value = parseErrors(r.error);
+=======
+     if (r.data.error) {
+         errorList.value = r.data.error;
+>>>>>>> master
          errorsModal.value.showModal();
          return;
      }

@@ -5,33 +5,45 @@
 """
 
 
-def test_cases():
+def test_all():
+    from pykern import pkcompat, pkdebug, pkunit, pkio, pkjson
+    from pykern.pkcollections import PKDict
     from sirepo import srunit
+    import re
+    import subprocess
+    from sirepo.sim_api.cortex import material_db
 
+    srunit.setup_srdb_root()
+    db_path = str(material_db._path())
+
+    def _data(base):
+        return pkunit.data_dir().join(base)
+
+    def _sqlite3(name, uid):
+        nonlocal db_path
+
+        f = pkio.read_text(_data(f"{name}.sql"))
+        if uid:
+            f = f.replace("UNIT_TEST_UID", uid)
+        subprocess.run(["sqlite3", db_path], check=True, input=pkcompat.to_bytes(f))
+
+    _sqlite3("schema", None)
     with srunit.quest_start(want_user=True) as qcall:
-        from pykern import pkcompat, pkdebug, pkunit, pkio, pkjson
-        from pykern.pkcollections import PKDict
-        from sirepo.pkcli import cortex
-        from sirepo.sim_api.cortex import material_db
-        import re
-        import subprocess
+        with pkunit.save_chdir_work(want_empty=False):
+            from sirepo.pkcli import cortex
 
-        def _dump_list(uid, path):
-            pkjson.dump_pretty(material_db.list_materials(uid=uid), filename=path)
-
-        def _sql(dirpath, uid):
-            return pkcompat.to_bytes(
-                pkio.read_text(dirpath.join("in.sql")).replace("UNIT_TEST_UID", uid),
+            uid = qcall.auth.logged_in_user()
+            _sqlite3("data", uid)
+            pkunit.file_eq("out.json", material_db.list_materials(uid=uid))
+            pkio.write_text(
+                "tea.py",
+                re.sub(r"# Generated on .*\n", "", cortex.export_tea(db_path)),
             )
-
-        material_db.init_from_api()
-        db_path = str(material_db._path())
-        uid = qcall.auth.logged_in_user()
-        for d in pkunit.case_dirs():
-            pkio.unchecked_remove(db_path)
-            subprocess.run(["sqlite3", db_path], check=True, input=_sql(d, uid))
-            _dump_list(uid, "out.json")
-            v = cortex.export_tea(db_path)
-            pkio.write_text("out.py", re.sub(r"# Generated on .*\n", "", v))
+            pkunit.file_eq(_data("tea.py"), actual_path="tea.py")
+            pkunit.file_eq(
+                "detail.json",
+                material_db.material_detail(material_id=1001, uid=uid),
+            )
             material_db.delete_material(material_id=1001, uid=uid)
-            _dump_list(uid, "out2.json")
+            with pkunit.pkexcept("not found"):
+                material_db.material_detail(material_id=1001, uid=uid)

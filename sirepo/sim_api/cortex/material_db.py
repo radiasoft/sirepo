@@ -10,7 +10,6 @@ import contextlib
 import pykern.sql_db
 import sqlalchemy
 import sqlalchemy.exc
-import sirepo.sim_data
 import sirepo.srdb
 
 _BASE = "cortex_material.sqlite3"
@@ -197,7 +196,7 @@ def list_materials(uid):
         return [_convert(r) for r in s.select("material", where=PKDict(uid=uid)).all()]
 
 
-def meterial_detail(material_id, uid):
+def material_detail(material_id, uid):
     def _record(session, table_name, row):
         return PKDict(
             zip(
@@ -214,7 +213,9 @@ def meterial_detail(material_id, uid):
 
     with _session() as s:
         rv = _record(
-            s, "material", s.select_one("material", where=PKDict(material_id=material_id, uid=uid))
+            s,
+            "material",
+            s.select_one("material", where=PKDict(material_id=material_id, uid=uid)),
         )
         rv.components = _records(s, "material_component", rv, "material_id")
         rv.properties = _records(s, "material_property", rv, "material_id")

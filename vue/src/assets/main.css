@@ -1,6 +1,6 @@
 table .sr-button-bar-td {
   width: 1%;
-  padding: 3px;
+  padding: 1px;
 }
 .sr-button-bar-parent {
   display: none;
@@ -15,6 +15,9 @@ tr:hover .sr-button-bar-parent {
   right: 0px;
   white-space: nowrap;
   padding-left: 15px;
+}
+.sr-button-bar .btn {
+  margin-left: 5px;
 }
 .sr-panel-header {
   font-weight: 350;
@@ -154,6 +157,10 @@ ul.sr-nav-sidebar-root {
 }
 .nav-link.active {
   background-color: #e7e7e7;
+}
+.nav-item > a {
+  padding-top: 13px;
+  padding-bottom: 13px;
 }
 
 body {
