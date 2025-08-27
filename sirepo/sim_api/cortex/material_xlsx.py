@@ -128,16 +128,17 @@ class Parser:
             is_exc (bool): to print stack
             col_num (int): if supplied else self._col_num
         """
+        rv = PKDict(msg=msg)
         if s := self._sheet:
-            msg += f" sheet={s}"
+            rv.sheet = s
             if r := self._row_num:
-                msg += f" row={r}"
+                rv.row = r
                 if c := kwargs.get("col_num", self._col_num):
-                    msg += f" col={c}"
-        self.errors.append(msg)
+                    rv.col = c
+        self.errors.append(rv)
         pkdlog(
             "{}{}{}",
-            msg,
+            rv,
             *(("stack=", pkdexc()) if is_exc else ("", "")),
         )
         return None
@@ -265,62 +266,83 @@ class Parser:
         # TODO(robnagler) track the sheet/row of each element so
         # can provide more context in _validate_result
 
-        def _dispatch(cols):
-            e = None
-            if not isinstance(cols[0], str) and not self._in_property_values:
-                self._error(f"expected string cell={cols[0]}", col_num=1)
+        def _component(label, cols):
+            if self._in_components is _COMPONENT_ERROR:
                 return
-            if self._in_property_values and isinstance(cols[0], float):
-                self._add_property_value(self._last_property, cols)
-                return
+            self.result.components[label] = PKDict(
+                name=label,
+                label=cols[0],
+                percentage=self._parse_component(label, cols),
+            )
 
+        def _dispatch(cols):
+            if _early_check(cols):
+                return
+            e = None
             l = cols[0].lower()
-            if isinstance(cols[1], str) and cols[1].lower() == _VALUE.lower():
+            v = cols[1]
+            if isinstance(v, str) and v.lower() == _VALUE.lower():
                 self._last_property = _format_property(l)
             elif _IGNORE_FIRST_CELL_RE.search(l):
                 if self._in_components:
                     self._in_components = False
             elif x := _LABEL_TO_COL.get(l):
-                if self._in_components:
-                    self._in_components = False
-                if e := _simple(x, cols[1]):
-                    self._error(f"invalid {l}={cols[1]} {e}", col_num=2)
+                _known_col(l, v, x)
             elif "nuclide" in l:
-                assert self._in_components is None
-                if tuple(cols[1:7]) == _COMPONENT_VALUE_LABELS * 2:
-                    self._in_components = True
-                else:
-                    self._in_components = _COMPONENT_ERROR
-                    self._error(
-                        f"Element and Nuclide column labels incorrect cols={cols[1:7]}"
-                    )
+                _nuclide(cols)
             elif self._in_components:
-                if self._in_components is not _COMPONENT_ERROR:
-                    self.result.components[l] = PKDict(
-                        name=l, label=cols[0], percentage=self._parse_component(l, cols)
-                    )
+                _component(l, cols)
             elif (
                 l == _PROPERTY_VALUE_LABELS[0].lower()
                 and tuple(cols[0:4]) == _PROPERTY_VALUE_LABELS
             ):
-                self._in_property_values = True
-                i = len(_PROPERTY_VALUE_LABELS)
-                while cols[i] and not _IGNORE_INDEPENDENT_VARIABLE_HEADER_RE.search(
-                    cols[i]
-                ):
-                    self._independent_variables[i] = PKDict(
-                        name=cols[i],
-                        vals=[],
-                    )
-                    i += 1
+                _property_value(cols)
             else:
                 self._error(f"unable to parse row={cols}")
+
+        def _early_check(cols):
+            if not isinstance(cols[0], str) and not self._in_property_values:
+                self._error(f"expected string cell={cols[0]}", col_num=1)
+            elif self._in_property_values and isinstance(cols[0], float):
+                self._add_property_value(self._last_property, cols)
+            else:
+                return False
+            return True
+
+        def _known_col(label, value, col):
+            if self._in_components:
+                self._in_components = False
+            if not (e := _simple(col, value)):
+                return
+            s = str(value)
+            if len(s):
+                s = "=" + s
+            self._error(f"invalid {label}{s} {e}", col_num=2)
+
+        def _nuclide(cols):
+            assert self._in_components is None
+            if tuple(cols[1:7]) == _COMPONENT_VALUE_LABELS * 2:
+                self._in_components = True
+            else:
+                self._in_components = _COMPONENT_ERROR
+                self._error(
+                    f"Element and Nuclide column labels incorrect cols={cols[1:7]}"
+                )
 
         def _next_row():
             try:
                 return next(rows)
             except StopIteration:
                 return None
+
+        def _property_value(cols):
+            self._in_property_values = True
+            i = len(_PROPERTY_VALUE_LABELS)
+            while cols[i] and not _IGNORE_INDEPENDENT_VARIABLE_HEADER_RE.search(
+                cols[i]
+            ):
+                self._independent_variables[i] = PKDict(name=cols[i], vals=[])
+                i += 1
 
         def _simple(col, value):
             if isinstance(value, str) and not len(value):

@@ -1,3 +1,5 @@
 [
-    "Weight % sum=99.99 less than 100"
+    {
+        "msg": "Weight % sum=99.99 less than 100"
+    }
 ]

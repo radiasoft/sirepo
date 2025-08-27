@@ -63,6 +63,9 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         DFT="Density Functional Theory",
     )
 
+    TODO = r"(invalid\s.*?=\w*\s)"
+    # "msg": "invalid name= may not be blank",
+
     def action_delete_material(self, arg, uid):
         sirepo.template.cortex_sql_db.delete_material(
             material_id=arg.material_id, uid=uid
@@ -70,6 +73,26 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         return PKDict()
 
     def action_insert_material(self, arg, uid):
+        def _format_errors(errors):
+            sheet = None
+            for line in errors:
+                e = PKDict(
+                    line=line,
+                )
+                for f, r in _ERRORS_RE.items():
+                    if m := re.search(r, line):
+                        e[f] = m[1]
+                        line = r.sub("", line)
+                if line:
+                    e.msg = line
+                    if "value" in e:
+                        e.value = re.sub(r"=$", "", e.value.strip())
+                    if "sheet" in e and e.sheet == sheet:
+                        del e["sheet"]
+                    else:
+                        sheet = e.get("sheet")
+                    yield e
+
         def _save():
             f = arg.qcall.sreq.form_file_get()
             if not f.filename.lower().endswith(_EXT):
