@@ -7,6 +7,7 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import asyncio
+import asyncio.exceptions
 import pykern.pkasyncio
 import sirepo.quest
 import sirepo.sim_api.cortex.material_db
@@ -44,7 +45,7 @@ class API(sirepo.quest.API):
             if isinstance(r, Exception):
                 raise r
             return r
-        except TimeoutError:
+        except asyncio.exceptions.TimeoutError:
             pkdlog("timed out secs={} req_data={}", _ACTION_TIMEOUT, a)
             # TODO(robnagler) is there a better way?
             raise
@@ -67,7 +68,7 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
     # "msg": "invalid name= may not be blank",
 
     def action_delete_material(self, arg, uid):
-        sirepo.template.cortex_sql_db.delete_material(
+        sirepo.sim_api.cortex.material_db.delete_material(
             material_id=arg.material_id, uid=uid
         )
         return PKDict()

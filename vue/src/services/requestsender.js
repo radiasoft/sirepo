@@ -40,9 +40,6 @@ class RequestSender {
         if (! util.isObject(resp.data) || resp.data.state === 'srException') {
             throw new Error(resp);
         }
-        if (resp.data.error) {
-            throw new Error(resp);
-        }
         return resp.data;
     }
 

@@ -89,8 +89,8 @@
      isProcessing.value = true;
      const r = await db.insertMaterial(file);
      isProcessing.value = false;
-     if (r.data.error) {
-         errorList.value = r.data.error;
+     if (r.error) {
+         errorList.value = r.error;
          errorsModal.value.showModal();
          return;
      }
