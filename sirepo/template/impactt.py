@@ -45,6 +45,7 @@ _S_ELEMENTS = set(
     ]
 )
 _TIME_AND_ENERGY_FILE_NO = 18
+_HEADER_M = set(["sigx", "xmu1", "sigy", "ymu1", "sigz", "zmu1"])
 
 
 def code_var(variables):
@@ -100,9 +101,36 @@ def bunch_plot(model, frame_index, particle_group):
     )
 
 
+def get_data_file(run_dir, model, frame, options):
+    if frame < 0:
+        return template_common.text_data_file(template_common.RUN_LOG, run_dir)
+    raise AssertionError(f"unknown model={model}")
+
+
 def prepare_for_client(data, qcall, **kwargs):
     code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
     return data
+
+
+def post_execution_processing(success_exit, run_dir, **kwargs):
+
+    def _parse_log(default_msg=None):
+        p = template_common.LogParser(
+            run_dir,
+            error_patterns=(
+                r"\s+Error: (.*)",
+                r"(Note: .*)",
+                r"=\s+(BAD TERMINATION.*)",
+            ),
+        )
+        if default_msg is not None:
+            p.default_msg = default_msg
+        return p.parse_for_errors()
+
+    # Impact-T may fail but return a success, so it can't be trusted
+    if success_exit:
+        return _parse_log(default_msg="")
+    return _parse_log()
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
@@ -248,10 +276,11 @@ def _generate_header(data):
     for m in ("beam", "distribution", "simulationSettings"):
         s = SCHEMA.model[m]
         for k in dm[m]:
+            n = f"{k}(m)" if k in _HEADER_M else k
             if s[k][1] == "RPNValue":
-                res[k] = float(dm[m][k])
+                res[n] = float(dm[m][k])
             else:
-                res[k] = dm[m][k]
+                res[n] = dm[m][k]
     if dm.beam.particle in ("electron", "proton"):
         res["Bmass"], res["Bcharge"] = SCHEMA.constants.particleMassAndCharge[
             dm.beam.particle
@@ -393,6 +422,8 @@ def _patched_load_many_fort(path, types=impact.parsers.FORT_STAT_TYPES, verbose=
 
 def _plot_label(field):
     l = mathlabel(field)
+    if field == "norm_emit_z":
+        return r"$\epsilon_{n, z}$"
     if re.search(r"mathrm|None", l):
         return field
     return l

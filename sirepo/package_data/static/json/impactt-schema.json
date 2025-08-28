@@ -99,10 +99,28 @@
         "Stat": [
             ["none", "None"],
             ["Bz", "Bz"],
-            ["cov_x__px", "cov_x__px"],
-            ["cov_y__py", "cov_y__py"],
-            ["cov_z__pz", "cov_z__pz"],
             ["Ez", "Ez"],
+            ["cov_px__px", "cov_px__px"],
+            ["cov_px__py", "cov_px__py"],
+            ["cov_px__pz", "cov_px__pz"],
+            ["cov_py__py", "cov_py__py"],
+            ["cov_py__pz", "cov_py__pz"],
+            ["cov_pz__pz", "cov_pz__pz"],
+            ["cov_x__px", "cov_x__px"],
+            ["cov_x__py", "cov_x__py"],
+            ["cov_x__pz", "cov_x__pz"],
+            ["cov_x__x", "cov_x__x"],
+            ["cov_x__y", "cov_x__y"],
+            ["cov_x__z", "cov_x__z"],
+            ["cov_y__px", "cov_y__px"],
+            ["cov_y__py", "cov_y__py"],
+            ["cov_y__pz", "cov_y__pz"],
+            ["cov_y__y", "cov_y__y"],
+            ["cov_y__z", "cov_y__z"],
+            ["cov_z__px", "cov_z__px"],
+            ["cov_z__py", "cov_z__py"],
+            ["cov_z__pz", "cov_z__pz"],
+            ["cov_z__z", "cov_z__z"],
             ["loadbalance_max_n_particle", "loadbalance_max_n_particle"],
             ["loadbalance_min_n_particle", "loadbalance_min_n_particle"],
             ["max_amplitude_x", "max_amplitude_x"],
@@ -165,9 +183,9 @@
         "beamlineReport": {},
         "beam": {
             "Np": ["Macroparticle count", "Integer", 1000, "Np: Number of macroparticles to track"],
-            "Bcurr": ["Current [A]", "RPNValue", 1.0],
-            "Bkenergy": ["Initial energy [eV]", "RPNValue", 1.0, "Bkenergy: Initial beam pseudo-kinetic energy in eV"],
-            "Bmass": ["Mass [eV]", "RPNValue", 510998.95],
+            "Bcurr": ["Current [A]", "RPNValue", 1.0, "BCurr: Beam current in Amps"],
+            "Bkenergy": ["Initial energy [eV]", "RPNValue", 1.0, "Bkenergy: Initial beam kinetic energy in eV. WARNING: this one is only used to drift the particle out of the wall. The real initial beam energy needs to be input from xmu6 in the initial distribution or the particle data file for the readin distribution"],
+            "Bmass": ["Mass [eV]", "RPNValue", 510998.95, "Bmass: Mass of the particles in eV"],
             "Bcharge": ["Charge", "RPNValue", -1.0, "Bcharge: Particle charge in units of proton charge"],
             "Bfreq": ["Reference frequency [Hz]", "RPNValue", 2856000000.0],
             "Tini": ["Initial reference time [sec]", "RPNValue", 0.0],
@@ -217,11 +235,11 @@
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "simulationSettings": {
-            "Dt": ["Time step size [sec]", "RPNValue", 1e-11],
+            "Dt": ["Time step size [sec]", "RPNValue", 1e-11, "Dt: Time step size (secs)"],
             "Ntstep": ["Maximum time steps ", "Integer", 1000000, "Ntstep: Maximum number of time steps. IMPACT-T will stop after Ntstep time steps or when the center of the bunch goes beyond the end of the lattice, whichever is first."],
             "Nemission": ["Numerical emission steps", "Integer", 0, "Nemission: There is a time period where the laser is shining on the cathode and electrons are being emitted. Nemisson gives the number of numerical emission steps. More steps gives more accurate modeling but the computation time varies linearly with the number of steps. If Nemission < 0, there will be no cathode model. The particles are assumed to start in a vacuum."],
             "Temission": ["Laser pulse emission time [sec]", "RPNValue", 1.4e-11, "Temission: This time needs to be somewhat greater than the real emission time in the initial longitudinal distribution so that the time step size is changed after the whole beam is a few time steps out of the cathode."],
-            "Dim": ["Random Seed", "Integer", 6],
+            "Dim": ["Random Seed", "Integer", 6, "Dim: Random seed integer"],
             "Flagerr": ["Error study", "Boolean", "1", "Flagerr: Error study flag  No - no misalignment and rotation errors; Yes - misalignment and rotation errors are allowed for Quadrupole, Multipole (Sextupole, Octupole, Decapole) and SolRF elements"],
             "Flagdiag": ["Diagnostics", "Diagnostics", "2", "Flagdiag"],
             "Flagimg": ["Image charge", "Boolean", "0", "Flagimg: Image charge flag. If set to Yes then the image charge forces due to the cathode are included"],
@@ -277,7 +295,8 @@
         },
         "DRIFT": {
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "RPNValue", 0, "The element length"]
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "radius": ["Radius [m]", "RPNValue", 0]
         },
         "EMFIELD_CARTESIAN": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -542,7 +561,8 @@
             "title": "DRIFT",
             "advanced": [
                 "name",
-                "l"
+                "l",
+                "radius"
             ]
         },
         "EMFIELD_CARTESIAN": {
