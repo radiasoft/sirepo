@@ -27,19 +27,6 @@ _SPEC_ATTR = "quest_spec"
 _SPEC_SIM_TYPE_CONST = re.compile(r"\s*SimType\s+const=(\S+)")
 
 
-@contextlib.contextmanager
-def start(in_pkcli=False):
-    auth = sirepo.modules.import_and_init("sirepo.auth")
-    qcall = API(in_pkcli=in_pkcli)
-    c = False
-    try:
-        auth.init_quest(qcall)
-        yield qcall
-        c = True
-    finally:
-        qcall.destroy(commit=c)
-
-
 class API(pykern.quest.API):
     """Holds request context for all API calls."""
 
@@ -183,6 +170,9 @@ class API(pykern.quest.API):
 
     def reply_dict(self, value):
         return self.sreply.gen_dict(value)
+
+    def reply_error(self, error):
+        return self.sreply.gen_dict_error(error)
 
     def reply_file(self, path, filename=None):
         return self.sreply.gen_file(path=path, filename=filename)
@@ -390,6 +380,33 @@ class Spec(pykern.quest.Spec):
         return _wrapper
 
 
+def init_module(**imports):
+    import sirepo.util
+
+    # import http_request, uri_router, simulation_db
+    sirepo.util.setattr_imports(imports)
+
+
+@contextlib.contextmanager
+def start(in_pkcli=False):
+    """Create a qcall after importing and initializing `sirepo.auth`
+
+    Args:
+        in_pkcli (bool): if is inside a pkcli
+    Yields:
+        API: newly created qcall
+    """
+    auth = sirepo.modules.import_and_init("sirepo.auth")
+    qcall = API(in_pkcli=in_pkcli)
+    c = False
+    try:
+        auth.init_quest(qcall)
+        yield qcall
+        c = True
+    finally:
+        qcall.destroy(commit=c)
+
+
 class _Bucket(Attr):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -400,10 +417,3 @@ class _Bucket(Attr):
         """Initializes already created `_bucket` attr"""
         self[_PARENT_ATTR] = parent
         self.in_pkcli = parent.bucket_get("in_pkcli")
-
-
-def init_module(**imports):
-    import sirepo.util
-
-    # import http_request, uri_router, simulation_db
-    sirepo.util.setattr_imports(imports)

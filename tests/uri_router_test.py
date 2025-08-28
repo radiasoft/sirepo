@@ -17,7 +17,7 @@ def test_error_user_agents(fc):
 
     fc.sr_login_as_guest()
     uri = "/stateless-compute"
-    d = PKDict(simulationType="srw", method="will-fail-in-job_api", models=PKDict())
+    d = PKDict(simulationType="srw", method="will-FAIL-in-job_api", models=PKDict())
     # Default user agent and protocol
     r = fc.sr_post(uri, data=d, raw_response=True)
     # WebSocket and HTTP respond differently, but sirepo.js handles the same

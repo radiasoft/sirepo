@@ -15,6 +15,7 @@ const storageKey = "previousRoute";
 const routeComponents = {
     completeRegistration: VCompleteRegistration,
     error: VRouteMessage,
+    forbidden: VRouteMessage,
     login: VLogin,
     loginFail: VLoginFail,
     loginWithEmailConfirm: VCompleteRegistration,

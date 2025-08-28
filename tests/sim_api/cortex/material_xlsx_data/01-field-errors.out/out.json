@@ -1,0 +1,114 @@
+[
+    {
+        "col": 2,
+        "msg": "invalid name may not be blank",
+        "row": 3,
+        "sheet": "Metadata and Settings"
+    },
+    {
+        "col": 2,
+        "msg": "invalid material type=wrong-type must be structural or plasma-facing",
+        "row": 4,
+        "sheet": "Metadata and Settings"
+    },
+    {
+        "col": 2,
+        "msg": "invalid neutron source=XT must be D-T or D-D",
+        "row": 10,
+        "sheet": "Metadata and Settings"
+    },
+    {
+        "col": 2,
+        "msg": "invalid neutron wall loading=39.0 must be ITER or DEMO",
+        "row": 11,
+        "sheet": "Metadata and Settings"
+    },
+    {
+        "col": 2,
+        "msg": "invalid availability factor=101.0 must not be greater than 100",
+        "row": 12,
+        "sheet": "Metadata and Settings"
+    },
+    {
+        "col": 2,
+        "msg": "invalid bare tile=x must be yes, no, true, false",
+        "row": 17,
+        "sheet": "Metadata and Settings"
+    },
+    {
+        "col": 2,
+        "msg": "invalid homogenized wcll=Yup must be yes, no, true, false",
+        "row": 18,
+        "sheet": "Metadata and Settings"
+    },
+    {
+        "col": 2,
+        "msg": "invalid homogenized hcpb=Nope must be yes, no, true, false",
+        "row": 19,
+        "sheet": "Metadata and Settings"
+    },
+    {
+        "col": 2,
+        "msg": "invalid density=1e+16 must be between 0 and 25 g/cm3",
+        "row": 6,
+        "sheet": "Composition"
+    },
+    {
+        "col": 1,
+        "msg": "unknown nuclide or element in cell=C7",
+        "row": 18,
+        "sheet": "Composition"
+    },
+    {
+        "msg": "either Weight % or Atom % must be provided for component=C13",
+        "row": 19,
+        "sheet": "Composition"
+    },
+    {
+        "msg": "Weight % Target=5.0 must not be greater than Max=4.0 for component=Cr",
+        "row": 20,
+        "sheet": "Composition"
+    },
+    {
+        "msg": "Weight % Max must not be 0 for component=W",
+        "row": 21,
+        "sheet": "Composition"
+    },
+    {
+        "msg": "Weight % Target=65.0 must not be less than Min=66.0 for component=Fe",
+        "row": 22,
+        "sheet": "Composition"
+    },
+    {
+        "msg": "Weight % Max must be provided with Min for component=Si",
+        "row": 23,
+        "sheet": "Composition"
+    },
+    {
+        "msg": "Weight % Target=10.0 must not be greater than Max=9.0 for component=Li",
+        "row": 24,
+        "sheet": "Composition"
+    },
+    {
+        "col": 2,
+        "msg": "Weight % Target must not be negative in cell=-10.0 for component=Cu",
+        "row": 25,
+        "sheet": "Composition"
+    },
+    {
+        "msg": "Weight % Max=10.0 must not be less than Min=11.0 for component=O",
+        "row": 26,
+        "sheet": "Composition"
+    },
+    {
+        "msg": "provide Weight % or Atom % not both for component=Fl",
+        "row": 27,
+        "sheet": "Composition"
+    },
+    {
+        "col": 2,
+        "msg": "Weight % Target must not be greater than 100 in cell=101.0 for component=Mn",
+        "row": 28,
+        "sheet": "Composition"
+    }
+]

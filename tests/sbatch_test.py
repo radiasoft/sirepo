@@ -36,14 +36,14 @@ def test_srw_cancel(fc):
         return int(subprocess.check_output("squeue | wc -l", shell=True)) - 1
 
     pkeq(0, _squeue_num_jobs())
-    d, c = _srw_login_setup()
+    d, c = _srw_login_setup(fc)
     fc.sr_sbatch_login(c, d.models.simulation.name)
-    d.models[compute_model].jobRunMode = fc.sr_job_run_mode
+    d.models[c].jobRunMode = fc.sr_job_run_mode
     r = fc.sr_post(
         "runSimulation",
         PKDict(
             models=d.models,
-            report=compute_model,
+            report=c,
             simulationId=d.models.simulation.simulationId,
             simulationType=d.simulationType,
         ),
