@@ -90,13 +90,29 @@
      const r = await db.insertMaterial(file);
      isProcessing.value = false;
      if (r.error) {
-         errorList.value = r.error;
+         errorList.value = filterSheets(r.error);
          errorsModal.value.showModal();
          return;
      }
      materialName.value = r.op_result.material_name;
      confirmModal.value.showModal();
      db.updated();
+ };
+
+ const filterSheets = (errorList) => {
+     let s = null;
+     for (const e of errorList) {
+         if (! e.sheet) {
+             continue;
+         }
+         if (e.sheet === s) {
+             e.sheet = null;
+         }
+         else {
+             s = e.sheet;
+         }
+     }
+     return errorList;
  };
 
  const { isOverDropZone, isInvalidMimeType } = useFileDrop(dropPanel, onDrop, xlsxMimeType);
