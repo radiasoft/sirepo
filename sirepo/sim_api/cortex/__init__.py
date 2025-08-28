@@ -5,7 +5,7 @@
 """
 
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdlog, pkdp
+from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import asyncio
 import asyncio.exceptions
 import pykern.pkasyncio
@@ -64,9 +64,6 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         DFT="Density Functional Theory",
     )
 
-    TODO = r"(invalid\s.*?=\w*\s)"
-    # "msg": "invalid name= may not be blank",
-
     def action_delete_material(self, arg, uid):
         sirepo.sim_api.cortex.material_db.delete_material(
             material_id=arg.material_id, uid=uid
@@ -104,6 +101,9 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         except pykern.sql_db.NoRows:
             raise sirepo.util.NotFound("Material not found")
         return PKDict(detail=self._format_material(r))
+
+    def _destroy(self):
+        pass
 
     def _dispatch_action(self, method, arg):
         qcall = arg.qcall
@@ -212,8 +212,8 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
                     linkText=p.doi_or_url,
                     rows=PKDict(
                         Source=(
-                            f"{p.source}, {_SOURCE_DESC[p.source]}"
-                            if p.source in _SOURCE_DESC
+                            f"{p.source}, {self._SOURCE_DESC[p.source]}"
+                            if p.source in self._SOURCE_DESC
                             else p.source
                         ),
                         Pointer=p.pointer,
