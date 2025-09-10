@@ -37,7 +37,7 @@ SIREPO.app.controller('SourceController', function(appState, $scope) {
     var self = this;
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, frameCache, impacttService, panelState, persistentSimulation, $scope) {
+SIREPO.app.controller('VisualizationController', function (appState, frameCache, impacttService, panelState, persistentSimulation, requestSender, $scope) {
     const self = this;
     self.simScope = $scope;
     self.errorMessage = '';
@@ -83,6 +83,18 @@ SIREPO.app.controller('VisualizationController', function (appState, frameCache,
         }
     };
     self.simState = persistentSimulation.initSimulationState(self);
+
+    self.simState.errorMessage = () => self.errorMessage;
+
+    self.simState.logFileURL = () => {
+        return requestSender.formatUrl('downloadRunFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<model>': self.simState.model,
+            '<frame>': SIREPO.nonDataFileFrame,
+        });
+    };
+
     self.simState.runningMessage = () => {
         if (appState.isLoaded() && self.simState.getFrameCount()) {
             return 'Completed time step: ' + self.simState.getFrameCount();
@@ -166,12 +178,13 @@ SIREPO.viewLogic('beamView', function(appState, panelState, $scope) {
     function updateFields() {
         panelState.showFields('beam', [
             ['Bmass', 'Bcharge'], appState.models.beam.particle === 'other',
+            ['Np'], appState.models.distribution.Flagdist !== '16',
         ]);
     }
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
-        ['beam.particle'], updateFields,
+        ['beam.particle', 'distribution.Flagdist'], updateFields,
     ];
 
 });

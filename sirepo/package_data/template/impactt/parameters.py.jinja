@@ -1,5 +1,6 @@
 from impact import Impact
 import impact.parsers
+import pykern.pkio
 import shutil
 
 files = dict(
@@ -20,11 +21,11 @@ I = Impact(
     workdir=".",
     timeout=1e6,
 )
-I.header.update(dict(
+I.header.update({
 {% for k in impactHeader %}
-    {{k}}={{impactHeader[k]}},
+    "{{k}}": {{impactHeader[k]}},
 {% endfor %}
-))
+})
 del I.lattice[:]
 I.lattice.extend([
 {% for v in lattice %}
@@ -39,8 +40,16 @@ I.numprocs = {{ numProcs }}
 
 {% if distributionFilename %}
 shutil.copy("{{distributionFilename}}", "partcl.data")
+with pykern.pkio.open_text("{{distributionFilename}}") as f:
+    I.header["Np"] = int(f.readline())
 {% endif %}
-I.run()
 
-for k in I.output["particles"]:
-    I.output["particles"][k].write(f"{k}.h5")
+try:
+    I.run()
+
+    for k in I.output["particles"]:
+        I.output["particles"][k].write(f"{k}.h5")
+except Exception as e:
+    print(I.log)
+    raise e
+print(I.log)
