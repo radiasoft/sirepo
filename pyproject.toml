@@ -36,7 +36,7 @@ dependencies = [
     "pytz",
     "requests",
     "stripe",
-    "tornado",
+    "tornado>=6.5.2",
     "user-agents",
     # only needed for testing (srunit)
     "websockets",
