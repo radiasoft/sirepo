@@ -542,9 +542,12 @@
             "includeLattice": "1",
             "notes": "",
             "x": "mean_z",
-            "y1": "sigma_px",
-            "y2": "sigma_py",
-            "y3": "sigma_pz"
+            "y1": "norm_emit_x",
+            "y2": "norm_emit_y",
+            "y3": "sigma_x",
+            "y4": "sigma_y",
+            "y5": "sigma_z",
+            "y3Position": "right"
         }
     },
     "simulationType": "impactt"
