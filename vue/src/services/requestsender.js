@@ -5,46 +5,19 @@ import { singleton } from '@/services/singleton.js';
 import { util } from '@/services/util.js';
 
 class RequestSender {
-    #formData(values) {
-        const fd = new FormData();
-        for (const [k, v] of Object.entries(values)) {
-            fd.append(k, v);
-        }
-        return fd;
-    }
-
-    async uploadLibFile(file, fileType, confirm=false) {
-        const d = {
-            file: file,
-            file_type: fileType,
-            simulation_id: appState.models.simulation.simulationId,
-            simulation_type: schema.simulationType,
-        };
-        if (confirm) {
-            d.confirm = confirm;
-        }
-        return await msgRouter.send(
-            schema.route.uploadLibFile,
-            this.#formData(d),
-        );
-    }
-
     async importFile(file) {
         return await msgRouter.send(
             schema.route.importFile,
-            this.#formData({
-                file: file,
+            {
+                reqDataFile: file,
                 folder: '/',
                 simulation_type: schema.simulationType,
-            }),
+            },
         );
     }
 
     async sendStatefulCompute(data) {
-        return this.sendRequest(
-            'statefulCompute',
-            data,
-        );
+        return this.sendRequest('statefulCompute', data);
     }
 
     async sendRequest(routeName, requestData) {
@@ -67,10 +40,31 @@ class RequestSender {
         if (! util.isObject(resp.data) || resp.data.state === 'srException') {
             throw new Error(resp);
         }
-        if (resp.data.error) {
-            throw new Error(resp);
-        }
         return resp.data;
+    }
+
+    async uploadLibFile(file, fileType, confirm=false) {
+        const d = {
+            reqDataFile: file,
+            file_type: fileType,
+            simulation_id: appState.models.simulation.simulationId,
+            simulation_type: schema.simulationType,
+        };
+        if (confirm) {
+            d.confirm = confirm;
+        }
+        return await msgRouter.send(
+            schema.route.uploadLibFile,
+            this.#formData(d),
+        );
+    }
+
+    #formData(values) {
+        const fd = new FormData();
+        for (const [k, v] of Object.entries(values)) {
+            fd.append(k, v);
+        }
+        return fd;
     }
 }
 

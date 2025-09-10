@@ -86,15 +86,31 @@
  };
 
  const processFile = async (file) => {
+     const filterSheets = (errorList) => {
+         let s = null;
+         for (const e of errorList) {
+             if (! e.sheet) {
+                 continue;
+             }
+             if (e.sheet === s) {
+                 e.sheet = null;
+             }
+             else {
+                 s = e.sheet;
+             }
+         }
+         return errorList;
+     };
+
      isProcessing.value = true;
-     const r = await requestSender.importFile(file);
+     const r = await db.insertMaterial(file);
      isProcessing.value = false;
-     if (r.data.error) {
-         errorList.value = r.data.error;
+     if (r.error) {
+         errorList.value = filterSheets(r.error);
          errorsModal.value.showModal();
          return;
      }
-     materialName.value = r.data.models.parsed_material[0].material_name;
+     materialName.value = r.op_result.material_name;
      confirmModal.value.showModal();
      db.updated();
  };

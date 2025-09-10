@@ -68,9 +68,10 @@ def gen_components():
     return _to_str(_parse())
 
 
+# TODO(robnagler) move to material_db and use pprint
 def export_tea(db_file):
-    """Returns a python-compatible representation of all materials in the specified database."""
-    # TODO(pjm): pass user and find database in lib_files?
+    """Returns a python-compatible representation of all materials in
+    the specified database."""
     uri = pykern.sql_db.sqlite_uri(pykern.pkio.py_path(db_file))
     m = _populate_materials(_dump_sqlalchemy(uri))
     return f"""# Generated on {datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")}

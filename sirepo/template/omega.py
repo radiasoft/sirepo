@@ -248,7 +248,7 @@ def sim_frame(frame_args):
         int(frame_args.simCount) - 1
     ].simulationType
     frame_args.run_dir = _sim_dir(frame_args.run_dir, frame_args.simCount)
-    frame_args.sim_in = _SIM_DATA.sim_run_input(frame_args)
+    frame_args.sim_in = _SIM_DATA.sim_run_input(frame_args.run_dir)
     if "Phase" in frame_args.frameReport:
         return _plot_phase(sim_type, frame_args)
     if "Beam" in frame_args.frameReport:
@@ -407,7 +407,7 @@ def _plot_beam(sim_type, frame_args):
     if sim_type == "elegant":
         return _extract_elegant_beam_plot(frame_args)
     if sim_type == "genesis":
-        frame_args.sim_in = _SIM_DATA.sim_run_input(run_dir)
+        frame_args.sim_in = _SIM_DATA.sim_run_input(frame_args.run_dir)
         return _template_for_sim_type(sim_type).sim_frame_parameterAnimation(frame_args)
 
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))
