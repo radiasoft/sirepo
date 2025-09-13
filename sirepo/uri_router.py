@@ -92,8 +92,10 @@ def init_module(want_apis, **imports):
     f = sirepo.feature_config.cfg()
     for n in _REQUIRED_MODULES + sorted(f.api_modules):
         register_api_module("sirepo." + n)
-    _register_sim_modules("sim_api", f.sim_types)
-    _register_sim_modules("sim_oauth", f.proprietary_oauth_sim_types)
+    _register_sim_modules(
+        sirepo.feature_config.cfg().package_path, "sim_api", f.sim_types
+    )
+    _register_sim_modules(("sirepo",), "sim_oauth", f.proprietary_oauth_sim_types)
     _init_uris(simulation_db, f.sim_types)
 
 
@@ -560,11 +562,12 @@ def _path_to_route(path):
     return (None, route, kwargs)
 
 
-def _register_sim_modules(package, sim_types):
-    p = pkinspect.module_name_join(("sirepo", package))
-    for n in pkinspect.package_module_names(p):
-        if n in sim_types:
-            register_api_module(pkinspect.module_name_join((p, n)))
+def _register_sim_modules(package_path, package, sim_types):
+    for pp in package_path:
+        p = pkinspect.module_name_join((pp, package))
+        for n in pkinspect.package_module_names(p):
+            if n in sim_types:
+                register_api_module(pkinspect.module_name_join((p, n)))
 
 
 def _split_uri(uri):
