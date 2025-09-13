@@ -913,6 +913,7 @@ def _init_schemas():
 
         # TODO(mvk): improve merging common and local schema
         _merge_dicts(s.common.dynamicFiles, s.dynamicFiles)
+        _merge_dicts(s.get("apiRoute", PKDict()), s.route)
         s.dynamicModules = _files_in_schema(s.dynamicFiles)
         for i in [
             "appDefaults",
