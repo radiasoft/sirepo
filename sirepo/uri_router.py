@@ -561,10 +561,15 @@ def _path_to_route(path):
 
 
 def _register_sim_modules(package, sim_types):
-    p = pkinspect.module_name_join(("sirepo", package))
-    for n in pkinspect.package_module_names(p):
-        if n in sim_types:
-            register_api_module(pkinspect.module_name_join((p, n)))
+    def _modules(package_path):
+        for n in sim_types:
+            try:
+                yield pkinspect.import_submodule(n, package, package_path)
+            except pkinspect.SubmoduleNotFound:
+                continue
+
+    for m in _modules(sirepo.feature_config.cfg().package_path):
+        register_api_module(m)
 
 
 def _split_uri(uri):
