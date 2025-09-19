@@ -737,6 +737,10 @@ SIREPO.app.directive('srTooltip', function(appState, mathRendering, utilities) {
                     html: true,
                     placement: $scope.placement || 'bottom',
                     container: 'body',
+                    delay: {
+                        "show": 100,
+                        "hide": 1000,
+                    }
                 });
                 $scope.$on('$destroy', function() {
                     $($element).find('.sr-info-pointer').tooltip('destroy');
@@ -3814,7 +3818,8 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             <div data-confirmation-modal="" data-is-required="" data-id="sr-conv-dialog" data-title="Open as a New {{ title }} Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? 'Close' : 'Cancel' }}" data-ok-text="{{ displayLink() ? '' : 'Create' }}" data-ok-clicked="openConvertedSimulation()">
               <div data-ng-if="! displayLink()"> Create a {{ title }} simulation with an equivalent beamline? </div>
               <div data-ng-if="displayLink()">
-                {{ title }} simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
+                <p>{{ title }} simulation created:</p>
+                <p><a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a></p>
               </div>
             </div>
         `,
@@ -5231,15 +5236,11 @@ SIREPO.app.service('mathRendering', function() {
         return $('<div />').text(text).html();
     }
 
-    this.mathAsHTML = function(text, options) {
+    this.mathAsHTML = function(text) {
         if (! this.textContainsMath(text)) {
             return encodeHTML(text);
         }
         var parts = [];
-        //if (! options) {
-        //    options = {};
-        //}
-        //options.output = 'html';
         var i = text.search(RE);
         while (i != -1) {
             if (i > 0) {
@@ -5254,7 +5255,10 @@ SIREPO.app.service('mathRendering', function() {
                 // should never get here
                 throw new Error('invalid math expression');
             }
-            parts.push(katex.renderToString(text.slice(0, i + 1), options));
+            parts.push(katex.renderToString(text.slice(0, i + 1), {
+                // for embedded links in help text
+                trust: true,
+            }));
             text = text.slice(i + 2);
             i = text.search(RE);
         }

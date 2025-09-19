@@ -101,6 +101,8 @@ class ImpactTParser(object):
         ]
         self._import_header(parsed.header)
         self._import_elements(parsed.lattice)
+        for f in ("activeBeamlineId", "visualizationBeamlineId"):
+            self.data.models.simulation[f] = self.data.models.beamlines[0].id
         return self.data
 
     def _is_enum(self, model_name, field):

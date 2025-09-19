@@ -121,6 +121,7 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
                 r"\s+Error: (.*)",
                 r"(Note: .*)",
                 r"=\s+(BAD TERMINATION.*)",
+                r"Fortran runtime error: (.*)",
             ),
         )
         if default_msg is not None:
