@@ -19,7 +19,7 @@
                     </div>
                     <div class="col-sm-7 offset-sm-5">
                         <p>When you click continue, we'll send an authorization link to your inbox.</p>
-                        <p>By signing up for Sirepo you agree to Sirepo's <a href="en/privacy.html" target="_blank">privacy policy</a> and <a href="en/terms.html" target="_blank">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
+                        <p>By signing up for Sirepo you agree to Sirepo's <a href="/en/privacy.html" target="_blank">privacy policy</a> and <a href="/en/terms.html" target="_blank">terms and conditions</a>, and to receive informational and marketing communications from RadiaSoft. You may unsubscribe at any time.</p>
                     </div>
                 </div>
             </VForm>
