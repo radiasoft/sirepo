@@ -1768,6 +1768,7 @@ SIREPO.app.service('layoutService', function(mathRendering, panelState, plotting
                 return res.replace(/e\+0$/, '');
             });
             self.unitSymbol = formatInfo.unit ? formatInfo.unit.symbol : '';
+            self.unit = formatInfo.unit;
             return formatInfo;
         }
 
@@ -2593,7 +2594,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             $scope.wantCrossHairs = ! SIREPO.PLOTTING_SUMMED_LINEOUTS;
             $scope.focusPoints = [];
 
-            var canvas, ctx, fullDomain, heatmap, lineOuts, prevDomain, scaleFunction, xyZoom;
+            var canvas, ctx, fullDomain, heatmap, lineOuts, prevDomain, scaleFunction, xyZoom, zUnits;
             var cacheCanvas, imageData;
             var aspectRatio = 1.0;
             var axes = {
@@ -2708,7 +2709,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 var xRight = axes.x.indexScale(axes.x.scale.domain()[1]);
                 var xv = Math.round(xLeft + (xRight - xLeft) / 2);
                 var points;
-
                 if (SIREPO.PLOTTING_SUMMED_LINEOUTS) {
                     points = d3.zip(axes.y.values, sumRegion(
                         false,
@@ -2832,6 +2832,25 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 d[1] = oldValue[1];
             }
 
+            function scaleZ(isWidth, points) {
+                if (! zUnits) {
+                    return points;
+                }
+                const dim = isWidth ? 'x' : 'y';
+                select('.z-axis-label' + (isWidth ? '2' : '')).text(
+                    zUnits + '/' + axes[dim].unitSymbol + axes[dim].units,
+                );
+                let d = (fullDomain[isWidth ? 0 : 1][1] - fullDomain[isWidth ? 0 : 1][0]);
+                if (axes[dim].unit) {
+                    d = axes[dim].unit.scale(d);
+                }
+                const s = heatmap[0].length / d;
+                for (let i = 0; i < points.length; i++) {
+                    points[i] *= s;
+                }
+                return points;
+            }
+
             function select(selector) {
                 var e = d3.select($scope.element);
                 return selector ? e.select(selector) : e;
@@ -2849,7 +2868,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                         points[index] += heatmap[axes.y.values.length - 1 - i][j];
                     }
                 }
-                return points;
+                return scaleZ(isWidth, points);
             }
 
             $scope.clearData = function() {
@@ -2951,6 +2970,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 axes.x.updateLabel(json.x_label, select);
                 axes.y.updateLabel(json.y_label, select);
                 select('.z-axis-label').text(json.z_label);
+                zUnits = json.z_units;
                 if (json.z_footer) {
                     select('.z-axis-footer').text(json.z_footer);
                 }
