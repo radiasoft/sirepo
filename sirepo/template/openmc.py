@@ -1202,8 +1202,10 @@ def _standard_material_open():
 def _standard_material_path():
     def _remote_uri(base):
         return "/".join(
-            sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
-            base,
+            [
+                sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
+                base,
+            ]
         )
 
     m = sirepo.sim_run.cache_dir(_STANDARD_MATERIAL_CACHE_DIR).join(
@@ -1211,12 +1213,15 @@ def _standard_material_path():
     )
     if m.exists():
         return m
-    n = STANDARD_MATERIALS_DB_GZ
+    n = _STANDARD_MATERIALS_DB_GZ
+
     if not _SIM_DATA.lib_file_exists(n):
-        c = _SIM_DATA.sim_db_client(n)
-        c.save_from_url(_remote_uri(), c.uri(_SIM_DATA.LIB_DIR, n))
-    with gzip.open(str(_SIM_DATA.lib_file_abspath(n)), "rb") as f:
-        m.write_binary(f)
+        c = _SIM_DATA.sim_db_client()
+        c.save_from_url(_remote_uri(n), c.uri(_SIM_DATA.LIB_DIR, n))
+
+    with gzip.open(str(_SIM_DATA.lib_file_abspath(n)), "rb") as f_in:
+        with open(str(m), "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
     return m
 
 

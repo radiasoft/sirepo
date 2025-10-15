@@ -1,17 +1,20 @@
 from pykern.pkcollections import PKDict
 from xml.etree import ElementTree
 import copy
-import dagmc
 import re
 import sirepo.pkcli.openmc
 import sirepo.simulation_db
+try:
+    from dagmc import DAGModel
+except:
+    from pydagmc import Model as DAGModel
 
 {% if mcnpFilename %}
 def materials_for_h5m(original_materials_file, h5m_file, output_materials_file):
 
     def h5m_volume_names(fn):
         r = []
-        for g in dagmc.DAGModel(fn).groups_by_name.values():
+        for g in DAGModel(fn).groups_by_name.values():
             m = re.search(r"^mat:(Cell.*)$", g.name)
             if m:
                 r.append(m.group(1))
