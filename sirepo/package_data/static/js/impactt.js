@@ -3,6 +3,7 @@
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
     SIREPO.SINGLE_FRAME_ANIMATION = ['statAnimation'];
+    SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.appFieldEditors += ``;
     SIREPO.lattice = {
         elementColor: {
@@ -32,91 +33,107 @@ SIREPO.app.factory('impacttService', function(appState) {
     return self;
 });
 
-
 SIREPO.app.controller('SourceController', function(appState, $scope) {
-    var self = this;
+    const self = this;
 });
 
-SIREPO.app.controller('VisualizationController', function (appState, frameCache, impacttService, panelState, persistentSimulation, requestSender, $scope) {
+SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, requestSender, $scope) {
     const self = this;
     self.simScope = $scope;
     self.errorMessage = '';
 
-    function cleanFilename(fn) {
-        return fn.replace(/\_/g, ' ').replace(/\.(?:h5|outfn)/g, '');
-    }
+    const initModel = (info, modelName) => {
+        panelState.setError(info.modelKey, null);
+        if (! appState.models[info.modelKey]) {
+            appState.models[info.modelKey] = {};
+        }
+        const m = appState.setModelDefaults(appState.models[info.modelKey], modelName);
+        m.valueList = {};
+        for (const f of valueListFields(modelName)) {
+            m[f] = m[f] || info[f];
+            m.valueList[f] = info.columns;
+        }
+        console.log('saving:', info.modelKey, m);
+        appState.saveQuietly(info.modelKey);
+    };
 
-    function loadReports(reports) {
+    const initSimState = () => {
+        const s = persistentSimulation.initSimulationState(self);
+
+        s.errorMessage = () => self.errorMessage;
+
+        s.logFileURL = () => {
+            return requestSender.formatUrl('downloadRunFile', {
+                '<simulation_id>': appState.models.simulation.simulationId,
+                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                '<model>': self.simState.model,
+                '<frame>': SIREPO.nonDataFileFrame,
+            });
+        };
+
+        s.runningMessage = () => {
+            if (appState.isLoaded() && self.simState.getFrameCount()) {
+                return 'Completed time step: ' + self.simState.getFrameCount();
+            }
+            return 'Simulation running';
+        };
+        return s;
+    };
+
+    const loadReports = (reports) => {
         self.outputFiles = [];
         reports.forEach((info) => {
-            var outputFile = {
+            if (info.modelKey == 'statAnimation') {
+                initModel(info, 'statAnimation');
+                return;
+            }
+            initModel(info, 'elementAnimation');
+            self.outputFiles.push({
                 info: info,
-                reportType: 'heatmap',
-                viewName: 'elementAnimation',
-                filename: info.filename,
                 modelAccess: {
                     modelKey: info.modelKey,
-                    getData: function() {
-                        return appState.models[info.modelKey];
-                    },
+                    getData: () => appState.models[info.modelKey],
+                    //getPlotType: () => appState.applicationState()[info.modelKey].plotType,
+                    getPlotType: () => appState.models[info.modelKey].plotType,
                 },
-                panelTitle: cleanFilename(info.filename),
-            };
-            self.outputFiles.push(outputFile);
-            panelState.setError(info.modelKey, null);
-            if (! appState.models[info.modelKey]) {
-                appState.models[info.modelKey] = {};
-            }
-            var m = appState.models[info.modelKey];
-            appState.setModelDefaults(m, 'elementAnimation');
-            appState.saveQuietly(info.modelKey);
-            frameCache.setFrameCount(1, info.modelKey);
+                panelTitle: info.name.replace('_', ' '),
+            });
+            frameCache.setFrameCount(info.frameCount, info.modelKey);
         });
-    }
+    };
 
-    self.simHandleStatus = data => {
+    const valueListFields = (modelName) => {
+        const r = [];
+        for (const [f, d] of Object.entries(SIREPO.APP_SCHEMA.model[modelName])) {
+            if (d[1] === 'ValueList') {
+                r.push(f);
+            }
+        }
+        return r;
+    };
+
+    self.simHandleStatus = (data) => {
         self.errorMessage = data.error;
-        frameCache.setFrameCount(data.frameCount || 0);
         self.outputFiles = [];
         if (data.reports && data.reports.length) {
             loadReports(data.reports);
         }
-    };
-    self.simState = persistentSimulation.initSimulationState(self);
-
-    self.simState.errorMessage = () => self.errorMessage;
-
-    self.simState.logFileURL = () => {
-        return requestSender.formatUrl('downloadRunFile', {
-            '<simulation_id>': appState.models.simulation.simulationId,
-            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-            '<model>': self.simState.model,
-            '<frame>': SIREPO.nonDataFileFrame,
-        });
+        frameCache.setFrameCount(data.frameCount || 0);
     };
 
-    self.simState.runningMessage = () => {
-        if (appState.isLoaded() && self.simState.getFrameCount()) {
-            return 'Completed time step: ' + self.simState.getFrameCount();
-        }
-        return 'Simulation running';
-    };
+    self.simState = initSimState();
 });
 
 SIREPO.app.controller('LatticeController', function(latticeService, appState) {
-    var self = this;
-    self.latticeService = latticeService;
-
+    const self = this;
     self.advancedNames = SIREPO.APP_SCHEMA.constants.advancedElementNames;
     self.basicNames = SIREPO.APP_SCHEMA.constants.basicElementNames;
+    self.latticeService = latticeService;
 
-    self.titleForName = function(name) {
-        return SIREPO.APP_SCHEMA.view[name].description;
-    };
-
+    self.titleForName = (name) => SIREPO.APP_SCHEMA.view[name].description;
 });
 
-SIREPO.app.directive('appFooter', function() {
+SIREPO.app.directive('appFooter', function(impacttService) {
     return {
         restrict: 'A',
         scope: {
@@ -160,7 +177,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
 
 SIREPO.viewLogic('wakefieldView', function(appState, panelState, $scope) {
 
-    function updateFields() {
+    const updateFields = () => {
         const m = appState.models.WAKEFIELD;
         if (! m) {
             return;
@@ -169,7 +186,7 @@ SIREPO.viewLogic('wakefieldView', function(appState, panelState, $scope) {
             ['gap', 'period', 'iris_radius'], m.method === 'analytical',
             ['filename'], m.method === 'from_file',
         ]);
-    }
+    };
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
@@ -179,30 +196,34 @@ SIREPO.viewLogic('wakefieldView', function(appState, panelState, $scope) {
 
 SIREPO.viewLogic('beamView', function(appState, panelState, $scope) {
 
-    function updateFields() {
+    const updateFields = () => {
+        const d = appState.models.distribution.Flagdist === 'distgen_xyfile';
         panelState.showFields('beam', [
             ['Bmass', 'Bcharge'], appState.models.beam.particle === 'other',
             ['Np'], appState.models.distribution.Flagdist !== '16',
+            ['particle'], ! d,
         ]);
-    }
+        panelState.showFields('distgen', [
+            ['xy_dist_file', 'total_charge', 'species', 'cathode_mte'], d,
+        ]);
+        panelState.showRow('distribution', 'sigx', ! d);
+    };
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
         ['beam.particle', 'distribution.Flagdist'], updateFields,
     ];
-
 });
 
 SIREPO.viewLogic('distributionView', function(appState, panelState, $scope) {
 
-    function updateFields() {
+    const updateFields = () => {
         panelState.showField('distribution', 'filename', appState.models.distribution.Flagdist === "16");
         // the other distribution fields may also apply even when "from file" is selected
-    }
+    };
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
         ['distribution.Flagdist'], updateFields,
     ];
-
 });

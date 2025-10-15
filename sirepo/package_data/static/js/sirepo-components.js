@@ -34,6 +34,7 @@ SIREPO.app.directive('simulationDetailPage', function(appState, $compile) {
                 template += ' data-ng-include="templateUrl">';
             }
             template += '</div></div>';
+            template += '<div data-ng-if="! appState.isLoaded()" data-loading-indicator="\'Initializing Application...\'"></div>';
             element.append($compile(template)(scope));
         },
     };
@@ -1811,7 +1812,7 @@ SIREPO.app.directive('plansLink', function() {
 SIREPO.app.directive('safePath', function() {
 
     // keep in sync with sirepo.srschem.py _NAME_ILLEGALS
-    var unsafePathChars = '\\/|&:+?\'*"<>'.split('');
+    var unsafePathChars = '\\/|&+?\'*"<>'.split('');
     var unsafePathWarn = ' must not include: ' +
         unsafePathChars.join(' ');
     var unsafePathRegexp = new RegExp('[\\' + unsafePathChars.join('\\') + ']');
@@ -5861,7 +5862,9 @@ SIREPO.app.directive('presetTimePicker', function() {
 
             $scope.setSearchTimeMaxRange = () => {
                 $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(60);
-                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
+                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(
+                    timeService.unixTimeNow() + (365 * 24 * 60 * 60),
+                );
             };
 
             $scope.setDefaultStartStopTime();
@@ -5990,6 +5993,25 @@ SIREPO.app.directive('supportEmail', function() {
         template: '<a data-ng-href="mailto:{{:: supportEmail }}">{{:: supportEmail }}</a>',
         controller: function($scope) {
             $scope.supportEmail = SIREPO.APP_SCHEMA.feature_config.support_email;
+        },
+    };
+});
+
+SIREPO.app.directive('loadingIndicator', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            message: '<loadingIndicator',
+        },
+        template: `
+            <div style="margin-left: 2em; margin-top: 1ex;" class="lead"
+              data-ng-show="message && ready">
+              <img src="/static/img/sirepo_animated.gif" />
+              {{ message }}
+            </div>
+        `,
+        controller: function($scope, $timeout) {
+            $timeout(() => $scope.ready = true, 500);
         },
     };
 });

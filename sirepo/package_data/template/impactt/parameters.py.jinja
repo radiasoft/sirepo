@@ -1,3 +1,4 @@
+from distgen import Generator
 from impact import Impact
 import impact.parsers
 import pykern.pkio
@@ -16,10 +17,20 @@ def prep_input_file(filename):
         files['input_to_id'][filename] = n
     return files['input_to_id'][filename]
 
+{% if distgenYAML %}
+G = Generator('''
+{{ distgenYAML }}
+''')
+G.run()
+{% endif %}
+
 I = Impact(
     use_temp_dir=False,
     workdir=".",
     timeout=1e6,
+{% if distgenYAML %}
+    initial_particles=G.particles,
+{% endif %}
 )
 I.header.update({
 {% for k in impactHeader %}

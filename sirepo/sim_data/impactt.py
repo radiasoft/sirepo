@@ -17,6 +17,7 @@ class SimData(sirepo.sim_data.SimDataBase):
             (
                 "beam",
                 "beamline",
+                "distgen",
                 "distribution",
                 "simulation",
                 "simulationSettings",
@@ -26,15 +27,14 @@ class SimData(sirepo.sim_data.SimDataBase):
         dm.setdefault("rpnVariables", [])
 
     @classmethod
-    def get_distribution_file(cls, data):
-        if (
-            data.models.distribution.Flagdist == "16"
-            and data.models.distribution.filename
-        ):
-            return cls.lib_file_name_with_model_field(
-                "distribution", "filename", data.models.distribution.filename
-            )
-        return None
+    def get_distgen_file(cls, data, require_exists=False):
+        return cls.__lib_file(
+            data, "distgen_xyfile", "distgen", "xy_dist_file", require_exists
+        )
+
+    @classmethod
+    def get_distribution_file(cls, data, require_exists=False):
+        return cls.__lib_file(data, "16", "distribution", "filename", require_exists)
 
     @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
@@ -42,13 +42,23 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_file_basenames(cls, data):
-        res = []
-        df = cls.get_distribution_file(data)
-        if df:
-            res.append(df)
-        return (
-            res
-            + sirepo.template.lattice.LatticeUtil(data, cls.schema())
-            .iterate_models(sirepo.template.lattice.InputFileIterator(cls))
-            .result
-        )
+        return [
+            f
+            for f in (cls.get_distribution_file(data), cls.get_distgen_file(data))
+            if f
+        ] + sirepo.template.lattice.LatticeUtil(data, cls.schema()).iterate_models(
+            sirepo.template.lattice.InputFileIterator(cls)
+        ).result
+
+    @classmethod
+    def __lib_file(cls, data, flagdist, model_name, field_name, require_exists):
+        if (
+            data.models.distribution.Flagdist == flagdist
+            and data.models[model_name][field_name]
+        ):
+            return cls.lib_file_name_with_model_field(
+                model_name, field_name, data.models[model_name][field_name]
+            )
+        if require_exists:
+            raise AssertionError(f"Missing {model_name} {field_name}")
+        return None

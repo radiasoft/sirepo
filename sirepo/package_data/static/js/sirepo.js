@@ -959,11 +959,12 @@ SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, re
         }
     };
 
-    $window.onbeforeunload = () => {
-        if (self.isLoaded()) {
-            self.clearModels();
-        }
-    };
+    //TODO(pjm): onbeforeunload() gets invoked when downloadLibFileUrl() is selected on a fileField
+    // $window.onbeforeunload = () => {
+    //     if (self.isLoaded()) {
+    //         self.clearModels();
+    //     }
+    // };
 
     return self;
 });
@@ -2403,13 +2404,6 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
     self.setFieldLabel = function(model, field, text) {
         $('.' + utilities.modelFieldID(model, field)  + ' .control-label label')
             .text(text);
-    };
-
-    self.setHidden = (name, doHide=true) => {
-        if ((self.isHidden(name) && doHide) || (! self.isHidden(name) && ! doHide) ) {
-            return;
-        }
-        self.toggleHidden(name);
     };
 
     self.setLoading = (name, isLoading) => setPanelValue(name, 'loading', isLoading);
