@@ -53,7 +53,6 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
             m[f] = m[f] || info[f];
             m.valueList[f] = info.columns;
         }
-        console.log('saving:', info.modelKey, m);
         appState.saveQuietly(info.modelKey);
     };
 
