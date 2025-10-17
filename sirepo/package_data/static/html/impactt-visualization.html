@@ -13,7 +13,7 @@
     </div>
     <div data-ng-repeat="item in visualization.outputFiles track by $index" data-ng-if="visualization.simState.hasFrames()">
       <div data-column-for-aspect-ratio="{{ item.modelAccess.modelKey }}">
-        <div data-report-panel="{{ item.modelAccess.getData().plotType }}" data-model-data="item.modelAccess" data-panel-title="{{ item.panelTitle }}"></div>
+        <div data-report-panel="{{ item.modelAccess.getPlotType() }}" data-model-data="item.modelAccess" data-panel-title="{{ item.panelTitle }}"></div>
       </div>
     </div>
   </div>

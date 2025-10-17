@@ -1,4 +1,10 @@
 {
+    "appInfo": {
+        "impactt": {
+            "longName": "Impact-T",
+            "shortName": "Impact-T"
+        }
+    },
     "appModes": {
         "default": {
             "localRoute": "lattice"
@@ -68,8 +74,14 @@
             ["2", "output the information at the location of bunch centroid by drifting the particles to that location"],
             ["3", "no output"]
         ],
+        "DistgenParticle": [
+            ["electron", "Electron"],
+            ["positron", "Positron"],
+            ["proton", "Proton"]
+        ],
         "DistType": [
             ["27", "CylcoldZSob"],
+            ["distgen_xyfile", "Distgen XY File"],
             ["16", "From File"],
             ["2", "Gauss3"],
             ["5", "KV3d"],
@@ -79,14 +91,6 @@
             ["1", "Uniform"],
             ["3", "Waterbag"]
         ],
-        "PhaseSpaceCoordinate": [
-            ["x", "x"],
-            ["px", "Px"],
-            ["y", "y"],
-            ["py", "Py"],
-            ["z", "z"],
-            ["pz", "Pz"]
-        ],
         "PlotType": [
             ["heatmap", "Heatmap"],
             ["3d", "Heatmap with Histograms"]
@@ -95,59 +99,6 @@
             ["sextupole", "Sextupole"],
             ["octupole", "Octupole"],
             ["decapole", "Decapole"]
-        ],
-        "Stat": [
-            ["none", "None"],
-            ["Bz", "Bz"],
-            ["Ez", "Ez"],
-            ["cov_px__px", "cov_px__px"],
-            ["cov_px__py", "cov_px__py"],
-            ["cov_px__pz", "cov_px__pz"],
-            ["cov_py__py", "cov_py__py"],
-            ["cov_py__pz", "cov_py__pz"],
-            ["cov_pz__pz", "cov_pz__pz"],
-            ["cov_x__px", "cov_x__px"],
-            ["cov_x__py", "cov_x__py"],
-            ["cov_x__pz", "cov_x__pz"],
-            ["cov_x__x", "cov_x__x"],
-            ["cov_x__y", "cov_x__y"],
-            ["cov_x__z", "cov_x__z"],
-            ["cov_y__px", "cov_y__px"],
-            ["cov_y__py", "cov_y__py"],
-            ["cov_y__pz", "cov_y__pz"],
-            ["cov_y__y", "cov_y__y"],
-            ["cov_y__z", "cov_y__z"],
-            ["cov_z__px", "cov_z__px"],
-            ["cov_z__py", "cov_z__py"],
-            ["cov_z__pz", "cov_z__pz"],
-            ["cov_z__z", "cov_z__z"],
-            ["loadbalance_max_n_particle", "loadbalance_max_n_particle"],
-            ["loadbalance_min_n_particle", "loadbalance_min_n_particle"],
-            ["max_amplitude_x", "max_amplitude_x"],
-            ["max_amplitude_y", "max_amplitude_y"],
-            ["max_amplitude_z", "max_amplitude_z"],
-            ["max_r", "max_r"],
-            ["mean_beta", "mean_beta"],
-            ["mean_gamma", "mean_gamma"],
-            ["mean_kinetic_energy", "mean_kinetic_energy"],
-            ["mean_x", "mean_x"],
-            ["mean_y", "mean_y"],
-            ["mean_z", "mean_z"],
-            ["moment3_x", "moment3_x"],
-            ["moment3_y", "moment3_y"],
-            ["moment3_z", "moment3_z"],
-            ["moment4_x", "moment4_x"],
-            ["moment4_y", "moment4_y"],
-            ["moment4_z", "moment4_z"],
-            ["n_particle", "n_particle"],
-            ["norm_emit_x", "norm_emit_x"],
-            ["norm_emit_y", "norm_emit_y"],
-            ["norm_emit_z", "norm_emit_z"],
-            ["sigma_gamma", "sigma_gamma"],
-            ["sigma_x", "sigma_x"],
-            ["sigma_y", "sigma_y"],
-            ["sigma_z", "sigma_z"],
-            ["t", "t"]
         ],
         "WakefieldMethod": [
             ["analytical", "Analytical"],
@@ -191,6 +142,13 @@
             "Tini": ["Initial reference time [sec]", "RPNValue", 0.0],
             "particle": ["Particle", "BeamParticle", "electron", "Particle species"]
         },
+        "distgen": {
+            "total_charge": ["Total charge [C]", "RPNValue", 50e-12],
+            "species": ["Particle species", "DistgenParticle", "electron"],
+            "cathode_mte": ["Cathode MTE [eV]", "RPNValue", 0.33, "Mean transverse energy"],
+            "sigma_t": ["Sigma T [sec]", "RPNValue", 6.794055201698514e-12],
+            "xy_dist_file": ["XY distribution file", "InputFile", ""]
+        },
         "distribution": {
             "Flagdist": ["Distribution type", "DistType", "2", "Flagdist: Type of the initial distribution"],
             "sigx": ["X sig [m]", "RPNValue", 0.001],
@@ -217,10 +175,10 @@
             "filename": ["Filename", "InputFile", "", "Particle datafiles with the format:<br>nptot<br>nx, px, y, py, z, pz"]
         },
         "elementAnimation": {
-            "x": ["X Value", "PhaseSpaceCoordinate", "x"],
-            "y": ["Y Value", "PhaseSpaceCoordinate", "px"],
-            "plotType": ["Plot Type", "PlotType", "heatmap"],
-            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "x": ["Horizontal Value to Plot", "ValueList", ""],
+            "y": ["Vertical Value to Plot", "ValueList", ""],
+            "plotType": ["Plot Type", "PlotType", "3d"],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "notes": ["Notes", "Text", ""],
@@ -253,20 +211,20 @@
         },
         "simulationStatus": {},
         "statAnimation": {
-            "x": ["Horizontal Value to Plot", "Stat", "mean_z"],
-            "y1": ["Vertical Value to Plot", "Stat", "sigma_x"],
-            "y2": ["Vertical Value to Plot", "Stat", "sigma_y"],
-            "y3": ["Vertical Value to Plot", "Stat", "sigma_z"],
-            "y4": ["Vertical Value to Plot", "Stat", "none"],
-            "y5": ["Vertical Value to Plot", "Stat", "none"],
+            "x": ["Horizontal Value to Plot", "ValueList", ""],
+            "y1": ["Vertical Value to Plot", "ValueList", ""],
+            "y2": ["Vertical Value to Plot", "ValueList", ""],
+            "y3": ["Vertical Value to Plot", "ValueList", ""],
+            "y4": ["Vertical Value to Plot", "ValueList", ""],
+            "y5": ["Vertical Value to Plot", "ValueList", ""],
             "y1Position": ["Vertical Postion", "AxisPosition", "left"],
             "y2Position": ["Vertical Position", "AxisPosition", "left"],
-            "y3Position": ["Vertical Position", "AxisPosition", "left"],
+            "y3Position": ["Vertical Position", "AxisPosition", "right"],
             "y4Position": ["Vertical Position", "AxisPosition", "right"],
             "y5Position": ["Vertical Position", "AxisPosition", "right"],
             "leftLimit": ["Left Axis Limit", "Float", 0],
             "rightLimit": ["Right Axis Limit", "Float", 0],
-            "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.5625"],
             "notes": ["Notes", "Text", ""]
         },
@@ -444,7 +402,12 @@
                         "zmu1",
                         "zmu2"
                     ]]
-                ]
+                ],
+                "distgen.xy_dist_file",
+                "distgen.total_charge",
+                "distgen.species",
+                "distgen.cathode_mte",
+                "distgen.sigma_t"
             ],
             "advanced": []
         },

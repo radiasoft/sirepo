@@ -60,7 +60,7 @@ class ImpactTParser(object):
 
     def _import_elements(self, lattice):
         elements, positions = self._elements_and_positions(lattice)
-        for e in sorted(zip(positions, elements)):
+        for e in sorted(zip(positions, elements), key=lambda x: x[0]):
             self.data.models.beamlines[0].positions.append(
                 PKDict(
                     elemedge=e[0],
@@ -101,6 +101,8 @@ class ImpactTParser(object):
         ]
         self._import_header(parsed.header)
         self._import_elements(parsed.lattice)
+        for f in ("activeBeamlineId", "visualizationBeamlineId"):
+            self.data.models.simulation[f] = self.data.models.beamlines[0].id
         return self.data
 
     def _is_enum(self, model_name, field):

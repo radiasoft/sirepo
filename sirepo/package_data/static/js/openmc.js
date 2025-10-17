@@ -3468,22 +3468,3 @@ SIREPO.app.directive('applyWeightWindowConfirmation', function(appState, openmcS
         },
     };
 });
-
-SIREPO.app.directive('loadingIndicator', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            message: '<loadingIndicator',
-        },
-        template: `
-            <div style="margin-left: 2em; margin-top: 1ex;" class="lead"
-              data-ng-show="message && ready">
-              <img src="/static/img/sirepo_animated.gif" />
-              {{ message }}
-            </div>
-        `,
-        controller: function($scope, $timeout) {
-            $timeout(() => $scope.ready = true, 500);
-        },
-    };
-});

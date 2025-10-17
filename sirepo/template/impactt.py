@@ -4,7 +4,6 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pmd_beamphysics.labels import mathlabel
-from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
@@ -15,15 +14,18 @@ import impact.fieldmaps
 import impact.parsers
 import numpy
 import pmd_beamphysics
+import pykern.pkio
+import pykern.pkjson
 import re
 import sirepo.mpi
 import sirepo.sim_data
 import sirepo.template.lattice
-import time
 
 
+_CACHED_STAT_COLUMNS = "stat-columns.json"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _MAX_OUTPUT_ID = 100
+_NONE = "None"
 _PLOT_TITLE = PKDict(
     {
         "x-px": "Horizontal",
@@ -48,10 +50,6 @@ _TIME_AND_ENERGY_FILE_NO = 18
 _HEADER_M = set(["sigx", "xmu1", "sigy", "ymu1", "sigz", "zmu1"])
 
 
-def code_var(variables):
-    return code_variable.CodeVar(variables, code_variable.PurePythonEval())
-
-
 def background_percent_complete(report, run_dir, is_running):
     data = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
     if is_running:
@@ -65,6 +63,7 @@ def background_percent_complete(report, run_dir, is_running):
                     return PKDict(
                         frameCount=len(d["mean_z"]),
                         percentComplete=d["mean_z"][-1] * 100.0 / stop_z,
+                        reports=[_stat_report_info(run_dir)],
                     )
             except IndexError:
                 pass
@@ -84,6 +83,8 @@ def bunch_plot(model, frame_index, particle_group):
     def _label(name):
         if name == "delta_z":
             return "z -〈z〉"
+        if name == "delta_energy":
+            return "E -〈E〉"
         if name == "energy":
             return "E"
         return name
@@ -96,9 +97,15 @@ def bunch_plot(model, frame_index, particle_group):
             y_label=f"{_label(model.y)} [{particle_group.units(model.y)}]",
             title=_PLOT_TITLE.get(f"{model.x}-{model.y}", f"{model.x} - {model.y}"),
             threshold=[1e-20, 1e20],
+            z_units="pC",
         ),
-        # weights=particle_group.weight,
+        # scale to pC
+        weights=particle_group.weight * 1e12,
     )
+
+
+def code_var(variables):
+    return code_variable.CodeVar(variables, code_variable.PurePythonEval())
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -107,9 +114,43 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError(f"unknown model={model}")
 
 
-def prepare_for_client(data, qcall, **kwargs):
-    code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
-    return data
+def output_info(data):
+    def _default_columns(info):
+        if info.name == "final_particles":
+            info.x = "delta_z"
+            info.y = "delta_energy"
+        else:
+            info.x = "x"
+            info.y = "y"
+        return info
+
+    res = []
+    for idx, n in enumerate(_output_names(data)):
+        res.append(
+            _default_columns(
+                PKDict(
+                    modelKey=f"elementAnimation{idx}",
+                    reportIndex=idx,
+                    report="elementAnimation",
+                    name=n,
+                    frameCount=1,
+                    isHistogram=True,
+                    columns=[
+                        # Could get this from lume-impact metadata
+                        "x",
+                        "px",
+                        "y",
+                        "py",
+                        "z",
+                        "pz",
+                        "energy",
+                        "delta_energy",
+                        "delta_z",
+                    ],
+                )
+            )
+        )
+    return res
 
 
 def post_execution_processing(success_exit, run_dir, **kwargs):
@@ -121,6 +162,7 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
                 r"\s+Error: (.*)",
                 r"(Note: .*)",
                 r"=\s+(BAD TERMINATION.*)",
+                r"Fortran runtime error: (.*)",
             ),
         )
         if default_msg is not None:
@@ -131,6 +173,11 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
     if success_exit:
         return _parse_log(default_msg="")
     return _parse_log()
+
+
+def prepare_for_client(data, qcall, **kwargs):
+    code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
+    return data
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
@@ -148,16 +195,20 @@ def sim_frame(frame_args):
     )
 
 
+def sim_frame_statAnimation(frame_args):
+    return stat_animation(_patch_stat_parser(frame_args.run_dir), frame_args)
+
+
 def stat_animation(I, frame_args):
     stats = I.output["stats"]
     plots = PKDict()
-    if frame_args.x == "none":
+    if frame_args.x == _NONE:
         frame_args.x = "mean_z"
     for f in ("x", "y1", "y2", "y3", "y4", "y5"):
-        if frame_args[f] == "none":
+        if frame_args[f] == _NONE:
             continue
         units = I.units(frame_args[f])
-        if units and str(units) != "1":
+        if units and str(units) and str(units) != "1":
             units = f" [{units}]"
         else:
             units = ""
@@ -204,20 +255,8 @@ def stat_animation(I, frame_args):
     )
 
 
-def sim_frame_statAnimation(frame_args):
-    # TODO(pjm): monkey patch to avoid shape errors when loading during updates
-    impact.parsers.load_many_fort = _patched_load_many_fort
-    I = impact.Impact(
-        use_temp_dir=False,
-        workdir=str(frame_args.run_dir),
-    )
-    I.load_input(I._workdir + "/ImpactT.in")
-    I.load_output()
-    return stat_animation(I, frame_args)
-
-
 def write_parameters(data, run_dir, is_parallel):
-    pkio.write_text(
+    pykern.pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
@@ -268,6 +307,22 @@ def _format_field(code_var, name, field, field_type, value):
     else:
         value = f'"{value}"'
     return f"{field}={value},\n"
+
+
+def _generate_distgen_xyfile(data, v):
+    d = data.models.distribution
+    if d.Flagdist != "distgen_xyfile":
+        return
+    v.distgenXYFile = _SIM_DATA.get_distgen_file(data, True)
+    v.distgenYAML = template_common.render_jinja(
+        SIM_TYPE,
+        v,
+        "distgen_xyfile.yaml",
+    )
+    d.Flagdist = "16"
+    d.filename = ""
+    # these must be non-zero or Impact-T will crash, even though they are not used for file distributions
+    d.sigx = d.sigy = d.sigz = 1
 
 
 def _generate_header(data):
@@ -330,7 +385,12 @@ def _generate_parameters_file(data):
     util = sirepo.template.lattice.LatticeUtil(data, SCHEMA)
     v.lattice = _generate_lattice(util, util.select_beamline().id, [])
     v.numProcs = sirepo.mpi.cfg().cores
-    v.distributionFilename = _SIM_DATA.get_distribution_file(data)
+    v.distributionFilename = (
+        _SIM_DATA.get_distribution_file(data, True)
+        if data.models.distribution.Flagdist == "16"
+        else None
+    )
+    _generate_distgen_xyfile(data, v)
     v.impactHeader = _generate_header(data)
     return res + template_common.render_jinja(
         SIM_TYPE,
@@ -349,21 +409,6 @@ def _next_output_id(output_ids):
     return i
 
 
-def output_info(data):
-    res = []
-    for idx, n in enumerate(_output_names(data)):
-        res.append(
-            PKDict(
-                modelKey=f"elementAnimation{idx}",
-                reportIndex=idx,
-                report="elementAnimation",
-                name=n,
-                frameCount=1,
-            )
-        )
-    return res
-
-
 def _output_info(data, run_dir):
     res = []
     for r in output_info(data):
@@ -372,6 +417,14 @@ def _output_info(data, run_dir):
             r.filename = fn
             res.append(r)
     return res
+
+
+def _output_names(data):
+    return _watches_in_beamline_order(
+        data,
+        data.models.simulation.visualizationBeamlineId,
+        ["initial_particles", "final_particles"],
+    )
 
 
 # This method is copied, modified and monkey patched from the impact.parsers module.
@@ -420,6 +473,18 @@ def _patched_load_many_fort(path, types=impact.parsers.FORT_STAT_TYPES, verbose=
     return alldat
 
 
+def _patch_stat_parser(run_dir):
+    # TODO(pjm): monkey patch to avoid shape errors when loading during updates
+    impact.parsers.load_many_fort = _patched_load_many_fort
+    I = impact.Impact(
+        use_temp_dir=False,
+        workdir=str(run_dir),
+    )
+    I.load_input(I._workdir + "/ImpactT.in")
+    I.load_output()
+    return I
+
+
 def _plot_label(field):
     l = mathlabel(field)
     if field == "norm_emit_z":
@@ -427,6 +492,31 @@ def _plot_label(field):
     if re.search(r"mathrm|None", l):
         return field
     return l
+
+
+def stat_columns(impact_model):
+    return [_NONE, "Bz", "Ez"] + sorted(impact_model.output["stats"].keys())
+
+
+def _stat_report_info(run_dir):
+    n = run_dir.join(_CACHED_STAT_COLUMNS)
+    if n.exists():
+        c = pykern.pkjson.load_any(n)
+    else:
+        c = stat_columns(_patch_stat_parser(run_dir))
+        pykern.pkjson.dump_pretty(c, filename=n)
+    return PKDict(
+        columns=c,
+        name="Beam Variables",
+        modelKey="statAnimation",
+        report="statAnimation",
+        x="mean_z",
+        y1="norm_emit_x",
+        y2="norm_emit_y",
+        y3="sigma_x",
+        y4="sigma_y",
+        y5="sigma_z",
+    )
 
 
 def _watches_in_beamline_order(data, beamline_id, result):
@@ -441,11 +531,3 @@ def _watches_in_beamline_order(data, beamline_id, result):
         else:
             _watches_in_beamline_order(data, item_id, result)
     return result
-
-
-def _output_names(data):
-    return _watches_in_beamline_order(
-        data,
-        data.models.simulation.visualizationBeamlineId,
-        ["initial_particles", "final_particles"],
-    )

@@ -34,6 +34,7 @@ SIREPO.app.directive('simulationDetailPage', function(appState, $compile) {
                 template += ' data-ng-include="templateUrl">';
             }
             template += '</div></div>';
+            template += '<div data-ng-if="! appState.isLoaded()" data-loading-indicator="\'Initializing Application...\'"></div>';
             element.append($compile(template)(scope));
         },
     };
@@ -737,6 +738,10 @@ SIREPO.app.directive('srTooltip', function(appState, mathRendering, utilities) {
                     html: true,
                     placement: $scope.placement || 'bottom',
                     container: 'body',
+                    delay: {
+                        "show": 100,
+                        "hide": 1000,
+                    }
                 });
                 $scope.$on('$destroy', function() {
                     $($element).find('.sr-info-pointer').tooltip('destroy');
@@ -1807,7 +1812,7 @@ SIREPO.app.directive('plansLink', function() {
 SIREPO.app.directive('safePath', function() {
 
     // keep in sync with sirepo.srschem.py _NAME_ILLEGALS
-    var unsafePathChars = '\\/|&:+?\'*"<>'.split('');
+    var unsafePathChars = '\\/|&+?\'*"<>'.split('');
     var unsafePathWarn = ' must not include: ' +
         unsafePathChars.join(' ');
     var unsafePathRegexp = new RegExp('[\\' + unsafePathChars.join('\\') + ']');
@@ -3814,7 +3819,8 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             <div data-confirmation-modal="" data-is-required="" data-id="sr-conv-dialog" data-title="Open as a New {{ title }} Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? 'Close' : 'Cancel' }}" data-ok-text="{{ displayLink() ? '' : 'Create' }}" data-ok-clicked="openConvertedSimulation()">
               <div data-ng-if="! displayLink()"> Create a {{ title }} simulation with an equivalent beamline? </div>
               <div data-ng-if="displayLink()">
-                {{ title }} simulation created: <a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a>
+                <p>{{ title }} simulation created:</p>
+                <p><a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a></p>
               </div>
             </div>
         `,
@@ -5231,15 +5237,11 @@ SIREPO.app.service('mathRendering', function() {
         return $('<div />').text(text).html();
     }
 
-    this.mathAsHTML = function(text, options) {
+    this.mathAsHTML = function(text) {
         if (! this.textContainsMath(text)) {
             return encodeHTML(text);
         }
         var parts = [];
-        //if (! options) {
-        //    options = {};
-        //}
-        //options.output = 'html';
         var i = text.search(RE);
         while (i != -1) {
             if (i > 0) {
@@ -5254,7 +5256,10 @@ SIREPO.app.service('mathRendering', function() {
                 // should never get here
                 throw new Error('invalid math expression');
             }
-            parts.push(katex.renderToString(text.slice(0, i + 1), options));
+            parts.push(katex.renderToString(text.slice(0, i + 1), {
+                // for embedded links in help text
+                trust: true,
+            }));
             text = text.slice(i + 2);
             i = text.search(RE);
         }
@@ -5857,7 +5862,9 @@ SIREPO.app.directive('presetTimePicker', function() {
 
             $scope.setSearchTimeMaxRange = () => {
                 $scope.model.searchStartTime = timeService.roundUnixTimeToMinutes(60);
-                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(timeService.unixTimeNow());
+                $scope.model.searchStopTime = timeService.roundUnixTimeToMinutes(
+                    timeService.unixTimeNow() + (365 * 24 * 60 * 60),
+                );
             };
 
             $scope.setDefaultStartStopTime();
@@ -5986,6 +5993,25 @@ SIREPO.app.directive('supportEmail', function() {
         template: '<a data-ng-href="mailto:{{:: supportEmail }}">{{:: supportEmail }}</a>',
         controller: function($scope) {
             $scope.supportEmail = SIREPO.APP_SCHEMA.feature_config.support_email;
+        },
+    };
+});
+
+SIREPO.app.directive('loadingIndicator', function() {
+    return {
+        restrict: 'A',
+        scope: {
+            message: '<loadingIndicator',
+        },
+        template: `
+            <div style="margin-left: 2em; margin-top: 1ex;" class="lead"
+              data-ng-show="message && ready">
+              <img src="/static/img/sirepo_animated.gif" />
+              {{ message }}
+            </div>
+        `,
+        controller: function($scope, $timeout) {
+            $timeout(() => $scope.ready = true, 500);
         },
     };
 });
