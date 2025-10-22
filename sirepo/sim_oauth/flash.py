@@ -30,7 +30,7 @@ class API(sirepo.quest.API):
         ), f"unexpected status in info={i} expect={cfg.info_valid_user}"
         self.auth_db.model("UserRole").add_roles(
             [sirepo.auth_role.for_sim_type(_SIM_TYPE)],
-            uid=self.logged_in_user(check_path=False),
+            uid=self.auth.logged_in_user(check_path=False),
             expiration=datetime.datetime.fromtimestamp(PKDict(o.token).expires_at),
         )
         raise sirepo.util.Redirect(self.uri_for_app_root(_SIM_TYPE))
