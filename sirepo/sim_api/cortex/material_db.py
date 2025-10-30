@@ -34,6 +34,9 @@ def db_upgrade():
             ):
                 s.execute(t)
 
+    if not _path().exists():
+        # for tests, db may not exist to upgrade
+        return
     for c in ("temperature_k", "neutron_fluence_1_cm2"):
         _alter_column_drop_not_null("material_property_value", c)
 
