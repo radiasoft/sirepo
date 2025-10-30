@@ -21,6 +21,23 @@ class Error(RuntimeError):
     pass
 
 
+def db_upgrade():
+    # SQLITE doesn't support "alter column drop not null"
+    def _alter_column_drop_not_null(table, column):
+        _OLDCOL = "oldcol"
+        with _session() as s:
+            for t in (
+                f"ALTER TABLE {table} RENAME COLUMN {column} TO {_OLDCOL}",
+                f"ALTER TABLE {table} ADD COLUMN {column} FLOAT",
+                f"UPDATE {table} SET {column} = {_OLDCOL}",
+                f"ALTER TABLE {table} DROP COLUMN {_OLDCOL}",
+            ):
+                s.execute(t)
+
+    for c in ("temperature_k", "neutron_fluence_1_cm2"):
+        _alter_column_drop_not_null("material_property_value", c)
+
+
 def delete_material(material_id, uid):
     """Cascade delete all rows for a material"""
 
@@ -110,8 +127,8 @@ def init_from_api():
                 material_property_id="primary_id",
                 value=f,
                 uncertainty=_optional(f),
-                temperature_k=f,
-                neutron_fluence_1_cm2=f,
+                temperature_k=_optional(f),
+                neutron_fluence_1_cm2=_optional(f),
             ),
             independent_variable=PKDict(
                 independent_variable_id="primary_id 5",
@@ -152,12 +169,13 @@ def insert_material(parsed, uid):
                 **val,
             ).material_property_value_id
             for name, values_list in ivars.items():
-                session.insert(
-                    "independent_variable_value",
-                    independent_variable_id=ivar_ids[name],
-                    material_property_value_id=val_id,
-                    value=values_list[idx],
-                )
+                if values_list[idx] is not None:
+                    session.insert(
+                        "independent_variable_value",
+                        independent_variable_id=ivar_ids[name],
+                        material_property_value_id=val_id,
+                        value=values_list[idx],
+                    )
 
     def _values(cols, vals):
         return PKDict((c, vals[c]) for c in cols if c in vals)

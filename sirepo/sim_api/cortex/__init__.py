@@ -43,7 +43,16 @@ class API(sirepo.quest.API):
             r = await asyncio.wait_for(self.__result.get(), timeout=_ACTION_TIMEOUT)
             self.__result.task_done()
             if isinstance(r, Exception):
-                raise r
+                # TODO(pjm): Raising an exception caused a timeout and no response returned to the client
+                #           instead it returns a general system-error message
+                # raise r
+                return PKDict(
+                    error=[
+                        PKDict(
+                            value="An internal error occurred. Please contact support@sirepo.com",
+                        ),
+                    ],
+                )
             return r
         except asyncio.exceptions.TimeoutError:
             pkdlog("timed out secs={} req_data={}", _ACTION_TIMEOUT, a)
@@ -119,10 +128,9 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
                 r = qcall.reply_ok(PKDict(op_result=r))
         except Exception as e:
             pkdlog(
-                "returning error={} method={} arg={} stack={}",
+                "returning error={} method={} stack={}",
                 e,
                 method,
-                arg,
                 pkdexc(simplify=True),
             )
             r = e
@@ -130,6 +138,52 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         return None
 
     def _format_material(self, material):
+
+        # these were required for old xls imports, now they are brought in with independent_variables
+        _OLD_PROPERTY_COLUMNS = PKDict(
+            temperature_k="Temperature [K]",
+            neutron_fluence_1_cm2="Neutron Fluence [1/cm²]",
+        )
+
+        def _add_doi(prop):
+            if prop.doi_or_url.lower().startswith("http"):
+                t = "URL"
+                u = prop.doi_or_url
+            else:
+                t = "DOI"
+                u = f"https://doi.org/{prop.doi_or_url}"
+            prop.doi = PKDict(
+                type=t,
+                url=u,
+                linkText=prop.doi_or_url,
+                rows=PKDict(
+                    Source=(
+                        f"{prop.source}, {self._SOURCE_DESC[prop.source]}"
+                        if prop.source in self._SOURCE_DESC
+                        else prop.source
+                    ),
+                    Pointer=prop.pointer,
+                    Comments=prop.comments,
+                ),
+            )
+
+        def _add_property_values(prop):
+            def _has_column_value(rows, key):
+                for r in rows:
+                    if r[k]:
+                        return True
+                return False
+
+            prop.valueHeadings = PKDict(
+                value="Value"
+                + (f" [{prop.property_unit}]" if prop.property_unit else ""),
+                uncertainty="Uncertainty",
+            )
+            for k in prop.vals[0]:
+                if k in prop.valueHeadings or k.endswith("_id"):
+                    continue
+                if _has_column_value(prop.vals, k):
+                    prop.valueHeadings[k] = _OLD_PROPERTY_COLUMNS.get(k, k)
 
         def _find_property(properties, name):
             for p in properties:
@@ -187,37 +241,8 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         for c in res.components:
             c.material_component_name = c.material_component_name.capitalize()
         for p in material.properties:
-            p.valueHeadings = PKDict(
-                value="Value" + (f" [{p.property_unit}]" if p.property_unit else ""),
-                uncertainty="Uncertainty",
-                temperature_k="Temperature [K]",
-                neutron_fluence_1_cm2="Neutron Fluence [1/cm²]",
-            )
             if "vals" in p and len(p.vals):
-                for k in p.vals[0]:
-                    if k in p.valueHeadings or k.endswith("_id"):
-                        continue
-                p.valueHeadings[k] = k
-
+                _add_property_values(p)
             if p.doi_or_url:
-                if p.doi_or_url.lower().startswith("http"):
-                    t = "URL"
-                    u = p.doi_or_url
-                else:
-                    t = "DOI"
-                    u = f"https://doi.org/{p.doi_or_url}"
-                p.doi = PKDict(
-                    type=t,
-                    url=u,
-                    linkText=p.doi_or_url,
-                    rows=PKDict(
-                        Source=(
-                            f"{p.source}, {self._SOURCE_DESC[p.source]}"
-                            if p.source in self._SOURCE_DESC
-                            else p.source
-                        ),
-                        Pointer=p.pointer,
-                        Comments=p.comments,
-                    ),
-                )
+                _add_doi(p)
         return res

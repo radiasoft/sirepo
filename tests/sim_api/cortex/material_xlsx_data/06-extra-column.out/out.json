@@ -154,7 +154,7 @@
     "is_homogenized_wcll": false,
     "is_neutron_source_dt": true,
     "is_plasma_facing": false,
-    "material_name": "Eurofer 97",
+    "material_name": "Eurofer 97 Extra Columns",
     "microstructure": null,
     "neutron_wall_loading": "DEMO",
     "processing_steps": null,
@@ -187,8 +187,30 @@
                     1400000.0,
                     1400000.0,
                     1700000.0,
-                    1800000.0,
+                    null,
                     1800000.0
+                ],
+                "Neutron Fluence [1/cm2]": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    2.7,
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Temperature [K]": [
+                    293.15,
+                    323.15,
+                    373.15,
+                    473.15,
+                    null,
+                    673.15,
+                    773.15,
+                    873.15,
+                    973.15
                 ]
             },
             "pointer": "T1",
@@ -196,56 +218,38 @@
             "source": "NOM",
             "vals": [
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 293.15,
                     "uncertainty": null,
                     "value": 7.744
                 },
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 323.15,
                     "uncertainty": null,
                     "value": 7.75
                 },
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 373.15,
                     "uncertainty": null,
                     "value": 7.74
                 },
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 473.15,
                     "uncertainty": null,
                     "value": 7.723
                 },
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 573.15,
                     "uncertainty": null,
                     "value": 7.691
                 },
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 673.15,
                     "uncertainty": null,
                     "value": 7.657
                 },
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 773.15,
                     "uncertainty": null,
                     "value": 7.625
                 },
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 873.15,
                     "uncertainty": null,
                     "value": 7.592
                 },
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 973.15,
                     "uncertainty": null,
                     "value": 7.559
                 }
@@ -254,55 +258,61 @@
         "thermal_conductivity": {
             "comments": null,
             "doi_or_url": "https://tinyurl.com/4uchnhx9",
+            "independent_variables": {
+                "Neutron Fluence [1/cm2]": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "Temperature [K]": [
+                    293.15,
+                    323.15,
+                    373.15,
+                    473.15,
+                    573.15,
+                    673.15,
+                    773.15,
+                    873.15
+                ]
+            },
             "pointer": "T20.1",
             "property_unit": "W/m/K",
             "source": "EXP",
             "vals": [
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 293.15,
                     "uncertainty": null,
                     "value": 28.08
                 },
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 323.15,
                     "uncertainty": null,
                     "value": 28.86
                 },
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 373.15,
                     "uncertainty": null,
                     "value": 29.78
                 },
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 473.15,
                     "uncertainty": null,
                     "value": 30.38
                 },
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 573.15,
                     "uncertainty": null,
                     "value": 30.01
                 },
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 673.15,
                     "uncertainty": null,
                     "value": 29.47
                 },
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 773.15,
                     "uncertainty": null,
                     "value": 29.58
                 },
                 {
-                    "neutron_fluence_1_cm2": 0.0,
-                    "temperature_k": 873.15,
                     "uncertainty": null,
                     "value": 31.12
                 }
