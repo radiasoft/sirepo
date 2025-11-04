@@ -84,7 +84,6 @@
             ["tukey", "Tukey"]
         ],
         "DistType": [
-            ["112", "Beercan"],
             ["27", "CylcoldZSob"],
             ["distgen_xyfile", "Distgen XY File"],
             ["16", "From File"],
