@@ -48,7 +48,8 @@
                 <span v-if="err.row">
                     row {{ err.row }}<span v-if="err.col">, col {{ err.col }}</span>:
                 </span>
-                <span v-if="err.value">{{ err.value }}:</span>
+                <span v-if="err.value">{{ err.value }}</span>
+                <span v-if="err.value && err.msg">:</span>
                 {{ err.msg }}
             </div>
         </div>

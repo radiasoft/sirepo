@@ -74,8 +74,6 @@ _COMPOSITION_PROPERTIES = PKDict(
 _PROPERTY_VALUE_LABELS = (
     _VALUE,
     "Uncertainty",
-    "Temperature [K]",
-    "Neutron Fluence [1/cm2]",
 )
 
 _PROPERTY_NAMES = (
@@ -241,15 +239,13 @@ class Parser:
         return rv
 
     def _add_property_value(self, name, values):
-        # TODO(pjm): add independent variable columns
-        # TODO(pjm): don't allow duplicate "value" values
-        # TODO(pjm): only uncertainty may be empty
         self.result.properties[name].vals.append(
+            # values are parsed only if initial columns match (value, uncertainty)
             PKDict(
-                value=_parse_float(values[0]),
-                uncertainty=_parse_float(values[1]),
-                temperature_k=_parse_float(values[2]),
-                neutron_fluence_1_cm2=_parse_float(values[3]),
+                value=self._validate_float(
+                    _PROPERTY_VALUE_LABELS[0], values[0], is_optional=False
+                ),
+                uncertainty=self._validate_float(_PROPERTY_VALUE_LABELS[1], values[1]),
             )
         )
         for i, p in self._independent_variables.items():
@@ -259,7 +255,7 @@ class Parser:
                 if p.name not in self.result.properties[name].independent_variables:
                     self.result.properties[name].independent_variables[p.name] = []
                 self.result.properties[name].independent_variables[p.name].append(
-                    _parse_float(values[i])
+                    self._validate_float(p.name, values[i])
                 )
 
     def _parse_rows(self, rows):
@@ -294,7 +290,8 @@ class Parser:
                 _component(l, cols)
             elif (
                 l == _PROPERTY_VALUE_LABELS[0].lower()
-                and tuple(cols[0:4]) == _PROPERTY_VALUE_LABELS
+                and tuple(cols[0 : len(_PROPERTY_VALUE_LABELS)])
+                == _PROPERTY_VALUE_LABELS
             ):
                 _property_value(cols)
             else:
@@ -470,6 +467,16 @@ class Parser:
             return
         if _balance(_kind()):
             _db_fields()
+
+    def _validate_float(self, label, value, is_optional=True):
+        if isinstance(value, str):
+            if not len(value):
+                if not is_optional:
+                    self._error(f"missing {label} column value")
+                return None
+            if _parse_float(value) is None:
+                self._error(f"invalid {label} column value={value}")
+        return _parse_float(value)
 
     def _validate_result(self):
         def _labels(names):
