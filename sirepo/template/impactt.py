@@ -9,6 +9,7 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import template_common
+from sirepo.template.impactt_parser import ImpactTParser
 import impact
 import impact.fieldmaps
 import impact.parsers
@@ -22,7 +23,22 @@ import sirepo.sim_data
 import sirepo.template.lattice
 
 
+_BUNCH_COLUMNS = [
+    # Could get this from lume-impact metadata
+    "x",
+    "px",
+    "y",
+    "py",
+    "z",
+    "pz",
+    "energy",
+    "delta_energy",
+    "delta_z",
+]
+
 _CACHED_STAT_COLUMNS = "stat-columns.json"
+_INITIAL_PARTICLES_OUTFILE = "initial_particles.h5"
+_PARSE_IMPACT_PARTICLES = None
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _MAX_OUTPUT_ID = 100
 _NONE = "None"
@@ -109,9 +125,17 @@ def code_var(variables):
 
 
 def get_data_file(run_dir, model, frame, options):
+    if "bunchReport" in model:
+        return _INITIAL_PARTICLES_OUTFILE
     if frame < 0:
         return template_common.text_data_file(template_common.RUN_LOG, run_dir)
-    raise AssertionError(f"unknown model={model}")
+    return str(
+        _file_name_for_element_animation(
+            run_dir,
+            model,
+            simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)),
+        )
+    )
 
 
 def output_info(data):
@@ -135,18 +159,7 @@ def output_info(data):
                     name=n,
                     frameCount=1,
                     isHistogram=True,
-                    columns=[
-                        # Could get this from lume-impact metadata
-                        "x",
-                        "px",
-                        "y",
-                        "py",
-                        "z",
-                        "pz",
-                        "energy",
-                        "delta_energy",
-                        "delta_z",
-                    ],
+                    columns=_BUNCH_COLUMNS,
                 )
             )
         )
@@ -180,8 +193,39 @@ def prepare_for_client(data, qcall, **kwargs):
     return data
 
 
+def prepare_sequential_output_file(run_dir, data):
+    report = data["report"]
+    if "bunchReport" in report:
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+        if fn.exists():
+            fn.remove()
+            try:
+                save_sequential_report_data(data, run_dir)
+            except IOError:
+                # the output file isn't readable
+                pass
+
+
 def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
+
+
+def save_sequential_report_data(data, run_dir):
+    template_common.write_sequential_result(
+        bunch_plot(
+            data.models[data.report],
+            0,
+            pmd_beamphysics.ParticleGroup(
+                str(run_dir.join(_INITIAL_PARTICLES_OUTFILE))
+            ),
+        ).pkupdate(
+            summaryData=PKDict(
+                columns=_BUNCH_COLUMNS,
+            ),
+            title="",
+        ),
+        run_dir=run_dir,
+    )
 
 
 def sim_frame(frame_args):
@@ -190,7 +234,13 @@ def sim_frame(frame_args):
         frame_args,
         frame_args.frameIndex,
         pmd_beamphysics.ParticleGroup(
-            str(frame_args.run_dir.join(_file_name_for_element_animation(frame_args)))
+            str(
+                frame_args.run_dir.join(
+                    _file_name_for_element_animation(
+                        frame_args.run_dir, frame_args.frameReport, frame_args.sim_in
+                    )
+                )
+            )
         ),
     )
 
@@ -255,6 +305,70 @@ def stat_animation(I, frame_args):
     )
 
 
+def stat_columns(impact_model):
+    return [_NONE, "Bz", "Ez"] + sorted(impact_model.output["stats"].keys())
+
+
+def stateful_compute_import_file(data, **kwargs):
+    if data.args.ext_lower != ".in":
+        raise IOError(f"invalid file={data.args.basename} extension, expecting .in")
+    res = ImpactTParser().parse_file(data.args.file_as_str)
+    # always returns all files as missing (names are always rfdata# and will be renamed after import)
+    missing_files = set()
+    for f in (
+        sirepo.template.lattice.LatticeUtil(res, SCHEMA)
+        .iterate_models(sirepo.template.lattice.InputFileIterator(_SIM_DATA))
+        .result
+    ):
+        missing_files.add(re.sub(r"^.*?-filename\.", "", f))
+    res.models.simulation.name = "Imported Sim"
+    return PKDict(
+        missingFiles=sorted(list(missing_files)),
+        imported_data=res,
+    )
+
+
+def update_lume_impact_parser_for_older_datafiles(I):
+
+    def _patched_parse_impact_particles(filePath):
+        return _PARSE_IMPACT_PARTICLES(filePath, ("x", "GBx", "y", "GBy", "z", "GBz"))
+
+    global _PARSE_IMPACT_PARTICLES
+    if not _PARSE_IMPACT_PARTICLES:
+        _PARSE_IMPACT_PARTICLES = impact.parsers.parse_impact_particles
+    impact.parsers.parse_impact_particles = _patched_parse_impact_particles
+    impact.impact.parse_impact_particles = _patched_parse_impact_particles
+
+
+def validate_file(file_type, path, sim_id, qcall):
+    # imported impact input files are always rfdata\d+ or 1T\d+.T7
+    # so use the element name + md5sum to identify files
+    m = re.search(r"^(.*?)-", file_type)
+    if m:
+        # ensure lume-impact can parse the file
+        # files with embedded comments are not parseable by lume-impact
+        p = impact.parsers.fieldmap_parsers.get(m.group(1).lower())
+        if p:
+            try:
+                f = p(str(path))
+            except ValueError:
+                return f"lume-impact failed to parse the input file: {path.basename}"
+
+    d = simulation_db.read_simulation_json(SIM_TYPE, sim_id, qcall)
+    n = None
+    for e in d.models.elements:
+        if e.get("filename") == path.basename:
+            if n is None:
+                s = path.ext if path.ext.lower() == ".t7" else ".txt"
+                n = f"{e.name}-{path.computehash()[:8]}{s}"
+            e.filename = n
+    if n:
+        simulation_db.save_simulation_json(d, False, qcall=qcall)
+        return PKDict(
+            filename=n,
+        )
+
+
 def write_parameters(data, run_dir, is_parallel):
     pykern.pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
@@ -265,12 +379,11 @@ def write_parameters(data, run_dir, is_parallel):
     return None
 
 
-def _file_name_for_element_animation(frame_args):
-    r = frame_args.frameReport
-    for info in _output_info(frame_args.sim_in, frame_args.run_dir):
-        if info.modelKey == r:
+def _file_name_for_element_animation(run_dir, report, data):
+    for info in _output_info(data, run_dir):
+        if info.modelKey == report:
             return info.filename
-    raise AssertionError(f"no output for frameReport={r}")
+    raise AssertionError(f"no output for frame={report}")
 
 
 def _find_last_stop(data, beamline_id):
@@ -286,7 +399,23 @@ def _find_last_stop(data, beamline_id):
             res = _find_last_stop(data, item_id)
             if res:
                 return res
-    return 0
+    if len(beamline.positions):
+        return beamline.positions[-1].elemedge + util.id_map[beamline["items"][-1]].get(
+            "l", 0
+        )
+    raise AssertionError("No beamline items defined")
+
+
+_INPUT_FILENAME_TEMPLATE = PKDict(
+    DIPOLE="rfdata{}",
+    EMFIELD_CARTESIAN="1T{}.T7",
+    EMFIELD_CYLINDRICAL="1T{}.T7",
+    SOLENOID="1T{}.T7",
+    SOLRF="rfdata{}",
+    WAKEFIELD="fort.{}",
+)
+
+# , "{_INPUT_FILENAME_TEMPLATE[name]}"
 
 
 def _format_field(code_var, name, field, field_type, value):
@@ -298,15 +427,27 @@ def _format_field(code_var, name, field, field_type, value):
         if name == "WAKEFIELD":
             # TODO(pjm): handle wakefield filename
             return ""
-        value = f'prep_input_file("{_SIM_DATA.lib_file_name_with_model_field(name, field, value)}")'
+        value = f'prep_input_file("{_SIM_DATA.lib_file_name_with_model_field(name, field, value)}", "{_INPUT_FILENAME_TEMPLATE[name]}")'
     elif field_type == "RPNValue":
-        # TODO(pjm): eval RPNValue
-        value = float(value)
+        value = _eval_var(code_var, value)
     elif field_type == "Integer":
         pass
     else:
         value = f'"{value}"'
     return f"{field}={value},\n"
+
+
+def _eval_var(code_var, value):
+    if code_var.is_var_value(value):
+        return code_var.eval_var_with_assert(value)
+    return float(value)
+
+
+def _eval_model(code_var, model_name, model):
+    s = SCHEMA.model[model_name]
+    for f in model:
+        if s[f][1] == "RPNValue":
+            model[f] = _eval_var(code_var, model[f])
 
 
 def _generate_distgen_xyfile(data, v):
@@ -325,32 +466,27 @@ def _generate_distgen_xyfile(data, v):
     d.sigx = d.sigy = d.sigz = 1
 
 
-def _generate_header(data):
+def _generate_header(data, code_var):
     dm = data.models
     res = PKDict()
     for m in ("beam", "distribution", "simulationSettings"):
-        s = SCHEMA.model[m]
+        _eval_model(code_var, m, dm[m])
         for k in dm[m]:
             n = f"{k}(m)" if k in _HEADER_M else k
-            if s[k][1] == "RPNValue":
-                res[n] = float(dm[m][k])
-            else:
-                res[n] = dm[m][k]
+            res[n] = dm[m][k]
     if dm.beam.particle in ("electron", "proton"):
         res["Bmass"], res["Bcharge"] = SCHEMA.constants.particleMassAndCharge[
             dm.beam.particle
         ]
-    else:
-        if dm.beam.particle != "other":
-            raise AssertionError(f"Invalid particle type: {dm.beam.particle}")
+    elif dm.beam.particle != "other":
+        raise AssertionError(f"Invalid particle type: {dm.beam.particle}")
     del res["particle"]
     del res["filename"]
     return res
 
 
-def _generate_lattice(util, beamline_id, result):
+def _generate_lattice(util, code_var, beamline_id, result):
     beamline = util.id_map[abs(beamline_id)]
-    cv = code_var(util.data.models.rpnVariables)
     output_ids = set(
         impact.parsers.FORT_STAT_TYPES
         + impact.parsers.FORT_DIPOLE_STAT_TYPES
@@ -373,25 +509,28 @@ def _generate_lattice(util, beamline_id, result):
             for f, d in SCHEMA.model[item.type].items():
                 if d[1] == "OutputFile":
                     item[f] = f"fort.{_next_output_id(output_ids)}"
-                el += _format_field(cv, item.type, f, d[1], item[f])
+                el += _format_field(code_var, item.type, f, d[1], item[f])
             result.append(el)
         else:
-            _generate_lattice(util, item.id, result)
+            _generate_lattice(util, code_var, item.id, result)
     return result
 
 
 def _generate_parameters_file(data):
-    res, v = template_common.generate_parameters_file(data)
     util = sirepo.template.lattice.LatticeUtil(data, SCHEMA)
-    v.lattice = _generate_lattice(util, util.select_beamline().id, [])
+    cv = code_var(util.data.models.rpnVariables)
+    _eval_model(cv, "distgen", data.models.distgen)
+    res, v = template_common.generate_parameters_file(data)
+    v.lattice = _generate_lattice(util, cv, util.select_beamline().id, [])
     v.numProcs = sirepo.mpi.cfg().cores
     v.distributionFilename = (
         _SIM_DATA.get_distribution_file(data, True)
         if data.models.distribution.Flagdist == "16"
         else None
     )
+    v.isBunchReport = "bunchReport" in data.get("report", "")
     _generate_distgen_xyfile(data, v)
-    v.impactHeader = _generate_header(data)
+    v.impactHeader = _generate_header(data, cv)
     return res + template_common.render_jinja(
         SIM_TYPE,
         v,
@@ -410,7 +549,7 @@ def _next_output_id(output_ids):
 
 
 def _output_info(data, run_dir):
-    res = []
+    res = [_stat_report_info(run_dir)]
     for r in output_info(data):
         fn = f"{r.name}.h5"
         if run_dir.join(fn).exists():
@@ -480,6 +619,7 @@ def _patch_stat_parser(run_dir):
         use_temp_dir=False,
         workdir=str(run_dir),
     )
+    update_lume_impact_parser_for_older_datafiles(I)
     I.load_input(I._workdir + "/ImpactT.in")
     I.load_output()
     return I
@@ -492,10 +632,6 @@ def _plot_label(field):
     if re.search(r"mathrm|None", l):
         return field
     return l
-
-
-def stat_columns(impact_model):
-    return [_NONE, "Bz", "Ez"] + sorted(impact_model.output["stats"].keys())
 
 
 def _stat_report_info(run_dir):

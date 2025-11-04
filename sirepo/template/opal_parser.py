@@ -344,6 +344,8 @@ class OpalParser(lattice.LatticeParser):
 
 def parse_file(lattice_text, filename=None, update_filenames=True):
     res, files = OpalParser().parse_file(lattice_text, update_filenames)
+    if not len(res.models.beamlines):
+        raise AssertionError("No beamlines parsed from OPAL input file")
     set_simulation_name(res, filename)
     return res, files
 
@@ -357,5 +359,5 @@ def set_simulation_name(data, filename):
         else:
             commands.append(cmd)
     data.models.commands = commands
-    if not data.models.simulation.name:
+    if not data.models.simulation.name and filename:
         data.models.simulation.name = re.sub(r"\..*$", "", os.path.basename(filename))

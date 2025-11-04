@@ -33,8 +33,19 @@ SIREPO.app.factory('impacttService', function(appState) {
     return self;
 });
 
-SIREPO.app.controller('SourceController', function(appState, $scope) {
+SIREPO.app.controller('SourceController', function(appState, latticeService, $scope) {
     const self = this;
+    latticeService.initSourceController(self);
+    $scope.$on('bunchReport1.summaryData', (e, summaryData) => {
+        for (let i = 1; i <= 4; i++) {
+            const n = `bunchReport${i}`;
+            appState.models[n].valueList = {
+                x: summaryData.columns,
+                y: summaryData.columns,
+            };
+            appState.saveQuietly(n);
+        }
+    });
 });
 
 SIREPO.app.controller('VisualizationController', function(appState, frameCache, panelState, persistentSimulation, requestSender, $scope) {
@@ -140,7 +151,7 @@ SIREPO.app.directive('appFooter', function(impacttService) {
         },
         template: `
             <div data-common-footer="nav"></div>
-            <div data-import-dialog=""></div>
+            <div data-lattice-import-dialog="" data-lattice-format=".in"></div>
         `,
     };
 });
@@ -203,14 +214,16 @@ SIREPO.viewLogic('beamView', function(appState, panelState, $scope) {
             ['particle'], ! d,
         ]);
         panelState.showFields('distgen', [
-            ['xy_dist_file', 'total_charge', 'species', 'cathode_mte'], d,
+            ['xy_dist_file', 'total_charge', 'species', 'cathode_mte', 'centerBeam', 't_dist'], d,
+            ['sigma_t'], d && appState.models.distgen.t_dist === 'gaussian',
+            ['tukey_length', 'tukey_ratio'], d && appState.models.distgen.t_dist === 'tukey',
         ]);
         panelState.showRow('distribution', 'sigx', ! d);
     };
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
-        ['beam.particle', 'distribution.Flagdist'], updateFields,
+        ['beam.particle', 'distribution.Flagdist', 'distgen.t_dist'], updateFields,
     ];
 });
 

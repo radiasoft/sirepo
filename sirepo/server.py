@@ -608,7 +608,14 @@ class API(sirepo.quest.API):
             t.write_binary(f.as_bytes())
             if hasattr(req.template, "validate_file"):
                 # Note: validate_file may modify the file
-                e = req.template.validate_file(req.file_type, t)
+                e = req.template.validate_file(
+                    req.file_type, t, sim_id=req.id, qcall=self
+                )
+                if e and not isinstance(e, str):
+                    # allow implementation to return a PKDict(error=...,filename=...)
+                    if "filename" in e:
+                        req.filename = e.filename
+                    e = e.get("error")
             if (
                 not e
                 and req.sim_data.lib_file_exists(req.filename, qcall=self)

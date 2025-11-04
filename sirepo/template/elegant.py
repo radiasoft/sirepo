@@ -1045,7 +1045,7 @@ def stateful_compute_import_file(data, **kwargs):
     return elegant_file_import(data)
 
 
-def validate_file(file_type, path):
+def validate_file(file_type, path, **kwargs):
     err = None
     if file_type == "bunchFile-sourceFile":
         if _is_openpmd_file(path):

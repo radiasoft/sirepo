@@ -130,6 +130,22 @@
                 ]
             }
         ],
+        "bunchReport1": {
+            "x": "x",
+            "y": "px"
+        },
+        "bunchReport2": {
+            "x": "y",
+            "y": "py"
+        },
+        "bunchReport3": {
+            "x": "x",
+            "y": "y"
+        },
+        "bunchReport4": {
+            "x": "z",
+            "y": "pz"
+        },
         "commands": [],
         "elements": [
             {
@@ -284,7 +300,7 @@
             {
                 "_id": 4,
                 "_super": "_ELEMENT",
-                "filename": "rfdata201.txt",
+                "filename": "GUN.txt",
                 "l": 0.15,
                 "name": "GUN",
                 "radius": 0.15,
@@ -302,7 +318,7 @@
             {
                 "_id": 11,
                 "_super": "_ELEMENT",
-                "filename": "rfdata5.txt",
+                "filename": "body.txt",
                 "l": 2.937928,
                 "name": "L0A_body_1",
                 "radius": 0.15,
@@ -320,7 +336,7 @@
             {
                 "_id": 22,
                 "_super": "_ELEMENT",
-                "filename": "rfdata6.txt",
+                "filename": "body_2.txt",
                 "l": 2.937928,
                 "name": "L0A_body_2",
                 "radius": 0.15,
@@ -338,7 +354,7 @@
             {
                 "_id": 10,
                 "_super": "_ELEMENT",
-                "filename": "rfdata4.txt",
+                "filename": "entrance.txt",
                 "l": 0.052464,
                 "name": "L0A_entrance",
                 "radius": 0.15,
@@ -356,7 +372,7 @@
             {
                 "_id": 23,
                 "_super": "_ELEMENT",
-                "filename": "rfdata7.txt",
+                "filename": "exit.txt",
                 "l": 0.052464,
                 "name": "L0A_exit",
                 "radius": 0.15,
@@ -374,7 +390,7 @@
             {
                 "_id": 19,
                 "_super": "_ELEMENT",
-                "filename": "rfdata5.txt",
+                "filename": "body.txt",
                 "l": 2.937928,
                 "name": "L0B_body_1",
                 "radius": 0.15,
@@ -392,7 +408,7 @@
             {
                 "_id": 20,
                 "_super": "_ELEMENT",
-                "filename": "rfdata6.txt",
+                "filename": "body_2.txt",
                 "l": 2.937928,
                 "name": "L0B_body_2",
                 "radius": 0.15,
@@ -410,7 +426,7 @@
             {
                 "_id": 18,
                 "_super": "_ELEMENT",
-                "filename": "rfdata4.txt",
+                "filename": "entrance.txt",
                 "l": 0.052464,
                 "name": "L0B_entrance",
                 "radius": 0.15,
@@ -428,7 +444,7 @@
             {
                 "_id": 24,
                 "_super": "_ELEMENT",
-                "filename": "rfdata7.txt",
+                "filename": "exit.txt",
                 "l": 0.052464,
                 "name": "L0B_exit",
                 "radius": 0.15,
@@ -446,7 +462,7 @@
             {
                 "_id": 5,
                 "_super": "_ELEMENT",
-                "filename": "rfdata102.txt",
+                "filename": "SOL1.txt",
                 "l": 0.49308,
                 "name": "SOL1",
                 "radius": 0.15,

@@ -280,7 +280,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: `
             <div data-common-footer="nav"></div>
-            <div data-elegant-import-dialog=""></div>
+            <div data-lattice-import-dialog=""></div>
         `,
     };
 });
@@ -359,45 +359,6 @@ SIREPO.app.directive('elementAnimationModalEditor', function(appState, panelStat
                     var data = appState.models[$scope.modelKey];
                     return data;
                 },
-            };
-        },
-    };
-});
-
-SIREPO.app.directive('madXLatticeList', function(appState) {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            field: '=',
-        },
-        template: `
-            <select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in elegantLatticeList()"></select>
-        `,
-        controller: function($scope) {
-            $scope.elegantLatticeList = function() {
-                if (! appState.isLoaded() || ! $scope.model) {
-                    return null;
-                }
-                var runSetupId = $scope.model._id;
-                var res = ['Lattice'];
-                var index = 0;
-                for (var i = 0; i < appState.models.commands.length; i++) {
-                    var cmd = appState.models.commands[i];
-                    if (cmd._id == runSetupId) {
-                        break;
-                    }
-                    if (cmd._type == 'save_lattice') {
-                        index++;
-                        if (cmd.filename) {
-                            res.push('save_lattice' + (index > 1 ? index : ''));
-                        }
-                    }
-                }
-                if (! $scope.model[$scope.field]) {
-                    $scope.model[$scope.field] = res[0];
-                }
-                return res;
             };
         },
     };

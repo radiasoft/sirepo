@@ -3,15 +3,16 @@
 :copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-import sirepo.sim_data
-import sirepo.template.lattice
+import sirepo.sim_data.lattice
 
 
-class SimData(sirepo.sim_data.SimDataBase):
+class SimData(sirepo.sim_data.lattice.LatticeSimData):
+    _BUNCH_REPORT_DEPENDENCIES = ["distribution", "rpnVariables"]
+
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
+        super().fixup_old_data(data, qcall, **kwargs)
         dm = data.models
         cls._init_models(
             dm,
@@ -21,30 +22,10 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "statAnimation",
             ],
         )
-        if "bunchReport1" not in dm:
-            for i in range(1, 5):
-                m = dm[f"bunchReport{i}"] = PKDict()
-                cls.update_model_defaults(m, "bunchReport")
-
-    @classmethod
-    def _compute_model(cls, analysis_model, *args, **kwargs):
-        if "bunchReport" in analysis_model:
-            return "bunchReport"
-        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
-
-    @classmethod
-    def _compute_job_fields(cls, data, r, compute_model):
-        if "bunchReport" in r:
-            return ["distribution", "rpnVariables"]
-        return [data.report]
 
     @classmethod
     def _lib_file_basenames(cls, data):
-        return []
-
-    @classmethod
-    def _lib_file_basenames(cls, data):
-        res = []
+        res = super()._lib_file_basenames(data)
         d = data.models.distribution
         if d.distributionType == "File" and d.distributionFile:
             res.append(

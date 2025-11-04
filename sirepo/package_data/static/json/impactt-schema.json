@@ -79,7 +79,12 @@
             ["positron", "Positron"],
             ["proton", "Proton"]
         ],
+        "DistgenTDist": [
+            ["gaussian", "Gaussian"],
+            ["tukey", "Tukey"]
+        ],
         "DistType": [
+            ["112", "Beercan"],
             ["27", "CylcoldZSob"],
             ["distgen_xyfile", "Distgen XY File"],
             ["16", "From File"],
@@ -89,7 +94,31 @@
             ["15", "SemicircGauss"],
             ["4", "Semigauss"],
             ["1", "Uniform"],
-            ["3", "Waterbag"]
+            ["3", "Waterbag"],
+            ["111", "flagdist 111"],
+            ["112", "flagdist 112"],
+            ["113", "flagdist 113"],
+            ["114", "flagdist 114"],
+            ["121", "flagdist 121"],
+            ["122", "flagdist 122"],
+            ["123", "flagdist 123"],
+            ["124", "flagdist 124"],
+            ["131", "flagdist 131"],
+            ["132", "flagdist 132"],
+            ["133", "flagdist 133"],
+            ["134", "flagdist 134"],
+            ["211", "flagdist 211"],
+            ["212", "flagdist 212"],
+            ["213", "flagdist 213"],
+            ["214", "flagdist 214"],
+            ["221", "flagdist 221"],
+            ["222", "flagdist 222"],
+            ["223", "flagdist 223"],
+            ["224", "flagdist 224"],
+            ["231", "flagdist 231"],
+            ["232", "flagdist 232"],
+            ["233", "flagdist 233"],
+            ["234", "flagdist 234"]
         ],
         "PlotType": [
             ["heatmap", "Heatmap"],
@@ -142,12 +171,25 @@
             "Tini": ["Initial reference time [sec]", "RPNValue", 0.0],
             "particle": ["Particle", "BeamParticle", "electron", "Particle species"]
         },
+        "bunchReport": {
+            "x": ["Horizontal Value to Plot", "ValueList", "x"],
+            "y": ["Vertical Value to Plot", "ValueList", "y"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "notes": ["Notes", "Text", ""]
+        },
         "distgen": {
             "total_charge": ["Total charge [C]", "RPNValue", 50e-12],
             "species": ["Particle species", "DistgenParticle", "electron"],
             "cathode_mte": ["Cathode MTE [eV]", "RPNValue", 0.33, "Mean transverse energy"],
+            "xy_dist_file": ["XY distribution file", "InputFile", ""],
+            "centerBeam": ["Center Beam", "Boolean", "1"],
+            "t_dist": ["T Distribution", "DistgenTDist", "gaussian"],
             "sigma_t": ["Sigma T [sec]", "RPNValue", 6.794055201698514e-12],
-            "xy_dist_file": ["XY distribution file", "InputFile", ""]
+            "tukey_length": ["Length [sec]", "RPNValue", 6.6e-12],
+            "tukey_ratio": ["Ratio", "RPNValue", 0.8]
         },
         "distribution": {
             "Flagdist": ["Distribution type", "DistType", "2", "Flagdist: Type of the initial distribution"],
@@ -298,6 +340,7 @@
         "SOLENOID": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "b_field": ["B Field Strength [T]", "RPNValue", 0],
             "radius": ["Radius [m]", "RPNValue", 0],
             "filename": ["Filename", "InputFile", "", "Solenoid field map filename"]
         },
@@ -341,7 +384,8 @@
         }
     },
     "strings": {
-        "completionState": ""
+        "completionState": "",
+        "importText": "Import a lattice file (ImpactT.in)"
     },
     "view": {
         "beamline": {
@@ -368,6 +412,24 @@
                 "Tini"
             ],
             "advanced": []
+        },
+        "bunchReport": {
+            "title": "Beam Phase Space",
+            "advanced": [
+                "plotType",
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "aspectRatio",
+                "colorMap",
+                "notes"
+            ]
         },
         "distribution": {
             "title": "Particle Distribution",
@@ -407,7 +469,11 @@
                 "distgen.total_charge",
                 "distgen.species",
                 "distgen.cathode_mte",
-                "distgen.sigma_t"
+                "distgen.centerBeam",
+                "distgen.t_dist",
+                "distgen.sigma_t",
+                "distgen.tukey_length",
+                "distgen.tukey_ratio"
             ],
             "advanced": []
         },
@@ -465,6 +531,7 @@
         },
         "statAnimation": {
             "title": "Beam Variables",
+            "hasDataFile": false,
             "advanced": [
                 ["Main", [
                     [
@@ -596,6 +663,7 @@
             "advanced": [
                 "name",
                 "l",
+                "b_field",
                 "radius",
                 "filename"
             ]

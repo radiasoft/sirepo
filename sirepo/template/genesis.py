@@ -282,7 +282,7 @@ def stateful_compute_import_file(data, **kwargs):
     return PKDict(imported_data=_parse_namelist(res, text))
 
 
-def validate_file(file_type, path):
+def validate_file(file_type, path, **kwargs):
     if file_type == "io-partfile":
         if pkio.is_pure_text(path):
             return "The PARTFILE should be a binary file. Use the DISTFILE to import a text file."
