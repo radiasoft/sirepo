@@ -50,22 +50,30 @@
             "sourceFile": null
         },
         "bunchReport1": {
+            "colorMap": "afmhot",
             "histogramBins": 200,
+            "notes": "",
             "x": "x",
             "y": "xp"
         },
         "bunchReport2": {
+            "colorMap": "afmhot",
             "histogramBins": 200,
+            "notes": "",
             "x": "y",
             "y": "yp"
         },
         "bunchReport3": {
+            "colorMap": "afmhot",
             "histogramBins": 200,
+            "notes": "",
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
+            "colorMap": "afmhot",
             "histogramBins": 200,
+            "notes": "",
             "x": "t",
             "y": "p"
         },
