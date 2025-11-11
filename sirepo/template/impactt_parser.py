@@ -43,7 +43,9 @@ class ImpactTParser(object):
             element = self.sim_data.model_defaults(n).pkupdate(
                 type=n,
             )
-            positions.append(el["zedge"] if "zedge" in el else el["s"])
+            positions.append(
+                el["zedge"] if "zedge" in el else el.get("s_begin", el["s"])
+            )
             for k, v in el.items():
                 f = "l" if k == "L" else k
                 if f in m:
@@ -51,6 +53,8 @@ class ImpactTParser(object):
                         element[f] = str(v)
                     else:
                         element[f] = v
+                elif f == "s_begin":
+                    element.l = el["s"] - el["s_begin"]
                 elif k in self._IGNORE_MODEL_FIELDS:
                     continue
                 else:
@@ -91,6 +95,7 @@ class ImpactTParser(object):
                 pkdlog("unhandled header value {}: {}", k, v)
 
     def _import_impactt(self, parsed):
+        self.data.models.beam.particle = "other"
         self.data.models.beamlines = [
             self.sim_data.model_defaults("beamline").pkupdate(
                 id=self._next_id(),

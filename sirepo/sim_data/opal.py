@@ -6,17 +6,17 @@
 """
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-from sirepo.template import lattice
-from sirepo.template.lattice import LatticeUtil
+import sirepo.sim_data.lattice
 import re
-import sirepo.sim_data
 
 
-class SimData(sirepo.sim_data.SimDataBase):
+class SimData(sirepo.sim_data.lattice.LatticeSimData):
+    _BUNCH_REPORT_DEPENDENCIES = ["commands", "rpnVariables"]
+
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
+        super().fixup_old_data(data, qcall, **kwargs)
         dm = data.models
-        dm.setdefault("rpnVariables", [])
         if "elementPosition" not in dm.simulation:
             # old simulations use 'relative', new ones use 'absolute'
             dm.simulation.elementPosition = "relative"
@@ -38,43 +38,11 @@ class SimData(sirepo.sim_data.SimDataBase):
                 ]:
                     cmd.type = ""
                 cmd.material = cmd.material.upper()
-        if "bunchReport1" not in dm:
-            for i in range(1, 5):
-                m = dm["bunchReport{}".format(i)] = PKDict()
-                cls.update_model_defaults(m, "bunchReport")
-                if i == 1:
-                    m.y = "px"
-                elif i == 2:
-                    m.x = "y"
-                    m.y = "py"
-                elif i == 4:
-                    m.x = "z"
-                    m.y = "pz"
         if "aspectRatio" in dm.plotAnimation:
             del dm.plotAnimation["aspectRatio"]
         for bl in dm.beamlines:
             cls.update_model_defaults(bl, "beamline")
         cls._remove_deprecated_items(dm)
-
-    @classmethod
-    def _compute_model(cls, analysis_model, *args, **kwargs):
-        if "bunchReport" in analysis_model:
-            return "bunchReport"
-        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
-
-    @classmethod
-    def _compute_job_fields(cls, data, r, compute_model):
-        if "bunchReport" in r:
-            return ["commands", "rpnVariables"]
-        return []
-
-    @classmethod
-    def _lib_file_basenames(cls, data):
-        return (
-            LatticeUtil(data, cls.schema())
-            .iterate_models(lattice.InputFileIterator(cls))
-            .result
-        )
 
     @classmethod
     def _remove_deprecated_items(cls, models):

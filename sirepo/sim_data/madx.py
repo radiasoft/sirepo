@@ -5,37 +5,33 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-import sirepo.sim_data
-from sirepo.template.lattice import LatticeUtil
+import sirepo.sim_data.lattice
 
 
-class SimData(sirepo.sim_data.SimDataBase):
+class SimData(sirepo.sim_data.lattice.LatticeSimData):
+    _BUNCH_REPORT_DEPENDENCIES = [
+        "bunch",
+        "commands",
+        "rpnVariables",
+        "simulation.visualizationBeamlineId",
+    ]
+
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
-        dm = data.models
+        super().fixup_old_data(data, qcall, **kwargs)
         cls._init_models(
-            dm,
+            data.models,
             (
                 "bunch",
                 "simulation",
                 "twissReport",
             ),
         )
-        for container in ("commands", "elements"):
-            for m in dm[container]:
-                cls.update_model_defaults(m, LatticeUtil.model_name_for_data(m))
 
     @classmethod
-    def _compute_job_fields(cls, data, r, compute_model):
-        res = []
-        if "bunchReport" in compute_model:
-            res += [
-                "bunch",
-                "commands",
-                "rpnVariables",
-                "simulation.visualizationBeamlineId",
-            ]
-        if r == "twissReport":
+    def _compute_job_fields(cls, data, report, compute_model):
+        res = super()._compute_job_fields(data, report, compute_model)
+        if report == "twissReport":
             res += [
                 "beamlines",
                 "elements",
@@ -45,17 +41,12 @@ class SimData(sirepo.sim_data.SimDataBase):
         return res
 
     @classmethod
-    def _compute_model(cls, analysis_model, *args, **kwargs):
-        if "bunchReport" in analysis_model:
-            return "bunchReport"
-        return super(SimData, cls)._compute_model(analysis_model, *args, **kwargs)
-
-    @classmethod
     def _lib_file_basenames(cls, data):
+        res = super()._lib_file_basenames(data)
         if data.models.bunch.beamDefinition == "file" and data.models.bunch.sourceFile:
-            return [
+            res += [
                 cls.lib_file_name_with_model_field(
                     "bunch", "sourceFile", data.models.bunch.sourceFile
                 ),
             ]
-        return []
+        return res

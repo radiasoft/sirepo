@@ -1000,7 +1000,7 @@ def stateless_compute_process_undulator_definition(data, **kwargs):
     return process_undulator_definition(data)
 
 
-def validate_file(file_type, path):
+def validate_file(file_type, path, **kwargs):
     """Ensure the data file contains parseable rows data"""
     import srwpy.srwl_uti_smp
 

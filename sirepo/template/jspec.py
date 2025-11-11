@@ -254,7 +254,7 @@ def stateful_compute_get_elegant_sim_list(data, **kwargs):
     }
 
 
-def validate_file(file_type, path):
+def validate_file(file_type, path, **kwargs):
     if file_type == "ring-elegantTwiss":
         return None
     assert file_type == "ring-lattice"

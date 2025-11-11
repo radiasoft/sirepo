@@ -403,7 +403,7 @@ def stateless_compute_stl_size(data, **kwargs):
     )
 
 
-def validate_file(file_type, path):
+def validate_file(file_type, path, **kwargs):
     p = path.ext.lower()
     if p not in (".csv", ".dat", ".stl", ".txt"):
         return f"invalid file type: {path.ext}"

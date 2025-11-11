@@ -337,7 +337,7 @@ def stateless_compute_validate_material_name(data, **kwargs):
     return res
 
 
-def validate_file(file_type, path):
+def validate_file(file_type, path, **kwargs):
     if file_type == "geometryInput-dagmcFile":
         t = _SIM_DATA.get_input_file_type(str(path))
         if t == _SIM_DATA.INPUT_DAGMC and not h5py.is_hdf5(path):
