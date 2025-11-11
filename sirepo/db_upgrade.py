@@ -119,6 +119,14 @@ def _20250114_add_role_plan_trial(qcall):
     )
 
 
+def _20251030_update_cortex_db(qcall):
+    if not sirepo.template.is_sim_type("cortex"):
+        return
+    from sirepo.sim_api.cortex import material_db
+
+    material_db.db_upgrade()
+
+
 @contextlib.contextmanager
 def _backup_db_and_prevent_upgrade_on_error():
     b = sirepo.auth_db.db_filename() + ".bak"

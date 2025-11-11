@@ -1,0 +1,18 @@
+[
+    {
+        "col": 2,
+        "msg": "invalid availability factor=3x5 must be a number (percentage)",
+        "row": 12,
+        "sheet": "Metadata and Settings"
+    },
+    {
+        "msg": "invalid Another [m] column value=1.8xxxE+06",
+        "row": 17,
+        "sheet": "Properties"
+    },
+    {
+        "msg": "invalid Temperature [K] column value=7x73.15",
+        "row": 41,
+        "sheet": "Properties"
+    }
+]
