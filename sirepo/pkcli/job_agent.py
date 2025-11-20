@@ -1113,6 +1113,7 @@ sirepo.sim_data.get_class('{self.msg.data.simulationType}').sim_run_dir_prepare(
             "run.bash",
             f"""#!/bin/bash
 set -eou pipefail
+{self.job_cmd_env()}
 {_sim_prepare_cmd()}
 {_sbatch_cmd()}
 """,
