@@ -22,7 +22,7 @@ _WALL_RE = re.compile(r"^(?:(iter)|demo)$", re.IGNORECASE)
 
 _NEUTRON_SOURCE_RE = re.compile(r"\b(?:(d\W?t)|d\W?d)\b", re.IGNORECASE)
 
-_POINTER_RE = re.compile(r"^((?:p|t|f)\d+(?:[\.\-]\d+)?)$", re.IGNORECASE)
+_POINTER_RE = re.compile(r"^((?:p|t|f)\d+(?:[\.\-]\d+)*)$", re.IGNORECASE)
 
 _SOURCE_RE = re.compile(r"^(exp|pp|nom|ml|dft)$", re.IGNORECASE)
 

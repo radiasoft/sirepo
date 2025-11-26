@@ -27,63 +27,95 @@ _CENTURY = 100.0 * 365 * 24 * 60 * 60
 
 def create_reference_xlsx(xlsx_template_filename, compendium_filename):
 
-    def classify_references(references):
-        d = PKDict(url="", pointer="", comments="", composition_comments="")
+    _COMPONENT_ROW = 18
+
+    # This is for the mapping for the default template XLSX file in package_data lib
+    _COMMENT_ROWS = PKDict(
+        density_comments=7,
+        composition_comments=13,
+    )
+    _FIELD_TO_LOCATION = PKDict(
+        {
+            "Metadata and Settings": PKDict(
+                name="B3",
+                material_type="B4",
+                availability_factor="B12",
+                homogenized_hcpb="B19",
+            ),
+            "Composition": PKDict(
+                url="B3",
+                source="B4",
+                pointer="B5",
+                density_g_cc="B6",
+                density_comments=f"B{_COMMENT_ROWS.density_comments}",
+                composition_comments=f"B{_COMMENT_ROWS.composition_comments}",
+            ),
+        }
+    )
+
+    def _classify_references(references):
+        d = PKDict(url="", pointer="", density_comments="", composition_comments="")
         for r in references:
-            if "density" in r.lower():
+            # fix missing URL prefix
+            for m in re.findall(r"\s\(?(\w+\.\w+\.\w\S*?\/\w\S*?)", r):
+                r = r.replace(m, f"https://{m}")
+            if "density" in r.lower() or re.search(r"^http\S+$", r):
                 m = re.search(r"(http.*?)(?:\s|$)", r, re.IGNORECASE)
                 if m and not d.url:
-                    d.url = re.sub(r"(\.|\))$", "", str(m.group(1)))
+                    d.url = re.sub(r"[.),]*$", "", str(m.group(1)))
                     # only get pointer from first reference
                     m = re.search(
-                        r"\b(table|page|figure)\s+(\d.*?)\s", r, re.IGNORECASE
+                        r"\b(table|page|figure)\s+(\d.*?),?\s", r, re.IGNORECASE
                     )
                     if m:
-                        assert not d.pointer
                         d.pointer = f"{m.group(1)[0].upper()}{m.group(2)}"
-                d.comments += (" " if d.comments else "") + r
+                d.density_comments += (" " if d.density_comments else "") + r
             elif "isotop" in r.lower():
                 d.composition_comments += (" " if d.composition_comments else "") + r
         return d
 
-    def _create_xlsx(values):
-        wb = openpyxl.load_workbook(xlsx_template_filename)
-        ws = wb["Metadata and Settings"]
-        ws["B3"] = values.name
-        ws["B4"] = "plasma-facing"
-        ws["B12"] = ""
-        ws["B19"] = "NO"
-        ws = wb["Composition"]
-        ws["B3"] = values.url
-        ws["B4"] = ""
-        ws["B5"] = values.pointer
-        ws["B6"] = values.density_g_cc
-        ws["B7"] = values.comments
-        ws["B13"] = values.composition_comments
+    def _comment(json_data):
+        if "Comment" in json_data:
+            if isinstance(json_data.Comment, list):
+                return json_data.Comment
+            return [json_data.Comment]
+        return []
 
-        _COMPONENT_ROW = 18
+    def _create_xlsx(values):
+        pkdlog("creating: {}", values.name)
+        wb = openpyxl.load_workbook(xlsx_template_filename)
+        for n in _FIELD_TO_LOCATION:
+            ws = wb[n]
+            for f, c in _FIELD_TO_LOCATION[n].items():
+                ws[c] = values[f]
+        for f, r in _COMMENT_ROWS.items():
+            if values[f]:
+                # increase cell height if comments are present
+                wb["Composition"].row_dimensions[r].height = 100
         for idx in range(len(values.nuclides)):
             c = values.nuclides[idx]
             row = idx + _COMPONENT_ROW
             ws[f"A{row}"] = re.sub(r"-", "", c.isotope)
-            ws[f"E{row}"] = c.atom_fraction * 100
+            ws[f"E{row}"] = c.atom_fraction
         n = re.sub(r"\s+", "_", re.sub(r"[^a-zA-Z0-9 ]", " ", values.name).strip())
         wb.save(f"{n}.xlsx")
 
-    m = pykern.pkjson.load_any(pykern.pkio.read_text(compendium_filename))
-    for d in m.data:
+    for d in pykern.pkjson.load_any(pykern.pkio.read_text(compendium_filename)).data:
         v = PKDict(
-            name=d.Name,
+            availability_factor="",
             density_g_cc=d.Density,
+            homogenized_hcpb="NO",
+            material_type="plasma-facing",
+            name=d.Name,
             nuclides=[],
-            references=d.References,
-        ).pkupdate(classify_references(d.References))
+            source="",
+        ).pkupdate(_classify_references(_comment(d) + d.References))
         for e in d.Elements:
             for i in e.Isotopes:
                 v.nuclides.append(
                     PKDict(
                         isotope=i.Isotope,
-                        atom_fraction=i.AtomFraction_whole,
+                        atom_fraction=i.AtomFraction_whole * 100,
                     )
                 )
         _create_xlsx(v)
