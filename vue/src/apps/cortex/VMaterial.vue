@@ -73,7 +73,7 @@
                     <div class="card-body">
                         <table class="table">
                             <tbody><tr>
-                                <td>
+                                <td style="white-space: nowrap">
                                     <div style="display: inline-block" class="lead">
                                         Density
                                     </div> <VTooltip
