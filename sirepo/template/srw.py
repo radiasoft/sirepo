@@ -1075,7 +1075,10 @@ def validate_magnet_data_file(zf):
         if f.endswith("/"):
             continue
         if not template_common.file_extension_ok(f, white_list=["txt", "dat"]):
-            return False, "File {} has forbidden type".format(f)
+            return (
+                False,
+                "File {} has forbidden file extension, must be txt or dat".format(f),
+            )
 
     file_name_column = 3
 
