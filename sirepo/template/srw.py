@@ -2119,8 +2119,8 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                     )
                     prev_watch = beamline_info.watches[n]
 
-    elif run_all or (
-        _SIM_DATA.srw_is_beamline_report(report) and len(data.models.beamline)
+    elif (run_all or _SIM_DATA.srw_is_beamline_report(report)) and len(
+        data.models.beamline
     ):
         content.append(
             "names = [{}]".format(
@@ -2764,10 +2764,13 @@ def _validate_safe_zip(zip_file_name, target_dir=".", *args):
         assert s <= max_file_size, "{} too large ({} > {})".format(
             f, str(s), str(max_file_size)
         )
-        assert file_attrs_ok(attrs), "{} not a normal file or is executable".format(f)
         assert not file_exists_in_dir(
             f, target_dir
         ), "Cannot overwrite file {} in target directory {}".format(f, target_dir)
+        if not i.is_dir():
+            assert file_attrs_ok(attrs), "{} not a normal file or is executable".format(
+                f
+            )
 
     for validator in args:
         res, err_string = validator(zip_file)
