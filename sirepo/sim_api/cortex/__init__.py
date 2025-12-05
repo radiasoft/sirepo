@@ -146,7 +146,10 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         )
 
         def _add_doi(prop):
-            if prop.doi_or_url.lower().startswith("http"):
+            if prop.doi_or_url is None:
+                t = None
+                u = None
+            elif prop.doi_or_url.lower().startswith("http"):
                 t = "URL"
                 u = prop.doi_or_url
             else:
@@ -214,7 +217,11 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
                 {
                     "Neutron Source": "D-T" if material.is_neutron_source_dt else "D-D",
                     "Neutron Wall Loading": material.neutron_wall_loading,
-                    "Availability Factor": f"{material.availability_factor}%",
+                    "Availability Factor": (
+                        f"{material.availability_factor}%"
+                        if material.availability_factor
+                        else ""
+                    ),
                 }
             ),
             section3=PKDict(
@@ -243,6 +250,6 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         for p in material.properties:
             if "vals" in p and len(p.vals):
                 _add_property_values(p)
-            if p.doi_or_url:
+            if p.doi_or_url or p.comments:
                 _add_doi(p)
         return res

@@ -11,14 +11,114 @@ from sqlalchemy.schema import MetaData
 import csv
 import io
 import openmc.data
+import openpyxl
 import pykern.pkio
 import pykern.pkjson
 import pykern.sql_db
 import re
 import requests
+import sirepo.auth
+import sirepo.quest
+import sirepo.sim_api.cortex
 import sqlalchemy
 
 _CENTURY = 100.0 * 365 * 24 * 60 * 60
+
+
+def create_reference_xlsx(xlsx_template_filename, compendium_filename):
+
+    _COMPONENT_ROW = 18
+
+    # This is for the mapping for the default template XLSX file in package_data lib
+    _COMMENT_ROWS = PKDict(
+        density_comments=7,
+        composition_comments=13,
+    )
+    _FIELD_TO_LOCATION = PKDict(
+        {
+            "Metadata and Settings": PKDict(
+                name="B3",
+                material_type="B4",
+                availability_factor="B12",
+                homogenized_hcpb="B19",
+            ),
+            "Composition": PKDict(
+                url="B3",
+                source="B4",
+                pointer="B5",
+                density_g_cc="B6",
+                density_comments=f"B{_COMMENT_ROWS.density_comments}",
+                composition_comments=f"B{_COMMENT_ROWS.composition_comments}",
+            ),
+        }
+    )
+
+    def _classify_references(references):
+        d = PKDict(url="", pointer="", density_comments="", composition_comments="")
+        for r in references:
+            # fix missing URL prefix
+            for m in re.findall(r"\s\(?(\w+\.\w+\.\w\S*?\/\w\S*?)", r):
+                r = r.replace(m, f"https://{m}")
+            if "density" in r.lower() or re.search(r"^http\S+$", r):
+                m = re.search(r"(http.*?)(?:\s|$)", r, re.IGNORECASE)
+                if m and not d.url:
+                    d.url = re.sub(r"[.),]*$", "", str(m.group(1)))
+                    # only get pointer from first reference
+                    m = re.search(
+                        r"\b(table|page|figure)\s+(\d.*?),?\s", r, re.IGNORECASE
+                    )
+                    if m:
+                        d.pointer = f"{m.group(1)[0].upper()}{m.group(2)}"
+                d.density_comments += (" " if d.density_comments else "") + r
+            elif "isotop" in r.lower():
+                d.composition_comments += (" " if d.composition_comments else "") + r
+        return d
+
+    def _comment(json_data):
+        if "Comment" in json_data:
+            if isinstance(json_data.Comment, list):
+                return json_data.Comment
+            return [json_data.Comment]
+        return []
+
+    def _create_xlsx(values):
+        pkdlog("creating: {}", values.name)
+        wb = openpyxl.load_workbook(xlsx_template_filename)
+        for n in _FIELD_TO_LOCATION:
+            ws = wb[n]
+            for f, c in _FIELD_TO_LOCATION[n].items():
+                ws[c] = values[f]
+        for f, r in _COMMENT_ROWS.items():
+            if values[f]:
+                # increase cell height if comments are present
+                wb["Composition"].row_dimensions[r].height = 100
+        for idx in range(len(values.nuclides)):
+            c = values.nuclides[idx]
+            row = idx + _COMPONENT_ROW
+            ws[f"A{row}"] = re.sub(r"-", "", c.isotope)
+            ws[f"E{row}"] = c.atom_fraction
+        n = re.sub(r"\s+", "_", re.sub(r"[^a-zA-Z0-9 ]", " ", values.name).strip())
+        wb.save(f"{n}.xlsx")
+
+    for d in pykern.pkjson.load_any(pykern.pkio.read_text(compendium_filename)).data:
+        v = PKDict(
+            availability_factor="",
+            density_g_cc=d.Density,
+            homogenized_hcpb="NO",
+            material_type="plasma-facing",
+            name=d.Name,
+            nuclides=[],
+            source="",
+        ).pkupdate(_classify_references(_comment(d) + d.References))
+        for e in d.Elements:
+            for i in e.Isotopes:
+                v.nuclides.append(
+                    PKDict(
+                        isotope=i.Isotope,
+                        atom_fraction=i.AtomFraction_whole * 100,
+                    )
+                )
+        _create_xlsx(v)
 
 
 def gen_components():
@@ -52,6 +152,9 @@ def gen_components():
                 if r[16] in ("", "?") or float(r[16]) < _CENTURY:
                     continue
             rv.nuclides.add(r[2] + str(int(r[1]) + z))
+        # additional nuclides needed by PNNL examples
+        for x in ("Pu238", "Pu241", "Ta180"):
+            rv.nuclides.add(x)
         return rv
 
     def _to_str(components):
@@ -76,6 +179,27 @@ def export_tea(db_file):
     m = _populate_materials(_dump_sqlalchemy(uri))
     return f"""# Generated on {datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")}
 MATERIALS = {_json_to_python(pykern.pkjson.dump_pretty(m))}"""
+
+
+def import_xlsx(uid_or_email, *args):
+    def _import_xlsx(filename):
+        pkdlog("import: {}", filename)
+        p = sirepo.sim_api.cortex.material_xlsx.Parser(filename)
+        if p.errors:
+            raise AssertionError(
+                f"XLSX import {filename} failed with errors: {p.errors}"
+            )
+        sirepo.sim_api.cortex.material_db.insert_material(parsed=p.result, uid=u)
+
+    if not len(args):
+        pykern.pkcli.command_error("missing xlsx file names")
+    with sirepo.quest.start() as qcall:
+        u = qcall.auth.unchecked_get_user(uid_or_email)
+        if not u:
+            pykern.pkcli.command_error(f"invalid uid_or_email: {uid_or_email}")
+        with qcall.auth.logged_in_user_set(u, method=sirepo.auth.METHOD_EMAIL):
+            for f in args:
+                _import_xlsx(f)
 
 
 def _convert_ao_to_wo(materials):
