@@ -1053,7 +1053,7 @@ def _parse_run_stats(run_dir, out):
                 res.append(g.strip())
         return res
 
-    RE_F = "\d*\.\d+"
+    RE_F = r"\d*\.\d+"
     log = run_dir.join(template_common.RUN_LOG)
     if not log.exists():
         return

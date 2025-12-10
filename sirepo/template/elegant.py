@@ -1598,6 +1598,7 @@ def _sdds_init():
         return
     from sirepo.template import sdds_util
     import sdds
+    pkdp(str(dir(sdds)))
 
     _SDDS_INDEX = 0
     _s = sdds.SDDS(_SDDS_INDEX)

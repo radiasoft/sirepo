@@ -77,14 +77,6 @@ def test_srw_brightness(fc):
     )
 
 
-def test_warppba(fc):
-    _r(
-        fc,
-        "Laser Pulse",
-        "laserPreviewReport",
-    )
-
-
 def test_zgoubi(fc):
     _r(
         fc,

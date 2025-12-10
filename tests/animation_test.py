@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 """Test background processes
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern.pkcollections import PKDict
-import pytest
 
 
 def test_controls(fc):
@@ -128,82 +127,6 @@ def test_srw(fc):
             ),
         ),
         timeout=20,
-    )
-
-
-def test_warppba(fc):
-    data = fc.sr_sim_data("Laser Pulse")
-    data.models.simulationGrid.update(
-        PKDict(
-            rScale=1,
-            rLength=5.081245038595,
-            rMax=5.081245038595,
-            rMin=0,
-            rCount=8,
-            rCellsPerSpotSize=8,
-            rParticlesPerCell=1,
-            rCellResolution=20,
-            zScale=1,
-            zLength=10.162490077316,
-            zMax=1.6,
-            zMin=-10.162490077316,
-            zCellsPerWavelength=8,
-            zCount=118,
-            zParticlesPerCell=1,
-            zCellResolution=20,
-        )
-    )
-    data.models.electronPlasma.length = 0.05
-    fc.sr_animation_run(
-        data,
-        "animation",
-        PKDict(
-            particleAnimation=PKDict(
-                expect_title=lambda i: r"iteration {}\)".format((i + 1) * 50),
-                expect_y_range="-5.7.*e-06, 5.7.*e-06, 219",
-            ),
-            fieldAnimation=PKDict(
-                expect_title=lambda i: r"iteration {}\)".format((i + 1) * 50),
-                expect_y_range="-5.*e-06, 5.*e-06, 18",
-            ),
-        ),
-        timeout=20,
-    )
-
-
-def test_warpvnd(fc):
-    fc.sr_animation_run(
-        fc.sr_sim_data("Two Poles"),
-        "fieldCalculationAnimation",
-        PKDict(
-            fieldCalcAnimation=PKDict(
-                frame_index=0,
-                expect_y_range="-1e-07, 1e-07, 23",
-            ),
-        ),
-        timeout=20,
-    )
-    data = fc.sr_sim_data("Two Poles")
-    data.models.simulationGrid.update(
-        PKDict(
-            num_steps=100,
-            channel_width=0.09,
-        )
-    )
-    fc.sr_animation_run(
-        data,
-        "animation",
-        PKDict(
-            currentAnimation=PKDict(
-                frame_index=0,
-                expect_y_range="0.0, 9.9.*e-06",
-            ),
-            fieldAnimation=PKDict(
-                frame_index=0,
-                expect_y_range="-4.5e-08, 4.5e-08, 23",
-            ),
-        ),
-        timeout=30,
     )
 
 
