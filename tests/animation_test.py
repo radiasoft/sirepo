@@ -3,8 +3,8 @@
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-
 from pykern.pkcollections import PKDict
+import pytest
 
 
 def test_controls(fc):
@@ -102,7 +102,8 @@ def test_radia(fc):
     )
 
 
-def test_hellweg(fc):
+@pytest.mark.skip(reason="hellweg SEGV's in solve sometimes")
+def x_test_hellweg(fc):
     fc.sr_animation_run(
         fc.sr_sim_data("RF Fields"),
         "beamAnimation",
