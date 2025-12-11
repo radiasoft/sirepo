@@ -68,10 +68,6 @@
             "longName": "Raydata",
             "shortName": "Raydata"
         },
-        "hellweg": {
-            "longName": "Hellweg",
-            "shortName": "Hellweg"
-        },
         "shadow": {
             "longName": "SHADOW",
             "shortName": "SHADOW"
@@ -83,14 +79,6 @@
         "srw": {
             "longName": "Synchrotron Radiation Workshop",
             "shortName": "SRW"
-        },
-        "warppba": {
-            "longName": "Warp PBA",
-            "shortName": "Warp PBA"
-        },
-        "warpvnd": {
-            "longName": "Warp VND",
-            "shortName": "Warp VND"
         },
         "zgoubi": {
             "longName": "ZGOUBI",

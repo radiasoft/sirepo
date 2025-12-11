@@ -6,7 +6,6 @@ Disallow: /cortex
 Disallow: /elegant
 Disallow: /epicsllrf
 Disallow: /genesis
-Disallow: /hellweg
 Disallow: /impactt
 Disallow: /impactx
 Disallow: /jspec

@@ -27,7 +27,6 @@ FOSS_CODES = frozenset(
         "elegant",
         "epicsllrf",
         "genesis",
-        "hellweg",
         "impactt",
         "impactx",
         "jspec",
