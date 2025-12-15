@@ -140,13 +140,13 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
                 ],
             )
 
-        d = parse_input_text(path, update_filenames=False)
+        d = parse_input_text(path, update_filenames=self._update_filenames)
         r = self._run_setup(d)
         l = r.lattice
         d = parse_input_text(
             self._lattice_path(path.dirpath(), d),
             input_data=d,
-            update_filenames=False,
+            update_filenames=self._update_filenames,
         )
         for i in d.models.elements:
             _verify_files(i, i.type)
@@ -175,7 +175,7 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
             def _lattice_filename(self, value):
                 return value
 
-        g = _G(data, update_output_filenames=False)
+        g = _G(data, update_output_filenames=self._update_filenames)
         g.sim()
         v = g.jinja_env
         r = PKDict(
