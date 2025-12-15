@@ -14,7 +14,6 @@ import copy
 import h5py
 import json
 import numpy
-import pymeshlab
 import re
 import sirepo.const
 import sirepo.mpi
@@ -288,4 +287,7 @@ class _MoabGroupExtractor:
 
 class _MoabGroupExtractorOp(PKDict):
     def __call__(self):
+        # delay pymeshlab import, see #7726
+        import pymeshlab
+
         self.processor.process_item(self)
