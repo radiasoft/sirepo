@@ -224,6 +224,8 @@ class _MoabGroupExtractor:
         self._write_mesh(item.vol_id, v, p)
 
     def _decimate(self, vertices, polygons):
+        import pymeshlab
+
         ms = pymeshlab.MeshSet()
         ms.add_mesh(pymeshlab.Mesh(vertices, polygons))
         c = len(ms.current_mesh().face_matrix())
@@ -261,6 +263,8 @@ class _MoabGroupExtractor:
         )
 
     def _write_mesh(self, vol_id, points, polys):
+        import pymeshlab
+
         ms = pymeshlab.MeshSet()
         ms.add_mesh(pymeshlab.Mesh(points, polys))
         ms.save_current_mesh(f"{vol_id}.ply")
