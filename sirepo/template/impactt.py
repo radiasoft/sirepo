@@ -34,6 +34,7 @@ _BUNCH_COLUMNS = [
     "energy",
     "delta_energy",
     "delta_z",
+    "delta_t",
 ]
 
 _CACHED_STAT_COLUMNS = "stat-columns.json"
