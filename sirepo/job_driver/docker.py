@@ -100,10 +100,12 @@ class DockerDriver(job_driver.DriverBase):
             parallel=dict(
                 cores=(2, int, "cores per parallel job"),
                 gigabytes=(1, int, "gigabytes per parallel job"),
+                shm_bytes=(None, pkconfig.parse_bytes, "parallel shared memory size in bytes"),
                 slots_per_host=(1, int, "parallel slots per node"),
             ),
             sequential=dict(
                 gigabytes=(1, int, "gigabytes per sequential job"),
+                shm_bytes=(None, pkconfig.parse_bytes, "sequential shared memory size in bytes"),
                 slots_per_host=(1, int, "sequential slots per node"),
             ),
             supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
@@ -161,15 +163,27 @@ class DockerDriver(job_driver.DriverBase):
         """
         return _CNAME_SEP.join([_CNAME_PREFIX, self.kind[0], self.uid])
 
-    def _constrain_resources(self, cfg_kind):
-        if not self.cfg.constrain_resources:
-            return tuple()
-        return (
-            "--cpus={}".format(cfg_kind.get("cores", 1)),
-            "--memory={}g".format(cfg_kind.gigabytes),
-        )
-
     async def _do_agent_start(self, op):
+        def _constrain_resources(cfg_kind):
+            if not self.cfg.constrain_resources:
+                return tuple()
+            return (
+                "--cpus={}".format(cfg_kind.get("cores", 1)),
+                "--memory={}g".format(cfg_kind.gigabytes),
+            )
+
+        def _gpus():
+            return (
+                (f"--gpus={self.cfg.gpus}",) if self.cfg.gpus is not None else tuple()
+            )
+
+        def _shm_size(cfg_kind):
+            return (
+                (f"--shm-size={cfg_kind.shm_bytes}",)
+                if cfg_kind.shm_bytes is not None
+                else tuple()
+            )
+
         cmd, stdin, env = self._agent_cmd_stdin_env(op, cwd=self._agent_exec_dir)
         pkdlog("{} agent_exec_dir={}", self, self._agent_exec_dir)
         pkio.mkdir_parent(self._agent_exec_dir)
@@ -191,9 +205,10 @@ class DockerDriver(job_driver.DriverBase):
                 # IDs are universal.
                 "--user={}".format(os.getuid()),
             )
-            + self._constrain_resources(c)
+            + _constrain_resources(c)
+            + _shm_size(c)
+            + _gpus()
             + self._volumes()
-            + self._gpus()
             + (self._image,)
         )
         self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
@@ -231,9 +246,6 @@ class DockerDriver(job_driver.DriverBase):
         if ":" in res:
             return res
         return res + ":" + pkconfig.cfg.channel
-
-    def _gpus(self):
-        return (f"--gpus={self.cfg.gpus}",) if self.cfg.gpus is not None else tuple()
 
     @classmethod
     def _init_dev_hosts(cls):
