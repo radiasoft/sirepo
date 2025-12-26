@@ -100,12 +100,20 @@ class DockerDriver(job_driver.DriverBase):
             parallel=dict(
                 cores=(2, int, "cores per parallel job"),
                 gigabytes=(1, int, "gigabytes per parallel job"),
-                shm_bytes=(None, pkconfig.parse_bytes, "parallel shared memory size in bytes"),
+                shm_bytes=(
+                    None,
+                    pkconfig.parse_bytes,
+                    "parallel shared memory size in bytes",
+                ),
                 slots_per_host=(1, int, "parallel slots per node"),
             ),
             sequential=dict(
                 gigabytes=(1, int, "gigabytes per sequential job"),
-                shm_bytes=(None, pkconfig.parse_bytes, "sequential shared memory size in bytes"),
+                shm_bytes=(
+                    None,
+                    pkconfig.parse_bytes,
+                    "sequential shared memory size in bytes",
+                ),
                 slots_per_host=(1, int, "sequential slots per node"),
             ),
             supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
