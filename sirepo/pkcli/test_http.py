@@ -76,21 +76,6 @@ _CODES = PKDict(
             ),
         ),
     ),
-    warppba=(
-        PKDict(
-            name="Laser Pulse",
-            reports=(
-                PKDict(report="fieldAnimation", binary_data_file=True),
-                PKDict(report="laserPreviewReport", binary_data_file=False),
-            ),
-        ),
-    ),
-    warpvnd=(
-        PKDict(
-            name="EGun Example",
-            reports=(PKDict(report="fieldAnimation", binary_data_file=True),),
-        ),
-    ),
 )
 
 cfg = None

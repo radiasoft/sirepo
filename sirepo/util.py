@@ -16,6 +16,7 @@ import importlib
 import io
 import inspect
 import numconv
+import numpy
 import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
@@ -388,6 +389,25 @@ def json_dump(obj, path=None, pretty=False, **kwargs):
     if path:
         pykern.pkio.atomic_write(path, res)
     return res
+
+
+def numpy_to_py(obj):
+    """Convert numpy objects to Python objects
+
+    Use to avoid `repr` conversions.
+
+    Args:
+        obj (object): source
+    Returns:
+        object: no numpy.floating objects
+    """
+    if isinstance(obj, numpy.floating):
+        return float(obj)
+    if isinstance(obj, (list, tuple)):
+        return type(obj)(numpy_to_py(o) for o in obj)
+    if isinstance(obj, dict):
+        return type(obj)({k: numpy_to_py(v) for k, v in obj.items()})
+    return obj
 
 
 def plan_role_expiration(role):

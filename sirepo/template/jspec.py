@@ -249,9 +249,9 @@ def stateful_compute_get_elegant_sim_list(data, **kwargs):
         except IOError:
             # ignore errors reading corrupted elegant sim files
             pass
-    return {
-        "simList": res,
-    }
+    return PKDict(
+        simList=res,
+    )
 
 
 def validate_file(file_type, path, **kwargs):

@@ -27,7 +27,6 @@ FOSS_CODES = frozenset(
         "elegant",
         "epicsllrf",
         "genesis",
-        "hellweg",
         "impactt",
         "impactx",
         "jspec",
@@ -40,8 +39,6 @@ FOSS_CODES = frozenset(
         "shadow",
         "silas",
         "srw",
-        "warppba",
-        "warpvnd",
         "zgoubi",
     )
 )
@@ -81,7 +78,7 @@ def for_sim_type(sim_type):
     """Get cfg for simulation type
 
     Args:
-        sim_type (str): srw, warppba, etc.
+        sim_type (str): srw, elegent, etc.
 
     Returns:
         dict: application specific config
@@ -252,6 +249,7 @@ def _init():
             set,
             "Vue apps",
         ),
+        # TODO(robnagler) 20250131 remove
         warpvnd=dict(
             allow_3d_mode=(True, bool, "Include 3D features in the Warp VND UI"),
             display_test_boxes=_dev(

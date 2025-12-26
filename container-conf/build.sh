@@ -6,7 +6,7 @@ build_vars() {
     : ${build_image_base:=radiasoft/beamsim}
     local boot_dir=$build_run_user_home/.radia-run
     sirepo_boot=$boot_dir/start
-    build_docker_cmd='["'"$sirepo_boot"'"]'
+    build_docker_cmd=$sirepo_boot
     build_is_public=1
     build_passenv='PYKERN_BRANCH RSLUME_BRANCH SIREPO_BRANCH'
     : ${PYKERN_BRANCH:=} ${RSLUME_BRANCH:=} ${SIREPO_BRANCH:=}
