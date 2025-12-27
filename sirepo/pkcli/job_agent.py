@@ -82,6 +82,7 @@ def start():
             pkio.py_path,
             "directory of fastcfgi socket, must be less than 50 chars",
         ),
+        mpich_shm_clean_up=(False, bool, "mpich4 orphans shm; see sirepo#7741"),
         start_delay=(0, pkconfig.parse_seconds, "delay startup in internal_test mode"),
         global_resources_server_token=pkconfig.Required(
             str,
@@ -613,6 +614,13 @@ class _Cmd(PKDict):
         self.destroy()
 
     def destroy(self, terminating=False):
+        def _mpich_shm_clean_up():
+            if not self.msg.get("isParallel") or terminating:
+                return
+            # POSIT: only one parallel process per parallel job agent.
+            # Running inside a container.
+            pkio.unchecked_remove(*pkio.sorted_glob("/dev/shm/*"))
+
         if self._destroying:
             return
         if self.dispatcher.fastcgi_cmd == self:
@@ -626,6 +634,8 @@ class _Cmd(PKDict):
             self.dispatcher.cmds.remove(self)
         except ValueError:
             pass
+        if _cfg.mpich_shm_clean_up:
+            _mpich_shm_clean_up()
 
     def format_op(self, **kwargs):
         return self.dispatcher.format_op(

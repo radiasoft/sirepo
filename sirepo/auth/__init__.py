@@ -5,12 +5,12 @@
 """
 
 from pykern import pkcollections
+from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import contextlib
-import datetime
 import importlib
 import sirepo.auth_db
 import sirepo.auth_role
@@ -674,7 +674,7 @@ class _Auth(sirepo.quest.Attr):
         else:
             res = self.qcall.auth_db.model(
                 "UserRegistration",
-                created=datetime.datetime.utcnow(),
+                created=pkcompat.utcnow(),
                 display_name=display_name,
                 uid=uid,
             )

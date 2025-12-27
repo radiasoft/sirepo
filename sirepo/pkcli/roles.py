@@ -10,6 +10,7 @@ from sirepo.pkcli import admin
 import contextlib
 import datetime
 import pykern.pkcli
+import pykern.pkcompat
 import sirepo.auth_role
 import sirepo.quest
 
@@ -120,7 +121,7 @@ def _parse_args(uid_or_email, roles=None, expiration=None):
         return (
             None
             if expiration is None
-            else (datetime.datetime.utcnow() + datetime.timedelta(days=int(expiration)))
+            else (pykern.pkcompat.utcnow() + datetime.timedelta(days=int(expiration)))
         )
 
     rv = PKDict()

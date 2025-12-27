@@ -43,7 +43,7 @@ _msg() {
 }
 
 _no_h5py() {
-    local f=( $(find sirepo -name \*.py | egrep -v '/(package_data|activait|flash|omega|opal|radia|silas|warp|server.py|hdf5_util|madx|canvas|elegant|openmc)') )
+    local f=( $(find sirepo -name \*.py | grep -E -v '/(package_data|activait|flash|omega|opal|radia|silas|warp|server.py|hdf5_util|madx|canvas|elegant|openmc)') )
     local r=$(grep -l '^import.*h5py' "${f[@]}")
     if [[ $r ]]; then
         _err "import h5py found in: $r"
@@ -54,7 +54,7 @@ _no_pattern() {
     local pat=$1
     shift
     local f=( $@ )
-    local r=$(egrep -l "$pat" "${f[@]}")
+    local r=$(grep -E -l "$pat" "${f[@]}")
     if [[ $r ]]; then
         _err "$pat found in: $r"
     fi
