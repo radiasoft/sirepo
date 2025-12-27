@@ -6,16 +6,13 @@ export function useAxis(svgGroup, dimension, orientation, { ticks = 6, tickForma
     const g = svgGroup.append("g").attr("class", `${dimension}-axis`).node();
 
     const update = (scale, transform) => {
-        const axis = d3[orientation === "bottom" ? "axisBottom" : "axisLeft"](scale)
-            .ticks(ticks).tickSizeOuter(tickSizeOuter);
-        if (tickFormat) {
-            axis.tickFormat(tickFormat);
-        }
-        const sel = d3.select(g);
-        if (transform) {
-            sel.attr("transform", transform);
-        }
-        sel.call(axis);
+        const axis = d3[orientation](scale)
+            .ticks(ticks)
+            .tickSizeOuter(tickSizeOuter)
+            .tickFormat(tickFormat);
+        d3.select(g)
+          .attr("transform", transform)
+          .call(axis);
     };
     return { ticks, update };
 }

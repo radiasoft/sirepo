@@ -3,7 +3,6 @@
         <div ref="container" class="chart-container">
         </div>
     </div>
-    <button v-on:click="makeData">Random</button>
 </template>
 
 <script setup>
@@ -17,14 +16,12 @@
  import { util } from '@/services/util.js';
 
  const props = defineProps({
-     viewName: String,
+     data: Function,
  });
 
- const margin = { top: 16, right: 20, bottom: 44, left: 44 };
- const data = ref(null);
-
+ const margin = { top: 26, right: 20, bottom: 44, left: 44 };
  const container = ref(null);
- let svg, g, paths, xLabel;
+ let svg, g, paths, xLabel, title;
  let xAxis, yAxis, zoomX, grid, legend, overlay;
  let resizeObserver;
 
@@ -34,8 +31,8 @@
      g = svg.append("g");
      overlay = useOverlay(g);
      //TODO(pjm): axes determin ticks based on size available
-     xAxis = useAxis(g, 'x', 'bottom', { ticks: 6 });
-     yAxis = useAxis(g, 'y', 'left', { ticks: 6 });
+     xAxis = useAxis(g, 'x', 'axisBottom', { ticks: 6 });
+     yAxis = useAxis(g, 'y', 'axisLeft', { ticks: 6 });
      grid = useGrid(overlay.clipped, { ticksX: xAxis.ticks, ticksY: yAxis.ticks });
      legend = useLegend(g, {
          padding: 8,
@@ -50,23 +47,10 @@
        .append("text")
        .attr("class", "x-label")
        .attr("text-anchor", "middle");
- }
-
- function makeData() {
-     overlay.clipped.selectAll("path").remove();
-     //TODO(pjm): build paths based on input data, not a/b
-     paths = {
-         a: overlay.clipped.append("path").attr("class", "line line-a"),
-         b: overlay.clipped.append("path").attr("class", "line line-b"),
-     };
-     data.value = d3.range(200).map((i) => {
-         return {
-             x: i + 20,
-             a: 30 + 10 * Math.sin(i / 10) + (Math.random() - 0.5) * 7,
-             b: 26 + 8 * Math.cos(i / 12) + (Math.random() - 0.5) * 7,
-         };
-     });
-     render();
+     paths = props.data().plots.map((p) => overlay.clipped.append("path").attr("class", "line"));
+     if (props.data().title) {
+         title = svg.append("text").attr("class", "x-label").attr("text-anchor", "middle").text(props.data().title);
+     }
  }
 
  function getBounds() {
@@ -83,17 +67,16 @@
 
      const innerWidth = Math.max(0, width - margin.left - margin.right);
      const innerHeight = Math.max(0, height - margin.top - margin.bottom);
+     //TODO(pjm): only calculate domain and scale when data is first loaded
      zoomX.update(innerWidth, innerHeight);
-     const domain = d3.extent(data.value, (d) => d.x);
+     const domain = d3.extent(props.data().x_points);
      const x = zoomX.rescale(d3
          .scaleLinear()
          .domain(domain)
          .range([0, innerWidth])
      );
-     const y = d3.scaleLinear().domain([
-         d3.min(data.value, (d) => Math.min(d.a, d.b)),
-         d3.max(data.value, (d) => Math.max(d.a, d.b)),
-     ]).nice().range([innerHeight, 0]);
+     //TODO(pjm): could scale to visible range
+     const y = d3.scaleLinear().domain(props.data().y_range).nice().range([innerHeight, 0]);
      xAxis.update(x, `translate(0,${innerHeight})`);
      yAxis.update(y);
      grid.update(x, y, innerWidth, innerHeight);
@@ -110,35 +93,50 @@
        .attr("x", innerWidth / 2)
        .attr("y", innerHeight + margin.bottom - 6)
        .text("Age [years]");
+     title.attr("x", (width + margin.left) / 2).attr("y", 12);
      renderLines(x, y);
  }
 
  function renderLines(x, y) {
-     const line = (key) => d3
+     const line = (plot) => d3
          .line()
-         .x((d) => x(d.x))
-         .y((d) => y(d[key]));
-     paths.a.datum(data.value).attr("d", line("a")).attr("vector-effect", "non-scaling-stroke");
-     paths.b.datum(data.value).attr("d", line("b")).attr("vector-effect", "non-scaling-stroke");
+         .x((d) => x(d))
+         .y((d, idx) => y(plot.points[idx]));
+     for (const [idx, p] of Object.entries(props.data().plots)) {
+         paths[idx]
+             .datum(props.data().x_points)
+             .attr("d", line(p))
+             .attr("vector-effect", "non-scaling-stroke")
+             .attr("stroke", p.color);
+     }
  }
 
  onMounted(() => {
-     init();
-     makeData()
+     if (props.data) {
+         init();
+         render();
+     }
      resizeObserver = new ResizeObserver(() => render());
      resizeObserver.observe(container.value);
  });
 
  onBeforeUnmount(() => {
-     if (resizeObserver && container.value) {
-         resizeObserver.unobserve(container.value);
+     if (resizeObserver) {
+         resizeObserver.disconnect();
      }
-     resizeObserver = null;
-     zoomX.detach();
+     if (zoomX) {
+         zoomX.detach();
+     }
  });
 
- // Re-render when data changes
- watch(data, () => render(), { deep: true });
+ watch(() => props.data, () => {
+     if (props.data) {
+         if (! svg) {
+             init();
+         }
+         render();
+     }
+ });
 </script>
 
 //TODO(pjm): move style to global css and use sr prefix
@@ -154,14 +152,6 @@
  :deep(.line) {
      fill: none;
      stroke-width: 2;
- }
-
- :deep(.line-a) {
-     stroke: #1f77b4;
- }
-
- :deep(.line-b) {
-     stroke: #ff7f0e;
  }
 
  :deep(.grid line) {

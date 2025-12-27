@@ -7,8 +7,7 @@
         </VCol>
         <VCol>
             <VCard viewName="heightWeightReport">
-                <VLine viewName="heightWeightReport">
-                </VLine>
+                <VPlot viewName="heightWeightReport"></VPlot>
             </VCard>
         </VCol>
     </VMasonry>
@@ -18,7 +17,7 @@
  import VCard from '@/components/VCard.vue';
  import VCol from '@/components/layout/VCol.vue';
  import VForm from '@/components/VForm.vue';
- import VLine from '@/components/plot/VLine.vue';
+ import VPlot from '@/components/plot/VPlot.vue';
  import VMasonry from '@/components/layout/VMasonry.vue';
 
  const viewName = "dog";

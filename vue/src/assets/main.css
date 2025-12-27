@@ -28,6 +28,25 @@ tr:hover .sr-button-bar-parent {
 .sr-panel-options > a, .sr-panel-options > div {
   margin-left: 1em;
 }
+.sr-panel-error .sr-panel-wait {
+  white-space: pre-line;
+  color: #a94442;
+  display: block;
+}
+.sr-panel-wait {
+  display: none;
+}
+.sr-panel-loading .sr-panel-wait, .sr-panel-waiting .sr-panel-wait {
+  display: block;
+  position: absolute;
+  background-color: #eee;
+  padding: 5px 10px;
+  z-index: 1000;
+  border-radius: 10px;
+}
+.sr-panel-running .sr-panel-wait {
+  font-weight: bold;
+}
 input.sr-invalid, input.sr-invalid:focus {
   box-shadow: 0 0 0 0.25rem var(--bs-warning);
   border-color: var(--bs-form-invalid-border-color);

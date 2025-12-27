@@ -147,9 +147,12 @@ class SimQueue {
             return;
         }
         qi.qState = 'removing';
-        const i = this.runQueue.indexOf(qi);
-        if (i > -1) {
-            this.runQueue.splice(i, 1);
+        // look for report match, qi might be a Proxy object
+        for (let i = 0; i < this.runQueue.length; i++) {
+            if (this.runQueue[i].request.report === qi.request.report) {
+                this.runQueue.splice(i, 1);
+                break;
+            }
         }
         this.#cancelTimeout(qi);
         if (qs === 'processing' && ! qi.persistent) {
@@ -160,4 +163,4 @@ class SimQueue {
     //$rootScope.$on('clearCache', this.cancelTransientItems);
 }
 
-export const simQueue = singleton.add('simQueue, () => new SimQueue());
+export const simQueue = singleton.add('simQueue', () => new SimQueue());
