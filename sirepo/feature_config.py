@@ -20,7 +20,6 @@ _DEPENDENT_CODES = dict(
 
 FOSS_CODES = frozenset(
     (
-        "activait",
         "canvas",
         "controls",
         "cortex",
@@ -29,7 +28,6 @@ FOSS_CODES = frozenset(
         "genesis",
         "impactt",
         "impactx",
-        "jspec",
         "madx",
         "myapp",
         "omega",
@@ -37,9 +35,7 @@ FOSS_CODES = frozenset(
         "openmc",
         "radia",
         "shadow",
-        "silas",
         "srw",
-        "zgoubi",
     )
 )
 

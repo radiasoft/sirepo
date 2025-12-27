@@ -1,4 +1,4 @@
-"""PyTest for :mod:`sirepo.template.zgoubi_importer`
+"""PyTest for :mod:`sirepo.template.genesis`
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
