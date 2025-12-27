@@ -22,15 +22,14 @@ _UID_IN_DB = "Uh4mhMWU"
 
 
 def test_auditor(monkeypatch):
-    from pykern import pkio
-    from pykern import pkunit
+    from pykern import pkio, pkunit, pkcompat
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from sirepo import srdb
     from sirepo import srunit
     import asyncio
 
-    _EXPIRATION = datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
+    _EXPIRATION = pkcompat.utcnow() + datetime.timedelta(minutes=30)
     pkio.unchecked_remove(srdb.root())
     pkunit.data_dir().join("auditor_db").copy(srdb.root())
     with srunit.quest_start(cfg=_state_for_testing()) as qcall:
@@ -86,14 +85,13 @@ def test_auditor(monkeypatch):
 
 
 def test_checkout_session(monkeypatch):
-    from pykern import pkio
-    from pykern import pkunit
+    from pykern import pkio, pkunit, pkcompat
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from sirepo import srdb
     from sirepo import srunit
 
-    _EXPIRATION = datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
+    _EXPIRATION = pkcompat.utcnow() + datetime.timedelta(minutes=30)
     monkeypatch.setattr(stripe.checkout.Session, "create_async", _checkout_create)
     monkeypatch.setattr(stripe.checkout.Session, "retrieve_async", _checkout_retrieve)
     monkeypatch.setattr(
@@ -155,8 +153,7 @@ def test_checkout_session(monkeypatch):
 
 
 def test_event_paid_webhook(monkeypatch):
-    from pykern import pkio
-    from pykern import pkunit
+    from pykern import pkio, pkunit, pkcompat
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from sirepo import srdb
@@ -167,7 +164,7 @@ def test_event_paid_webhook(monkeypatch):
         stripe.Subscription,
         "retrieve_async",
         _get_subscription_active(
-            datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
+            pkcompat.utcnow() + datetime.timedelta(minutes=30)
         ),
     )
     monkeypatch.setattr(stripe.Product, "retrieve_async", _product_retrieve)

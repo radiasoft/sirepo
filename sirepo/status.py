@@ -34,7 +34,7 @@ class API(sirepo.quest.API):
         await self._run_tests()
         return self.reply_ok(
             {
-                "datetime": datetime.datetime.utcnow().isoformat(),
+                "datetime": pkcompat.utcnow().isoformat(),
                 "sentinel": _cfg.reply_sentinel,
             }
         )
