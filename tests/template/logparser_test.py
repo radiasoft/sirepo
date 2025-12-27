@@ -6,6 +6,7 @@
 
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 
+
 def test_epicsllrf_logparser():
     from sirepo.template import epicsllrf
 

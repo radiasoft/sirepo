@@ -20,6 +20,7 @@ def test_madx(fc):
         "bunchReport1",
     )
 
+
 def test_opal(fc):
     _r(
         fc,
