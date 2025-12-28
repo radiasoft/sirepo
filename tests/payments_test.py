@@ -163,9 +163,7 @@ def test_event_paid_webhook(monkeypatch):
     monkeypatch.setattr(
         stripe.Subscription,
         "retrieve_async",
-        _get_subscription_active(
-            pkcompat.utcnow() + datetime.timedelta(minutes=30)
-        ),
+        _get_subscription_active(pkcompat.utcnow() + datetime.timedelta(minutes=30)),
     )
     monkeypatch.setattr(stripe.Product, "retrieve_async", _product_retrieve)
     pkio.unchecked_remove(srdb.root())
