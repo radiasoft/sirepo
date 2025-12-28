@@ -13,17 +13,14 @@ build_vars() {
 }
 
 build_as_root() {
-    build_yum config-manager \
-        --add-repo \
+    install_yum_add_repo \
         https://download.docker.com/linux/fedora/docker-ce.repo
-    build_yum install docker-ce-cli
+    install_yum_install docker-ce-cli
     mkdir "$sirepo_db_dir"
     chown "$build_run_user:" "$sirepo_db_dir"
 }
 
 build_as_run_user() {
-    cd "$build_guest_conf"
-    umask 022
     sirepo_boot_init
     _sirepo_pip_install pykern "$PYKERN_BRANCH"
     _sirepo_pip_install sirepo "$SIREPO_BRANCH"
