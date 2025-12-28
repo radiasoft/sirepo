@@ -153,7 +153,7 @@ class DockerDriver(job_driver.DriverBase):
             op,
             env=PKDict(
                 SIREPO_PKCLI_JOB_AGENT_MPICH_SHM_CLEAN_UP=(
-                    "1" if _cfg.mpich_shm_clean_up else ""
+                    "1" if self.cfg.mpich_shm_clean_up else ""
                 ),
             ),
         )
