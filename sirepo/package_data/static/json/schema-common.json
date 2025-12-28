@@ -8,17 +8,9 @@
             "longName": "Epicsllrf",
             "shortName": "Epicsllrf"
         },
-        "activait": {
-            "longName": "Activait",
-            "shortName": "Activait"
-        },
         "canvas": {
             "longName": "Lattice Canvas",
             "shortName": "canvas"
-        },
-        "controls": {
-            "longName": "Controls",
-            "shortName": "Controls"
         },
         "openmc": {
             "longName": "OpenMC",
@@ -40,10 +32,6 @@
             "longName": "ImpactX",
             "shortName": "ImpactX"
         },
-        "jspec": {
-            "longName": "JSPEC",
-            "shortName": "JSPEC"
-        },
         "jupyterhublogin": {
             "longName": "Jupyter",
             "shortName": "Jupyter"
@@ -64,25 +52,13 @@
             "longName": "Radia",
             "shortName": "Radia"
         },
-        "raydata": {
-            "longName": "Raydata",
-            "shortName": "Raydata"
-        },
         "shadow": {
             "longName": "SHADOW",
             "shortName": "SHADOW"
         },
-        "silas": {
-            "longName": "SILAS",
-            "shortName": "SILAS"
-        },
         "srw": {
             "longName": "Synchrotron Radiation Workshop",
             "shortName": "SRW"
-        },
-        "zgoubi": {
-            "longName": "ZGOUBI",
-            "shortName": "ZGOUBI"
         }
     },
     "productInfo": {
@@ -92,7 +68,6 @@
     "rootRedirectUri": {
         "cloudmc": "/openmc",
         "fete": "/warpvnd",
-        "ml": "/activait",
         "plans": "/en/plans.html",
         "warp": "/warppba",
         "cloudmc": "/openmc"

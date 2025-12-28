@@ -37,7 +37,8 @@ def test_elegant_upload_sdds(fc):
     pkunit.pkeq("bunchFile-sourceFile.somename.bun", g[0].basename)
 
 
-def test_jspec_list_files(fc):
+#
+def TODO_SOME_CODE_list_files(fc):
     from pykern import pkio
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdpretty

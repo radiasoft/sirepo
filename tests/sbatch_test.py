@@ -4,6 +4,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
+# systemctl status munge slurmd slurmctld
 # If you see: TIMEOUT=<time> exceeded, the default
 # Run sinfo to see if slurmd is down for this node.
 # https://github.com/radiasoft/sirepo/issues/2136

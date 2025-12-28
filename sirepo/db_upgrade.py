@@ -4,7 +4,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern import pkinspect, pkio, pkjson
+from pykern import pkinspect, pkio, pkjson, pkcompat
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import contextlib
@@ -111,7 +111,7 @@ def _20250114_add_role_plan_trial(qcall):
         SELECT uid, :role, :expiration FROM user_registration_t""",
         PKDict(
             role=sirepo.auth_role.ROLE_PLAN_TRIAL,
-            expiration=datetime.datetime.utcnow()
+            expiration=pkcompat.utcnow()
             + datetime.timedelta(
                 days=sirepo.feature_config.cfg().trial_expiration_days
             ),

@@ -97,6 +97,7 @@ class DockerDriver(job_driver.DriverBase):
             hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, "execution hosts"),
             idle_check_secs=pkconfig.ReplacedBy("sirepo.job_driver.idle_check_secs"),
             image=("radiasoft/sirepo", str, "docker image to run all jobs"),
+            mpich_shm_clean_up=(False, bool, "mpich4 orphans shm; see sirepo#7741"),
             parallel=dict(
                 cores=(2, int, "cores per parallel job"),
                 gigabytes=(1, int, "gigabytes per parallel job"),
@@ -146,6 +147,16 @@ class DockerDriver(job_driver.DriverBase):
         if op.op_name == job.OP_RUN:
             op.msg.mpiCores = self.cfg[self.kind].get("cores", 1)
         return await super().prepare_send(op)
+
+    def _agent_env(self, op):
+        return super()._agent_env(
+            op,
+            env=PKDict(
+                SIREPO_PKCLI_JOB_AGENT_MPICH_SHM_CLEAN_UP=(
+                    "1" if _cfg.mpich_shm_clean_up else ""
+                ),
+            ),
+        )
 
     @classmethod
     def _cmd_prefix(cls, host, tls_d):

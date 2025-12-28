@@ -1,10 +1,11 @@
-# -*- coding: utf-8 -*-
 """time functions (artificial time)
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig
+from pykern import pkcompat
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -56,7 +57,7 @@ class API(sirepo.quest.API):
         return self.reply_ok(
             {
                 "adjustedNow": utc_now().isoformat(),
-                "systemNow": datetime.datetime.utcnow().isoformat(),
+                "systemNow": pkcompat.utcnow().isoformat(),
             }
         )
 
@@ -73,7 +74,7 @@ def init_module():
     if not pkconfig.channel_in_internal_test():
         global utc_now_as_float, utc_now
         utc_now_as_float = time.time
-        utc_now = datetime.datetime.utcnow
+        utc_now = pkcompat.utcnow
     utc_now_as_int = lambda: int(utc_now_as_float())
 
 
@@ -93,12 +94,12 @@ def utc_now():
     """Adjusted UTC time as object
 
     Returns:
-        datetime.datetime: adjusted `datetime.datetime.utcnow`
+        datetime.datetime: adjusted `pykern.pkcompat.utcnow`
     """
     assert pkconfig.channel_in_internal_test()
     if _timedelta is None:
-        return datetime.datetime.utcnow()
-    return datetime.datetime.utcnow() + _timedelta
+        return pkcompat.utcnow()
+    return pkcompat.utcnow() + _timedelta
 
 
 def utc_now_as_float():
