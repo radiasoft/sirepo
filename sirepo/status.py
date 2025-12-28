@@ -83,8 +83,9 @@ class API(sirepo.quest.API):
             rv = await self.call_api("runStatus", body=body)
             try:
                 s = rv.content_as_object().state
-            except:
+            except Exception:
                 rv.destroy()
+                raise
             if s in sirepo.job.ACTIVE_STATUSES:
                 pkdlog("already running simulation={}", sim_id)
             else:
