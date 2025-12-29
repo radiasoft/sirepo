@@ -15,6 +15,10 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(data.models)
 
     @classmethod
+    def _compute_model(cls, analysis_model, *args, **kwargs):
+        return analysis_model
+
+    @classmethod
     def _compute_job_fields(cls, data, *args, **kwargs):
         return [
             data.report,
