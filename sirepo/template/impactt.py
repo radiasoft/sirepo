@@ -100,6 +100,8 @@ def bunch_plot(model, frame_index, particle_group):
     def _label(name):
         if name == "delta_z":
             return "z -〈z〉"
+        if name == "delta_t":
+            return "t -〈t〉"
         if name == "delta_energy":
             return "E -〈E〉"
         if name == "energy":
