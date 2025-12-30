@@ -25,10 +25,22 @@ OUTPUT_NAME = "hundli.csv"
 
 
 def background_percent_complete(report, run_dir, is_running):
-    return PKDict(
+    res = PKDict(
         percentComplete=0,
-        frameCount=1 if run_dir.join(OUTPUT_NAME).exists() and not is_running else 0,
+        frameCount=0,
+        reports=[],
     )
+    if run_dir.join(OUTPUT_NAME).exists() and not is_running:
+        res.pkupdate(
+            frameCount=1,
+            reports=[
+                PKDict(
+                    modelName="activityAnimation",
+                    frameCount=1,
+                ),
+            ],
+        )
+    return res
 
 
 def report_from_csv(title, fields):

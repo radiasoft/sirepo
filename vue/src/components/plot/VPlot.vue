@@ -3,10 +3,10 @@
         'sr-panel-loading': qItem,
         'sr-panel-error': false,
     }">
-      <div v-if="qItem"
-           class="lead sr-panel-wait"><span class="bi bi-hourglass"></span>
-          Requesting Data
-      </div>
+        <div v-if="qItem"
+             class="lead sr-panel-wait"><span class="bi bi-hourglass"></span>
+            Requesting Data
+        </div>
     </div>
     <VLine v-bind:data="data"></VLine>
 </template>
@@ -63,5 +63,4 @@
  onUnmounted(() => {
      cancelItem();
  });
-
 </script>

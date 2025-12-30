@@ -34,11 +34,7 @@
      xAxis = useAxis(g, 'x', 'axisBottom', { ticks: 6 });
      yAxis = useAxis(g, 'y', 'axisLeft', { ticks: 6 });
      grid = useGrid(overlay.clipped, { ticksX: xAxis.ticks, ticksY: yAxis.ticks });
-     legend = useLegend(g, {
-         padding: 8,
-         rowH: 18,
-         swatch: 12,
-     });
+     legend = useLegend(g);
      zoomX = useZoomX(overlay.overlay, {
          scaleExtent: [1, 50],
          onZoomX: render,
@@ -49,7 +45,10 @@
        .attr("text-anchor", "middle");
      paths = props.data().plots.map((p) => overlay.clipped.append("path").attr("class", "line"));
      if (props.data().title) {
-         title = svg.append("text").attr("class", "x-label").attr("text-anchor", "middle").text(props.data().title);
+         title = svg.append("text")
+                    .attr("class", "x-label")
+                    .attr("text-anchor", "middle")
+                    .text(props.data().title);
      }
  }
 
@@ -64,7 +63,6 @@
      }
      const [width, height] = getBounds();
      svg.attr("width", width).attr("height", height);
-
      const innerWidth = Math.max(0, width - margin.left - margin.right);
      const innerHeight = Math.max(0, height - margin.top - margin.bottom);
      //TODO(pjm): only calculate domain and scale when data is first loaded
@@ -84,15 +82,19 @@
      overlay.update(innerWidth, innerHeight, ! util.deepEquals(x.domain(), domain));
      legend.update({
          innerWidth,
-         items: [
-             { label: "Height [cm]", className: "legend-a" },
-             { label: "Weight [lbs]", className: "legend-b" },
-         ],
+         items: props.data().plots.map((p) => {
+             return {
+                 label: p.label,
+                 color: p.color,
+             };
+         }),
+         //TODO(pjm): position left or right depending on line locations
+         position: "left",
      });
      xLabel
        .attr("x", innerWidth / 2)
        .attr("y", innerHeight + margin.bottom - 6)
-       .text("Age [years]");
+       .text(props.data().x_label);
      title.attr("x", (width + margin.left) / 2).attr("y", 12);
      renderLines(x, y);
  }
@@ -184,13 +186,5 @@
  :deep(.legend-row line) {
      stroke-width: 3;
      stroke-linecap: round;
- }
-
- :deep(.legend-row.legend-a line) {
-     stroke: #1f77b4;
- }
-
- :deep(.legend-row.legend-b line) {
-     stroke: #ff7f0e;
  }
 </style>

@@ -8,7 +8,7 @@ import { singleton } from '@/services/singleton.js';
 import { util } from '@/services/util.js';
 
 class SimQueue {
-    runQueue = [];
+    #runQueue = [];
 
     #addItem(report, models, responseHandler, qMode) {
         models = util.clone(models);
@@ -30,7 +30,7 @@ class SimQueue {
             },
             responseHandler: responseHandler,
         };
-        this.runQueue.push(qi);
+        this.#runQueue.push(qi);
         if (qi.persistent) {
             this.#runItem(qi);
         }
@@ -55,7 +55,7 @@ class SimQueue {
     }
 
     #runFirstTransientItem() {
-        for (const e of this.runQueue) {
+        for (const e of this.#runQueue) {
             if (e.persistent) {
                 continue;
             }
@@ -129,14 +129,14 @@ class SimQueue {
     }
 
     cancelTransientItems() {
-        const rq = this.runQueue;
-        this.runQueue = [];
+        const rq = this.#runQueue;
+        this.#runQueue = [];
         rq.forEach((item) => {
             if (item.qMode === 'transient') {
                 this.removeItem(item);
             }
             else {
-                this.runQueue.push(item);
+                this.#runQueue.push(item);
             }
         });
     }
@@ -148,9 +148,9 @@ class SimQueue {
         }
         qi.qState = 'removing';
         // look for report match, qi might be a Proxy object
-        for (let i = 0; i < this.runQueue.length; i++) {
-            if (this.runQueue[i].request.report === qi.request.report) {
-                this.runQueue.splice(i, 1);
+        for (let i = 0; i < this.#runQueue.length; i++) {
+            if (this.#runQueue[i].request.report === qi.request.report) {
+                this.#runQueue.splice(i, 1);
                 break;
             }
         }
