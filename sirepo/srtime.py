@@ -16,7 +16,7 @@ import time
 
 
 #: POSIX epoch as object
-EPOCH = datetime.datetime.utcfromtimestamp(0)
+EPOCH = datetime.datetime.fromtimestamp(0)
 
 #: Adjustment of system time
 _timedelta = None
