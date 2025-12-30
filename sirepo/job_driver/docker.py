@@ -32,7 +32,8 @@ _CNAME_RE = re.compile(_CNAME_SEP.join(("^" + _CNAME_PREFIX, r"([a-z]+)", "(.+)"
 # TODO(e-carlin): max open files for local or nersc?
 _MAX_OPEN_FILES = 1024
 
-_DOCKER_CMD_TIMEOUT = 20
+#: All docker commands should be very fast, but set this high enough justify.
+_DOCKER_CMD_TIMEOUT = 10
 
 
 class DockerDriver(job_driver.DriverBase):
@@ -351,7 +352,7 @@ class _DockerCmd(PKDict):
             self.proc.set_exit_callback(self._on_exit)
             if self.timeout:
                 self.timer = tornado.ioloop.IOLoop.current().call_later(
-                    pkdp(self.timeout), self._on_timeout
+                    self.timeout, self._on_timeout
                 )
 
         def _subprocess():
