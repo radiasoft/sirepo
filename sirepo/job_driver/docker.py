@@ -32,7 +32,7 @@ _CNAME_RE = re.compile(_CNAME_SEP.join(("^" + _CNAME_PREFIX, r"([a-z]+)", "(.+)"
 # TODO(e-carlin): max open files for local or nersc?
 _MAX_OPEN_FILES = 1024
 
-_DOCKER_CMD_TIMEOUT = 5
+_DOCKER_CMD_TIMEOUT = 20
 
 
 class DockerDriver(job_driver.DriverBase):
@@ -59,6 +59,9 @@ class DockerDriver(job_driver.DriverBase):
             self._cname,
         )
         pkio.unchecked_remove(self._agent_exec_dir)
+
+    def docker_cmd_prefix(self):
+        return self.__hosts[self.host.name].cmd_prefix
 
     @classmethod
     def get_instance(cls, op):
@@ -133,12 +136,12 @@ class DockerDriver(job_driver.DriverBase):
     async def kill(self):
         pkdlog("{} cid={:.12}", self, self.pkdel("_cid"))
         _, e = await _DockerCmd(
-            self,
-            (
+            cmd=(
                 "stop",
                 "--timeout={}".format(job_driver.KILL_TIMEOUT_SECS),
                 self._cname,
             ),
+            driver=self,
         ).start()
         if "No such container" not in e:
             pkdlog("{} error={}", self, e)
@@ -196,14 +199,14 @@ class DockerDriver(job_driver.DriverBase):
                 "--init",
                 # keeps stdin, stdout, stderr open
                 "--interactive",
-                "--name={}".format(self._cname),
+                f"--name={self._cname}",
                 "--network=host",
                 "--rm",
                 "--ulimit=core=0",
-                "--ulimit=nofile={_MAX_OPEN_FILES}",
+                f"--ulimit=nofile={_MAX_OPEN_FILES}",
                 # do not use a "name", but a uid, because /etc/password is image specific,
                 # and we enforce uid's to be consistent in builds
-                "--user={os.getuid()}",
+                f"--user={os.getuid()}",
             )
             + _constrain_resources(c)
             + _shm_size(c)
@@ -212,12 +215,18 @@ class DockerDriver(job_driver.DriverBase):
             + (self._image,)
         )
         self.driver_details.pkupdate(host=self.host.name)
-        o, e = _DockerCmd(cmd=p, driver=self).start()
+        o, e = await _DockerCmd(cmd=p + cmd, driver=self).start()
         if e:
             raise RuntimeError(f"create error={e} cmd={p}")
         self._cid = o
         asyncio.create_task(
-            _DockerCmd(cmd=("start", "--interactive", self._cid), stdin=stdin, log_output=True, timeout=None).start(),
+            _DockerCmd(
+                cmd=("start", "--interactive", self._cid),
+                driver=self,
+                stdin=stdin,
+                log_output=True,
+                timeout=None,
+            ).start(),
         )
         pkdlog("{} cname={} cid={:.12}", self, self._cname, self._cid)
 
@@ -276,7 +285,6 @@ class DockerDriver(job_driver.DriverBase):
                 args.append("--tls{}={}".format(x, f))
             return tuple(args)
 
-
         for h in cls.cfg.hosts:
             d = cls.cfg.tls_dir.join(h)
             x = cls.__hosts[h] = PKDict(
@@ -314,6 +322,7 @@ class DockerDriver(job_driver.DriverBase):
         _res(self._user_dir)
         return tuple(res)
 
+
 CLASS = DockerDriver
 
 
@@ -325,7 +334,7 @@ class _DockerCmd(PKDict):
             timeout=_DOCKER_CMD_TIMEOUT,
             log_output=False,
         )
-        self.log_prefix = f"cmd={cmd[0]} cname={self.driver._cname}"
+        self.log_prefix = f"cmd={self.cmd[0]} cname={self.driver._cname}"
         self.stdout = ""
         self.stderr = ""
         self.timer = None
@@ -336,15 +345,17 @@ class _DockerCmd(PKDict):
 
     async def start(self):
         def _callbacks():
-            f = self._log_output if log_output else self._read_output
+            f = self._log_output if self.log_output else self._read_output
             asyncio.create_task(f("stdout"))
             asyncio.create_task(f("stderr"))
             self.proc.set_exit_callback(self._on_exit)
-            if timeout:
-                self.timer = tornado.ioloop.IOLoop.current().add_timeout(timeout, self._on_timeout)
+            if self.timeout:
+                self.timer = tornado.ioloop.IOLoop.current().call_later(
+                    pkdp(self.timeout), self._on_timeout
+                )
 
         def _subprocess():
-            c = self.driver.__hosts[self.driver.host.name].cmd_prefix + self.cmd)
+            c = self.driver.docker_cmd_prefix() + self.cmd
             pkdc("{} subprocess: {}", self.driver, " ".join(c))
             try:
                 self.proc = tornado.process.Subprocess(
@@ -354,7 +365,9 @@ class _DockerCmd(PKDict):
                     stderr=tornado.process.Subprocess.STREAM,
                 )
             except Exception as e:
-                pkdlog("{} Subprocess create error={} cmd={} stack={}", self.driver, e, c)
+                pkdlog(
+                    "{} Subprocess create error={} cmd={} stack={}", self.driver, e, c
+                )
                 return None, str(e)
             finally:
                 if hasattr(self.stdin, "close"):
@@ -369,7 +382,12 @@ class _DockerCmd(PKDict):
                 self.proc.proc.kill()
             except Exception:
                 pass
-            pkdlog("{} timedout stdout={} stderr={}", self.log_prefix, self.stdout, self.stderr)
+            pkdlog(
+                "{} timedout stdout={} stderr={}",
+                self.log_prefix,
+                self.stdout,
+                self.stderr,
+            )
             return None, (None if self.log_output else "error=subprocess timed out")
         elif self.timer:
             tornado.ioloop.IOLoop.current().remove_timeout(self.timer)
@@ -397,23 +415,29 @@ class _DockerCmd(PKDict):
         b = ""
         try:
             while True:
-                b = _write(b + pkcompat.from_bytes(await s.read_bytes(1000, partial=True)))
+                b = _write(
+                    b + pkcompat.from_bytes(await s.read_bytes(1000, partial=True))
+                )
         except tornado.iostream.StreamClosedError:
-            pass
+            if b:
+                pkdlog("{} {}", self.log_prefix, b)
         s.close()
 
     def _on_exit(self, return_code):
         self.return_code = return_code
+        pkdlog("{}", pkcompat.utcnow())
         self.status_ready.set()
 
-    def _on_timeout(self, return_code):
+    def _on_timeout(self):
         self.timed_out = True
+        pkdlog("{}", pkcompat.utcnow())
         self.status_ready.set()
 
     async def _read_output(self, which):
-        self[which] = pkcompat.from_bytes(await getattr(self.proc, which).read_until_close()).rstrip()
+        self[which] = pkcompat.from_bytes(
+            await getattr(self.proc, which).read_until_close()
+        ).rstrip()
         self.output_ready[which].set()
-
 
 
 def _cfg_gpus(value):
