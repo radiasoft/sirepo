@@ -4,11 +4,12 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern import pkconfig, pkio
+from pykern import pkconfig, pkio, pkcompat
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
 from sirepo import job
 from sirepo import job_driver
+import asyncio
 import io
 import os
 import re
@@ -30,6 +31,9 @@ _CNAME_RE = re.compile(_CNAME_SEP.join(("^" + _CNAME_PREFIX, r"([a-z]+)", "(.+)"
 # default is unlimited so put some real constraint
 # TODO(e-carlin): max open files for local or nersc?
 _MAX_OPEN_FILES = 1024
+
+#: All docker commands should be very fast, but set this high enough justify.
+_DOCKER_CMD_TIMEOUT = 10
 
 
 class DockerDriver(job_driver.DriverBase):
@@ -56,6 +60,9 @@ class DockerDriver(job_driver.DriverBase):
             self._cname,
         )
         pkio.unchecked_remove(self._agent_exec_dir)
+
+    def docker_cmd_prefix(self):
+        return self.__hosts[self.host.name].cmd_prefix
 
     @classmethod
     def get_instance(cls, op):
@@ -128,20 +135,17 @@ class DockerDriver(job_driver.DriverBase):
         return cls
 
     async def kill(self):
-        c = None
-        try:
-            c = self.pkdel("_cid")
-            pkdlog("{} cid={:.12}", self, c)
-            # TODO(e-carlin): This can possibly hang and needs to be handled
-            # Ex. docker daemon is not responsive
-            await self._cmd(
-                ("stop", "--time={}".format(job_driver.KILL_TIMEOUT_SECS), self._cname),
-            )
-        except Exception as e:
-            if not c and "No such container" in str(e):
-                # Make kill response idempotent
-                return
-            pkdlog("{} error={} stack={}", self, e, pkdexc())
+        pkdlog("{} cid={:.12}", self, self.pkdel("_cid"))
+        _, e = await _DockerCmd(
+            cmd=(
+                "stop",
+                "--timeout={}".format(job_driver.KILL_TIMEOUT_SECS),
+                self._cname,
+            ),
+            driver=self,
+        ).start()
+        if "No such container" not in e:
+            pkdlog("{} error={}", self, e)
 
     async def prepare_send(self, op):
         if op.op_name == job.OP_RUN:
@@ -157,23 +161,6 @@ class DockerDriver(job_driver.DriverBase):
                 ),
             ),
         )
-
-    @classmethod
-    def _cmd_prefix(cls, host, tls_d):
-        args = [
-            "docker",
-            # docker TLS port is hardwired
-            "--host=tcp://{}:2376".format(host),
-            "--tlsverify",
-        ]
-        # POSIT: rsconf.component.docker creates {cacert,cert,key}.pem
-        for x in "cacert", "cert", "key":
-            f = tls_d.join(x + ".pem")
-            assert f.check(), "tls file does not exist for host={} file={}".format(
-                host, f
-            )
-            args.append("--tls{}={}".format(x, f))
-        return tuple(args)
 
     def _cname_join(self):
         """Create a cname or cname_prefix from kind and uid
@@ -203,26 +190,24 @@ class DockerDriver(job_driver.DriverBase):
                 else tuple()
             )
 
-        cmd, stdin, env = self._agent_cmd_stdin_env(op, cwd=self._agent_exec_dir)
+        cmd, stdin, _ = self._agent_cmd_stdin_env(op, cwd=self._agent_exec_dir)
         pkdlog("{} agent_exec_dir={}", self, self._agent_exec_dir)
         pkio.mkdir_parent(self._agent_exec_dir)
         c = self.cfg[self.kind]
         p = (
             (
-                "run",
-                # attach to stdin for writing
-                "--attach=stdin",
+                "create",
                 "--init",
-                # keeps stdin open so we can write to it
+                # keeps stdin, stdout, stderr open
                 "--interactive",
-                "--name={}".format(self._cname),
+                f"--name={self._cname}",
                 "--network=host",
                 "--rm",
                 "--ulimit=core=0",
-                "--ulimit=nofile={}".format(_MAX_OPEN_FILES),
-                # do not use a "name", but a uid, because /etc/password is image specific, but
-                # IDs are universal.
-                "--user={}".format(os.getuid()),
+                f"--ulimit=nofile={_MAX_OPEN_FILES}",
+                # do not use a "name", but a uid, because /etc/password is image specific,
+                # and we enforce uid's to be consistent in builds
+                f"--user={os.getuid()}",
             )
             + _constrain_resources(c)
             + _shm_size(c)
@@ -230,34 +215,21 @@ class DockerDriver(job_driver.DriverBase):
             + self._volumes()
             + (self._image,)
         )
-        self._cid = await self._cmd(p + cmd, stdin=stdin, env=env)
         self.driver_details.pkupdate(host=self.host.name)
-        pkdlog("{} cname={} cid={:.12}", self, self._cname, self._cid)
-
-    async def _cmd(self, cmd, stdin=subprocess.DEVNULL, env=None):
-        c = self.__hosts[self.host.name].cmd_prefix + cmd
-        pkdc("{} running: {}", self, " ".join(c))
-        try:
-            p = tornado.process.Subprocess(
-                c,
+        o, e = await _DockerCmd(cmd=p + cmd, driver=self).start()
+        if e:
+            raise RuntimeError(f"create error={e} cmd={p}")
+        self._cid = o
+        asyncio.create_task(
+            _DockerCmd(
+                cmd=("start", "--interactive", self._cid),
+                driver=self,
                 stdin=stdin,
-                stdout=tornado.process.Subprocess.STREAM,
-                stderr=subprocess.STDOUT,
-                env=env,
-            )
-        except Exception as e:
-            pkdlog("{} error={} cmd={} stack={}", self, e, c, pkdexc())
-        finally:
-            assert isinstance(stdin, io.BufferedRandom) or isinstance(
-                stdin, int
-            ), "type(stdin)={} expected io.BufferedRandom or int".format(type(stdin))
-            if isinstance(stdin, io.BufferedRandom):
-                stdin.close()
-        o = (await p.stdout.read_until_close()).decode("utf-8").rstrip()
-        r = await p.wait_for_exit(raise_error=False)
-        # TODO(e-carlin): more robust handling
-        assert r == 0, "{}: failed: exit={} output={}".format(c, r, o)
-        return o
+                log_output=True,
+                timeout=None,
+            ).start(),
+        )
+        pkdlog("{} cname={} cid={:.12}", self, self._cname, self._cid)
 
     # TODO(robnagler) probably should push this to pykern also in rsconf
     def _get_image(self):
@@ -298,10 +270,26 @@ class DockerDriver(job_driver.DriverBase):
 
     @classmethod
     def _init_hosts(cls, job_supervisor):
+        def _cmd_prefix(host, tls_d):
+            args = [
+                "docker",
+                # docker TLS port is hardwired
+                "--host=tcp://{}:2376".format(host),
+                "--tlsverify",
+            ]
+            # POSIT: rsconf.component.docker creates {cacert,cert,key}.pem
+            for x in "cacert", "cert", "key":
+                f = tls_d.join(x + ".pem")
+                assert f.check(), "tls file does not exist for host={} file={}".format(
+                    host, f
+                )
+                args.append("--tls{}={}".format(x, f))
+            return tuple(args)
+
         for h in cls.cfg.hosts:
             d = cls.cfg.tls_dir.join(h)
             x = cls.__hosts[h] = PKDict(
-                cmd_prefix=cls._cmd_prefix(h, d),
+                cmd_prefix=_cmd_prefix(h, d),
                 instances=PKDict({k: [] for k in job.KINDS}),
                 name=h,
                 cpu_slot_q=PKDict(
@@ -337,6 +325,120 @@ class DockerDriver(job_driver.DriverBase):
 
 
 CLASS = DockerDriver
+
+
+class _DockerCmd(PKDict):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.pksetdefault(
+            stdin=subprocess.DEVNULL,
+            timeout=_DOCKER_CMD_TIMEOUT,
+            log_output=False,
+        )
+        self.log_prefix = f"cmd={self.cmd[0]} cname={self.driver._cname}"
+        self.stdout = ""
+        self.stderr = ""
+        self.timer = None
+        self.return_code = None
+        self.timed_out = False
+        self.status_ready = asyncio.Event()
+        self.output_ready = PKDict(stdout=asyncio.Event(), stderr=asyncio.Event())
+
+    async def start(self):
+        def _callbacks():
+            f = self._log_output if self.log_output else self._read_output
+            asyncio.create_task(f("stdout"))
+            asyncio.create_task(f("stderr"))
+            self.proc.set_exit_callback(self._on_exit)
+            if self.timeout:
+                self.timer = tornado.ioloop.IOLoop.current().call_later(
+                    self.timeout, self._on_timeout
+                )
+
+        def _subprocess():
+            c = self.driver.docker_cmd_prefix() + self.cmd
+            pkdc("{} subprocess: {}", self.driver, " ".join(c))
+            try:
+                self.proc = tornado.process.Subprocess(
+                    c,
+                    stdin=self.stdin,
+                    stdout=tornado.process.Subprocess.STREAM,
+                    stderr=tornado.process.Subprocess.STREAM,
+                )
+            except Exception as e:
+                pkdlog(
+                    "{} Subprocess create error={} cmd={} stack={}", self.driver, e, c
+                )
+                return None, str(e)
+            finally:
+                if hasattr(self.stdin, "close"):
+                    self.stdin.close()
+
+        _subprocess()
+        _callbacks()
+        await self.status_ready.wait()
+        if self.timed_out:
+            # This should not happen so just be brutal
+            try:
+                self.proc.proc.kill()
+            except Exception:
+                pass
+            pkdlog(
+                "{} timedout stdout={} stderr={}",
+                self.log_prefix,
+                self.stdout,
+                self.stderr,
+            )
+            return None, (None if self.log_output else "error=subprocess timed out")
+        elif self.timer:
+            tornado.ioloop.IOLoop.current().remove_timeout(self.timer)
+        if self.log_output:
+            if self.return_code != 0:
+                pkdlog("{} non-zero exit={}", self.log_prefix, self.return_code)
+            return (None, None)
+        await self.output_ready.stderr.wait()
+        await self.output_ready.stdout.wait()
+        if self.return_code == 0:
+            return (self.stdout, self.stderr)
+        if self.stderr:
+            self.stderr += "\n"
+        return (self.stdout, self.stderr + f"non-zero exit{self.return_code}")
+
+    async def _log_output(self, which):
+        def _write(buf):
+            l = buf.splitlines()
+            rv = l.pop() if buf[-1] == "\n" else ""
+            for x in l:
+                pkdlog("{} {}", self.log_prefix, x)
+            return rv
+
+        s = getattr(self.proc, which)
+        b = ""
+        try:
+            while True:
+                b = _write(
+                    b + pkcompat.from_bytes(await s.read_bytes(1000, partial=True))
+                )
+        except tornado.iostream.StreamClosedError:
+            if b:
+                pkdlog("{} {}", self.log_prefix, b)
+        s.close()
+
+    def _on_exit(self, return_code):
+        self.return_code = return_code
+        pkdlog("{}", pkcompat.utcnow())
+        self.status_ready.set()
+
+    def _on_timeout(self):
+        self.timed_out = True
+        pkdlog("{}", pkcompat.utcnow())
+        self.status_ready.set()
+
+    async def _read_output(self, which):
+        self[which] = pkcompat.from_bytes(
+            await getattr(self.proc, which).read_until_close()
+        ).rstrip()
+        self.output_ready[which].set()
 
 
 def _cfg_gpus(value):
