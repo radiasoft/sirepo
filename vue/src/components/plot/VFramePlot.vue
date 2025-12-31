@@ -16,7 +16,7 @@
  import VLine from '@/components/plot/VLine.vue';
  import { appState } from '@/services/appstate.js';
  import { objectStore } from '@/services/objectstore.js';
- import { ref, onMounted } from 'vue';
+ import { ref, onMounted, onUnmounted } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
  import { schema } from '@/services/schema.js';
 
@@ -30,7 +30,6 @@
  const data = ref(null);
 
  const frameId = (frameReport, frameIndex) => {
-     const c = props.sim.computeModel;
      const v = [
          // POSIT: same as sirepo.sim_data._FRAME_ID_KEYS
          frameIndex,
@@ -40,10 +39,8 @@
          props.sim.computeJobHash,
          props.sim.computeJobSerial,
      ];
-     let m = appState.models
-     m = m[frameReport in m ? frameReport : c];
-     let f = schema.frameIdFields;
-     f = f[frameReport in f ? frameReport : c];
+     const m = appState.models[frameReport] || appState.models[props.sim.computeModel];
+     const f = schema.frameIdFields[frameReport] || schema.frameIdFields[props.sim.computeModel];
      if (! f) {
          throw new Error('frameReport=' + frameReport + ' missing from schema frameIdFields');
      }
@@ -51,25 +48,34 @@
      return v.concat(f.map(a => m[a])).join('*');
  };
 
- const load = async () => {
-     //TODO(pjm): check objectStore first
-     isLoading.value = true;
-
+ const load = () => {
      //TODO(pjm): track current index
      const index = 1
      const id = frameId(props.viewName, index);
-
-     const resp = await requestSender.sendRequest('simulationFrame', {
-         frame_id: id,
+     objectStore.getFrame(id, props.viewName, async (resp) => {
+         if (resp) {
+             data.value = () => resp;
+             return;
+         }
+         isLoading.value = true;
+         resp = await requestSender.sendRequest('simulationFrame', {
+             frame_id: id,
+         });
+         if (isLoading.value) {
+             isLoading.value = false;
+             //TODO(pjm): check for errors
+             objectStore.saveFrame(id, props.viewName, resp);
+             //TODO(pjm): only set data.value if load index matches currentIndex
+             data.value = () => resp;
+         }
      });
-     isLoading.value = false;
-     //TODO(pjm): check for errors
-     //TODO(pjm): save valid data to objectStore
-     //TODO(pjm): only set data.value if loaded index matches currentIndex
-     data.value = () => resp;
  };
 
  onMounted(() => {
      load();
+ });
+
+ onUnmounted(() => {
+     isLoading.value = false;
  });
 </script>
