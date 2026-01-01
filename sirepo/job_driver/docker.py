@@ -335,7 +335,7 @@ class _DockerCmd(PKDict):
             timeout=_DOCKER_CMD_TIMEOUT,
             log_output=False,
         )
-        self.log_prefix = f"cmd={self.cmd[0]} cname={self.driver._cname}"
+        self.error_prefix = f"cmd={self.cmd[0]} cname={self.driver._cname}"
         self.stdout = ""
         self.stderr = ""
         self.timer = None
@@ -385,7 +385,7 @@ class _DockerCmd(PKDict):
                 pass
             pkdlog(
                 "{} timedout stdout={} stderr={}",
-                self.log_prefix,
+                self.error_prefix,
                 self.stdout,
                 self.stderr,
             )
@@ -394,7 +394,7 @@ class _DockerCmd(PKDict):
             tornado.ioloop.IOLoop.current().remove_timeout(self.timer)
         if self.log_output:
             if self.return_code != 0:
-                pkdlog("{} non-zero exit={}", self.log_prefix, self.return_code)
+                pkdlog("{} non-zero exit={}", self.error_prefix, self.return_code)
             return (None, None)
         await self.output_ready.stderr.wait()
         await self.output_ready.stdout.wait()
@@ -409,7 +409,8 @@ class _DockerCmd(PKDict):
             l = buf.splitlines()
             rv = l.pop() if buf[-1] == "\n" else ""
             for x in l:
-                pkdlog("{} {}", self.log_prefix, x)
+                # Good enough for logging case, because only used with start
+                pkdlog("{} {}", self.driver._cname, x)
             return rv
 
         s = getattr(self.proc, which)
@@ -421,17 +422,15 @@ class _DockerCmd(PKDict):
                 )
         except tornado.iostream.StreamClosedError:
             if b:
-                pkdlog("{} {}", self.log_prefix, b)
+                pkdlog("{} {}", self.error_prefix, b)
         s.close()
 
     def _on_exit(self, return_code):
         self.return_code = return_code
-        pkdlog("{}", pkcompat.utcnow())
         self.status_ready.set()
 
     def _on_timeout(self):
         self.timed_out = True
-        pkdlog("{}", pkcompat.utcnow())
         self.status_ready.set()
 
     async def _read_output(self, which):
