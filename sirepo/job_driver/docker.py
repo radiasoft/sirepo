@@ -144,8 +144,7 @@ class DockerDriver(job_driver.DriverBase):
             ),
             driver=self,
         ).start()
-        if "No such container" not in e:
-            pkdlog("{} error={}", self, e)
+        # logging in _DockerCmd
 
     async def prepare_send(self, op):
         if op.op_name == job.OP_RUN:
@@ -218,7 +217,8 @@ class DockerDriver(job_driver.DriverBase):
         self.driver_details.pkupdate(host=self.host.name)
         o, e = await _DockerCmd(cmd=p + cmd, driver=self).start()
         if e:
-            raise RuntimeError(f"create error={e} cmd={p}")
+            # Logging in _DockerCmd
+            return
         self._cid = o
         asyncio.create_task(
             _DockerCmd(
@@ -356,19 +356,17 @@ class _DockerCmd(PKDict):
                 )
 
         def _subprocess():
-            c = self.driver.docker_cmd_prefix() + self.cmd
-            pkdc("{} subprocess: {}", self.driver, " ".join(c))
+            self.cmd = self.driver.docker_cmd_prefix() + self.cmd
+            pkdc("{} subprocess: {}", self.driver, " ".join(self.cmd))
             try:
                 self.proc = tornado.process.Subprocess(
-                    c,
+                    self.cmd,
                     stdin=self.stdin,
                     stdout=tornado.process.Subprocess.STREAM,
                     stderr=tornado.process.Subprocess.STREAM,
                 )
             except Exception as e:
-                pkdlog(
-                    "{} Subprocess create error={} cmd={} stack={}", self.driver, e, c
-                )
+                pkdlog("{} subprocess failed error={} cmd={}", self.error_prefix, e, self.cmd)
                 return None, str(e)
             finally:
                 if hasattr(self.stdin, "close"):
@@ -378,31 +376,27 @@ class _DockerCmd(PKDict):
         _callbacks()
         await self.status_ready.wait()
         if self.timed_out:
-            # This should not happen so just be brutal
+            # This should not happen so use SIGKILL for expediency
             try:
                 self.proc.proc.kill()
             except Exception:
                 pass
-            pkdlog(
-                "{} timedout stdout={} stderr={}",
-                self.error_prefix,
-                self.stdout,
-                self.stderr,
-            )
-            return None, (None if self.log_output else "error=subprocess timed out")
+            pkdlog("{} subprocess timed out cmd={}", self.error_prefix, self.cmd)
+            return None, "error=subprocess timed out"
         elif self.timer:
             tornado.ioloop.IOLoop.current().remove_timeout(self.timer)
+        e = "" if self.return_code == 0 else f"non-zero exit={self.return_code}"
         if self.log_output:
-            if self.return_code != 0:
-                pkdlog("{} non-zero exit={}", self.error_prefix, self.return_code)
-            return (None, None)
+            pkdlog("{} error={} cmd={}", self.error_prefix, e, self.cmd)
+            return (None, e)
         await self.output_ready.stderr.wait()
         await self.output_ready.stdout.wait()
         if self.return_code == 0:
-            return (self.stdout, self.stderr)
-        if self.stderr:
-            self.stderr += "\n"
-        return (self.stdout, self.stderr + f"non-zero exit{self.return_code}")
+            # Return None for zero exit
+            return (self.stdout, None)
+        if e:
+            pkdlog("{} error={} cmd={} stderr={}", self.error_prefix, e, self.cmd, self.stderr)
+        return (self.stdout, e)
 
     async def _log_output(self, which):
         def _write(buf):
