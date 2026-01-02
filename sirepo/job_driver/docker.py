@@ -366,7 +366,12 @@ class _DockerCmd(PKDict):
                     stderr=tornado.process.Subprocess.STREAM,
                 )
             except Exception as e:
-                pkdlog("{} subprocess failed error={} cmd={}", self.error_prefix, e, self.cmd)
+                pkdlog(
+                    "{} subprocess failed error={} cmd={}",
+                    self.error_prefix,
+                    e,
+                    self.cmd,
+                )
                 return None, str(e)
             finally:
                 if hasattr(self.stdin, "close"):
@@ -395,7 +400,13 @@ class _DockerCmd(PKDict):
             # Return None for zero exit
             return (self.stdout, None)
         if e:
-            pkdlog("{} error={} cmd={} stderr={}", self.error_prefix, e, self.cmd, self.stderr)
+            pkdlog(
+                "{} error={} cmd={} stderr={}",
+                self.error_prefix,
+                e,
+                self.cmd,
+                self.stderr,
+            )
         return (self.stdout, e)
 
     async def _log_output(self, which):
