@@ -11,6 +11,7 @@ from pykern.pkdebug import pkdc, pkdp
 from sirepo.template import template_common
 import copy
 import csv
+import numpy
 import re
 import sirepo.sim_data
 import sirepo.util
@@ -36,14 +37,14 @@ def background_percent_complete(report, run_dir, is_running):
             reports=[
                 PKDict(
                     modelName="activityAnimation",
-                    frameCount=1,
+                    frameCount=10,
                 ),
             ],
         )
     return res
 
 
-def report_from_csv(title, fields):
+def report_from_csv(title, fields, frame_index=1):
 
     def _csv_to_cols():
         with open(OUTPUT_NAME, "r") as f:
@@ -62,7 +63,9 @@ def report_from_csv(title, fields):
         return {
             "name": field,
             "label": _label(field),
-            "points": cols[field],
+            "points": (
+                numpy.array(cols[field]) * (1 + (frame_index - 1) * 0.1)
+            ).tolist(),
         }
 
     cols = _csv_to_cols()
@@ -83,6 +86,7 @@ def sim_frame_activityAnimation(frame_args):
     return report_from_csv(
         "Dog Activity Over Time",
         ("activity",),
+        frame_args.frameIndex,
     )
 
 
