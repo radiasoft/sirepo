@@ -8,7 +8,6 @@ export function useOverlay(svgGroup) {
     const clipped = svgGroup.append("g").attr("clip-path", `url(#${clipId})`);
     const overlay = svgGroup
         .append("rect")
-        .attr("class", "overlay")
         .attr("fill", "transparent");
 
     const update = (innerWidth, innerHeight, isZoomed) => {

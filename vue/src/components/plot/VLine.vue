@@ -1,8 +1,5 @@
 <template>
-    <div>
-        <div ref="container" class="chart-container">
-        </div>
-    </div>
+    <div ref="container" class="sr-chart-container"></div>
 </template>
 
 <script setup>
@@ -27,7 +24,7 @@
 
  function init() {
      d3.select(container.value).select("svg").remove();
-     svg = d3.select(container.value).append("svg");
+     svg = d3.select(container.value).append("svg").attr("class", "sr-plot");
      g = svg.append("g");
      overlay = useOverlay(g);
      //TODO(pjm): axes determin ticks based on size available
@@ -41,13 +38,11 @@
      });
      xLabel = g
        .append("text")
-       .attr("class", "x-label")
        .attr("text-anchor", "middle");
-     paths = props.data().plots.map((p) => overlay.clipped.append("path").attr("class", "line"));
+     paths = props.data().plots.map((p) => overlay.clipped.append("path").attr("class", "sr-line"));
      if (props.data().title) {
          title = svg.append("text")
-                    .attr("class", "x-label")
-                    .attr("text-anchor", "middle")
+                    .attr("class", "sr-main-title")
                     .text(props.data().title);
      }
  }
@@ -95,7 +90,7 @@
        .attr("x", innerWidth / 2)
        .attr("y", innerHeight + margin.bottom - 6)
        .text(props.data().x_label);
-     title.attr("x", (width + margin.left) / 2).attr("y", 12);
+     title.attr("x", (width + margin.left) / 2).attr("y", margin.top / 2);
      renderLines(x, y);
  }
 
@@ -140,51 +135,3 @@
      }
  });
 </script>
-
-//TODO(pjm): move style to global css and use sr prefix
-<style scoped>
- .chart-container {
-     width: 100%;
-     height: 420px;
-     background: #fff;
-     box-sizing: border-box;
- }
-
- /* D3 styling */
- :deep(.line) {
-     fill: none;
-     stroke-width: 2;
- }
-
- :deep(.grid line) {
-     stroke: #e6e6e6;
- }
-
- :deep(.grid path) {
-     stroke: none;
- }
-
- :deep(.x-axis path),
- :deep(.y-axis path),
- :deep(.x-axis line),
- :deep(.y-axis line) {
-     stroke: #bbb;
- }
-
- /* legend */
- :deep(.legend-bg) {
-     fill: rgba(255, 255, 255, 0.85);
-     stroke: #ddd;
- }
-
- :deep(.legend text) {
-     font-size: 12px;
-     fill: #333;
-     dominant-baseline: middle;
- }
-
- :deep(.legend-row line) {
-     stroke-width: 3;
-     stroke-linecap: round;
- }
-</style>

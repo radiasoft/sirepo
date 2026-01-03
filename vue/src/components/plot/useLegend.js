@@ -2,7 +2,7 @@
 import * as d3 from 'd3';
 
 export function useLegend(svgGroup) {
-    const legendEl = svgGroup.append("g").attr("class", "legend").node();
+    const legendEl = svgGroup.append("g").attr("class", "sr-legend").node();
     const rowHeight = 18;
     const padding = 8;
     const swatch = 12;
@@ -15,11 +15,11 @@ export function useLegend(svgGroup) {
         const g = d3.select(legendEl);
         g.selectAll("*").remove();
         const rows = g
-            .selectAll("g.legend-row")
+            .selectAll("g.sr-legend-row")
             .data(items)
             .enter()
             .append("g")
-            .attr("class", "legend-row")
+            .attr("class", "sr-legend-row")
             .attr("transform", (_, i) => `translate(${padding},${padding + i * rowHeight})`);
         rows
             .append("line")
@@ -35,7 +35,7 @@ export function useLegend(svgGroup) {
             .text((d) => d.label);
         const bg = g
             .insert("rect", ":first-child")
-            .attr("class", "legend-bg")
+            .attr("class", "sr-legend-bg")
             .attr("rx", 10)
             .attr("ry", 10);
         const bbox = legendEl.getBBox();

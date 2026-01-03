@@ -47,6 +47,14 @@ tr:hover .sr-button-bar-parent {
 .sr-panel-running .sr-panel-wait {
   font-weight: bold;
 }
+.sr-panel-error {
+  display: block;
+  position: absolute;
+  background-color: #eee;
+  padding: 5px 10px;
+  z-index: 1000;
+  border-radius: 10px;
+}
 input.sr-invalid, input.sr-invalid:focus {
   box-shadow: 0 0 0 0.25rem var(--bs-warning);
   border-color: var(--bs-form-invalid-border-color);
@@ -129,6 +137,49 @@ ul.sr-nav-sidebar-root {
   border-radius: 3px;
   width: 20px;
   height: 20px;
+}
+
+.sr-chart-container {
+  width: 100%;
+  height: 420px;
+  background: #fff;
+  box-sizing: border-box;
+}
+.sr-plot .sr-main-title {
+  font-size: 18px;
+  text-anchor: middle;
+}
+.sr-plot .sr-line {
+  fill: none;
+  stroke-width: 2;
+}
+.sr-plot .sr-grid line {
+  stroke: #e6e6e6;
+}
+.sr-plot .sr-grid path {
+  stroke: none;
+}
+.sr-plot .sr-x-axis path,
+.sr-plot .sr-y-axis path,
+.sr-plot .sr-x-axis line,
+.sr-plot .sr-y-axis line {
+  stroke: #bbb;
+}
+.sr-plot .sr-legend-bg {
+  fill: rgba(255, 255, 255, 0.85);
+  stroke: #ddd;
+}
+.sr-plot .sr-legend text {
+  font-size: 12px;
+  fill: #333;
+  dominant-baseline: middle;
+}
+.sr-plot .sr-legend-row line {
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.sr-plot .tick text {
+  font-size: 13px;
 }
 
 /* bootstrap css overrides */
