@@ -214,7 +214,11 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
                 {
                     "Neutron Source": "D-T" if material.is_neutron_source_dt else "D-D",
                     "Neutron Wall Loading": material.neutron_wall_loading,
-                    "Availability Factor": f"{material.availability_factor}%",
+                    "Availability Factor": (
+                        f"{material.availability_factor}%"
+                        if material.availability_factor
+                        else ""
+                    ),
                 }
             ),
             section3=PKDict(
