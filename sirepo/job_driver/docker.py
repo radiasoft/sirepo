@@ -51,7 +51,7 @@ class DockerDriver(job_driver.DriverBase):
             _user_dir=pkio.py_path(op.msg.userDir),
             host=host,
         )
-        host.instances[self.kind].append(self)
+        host.instances.append(self)
         self.cpu_slot_q = host.cpu_slot_q[self.kind]
         self.__users.setdefault(self.uid, PKDict())[self.kind] = self
         self._agent_exec_dir = self._user_dir.join(
@@ -62,7 +62,7 @@ class DockerDriver(job_driver.DriverBase):
         pkio.unchecked_remove(self._agent_exec_dir)
 
     def docker_cmd_prefix(self):
-        return self.__hosts[self.host.name].cmd_prefix
+        return self.__hosts[self.kind].cmd_prefix
 
     @classmethod
     def get_instance(cls, op):
@@ -75,10 +75,12 @@ class DockerDriver(job_driver.DriverBase):
             # jobs of different kinds for the same user need to go to the
             # same host. Ex. sequential analysis jobs for parallel compute
             # jobs need to go to the same host to avoid NFS caching problems
+todo this is a problem
+
             h = list(u.values())[0].host
         else:
             # least used host
-            h = min(cls.__hosts.values(), key=lambda h: len(h.instances[op.kind]))
+            h = min(cls.__hosts[op.kind].values(), key=lambda h: len(h.instances))
         return cls(op, h)
 
     @classmethod
@@ -101,13 +103,14 @@ class DockerDriver(job_driver.DriverBase):
                 "mount ~/.pyenv, ~/.local and ~/src for development",
             ),
             gpus=(None, _cfg_gpus, "enable gpus"),
-            hosts=pkconfig.RequiredUnlessDev(tuple(), tuple, "execution hosts"),
+            hosts=((), tuple, "parallel and sequential hosts"),
             idle_check_secs=pkconfig.ReplacedBy("sirepo.job_driver.idle_check_secs"),
             image=("radiasoft/sirepo", str, "docker image to run all jobs"),
             mpich_shm_clean_up=(False, bool, "mpich4 orphans shm; see sirepo#7741"),
             parallel=dict(
                 cores=(2, int, "cores per parallel job"),
                 gigabytes=(1, int, "gigabytes per parallel job"),
+                hosts=((), tuple, "parallel only hosts"),
                 shm_bytes=(
                     None,
                     pkconfig.parse_bytes,
@@ -117,6 +120,7 @@ class DockerDriver(job_driver.DriverBase):
             ),
             sequential=dict(
                 gigabytes=(1, int, "gigabytes per sequential job"),
+                hosts=((), tuple, "sequential only hosts"),
                 shm_bytes=(
                     None,
                     pkconfig.parse_bytes,
@@ -144,6 +148,8 @@ class DockerDriver(job_driver.DriverBase):
             ),
             driver=self,
         ).start()
+        self.host.instances.remove(self)
+        self.host = None
         # logging in _DockerCmd
 
     async def prepare_send(self, op):
@@ -280,28 +286,30 @@ class DockerDriver(job_driver.DriverBase):
             # POSIT: rsconf.component.docker creates {cacert,cert,key}.pem
             for x in "cacert", "cert", "key":
                 f = tls_d.join(x + ".pem")
-                assert f.check(), "tls file does not exist for host={} file={}".format(
-                    host, f
-                )
+                if not f.check():
+                    raise AssertionError(
+                        f"tls file does not exist for host={host} file={f}"
+                    )
                 args.append("--tls{}={}".format(x, f))
             return tuple(args)
 
-        for h in cls.cfg.hosts:
-            d = cls.cfg.tls_dir.join(h)
-            x = cls.__hosts[h] = PKDict(
-                cmd_prefix=_cmd_prefix(h, d),
-                instances=PKDict({k: [] for k in job.KINDS}),
-                name=h,
-                cpu_slot_q=PKDict(
-                    {
-                        k: job_supervisor.SlotQueue(cls.cfg[k].slots_per_host)
-                        for k in job.KINDS
-                    }
-                ),
+        def _host(host, slots_per_host):
+            return PKDict(
+                cmd_prefix=_cmd_prefix(host, cls.cfg.tls_dir.join(host)),
+                cpu_slot_q=job_supervisor.SlotQueue(slots_per_host),
+                instances=[],
+                name=host,
             )
-        assert len(cls.__hosts) > 0, "{}: no docker hosts found in directory".format(
-            cls.cfg.tls_d
-        )
+
+        for k in job.KINDS:
+            cls.__hosts[k] = PKDict(
+                {
+                    h: _host(h, cls.cfg[k].slots_per_host)
+                    for h in cls.cfg.hosts + cls.cfg[k].hosts
+                },
+            )
+            if len(cls.__hosts[k]) <= 0:
+                raise AssertionError(f"no {k} docker hosts for kind={k}")
 
     def _volumes(self):
         res = []
