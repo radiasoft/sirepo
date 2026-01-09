@@ -384,7 +384,7 @@ class _Supervisor(PKDict):
                         d.driverDetails = " | ".join(
                             sorted(i.db.driverDetails.values())
                         )
-                        d.activePlan = i.db.get.activePlan
+                        d.activePlan = i.db.activePlan
                     r.append(d)
             return r
 

@@ -219,14 +219,11 @@ class DockerDriver(job_driver.DriverBase):
 
     async def _do_agent_start(self, op):
         def _create():
-            return (
-                self.host.kinds[self.kind].create_prefix
-                + (
-                    # SECURITY: Must only mount the user's directory
-                    self._volume_arg(self._user_dir),
-                    f"--name={self._cname}",
-                    self._image,
-                )
+            return self.host.kinds[self.kind].create_prefix + (
+                # SECURITY: Must only mount the user's directory
+                self._volume_arg(self._user_dir),
+                f"--name={self._cname}",
+                self._image,
             )
 
         cmd, stdin, _ = self._agent_cmd_stdin_env(op, cwd=self._agent_exec_dir)

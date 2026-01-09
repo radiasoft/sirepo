@@ -41,6 +41,7 @@ _ROLE_PRECEDENCE = [
     sirepo.auth_role.ROLE_PLAN_TRIAL,
 ]
 
+
 class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_adm")
