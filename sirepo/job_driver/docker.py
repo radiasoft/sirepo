@@ -43,6 +43,7 @@ _ENTERPRISE_PLAN = sirepo.auth_role.ROLE_PLAN_ENTERPRISE
 # and we enforce uid's to be consistent in builds
 _PROCESS_USER_ID = os.getuid()
 
+
 class DockerDriver(job_driver.DriverBase):
     cfg = None
 
@@ -73,10 +74,12 @@ class DockerDriver(job_driver.DriverBase):
 
     @classmethod
     def get_instance(cls, op):
-        def _host():
-            if op.msg.activePlan == _ENTERPRISE_PLAN and (rv := self.__hosts[_ENTERPRISE_PLAN]):
+        def _hosts():
+            if op.msg.activePlan == _ENTERPRISE_PLAN and (
+                rv := cls.__hosts[_ENTERPRISE_PLAN].values()
+            ):
                 return rv
-            if rv := self.__hosts[_DEFAULT_PLAN]:
+            if rv := cls.__hosts[_DEFAULT_PLAN].values():
                 return rv
             raise AssertionError(f"no hosts for plan={op.msg.activePlan}")
 
@@ -92,13 +95,13 @@ class DockerDriver(job_driver.DriverBase):
             h = list(u.values())[0].host
         else:
             # least used host
-            h = min(_hosts(), key=lambda h: len(h.kinds[self.kind].instances))
+            h = min(_hosts(), key=lambda h: len(h.kinds[op.kind].instances))
         return cls(op, h)
 
     @classmethod
     def init_class(cls, job_supervisor):
         def _image():
-            rv = = cls.cfg.image
+            rv = cls.cfg.image
             return rv if ":" in rv else (rv + ":" + pkconfig.cfg.channel)
 
         def _plan_cfg(plan):
@@ -108,7 +111,6 @@ class DockerDriver(job_driver.DriverBase):
                     bool,
                     f"{plan} apply --cpus and --memory constraints",
                 ),
-                gpus=(None, _cfg_gpus, f"{plan} enable gpus"),
                 hosts=((), tuple, f"{plan} parallel and sequential hosts"),
                 parallel=PKDict(
                     cores=(
@@ -121,6 +123,7 @@ class DockerDriver(job_driver.DriverBase):
                         pkconfig.parse_positive_int,
                         f"{plan} gigabytes per parallel job",
                     ),
+                    gpus=(None, _cfg_gpus, f"{plan} enable gpus"),
                     shm_bytes=(
                         None,
                         pkconfig.parse_bytes,
@@ -216,18 +219,21 @@ class DockerDriver(job_driver.DriverBase):
 
     async def _do_agent_start(self, op):
         def _create():
-            return self.host.kinds[self.kind].create_prefix + (
-                # SECURITY: Must only mount the user's directory
-                self._volume_arg(self._user_dir),
-                f"--name={self._cname}",
-                self._image
+            return (
+                self.host.kinds[self.kind].create_prefix
+                + (
+                    # SECURITY: Must only mount the user's directory
+                    self._volume_arg(self._user_dir),
+                    f"--name={self._cname}",
+                    self._image,
+                )
             )
 
         cmd, stdin, _ = self._agent_cmd_stdin_env(op, cwd=self._agent_exec_dir)
         pkdlog("{} agent_exec_dir={}", self, self._agent_exec_dir)
         pkio.mkdir_parent(self._agent_exec_dir)
         self.driver_details.pkupdate(host=self.host.name)
-        o, e = await _DockerCmd(cmd=_create(), driver=self).start()
+        o, e = await _DockerCmd(cmd=_create() + cmd, driver=self).start()
         if e:
             # Logging in _DockerCmd
             return
@@ -279,7 +285,7 @@ class DockerDriver(job_driver.DriverBase):
             return PKDict(
                 cmd_prefix=_host_cmd_prefix(host, cls.cfg.tls_dir.join(host)),
                 name=host,
-                kinds=PKDict({k: _kind(k, plan_cfg[k]) for k in job.KINDS}),
+                kinds=PKDict({k: _kind(k, plan_cfg, plan_cfg[k]) for k in job.KINDS}),
             )
 
         def _host_cmd_prefix(host, tls_d):
@@ -299,69 +305,69 @@ class DockerDriver(job_driver.DriverBase):
                 args.append("--tls{}={}".format(x, f))
             return tuple(args)
 
-        def _kind(kind, kind_cfg):
+        def _kind(kind, plan_cfg, kind_cfg):
             return PKDict(
                 cpu_slot_q=job_supervisor.SlotQueue(kind_cfg.slots_per_host),
                 instances=[],
                 kind_cfg=kind_cfg,
-                create_prefix=_kind_create_prefix(kind_cfg),
+                create_prefix=_kind_create_prefix(plan_cfg, kind_cfg),
             )
 
-        def _kind_create_prefix(kind_cfg):
+        def _kind_create_prefix(plan_cfg, kind_cfg):
+            def _volumes():
+                rv = []
+                if cls.cfg.dev_volumes:
+                    # POSIT: radiasoft/download/installers/rpm-code/codes.sh
+                    #   these are all the local environ directories.
+                    for v in "~/src", "~/.pyenv", "~/.local":
+                        rv.append(cls._volume_arg(v, mode="ro"))
+                    for v in cls.cfg.aux_volumes:
+                        rv.append(cls._volume_arg(v))
+                return tuple(rv)
+
             rv = [
-                (
-                    "create",
-                    "--init",
-                    # keeps stdin, stdout, stderr open
-                    "--interactive",
-                    "--network=host",
-                    "--rm",
-                    "--ulimit=core=0",
-                    f"--ulimit=nofile={_MAX_OPEN_FILES}",
-                    f"--user={_PROCESS_USER_ID}",
-                )
+                "create",
+                "--init",
+                # keeps stdin, stdout, stderr open
+                "--interactive",
+                "--network=host",
+                "--rm",
+                "--ulimit=core=0",
+                f"--ulimit=nofile={_MAX_OPEN_FILES}",
+                f"--user={_PROCESS_USER_ID}",
             ]
-            if kind_cfg.constrain_resources:
-                rv.extend((f"--cpus={c.cores}", f"--memory={c.gigabytes}g"))
-            if kind_cfg.gpus:
-                rv.append(f"--gpus={kind_cfg.cfg.gpus}")
+            if plan_cfg.constrain_resources:
+                rv.extend(
+                    (
+                        f"--cpus={kind_cfg.get('cores', 1)}",
+                        f"--memory={kind_cfg.gigabytes}g",
+                    )
+                )
+            if g := kind_cfg.get("gpus"):
+                rv.append(f"--gpus={g}")
             if kind_cfg.shm_bytes:
                 rv.append(f"--shm-size={kind_cfg.shm_bytes}")
             rv.extend(_volumes())
             return tuple(rv)
 
-        def _overlap():
-            x = list(cls.__hosts.values())
-            return set(x[0]).intersection(set(x[1]))
-
         def _plan(hosts, plan_cfg):
             return PKDict({h: _host(h, plan_cfg) for h in plan_cfg.hosts})
 
-        def _volumes(self):
-            rv = []
-            if self.cfg.dev_volumes:
-                # POSIT: radiasoft/download/installers/rpm-code/codes.sh
-                #   these are all the local environ directories.
-                for v in "~/src", "~/.pyenv", "~/.local":
-                    rv.append(self._volume_arg(v, mode="ro"))
-                for v in self.cfg.aux_volumes:
-                    rv.append(self._volume_arg(v))
-            return tuple(rv)
-
-        both = []
+        x = PKDict()
         for p, c in (
             (_DEFAULT_PLAN, cls.cfg),
             (_ENTERPRISE_PLAN, cls.cfg.enterprise),
         ):
+            x[p] = set(c.hosts)
             if c.hosts:
                 cls.__hosts[p] = _plan(c.hosts, c)
-                both.append(cls.__hosts[p])
-        if len(both) == 0:
-            raise AssertionError("no enterprise or default docker hosts")
-        if len(set(both)) != len(both):
-            raise AssertionError("no enterprise and default hosts overlap={_overlap()}")
+        if len(x[_ENTERPRISE_PLAN]) + len(x[_DEFAULT_PLAN]) == 0:
+            raise AssertionError("no docker hosts")
+        if d := x[_ENTERPRISE_PLAN].intersection(x[_DEFAULT_PLAN]):
+            raise AssertionError("enterprise and default docker hosts overlap={d}")
 
-    def _volume_arg(vol, mode=None):
+    @classmethod
+    def _volume_arg(cls, vol, mode=None):
         v = pkio.py_path(vol)
         rv = f"--volume={v}:{v}"
         if mode:
