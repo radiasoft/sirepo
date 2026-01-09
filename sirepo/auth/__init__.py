@@ -260,6 +260,12 @@ class _Auth(sirepo.quest.Attr):
     def get_module(self, name):
         return _METHOD_MODULES[name]
 
+    def active_plan(self):
+        u = self.logged_in_user()
+        if rv := self.qcall.auth_db.model("UserRole").unchecked_active_plan(u):
+            return rv
+        raise AssertionError(f"user={u} has no active plans")
+
     def guest_uids(self):
         """All of the uids corresponding to guest users."""
         return self.qcall.auth_db.model("UserRegistration").search_all_for_column(
@@ -281,7 +287,10 @@ class _Auth(sirepo.quest.Attr):
 
     def is_premium_user(self):
         return self.qcall.auth_db.model("UserRole").has_active_role(
-            role=(sirepo.auth_role.ROLE_PLAN_PREMIUM, sirepo.auth_role.ROLE_PLAN_ENTERPRISE),
+            role=(
+                sirepo.auth_role.ROLE_PLAN_PREMIUM,
+                sirepo.auth_role.ROLE_PLAN_ENTERPRISE,
+            ),
             uid=self.logged_in_user(),
         )
 

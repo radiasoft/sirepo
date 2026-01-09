@@ -35,6 +35,9 @@ _MAX_OPEN_FILES = 1024
 #: All docker commands should be very fast, but set this high enough justify.
 _DOCKER_CMD_TIMEOUT = 10
 
+#: Not enterprise
+_DEFAULT_PLAN = "default"
+
 
 class DockerDriver(job_driver.DriverBase):
     cfg = None
@@ -61,11 +64,18 @@ class DockerDriver(job_driver.DriverBase):
         )
         pkio.unchecked_remove(self._agent_exec_dir)
 
-    def docker_cmd_prefix(self):
-        return self.__hosts[self.kind].cmd_prefix
-
     @classmethod
     def get_instance(cls, op):
+        def _host():
+            p = sirepo.auth_role.ROLE_PLAN_ENTERPRISE
+            if op.msg.activePlan == p and (rv := self.__hosts[p]):
+                return rv
+            if rv := self.__hosts[_DEFAULT_PLAN]:
+                return rv
+            raise AssertionError(f"no hosts for plan={op.msg.activePlan}"
+
+
+        cls.__hosts[op.kind].values(f)
         # SECURITY: must only return instances for authorized user
         u = cls.__users.get(op.msg.uid)
         if u:
@@ -74,11 +84,11 @@ class DockerDriver(job_driver.DriverBase):
                 return d
             # jobs of different kinds for the same user need to go to the
             # same host. Ex. sequential analysis jobs for parallel compute
-            # jobs need to go to the same host to avoid NFS caching problems
+            # jobs need to go to the same host to avoid NFS caching problems.
             h = list(u.values())[0].host
         else:
             # least used host
-            h = min(cls.__hosts[op.kind].values(), key=lambda h: len(h.instances))
+            h = min(_hosts(), key=lambda h: len(h.instances))
         return cls(op, h)
 
     @classmethod
@@ -105,33 +115,89 @@ class DockerDriver(job_driver.DriverBase):
             idle_check_secs=pkconfig.ReplacedBy("sirepo.job_driver.idle_check_secs"),
             image=("radiasoft/sirepo", str, "docker image to run all jobs"),
             mpich_shm_clean_up=(False, bool, "mpich4 orphans shm; see sirepo#7741"),
-            parallel=dict(
-                cores=(2, int, "cores per parallel job"),
-                gigabytes=(1, int, "gigabytes per parallel job"),
-                hosts=((), tuple, "parallel only hosts"),
+            parallel=PKDict(
+                cores=(2, pkconfig.parse_positive_int, "cores per parallel job"),
+                gigabytes=(
+                    1,
+                    pkconfig.parse_positive_int,
+                    "gigabytes per parallel job",
+                ),
                 shm_bytes=(
                     None,
                     pkconfig.parse_bytes,
                     "parallel shared memory size in bytes",
                 ),
-                slots_per_host=(1, int, "parallel slots per node"),
+                slots_per_host=(
+                    pkconfig.parse_positive_int,
+                    int,
+                    "parallel slots per node",
+                ),
             ),
-            sequential=dict(
-                gigabytes=(1, int, "gigabytes per sequential job"),
-                hosts=((), tuple, "sequential only hosts"),
+            sequential=PKDict(
+                gigabytes=(
+                    1,
+                    pkconfig.parse_positive_int,
+                    "gigabytes per sequential job",
+                ),
                 shm_bytes=(
                     None,
                     pkconfig.parse_bytes,
                     "sequential shared memory size in bytes",
                 ),
-                slots_per_host=(1, int, "sequential slots per node"),
+                slots_per_host=(
+                    1,
+                    pkconfig.parse_positive_int,
+                    "sequential slots per node",
+                ),
+            ),
+            enterprise=PKDict(
+                hosts=((), tuple, "enterprise parallel and sequential hosts"),
+                parallel=PKDict(
+                    cores=(
+                        2,
+                        pkconfig.parse_positive_int,
+                        "enterprise cores per parallel job",
+                    ),
+                    gigabytes=(
+                        1,
+                        pkconfig.parse_positive_int,
+                        "enterprise gigabytes per parallel job",
+                    ),
+                    shm_bytes=(
+                        None,
+                        pkconfig.parse_bytes,
+                        "enterprise parallel shared memory size in bytes",
+                    ),
+                    slots_per_host=(
+                        1,
+                        pkconfig.parse_positive_int,
+                        "enterprise parallel slots per node",
+                    ),
+                ),
+                sequential=PKDict(
+                    gigabytes=(
+                        1,
+                        pkconfig.parse_positive_int,
+                        "enterprise gigabytes per sequential job",
+                    ),
+                    shm_bytes=(
+                        None,
+                        pkconfig.parse_bytes,
+                        "enterprise sequential shared memory size in bytes",
+                    ),
+                    slots_per_host=(
+                        1,
+                        pkconfig.parse_positive_int,
+                        "enterprise sequential slots per node",
+                    ),
+                ),
             ),
             supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
             tls_dir=pkconfig.RequiredUnlessDev(
                 None, _cfg_tls_dir, "directory containing host certs"
             ),
         )
-        if not cls.cfg.tls_dir or not cls.cfg.hosts:
+        if not cls.cfg.tls_dir or not (cls.cfg.hosts or cls.enterprise.hosts):
             cls._init_dev_hosts()
         cls._init_hosts(job_supervisor)
         return cls
@@ -180,7 +246,7 @@ class DockerDriver(job_driver.DriverBase):
             if not self.cfg.constrain_resources:
                 return tuple()
             return (
-                "--cpus={}".format(cfg_kind.get("cores", 1)),
+                "--cpus={}".format(("cores", 1)),
                 "--memory={}g".format(cfg_kind.gigabytes),
             )
 
@@ -294,23 +360,31 @@ class DockerDriver(job_driver.DriverBase):
                 args.append("--tls{}={}".format(x, f))
             return tuple(args)
 
-        def _host(host, slots_per_host):
+        def _host(host, kind_cfg):
             return PKDict(
                 cmd_prefix=_cmd_prefix(host, cls.cfg.tls_dir.join(host)),
-                cpu_slot_q=job_supervisor.SlotQueue(slots_per_host),
+                cpu_slot_q=job_supervisor.SlotQueue(kind_cfg.slots_per_host),
+                kind_cfg=host_cfg,
                 instances=[],
                 name=host,
             )
 
-        for k in job.KINDS:
-            cls.__hosts[k] = PKDict(
+        def _plan(plan, hosts, plan_cfg):
+            return PKDict(
                 {
-                    h: _host(h, cls.cfg[k].slots_per_host)
-                    for h in cls.cfg.hosts + cls.cfg[k].hosts
-                },
+                    k: PKDict({h: _host(h, plan_cfg[k]) for h in plan_cfg.hosts})
+                    for k in job.KINDS
+                }
             )
-            if len(cls.__hosts[k]) <= 0:
-                raise AssertionError(f"no {k} docker hosts for kind={k}")
+
+        for p, c in (
+            (_DEFAULT_PLAN, cls.cfg),
+            (sirepo.auth_role.ROLE_PLAN_ENTERPRISE, cls.cfg.enterprise),
+        ):
+            if c.hosts:
+                cls.__hosts[p] = _plan(p, PKDict(), c)
+        if max(len(cls.__hosts.values())) == 0:
+            raise AssertionError("no enterprise or default docker hosts")
 
     def _volumes(self):
         res = []
@@ -365,7 +439,7 @@ class _DockerCmd(PKDict):
                 )
 
         def _subprocess():
-            self.cmd = self.driver.docker_cmd_prefix() + self.cmd
+            self.cmd = self.driver.host.cmd_prefix + self.cmd
             pkdc("{} subprocess: {}", self.driver, " ".join(self.cmd))
             try:
                 self.proc = tornado.process.Subprocess(

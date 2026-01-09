@@ -18,6 +18,7 @@ import enum
 import pykern.pkio
 import pykern.pkjson
 import re
+import sirepo.auth_role
 import sirepo.const
 import sirepo.global_resources
 import sirepo.quest
@@ -28,6 +29,9 @@ import sirepo.tornado
 import sirepo.util
 import tornado.ioloop
 
+_PARALLEL_PREMIUM_PLANS = PLAN_ROLES_PAID = frozenset(
+    (sirepo.auth_role.ROLE_PLAN_ENTERPRISE, sirepo.auth_role.ROLE_PLAN_PREMIUM)
+)
 #: where supervisor state is persisted to disk
 _DB_DIR = None
 
@@ -45,7 +49,7 @@ _HISTORY_FIELDS = frozenset(
         "error",
         "internalError",
         "isParallel",
-        "isPremiumUser",
+        "activePlan",
         "jobRunMode",
         "jobStatusMessage",
         "lastUpdateTime",
@@ -214,12 +218,6 @@ def init_module(**imports):
             pkconfig.parse_seconds,
             "time interval to clean up simulation runs of non-premium users, value of 0 means no checks are performed",
         ),
-        purge_non_paid_after_secs=pkconfig.ReplacedBy(
-            "sirepo.job_supervisor.run_dir_lifetime"
-        ),
-        purge_non_paid_task_secs=pkconfig.ReplacedBy(
-            "sirepo.job_supervisor.purge_check_interval"
-        ),
         run_dir_lifetime=(
             "1d",
             pkconfig.parse_seconds,
@@ -342,8 +340,8 @@ class _Supervisor(PKDict):
                     title="Driver details",
                     type="String",
                 )
-                h.isPremiumUser = PKDict(
-                    title="Premium user",
+                h.activePlan = PKDict(
+                    title="Plan",
                     type="String",
                 )
             return h
@@ -376,6 +374,7 @@ class _Supervisor(PKDict):
                     else:
                         d.uid = i.db.uid
                         d.displayName = (
+                            # TODO(robnagler) pull these out with a single query
                             qcall.auth_db.model("UserRegistration")
                             .search_by(uid=i.db.uid)
                             .display_name
@@ -385,7 +384,7 @@ class _Supervisor(PKDict):
                         d.driverDetails = " | ".join(
                             sorted(i.db.driverDetails.values())
                         )
-                        d.isPremiumUser = i.db.isPremiumUser
+                        d.activePlan = i.db.get.activePlan
                     r.append(d)
             return r
 
@@ -632,6 +631,7 @@ class _ComputeJob(_Supervisor):
                 req=PKDict(content=msg),
                 job_run_mode=self.db.jobRunMode,
                 uid=self.db.uid,
+                active_plan=self.db.active_plan,
             )
             if timed_out_op:
                 rv.driver = timed_out_op.driver
@@ -737,6 +737,7 @@ class _ComputeJob(_Supervisor):
     @classmethod
     def _db_init_new(cls, data, prev_db=None):
         db = PKDict(
+            activePlan=data.activePlan,
             alert=None,
             queueState="queued",
             canceledAfterSecs=None,
@@ -752,7 +753,6 @@ class _ComputeJob(_Supervisor):
             error=None,
             history=cls._db_init_history(prev_db),
             isParallel=data.isParallel,
-            isPremiumUser=data.get("isPremiumUser"),
             jobStatusMessage=None,
             lastUpdateTime=0,
             simName=None,
@@ -824,10 +824,12 @@ class _ComputeJob(_Supervisor):
                 return None
             raise
         d = pkjson.load_any(d)
+        if "activePlan" not in d:
+            d.activePlan = "premium" if d.get("isPremiumUser") else "basic"
         for k in [
             "alert",
+            "activePlan",
             "canceledAfterSecs",
-            "isPremiumUser",
             "jobStatusMessage",
             "internalError",
         ]:
@@ -1383,8 +1385,11 @@ class _Op(PKDict):
             sirepo.job.OP_IO,
         ):
             return _cfg.max_secs[self.op_name]
-        #TODO(robnagler) separate run-time for enterprise
-        if self.kind == job.PARALLEL and self.msg.get("isPremiumUser"):
+        # TODO(robnagler) separate run-time for enterprise
+        if (
+            self.kind == job.PARALLEL
+            and self.msg.get("activePlan") in _PARALLEL_PREMIUM_PLANS
+        ):
             return _cfg.max_secs["parallel_premium"]
         return _cfg.max_secs[self.kind]
 
