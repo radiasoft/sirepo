@@ -631,7 +631,7 @@ class _ComputeJob(_Supervisor):
                 req=PKDict(content=msg),
                 job_run_mode=self.db.jobRunMode,
                 uid=self.db.uid,
-                active_plan=self.db.active_plan,
+                activePlan=self.db.activePlan,
             )
             if timed_out_op:
                 rv.driver = timed_out_op.driver
