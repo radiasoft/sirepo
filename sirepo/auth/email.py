@@ -34,6 +34,12 @@ this_module = pkinspect.this_module()
 
 _cfg = None
 
+_ROLE_PRECEDENCE = [
+    sirepo.auth_role.ROLE_PLAN_ENTERPRISE,
+    sirepo.auth_role.ROLE_PLAN_PREMIUM,
+    sirepo.auth_role.ROLE_PLAN_BASIC,
+    sirepo.auth_role.ROLE_PLAN_TRIAL,
+]
 
 class API(sirepo.quest.API):
 
@@ -62,19 +68,14 @@ class API(sirepo.quest.API):
 
         def _get_user_roles():
             res = PKDict()
-            role_precedence = [
-                sirepo.auth_role.ROLE_PLAN_PREMIUM,
-                sirepo.auth_role.ROLE_PLAN_BASIC,
-                sirepo.auth_role.ROLE_PLAN_TRIAL,
-            ]
             for u in _users_from_db():
                 assert u["UserRole"].uid == u["UserRegistration"].uid
                 uid = u["UserRole"].uid
                 r = u["UserRole"].role
-                if r not in role_precedence or (
+                if r not in _ROLE_PRECEDENCE or (
                     uid in res
-                    and role_precedence.index(r)
-                    > role_precedence.index(res[uid]["UserRole"].role)
+                    and _ROLE_PRECEDENCE.index(r)
+                    > _ROLE_PRECEDENCE.index(res[uid]["UserRole"].role)
                 ):
                     continue
                 if not show_all:

@@ -13,10 +13,11 @@ import sirepo.feature_config
 
 ROLE_ADM = "adm"
 ROLE_PLAN_BASIC = "basic"
+ROLE_PLAN_ENTERPRISE = "enterprise"
 ROLE_PLAN_PREMIUM = "premium"
 ROLE_PLAN_TRIAL = "trial"
 ROLE_USER = "user"
-PLAN_ROLES_PAID = frozenset((ROLE_PLAN_BASIC, ROLE_PLAN_PREMIUM))
+PLAN_ROLES_PAID = frozenset((ROLE_PLAN_BASIC, ROLE_PLAN_ENTERPRISE, ROLE_PLAN_PREMIUM))
 PLAN_ROLES = PLAN_ROLES_PAID.union([ROLE_PLAN_TRIAL])
 _SIM_TYPE_ROLE_PREFIX = "sim_type_"
 
@@ -87,6 +88,7 @@ def _all():
             (
                 ROLE_ADM,
                 ROLE_PLAN_BASIC,
+                ROLE_PLAN_ENTERPRISE,
                 ROLE_PLAN_PREMIUM,
                 ROLE_PLAN_TRIAL,
                 ROLE_USER,

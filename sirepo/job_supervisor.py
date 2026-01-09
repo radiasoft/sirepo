@@ -214,10 +214,10 @@ def init_module(**imports):
             pkconfig.parse_seconds,
             "time interval to clean up simulation runs of non-premium users, value of 0 means no checks are performed",
         ),
-        purge_non_premium_after_secs=pkconfig.ReplacedBy(
+        purge_non_paid_after_secs=pkconfig.ReplacedBy(
             "sirepo.job_supervisor.run_dir_lifetime"
         ),
-        purge_non_premium_task_secs=pkconfig.ReplacedBy(
+        purge_non_paid_task_secs=pkconfig.ReplacedBy(
             "sirepo.job_supervisor.purge_check_interval"
         ),
         run_dir_lifetime=(
@@ -236,7 +236,7 @@ def init_module(**imports):
             job.SEQUENTIAL: 1,
         }
     )
-    _call_later(0, _ComputeJob.purge_non_premium)
+    _call_later(0, _ComputeJob.purge_non_paid)
 
 
 async def terminate():
@@ -532,7 +532,7 @@ class _ComputeJob(_Supervisor):
                 self._active_req_count -= 1
 
     @classmethod
-    async def purge_non_premium(cls):
+    async def purge_non_paid(cls):
         def _purge_job(jid, too_old, qcall):
             if jid in _ComputeJob.instances:
                 pkdlog(
@@ -600,7 +600,7 @@ class _ComputeJob(_Supervisor):
         except Exception as e:
             pkdlog("u={} j={} error={} stack={}", u, j, e, pkdexc())
         finally:
-            _call_later(_cfg.purge_check_interval, cls.purge_non_premium)
+            _call_later(_cfg.purge_check_interval, cls.purge_non_paid)
         pkdlog("done")
 
     def set_situation(self, op, situation, exception=None):
@@ -987,7 +987,7 @@ class _ComputeJob(_Supervisor):
                 # Read this first https://github.com/radiasoft/sirepo/issues/2007
                 r = await self._receive_api_runStatus(req)
                 if r.state == job.MISSING:
-                    # happens when the run dir is deleted (ex purge_non_premium)
+                    # happens when the run dir is deleted (ex purge_non_paid)
                     if recursing:
                         raise AssertionError(f"already called from self req={req}")
                     # Rerun the simulation, since there's no "button" in the UI for
@@ -1383,6 +1383,7 @@ class _Op(PKDict):
             sirepo.job.OP_IO,
         ):
             return _cfg.max_secs[self.op_name]
+        #TODO(robnagler) separate run-time for enterprise
         if self.kind == job.PARALLEL and self.msg.get("isPremiumUser"):
             return _cfg.max_secs["parallel_premium"]
         return _cfg.max_secs[self.kind]

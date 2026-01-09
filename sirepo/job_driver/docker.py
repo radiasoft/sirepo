@@ -75,8 +75,6 @@ class DockerDriver(job_driver.DriverBase):
             # jobs of different kinds for the same user need to go to the
             # same host. Ex. sequential analysis jobs for parallel compute
             # jobs need to go to the same host to avoid NFS caching problems
-todo this is a problem
-
             h = list(u.values())[0].host
         else:
             # least used host
@@ -149,6 +147,9 @@ todo this is a problem
             driver=self,
         ).start()
         self.host.instances.remove(self)
+        self.__users[self.uid].pkdel(self.kind)
+        if not self.__users[self.uid]:
+            self.__users.pkdel(self.uid)
         self.host = None
         # logging in _DockerCmd
 
