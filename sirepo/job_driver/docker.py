@@ -35,9 +35,13 @@ _MAX_OPEN_FILES = 1024
 #: All docker commands should be very fast, but set this high enough justify.
 _DOCKER_CMD_TIMEOUT = 10
 
-#: Not enterprise
+#: Enterprise is the only special plan so just say default. Not sent to user, just for log msgs
 _DEFAULT_PLAN = "default"
+_ENTERPRISE_PLAN = sirepo.auth_role.ROLE_PLAN_ENTERPRISE
 
+# do not use a "name", but a uid, because /etc/password is image specific,
+# and we enforce uid's to be consistent in builds
+_PROCESS_USER_ID = os.getuid()
 
 class DockerDriver(job_driver.DriverBase):
     cfg = None
@@ -51,17 +55,9 @@ class DockerDriver(job_driver.DriverBase):
             # POSIT: matches _CNAME_RE
             return _CNAME_SEP.join([_CNAME_PREFIX, self.kind[0], self.uid])
 
-        # TODO(robnagler) probably should push this to pykern also in rsconf
-        def _get_image():
-            res = self.cfg.image
-            if ":" in res:
-                return res
-            return res + ":" + pkconfig.cfg.channel
-
         super().__init__(op)
         self.update(
             _cname=_cname_join(),
-            _image=_get_image(),
             _user_dir=pkio.py_path(op.msg.userDir),
             host=host,
         )
@@ -78,8 +74,7 @@ class DockerDriver(job_driver.DriverBase):
     @classmethod
     def get_instance(cls, op):
         def _host():
-            p = sirepo.auth_role.ROLE_PLAN_ENTERPRISE
-            if op.msg.activePlan == p and (rv := self.__hosts[p]):
+            if op.msg.activePlan == _ENTERPRISE_PLAN and (rv := self.__hosts[_ENTERPRISE_PLAN]):
                 return rv
             if rv := self.__hosts[_DEFAULT_PLAN]:
                 return rv
@@ -102,6 +97,10 @@ class DockerDriver(job_driver.DriverBase):
 
     @classmethod
     def init_class(cls, job_supervisor):
+        def _image():
+            rv = = cls.cfg.image
+            return rv if ":" in rv else (rv + ":" + pkconfig.cfg.channel)
+
         def _plan_cfg(plan):
             return PKDict(
                 constrain_resources=(
@@ -168,18 +167,19 @@ class DockerDriver(job_driver.DriverBase):
                 bool,
                 "mount ~/.pyenv, ~/.local and ~/src for development",
             ),
-            enterpise=_plan_cfg("enterprise"),
+            enterprise=_plan_cfg(_ENTERPRISE_PLAN),
             image=("radiasoft/sirepo", str, "docker image to run all jobs"),
             mpich_shm_clean_up=(False, bool, "mpich4 orphans shm; see sirepo#7741"),
             supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
             tls_dir=pkconfig.RequiredUnlessDev(
                 None, _cfg_tls_dir, "directory containing host certs"
             ),
-        ).pkupdate(_plan_cfg("default"))
+        ).pkupdate(_plan_cfg(_DEFAULT_PLAN))
         cls.cfg = pkconfig.init(**b)
         if not cls.cfg.tls_dir or not (cls.cfg.hosts or cls.enterprise.hosts):
             cls._init_dev_hosts()
         cls._init_hosts(job_supervisor)
+        cls._image = _image()
         return cls
 
     async def kill(self):
@@ -215,13 +215,19 @@ class DockerDriver(job_driver.DriverBase):
         )
 
     async def _do_agent_start(self, op):
+        def _create():
+            return self.host.kinds[self.kind].create_prefix + (
+                # SECURITY: Must only mount the user's directory
+                self._volume_arg(self._user_dir),
+                f"--name={self._cname}",
+                self._image
+            )
+
         cmd, stdin, _ = self._agent_cmd_stdin_env(op, cwd=self._agent_exec_dir)
         pkdlog("{} agent_exec_dir={}", self, self._agent_exec_dir)
         pkio.mkdir_parent(self._agent_exec_dir)
         self.driver_details.pkupdate(host=self.host.name)
-        o, e = await _DockerCmd(
-            cmd=self.host.kinds[self.kind].create_prefix + cmd, driver=self
-        ).start()
+        o, e = await _DockerCmd(cmd=_create(), driver=self).start()
         if e:
             # Logging in _DockerCmd
             return
@@ -273,7 +279,7 @@ class DockerDriver(job_driver.DriverBase):
             return PKDict(
                 cmd_prefix=_host_cmd_prefix(host, cls.cfg.tls_dir.join(host)),
                 name=host,
-                kinds=PKDict({k: _kind(k, plan_cfg[k])}),
+                kinds=PKDict({k: _kind(k, plan_cfg[k]) for k in job.KINDS}),
             )
 
         def _host_cmd_prefix(host, tls_d):
@@ -308,14 +314,11 @@ class DockerDriver(job_driver.DriverBase):
                     "--init",
                     # keeps stdin, stdout, stderr open
                     "--interactive",
-                    f"--name={self._cname}",
                     "--network=host",
                     "--rm",
                     "--ulimit=core=0",
                     f"--ulimit=nofile={_MAX_OPEN_FILES}",
-                    # do not use a "name", but a uid, because /etc/password is image specific,
-                    # and we enforce uid's to be consistent in builds
-                    f"--user={os.getuid()}",
+                    f"--user={_PROCESS_USER_ID}",
                 )
             ]
             if kind_cfg.constrain_resources:
@@ -324,8 +327,7 @@ class DockerDriver(job_driver.DriverBase):
                 rv.append(f"--gpus={kind_cfg.cfg.gpus}")
             if kind_cfg.shm_bytes:
                 rv.append(f"--shm-size={kind_cfg.shm_bytes}")
-            rv.extend(self._volumes())
-            rv.append(self._image)
+            rv.extend(_volumes())
             return tuple(rv)
 
         def _overlap():
@@ -333,36 +335,23 @@ class DockerDriver(job_driver.DriverBase):
             return set(x[0]).intersection(set(x[1]))
 
         def _plan(hosts, plan_cfg):
-            return PKDict(
-                {h: PKDict({h: _host(h, plan_cfg[k]) for h in plan_cfg.hosts})}
-            )
+            return PKDict({h: _host(h, plan_cfg) for h in plan_cfg.hosts})
 
         def _volumes(self):
-            res = []
-
-            def _res(vol, mode=None):
-                nonlocal res
-
-                t = s = pkio.py_path(vol)
-                if mode:
-                    t += f":{mode}"
-                res.append(f"--volume={s}:{t}")
-
+            rv = []
             if self.cfg.dev_volumes:
                 # POSIT: radiasoft/download/installers/rpm-code/codes.sh
                 #   these are all the local environ directories.
                 for v in "~/src", "~/.pyenv", "~/.local":
-                    _res(v, mode="ro")
+                    rv.append(self._volume_arg(v, mode="ro"))
                 for v in self.cfg.aux_volumes:
-                    _res(v)
-            # SECURITY: Must only mount the user's directory
-            _res(self._user_dir)
-            return tuple(res)
+                    rv.append(self._volume_arg(v))
+            return tuple(rv)
 
         both = []
         for p, c in (
             (_DEFAULT_PLAN, cls.cfg),
-            (sirepo.auth_role.ROLE_PLAN_ENTERPRISE, cls.cfg.enterprise),
+            (_ENTERPRISE_PLAN, cls.cfg.enterprise),
         ):
             if c.hosts:
                 cls.__hosts[p] = _plan(c.hosts, c)
@@ -371,6 +360,13 @@ class DockerDriver(job_driver.DriverBase):
             raise AssertionError("no enterprise or default docker hosts")
         if len(set(both)) != len(both):
             raise AssertionError("no enterprise and default hosts overlap={_overlap()}")
+
+    def _volume_arg(vol, mode=None):
+        v = pkio.py_path(vol)
+        rv = f"--volume={v}:{v}"
+        if mode:
+            rv += f":{mode}"
+        return rv
 
 
 CLASS = DockerDriver
