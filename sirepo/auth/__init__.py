@@ -47,10 +47,12 @@ _COOKIE_USER = "srau"
 
 _GUEST_USER_DISPLAY_NAME = "Guest User"
 
-_PAYMENT_PLAN_BASIC = "basic"
+_PAYMENT_PLAN_BASIC = sirepo.auth_role.ROLE_PLAN_BASIC
+_PAYMENT_PLAN_ENTERPRISE = sirepo.auth_role.ROLE_PLAN_ENTERPRISE
 _PAYMENT_PLAN_PREMIUM = sirepo.auth_role.ROLE_PLAN_PREMIUM
 _ALL_PAYMENT_PLANS = (
     _PAYMENT_PLAN_BASIC,
+    _PAYMENT_PLAN_ENTERPRISE,
     _PAYMENT_PLAN_PREMIUM,
 )
 
@@ -258,6 +260,12 @@ class _Auth(sirepo.quest.Attr):
     def get_module(self, name):
         return _METHOD_MODULES[name]
 
+    def active_plan(self, uid):
+        u = self.logged_in_user()
+        if rv := self.qcall.auth_db.model("UserRole").unchecked_active_plan(uid=u):
+            return rv.role
+        raise AssertionError(f"user={u} has no active plans")
+
     def guest_uids(self):
         """All of the uids corresponding to guest users."""
         return self.qcall.auth_db.model("UserRegistration").search_all_for_column(
@@ -279,7 +287,10 @@ class _Auth(sirepo.quest.Attr):
 
     def is_premium_user(self):
         return self.qcall.auth_db.model("UserRole").has_active_role(
-            role=sirepo.auth_role.ROLE_PLAN_PREMIUM,
+            role=(
+                sirepo.auth_role.ROLE_PLAN_PREMIUM,
+                sirepo.auth_role.ROLE_PLAN_ENTERPRISE,
+            ),
             uid=self.logged_in_user(),
         )
 
@@ -797,9 +808,12 @@ class _Auth(sirepo.quest.Attr):
 
     def _plan(self, data):
         r = data.roles
-        if sirepo.auth_role.ROLE_PLAN_PREMIUM in r:
-            data.paymentPlan = _PAYMENT_PLAN_PREMIUM
+        if sirepo.auth_role.ROLE_PLAN_ENTERPRISE in r:
+            data.paymentPlan = _PAYMENT_PLAN_ENTERPRISE
             data.upgradeToPlan = None
+        elif sirepo.auth_role.ROLE_PLAN_PREMIUM in r:
+            data.paymentPlan = _PAYMENT_PLAN_PREMIUM
+            data.upgradeToPlan = _PAYMENT_PLAN_ENTERPRISE
         else:
             data.paymentPlan = _PAYMENT_PLAN_BASIC
             data.upgradeToPlan = _PAYMENT_PLAN_PREMIUM

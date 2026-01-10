@@ -84,19 +84,7 @@ class UserRole(sirepo.auth_db.UserDbBase):
         ]
 
     def has_active_plan(self, uid):
-        cls = self.__class__
-        return bool(
-            self.query()
-            .filter(
-                cls.role.in_(sirepo.auth_role.PLAN_ROLES),
-                cls.uid == uid,
-                sqlalchemy.or_(
-                    cls.expiration.is_(None),
-                    cls.expiration > sirepo.srtime.utc_now(),
-                ),
-            )
-            .first()
-        )
+        return bool(self.unchecked_active_plan(uid))
 
     def has_active_role(self, role, uid):
         r = self._has_role(role, uid)
@@ -128,6 +116,21 @@ class UserRole(sirepo.auth_db.UserDbBase):
             .distinct()
             .all()
         ]
+
+    def unchecked_active_plan(self, uid):
+        cls = self.__class__
+        return (
+            self.query()
+            .filter(
+                cls.role.in_(sirepo.auth_role.PLAN_ROLES),
+                cls.uid == uid,
+                sqlalchemy.or_(
+                    cls.expiration.is_(None),
+                    cls.expiration > sirepo.srtime.utc_now(),
+                ),
+            )
+            .first()
+        )
 
     def _has_role(self, role, uid):
         return self.unchecked_search_by(uid=uid, role=role)

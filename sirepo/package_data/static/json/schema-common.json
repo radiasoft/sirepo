@@ -177,6 +177,7 @@
             "authStateRoles": [
                 "adm",
                 "basic",
+                "enterprise",
                 "premium",
                 "trial"
             ],
@@ -191,7 +192,8 @@
             "oneDayMillis": 86400000,
             "paymentPlans": {
                 "basic": "Sirepo Basic",
-                "premium": "Sirepo Professional"
+                "premium": "Sirepo Professional",
+                "enterprise": "Sirepo Enterprise"
             },
             "plansUrl": "/plans",
             "simulationSourceExtension": "py"
