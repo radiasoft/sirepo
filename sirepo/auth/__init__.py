@@ -263,7 +263,7 @@ class _Auth(sirepo.quest.Attr):
     def active_plan(self, uid):
         u = self.logged_in_user()
         if rv := self.qcall.auth_db.model("UserRole").unchecked_active_plan(uid=u):
-            return rv
+            return rv.role
         raise AssertionError(f"user={u} has no active plans")
 
     def guest_uids(self):

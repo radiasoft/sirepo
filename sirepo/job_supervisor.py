@@ -1390,7 +1390,7 @@ class _Op(PKDict):
             self.kind == job.PARALLEL
             and self.msg.get("activePlan") in _PARALLEL_PREMIUM_PLANS
         ):
-            return _cfg.max_secs["parallel_premium"]
+            return _cfg.max_secs.parallel_premium
         return _cfg.max_secs[self.kind]
 
     def __hash__(self):

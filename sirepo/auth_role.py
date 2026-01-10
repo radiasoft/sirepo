@@ -57,12 +57,13 @@ def for_moderated_sim_types():
 def for_new_user(auth_method):
     from sirepo import auth
 
-    if pkconfig.in_dev_mode:
-        if auth_method == auth.METHOD_GUEST:
-            return _all()
-        if auth_method != auth.METHOD_EMAIL and pkunit.is_test_run():
-            return _all() - _ADM_SET
     rv = _FOR_NEW_USER
+    if pkconfig.in_dev_mode:
+        rv = rv.union([ROLE_PLAN_PREMIUM])
+        if auth_method == auth.METHOD_GUEST:
+            return rv.union([ROLE_ADM])
+        if auth_method != auth.METHOD_EMAIL and pkunit.is_test_run():
+            return rv
     if not sirepo.feature_config.have_payments():
         return rv.union([ROLE_PLAN_PREMIUM])
     return rv
