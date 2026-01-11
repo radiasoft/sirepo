@@ -789,6 +789,7 @@ def _generate_parameters_file(data, run_dir=None, qcall=None):
     v.materials = _generate_materials(data, errors)
     v.sources = _generate_sources(data, errors, qcall)
     v.sourceFile = _source_filename(data)
+    v.materialLibraries = _generate_material_library_selection(data)
     v.maxSampleSourceParticles = SCHEMA.model.openmcAnimation.numSampleSourceParticles[
         5
     ]
@@ -820,6 +821,14 @@ def _generate_energy_range(filter):
         start = numpy.log10(start)
         stop = numpy.log10(stop)
     return "numpy.{}({}, {}, {})".format(space, start, stop, filter.num)
+
+
+def _generate_material_library_selection(data):
+    res = [data.models.settings.materialLibrary]
+    for e in SCHEMA.enum.MaterialLibrary:
+        if res[0] != e[0]:
+            res.append(e[0])
+    return ", ".join([f'"{v}"' for v in res])
 
 
 def _generate_run_mode(data, v):
