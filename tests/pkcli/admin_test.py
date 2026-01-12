@@ -22,19 +22,19 @@ def setup_module(module):
 
 def test_create_user():
     from pykern import pkunit
+    from sirepo import srtime
     from sirepo.pkcli import admin, roles
 
     _init_db()
     pkunit.pkok(admin.create_user("a@a.a", "a"), "unable to create user")
     pkunit.pkok(admin.create_user("b@a.a", "b", plan="trial"), "unable to create user")
-    pkunit.pkeq(
-        [
-            {"role": "premium", "expiration": None},
-            {"role": "trial", "expiration": None},
-            {"role": "user", "expiration": None},
-        ],
-        roles.list_with_expiration("b@a.a"),
-    )
+    for r in roles.list_with_expiration("b@a.a"):
+        if r.role == "premium":
+            pkunit.pkeq(True, r.expiration < srtime.utc_now())
+    pkunit.pkeq(["premium", "trial", "user"], roles.list("b@a.a"))
+    # should not crash
+    roles.add("b@a.a", "user")
+    roles.add_plan("b@a.a", "trial", expiration=1)
 
 
 def test_delete_user():
