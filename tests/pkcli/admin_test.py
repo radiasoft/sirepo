@@ -36,6 +36,9 @@ def test_create_user():
     roles.add("b@a.a", "user")
     roles.add_plan("b@a.a", "trial", expiration=1)
 
+    with pkunit.pkexcept("use add-plan command"):
+        roles.add("b@a.a", "premium", expiration=1)
+
 
 def test_delete_user():
     from pykern import pkunit
