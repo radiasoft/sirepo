@@ -26,6 +26,7 @@ class LibAdapterBase:
         self._sim_data, _, self._schema = sirepo.sim_data.template_globals(m.SIM_TYPE)
         self._code_var = m.code_var
         self._ignore_files = ignore_files if ignore_files else []
+        self._verified_files = set()
         self._update_filenames = update_filenames
 
     def _convert(self, data):
@@ -72,6 +73,9 @@ class LibAdapterBase:
             if f in self._ignore_files:
                 continue
             p = path.dirpath().join(f)
+            if p in self._verified_files:
+                continue
+            self._verified_files.add(p)
             assert p.check(file=True), f"file={f} missing"
 
     def _write_input_files(self, data, source_path, dest_dir):
