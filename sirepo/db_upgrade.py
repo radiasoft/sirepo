@@ -129,6 +129,8 @@ def _20251030_update_cortex_db(qcall):
 
 def _20260112_audit_roles(qcall):
     def _user_plans(uid):
+        nonlocal priority
+
         if not m.has_active_plan(uid):
             return []
         p = []
