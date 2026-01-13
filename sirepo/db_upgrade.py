@@ -127,6 +127,30 @@ def _20251030_update_cortex_db(qcall):
     material_db.db_upgrade()
 
 
+def _20260112_audit_roles(qcall):
+    def _user_plans(uid):
+        nonlocal priority
+
+        if not m.has_active_plan(uid):
+            return []
+        p = []
+        for r in priority:
+            if m.has_active_role(r, uid):
+                p.append(r)
+        return p
+
+    m = qcall.auth_db.model("UserRole")
+    priority = [
+        getattr(sirepo.auth_role, f"ROLE_PLAN_{x}")
+        for x in ("ENTERPRISE", "PREMIUM", "BASIC", "TRIAL")
+    ]
+    for u in qcall.auth_db.all_uids():
+        p = _user_plans(u)
+        while len(p) > 1:
+            pkdlog("expire plan: {} for user: {}", p[-1], u)
+            m.expire_role(p.pop(), u)
+
+
 @contextlib.contextmanager
 def _backup_db_and_prevent_upgrade_on_error():
     b = sirepo.auth_db.db_filename() + ".bak"

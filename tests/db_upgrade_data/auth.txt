@@ -12,6 +12,7 @@ INSERT INTO db_upgrade_t VALUES('_20240507_cloudmc_to_openmc','');
 INSERT INTO db_upgrade_t VALUES('_20240524_add_role_user','');
 INSERT INTO db_upgrade_t VALUES('_20250114_add_role_plan_trial','');
 INSERT INTO db_upgrade_t VALUES('_20251030_update_cortex_db','');
+INSERT INTO db_upgrade_t VALUES('_20260112_audit_roles','');
 CREATE TABLE auth_email_user_t (
 	unverified_email VARCHAR(255) NOT NULL,
 	uid VARCHAR(8),
