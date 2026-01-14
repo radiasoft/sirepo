@@ -16,6 +16,7 @@ import pykern.pkjson
 import pykern.sql_db
 import re
 import requests
+import sirepo.template.template_common
 import sqlalchemy
 
 _CENTURY = 100.0 * 365 * 24 * 60 * 60
@@ -76,6 +77,10 @@ def export_tea(db_file):
     m = _populate_materials(_dump_sqlalchemy(uri))
     return f"""# Generated on {datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")}
 MATERIALS = {_json_to_python(pykern.pkjson.dump_pretty(m))}"""
+
+
+def run_background(cfg_dir):
+    sirepo.template.template_common.exec_parameters()
 
 
 def _convert_ao_to_wo(materials):

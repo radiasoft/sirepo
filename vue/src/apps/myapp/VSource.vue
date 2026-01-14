@@ -7,7 +7,7 @@
         </VCol>
         <VCol>
             <VCard viewName="heightWeightReport">
-                <VPlot viewName="heightWeightReport"></VPlot>
+                <VPlot modelName="heightWeightReport"></VPlot>
             </VCard>
         </VCol>
         <VCol>
@@ -17,7 +17,7 @@
         </VCol>
         <VCol v-for="report in sim.reports"">
             <VCard v-bind:viewName="report.modelName">
-                <VFramePlot v-bind:sim="sim" v-bind:viewName="report.modelName"></VFramePlot>
+                <VFramePlot v-bind:sim="sim" v-bind:modelName="report.modelName"></VFramePlot>
             </VCard>
         </VCol>
     </VMasonry>

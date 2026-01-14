@@ -53,6 +53,9 @@
      viewName: String,
  });
 
+ if (! schema.view[props.viewName]) {
+     throw new Error(`Missing schema entry for ${props.viewName}`);
+ }
  const canEdit = schema.view[props.viewName].advanced.length > 0;
  const cardStyle = ref({});
  const hidden = ref(false);

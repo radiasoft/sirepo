@@ -90,7 +90,9 @@
        .attr("x", innerWidth / 2)
        .attr("y", innerHeight + margin.bottom - 6)
        .text(props.data().x_label);
-     title.attr("x", (width + margin.left) / 2).attr("y", margin.top / 2);
+     if (title) {
+         title.attr("x", (width + margin.left) / 2).attr("y", margin.top / 2);
+     }
      renderLines(x, y);
  }
 

@@ -32,7 +32,7 @@
  import { schema } from '@/services/schema.js';
 
  const props = defineProps({
-     viewName: String,
+     modelName: String,
      sim: Object,
  });
 
@@ -56,7 +56,7 @@
      const m = appState.models[frameReport] || appState.models[props.sim.computeModel];
      const f = schema.frameIdFields[frameReport] || schema.frameIdFields[props.sim.computeModel];
      if (! f) {
-         throw new Error('frameReport=' + frameReport + ' missing from schema frameIdFields');
+         throw new Error(`frameReport=${frameReport} missing from schema frameIdFields`);
      }
      // POSIT: same as sirepo.sim_data._FRAME_ID_SEP
      return v.concat(f.map(a => m[a])).join('*');
@@ -64,9 +64,9 @@
 
  const load = () => {
      const i = frameIndex;
-     const id = frameId(props.viewName);
+     const id = frameId(props.modelName);
      errorMessage.value = "";
-     objectStore.getFrame(id, props.viewName, async (resp) => {
+     objectStore.getFrame(id, props.modelName, async (resp) => {
          if (resp) {
              data.value = () => resp;
              return;
@@ -84,7 +84,7 @@
              errorMessage.value = resp.error;
          }
          else {
-             objectStore.saveFrame(id, props.viewName, resp);
+             objectStore.saveFrame(id, props.modelName, resp);
              if (i == frameIndex) {
                  data.value = () => resp;
              }
@@ -112,7 +112,7 @@
  onMounted(() => {
      const getFrameCount = () => {
          for (let r of props.sim.reports) {
-             if (r.modelName == props.viewName) {
+             if (r.modelName == props.modelName) {
                  return r.frameCount;
              }
          }

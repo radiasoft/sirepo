@@ -20,7 +20,7 @@
  import { useModelSaved } from '@/components/useModelSaved.js';
 
  const props = defineProps({
-     viewName: String,
+     modelName: String,
  });
 
  const data = ref(null);
@@ -35,7 +35,7 @@
 
  const load = () => {
      qItem.value = simQueue.addTransientItem(
-         props.viewName,
+         props.modelName,
          appState.models,
          responseHandler,
      );

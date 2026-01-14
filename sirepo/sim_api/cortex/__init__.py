@@ -59,6 +59,27 @@ class API(sirepo.quest.API):
             # TODO(robnagler) is there a better way?
             raise
 
+    @sirepo.quest.Spec("require_plan", sim_type=f"SimType const={SIM_TYPE}")
+    async def api_cortexSimRunner(self):
+        s = (
+            await self.call_api(
+                "listSimulations",
+                body=PKDict(
+                    simulationType=SIM_TYPE,
+                ),
+            )
+        ).content_as_object()
+        if len(s):
+            return PKDict(
+                simulationId=s[0].simulationId,
+            )
+        d = sirepo.simulation_db.default_data(SIM_TYPE)
+        d.models.simulation.name = "Cortex Sim Runner"
+        sirepo.simulation_db.save_new_simulation(d, qcall=self)
+        return PKDict(
+            simulationId=d.models.simulation.simulationId,
+        )
+
     def cortex_db_done(self, result):
         self.__loop.call_soon_threadsafe(self.__result.put_nowait, result)
 
@@ -218,16 +239,6 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
                         f"{material.availability_factor}%"
                         if material.availability_factor
                         else ""
-                    ),
-                }
-            ),
-            section3=PKDict(
-                {
-                    "Bare Tile": _to_yes_no(material.is_bare_tile),
-                    "Homogenized WCLL": _to_yes_no(material.is_homogenized_wcll),
-                    "Homogenized HCPB": _to_yes_no(material.is_homogenized_hcpb),
-                    "Homogenized Divertor": _to_yes_no(
-                        material.is_homogenized_divertor
                     ),
                 }
             ),

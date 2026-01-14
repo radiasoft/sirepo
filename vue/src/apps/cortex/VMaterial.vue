@@ -1,9 +1,47 @@
 <template>
     <div v-if="material" class="container-xl">
+        <div class="float-end">
+            <VNavButton
+                v-bind:active="selectedSection"
+                section="overview"
+                label="Overview"
+                v-on:selected="selectSection"
+            ></VNavButton>
+            <VNavButton
+                v-if="material.properties.length"
+                v-bind:active="selectedSection"
+                section="properties"
+                label="Properties"
+                v-on:selected="selectSection"
+            ></VNavButton>
+            <div class="btn-group">
+                <VNavButton
+                    v-bind:active="selectedSection"
+                    section="neutronics"
+                    label="Neutronics"
+                    v-on:selected="selectSection"
+                ></VNavButton>
+                <button
+                    class="btn dropdown-toggle dropdown-toggle-split"
+                    v-bind:class="{
+                        active: isSelected('neutronics'),
+                        'btn-primary': isSelected('neutronics'),
+                        'btn-light': ! isSelected('neutronics'),
+                    }"
+                    data-bs-toggle="dropdown"
+                ></button>
+                <ul class="dropdown-menu" id="sr-neutronics-dropdown-menu">
+                    <li><button class="dropdown-item" v-on:click="selectNeutronics('tile')">Homogeneous Tile</button></li>
+                </ul>
+            </div>
+        </div>
         <div class="h2">{{ material.name }}</div>
-        <VMasonry>
+        <div v-if="isSelected('neutronics')">
+            <VNeutronics />
+        </div>
+        <VMasonry v-if="! isSelected('neutronics')">
             <div v-bind:class="smallPanel">
-                <div class="card mb-4 shadow-sm">
+                <div v-if="isSelected('overview')" class="card mb-4 shadow-sm">
                     <div class="card-body">
                         <table class="table"><tbody>
                             <tr
@@ -25,19 +63,11 @@
                                 <td class="col-form-label">{{ n }}</td>
                                 <td>{{ material.section2[n] }}</td>
                             </tr>
-                            <tr><td colspan="2" class="lead">Neutronics Geometries</td></tr>
-                            <tr
-                                v-for="n in Object.keys(material.section3)"
-                                v-bind:key="n"
-                            >
-                                <td class="col-form-label">{{ n }}</td>
-                                <td>{{ material.section3[n] }}</td>
-                            </tr>
                         </tbody></table>
                     </div>
                 </div>
             </div>
-            <div v-bind:class="smallPanel">
+            <div v-if="isSelected('overview')" v-bind:class="smallPanel">
                 <div class="card mb-4 shadow-sm">
                     <div class="card-body">
                         <div class="h4">
@@ -68,7 +98,7 @@
                     </div>
                 </div>
             </div>
-            <div v-bind:class="smallPanel">
+            <div v-if="isSelected('overview')" v-bind:class="smallPanel">
                 <div class="card mb-4 shadow-sm">
                     <div class="card-body">
                         <table class="table">
@@ -94,10 +124,9 @@
                     </div>
                 </div>
             </div>
-            <div v-bind:class="largePanel" v-if="material.properties.length">
+            <div v-if="isSelected('properties') && material.properties.length" v-bind:class="largePanel">
                 <div class="card mb-4 shadow-sm">
                     <div class="card-body">
-                        <div class="h4">Properties</div>
                         <div class="nav nav-tabs">
                             <li
                                 class="nav-item"
@@ -151,7 +180,7 @@
                         </table>
                     </div>
                 </div>
-              </div>
+            </div>
         </VMasonry>
     </div>
 </template>
@@ -159,7 +188,9 @@
 <script setup>
  import VDOIRows from '@/apps/cortex/VDOIRows.vue';
  import VMasonry from '@/components/layout/VMasonry.vue'
- import VTooltip from '@/components/VTooltip.vue'
+ import VNavButton from '@/apps/cortex/VNavButton.vue';
+ import VNeutronics from '@/apps/cortex/VNeutronics.vue';
+ import VTooltip from '@/components/VTooltip.vue';
  import { db } from '@/apps/cortex/db.js';
  import { onMounted, ref } from 'vue';
  import { useRoute } from 'vue-router';
@@ -168,7 +199,11 @@
  const largePanel = 'col-md-12';
  const material = ref(null);
  const route = useRoute();
+ // overview, properties, neutronics
+ const selectedSection = ref('overview');
  const selectedProperty = ref(null);
+ // tile
+ const selectedNeutronics = ref('tile');
 
  const formatName = (property) => {
      return property.property_name.replaceAll('_', ' ');
@@ -178,8 +213,26 @@
      return value ? value.toFixed(4) : value;
  };
 
+ const isSelected = (section) => {
+     return selectedSection.value === section;
+ };
+
+ const selectNeutronics = (neutronics) => {
+     selectedNeutronics.value = neutronics;
+     selectSection('neutronics');
+ }
+
  const selectProperty = (property) => {
      selectedProperty.value = property;
+ };
+
+ const selectSection = (section) => {
+     selectedSection.value = section;
+     // bootstrap dropdown doesn't always dismiss correctly when navigating buttons
+     const d = document.getElementById('sr-neutronics-dropdown-menu')
+     if (d && d.classList) {
+         d.classList.remove('show');
+     }
  };
 
  onMounted(async () => {
