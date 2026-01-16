@@ -4256,7 +4256,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                 }
             }
             return false;
-        });
+        }).sort((a, b) => a.name.localeCompare(b.name));
     };
     self.getUserFolderPaths = function() {
         return self.getUserFolders()
