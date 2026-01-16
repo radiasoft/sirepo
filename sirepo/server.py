@@ -565,10 +565,10 @@ class API(sirepo.quest.API):
                 qcall=self,
             ):
                 f = r.models.simulation.folder
-                if f.lower() == o.lower():
+                if f == o:
                     r.models.simulation.folder = n
-                elif f.lower().startswith(o.lower() + "/"):
-                    r.models.simulation.folder = n + f[len() :]
+                elif f.startswith(o + "/"):
+                    r.models.simulation.folder = n + f[len(o) :]
                 else:
                     continue
                 simulation_db.save_simulation_json(r, fixup=False, qcall=self)

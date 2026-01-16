@@ -79,19 +79,25 @@ def test_rename_folder(fc):
     from pykern.pkunit import pkeq
     import copy
 
-    d = fc.sr_sim_data()
-    d.pkupdate(
+    d = fc.sr_sim_data().pkupdate(
         name="new sim 1",
         folder="first folder",
     )
-    r = fc.sr_post("newSimulation", d)
-    pkeq("/" + d.folder, r.models.simulation.folder)
-    d2 = copy.deepcopy(d)
-    d2.pkupdate(
-        name="new sim 2",
-        folder="first folder no-match",
+    pkeq("/" + d.folder, fc.sr_post("newSimulation", d).models.simulation.folder)
+    r2 = fc.sr_post(
+        "newSimulation",
+        copy.deepcopy(d).pkupdate(
+            name="new sim 2",
+            folder="first folder no-match",
+        ),
     )
-    r2 = fc.sr_post("newSimulation", d2)
+    fc.sr_post(
+        "newSimulation",
+        copy.deepcopy(d).pkupdate(
+            name="new sim 3",
+            folder="/first folder/a sub folder",
+        ),
+    )
     n = "new dir"
     fc.sr_post(
         "updateFolder",
@@ -101,10 +107,12 @@ def test_rename_folder(fc):
             simulationType=fc.sr_sim_type,
         ),
     )
-    x = fc.sr_sim_data(d.name)
-    pkeq("/" + n, x.models.simulation.folder)
-    x = fc.sr_sim_data("new sim 2")
-    pkeq(r2.models.simulation.folder, x.models.simulation.folder)
+    pkeq("/" + n, fc.sr_sim_data(d.name).models.simulation.folder)
+    pkeq(
+        r2.models.simulation.folder,
+        fc.sr_sim_data("new sim 2").models.simulation.folder,
+    )
+    pkeq("/new dir/a sub folder", fc.sr_sim_data("new sim 3").models.simulation.folder)
 
 
 def test_srw_discard_example(fc):
