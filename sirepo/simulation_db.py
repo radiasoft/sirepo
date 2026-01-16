@@ -242,6 +242,7 @@ def fixup_old_data(data, force=False, path=None, qcall=None):
         if "simulationType" not in data:
             if "sourceIntensityReport" in data.models:
                 data.simulationType = "srw"
+            # TODO(robnagler) 20250131 remove
             elif "fieldAnimation" in data.models:
                 data.simulationType = "warppba"
             elif "bunchSource" in data.models:
@@ -249,6 +250,7 @@ def fixup_old_data(data, force=False, path=None, qcall=None):
             else:
                 pkdlog("simulationType: not found; data={}", data)
                 raise AssertionError("must have simulationType")
+        # TODO(robnagler) 20250131 remove
         elif data.simulationType == "warp":
             data.simulationType = "warppba"
         elif data.simulationType == "fete":
@@ -686,7 +688,7 @@ def simulation_dir(simulation_type, sid=None, qcall=None):
     """Generates simulation directory from sid and simulation_type
 
     Args:
-        simulation_type (str): srw, warppba, ...
+        simulation_type (str): srw, elegant, ...
         sid (str): simulation id (optional)
         uid (str): user id
     """

@@ -46,7 +46,6 @@ def test_create_zip(fc):
                 ["anything/magnetic_measurements.zip", "run.py", "sirepo-data.json"],
                 '"verticalRange": "15"',
             ),
-            ("warppba", "Laser Pulse", ["run.py", "sirepo-data.json"], ""),
             (
                 "opal",
                 "CSR Bend Drift",

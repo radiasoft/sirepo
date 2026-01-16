@@ -4,7 +4,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern import pkinspect, pkio, pkjson
+from pykern import pkinspect, pkio, pkjson, pkcompat
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc
 import contextlib
@@ -111,7 +111,7 @@ def _20250114_add_role_plan_trial(qcall):
         SELECT uid, :role, :expiration FROM user_registration_t""",
         PKDict(
             role=sirepo.auth_role.ROLE_PLAN_TRIAL,
-            expiration=datetime.datetime.utcnow()
+            expiration=pkcompat.utcnow()
             + datetime.timedelta(
                 days=sirepo.feature_config.cfg().trial_expiration_days
             ),
@@ -125,6 +125,30 @@ def _20251030_update_cortex_db(qcall):
     from sirepo.sim_api.cortex import material_db
 
     material_db.db_upgrade()
+
+
+def _20260112_audit_roles(qcall):
+    def _user_plans(uid):
+        nonlocal priority
+
+        if not m.has_active_plan(uid):
+            return []
+        p = []
+        for r in priority:
+            if m.has_active_role(r, uid):
+                p.append(r)
+        return p
+
+    m = qcall.auth_db.model("UserRole")
+    priority = [
+        getattr(sirepo.auth_role, f"ROLE_PLAN_{x}")
+        for x in ("ENTERPRISE", "PREMIUM", "BASIC", "TRIAL")
+    ]
+    for u in qcall.auth_db.all_uids():
+        p = _user_plans(u)
+        while len(p) > 1:
+            pkdlog("expire plan: {} for user: {}", p[-1], u)
+            m.expire_role(p.pop(), u)
 
 
 @contextlib.contextmanager

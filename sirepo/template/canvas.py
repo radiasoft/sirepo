@@ -341,8 +341,8 @@ def sim_frame_sigmaAnimation(frame_args):
     )
     impactx = PKDict(
         s=list(impactx_sigma["s"].values),
-        sx=list(impactx_sigma["sig_x"].values),
-        sy=list(impactx_sigma["sig_y"].values),
+        sx=list(impactx_sigma["sigma_x"].values),
+        sy=list(impactx_sigma["sigma_y"].values),
     )
 
     # TODO(pjm): group both codes by "s" and interpolate values if necessary

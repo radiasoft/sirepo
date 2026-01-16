@@ -20,17 +20,14 @@ _DEPENDENT_CODES = dict(
 
 FOSS_CODES = frozenset(
     (
-        "activait",
         "canvas",
         "controls",
         "cortex",
         "elegant",
         "epicsllrf",
         "genesis",
-        "hellweg",
         "impactt",
         "impactx",
-        "jspec",
         "madx",
         "myapp",
         "omega",
@@ -38,11 +35,7 @@ FOSS_CODES = frozenset(
         "openmc",
         "radia",
         "shadow",
-        "silas",
         "srw",
-        "warppba",
-        "warpvnd",
-        "zgoubi",
     )
 )
 
@@ -81,7 +74,7 @@ def for_sim_type(sim_type):
     """Get cfg for simulation type
 
     Args:
-        sim_type (str): srw, warppba, etc.
+        sim_type (str): srw, elegent, etc.
 
     Returns:
         dict: application specific config
@@ -252,6 +245,7 @@ def _init():
             set,
             "Vue apps",
         ),
+        # TODO(robnagler) 20250131 remove
         warpvnd=dict(
             allow_3d_mode=(True, bool, "Include 3D features in the Warp VND UI"),
             display_test_boxes=_dev(
