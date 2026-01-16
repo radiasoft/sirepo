@@ -998,11 +998,11 @@ class _ComputeJob(_Supervisor):
                 return r
             return None
 
-        if self._run_status_op:
-            raise AssertionError(f"_run_status_op already set job={self}")
         # Reply case yields, but does not modify global state
         if r := await _valid_or_reply(req.content.data.get("forceRun")):
             return r
+        if self._run_status_op:
+            raise AssertionError(f"_run_status_op already set job={self}")
         # TODO(robnagler) consolidate _start_run_status_op
         req.content.computeJobSerial = _update_db()
         d = self.db.dbUpdateTime
