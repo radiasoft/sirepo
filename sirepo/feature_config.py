@@ -21,6 +21,7 @@ _DEPENDENT_CODES = dict(
 FOSS_CODES = frozenset(
     (
         "canvas",
+        "controls",
         "cortex",
         "elegant",
         "epicsllrf",

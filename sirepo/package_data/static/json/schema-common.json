@@ -12,6 +12,10 @@
             "longName": "Lattice Canvas",
             "shortName": "canvas"
         },
+        "controls": {
+            "longName": "Controls",
+            "shortName": "Controls"
+        },
         "openmc": {
             "longName": "OpenMC",
             "shortName": "OpenMC"
