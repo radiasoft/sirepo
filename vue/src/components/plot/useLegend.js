@@ -11,9 +11,13 @@ export function useLegend(svgGroup) {
         items = [],
         innerWidth = 0,
         position = "right",
+        show = true,
     } = {}) => {
         const g = d3.select(legendEl);
         g.selectAll("*").remove();
+        if (! show) {
+            return;
+        }
         const rows = g
             .selectAll("g.sr-legend-row")
             .data(items)

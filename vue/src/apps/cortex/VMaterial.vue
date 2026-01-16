@@ -73,15 +73,15 @@
                         <div class="h4">
                             Components
                             <h6 class="text-body-secondary" style="display: inline-block">
-                                ({{ material.is_atom_pct ? 'Atom' : 'Weight'}}%)
+                                ({{ material.is_atom_pct ? 'Atom' : 'Weight'}} %)
                             </h6>
                         </div>
                         <table class="table">
                             <thead><tr>
                                 <th>Element or Nuclide</th>
-                                <th class="text-end">Target</th>
-                                <th class="text-end">Min</th>
-                                <th class="text-end">Max</th>
+                                <th class="text-end">Target %</th>
+                                <th class="text-end">Min %</th>
+                                <th class="text-end">Max %</th>
                             </tr></thead>
                             <tbody>
                                 <tr

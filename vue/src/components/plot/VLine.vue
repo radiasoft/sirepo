@@ -16,9 +16,9 @@
      data: Function,
  });
 
- const margin = { top: 26, right: 20, bottom: 44, left: 44 };
+ const margin = { top: 26, right: 20, bottom: 44, left: 60 };
  const container = ref(null);
- let svg, g, paths, xLabel, title;
+ let svg, g, paths, xLabel, yLabel, title;
  let xAxis, yAxis, zoomX, grid, legend, overlay;
  let resizeObserver;
 
@@ -39,6 +39,10 @@
      xLabel = g
        .append("text")
        .attr("text-anchor", "middle");
+     yLabel = g
+       .append("text")
+       .attr("text-anchor", "middle")
+       .attr("transform", "rotate(270)");
      paths = props.data().plots.map((p) => overlay.clipped.append("path").attr("class", "sr-line"));
      if (props.data().title) {
          title = svg.append("text")
@@ -63,13 +67,18 @@
      //TODO(pjm): only calculate domain and scale when data is first loaded
      zoomX.update(innerWidth, innerHeight);
      const domain = d3.extent(props.data().x_points);
-     const x = zoomX.rescale(d3
-         .scaleLinear()
-         .domain(domain)
-         .range([0, innerWidth])
+     const x = zoomX.rescale(scale(
+         'x',
+         props.data().type === 'loglog',
+         domain,
+         [0, innerWidth],
+     ));
+     const y = scale(
+         'y',
+         ['loglog', 'semilog'].includes(props.data().type),
+         props.data().y_range,
+         [innerHeight, 0],
      );
-     //TODO(pjm): could scale to visible range
-     const y = d3.scaleLinear().domain(props.data().y_range).nice().range([innerHeight, 0]);
      xAxis.update(x, `translate(0,${innerHeight})`);
      yAxis.update(y);
      grid.update(x, y, innerWidth, innerHeight);
@@ -83,13 +92,17 @@
                  color: p.color,
              };
          }),
-         //TODO(pjm): position left or right depending on line locations
-         position: "left",
+         position: props.data().alignLegend || "left",
+         show: props.data().plots.length > 1,
      });
      xLabel
        .attr("x", innerWidth / 2)
        .attr("y", innerHeight + margin.bottom - 6)
        .text(props.data().x_label);
+     yLabel
+         .attr("x", - innerHeight / 2)
+         .attr("y", - margin.left + 12)
+         .text(props.data().y_label);
      if (title) {
          title.attr("x", (width + margin.left) / 2).attr("y", margin.top / 2);
      }
@@ -108,6 +121,17 @@
              .attr("vector-effect", "non-scaling-stroke")
              .attr("stroke", p.color);
      }
+ }
+
+ function scale(dimension, isLog, domain, range) {
+     const s = d3[isLog ? 'scaleLog' : 'scaleLinear'](domain, range);
+     if (dimension == 'y') {
+        s.nice();
+     }
+     if (isLog) {
+         s.base(10);
+     }
+     return s;
  }
 
  onMounted(() => {

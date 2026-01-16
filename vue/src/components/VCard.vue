@@ -51,6 +51,7 @@
 
  const props = defineProps({
      viewName: String,
+     title: String,
  });
 
  if (! schema.view[props.viewName]) {
@@ -60,7 +61,7 @@
  const cardStyle = ref({});
  const hidden = ref(false);
  const modal = ref(null);
- const title = schema.view[props.viewName].title;
+ const title = props.title || schema.view[props.viewName].title;
 
  const onKeydown = (event) => {
      if (event.key == 'Escape' && isFullscreen()) {

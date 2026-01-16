@@ -6,7 +6,7 @@
             </VCard>
         </VCol>
         <VCol v-for="report in sim.reports"">
-            <VCard v-bind:viewName="report.viewName">
+            <VCard v-bind:viewName="report.viewName" v-bind:title="report.title">
                 <VFramePlot v-bind:sim="sim" v-bind:modelName="report.modelName"></VFramePlot>
             </VCard>
         </VCol>

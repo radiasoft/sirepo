@@ -29,9 +29,9 @@ class plt:
     @classmethod
     def loglog(cls, x, y, label=None):
         print(f"loglog: {label}: {len(x)} x {len(y)}")
+        cls.figure.type = "loglog"
         cls.figure.plots.append(
             PKDict(
-                type="loglog",
                 x=cls._to_list(x),
                 y=cls._to_list(y),
                 label=label,
@@ -41,9 +41,9 @@ class plt:
     @classmethod
     def semilogy(cls, x, y, label=None, marker=None, color=None, markersize=None):
         print(f"semilog: {label}: {len(x)} x {len(y)}")
+        cls.figure.type = "semilog"
         cls.figure.plots.append(
             PKDict(
-                type="semilogy",
                 x=cls._to_list(x),
                 y=cls._to_list(y),
                 label=label,
@@ -159,8 +159,12 @@ class materials:
 def material_from_definition(definition):
     m = openmc.Material()
     for c in definition.components:
-        assert "element" in c
-        m.add_element(c.element, c.percent_ao)
+        if "element" in c:
+            m.add_element(c.element, c.percent, definition.percent_type)
+        elif "nuclide" in c:
+            m.add_nuclide(c.nuclide, c.percent, definition.percent_type)
+        else:
+            raise AssertionError(f"unhandled material component {c}")
     m.set_density("g/cc", definition.density_gcc)
     return m
 
@@ -168,10 +172,11 @@ def material_from_definition(definition):
 t = material_from_definition(
     PKDict(
         density_gcc=19.3,
+        percent_type="ao",
         components=[
             PKDict(
                 element="W",
-                percent_ao=1.0,
+                percent=1.0,
             ),
         ],
     )
