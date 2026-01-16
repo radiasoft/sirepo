@@ -22,6 +22,8 @@ def add(uid_or_email, *roles, expiration=None):
         *roles (str): The roles to assign to the user
         expiration (int): Days until expiration
     """
+    if x := sirepo.auth_role.PLAN_ROLES.intersection(roles):
+        pykern.pkcli.command_error("plan roles={} not allowed, use add-plan command", x)
     with _parse_args(uid_or_email, roles, expiration) as a:
         a.qcall.auth_db.model("UserRole").add_roles(
             a.roles,

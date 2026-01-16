@@ -201,10 +201,7 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_plan")
     async def api_runSimulation(self):
-        r = self._request_content(PKDict())
-        if r.isParallel:
-            r.isPremiumUser = self.auth.is_premium_user()
-        return await self._request_api(_request_content=r)
+        return await self._request_api(_request_content=self._request_content(PKDict()))
 
     @sirepo.quest.Spec("require_plan")
     async def api_runStatus(self):
@@ -427,8 +424,10 @@ class API(sirepo.quest.API):
 
     def _request_content_put_user(self, content):
         """Required request content"""
+        u = self.auth.logged_in_user()
         return content.pkupdate(
-            uid=self.auth.logged_in_user(),
+            uid=u,
+            activePlan=self.auth.active_plan(u),
             userDir=str(sirepo.simulation_db.user_path(qcall=self)),
         )
 
