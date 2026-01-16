@@ -8,6 +8,15 @@ from pykern.pkcollections import PKDict
 import pytest
 
 
+def test_controls(fc):
+    fc.sr_animation_run(
+        fc.sr_sim_data("FODO with instruments"),
+        "instrumentAnimation",
+        PKDict(),
+        expect_completed=False,
+    )
+
+
 def test_elegant(fc):
     import sirepo.template.lattice
 

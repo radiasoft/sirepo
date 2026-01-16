@@ -5,6 +5,14 @@
 """
 
 
+def test_controls(fc):
+    _r(
+        fc,
+        "Sample MAD-X beamline",
+        "initialMonitorPositionsReport",
+    )
+
+
 def test_elegant(fc):
     _r(
         fc,
