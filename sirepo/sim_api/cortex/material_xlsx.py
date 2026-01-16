@@ -22,7 +22,7 @@ _WALL_RE = re.compile(r"^(?:(iter)|demo)$", re.IGNORECASE)
 
 _NEUTRON_SOURCE_RE = re.compile(r"\b(?:(d\W?t)|d\W?d)\b", re.IGNORECASE)
 
-_POINTER_RE = re.compile(r"^((?:p|t|f)\d+(?:\.\d+)?)$", re.IGNORECASE)
+_POINTER_RE = re.compile(r"^((?:p|t|f)\d+(?:[\.\-]\d+)*)$", re.IGNORECASE)
 
 _SOURCE_RE = re.compile(r"^(exp|pp|nom|ml|dft)$", re.IGNORECASE)
 
@@ -1035,8 +1035,10 @@ _COMPONENTS = PKDict(
         "Pt195",
         "Pt196",
         "Pt198",
+        "Pu238",
         "Pu239",
         "Pu240",
+        "Pu241",
         "Pu242",
         "Pu244",
         "Ra226",
@@ -1093,6 +1095,7 @@ _COMPONENTS = PKDict(
         "Sr86",
         "Sr87",
         "Sr88",
+        "Ta180",
         "Ta181",
         "Tb158",
         "Tb159",
