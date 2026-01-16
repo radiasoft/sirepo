@@ -1,5 +1,6 @@
 User-agent: *
 Disallow: /canvas
+Disallow: /controls
 Disallow: /cortex
 Disallow: /elegant
 Disallow: /epicsllrf

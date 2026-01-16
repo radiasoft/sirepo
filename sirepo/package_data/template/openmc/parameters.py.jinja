@@ -64,7 +64,7 @@ def create_materials():
     {% endfilter %}
     {% if settings_materialDefinition == 'library' %}
     materials.download_cross_section_data(
-        libraries=["{{ settings_materialLibrary }}"],
+        libraries=[{{ materialLibraries }}],
         destination="{{ materialDirectory }}",
     )
     {% endif %}
