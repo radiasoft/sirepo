@@ -8,6 +8,7 @@ from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog, pkdexc
 import pykern.pkcompat
+import pykern.pkconst
 import pykern.pkdebug
 import sirepo.const
 import sirepo.feature_config
@@ -236,6 +237,22 @@ def agent_env(uid, env=None):
     Returns:
         str: bash environment ``export`` commands
     """
+
+    def _fmt(value):
+        # POSIT: same as pkconfig.to_environ
+        # TODO(robnagler) export from pkconfig
+        if value is None:
+            return ""
+        if isinstance(value, (frozenset, list, set, tuple)):
+            return pkconfig.TUPLE_SEP.join(value)
+        if isinstance(
+            value,
+            (bool, complex, float, int, str, pykern.pkconst.PY_PATH_LOCAL_TYPE),
+        ):
+            # let format handle
+            return value
+        raise AssertionError(f"unknown type to format type={type(value)} value={value}")
+
     x = pkconfig.to_environ(
         (
             "pykern.*",
@@ -271,7 +288,7 @@ def agent_env(uid, env=None):
             k,
             pykern.pkdebug.SECRETS_RE,
         )
-    return "\n".join(("export {}='{}'".format(k, v) for k, v in env.items()))
+    return "\n".join(("export {}='{}'".format(k, _fmt(v)) for k, v in env.items()))
 
 
 def cfg():

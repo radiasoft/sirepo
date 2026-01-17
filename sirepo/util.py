@@ -17,6 +17,7 @@ import io
 import inspect
 import numconv
 import numpy
+import os.path
 import pykern.pkinspect
 import pykern.pkio
 import pykern.pkjson
@@ -389,6 +390,49 @@ def json_dump(obj, path=None, pretty=False, **kwargs):
     if path:
         pykern.pkio.atomic_write(path, res)
     return res
+
+def json_path(path, run_dir=None):
+    """Append sirepo.const.JSON_SUFFIX if necessary and convert to str
+
+    Args:
+        path (py.path or str): to convert
+        run_dir (py.path): which directory to join (only if path is str)
+    Returns:
+        py.path: path.json
+    """
+
+    def _path():
+        if not isinstance(path, str):
+            if run_dir:
+                raise AssertionError(
+                    f"path={path} is a py.path, cannot join run_dir={run_dir}"
+                )
+            return path
+        if not run_dir:
+            return pykern.pkio.py_path(path)
+        if os.path.isabs(path):
+            raise AssertionError(
+                f"path={path} is absolute, cannot join run_dir={run_dir}"
+            )
+        return run_dir.join(path)
+
+    p = _path()
+    if p.ext == sirepo.const.JSON_SUFFIX:
+        return p
+    # Do not replace using new, because may already have suffix
+    return p + sirepo.const.JSON_SUFFIX
+
+
+def json_read(path):
+    """Read data from json file
+
+    Args:
+        path (py.path or str): will append sirepo.const.JSON_SUFFIX if necessary
+
+    Returns:
+        object: json converted to python
+    """
+    return pykern.pkjson.load_any(json_path(path))
 
 
 def numpy_to_py(obj):
