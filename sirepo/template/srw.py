@@ -684,7 +684,7 @@ def prepare_sequential_output_file(run_dir, sim_in):
     if m in ("brillianceReport", "mirrorReport"):
         return
     # TODO(pjm): only need to rerun extract_report_data() if report style fields have changed
-    fn = sirepo.util.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+    fn = sirepo.util.json_path(template_common.OUTPUT_BASE_NAME, run_dir)
     if fn.exists():
         fn.remove()
         output_file = run_dir.join(get_filename_for_model(m))
