@@ -4,7 +4,7 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern import pkconfig, pkinspect, pkconfig, pkjson
+from pykern import pkconfig, pkinspect, pkconfig, pkjson, pkcollections
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc, pkdformat
 from sirepo import job
@@ -236,31 +236,45 @@ class DriverBase(PKDict):
         )
 
     def _agent_env(self, op, env=None):
+        def _clear(new_env):
+            pkcollections.unchecked_del(
+                new_env,
+                "SIREPO_FEATURE_CONFIG_API_MODULES",
+                "SIREPO_FEATURE_CONFIG_SLACK_URI",
+                "SIREPO_FEATURE_CONFIG_IS_REGISTRATION_MODERATED",
+            )
+            return new_env
+
         return job.agent_env(
-            env=(env or PKDict()).pksetdefault(
-                PYKERN_PKDEBUG_WANT_PID_TIME="1",
-                SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agent_id,
-                # POSIT: same as pkcli.job_agent.start
-                SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS=os.environ.get(
-                    "SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS",
-                    str(pkconfig.in_dev_mode()),
+            env=_clear(
+                (env or PKDict()).pksetdefault(
+                    PYKERN_PKDEBUG_WANT_PID_TIME="1",
+                    # These don't need to be passed
+                    SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agent_id,
+                    # POSIT: same as pkcli.job_agent.start
+                    SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS=os.environ.get(
+                        "SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS",
+                        str(pkconfig.in_dev_mode()),
+                    ),
+                    SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_TOKEN=self._global_resources_token,
+                    SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_URI=f"{self.cfg.supervisor_uri}{job.GLOBAL_RESOURCES_URI}",
+                    SIREPO_PKCLI_JOB_AGENT_START_DELAY=str(
+                        op.get("_agent_start_delay", 0)
+                    ),
+                    SIREPO_PKCLI_JOB_AGENT_SIM_DB_FILE_SERVER_TOKEN=self._sim_db_file_token,
+                    SIREPO_PKCLI_JOB_AGENT_SIM_DB_FILE_SERVER_URI=job.supervisor_file_uri(
+                        self.cfg.supervisor_uri,
+                        job.SIM_DB_FILE_URI,
+                        self.uid,
+                    ),
+                    SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.cfg.supervisor_uri.replace(
+                        # TODO(robnagler) figure out why we need ws (wss, implicit)
+                        "http",
+                        "ws",
+                        1,
+                    )
+                    + job.AGENT_URI,
                 ),
-                SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_TOKEN=self._global_resources_token,
-                SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_URI=f"{self.cfg.supervisor_uri}{job.GLOBAL_RESOURCES_URI}",
-                SIREPO_PKCLI_JOB_AGENT_START_DELAY=str(op.get("_agent_start_delay", 0)),
-                SIREPO_PKCLI_JOB_AGENT_SIM_DB_FILE_SERVER_TOKEN=self._sim_db_file_token,
-                SIREPO_PKCLI_JOB_AGENT_SIM_DB_FILE_SERVER_URI=job.supervisor_file_uri(
-                    self.cfg.supervisor_uri,
-                    job.SIM_DB_FILE_URI,
-                    self.uid,
-                ),
-                SIREPO_PKCLI_JOB_AGENT_SUPERVISOR_URI=self.cfg.supervisor_uri.replace(
-                    # TODO(robnagler) figure out why we need ws (wss, implicit)
-                    "http",
-                    "ws",
-                    1,
-                )
-                + job.AGENT_URI,
             ),
             uid=self.uid,
         )
