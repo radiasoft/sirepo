@@ -13,6 +13,9 @@ from sirepo import job
 from sirepo import job_driver
 from sirepo import util
 import asyncssh
+import asyncio
+import uuid
+from urllib.parse import urlparse
 import datetime
 import errno
 import sirepo.const
@@ -70,6 +73,13 @@ class SbatchDriver(job_driver.DriverBase):
             pkdlog("websocket closed {}", self)
         except Exception as e:
             pkdlog("{} error={} stack={}", self, e, pkdexc())
+        if self.conn is not None:
+            try:
+                self.conn.close()
+                await self.conn.wait_closed()
+                self.conn = None
+            except Exception as e:
+                pkdlog("{} error={} stack={}", self, e, pkdexc())
 
     @classmethod
     def get_instance(cls, op):
@@ -231,6 +241,18 @@ class SbatchDriver(job_driver.DriverBase):
         agent_start_dir = self._srdb_root
         if pkconfig.in_dev_mode():
             pkdlog("agent_log={}/{}", agent_start_dir, log_file)
+
+        # If the supervisor URI points to localhost, while the slurm host is not localhost
+        # the supervisor URI is likely inaccessible and we should forward it over SSH
+        supervisor_uri = urlparse(self.cfg.supervisor_uri)
+        loopback_addresses = ['localhost', '127.0.0.1']
+        is_supervisor_uri_proper = not (supervisor_uri.hostname in loopback_addresses and 
+                                        self.cfg.host not in loopback_addresses)
+        if not is_supervisor_uri_proper:
+            dest_domain_socket0 = f"/tmp/sirepo-{uuid.uuid4().hex}.sock" # Domain socket name just needs to be unique, so we can use a UUID
+            old_supervisor_uri = self.cfg.supervisor_uri # Save the old supervisor URI to restore it later
+            self.cfg.supervisor_uri = f"unix:/{dest_domain_socket0};" # Semicolon is needed to separate the socket path from the resource path
+
         script = f"""#!/bin/bash
 set -euo pipefail
 {_agent_start_dev()}
@@ -241,17 +263,29 @@ cd '{self._srdb_root}'
 disown
 """
         try:
-            async with asyncssh.connect(self.cfg.host, **_creds()) as c:
-                async with c.create_process("/bin/bash --noprofile --norc -l") as p:
-                    await _get_agent_log(c, before_start=True)
-                    o, e = await p.communicate(input=script)
-                    if o or e:
-                        _write_to_log(o, e, "start")
-                self.driver_details.pkupdate(
-                    host=self.cfg.host,
-                    username=self._creds.username,
-                )
-                await _get_agent_log(c, before_start=False)
+            self.conn = await asyncssh.connect(self.cfg.host, **_creds())
+            if not is_supervisor_uri_proper:
+                supervisor_port = supervisor_uri.port
+                if not supervisor_port:
+                    supervisor_port = 443 if supervisor_uri.scheme == 'https' else 80 # Default to the port for HTTPS or HTTP
+                listener0 = await self.conn.forward_remote_path_to_port(dest_domain_socket0, 'localhost', supervisor_port)
+                self.conn_listener0 = asyncio.create_task(listener0.wait_closed())
+                self.cfg.supervisor_uri = old_supervisor_uri # Restore the original supervisor URI
+
+            async with self.conn.create_process("/bin/bash --noprofile --norc -l") as p:
+                await _get_agent_log(self.conn, before_start=True)
+                o, e = await p.communicate(input=script)
+                if o or e:
+                    _write_to_log(o, e, "start")
+            self.driver_details.pkupdate(
+                host=self.cfg.host,
+                username=self._creds.username,
+            )
+            await _get_agent_log(self.conn, before_start=False)
+            if is_supervisor_uri_proper:
+                self.conn.close()
+                await self.conn.wait_closed()
+                self.conn = None
         except Exception as e:
             pkdlog("error={} stack={}", e, pkdexc())
             self._srdb_root = None
