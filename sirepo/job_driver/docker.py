@@ -72,6 +72,19 @@ class DockerDriver(job_driver.DriverBase):
         )
         pkio.unchecked_remove(self._agent_exec_dir)
 
+    async def free_resources(self, *args, **kwargs):
+        if self.host is None:
+            return
+        try:
+            self.host = None
+            self.host.kinds[self.kind].instances.remove(self)
+            self.__users[self.uid].pkdel(self.kind)
+            if not self.__users[self.uid]:
+                self.__users.pkdel(self.uid)
+        except Exception as e:
+            pkdlog("{} error={} stack={}", self, e, pkdexc())
+        return await super().free_resources(*args, **kwargs)
+
     @classmethod
     def get_instance(cls, op):
         def _hosts():
@@ -195,11 +208,6 @@ class DockerDriver(job_driver.DriverBase):
             ),
             driver=self,
         ).start()
-        self.host.kinds[self.kind].instances.remove(self)
-        self.__users[self.uid].pkdel(self.kind)
-        if not self.__users[self.uid]:
-            self.__users.pkdel(self.uid)
-        self.host = None
         # logging in _DockerCmd
 
     async def prepare_send(self, op):
