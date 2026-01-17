@@ -391,6 +391,7 @@ def json_dump(obj, path=None, pretty=False, **kwargs):
         pykern.pkio.atomic_write(path, res)
     return res
 
+
 def json_path(path, run_dir=None):
     """Append sirepo.const.JSON_SUFFIX if necessary and convert to str
 
