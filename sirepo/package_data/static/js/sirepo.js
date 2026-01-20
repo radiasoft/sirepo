@@ -345,7 +345,7 @@ SIREPO.app.factory('authState', (errorService, uri, $rootScope) => {
         return true;
     };
 
-    if (self.hasRole('trial') && ! (self.hasRole('basic') || self.hasRole('premium'))) {
+    if (self.hasRole('trial') && ! (self.hasRole('basic') || self.hasRole('premium') || self.hasRole('enterprise'))) {
         const d = new Date(self.roles.trial * 1000);
         errorService.messageText(
             'subscription',

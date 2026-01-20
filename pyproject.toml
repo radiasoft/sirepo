@@ -28,7 +28,7 @@ dependencies = [
     "matplotlib",
     "msgpack",
     "numconv",
-    "numpy<2.0",
+    "numpy",
     "Pillow",
     "pyIsEmail",
     "pykern",

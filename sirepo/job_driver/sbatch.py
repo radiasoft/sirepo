@@ -16,6 +16,7 @@ import asyncssh
 import datetime
 import errno
 import sirepo.const
+import sirepo.feature_config
 import sirepo.job_supervisor
 import sirepo.simulation_db
 import sirepo.util
@@ -151,6 +152,11 @@ class SbatchDriver(job_driver.DriverBase):
         return super()._agent_env(
             op,
             env=PKDict(
+                SIREPO_FEATURE_CONFIG_DEFAULT_PROPRIETARY_SIM_TYPES="",
+                SIREPO_FEATURE_CONFIG_MODERATED_SIM_TYPES="",
+                SIREPO_FEATURE_CONFIG_PROPRIETARY_CODE_TARBALLS="",
+                SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES="",
+                SIREPO_FEATURE_CONFIG_SIM_TYPES=sirepo.feature_config.cfg().sbatch_sim_types,
                 SIREPO_SRDB_ROOT=self._srdb_root,
             ),
         )

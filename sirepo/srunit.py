@@ -165,7 +165,7 @@ class _TestClient:
         from sirepo.pkcli import roles
         from sirepo import auth_role
 
-        roles.add(self.sr_uid, auth_role.ROLE_PLAN_TRIAL)
+        roles.add_plan(self.sr_uid, auth_role.ROLE_PLAN_TRIAL)
 
     def assert_post_will_redirect(self, expect_re, *args, **kwargs):
         rv = self.sr_post(*args, **kwargs)

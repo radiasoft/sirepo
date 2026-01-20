@@ -76,7 +76,6 @@ varParam = [
     ['ebm_y', 'f', 0.0, 'electron beam initial average vertical position [m]'],
     ['ebm_xp', 'f', 0.0, 'electron beam initial average horizontal angle [rad]'],
     ['ebm_yp', 'f', 0.0, 'electron beam initial average vertical angle [rad]'],
-    ['ebm_z', 'f', 0., 'electron beam initial average longitudinal position [m]'],
     ['ebm_dr', 'f', -1.54, 'electron beam longitudinal drift [m] to be performed before a required calculation'],
     ['ebm_ens', 'f', 0.00089, 'electron beam relative energy spread'],
     ['ebm_emx', 'f', 5.500000000000001e-10, 'electron beam horizontal emittance [m]'],
@@ -91,6 +90,8 @@ varParam = [
     ['ebm_etaxp', 'f', 0.0, 'horizontal dispersion function derivative [rad]'],
     ['ebm_etayp', 'f', 0.0, 'vertical dispersion function derivative [rad]'],
 
+# Beam parameter needed by all source types
+    ['ebm_z', 'f', 0., 'electron beam initial average longitudinal position [m]'],
 #---Undulator
 #---idealized params
     ['und_bx', 'f', 0.0, 'undulator horizontal peak magnetic field [T]'],

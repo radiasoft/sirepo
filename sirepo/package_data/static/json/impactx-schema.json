@@ -282,8 +282,8 @@
         "APERTURE": {
             "_super": ["_", "model", "_ELEMENT_WITH_ERROR"],
             "shape": ["SHAPE","ApertureShape","rectangular","Aperture boundary shape"],
-            "xmax": ["Horizontal MAX [m]","RPNValue",null,"Maximum allowed X and Y coordinate value"],
-            "ymax": ["Vertical MAX [m]","RPNValue",null,"Maximum allowed X and Y coordinate value"]
+            "aperture_x": ["Horizontal MAX [m]","RPNValue",null,"Maximum allowed X and Y coordinate value"],
+            "aperture_y": ["Vertical MAX [m]","RPNValue",null,"Maximum allowed X and Y coordinate value"]
         },
         "BEAMMONITOR": {
             "_super": ["_", "model", "_ELEMENT"]

@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """lib files interface
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 import pytest
 
 
@@ -37,7 +37,8 @@ def test_elegant_upload_sdds(fc):
     pkunit.pkeq("bunchFile-sourceFile.somename.bun", g[0].basename)
 
 
-def test_jspec_list_files(fc):
+#
+def TODO_SOME_CODE_list_files(fc):
     from pykern import pkio
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdpretty
@@ -182,38 +183,6 @@ def test_srw_validate_file(fc):
     from sirepo import sim_data
 
     _get_file(fc, "downloadLibFile")
-
-
-def test_warpvnd_import(fc):
-    from pykern import pkunit
-    from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdp
-    from pykern.pkunit import pkre, pkeq
-    from sirepo import sim_data
-
-    d = PKDict(name="new1", folder="/", simulationType=fc.sr_sim_type)
-    s = sim_data.get_class(fc.sr_sim_type)
-    d = fc.sr_post("newSimulation", d)
-    r = fc.sr_post_form(
-        "uploadLibFile",
-        params=PKDict(
-            simulation_type=fc.sr_sim_type,
-            simulation_id=d.models.simulation.simulationId,
-            file_type="stl-file",
-        ),
-        data=PKDict(confirm="1"),
-        file=s.lib_file_resource_path("stl-file.lattice_gate.stl"),
-    )
-    pkeq("stl-file.lattice_gate.stl", r.filename)
-    pkeq("stl-file", r.fileType)
-    d2 = fc.sr_sim_data("new1")
-    pkeq(d.models.simulation.simulationId, d2.models.simulation.simulationId)
-    l = fc.sr_post(
-        "listSimulations",
-        PKDict(
-            simulationType=fc.sr_sim_type,
-        ),
-    )
 
 
 def _get_file(fc, api_name):

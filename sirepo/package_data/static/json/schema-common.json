@@ -8,10 +8,6 @@
             "longName": "Epicsllrf",
             "shortName": "Epicsllrf"
         },
-        "activait": {
-            "longName": "Activait",
-            "shortName": "Activait"
-        },
         "canvas": {
             "longName": "Lattice Canvas",
             "shortName": "canvas"
@@ -40,10 +36,6 @@
             "longName": "ImpactX",
             "shortName": "ImpactX"
         },
-        "jspec": {
-            "longName": "JSPEC",
-            "shortName": "JSPEC"
-        },
         "jupyterhublogin": {
             "longName": "Jupyter",
             "shortName": "Jupyter"
@@ -64,37 +56,13 @@
             "longName": "Radia",
             "shortName": "Radia"
         },
-        "raydata": {
-            "longName": "Raydata",
-            "shortName": "Raydata"
-        },
-        "hellweg": {
-            "longName": "Hellweg",
-            "shortName": "Hellweg"
-        },
         "shadow": {
             "longName": "SHADOW",
             "shortName": "SHADOW"
         },
-        "silas": {
-            "longName": "SILAS",
-            "shortName": "SILAS"
-        },
         "srw": {
             "longName": "Synchrotron Radiation Workshop",
             "shortName": "SRW"
-        },
-        "warppba": {
-            "longName": "Warp PBA",
-            "shortName": "Warp PBA"
-        },
-        "warpvnd": {
-            "longName": "Warp VND",
-            "shortName": "Warp VND"
-        },
-        "zgoubi": {
-            "longName": "ZGOUBI",
-            "shortName": "ZGOUBI"
         }
     },
     "productInfo": {
@@ -104,7 +72,6 @@
     "rootRedirectUri": {
         "cloudmc": "/openmc",
         "fete": "/warpvnd",
-        "ml": "/activait",
         "plans": "/en/plans.html",
         "warp": "/warppba",
         "cloudmc": "/openmc"
@@ -214,6 +181,7 @@
             "authStateRoles": [
                 "adm",
                 "basic",
+                "enterprise",
                 "premium",
                 "trial"
             ],
@@ -228,7 +196,8 @@
             "oneDayMillis": 86400000,
             "paymentPlans": {
                 "basic": "Sirepo Basic",
-                "premium": "Sirepo Professional"
+                "premium": "Sirepo Professional",
+                "enterprise": "Sirepo Enterprise"
             },
             "plansUrl": "/plans",
             "simulationSourceExtension": "py"

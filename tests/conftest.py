@@ -102,13 +102,7 @@ def pytest_collection_modifyitems(session, config, items):
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_configure(config):
-    config._parser.parse_setoption(
-        # run each test file in a separate process
-        # the native trace works better, e.g. for emacs
-        ["--tb=native"],
-        config.option,
-        namespace=config.option,
-    )
+    config.option.tbstyle = "native"
     config.addinivalue_line("markers", "sirepo_args: pass parameters to fixtures")
 
 

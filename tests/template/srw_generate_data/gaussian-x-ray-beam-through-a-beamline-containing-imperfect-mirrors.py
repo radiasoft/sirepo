@@ -141,6 +141,8 @@ varParam = [
 #---Data Folder
     ['fdir', 's', 'Gaussian_X-ray_beam_through_a_Beamline_containing_Imperfect_Mirrors/', 'folder (directory) name for reading-in input and saving output data files'],
 
+# Beam parameter needed by all source types
+    ['ebm_z', 'f', 0., 'electron beam initial average longitudinal position [m]'],
 
     ['gbm_x', 'f', 0.0, 'average horizontal coordinates of waist [m]'],
     ['gbm_y', 'f', 0.0, 'average vertical coordinates of waist [m]'],
