@@ -4,11 +4,10 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkjson
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdformat, pkdpretty
+from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp, pkdformat
 from sirepo import simulation_db
 import asyncio
 import datetime
@@ -16,7 +15,6 @@ import random
 import re
 import sirepo.job
 import sirepo.quest
-import time
 
 
 _SLEEP = 1
@@ -31,16 +29,16 @@ class API(sirepo.quest.API):
         that a simple simulation can complete successfully within a
         short period of time.
         """
-        await self._run_tests()
+        t = await self._run_tests()
         return self.reply_ok(
             {
-                "datetime": datetime.datetime.utcnow().isoformat(),
+                "datetime": datetime.datetime.fromtimestamp(t).isoformat(),
                 "sentinel": _cfg.reply_sentinel,
             }
         )
 
     async def _run_tests(self):
-        """Runs the SRW "Undulator Radiation" simulation's initialIntensityReport"""
+        """Runs the report simulation from config"""
         await self._validate_auth_state()
         simulation_type = _cfg.sim_type
         res = await self.call_api(
@@ -58,39 +56,29 @@ class API(sirepo.quest.API):
             raise AssertionError(
                 f"listSimulations name={sim_name} returned count={len(c)}"
             )
-        d = simulation_db.read_simulation_json(
-            simulation_type, sid=c[0].simulation.simulationId, qcall=self
-        )
-        d.report = _cfg.sim_report
-        await self._run_sim(d, d.models.simulation.simulationId)
+        return await self._run_sim(c[0].simulation.simulationId, simulation_type)
 
-    async def _run_sim(self, body, sim_id):
+    async def _run_sim(self, sim_id, sim_type):
         def _completed(reply):
             pkdlog("status=completed sid={}", sim_id)
-            if "initialIntensityReport" != body.report:
-                return
-            m = 50
-            if len(reply.z_matrix) < m:
-                raise RuntimeError(
-                    f"len(reply.z_matrix)={len(reply.z_matrix)} < {m} reply={reply}",
-                )
-            if len(reply.z_matrix[0]) < m:
-                raise RuntimeError(
-                    f"len(reply.z_matrix[0])={len(reply.z_matrix[0])} < {m} reply={reply}",
-                )
+            if not ("z_matrix" in reply or "plots" in reply):
+                raise RuntimeError(f"Missing plots in reply: {reply}")
 
         async def _first():
-            rv = await self.call_api("runStatus", body=body)
+            d = simulation_db.read_simulation_json(sim_type, sid=sim_id, qcall=self)
+            d.report = _cfg.sim_report
+            rv = await self.call_api("runStatus", body=d)
             try:
-                s = rv.content_as_object().state
-            except:
+                if rv.content_as_object().state in sirepo.job.ACTIVE_STATUSES:
+                    return rv
+            except Exception:
                 rv.destroy()
-            if s in sirepo.job.ACTIVE_STATUSES:
-                pkdlog("already running simulation={}", sim_id)
-            else:
-                rv.destroy()
-                rv = await self.call_api("runSimulation", body=body)
-            return rv
+                raise
+            rv.destroy()
+            x = _cfg.sim_random.split(".")
+            d.models[x[0]][x[1]] += random.random()
+            d = simulation_db.save_simulation_json(d, fixup=False, qcall=self)
+            return await self.call_api("runSimulation", body=d)
 
         def _next(reply):
             if reply.state == sirepo.job.ERROR:
@@ -105,15 +93,17 @@ class API(sirepo.quest.API):
             return rv
 
         r = None
+        body = None
         try:
             async with sirepo.file_lock.AsyncFileLock(
-                simulation_db.sim_data_file(body.simulationType, sim_id, qcall=self),
+                simulation_db.sim_data_file(sim_type, sim_id, qcall=self),
                 qcall=self,
             ):
                 r = await _first()
+            s = r.content_as_object().nextRequest.computeJobSerial
             for _ in range(_cfg.max_calls):
                 if (body := _next(r.content_as_object())) is None:
-                    return
+                    return s
                 r.destroy()
                 r = await self.call_api("runStatus", body=body)
                 await asyncio.sleep(_SLEEP)
@@ -146,4 +136,5 @@ def init_apis(*args, **kwargs):
         sim_name=("Undulator Radiation", str, "which sim"),
         sim_report=("initialIntensityReport", str, "which report"),
         sim_type=("srw", str, "which app to test"),
+        sim_random=("electronBeam.current", str, "which randomized field"),
     )

@@ -143,8 +143,8 @@ class ImpactxMadxConverter(MadxConverter):
             elif element_in.type == "COLLIMATOR":
                 m = re.search(r"^\{?\s*(.*?),\s*(.*?)\s*\}?$", element_in.aperture)
                 if m:
-                    element_out.xmax = self.__val(m.group(1))
-                    element_out.ymax = self.__val(m.group(2))
+                    element_out.aperture_x = self.__val(m.group(1))
+                    element_out.aperture_y = self.__val(m.group(2))
                 element_out.shape = (
                     "rectangular"
                     if element_in.apertype == "rectangle"

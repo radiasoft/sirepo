@@ -13,7 +13,6 @@ from pykern import pkunit
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdexc, pkdc, pkdlog
 from sirepo import job
-from sirepo import simulation_db
 from sirepo.template import template_common
 import contextlib
 import os

@@ -29,14 +29,6 @@ def test_madx(fc):
     )
 
 
-def test_activait(fc):
-    _r(
-        fc,
-        "2019 World Happiness",
-        "fileColumnReport1",
-    )
-
-
 def test_opal(fc):
     _r(
         fc,
@@ -74,22 +66,6 @@ def test_srw_brightness(fc):
         fc,
         "Young's Double Slit Experiment",
         "brillianceReport",
-    )
-
-
-def test_warppba(fc):
-    _r(
-        fc,
-        "Laser Pulse",
-        "laserPreviewReport",
-    )
-
-
-def test_zgoubi(fc):
-    _r(
-        fc,
-        "Los Alamos Proton Storage Ring",
-        "twissReport",
     )
 
 

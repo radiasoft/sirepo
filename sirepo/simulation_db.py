@@ -33,6 +33,7 @@ import sirepo.mpi
 import sirepo.resource
 import sirepo.srdb
 import sirepo.template
+import sirepo.util
 import time
 
 #: Names to display to use for jobRunMode
@@ -214,7 +215,7 @@ def fixup_old_data(data, force=False, path=None, qcall=None):
         m = 0.0
         for p in pkio.sorted_glob(
             # POSIT: same format as simulation_run_dir
-            json_filename(
+            sirepo.util.json_path(
                 sirepo.const.SIM_RUN_INPUT_BASENAME, run_dir=path.dirpath().join("*")
             ),
         ):
@@ -242,6 +243,7 @@ def fixup_old_data(data, force=False, path=None, qcall=None):
         if "simulationType" not in data:
             if "sourceIntensityReport" in data.models:
                 data.simulationType = "srw"
+            # TODO(robnagler) 20250131 remove
             elif "fieldAnimation" in data.models:
                 data.simulationType = "warppba"
             elif "bunchSource" in data.models:
@@ -249,6 +251,7 @@ def fixup_old_data(data, force=False, path=None, qcall=None):
             else:
                 pkdlog("simulationType: not found; data={}", data)
                 raise AssertionError("must have simulationType")
+        # TODO(robnagler) 20250131 remove
         elif data.simulationType == "warp":
             data.simulationType = "warppba"
         elif data.simulationType == "fete":
@@ -326,38 +329,12 @@ def iterate_simulation_datafiles(simulation_type, op, search=None, qcall=None):
 
 
 def json_filename(filename, run_dir=None):
-    """Append sirepo.const.JSON_SUFFIX if necessary and convert to str
-
-    Args:
-        filename (py.path or str): to convert
-        run_dir (py.path): which directory to join (only if filename is str)
-    Returns:
-        py.path: filename.json
-    """
-
-    def _path():
-        if not isinstance(filename, str):
-            if run_dir:
-                raise AssertionError(
-                    f"filename={filename} is a py.path, cannot join run_dir={run_dir}"
-                )
-            return filename
-        if not run_dir:
-            return pkio.py_path(filename)
-        if os.path.isabs(filename):
-            raise AssertionError(
-                f"filename={filename} is absolute, cannot join run_dir={run_dir}"
-            )
-        return run_dir.join(filename)
-
-    p = _path()
-    if p.ext == sirepo.const.JSON_SUFFIX:
-        return p
-    # Do not replace using new, because may already have suffix
-    return p + sirepo.const.JSON_SUFFIX
+    """DEPRECATED use sirepo.util.json_path"""
+    return sirepo.util.json_path(path=filename, run_dir=None)
 
 
 def json_load(*args, **kwargs):
+    """DEPRECATED use pykern.pkjson.load_any"""
     return pkjson.load_any(*args, **kwargs)
 
 
@@ -414,7 +391,7 @@ def migrate_guest_to_persistent_user(guest_uid, to_uid, qcall):
             for p in glob.glob(
                 str(g.join("*", "*", sirepo.const.SIM_DATA_BASENAME)),
             ):
-                if read_json(p).models.simulation.get("isExample"):
+                if sirepo.util.json_read(p).models.simulation.get("isExample"):
                     continue
                 o = os.path.dirname(p)
                 n = o.replace(guest_uid, to_uid)
@@ -443,7 +420,7 @@ def open_json_file(sim_type, path=None, sid=None, fixup=True, qcall=None):
     # TODO: no need for lock
     try:
         with p.open() as f:
-            data = json_load(f)
+            data = pkjson.load_any(f)
         # ensure the simulationId matches the path
         if sid:
             data.models.simulation.simulationId = _sim_from_path(p)[0]
@@ -489,15 +466,8 @@ def process_simulation_list(res, path, data):
 
 
 def read_json(filename):
-    """Read data from json file
-
-    Args:
-        filename (py.path or str): will append sirepo.const.JSON_SUFFIX if necessary
-
-    Returns:
-        object: json converted to python
-    """
-    return json_load(json_filename(filename))
+    """DEPRECATED use sirepo.util.json_read"""
+    return sirepo.util.json_read(path=filename)
 
 
 def read_simulation_json(sim_type, sid, qcall):
@@ -517,7 +487,7 @@ def read_simulation_json(sim_type, sid, qcall):
     with user_lock(qcall=qcall):
         try:
             with p.open() as f:
-                data = json_load(f)
+                data = pkjson.load_any(f)
             # ensure the simulationId matches the path
             if sid:
                 data.models.simulation.simulationId = _sim_from_path(p)[0]
@@ -625,7 +595,7 @@ def save_simulation_json(data, fixup, do_validate=True, qcall=None, modified=Fal
         on_disk = None
         try:
             # OPTIMIZATION: If folder/name same, avoid reading entire folder
-            on_disk = read_json(fn).models.simulation
+            on_disk = sirepo.util.json_read(fn).models.simulation
             need_validate = not (on_disk.folder == s.folder and on_disk.name == s.name)
         except Exception:
             pass
@@ -686,7 +656,7 @@ def simulation_dir(simulation_type, sid=None, qcall=None):
     """Generates simulation directory from sid and simulation_type
 
     Args:
-        simulation_type (str): srw, warppba, ...
+        simulation_type (str): srw, elegant, ...
         sid (str): simulation id (optional)
         uid (str): user id
     """
@@ -840,7 +810,7 @@ def write_json(filename, data):
     Args:
         filename (py.path or str): will append sirepo.const.JSON_SUFFIX if necessary
     """
-    util.json_dump(data, path=json_filename(filename), pretty=True)
+    util.json_dump(data, path=sirepo.util.json_path(filename), pretty=True)
 
 
 def _create_lib_and_examples(user_dir, sim_type, qcall=None):
@@ -899,13 +869,13 @@ def _init():
 
 def _init_schemas():
     global SCHEMA_COMMON
-    SCHEMA_COMMON = json_load(
+    SCHEMA_COMMON = pkjson.load_any(
         sirepo.resource.static("json", f"schema-common{sirepo.const.JSON_SUFFIX}")
     )
     SCHEMA_COMMON.pkupdate(sirepo.const.SCHEMA_COMMON)
     a = SCHEMA_COMMON.appInfo
     for t in sirepo.feature_config.cfg().sim_types:
-        s = read_json(sirepo.resource.static("json", f"{t}-schema.json"))
+        s = sirepo.util.json_read(sirepo.resource.static("json", f"{t}-schema.json"))
         _merge_dicts(s.get("appInfo", PKDict()), a)
         s.update(SCHEMA_COMMON)
         s.feature_config = feature_config.for_sim_type(t)

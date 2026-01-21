@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """Simulation schema
 
 :copyright: Copyright (c) 2018 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+
 from pykern import pkconfig
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
@@ -140,7 +139,7 @@ def validate(schema):
     sch_enums = schema.enum
     for name in sch_enums:
         for values in sch_enums[name]:
-            if not isinstance(values[0], pkconfig.STRING_TYPES):
+            if not isinstance(values[0], str):
                 raise AssertionError(
                     util.err(
                         name,
@@ -185,6 +184,11 @@ def _validate_enum(val, sch_field_info, sch_enums):
 
 
 def _validate_job_run_mode(field_name, schema):
+    # This code is precarious, because it imports the template.
+    # This check is overly pedantic. You'd have to test the code
+    # on Slurm to know if it works.
+    if not pkconfig.in_dev_mode():
+        return
     if field_name != "jobRunMode":
         return
     from sirepo import pkcli

@@ -9,7 +9,6 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import crystal
-from sirepo import simulation_db
 from sirepo.template import srw_common
 from sirepo.template import template_common
 import array
@@ -254,9 +253,7 @@ def background_percent_complete(report, run_dir, is_running):
         t = int(filename.mtime())
         if not is_running and report == "fluxAnimation":
             # let the client know which flux method was used for the output
-            data = simulation_db.read_json(
-                run_dir.join(template_common.INPUT_BASE_NAME)
-            )
+            data = sirepo.util.json_read(run_dir.join(template_common.INPUT_BASE_NAME))
             res.method = data.models.fluxAnimation.method
         if report == "multiElectronAnimation":
             # let client know that degree of coherence reports are also available
@@ -274,7 +271,7 @@ def background_percent_complete(report, run_dir, is_running):
     if status_files:  # Read the status file if SRW produces the multi-e logs
         progress_file = pkio.py_path(status_files[-1])
         if progress_file.exists():
-            status = simulation_db.read_json(progress_file)
+            status = sirepo.util.json_read(progress_file)
             res.update(
                 PKDict(
                     percentComplete=status.progress,
@@ -541,6 +538,8 @@ def sim_frame(frame_args):
 
 def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
     def _sim_from_radia(models, d):
+        from sirepo import simulation_db
+
         for m in ("simulation", "tabulatedUndulator", "electronBeamPosition"):
             models[m].pkupdate(d[m])
         f = d.tabulatedUndulator.magneticFile
@@ -591,6 +590,8 @@ def post_execution_processing(
 
 
 def prepare_for_client(data, qcall, **kwargs):
+    from sirepo import simulation_db
+
     save = False
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
         if (
@@ -683,7 +684,7 @@ def prepare_sequential_output_file(run_dir, sim_in):
     if m in ("brillianceReport", "mirrorReport"):
         return
     # TODO(pjm): only need to rerun extract_report_data() if report style fields have changed
-    fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+    fn = sirepo.util.json_path(template_common.OUTPUT_BASE_NAME, run_dir)
     if fn.exists():
         fn.remove()
         output_file = run_dir.join(get_filename_for_model(m))
@@ -745,7 +746,7 @@ def process_watch(wid=0):
         return wfr
 
     def _op():
-        sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        sim_in = sirepo.util.json_read(template_common.INPUT_BASE_NAME)
         report = sim_in.models[f"beamlineAnimation{wid}"]
         p = _wavefront_pickle_filename(wid)
         with open(p, "rb") as f:
@@ -778,7 +779,7 @@ def python_source_for_model(data, model, qcall, plot_reports=True, **kwargs):
 def run_epilogue():
     # POSIT: only called from template.run_epilogue
     def _op():
-        sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        sim_in = sirepo.util.json_read(template_common.INPUT_BASE_NAME)
         if sim_in.report == "coherentModesAnimation":
             # this sim creates _really_ large intermediate files which should get removed
             for p in pkio.sorted_glob("*_mi.h5"):
@@ -1164,7 +1165,7 @@ def _beamline_animation_percent_complete(run_dir, res):
             id=0,
         ),
     ]
-    dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
+    dm = sirepo.util.json_read(run_dir.join(template_common.INPUT_BASE_NAME)).models
     for item in dm.beamline:
         if _is_item_disabled(item):
             continue
@@ -2273,7 +2274,7 @@ def _machine_learning_percent_complete(run_dir, res):
             filename=_SIM_DATA.ML_OUTPUT,
         ),
     ]
-    dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
+    dm = sirepo.util.json_read(run_dir.join(template_common.INPUT_BASE_NAME)).models
     count = len(pkio.walk_tree(run_dir, "values.npy"))
     res.frameCount = count
     res.percentComplete = 100 * count / dm.exportRsOpt.totalSamples

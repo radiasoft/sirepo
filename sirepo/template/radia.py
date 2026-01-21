@@ -980,7 +980,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
         v.sim_id = data.models.simulation.simulationId
         return template_common.render_jinja(
             SIM_TYPE,
-            v,
+            sirepo.util.numpy_to_py(v),
             f"{rpt_out}.py",
             jinja_env=PKDict(loader=jinja2.PackageLoader("sirepo", "template")),
         )
@@ -1101,6 +1101,7 @@ def _generate_parameters_file(data, is_parallel, qcall, for_export=False, run_di
         return f"""import subprocess
 subprocess.call(['bash', 'optimize.sh'])
 """
+    v = sirepo.util.numpy_to_py(v)
     h = (
         template_common.render_jinja(
             SIM_TYPE,
@@ -1111,7 +1112,6 @@ subprocess.call(['bash', 'optimize.sh'])
         if for_export or rpt_out in _SIM_REPORTS
         else ""
     )
-
     j_file = RADIA_EXPORT_FILE if for_export else f"{rpt_out}.py"
     return h + template_common.render_jinja(
         SIM_TYPE,
