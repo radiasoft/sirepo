@@ -14,10 +14,30 @@
     },
     "dynamicFiles": {
     },
+    "enum": {
+        "ComponentType": [
+            ["element", "Element"],
+            ["nuclide", "Nuclide"]
+        ],
+        "PercentType": [
+            ["ao", "ao"],
+            ["wo", "wo"]
+        ]
+    },
     "frameIdFields": {
         "tileAnimation": ["stat"]
     },
     "model": {
+        "material": {
+            "name": ["Name", "String", ""],
+            "density": ["Density", "Float"],
+            "percent_type": ["Percent type", "PercentType", "ao"]
+        },
+        "materialComponent": {
+            "component": ["Component", "String"],
+            "component_type": ["Component Type", "ComponentType"],
+            "percent": ["Percent", "Float"]
+        },
         "tileAnimation": {
             "stat": ["", "String"]
         }

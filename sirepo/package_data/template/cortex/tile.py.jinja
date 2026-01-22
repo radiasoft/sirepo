@@ -171,13 +171,15 @@ def material_from_definition(definition):
 
 t = material_from_definition(
     PKDict(
-        density_gcc=19.3,
-        percent_type="ao",
+        density_gcc={{ material_density }},
+        percent_type="{{ material_percent_type }}",
         components=[
+{% for c in materialComponents %}
             PKDict(
-                element="W",
-                percent=1.0,
+                {{ c.component_type }}="{{ c.component }}",
+                percent={{ c.percent / 100.0 }},
             ),
+{% endfor %}
         ],
     )
 )
@@ -218,7 +220,7 @@ nuclides_of_each_element = materials.nuclides_for_each_element(t)
 
 model.materials = openmc.Materials([t])
 model.materials.download_cross_section_data(
-    libraries=["ENDFB-8.0-NNDC"],
+    libraries=["ENDFB-8.0-NNDC", "TENDL-2019"],
     destination="{{ materialDirectory }}",
 )
 

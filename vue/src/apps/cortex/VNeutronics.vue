@@ -23,12 +23,17 @@
  import { onMounted, onUnmounted, ref, watch } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
 
+ const props = defineProps({
+     materialId: String,
+ });
  const isLoaded = ref(false);
  const sim = ref({});
 
  onMounted(async () => {
      //TODO(pjm): first check db for results
-     const r = await requestSender.sendRequest("cortexSimRunner", {});
+     const r = await requestSender.sendRequest("cortexSimRunner", {
+         materialId: props.materialId,
+     });
      await appState.loadModels(r.simulationId);
      isLoaded.value = true;
  });

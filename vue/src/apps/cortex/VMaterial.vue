@@ -37,7 +37,7 @@
         </div>
         <div class="h2">{{ material.name }}</div>
         <div v-if="isSelected('neutronics')">
-            <VNeutronics />
+            <VNeutronics v-bind:materialId="materialId"/>
         </div>
         <VMasonry v-if="! isSelected('neutronics')">
             <div v-bind:class="smallPanel">
@@ -198,6 +198,7 @@
  const smallPanel = 'col-md-6';
  const largePanel = 'col-md-12';
  const material = ref(null);
+ const materialId = ref(null);
  const route = useRoute();
  // overview, properties, neutronics
  const selectedSection = ref('overview');
@@ -236,7 +237,8 @@
  };
 
  onMounted(async () => {
-     material.value = await db.materialDetail(route.params.materialId);
+     materialId.value = route.params.materialId;
+     material.value = await db.materialDetail(materialId.value);
      if (material.value.properties.length) {
          selectedProperty.value = material.value.properties[0];
      }

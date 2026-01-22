@@ -103,7 +103,8 @@ def write_parameters(data, run_dir, is_parallel):
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         template_common.render_jinja(
             SIM_TYPE,
-            PKDict(
+            template_common.flatten_data(data.models, PKDict()).pkupdate(
+                materialComponents=data.models.material.components,
                 materialDirectory=sirepo.sim_run.cache_dir(
                     sirepo.template.openmc.OPENMC_CACHE_DIR
                 ),
