@@ -178,12 +178,6 @@
             "Availability Factor": "66.0%",
             "Neutron Source": "D-T",
             "Neutron Wall Loading": "ITER"
-        },
-        "section3": {
-            "Bare Tile": "Yes",
-            "Homogenized Divertor": "No",
-            "Homogenized HCPB": "Yes",
-            "Homogenized WCLL": "No"
         }
     }
 }
