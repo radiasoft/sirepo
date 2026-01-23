@@ -1,21 +1,21 @@
 //TODO(pjm): dropdown-menu should be a named slot
 <template>
     <div class="card mb-4" v-bind:style="cardStyle">
-        <div class="sr-panel-header card-header lead text-bg-info bg-opacity-25">
+        <div class="sr-panel-header card-header text-bg-info bg-opacity-25">
             {{ title }}
             <div class="sr-panel-options float-end">
                 <a v-if="canEdit" href title="Edit" v-on:click.prevent="showModal"><span class="bi bi-pencil-fill"></span></a>
-                <div class="dropdown-menu-end d-inline-block" title="Download">
+                <div v-if="downloadActions" class="dropdown-menu-end d-inline-block" title="Download">
                     <a href data-bs-toggle="dropdown"><span class="bi bi-cloud-download-fill"></span></a>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="#">Action</a></li>
-                        <li><a class="dropdown-item" href="#">Another action</a></li>
-                        <li><a class="dropdown-item" href="#">Something else here</a></li>
+                        <li v-for="action in downloadActions">
+                            <a href class="dropdown-item" v-on:click.prevent="action.onClick">{{ action.label }}</a>
+                        </li>
                     </ul>
                 </div>
                 <a href
                    v-on:click.prevent="toggleFullscreen()"
-                   v-if="! hidden"
+                   v-if="canFullScreen && ! hidden"
                    v-bind:title="isFullscreen() ? 'Exit Full Screen' : 'Full Screen'"
                 >
                     <span v-bind:class="{
@@ -52,6 +52,8 @@
  const props = defineProps({
      viewName: String,
      title: String,
+     canFullScreen: Boolean,
+     downloadActions: Array,
  });
 
  if (! schema.view[props.viewName]) {

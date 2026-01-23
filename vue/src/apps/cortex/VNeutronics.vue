@@ -1,12 +1,17 @@
 <template>
     <VMasonry>
         <VCol v-if="isLoaded">
-            <VCard viewName="simulationStatus">
-                <VRunSim v-bind:sim="sim" viewName="tileAnimation"></VRunSim>
+            <VCard viewName="simulationStatus" v-bind:title="title">
+                <VRunSim v-bind:sim="sim" v-bind:viewName="neutronics"></VRunSim>
             </VCard>
         </VCol>
         <VCol v-for="report in sim.reports"">
-            <VCard v-bind:viewName="report.viewName" v-bind:title="report.title">
+            <VCard
+                v-bind:viewName="report.viewName"
+                v-bind:title="report.title"
+                v-bind:canFullScreen="true"
+                v-bind:downloadActions="report.downloadActions"
+            >
                 <VFramePlot v-bind:sim="sim" v-bind:modelName="report.modelName"></VFramePlot>
             </VCard>
         </VCol>
@@ -25,6 +30,8 @@
 
  const props = defineProps({
      materialId: String,
+     neutronics: String,
+     title: String,
  });
  const isLoaded = ref(false);
  const sim = ref({});

@@ -1,5 +1,5 @@
 <template>
-    <div v-if="material" class="container-xl">
+    <div v-if="material" class="container-lg sr-fixed-lg">
         <div class="float-end">
             <VNavButton
                 v-bind:active="selectedSection"
@@ -30,202 +30,64 @@
                     }"
                     data-bs-toggle="dropdown"
                 ></button>
-                <ul class="dropdown-menu" id="sr-neutronics-dropdown-menu">
-                    <li><button class="dropdown-item" v-on:click="selectNeutronics('tile')">Homogeneous Tile</button></li>
+                <ul class="dropdown-menu dropdown-menu-end" id="sr-neutronics-dropdown-menu">
+                    <li v-for="sim in Object.keys(neutronicsSims)">
+                        <button class="dropdown-item" v-on:click="selectNeutronics(sim)">
+                            {{ neutronicsSims[sim] }}
+                        </button>
+                    </li>
                 </ul>
             </div>
         </div>
         <div class="h2">{{ material.name }}</div>
+    </div>
+    <div v-if="material">
         <div v-if="isSelected('neutronics')">
-            <VNeutronics v-bind:materialId="materialId"/>
+            <VNeutronics
+                v-bind:materialId="materialId"
+                v-bind:neutronics="neutronicsSim"
+                v-bind:title="neutronicsSims[neutronicsSim]"
+            />
         </div>
-        <VMasonry v-if="! isSelected('neutronics')">
-            <div v-bind:class="smallPanel">
-                <div v-if="isSelected('overview')" class="card mb-4 shadow-sm">
-                    <div class="card-body">
-                        <table class="table"><tbody>
-                            <tr
-                                v-for="n in Object.keys(material.section1)"
-                                v-bind:key="n"
-                            >
-                                <td class="col-form-label">{{ n }}</td>
-                                <td>{{ material.section1[n] }}</td>
-                            </tr>
-                            <tr>
-                                <td colspan="2" class="lead">
-                                    Neutronics Conditions
-                                </td>
-                            </tr>
-                            <tr
-                                v-for="n in Object.keys(material.section2)"
-                                v-bind:key="n"
-                            >
-                                <td class="col-form-label">{{ n }}</td>
-                                <td>{{ material.section2[n] }}</td>
-                            </tr>
-                        </tbody></table>
-                    </div>
-                </div>
+        <div class="container-lg sr-fixed-lg">
+            <div v-if="isSelected('overview')">
+                <VOverview v-bind:material="material" />
             </div>
-            <div v-if="isSelected('overview')" v-bind:class="smallPanel">
-                <div class="card mb-4 shadow-sm">
-                    <div class="card-body">
-                        <div class="h4">
-                            Components
-                            <h6 class="text-body-secondary" style="display: inline-block">
-                                ({{ material.is_atom_pct ? 'Atom' : 'Weight'}} %)
-                            </h6>
-                        </div>
-                        <table class="table">
-                            <thead><tr>
-                                <th>Element or Nuclide</th>
-                                <th class="text-end">Target %</th>
-                                <th class="text-end">Min %</th>
-                                <th class="text-end">Max %</th>
-                            </tr></thead>
-                            <tbody>
-                                <tr
-                                    v-for="r in material.components"
-                                    v-bind:key="r.material_component_name"
-                                >
-                                    <td>{{ r.material_component_name }}</td>
-                                    <td class="text-end">{{ formatNumber(r.target_pct) }}</td>
-                                    <td class="text-end">{{ formatNumber(r.min_pct) }}</td>
-                                    <td class="text-end">{{ formatNumber(r.max_pct) }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <div v-if="isSelected('properties')">
+                <VProperties v-bind:material="material" />
             </div>
-            <div v-if="isSelected('overview')" v-bind:class="smallPanel">
-                <div class="card mb-4 shadow-sm">
-                    <div class="card-body">
-                        <table class="table">
-                            <tbody><tr>
-                                <td style="white-space: nowrap">
-                                    <div style="display: inline-block" class="lead">
-                                        Density
-                                    </div> <VTooltip
-                                        tooltip="Density of your material during in-service conditions; a single value of density will be used for the neutronics calculations" />
-                                </td>
-                                <td>
-                                    <div class="lead">{{ material.density }}</div>
-                                </td>
-                            </tr></tbody>
-                            <VDOIRows
-                                v-bind:doi="material.composition_density?.doi"
-                            />
-                            <VDOIRows
-                                title="Composition"
-                                v-bind:doi="material.composition?.doi"
-                            />
-                        </table>
-                    </div>
-                </div>
-            </div>
-            <div v-if="isSelected('properties') && material.properties.length" v-bind:class="largePanel">
-                <div class="card mb-4 shadow-sm">
-                    <div class="card-body">
-                        <div class="nav nav-tabs">
-                            <li
-                                class="nav-item"
-                                v-for="p in material.properties"
-                                v-bind:key="p"
-                            >
-                                <button
-                                    type="button"
-                                    class="nav-link"
-                                    v-bind:class="{
-                                        active: p == selectedProperty,
-                                    }"
-                                    v-on:click="selectProperty(p)"
-                                >
-                                    {{ formatName(p) }}
-                                </button>
-                            </li>
-                        </div>
-                        <div class="row">
-                            <div class="col-sm-6">
-                                <table class="table">
-                                    <VDOIRows
-                                        v-bind:doi="selectedProperty.doi"
-                                    />
-                                </table>
-                            </div>
-                        </div>
-
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th
-                                        class="text-end"
-                                        v-for="h in Object.keys(selectedProperty.valueHeadings)"
-                                    >
-                                        {{ selectedProperty.valueHeadings[h] }}
-                                    </th>
-                            </tr></thead>
-                            <tbody>
-                                <tr
-                                    v-for="r in selectedProperty.vals"
-                                >
-                                    <td
-                                        class="text-end"
-                                        v-for="h in Object.keys(selectedProperty.valueHeadings)"
-                                    >
-                                        {{ r[h] }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </VMasonry>
+        </div>
     </div>
 </template>
 
 <script setup>
- import VDOIRows from '@/apps/cortex/VDOIRows.vue';
- import VMasonry from '@/components/layout/VMasonry.vue'
  import VNavButton from '@/apps/cortex/VNavButton.vue';
  import VNeutronics from '@/apps/cortex/VNeutronics.vue';
- import VTooltip from '@/components/VTooltip.vue';
+ import VOverview from '@/apps/cortex/VOverview.vue';
+ import VProperties from '@/apps/cortex/VProperties.vue';
  import { db } from '@/apps/cortex/db.js';
  import { onMounted, ref } from 'vue';
  import { useRoute } from 'vue-router';
 
- const smallPanel = 'col-md-6';
- const largePanel = 'col-md-12';
+ const neutronicsSims = {
+     tileAnimation: 'Homogeneous Tile',
+ };
+
  const material = ref(null);
  const materialId = ref(null);
  const route = useRoute();
  // overview, properties, neutronics
  const selectedSection = ref('overview');
- const selectedProperty = ref(null);
- // tile
- const selectedNeutronics = ref('tile');
-
- const formatName = (property) => {
-     return property.property_name.replaceAll('_', ' ');
- };
-
- const formatNumber = (value) => {
-     return value ? value.toFixed(4) : value;
- };
+ const neutronicsSim = ref(Object.keys(neutronicsSims)[0]);
 
  const isSelected = (section) => {
      return selectedSection.value === section;
  };
 
  const selectNeutronics = (neutronics) => {
-     selectedNeutronics.value = neutronics;
+     neutronicsSim.value = neutronics;
      selectSection('neutronics');
  }
-
- const selectProperty = (property) => {
-     selectedProperty.value = property;
- };
 
  const selectSection = (section) => {
      selectedSection.value = section;
@@ -239,8 +101,11 @@
  onMounted(async () => {
      materialId.value = route.params.materialId;
      material.value = await db.materialDetail(materialId.value);
-     if (material.value.properties.length) {
-         selectedProperty.value = material.value.properties[0];
-     }
  });
 </script>
+
+<style scoped>
+ .sr-fixed-lg {
+     max-width: 1200px;
+ }
+</style>

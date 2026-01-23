@@ -29,6 +29,7 @@
  import { objectStore } from '@/services/objectstore.js';
  import { ref, onMounted, onUnmounted } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
+ import { saveAs } from 'file-saver';
  import { schema } from '@/services/schema.js';
 
  const props = defineProps({
@@ -42,6 +43,19 @@
  const frameCount = ref(1);
  let frameIndex = 1;
  let isPlaying = false;
+
+ const downloadCSV = () => {
+     const d = data.value && data.value();
+     if (! d) {
+         return;
+     }
+     let res = [d.x_label, ...d.plots.map((p) => p.label)].map((v) => `"${v}"`).join(',') + "\n";
+     for (let i = 0; i < d.x_points.length; i++) {
+         res += [d.x_points[i], ...d.plots.map((p) => p.points[i])].join(',') + "\n";
+     }
+     const n = d.y_label.replace(/ \[.*/, '');
+     saveAs(new Blob([res], {type: 'text/csv;charset=utf-8'}), `${n}.csv`);
+ };
 
  const frameId = (frameReport) => {
      const v = [
@@ -113,6 +127,10 @@
      const getFrameCount = () => {
          for (let r of props.sim.reports) {
              if (r.modelName == props.modelName) {
+                 r.downloadActions = [{
+                     onClick: () => { downloadCSV() },
+                     label: 'Download CSV',
+                 }];
                  return r.frameCount;
              }
          }

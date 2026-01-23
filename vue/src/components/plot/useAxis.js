@@ -5,7 +5,7 @@ export function useAxis(svgGroup, dimension, orientation, { ticks = 6, tickForma
 
     const g = svgGroup.append("g").attr("class", `sr-${dimension}-axis`).node();
 
-    const update = (scale, transform) => {
+    const update = (scale, transform, tickFormat) => {
         const axis = d3[orientation](scale)
             .ticks(ticks)
             .tickSizeOuter(tickSizeOuter)

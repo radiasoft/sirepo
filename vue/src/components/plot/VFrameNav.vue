@@ -79,7 +79,7 @@
 </script>
 
 <style scoped>
- :deep(.sr-frame-nav-btn) {
+ .sr-frame-nav-btn {
      margin: 1ex;
  }
 </style>

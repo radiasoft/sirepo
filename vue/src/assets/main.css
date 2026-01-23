@@ -179,12 +179,14 @@ ul.sr-nav-sidebar-root {
   stroke-linecap: round;
 }
 .sr-plot .tick text {
-  font-size: 13px;
+  /* Arial Unicode MS has best support for unicode superscripts */
+  font-family: "Arial Unicode MS", Arial, sans-serif;
+  font-size: 14px;
 }
 
 /* bootstrap css overrides */
 .dropdown-menu {
-  --bs-dropdown-font-size: auto;
+  font-size: 14px;
 }
 .tooltip {
   --bs-tooltip-color: #000;

@@ -16,11 +16,31 @@
      data: Function,
  });
 
- const margin = { top: 26, right: 20, bottom: 44, left: 60 };
  const container = ref(null);
+ const margin = { top: 26, right: 20, bottom: 44, left: 60 };
+ const superscript = "⁰¹²³⁴⁵⁶⁷⁸⁹";
  let svg, g, paths, xLabel, yLabel, title;
  let xAxis, yAxis, zoomX, grid, legend, overlay;
  let resizeObserver;
+
+ function formatLogTick(value) {
+
+     function superscriptNumber(v) {
+         return v.toString().split("").map((c) => superscript[c]).join("");
+     }
+
+     const s = value.toString()
+     if (s.match(/^10+$/)) {
+         return '10' + superscriptNumber(s.length - 1);
+     }
+     if (value == 0) {
+         return value;
+     }
+     if (s.match(/^0\.0*1$/)) {
+         return '10⁻' + superscriptNumber(s.length - 2);
+     }
+     return '';
+ }
 
  function init() {
      d3.select(container.value).select("svg").remove();
@@ -56,6 +76,14 @@
      return [Math.max(320, Math.floor(rect.width)), Math.max(220, Math.floor(rect.height))];
  }
 
+ function isLog(dimension) {
+     const t = props.data().type;
+     if (dimension === 'x') {
+         return t === 'loglog';
+     }
+     return ['loglog', 'semilog'].includes(t);
+ }
+
  function render() {
      if (!container.value || !svg) {
          return;
@@ -69,18 +97,16 @@
      const domain = d3.extent(props.data().x_points);
      const x = zoomX.rescale(scale(
          'x',
-         props.data().type === 'loglog',
          domain,
          [0, innerWidth],
      ));
      const y = scale(
          'y',
-         ['loglog', 'semilog'].includes(props.data().type),
          props.data().y_range,
          [innerHeight, 0],
      );
-     xAxis.update(x, `translate(0,${innerHeight})`);
-     yAxis.update(y);
+     xAxis.update(x, `translate(0,${innerHeight})`, isLog('x') ? formatLogTick : null);
+     yAxis.update(y, null, isLog('y') ? formatLogTick : null);
      grid.update(x, y, innerWidth, innerHeight);
      g.attr("transform", `translate(${margin.left},${margin.top})`);
      overlay.update(innerWidth, innerHeight, ! util.deepEquals(x.domain(), domain));
@@ -123,12 +149,12 @@
      }
  }
 
- function scale(dimension, isLog, domain, range) {
-     const s = d3[isLog ? 'scaleLog' : 'scaleLinear'](domain, range);
+ function scale(dimension, domain, range) {
+     const s = d3[isLog(dimension) ? 'scaleLog' : 'scaleLinear'](domain, range);
      if (dimension == 'y') {
         s.nice();
      }
-     if (isLog) {
+     if (isLog(dimension)) {
          s.base(10);
      }
      return s;

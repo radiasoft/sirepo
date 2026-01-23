@@ -1,5 +1,5 @@
 <template>
-    <div>State: {{ state }}</div>
+    <div class="mb-3">Simulation state: {{ state }}{{ statusDots }}</div>
     <div v-if="! isBusy()">
       <button v-on:click="startSim">Start New Simulation</button>
     </div>
@@ -19,6 +19,7 @@
  });
 
  const state = ref("unknown"); // unknown or sim state
+ const statusDots = ref("");
  let qItem = null;
 
  //TODO(pjm): unknown + isRunning
@@ -39,9 +40,21 @@
          state.value = data.queueState;
      }
      else if (data.state) {
-         state.value = data.state;
+         if (state.value != data.state) {
+             state.value = data.state;
+             statusDots.value = '';
+         }
      }
-     if (! isRunning()) {
+     if (isRunning()) {
+         if (! statusDots.value || statusDots.value.length >= 3) {
+             statusDots.value = '.';
+         }
+         else {
+             statusDots.value += '.';
+         }
+     }
+     else {
+         statusDots.value = '';
          qItem = null;
      }
      if (data.reports) {
