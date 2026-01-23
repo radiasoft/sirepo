@@ -210,6 +210,11 @@ def _init():
                 "url to reach scan monitor daemon",
             ),
         ),
+        sbatch_sim_types=(
+            set(("openmc", "radia", "srw")),
+            set,
+            "simulation types supported by sbatch",
+        ),
         schema_common=dict(
             support_email=(
                 "support@sirepo.com",
