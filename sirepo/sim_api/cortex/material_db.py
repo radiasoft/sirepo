@@ -140,9 +140,28 @@ def init_from_api():
                 unique=(("material_property_id", "name"),),
             ),
             independent_variable_value=PKDict(
-                independent_variable_id="primary_id primary_key",
-                material_property_value_id="primary_id primary_key",
+                independent_variable_id="primary_id primary_key index",
+                material_property_value_id="primary_id primary_key index",
                 value=f,
+            ),
+            plot=PKDict(
+                plot_id="primary_id 6",
+                material_id="primary_id",
+                title="str 100",
+                xlabel="str 100",
+                ylabel="str 100",
+                type="str 10",
+            ),
+            plot_value=PKDict(
+                plot_id="primary_id primary_key index",
+                dim="int 32 primary_key",  # x|y1|y2|y3
+                idx="int 32 primary_key",
+                value=f,
+            ),
+            plot_legend=PKDict(
+                plot_id="primary_id primary_key index",
+                dim="int 32 primary_key",  # x|y1|y2|y3
+                label="str 100",
             ),
         ),
     )
@@ -206,6 +225,39 @@ def insert_material(parsed, uid):
                 s, n, parsed.properties[n].pkupdate(material_id=rv.material_id)
             )
         return PKDict((k, rv[k]) for k in ("material_id", "material_name"))
+
+
+def insert_plot(plotdef):
+    with _session() as s:
+        rv = s.insert(
+            "plot",
+            PKDict(
+                {
+                    k: plotdef[k]
+                    for k in ("material_id", "title", "xlabel", "ylabel", "type")
+                }
+            ),
+        )
+        for dim, label in enumerate(plotdef.legend):
+            s.insert(
+                "plot_legend",
+                PKDict(
+                    plot_id=rv.plot_id,
+                    dim=dim,
+                    label=label,
+                ),
+            )
+        for dim, values in enumerate(plotdef["values"]):
+            for idx, v in enumerate(values):
+                s.insert(
+                    "plot_value",
+                    PKDict(
+                        plot_id=rv.plot_id,
+                        dim=dim,
+                        idx=idx,
+                        value=v,
+                    ),
+                )
 
 
 def list_materials(uid):

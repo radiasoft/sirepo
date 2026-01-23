@@ -9,10 +9,12 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import asyncio
 import asyncio.exceptions
 import pykern.pkasyncio
+import re
 import sirepo.quest
 import sirepo.sim_api.cortex.material_db
 import sirepo.sim_api.cortex.material_xlsx
 import sirepo.sim_data
+import sirepo.simulation_db
 
 _SIM_DATA, SIM_TYPE, _ = sirepo.sim_data.template_globals(sim_type="cortex")
 
@@ -58,6 +60,69 @@ class API(sirepo.quest.API):
             pkdlog("timed out secs={} req_data={}", _ACTION_TIMEOUT, a)
             # TODO(robnagler) is there a better way?
             raise
+
+    @sirepo.quest.Spec("require_plan", sim_type=f"SimType const={SIM_TYPE}")
+    async def api_cortexSimRunner(self):
+        async def _update_sim(sim, material_id):
+            i = (
+                (
+                    await self.call_api(
+                        "cortexDb",
+                        body=PKDict(
+                            op_name="material_detail",
+                            op_args=PKDict(
+                                material_id=material_id,
+                            ),
+                        ),
+                    )
+                )
+                .content_as_object()
+                .op_result.detail
+            )
+            sim.models.material.pkupdate(
+                name=i.name,
+                density=float(re.sub(r"\s.*", "", i.density)),
+                percent_type="ao" if i.is_atom_pct else "wo",
+                components=[
+                    PKDict(
+                        component_type=(
+                            "nuclide"
+                            if re.search(r"\d", c.material_component_name)
+                            else "element"
+                        ),
+                        component=c.material_component_name,
+                        percent=c.target_pct,
+                    )
+                    for c in i.components
+                ],
+            )
+            return sirepo.simulation_db.save_simulation_json(
+                sim, fixup=True, qcall=self
+            )
+
+        m = self.parse_post(type=SIM_TYPE).req_data.materialId
+        s = (
+            await self.call_api(
+                "listSimulations",
+                body=PKDict(
+                    simulationType=SIM_TYPE,
+                    search=PKDict({"simulation.name": m}),
+                ),
+            )
+        ).content_as_object()
+        sim = None
+        if len(s):
+            sim = sirepo.simulation_db.open_json_file(
+                SIM_TYPE, sid=s[0].simulationId, qcall=self
+            )
+        else:
+            d = sirepo.simulation_db.default_data(SIM_TYPE)
+            d.models.simulation.name = m
+            sim = sirepo.simulation_db.save_new_simulation(d, qcall=self)
+        await _update_sim(sim, m)
+        return PKDict(
+            simulationId=sim.models.simulation.simulationId,
+        )
 
     def cortex_db_done(self, result):
         self.__loop.call_soon_threadsafe(self.__result.put_nowait, result)
@@ -221,16 +286,6 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
                         f"{material.availability_factor}%"
                         if material.availability_factor
                         else ""
-                    ),
-                }
-            ),
-            section3=PKDict(
-                {
-                    "Bare Tile": _to_yes_no(material.is_bare_tile),
-                    "Homogenized WCLL": _to_yes_no(material.is_homogenized_wcll),
-                    "Homogenized HCPB": _to_yes_no(material.is_homogenized_hcpb),
-                    "Homogenized Divertor": _to_yes_no(
-                        material.is_homogenized_divertor
                     ),
                 }
             ),
