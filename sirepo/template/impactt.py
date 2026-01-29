@@ -96,7 +96,7 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def bunch_plot(model, frame_index, particle_group):
+def bunch_plot(model, frame_index, particle_group, threshold=None, title=None):
     def _label(name):
         if name == "delta_z":
             return "z -〈z〉"
@@ -114,8 +114,9 @@ def bunch_plot(model, frame_index, particle_group):
         plot_fields=PKDict(
             x_label=f"{_label(model.x)} [{particle_group.units(model.x)}]",
             y_label=f"{_label(model.y)} [{particle_group.units(model.y)}]",
-            title=_PLOT_TITLE.get(f"{model.x}-{model.y}", f"{model.x} - {model.y}"),
-            threshold=[1e-20, 1e20],
+            title=title
+            or _PLOT_TITLE.get(f"{model.x}-{model.y}", f"{model.x} - {model.y}"),
+            threshold=threshold or [1e-20, 1e20],
             z_units="pC",
         ),
         # scale to pC
