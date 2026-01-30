@@ -22,23 +22,14 @@ class Error(RuntimeError):
 
 
 def db_upgrade():
-    # SQLITE doesn't support "alter column drop not null"
-    def _alter_column_drop_not_null(table, column):
-        _OLDCOL = "oldcol"
-        with _session() as s:
-            for t in (
-                f"ALTER TABLE {table} RENAME COLUMN {column} TO {_OLDCOL}",
-                f"ALTER TABLE {table} ADD COLUMN {column} FLOAT",
-                f"UPDATE {table} SET {column} = {_OLDCOL}",
-                f"ALTER TABLE {table} DROP COLUMN {_OLDCOL}",
-            ):
-                s.execute(t)
-
     if not _path().exists():
         # for tests, db may not exist to upgrade
         return
-    for c in ("temperature_k", "neutron_fluence_1_cm2"):
-        _alter_column_drop_not_null("material_property_value", c)
+    with _session() as s:
+        if "is_public" in s.meta.tables["material"].columns:
+            return
+        for c in ("is_public", "is_featured"):
+            s.execute(f"ALTER TABLE material ADD COLUMN {c} BOOLEAN")
 
 
 def delete_material(material_id, uid):
@@ -94,11 +85,13 @@ def init_from_api():
                 density_g_cm3=f,
                 is_atom_pct="bool",
                 is_bare_tile=_optional("bool"),
+                is_featured=_optional("bool"),
                 is_homogenized_divertor=_optional("bool"),
                 is_homogenized_hcpb=_optional("bool"),
                 is_homogenized_wcll=_optional("bool"),
                 is_neutron_source_dt=_optional("bool"),
                 is_plasma_facing="bool",
+                is_public=_optional("bool"),
                 neutron_wall_loading=_optional("str 32"),
                 structure=_optional("str 100"),
                 microstructure=_optional("str 500"),
@@ -147,6 +140,7 @@ def init_from_api():
             plot=PKDict(
                 plot_id="primary_id 6",
                 material_id="primary_id",
+                model="str 100",
                 title="str 100",
                 xlabel="str 100",
                 ylabel="str 100",
