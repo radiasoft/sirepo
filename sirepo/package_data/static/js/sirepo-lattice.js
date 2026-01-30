@@ -1825,6 +1825,10 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         }
                     }
                     var picType = getPicType(item.type);
+                    //TODO(pjm): SOLRF is impactt-specific
+                    if (item.type == 'SOLRF' && ! item.solenoid_field_scale && item.rf_frequency) {
+                        item.type = 'RFCW';
+                    }
                     //TODO(pjm): CHANGREF is zgoubi-specific
                     if (picType != 'drift' && item.type.indexOf('CHANGREF') < 0) {
                         pos.count++;

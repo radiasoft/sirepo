@@ -14,6 +14,8 @@ SIREPO.app.config(function() {
             magnet: ['QUADRUPOLE', 'DIPOLE'],
             solenoid: ['SOLENOID', 'SOLRF'],
             watch: ['WRITE_BEAM', 'WRITE_SLICE_INFO'],
+            //TODO(pjm): RFCW is not a real Impact-T element, just used for rendering a SOLRF when it acts like a cavity
+            rf: ['RFCW'],
             zeroLength: [
                 'CHANGE_TIMESTEP',
                 'OFFSET_BEAM',
