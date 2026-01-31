@@ -1,6 +1,7 @@
 {
     "apiRoute": {
-        "cortexDb": "/cortex-db"
+        "cortexDb": "/cortex-db",
+        "cortexSimRunner": "/cortex-sim-runner"
     },
     "appInfo": {
         "cortex": {
@@ -14,71 +15,41 @@
     "dynamicFiles": {
     },
     "enum": {
-        "DensityUnits": [
-            ["g/cm3", "g/cm3"],
-            ["g/cc", "g/cc"],
-            ["kg/m3", "kg/m3"],
-            ["atom/b-cm", "atom/b-cm"],
-            ["atom/cm3", "atom/cm3"],
-            ["sum", "sum"],
-            ["macro", "macro"]
-        ],
-        "NeutronSource": [
-            ["D-T", "D-T fusion"],
-            ["D-D", "D-D fusion"]
-        ],
-        "NeutronWallLoadingName": [
-            ["ITER", "ITER 0.57"],
-            ["DEMO", "DEMO 1.04"],
-            ["OTHER", "Other"]
+        "ComponentType": [
+            ["element", "Element"],
+            ["nuclide", "Nuclide"]
         ],
         "PercentType": [
-            ["ao", "Atom %"],
-            ["wo", "Weight %"]
+            ["ao", "ao"],
+            ["wo", "wo"]
         ]
     },
+    "frameIdFields": {
+        "tileAnimation": ["stat"]
+    },
     "model": {
-        "materialImport": {
-            "xlsxFile": ["", "InputFile"]
-        },
         "material": {
             "name": ["Name", "String", ""],
-            "density_with_units": ["Density", "DensityWithUnits"],
             "density": ["Density", "Float"],
-            "density_units": ["Density units", "DensityUnits", "g/cm3"],
-            "percent_type": ["Percent type", "PercentType", "wo"],
-            "components": ["", "MaterialComponents"]
+            "percent_type": ["Percent type", "PercentType", "ao"]
         },
         "materialComponent": {
-            "name": ["Element or Nuclide", "ComponentName", ""],
-            "percent": ["Target %", "OptionalFloatOrBalance", 1.0],
-            "min_percent": ["Min %", "OptionalFloat"],
-            "max_percent": ["Max %", "OptionalFloat"]
+            "component": ["Component", "String"],
+            "component_type": ["Component Type", "ComponentType"],
+            "percent": ["Percent", "Float"]
         },
-        "multiLayerOptions": {
-            "bare_tile": ["Bare Tile", "Boolean", "1"],
-            "homogenized_vcll": ["Homogenized WCLL", "Boolean", "0"],
-            "homogenized_hcpb": ["Homogenized HCPB", "Boolean", "1"],
-            "homogenized_divertor": ["Homogenized divertor", "Boolean", "0"],
-            "is_plasma_facing": ["Plasma facing", "Boolean", "1"]
-        },
-        "operatingConditions": {
-            "neutron_source": ["Neutron Source", "NeutronSource", "D-T"],
-            "wall_loading_name": ["Neutron Wall Loading", "NeutronWallLoadingName", "ITER"],
-            "availability_factor": ["Availability Factor %", "Float", 25]
-        },
-        "simulation": {
-            "isConfirmed": ["", "Boolean", "0"]
+        "tileAnimation": {
+            "stat": ["", "String"]
         }
     },
     "view": {
-        "material": {
-            "title": "Material",
-            "advanced": [
-                "name",
-                "density_with_units",
-                "components"
-            ]
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        },
+        "tileAnimation": {
+            "title": "Neutronics Plot",
+            "advanced": []
         }
     }
 }
