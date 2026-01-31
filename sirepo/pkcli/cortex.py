@@ -17,6 +17,7 @@ import pykern.pkjson
 import pykern.sql_db
 import re
 import requests
+import sirepo.template.template_common
 import sirepo.auth
 import sirepo.quest
 import sirepo.sim_api.cortex
@@ -179,6 +180,10 @@ def export_tea(db_file):
     m = _populate_materials(_dump_sqlalchemy(uri))
     return f"""# Generated on {datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")}
 MATERIALS = {_json_to_python(pykern.pkjson.dump_pretty(m))}"""
+
+
+def run_background(cfg_dir):
+    sirepo.template.template_common.exec_parameters()
 
 
 def import_xlsx(uid_or_email, *args):

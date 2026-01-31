@@ -6,5 +6,13 @@
     <div class="col-md-6">
       <div data-report-panel="parameter" data-model-name="heightWeightReport"></div>
     </div>
+    <div class="col-md-6">
+      <div data-simple-panel="simulationStatus">
+        <div data-sim-status-panel="source.simState"></div>
+      </div>
+    </div>
+    <div class="col-md-6" data-ng-if="source.simState.hasFrames()">
+      <div data-report-panel="parameter" data-model-name="activityAnimation"></div>
+    </div>
   </div>
 </div>

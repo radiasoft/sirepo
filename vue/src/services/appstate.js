@@ -7,29 +7,39 @@ import { singleton } from '@/services/singleton.js';
 import { util } from '@/services/util.js';
 
 class UIContext {
-    // accessPath: keyed path into object or array data
-    // ex. "electronBeam" or "beamline#3" or "volumes.air.material.components#3"
-    //TODO(pjm): implement complex accessPath
-    constructor(accessPath, viewName, fieldDef="basic") {
-        if (! accessPath) {
-            throw Error('Missing UIContext accessPath');
+    constructor(viewName, fieldDef, containerName, model) {
+        if (! viewName) {
+            throw Error('Missing UIContext viewName');
         }
-        this.accessPath = accessPath;
-        this.viewName = viewName || accessPath;
+        this.viewName = viewName;
         this.fieldDef = fieldDef;
+        if (containerName) {
+            if (! appState.models[containerName]) {
+                throw Error(`UIContext containerName: ${containerName} not present in appState`);
+            }
+            if (! model) {
+                throw Error(`UIContext has containerName: ${containerName} but no model`);
+            }
+            if (! model._id) {
+                throw Error(`UIContext has containerName: ${containerName} but no model id: ${model}`);
+            }
+        }
+        this.containerName = containerName;
+        this.model = model;
         this.viewSchema = schema.view[this.viewName];
         if (! this.viewSchema) {
             throw Error(`No schema view for name: ${this.viewName}`);
         }
         if (! this.viewSchema[this.fieldDef]) {
-            throw Error(`Missing fieldDev: ${this.fieldDef} for viewName: ${this.viewName}`);
+            throw Error(`Missing view fieldDef: ${this.viewName}.${this.fieldDef}`);
         }
+        this.modelName = this.viewSchema.model || this.viewName;
         this.fields = this.#buildFields();
     }
 
     #buildFields() {
         const r = {};
-        const sm = schema.model[this.viewSchema.model || this.viewName];
+        const sm = schema.model[this.modelName];
         for (const f of this.viewSchema[this.fieldDef]) {
             //TODO(pjm): could be a structure of tabs or columns of fields
             if (f.includes('.')) {
@@ -48,7 +58,7 @@ class UIContext {
     }
 
     #fieldValue(fieldName, defaultValue) {
-        const m = appState.models[this.accessPath];
+        const m = this.model || appState.models[this.modelName];
         if (m && fieldName in m) {
             return m[fieldName];
         }
@@ -56,7 +66,7 @@ class UIContext {
     }
 
     cancelChanges(proxy) {
-        const m = appState.models[this.accessPath];
+        const m = this.model || appState.models[this.modelName];
         for (const f in m) {
             // must use proxy not this for updates to ensure reactivity
             if (f in proxy.fields) {
@@ -85,13 +95,36 @@ class UIContext {
     }
 
     async saveChanges() {
+        const updateModel = (model, values) => {
+            for (const f in values) {
+                if (f in model) {
+                    model[f] = values[f];
+                }
+            }
+        };
         const v = {};
         for (const f in this.fields) {
             v[f] = this.fields[f].val;
         }
-        await appState.saveChanges({
-            [this.accessPath]: v,
-        });
+        const names = [this.modelName];
+        if (this.containerName) {
+            names.push(this.containerName);
+            //TODO(pjm): assume containerName references an array for now.
+            // Later, it could be an object, in which case searching the nested
+            // structure for the model id would be required
+
+            for (const m of appState.models[this.containerName]) {
+                if (m._id == this.model._id) {
+                    updateModel(m, v);
+                    break;
+                }
+            }
+            //TODO(pjm): if model with id does not exist, it should be added to the container
+        }
+        else {
+            updateModel(appState.models[this.modelName], v);
+        }
+        await appState.saveChanges(names);
     }
 }
 
@@ -106,19 +139,9 @@ class AppState {
         //TODO(pjm): currently no autosave timer. Is it needed?
     }
 
-    #deepEqualsNoSimulationStatus(models1, models2) {
-        const status = [models1.simulationStatus, models2.simulationStatus];
-        delete models1.simulationStatus;
-        delete models2.simulationStatus;
-        const res = util.deepEquals(models1, models2);
-        models1.simulationStatus = status[0];
-        models2.simulationStatus = status[1];
-        return res;
-    }
-
     async autoSave() {
         if (! this.isLoadedRef.value ||
-            this.#lastAutoSaveData && this.#deepEqualsNoSimulationStatus(
+            this.#lastAutoSaveData && util.deepEquals(
                 this.#lastAutoSaveData.models, this.models)
         ) {
             return;
@@ -161,8 +184,8 @@ class AppState {
         return `${modelName}-${fieldName}`;
     }
 
-    getUIContext(accessPath, fieldDef="basic", viewName=accessPath) {
-        return new UIContext(accessPath, viewName, fieldDef);
+    getUIContext(viewName, fieldDef, { containerName=null, model=null } = {}) {
+        return new UIContext(viewName, fieldDef, containerName, model);
     }
 
     async loadModels(simulationId) {
@@ -186,20 +209,10 @@ class AppState {
         this.isLoadedRef.value = true;
     }
 
-    async saveChanges(values) {
-        for (const m in values) {
-            if (this.models[m]) {
-                for (const f in values[m]) {
-                    if (f in this.models[m]) {
-                        this.models[m][f] = values[m][f];
-                    }
-                }
-            }
-        }
-        pubSub.publish(MODEL_CHANGED_EVENT, Object.keys(values));
+    async saveChanges(names) {
+        pubSub.publish(MODEL_CHANGED_EVENT, names);
         await this.autoSave();
-        pubSub.publish(MODEL_SAVED_EVENT, Object.keys(values));
-        //TODO(pjm): update reports
+        pubSub.publish(MODEL_SAVED_EVENT, names);
     }
 
     setModelDefaults(model, modelName) {

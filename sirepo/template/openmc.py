@@ -24,9 +24,9 @@ import sirepo.sim_data
 import sirepo.sim_run
 import subprocess
 
+OPENMC_CACHE_DIR = "openmc-cache"
 STANDARD_MATERIALS_DB = "pnnl-materials.h5"
 _STANDARD_MATERIALS_DB_GZ = f"{STANDARD_MATERIALS_DB}.gz"
-_OPENMC_CACHE_DIR = "openmc-cache"
 _STANDARD_MATERIAL_CACHE_DIR = "openmc-standard-materials"
 _OUTLINES_FILE = "outlines.h5"
 _PREP_SBATCH_PREFIX = "prep-sbatch"
@@ -376,7 +376,7 @@ def write_parameters(data, run_dir, is_parallel):
             template_common.render_jinja(
                 SIM_TYPE,
                 PKDict(
-                    cacheDir=sirepo.sim_run.cache_dir(_OPENMC_CACHE_DIR),
+                    cacheDir=sirepo.sim_run.cache_dir(OPENMC_CACHE_DIR),
                     numThreads=data.models.openmcAnimation.ompThreads,
                     saveWeightWindowsFile=_generate_save_weight_windows(data),
                 ),
@@ -767,7 +767,7 @@ def _generate_parameters_file(data, run_dir=None, qcall=None):
         v.materialDirectory = "."
         v.isSBATCH = False
     else:
-        v.materialDirectory = sirepo.sim_run.cache_dir(_OPENMC_CACHE_DIR)
+        v.materialDirectory = sirepo.sim_run.cache_dir(OPENMC_CACHE_DIR)
         v.isSBATCH = _is_sbatch_run_mode(data)
     if data.models.settings.materialDefinition == "mgxs":
         v.mgxsFile = _SIM_DATA.lib_file_name_with_model_field(
