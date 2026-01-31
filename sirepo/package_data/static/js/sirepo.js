@@ -4256,7 +4256,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                 }
             }
             return false;
-        });
+        }).sort((a, b) => a.name.localeCompare(b.name));
     };
     self.getUserFolderPaths = function() {
         return self.getUserFolders()
@@ -4854,7 +4854,8 @@ SIREPO.app.controller('ServerUpgradedController', function (errorService, reques
 
 SIREPO.app.controller('SimulationsController', function (appState, browserStorage, errorService, fileManager, panelState, requestSender, stringsService, $location, $rootScope, $scope) {
     var self = this;
-    const storageKey = "iconView";
+    const iconViewStorageKey = "iconView";
+    const sortFieldStorageKey = "sortField";
     self.stringsService = stringsService;
     self.importText = SIREPO.APP_SCHEMA.strings.importText;
     self.fileTree = fileManager.getFileTree();
@@ -4871,9 +4872,9 @@ SIREPO.app.controller('SimulationsController', function (appState, browserStorag
             heading: 'Last Modified',
         }];
     self.selectedItem = null;
-    self.sortField = 'name';
     self.isWaitingForSim = false;
-
+    self.isIconView = browserStorage.getBoolean(iconViewStorageKey, true);
+    self.sortField = browserStorage.getString(sortFieldStorageKey, self.listColumns[0].field);
     self.fileManager = fileManager;
 
     function clearModels() {
@@ -5108,10 +5109,8 @@ SIREPO.app.controller('SimulationsController', function (appState, browserStorag
 
     self.toggleIconView = function() {
         self.isIconView = ! self.isIconView;
-        browserStorage.setBoolean(storageKey, self.isIconView);
+        browserStorage.setBoolean(iconViewStorageKey, self.isIconView);
     };
-
-    self.isIconView = browserStorage.getBoolean(storageKey, true);
 
     self.toggleFolder = function(item) {
         if (item == self.activeFolder) {
@@ -5130,6 +5129,7 @@ SIREPO.app.controller('SimulationsController', function (appState, browserStorag
         else {
             self.sortField = field;
         }
+        browserStorage.setString(sortFieldStorageKey, self.sortField);
     };
 
     clearModels();
