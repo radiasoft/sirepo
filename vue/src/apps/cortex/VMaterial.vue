@@ -103,9 +103,3 @@
      material.value = await db.materialDetail(materialId.value);
  });
 </script>
-
-<style scoped>
- .sr-fixed-lg {
-     max-width: 1200px;
- }
-</style>

@@ -41,12 +41,14 @@
      const r = await requestSender.sendRequest("cortexSimRunner", {
          materialId: props.materialId,
      });
+     console.log('loading models');
      await appState.loadModels(r.simulationId);
      isLoaded.value = true;
  });
 
  onUnmounted(() => {
      isLoaded.value = false;
+     console.log('unloading models');
      appState.clearModels();
  });
 

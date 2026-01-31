@@ -31,6 +31,7 @@ def _tile_filename(base):
 
 def background_percent_complete(report, run_dir, is_running):
     if not is_running and run_dir.join(_tile_filename(_TILE_OUTPUT[0])).exists():
+        pkdp("PJM HERE report has finished")
         return PKDict(
             frameCount=1,
             percentComplete=0,
