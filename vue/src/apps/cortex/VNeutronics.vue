@@ -38,17 +38,18 @@
 
  onMounted(async () => {
      //TODO(pjm): first check db for results
-     const r = await requestSender.sendRequest("cortexSimRunner", {
-         materialId: props.materialId,
+     const r = await requestSender.sendRequest("cortexSim", {
+         op_name: 'sync',
+         op_args: {
+             material_id: props.materialId,
+         },
      });
-     console.log('loading models');
      await appState.loadModels(r.simulationId);
      isLoaded.value = true;
  });
 
  onUnmounted(() => {
      isLoaded.value = false;
-     console.log('unloading models');
      appState.clearModels();
  });
 

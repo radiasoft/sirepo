@@ -55,15 +55,6 @@ class API(sirepo.quest.API):
                         ),
                     ],
                 )
-            if a.op_name == "insert_material":
-                pkdp("INSERT MATERIAL DONE")
-                c = r.content_as_object().get("op_result")
-                if c and "material_id" in c:
-                    await self._run_tile_sim(
-                        await _update_material_sim(self, c.material_id)
-                    )
-            elif a.op_name == "delete_material":
-                await self._delete_material_sim(a.op_args.material_id)
             return r
         except asyncio.exceptions.TimeoutError:
             pkdlog("timed out secs={} req_data={}", _ACTION_TIMEOUT, a)
@@ -71,43 +62,98 @@ class API(sirepo.quest.API):
             raise
 
     @sirepo.quest.Spec("require_plan", sim_type=f"SimType const={SIM_TYPE}")
-    async def api_cortexSimRunner(self):
-        s = await _update_material_sim(
-            self, self.parse_post(type=SIM_TYPE).req_data.materialId
-        )
-        return PKDict(
-            simulationId=s.models.simulation.simulationId,
-        )
+    async def api_cortexSim(self):
+        # TODO(pjm): does this need a asyncio loop also?
+        a = self.parse_post(type=SIM_TYPE).req_data
+        return await getattr(self, f"_sim_{a.op_name}")(a.op_args)
 
     def cortex_db_done(self, result):
         self.__loop.call_soon_threadsafe(self.__result.put_nowait, result)
 
-    async def _delete_material_sim(self, material_id):
-        pkdp("HERE delete sim for material: {}", material_id)
-        s = await _find_sim(self, material_id)
+    async def _sim_delete(self, args):
+        s = await _find_sim(self, args.material_id)
         if not len(s):
-            return
+            return PKDict()
         await self.call_api(
             "deleteSimulation",
             body=PKDict(simulationType=SIM_TYPE, simulationId=s[0].simulationId),
         )
-        pkdp("DONE delete sim")
+        return PKDict()
 
-    async def _run_tile_sim(self, sim):
-        # TODO(pjm): do not run sim for unit tests
-        # run sim, don't wait for results
-        pkdp("STARTING tileAnimation sim")
+    async def _sim_runTile(self, args):
+        s = await self._update_material_sim(args.material_id)
         await self.call_api(
             "runSimulation",
             body=PKDict(
                 forceRun=True,
                 report="tileAnimation",
-                models=sim.models,
+                models=s.models,
                 simulationType=SIM_TYPE,
-                simulationId=sim.models.simulation.simulationId,
+                simulationId=s.models.simulation.simulationId,
             ),
         )
-        pkdp("DONE STARTING sim")
+        return PKDict()
+
+    async def _sim_sync(self, args):
+        return PKDict(
+            simulationId=(
+                await self._update_material_sim(args.material_id)
+            ).models.simulation.simulationId,
+        )
+
+    async def _update_material_sim(self, material_id):
+        """Get/create the associated Sirepo sim for the material_id and update
+        the sirepo-data.json from values in the database.
+        """
+
+        async def _update_sim(sim, material_id):
+            m = (
+                (
+                    await self.call_api(
+                        "cortexDb",
+                        body=PKDict(
+                            op_name="material_detail",
+                            op_args=PKDict(
+                                material_id=material_id,
+                            ),
+                        ),
+                    )
+                )
+                .content_as_object()
+                .op_result.detail
+            )
+            sim.models.material.pkupdate(
+                name=m.name,
+                density=float(re.sub(r"\s.*", "", m.density)),
+                percent_type="ao" if m.is_atom_pct else "wo",
+                components=[
+                    PKDict(
+                        component_type=(
+                            "nuclide"
+                            if re.search(r"\d", c.material_component_name)
+                            else "element"
+                        ),
+                        component=c.material_component_name,
+                        percent=c.target_pct,
+                    )
+                    for c in m.components
+                ],
+            )
+            return sirepo.simulation_db.save_simulation_json(
+                sim, fixup=True, qcall=self
+            )
+
+        s = await _find_sim(self, material_id)
+        sim = None
+        if len(s):
+            sim = sirepo.simulation_db.open_json_file(
+                SIM_TYPE, sid=s[0].simulationId, qcall=self
+            )
+        else:
+            d = sirepo.simulation_db.default_data(SIM_TYPE)
+            d.models.simulation.name = str(material_id)
+            sim = sirepo.simulation_db.save_new_simulation(d, qcall=self)
+        return await _update_sim(sim, material_id)
 
 
 class _CortexDb(pykern.pkasyncio.ActionLoop):
@@ -303,52 +349,3 @@ async def _find_sim(api, material_id):
             ),
         )
     ).content_as_object()
-
-
-async def _update_material_sim(api, material_id):
-    async def _update_sim(sim, material_id):
-        i = (
-            (
-                await api.call_api(
-                    "cortexDb",
-                    body=PKDict(
-                        op_name="material_detail",
-                        op_args=PKDict(
-                            material_id=material_id,
-                        ),
-                    ),
-                )
-            )
-            .content_as_object()
-            .op_result.detail
-        )
-        sim.models.material.pkupdate(
-            name=i.name,
-            density=float(re.sub(r"\s.*", "", i.density)),
-            percent_type="ao" if i.is_atom_pct else "wo",
-            components=[
-                PKDict(
-                    component_type=(
-                        "nuclide"
-                        if re.search(r"\d", c.material_component_name)
-                        else "element"
-                    ),
-                    component=c.material_component_name,
-                    percent=c.target_pct,
-                )
-                for c in i.components
-            ],
-        )
-        return sirepo.simulation_db.save_simulation_json(sim, fixup=True, qcall=api)
-
-    s = await _find_sim(api, material_id)
-    sim = None
-    if len(s):
-        sim = sirepo.simulation_db.open_json_file(
-            SIM_TYPE, sid=s[0].simulationId, qcall=api
-        )
-    else:
-        d = sirepo.simulation_db.default_data(SIM_TYPE)
-        d.models.simulation.name = str(material_id)
-        sim = sirepo.simulation_db.save_new_simulation(d, qcall=api)
-    return await _update_sim(sim, material_id)
