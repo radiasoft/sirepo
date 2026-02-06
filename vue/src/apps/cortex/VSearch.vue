@@ -5,20 +5,17 @@
             <p class="lead text-center">Welcome to the Material Database</p>
         </div>
         <div class="row">
-            <div class="col-sm-8">
+            <div v-show="materialCount" class="col-sm-8">
                 <VCortexCard title="Your Materials" v-show="materialCount">
                     <VMaterialTable v-on:materialCount="updateMaterialCount" />
                 </VCortexCard>
-                <VCortexCard title="Featured Materials">
-                    some stuff here
-                    <div class="float-end">
-                        <a href>All Materials</a>
-                    </div>
-                </VCortexCard>
             </div>
             <div
-                class="col-sm-4"
                 v-show="materialCount !== undefined"
+                v-bind:class="{
+                    'col-sm-4': materialCount > 0,
+                    'col-sm-6 offset-sm-3': materialCount === 0,
+                }"
             >
                 <VImportXLSXPanel />
             </div>
