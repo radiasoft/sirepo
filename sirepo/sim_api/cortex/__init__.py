@@ -62,9 +62,52 @@ class API(sirepo.quest.API):
             raise
 
     @sirepo.quest.Spec("require_plan", sim_type=f"SimType const={SIM_TYPE}")
-    async def api_cortexSimRunner(self):
+    async def api_cortexSim(self):
+        # TODO(pjm): does this need a asyncio loop also?
+        a = self.parse_post(type=SIM_TYPE).req_data
+        return await getattr(self, f"_sim_{a.op_name}")(a.op_args)
+
+    def cortex_db_done(self, result):
+        self.__loop.call_soon_threadsafe(self.__result.put_nowait, result)
+
+    async def _sim_delete(self, args):
+        s = await _find_sim(self, args.material_id)
+        if not len(s):
+            return PKDict()
+        await self.call_api(
+            "deleteSimulation",
+            body=PKDict(simulationType=SIM_TYPE, simulationId=s[0].simulationId),
+        )
+        return PKDict()
+
+    async def _sim_runTile(self, args):
+        s = await self._update_material_sim(args.material_id)
+        await self.call_api(
+            "runSimulation",
+            body=PKDict(
+                forceRun=True,
+                report="tileAnimation",
+                models=s.models,
+                simulationType=SIM_TYPE,
+                simulationId=s.models.simulation.simulationId,
+            ),
+        )
+        return PKDict()
+
+    async def _sim_sync(self, args):
+        return PKDict(
+            simulationId=(
+                await self._update_material_sim(args.material_id)
+            ).models.simulation.simulationId,
+        )
+
+    async def _update_material_sim(self, material_id):
+        """Get/create the associated Sirepo sim for the material_id and update
+        the sirepo-data.json from values in the database.
+        """
+
         async def _update_sim(sim, material_id):
-            i = (
+            m = (
                 (
                     await self.call_api(
                         "cortexDb",
@@ -80,9 +123,9 @@ class API(sirepo.quest.API):
                 .op_result.detail
             )
             sim.models.material.pkupdate(
-                name=i.name,
-                density=float(re.sub(r"\s.*", "", i.density)),
-                percent_type="ao" if i.is_atom_pct else "wo",
+                name=m.name,
+                density=float(re.sub(r"\s.*", "", m.density)),
+                percent_type="ao" if m.is_atom_pct else "wo",
                 components=[
                     PKDict(
                         component_type=(
@@ -93,23 +136,14 @@ class API(sirepo.quest.API):
                         component=c.material_component_name,
                         percent=c.target_pct,
                     )
-                    for c in i.components
+                    for c in m.components
                 ],
             )
             return sirepo.simulation_db.save_simulation_json(
                 sim, fixup=True, qcall=self
             )
 
-        m = self.parse_post(type=SIM_TYPE).req_data.materialId
-        s = (
-            await self.call_api(
-                "listSimulations",
-                body=PKDict(
-                    simulationType=SIM_TYPE,
-                    search=PKDict({"simulation.name": m}),
-                ),
-            )
-        ).content_as_object()
+        s = await _find_sim(self, material_id)
         sim = None
         if len(s):
             sim = sirepo.simulation_db.open_json_file(
@@ -117,15 +151,9 @@ class API(sirepo.quest.API):
             )
         else:
             d = sirepo.simulation_db.default_data(SIM_TYPE)
-            d.models.simulation.name = m
+            d.models.simulation.name = str(material_id)
             sim = sirepo.simulation_db.save_new_simulation(d, qcall=self)
-        await _update_sim(sim, m)
-        return PKDict(
-            simulationId=sim.models.simulation.simulationId,
-        )
-
-    def cortex_db_done(self, result):
-        self.__loop.call_soon_threadsafe(self.__result.put_nowait, result)
+        return await _update_sim(sim, material_id)
 
 
 class _CortexDb(pykern.pkasyncio.ActionLoop):
@@ -142,6 +170,7 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         sirepo.sim_api.cortex.material_db.delete_material(
             material_id=arg.material_id, uid=uid
         )
+        # TODO(pjm): need to delete the Sirepo sim associated with the material_id
         return PKDict()
 
     def action_insert_material(self, arg, uid):
@@ -308,3 +337,15 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
             if p.doi_or_url or p.comments:
                 _add_doi(p)
         return res
+
+
+async def _find_sim(api, material_id):
+    return (
+        await api.call_api(
+            "listSimulations",
+            body=PKDict(
+                simulationType=SIM_TYPE,
+                search=PKDict({"simulation.name": str(material_id)}),
+            ),
+        )
+    ).content_as_object()

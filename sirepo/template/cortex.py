@@ -15,14 +15,16 @@ import sirepo.template.openmc
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
-_TILE_OUTPUT = ("dpa", "flux", "he", "n_flux_spectrum", "p_flux_spectrum")
+_CHAIN_ENDF_FILE = "chain_endf_b8.0.xml"
 _REPORT_TITLE = PKDict(
     dpa="DPA",
     flux="Flux",
     he="Helium",
     n_flux_spectrum="Neutron Flux",
     p_flux_spectrum="Photon Flux",
+    sdr="Shutdown Dose",
 )
+_TILE_OUTPUT = list(_REPORT_TITLE.keys())
 
 
 def _tile_filename(base):
@@ -79,7 +81,9 @@ def sim_frame(frame_args):
         y_range=template_common.compute_plot_color_and_range(plots),
         type=d.type or "linear",
     )
-    if s == "flux":
+    if res.y_range[1] - res.y_range[0] < 10:
+        res.type = "linear"
+    if s == "flux" or s == "sdr":
         res.alignLegend = "right"
     if d.type == "loglog" or d.type == "semilog":
         _adjust_log_ranges(res)
@@ -108,6 +112,7 @@ def write_parameters(data, run_dir, is_parallel):
                 materialDirectory=sirepo.sim_run.cache_dir(
                     sirepo.template.openmc.OPENMC_CACHE_DIR
                 ),
+                chainPath=sirepo.template.openmc.remote_datafile_path(_CHAIN_ENDF_FILE),
             ),
             "tile.py",
         ),

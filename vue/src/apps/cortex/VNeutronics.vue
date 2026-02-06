@@ -38,8 +38,11 @@
 
  onMounted(async () => {
      //TODO(pjm): first check db for results
-     const r = await requestSender.sendRequest("cortexSimRunner", {
-         materialId: props.materialId,
+     const r = await requestSender.sendRequest("cortexSim", {
+         op_name: 'sync',
+         op_args: {
+             material_id: props.materialId,
+         },
      });
      await appState.loadModels(r.simulationId);
      isLoaded.value = true;

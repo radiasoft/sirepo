@@ -28,7 +28,9 @@
  const isRunning = () => ["pending", "queued", "running"].includes(state.value);
 
  const cancelSim = () => {
-     simQueue.cancelItem(qItem);
+     if (qItem) {
+         simQueue.cancelItem(qItem);
+     }
      state.value = "canceled";
      qItem = null;
  };
@@ -45,7 +47,7 @@
              statusDots.value = '';
          }
      }
-     if (isRunning()) {
+     if (isBusy()) {
          if (! statusDots.value || statusDots.value.length >= 3) {
              statusDots.value = '.';
          }
@@ -84,5 +86,11 @@
          appState.models,
          simStatusHandler,
      );
+ });
+
+ onUnmounted(() => {
+     if (qItem) {
+         simQueue.removeItem(qItem);
+     }
  });
 </script>
