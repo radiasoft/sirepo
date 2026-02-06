@@ -16,6 +16,6 @@
 
  onMounted(async () => {
      const r = await requestSender.sendRequest('authGuestLogin', {});
-     message.value = authState.handleLogin(response);
+     message.value = authState.handleLogin(r);
  });
 </script>

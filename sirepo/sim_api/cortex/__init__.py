@@ -185,6 +185,8 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
             _SIM_DATA.lib_file_write(p, f.as_bytes(), qcall=arg.qcall)
             return _SIM_DATA.lib_file_abspath(p, qcall=arg.qcall)
 
+        # TODO(pjm): first entrypoint into app - openmc must exist prior to running cortex sims
+        sirepo.simulation_db.simulation_dir("openmc", qcall=arg.qcall)
         p = sirepo.sim_api.cortex.material_xlsx.Parser(_save())
         if p.errors:
             return PKDict(error=p.errors)
