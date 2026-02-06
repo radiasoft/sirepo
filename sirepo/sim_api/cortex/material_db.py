@@ -26,8 +26,6 @@ def db_upgrade():
         # for tests, db may not exist to upgrade
         return
     with _session() as s:
-        if "is_public" in s.meta.tables["material"].columns:
-            return
         for c in ("is_public", "is_featured"):
             s.execute(f"ALTER TABLE material ADD COLUMN {c} BOOLEAN")
 

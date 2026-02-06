@@ -26,7 +26,6 @@ import subprocess
 
 OPENMC_CACHE_DIR = "openmc-cache"
 STANDARD_MATERIALS_DB = "pnnl-materials.h5"
-_STANDARD_MATERIALS_DB_GZ = f"{STANDARD_MATERIALS_DB}.gz"
 _STANDARD_MATERIAL_CACHE_DIR = "openmc-standard-materials"
 _OUTLINES_FILE = "outlines.h5"
 _PREP_SBATCH_PREFIX = "prep-sbatch"
@@ -110,6 +109,32 @@ def prepare_for_save(data, qcall):
 
 def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data, qcall=qcall)
+
+
+def remote_datafile_path(filename):
+    """Download and cache file from sirepo data repo"""
+
+    def _remote_uri(base):
+        return "/".join(
+            [
+                sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
+                base,
+            ]
+        )
+
+    m = sirepo.sim_run.cache_dir(_STANDARD_MATERIAL_CACHE_DIR).join(filename)
+    if m.exists():
+        return m
+    n = f"{filename}.gz"
+
+    if not _SIM_DATA.lib_file_exists(n):
+        c = _SIM_DATA.sim_db_client()
+        c.save_from_url(_remote_uri(n), c.uri(_SIM_DATA.LIB_DIR, n))
+
+    with gzip.open(str(_SIM_DATA.lib_file_abspath(n)), "rb") as f_in:
+        with open(str(m), "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    return m
 
 
 def sim_frame(frame_args):
@@ -1209,29 +1234,7 @@ def _standard_material_open():
 
 
 def _standard_material_path():
-    def _remote_uri(base):
-        return "/".join(
-            [
-                sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
-                base,
-            ]
-        )
-
-    m = sirepo.sim_run.cache_dir(_STANDARD_MATERIAL_CACHE_DIR).join(
-        STANDARD_MATERIALS_DB
-    )
-    if m.exists():
-        return m
-    n = _STANDARD_MATERIALS_DB_GZ
-
-    if not _SIM_DATA.lib_file_exists(n):
-        c = _SIM_DATA.sim_db_client()
-        c.save_from_url(_remote_uri(n), c.uri(_SIM_DATA.LIB_DIR, n))
-
-    with gzip.open(str(_SIM_DATA.lib_file_abspath(n)), "rb") as f_in:
-        with open(str(m), "wb") as f_out:
-            shutil.copyfileobj(f_in, f_out)
-    return m
+    return remote_datafile_path(STANDARD_MATERIALS_DB)
 
 
 def _statepoint_filename(data, frame_index=None):
