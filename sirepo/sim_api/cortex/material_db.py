@@ -26,6 +26,11 @@ def db_upgrade():
         # for tests, db may not exist to upgrade
         return
     with _session() as s:
+        if "is_public" in [
+            v["name"]
+            for v in sqlalchemy.inspect(s.meta._engine).get_columns("material")
+        ]:
+            return
         for c in ("is_public", "is_featured"):
             s.execute(f"ALTER TABLE material ADD COLUMN {c} BOOLEAN")
 
