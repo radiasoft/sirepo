@@ -119,7 +119,7 @@ def _20250114_add_role_plan_trial(qcall):
     )
 
 
-def _20251030_update_cortex_db(qcall):
+def _20260130_update_cortex_db(qcall):
     if not sirepo.template.is_sim_type("cortex"):
         return
     from sirepo.sim_api.cortex import material_db

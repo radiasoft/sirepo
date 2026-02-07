@@ -70,6 +70,7 @@
  import { db, DB_UPDATED } from '@/apps/cortex/db.js';
  import { onMounted, onUnmounted, reactive, ref } from 'vue';
  import { pubSub } from '@/services/pubsub.js';
+ import { requestSender } from '@/services/requestsender.js';
 
  const emit = defineEmits(['materialCount']);
  const confirmDeleteModal = ref(null);
@@ -101,6 +102,12 @@
  const deleteSelectedMaterial = async () => {
      confirmDeleteModal.value.closeModal();
      await db.deleteMaterial(selectedMaterial.value.material_id);
+     await requestSender.sendRequest("cortexSim", {
+         op_name: 'delete',
+         op_args: {
+             material_id: selectedMaterial.value.material_id,
+         },
+     });
      _loadMaterials();
  };
 

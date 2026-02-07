@@ -1,0 +1,731 @@
+from pykern.pkcollections import PKDict
+import numpy as np
+import openmc
+import openmc.mgxs as mgxs
+import openmc.stats
+import pandas
+
+# this import add openmc.Materials.download_cross_section_data()
+import openmc_data_downloader
+import pykern.pkjson
+import re
+
+
+# PJM: replaces matplotlib.pyplot.plt with plt stub to save plot info
+class plt:
+    figure = PKDict(
+        plots=[],
+    )
+
+    @classmethod
+    def _to_list(cls, value):
+        if isinstance(value, pandas.Series):
+            value = value.to_numpy()
+        if isinstance(value, np.ndarray):
+            return value.tolist()
+        return value
+
+    @classmethod
+    def _update_database(cls):
+        pass
+
+    @classmethod
+    def loglog(cls, x, y, label=None):
+        cls.figure.type = "loglog"
+        cls.figure.plots.append(
+            PKDict(
+                x=cls._to_list(x),
+                y=cls._to_list(y),
+                label=label,
+            )
+        )
+
+    @classmethod
+    def plot(cls, x, y, label=None):
+        cls.figure.type = "semilog"
+        cls.figure.plots.append(
+            PKDict(
+                x=cls._to_list(x),
+                y=cls._to_list(y),
+                label=label,
+            )
+        )
+
+    @classmethod
+    def semilogy(cls, x, y, label=None, marker=None, color=None, markersize=None):
+        cls.figure.type = "semilog"
+        cls.figure.plots.append(
+            PKDict(
+                x=cls._to_list(x),
+                y=cls._to_list(y),
+                label=label,
+                marker=marker,
+                color=color,
+                markersize=markersize,
+            )
+        )
+
+    @classmethod
+    def ylabel(cls, label):
+        cls.figure.ylabel = label
+
+    @classmethod
+    def xlabel(cls, label):
+        cls.figure.xlabel = label
+
+    @classmethod
+    def xlim(cls, limit):
+        cls.figure.xlim = limit
+
+    @classmethod
+    def savefig(cls, filename):
+        assert len(cls.figure.plots)
+        pykern.pkjson.dump_pretty(cls.figure, f"{filename}.json")
+        cls._update_database()
+        cls.figure = PKDict(plots=[])
+
+    @classmethod
+    def close(cls):
+        pass
+
+    @classmethod
+    def legend(cls):
+        pass
+
+    @classmethod
+    def grid(cls):
+        pass
+
+
+# PJM: replaced materials module class and moved methods inline
+
+
+class materials:
+    @classmethod
+    def nuclides_for_each_element(cls, material):
+        nuclides = {}
+        # get the nuclide names corresponding to each element in a material
+        for n in material.nuclides:
+            element = re.sub(r"[0-9]+", "", n.name)
+            if element in nuclides:
+                nuclides[element].append(n.name)
+            else:
+                nuclides[element] = []
+                nuclides[element].append(n.name)
+        return nuclides
+
+    @classmethod
+    def atoms(cls, material):
+        Na = 6.023e23
+        atoms = 0
+        for n in material.nuclides:
+            nuclide_mass = material.get_mass(nuclide=n.name)
+            atoms += nuclide_mass / openmc.data.atomic_mass(n.name) * Na
+        return atoms
+
+    @classmethod
+    def Ed(cls, element):
+        ed = {}
+        ed["Be"] = 31
+        ed["C"] = 31
+        ed["Mg"] = 25
+        ed["Al"] = 27
+        ed["Si"] = 25
+        ed["Ca"] = 40
+        ed["Ti"] = 40
+        ed["V"] = 40
+        ed["Cr"] = 40
+        ed["Mn"] = 40
+        ed["Fe"] = 40
+        ed["Co"] = 40
+        ed["Ni"] = 40
+        ed["Cu"] = 40
+        ed["Zr"] = 40
+        ed["Nb"] = 40
+        ed["Mo"] = 60
+        ed["Ag"] = 60
+        ed["Ta"] = 90
+        ed["W"] = 90
+        ed["Au"] = 30
+        ed["Pb"] = 25
+
+        default = 25
+        if element in ed:
+            return ed[element]
+        else:
+            return default
+
+    @classmethod
+    def element(cls, nuclides):
+        elem = "UNKNOWN"
+        for n in nuclides:
+            result = re.sub(r"\d+", "", n)
+            if elem == "UNKNOWN":
+                elem = result
+            elif result != elem:
+                raise ValueError("Nuclide list not a single nuclide!")
+        return elem
+
+
+def material_from_definition(definition):
+    m = openmc.Material()
+    for c in definition.components:
+        if "element" in c:
+            m.add_element(c.element, c.percent, definition.percent_type)
+        elif "nuclide" in c:
+            m.add_nuclide(c.nuclide, c.percent, definition.percent_type)
+        else:
+            raise AssertionError(f"unhandled material component {c}")
+    m.set_density("g/cc", definition.density_gcc)
+    return m
+
+
+t = material_from_definition(
+    PKDict(
+        density_gcc={{ material_density }},
+        percent_type="{{ material_percent_type }}",
+        components=[
+{% for c in materialComponents %}
+            PKDict(
+                {{ c.component_type }}="{{ c.component }}",
+                percent={{ c.percent / 100.0 }},
+            ),
+{% endfor %}
+        ],
+    )
+)
+
+
+
+# PJM: tile.py inline
+
+model = openmc.Model()
+
+# OpenMC model of a bare tile with dimensions as given in the ARPA-E FOA.
+# This is the simplest model possible, and will be both (i) a lower bound
+# on our runtime and (ii) the baseline case we compare all materials against.
+
+# TODO: numbers are about 5x lower than expected. Is my source rate wrong?
+
+thickness = 5  # [cm] thickness of the region
+frontal_side = 50  # [cm] side length of the tile facing the plasma
+ncells = 10  # number of cells in the radial direction
+nwl = 3e6  # [W/m2] neutron wall loading
+e_per_neutron = 14.07e6  # [eV] energy carried by each neutron
+n_spectrum_plots = 5  # number of energy spectrum plots to make at each time step (we take this number and determine cell indices to render)
+
+to_plot = np.arange(0, ncells + 1, n_spectrum_plots)
+
+dx = thickness / ncells
+cell_volume = frontal_side**2 * dx
+ev_to_joule = 1.60218e-19
+
+neutron_source_rate = nwl / (100**2)  # W/cm2
+neutron_source_rate /= ev_to_joule  # eV/s/cm2
+neutron_source_rate /= e_per_neutron  # neutrons/s/cm2
+neutron_source_rate *= frontal_side**2  # neutrons/s
+
+# get materials; also fetch the number of each element's atom in the cell
+# for later DPA normalization
+# t = materials.W(19.254)
+t.volume = cell_volume
+# atoms_of_each_element = materials.atoms_of_each_element(t)
+nuclides_of_each_element = materials.nuclides_for_each_element(t)
+
+model.materials = openmc.Materials([t])
+model.materials.download_cross_section_data(
+    libraries=["ENDFB-8.0-NNDC", "TENDL-2019"],
+    destination="{{ materialDirectory }}",
+)
+
+# define geometry; space is divided into cells for space-dependent tallies
+# using tracklength estimators for better statistics
+xplanes = [openmc.XPlane(x0=x) for x in np.linspace(0, thickness, ncells + 1)]
+xcentroids = np.linspace(dx / 2, thickness - dx / 2, ncells)
+
+# TODO: figure out if I can have an actual surface source which lies on the
+# boundary of a model; right now, I have to shift the model so that the plane
+# source at x=0 is actually inside a cell
+shift = 1e-6
+xplanes[0].x0 = -shift
+
+# TODO: need to think about the boundary condition on the incident face, it
+# is not actually going to be reflective, but this is an approximation to the
+# fact that any neutrons which scattered backward would just traverse the plasma
+# and enter the opposite side of the tokamak wall
+xplanes[0].boundary_type = "reflective"
+
+xplanes[-1].boundary_type = "vacuum"
+
+ybot = openmc.YPlane(y0=0, boundary_type="reflective")
+ytop = openmc.YPlane(y0=frontal_side, boundary_type="reflective")
+zbot = openmc.ZPlane(z0=0, boundary_type="reflective")
+ztop = openmc.ZPlane(z0=frontal_side, boundary_type="reflective")
+chop = +ybot & -ytop & +zbot & -ztop
+
+tile_cells = []
+for i in range(ncells):
+    tile_cells.append(openmc.Cell(region=+xplanes[i] & -xplanes[i + 1] & chop, fill=t))
+
+root_universe = openmc.Universe(cells=tile_cells)
+model.geometry = openmc.Geometry(root=root_universe)
+
+# define the neutron source
+# TODO: use a Gaussian energy distribution instead of monoenergetic
+energy_distribution = openmc.stats.Discrete([e_per_neutron], [1])
+
+# TODO: use an isotropic angular distribution instead of all moving to the right
+angle_distribution = openmc.stats.Monodirectional()
+
+# TODO: determine if necessary to have a volume source or if this plane source
+# is sufficient; if plane source is sufficient, is the correct angle distribution
+# isotropic, or is it more like a white boundary?
+x_distribution = openmc.stats.Discrete([0], [1])
+y_distribution = openmc.stats.Uniform(a=0, b=frontal_side)
+z_distribution = openmc.stats.Uniform(a=0, b=frontal_side)
+space_distribution = openmc.stats.CartesianIndependent(
+    x=x_distribution, y=y_distribution, z=z_distribution
+)
+
+model.settings = openmc.Settings()
+model.settings.source = openmc.IndependentSource(
+    space=space_distribution, energy=energy_distribution, angle=angle_distribution
+)
+
+# set other model settings
+model.settings.particles = 1000
+model.settings.photon_transport = True
+model.settings.batches = 50
+model.settings.run_mode = "fixed source"
+
+# create general filters to be re-used across the tallies
+cell_filter = openmc.CellFilter(tile_cells)
+n_particle_filter = openmc.ParticleFilter(bins=["neutron"])
+p_particle_filter = openmc.ParticleFilter(bins=["photon"])
+energies = openmc.mgxs.GROUP_STRUCTURES["CCFE-709"]
+energy_filter = openmc.EnergyFilter(energies)
+unit_lethargy = [
+    np.log(energies[i + 1] / energies[i]) for i in range(len(energies) - 1)
+]
+
+# add tallies for solution quantities
+model.tallies = openmc.Tallies()
+
+# flux score, with an energy filter
+n_flux_tally = openmc.Tally()
+n_flux_tally.filters = [cell_filter, n_particle_filter, energy_filter]
+n_flux_tally.scores = ["flux"]
+model.tallies.append(n_flux_tally)
+
+p_flux_tally = openmc.Tally()
+p_flux_tally.filters = [cell_filter, p_particle_filter, energy_filter]
+p_flux_tally.scores = ["flux"]
+model.tallies.append(p_flux_tally)
+
+# for the dpa tally, we tally on a per-element basis, because each may have a different
+# value of Ed. So, we need to create one dpa tally for each element in the material
+dpa_tallies = []
+for key in nuclides_of_each_element:
+    dpa_tally = openmc.Tally()
+    dpa_tally.scores = ["damage-energy"]
+    dpa_tally.filters = [cell_filter]
+    dpa_tally.nuclides = nuclides_of_each_element[key]
+    dpa_tallies.append(dpa_tally)
+    model.tallies.append(dpa_tally)
+
+# helium production tallies
+he3_tally = openmc.Tally()
+he3_tally.filters = [cell_filter]
+he3_tally.scores = ["He3-production"]
+model.tallies.append(he3_tally)
+
+he4_tally = openmc.Tally()
+he4_tally.filters = [cell_filter]
+he4_tally.scores = ["He4-production"]
+model.tallies.append(he4_tally)
+
+statepoint = model.run()
+with openmc.StatePoint(statepoint) as sp:
+
+    n_tally = sp.get_tally(id=n_flux_tally.id)
+    neutron_flux = n_tally.get_reshaped_data()
+    neutron_flux_std_dev = n_tally.get_reshaped_data(value="std_dev")
+
+    for c in range(ncells):
+        if c in to_plot:
+            scaling = 1 / cell_volume * neutron_source_rate
+            plt.loglog(
+                energies[:-1],
+                neutron_flux[c].flatten() * scaling / unit_lethargy,
+                label="Depth = {:.2f} cm".format(c * dx + dx / 2),
+            )
+
+    plt.legend()
+    plt.grid()
+    plt.ylabel("Neutron Flux Per Unit Lethargy [1/cm$^2$/s]")
+    plt.xlabel("Energy [eV]")
+    plt.xlim([1, 100e6])
+    plt.savefig("n_flux_spectrum.png")
+    plt.close()
+
+    p_tally = sp.get_tally(id=p_flux_tally.id)
+    photon_flux = p_tally.get_reshaped_data()
+
+    for c in range(ncells):
+        if c in to_plot:
+            scaling = 1 / cell_volume * neutron_source_rate
+            plt.loglog(
+                energies[:-1],
+                photon_flux[c].flatten() * scaling / unit_lethargy,
+                label="Depth = {:.2f} cm".format(c * dx + dx / 2),
+            )
+
+    plt.legend()
+    plt.grid()
+    plt.ylabel("Photon Flux [1/cm$^2$/s/eV]")
+    plt.xlabel("Energy [eV]")
+    plt.xlim([1, 100e6])
+    plt.savefig("p_flux_spectrum.png")
+    plt.close()
+
+    # now, just plot the total fluxes by integrating over energy
+    total_neutron_flux = np.zeros(ncells)
+    for c in range(ncells):
+        total_neutron_flux[c] = np.sum(neutron_flux[c].flatten()) * scaling
+
+    plt.semilogy(xcentroids, total_neutron_flux, label="Neutron flux")
+
+    total_photon_flux = np.zeros(ncells)
+    for c in range(ncells):
+        total_photon_flux[c] = np.sum(photon_flux[c].flatten()) * scaling
+
+    plt.semilogy(xcentroids, total_photon_flux, label="Photon flux")
+    plt.legend()
+    plt.grid()
+    plt.ylabel("Flux [1/cm$^2$/s]")
+    plt.xlabel("Radial Position [cm]")
+    plt.savefig("flux.png")
+    plt.close()
+
+    # create radial plots of the dpa; each of the tallies is for a particular element
+    dpa_per_y = np.zeros(ncells)
+    for tally in dpa_tallies:
+        dpa_tally = sp.get_tally(id=tally.id)
+
+        # TODO: damage-energy is only for neutrons, right? Believe so, the photon
+        # bins return nothing
+        dpa = dpa_tally.summation(nuclides=dpa_tally.nuclides).mean.flatten()
+
+        # get the Ed for this element
+        Ed = materials.Ed(materials.element(dpa_tally.nuclides))
+
+        displacements_per_source = 0.8 * dpa / (2 * Ed)
+        displacements_per_s = displacements_per_source * neutron_source_rate
+        displacements_per_y = displacements_per_s * (365 * 24 * 60 * 60)
+        displacements_per_y_per_all_atoms = displacements_per_y / materials.atoms(t)
+
+        for i in range(ncells):
+            dpa_per_y[i] += displacements_per_y_per_all_atoms[i]
+
+    print("Maximum dpa: ", np.max(dpa_per_y))
+
+    plt.semilogy(xcentroids, dpa_per_y, marker="o", color="k", markersize=1.5)
+    plt.grid()
+    plt.ylabel("DPA/y")
+    plt.xlabel("Radial Position [cm]")
+    plt.savefig("dpa.png")
+    plt.close()
+
+    # create plot of the helium production
+    helium3_tally = sp.get_tally(id=he3_tally.id)
+    he3 = helium3_tally.get_values().flatten()
+    helium4_tally = sp.get_tally(id=he4_tally.id)
+    he4 = helium4_tally.get_values().flatten()
+
+    he = []
+    for i in range(len(he3)):
+        he_per_s = (he3[i] + he4[i]) * neutron_source_rate
+        he_per_y = he_per_s * (365 * 24 * 60 * 60)
+        he_appm_per_y = he_per_y / materials.atoms(t) * 1e6
+        he.append(he_appm_per_y)
+
+    print("Maximum helium appm/y: ", np.max(he))
+
+    plt.semilogy(xcentroids, he, marker="o", color="k", markersize=1.5)
+    plt.grid()
+    plt.ylabel("Helium [appm/y]")
+    plt.xlabel("Radial Position [cm]")
+    plt.savefig("he.png")
+    plt.close()
+
+
+# PJM: sdr.py inline
+
+from pathlib import Path
+from openmc.deplete import d1s
+
+openmc.config["chain_file"] = "{{ chainPath }}"
+openmc.config["cross_sections"] = "{{ materialDirectory }}/cross_sections.xml"
+
+
+# compute cell volumes
+bbox = model.geometry.bounding_box
+all_cells = list(model.geometry.get_all_cells().values())
+cell_vc = openmc.VolumeCalculation(all_cells, 10_000_000, *bbox)
+model.settings.volume_calculations = [cell_vc]
+model.calculate_volumes(apply_volumes=True, output=False)
+
+# all cell volumes are equal in this case
+# cell_volume = all_cells[0].volume
+
+
+print(f'Neutron source rate: {neutron_source_rate}')
+# taken from the ITER-SA2 irradiation scenario
+#
+
+# conversion factors
+to_hours = 3600
+to_μSv = 1e-6
+to_mSv = 1e-9
+
+irradiation_time = 1E7 # s
+
+# cooling at ~12 d, 7.6 mo, 3.2 y
+cooling_times = [1e6, 2e7, 1e8] # s
+
+timesteps = [irradiation_time] + cooling_times
+source_rates = [neutron_source_rate] + [0.0] * len(cooling_times)
+
+# Tallies
+
+# save the current set of tallies to be re-applied
+# during R2S calculations
+orig_tallies = [t for t in model.tallies]
+
+energies, pSv_cm2 = openmc.data.dose_coefficients(
+    particle='photon', geometry='AP'
+)
+
+# cubic interpolation recommended by ICRP
+dose_filter = openmc.EnergyFunctionFilter(
+    energies, pSv_cm2, interpolation='cubic'
+)
+
+photon_filter = openmc.ParticleFilter('photon')
+
+dose_tally = openmc.Tally(name='dose tally')
+dose_tally.filters = [dose_filter, photon_filter, cell_filter]
+dose_tally.scores = ['flux']
+
+# adding a mesh tally for visualization
+mesh = openmc.RegularMesh.from_domain(model.geometry.root_universe,
+                                      dimension=(5, 5, 5))
+
+mesh_filter = openmc.MeshFilter(mesh)
+neutron_filter = openmc.ParticleFilter('neutron')
+
+mesh_tally = openmc.Tally()
+mesh_tally.filters = [mesh_filter, neutron_filter]
+mesh_tally.scores = ['flux']
+
+model.settings.photon_transport = True
+model.settings.use_decay_photons = True
+
+model.tallies = [dose_tally, mesh_tally]
+
+# this should only modify the dose tally b/c
+# it has a particle filter with one 'photon' bin
+nuclides = d1s.prepare_tallies(model)
+factors = d1s.time_correction_factors(nuclides,
+                                      timesteps,
+                                      source_rates)
+
+print('---------------------------')
+print(f'Performing D1S run')
+print('---------------------------')
+
+statepoint = model.run(output=False)
+
+with openmc.StatePoint(statepoint) as sp:
+    tally = sp.get_tally(name='dose tally')
+
+corrected_tallies = []
+for i, t in enumerate(timesteps):
+    corrected_tally = d1s.apply_time_correction(tally, factors, i+1)
+    corrected_tallies.append(corrected_tally)
+
+print('Displaying cell dose rates')
+for t_cool, t in zip(timesteps[1:], corrected_tallies):
+    print('---------------------------')
+    print(f'Cooling Time: {t_cool:.3e} s')
+    print('---------------------------')
+    d1s_df = t.get_pandas_dataframe()
+    d1s_df['μSv/h'] = d1s_df['mean'] * (to_hours * to_μSv) / cell_volume
+    d1s_df['mSv/h'] = d1s_df['mean'] * (to_hours * to_mSv) / cell_volume
+    d1s_df['centers'] = xcentroids
+    print(d1s_df)
+
+# R2S setup
+print('--------------------------------')
+print(f'Performing R2S Activation run')
+print('--------------------------------')
+
+model.settings.photon_transport = False
+model.settings.use_decay_photons = False
+
+# perform a volume calculation for
+bbox = model.geometry.bounding_box
+
+# place unique materials in each cell, to be activated individually
+model.differentiate_mats('match cell', depletable_only=False)
+
+# mark all materials as depletable for now
+for m in model.geometry.get_all_materials().values():
+    m.depletable = True
+
+model.materials = []
+
+# include original tallies during
+# activation and cooling
+model.tallies = orig_tallies
+
+# load the depletion chain
+chain = openmc.deplete.Chain.from_xml(openmc.config['chain_file'])
+
+initial_nuclides = model.geometry.get_all_nuclides()
+reduced_chain = chain.reduce(initial_nuclides, level=5)
+reduced_chain.export_to_xml('tungsten_chain.xml')
+
+tungsten_chain = Path('tungsten_chain.xml').resolve()
+
+
+cells = list(model.geometry.get_all_cells().values())
+cell_volume = cells[0].volume
+
+# compute nuclide fluxes and microscopic cross-sections
+fluxes, micros = openmc.deplete.get_microxs_and_flux(model,
+                                                     cells,
+                                                     chain_file=tungsten_chain,
+                                                     run_kwargs={'output': False})
+
+# perform neutron activation and produces a depletion_results.h5 file
+activation_materials = list(model.geometry.get_all_materials().values())
+operator = openmc.deplete.IndependentOperator(activation_materials,
+                                              fluxes,
+                                              micros,
+                                              chain_file=tungsten_chain,
+                                              normalization_mode='source-rate')
+operator.output_dir = 'r2s/activation'
+
+# integrator = openmc.deplete.PredictorIntegrator(operator,
+#                                                 timesteps,
+#                                                 source_rates=source_rates)
+# integrator.integrate(final_step=False, output=False)
+
+
+###########################################################
+# could also do this. It's simpler, but less efficient
+# since it involves additional transport steps
+###########################################################
+# model.deplete(
+#     timesteps,
+#     source_rates=source_rates,
+#     output=False,
+#     # method="predictor",  # predictor is a simple but quick method
+#     method="cf4",  # CF4Integrator is an accurate but slower method
+#     directory="r2s/activation",
+#     final_step=False,
+#     operator_kwargs={
+#         "normalization_mode": "source-rate",  # needed as this is a fixed source simulation
+#         "chain_file": tungsten_chain,
+#         "reduce_chain_level": 5,
+#         "reduce_chain": True,
+#     },
+# )
+model.deplete(
+    method="cf4",  # CF4Integrator is an accurate but slower method
+    final_step=False,
+    operator_kwargs={
+        "normalization_mode": "source-rate",  # needed as this is a fixed source simulation
+        "chain_file": tungsten_chain,
+        "reduce_chain_level": 5,
+    },
+    directory="r2s/activation",
+    output=False,
+    timesteps=timesteps,
+    source_rates=source_rates,
+)
+
+# load depletion/activation results
+results = openmc.deplete.Results("r2s/activation/depletion_results.h5")
+
+print('--------------------------------')
+print(f'Performing R2S Decay Gamma run')
+print('--------------------------------')
+
+# update the dose filter
+dose_tally.filters = [dose_filter, photon_filter, cell_filter]
+model.tallies = [dose_tally]
+model.settings.photon_transport = True
+
+# generate decay photon sources for each cooling time
+for i_cool, (t_cool, src_rate) in enumerate(zip(timesteps, source_rates)):
+
+    if src_rate != 0:
+        continue
+
+    step_photon_sources = []
+
+    for cell in model.geometry.get_all_material_cells().values():
+        material = cell.fill
+        if not material.depletable:
+            continue
+
+        # retrieve activated material composition from depletion results
+        actiavted_material = results[i_cool].get_material(str(material.id))
+
+        energy = actiavted_material.get_decay_photon_energy(units='Bq')
+
+        strength = energy.integral()
+
+        if strength == 0:
+            continue
+
+        space = openmc.stats.Box(*cell.bounding_box)
+        source = openmc.IndependentSource(
+            space=space,
+            energy=energy,
+            particle="photon",
+            constraints= {'domains': [cell]},
+            strength=strength
+        )
+
+        step_photon_sources.append(source)
+
+    # TODO: should technically also use activated material compositions in transport here
+    model.settings.source = step_photon_sources
+
+    statepoint = model.run(cwd=f'r2s/cooling_{t_cool:.3e}_s', output=False)
+
+    with openmc.StatePoint(statepoint) as sp:
+        sp_dose = sp.get_tally(name=dose_tally.name)
+        r2s_df = sp_dose.get_pandas_dataframe()
+
+    # adjust units of dose
+    print('---------------------------')
+    print(f'Cooling Time: {t_cool:.3e} s')
+    print('---------------------------')
+    r2s_df['μSv/h'] = r2s_df['mean'] * (to_hours * to_μSv) / cell_volume
+    r2s_df['mSv/h'] = r2s_df['mean'] * (to_hours * to_mSv) / cell_volume
+    r2s_df['centers'] = xcentroids
+    print(r2s_df)
+
+# plot the D1S and R2S results on the same plot
+
+plt.plot(d1s_df['centers'], d1s_df['μSv/h'], label='Direct One-Step')
+plt.plot(r2s_df['centers'], r2s_df['μSv/h'], label='Rigorous Two-Step')
+plt.grid()
+plt.ylabel('Shutdown Dose (μSv/h)')
+plt.xlabel('Radial Position [cm]')
+plt.legend()
+plt.savefig('sdr.png')

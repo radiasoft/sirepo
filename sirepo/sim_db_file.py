@@ -194,7 +194,7 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
                 e,
                 pkdexc(),
             )
-            self.write({state: "error"})
+            self.write({"state": "error"})
 
     async def _sr_post_delete_glob(self, path, args):
         t = []

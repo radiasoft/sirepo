@@ -1,3 +1,5 @@
+const srlog = console.log;
+
 import "bootstrap";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import '@/main.scss';
@@ -58,6 +60,12 @@ const sirepoLegacyInit = () => {
     //TODO(pjm): initial schema call must be with form-data?
     return fetchWithFormData('/simulation-schema', { simulationType }).then(
         (simSchema) => {
+            if (simSchema.state === 'srException') {
+                // a srException with the schema could happen if the cookied user has been deleted
+                srlog('received srException when requesting simulation-schema:', simSchema);
+                window.location.href = '/';
+                return;
+            }
             schema.init(simulationType, simSchema);
             globalThis.SIREPO = {};
             return addScriptTag(schema.route.authState);
