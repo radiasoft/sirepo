@@ -18,6 +18,8 @@ CREATE TABLE material (
 	is_homogenized_divertor BOOLEAN,
 	density_g_cm3 FLOAT NOT NULL,
 	is_atom_pct BOOLEAN NOT NULL,
+        is_public BOOLEAN,
+        is_featured BOOLEAN,
 	PRIMARY KEY (material_id)
 );
 CREATE TABLE material_component (

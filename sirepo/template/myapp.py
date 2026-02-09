@@ -4,16 +4,16 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from pykern.pkcollections import PKDict
 from pykern import pkconfig
 from pykern import pkio
-from pykern import pkjinja
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
-from sirepo import simulation_db
 from sirepo.template import template_common
 import copy
-import sirepo.sim_data
+import csv
+import numpy
 import re
+import sirepo.sim_data
 import sirepo.util
 import time
 
@@ -23,6 +23,71 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 INPUT_NAME = "hundli.yml"
 
 OUTPUT_NAME = "hundli.csv"
+
+
+def background_percent_complete(report, run_dir, is_running):
+    res = PKDict(
+        percentComplete=0,
+        frameCount=0,
+        reports=[],
+    )
+    if run_dir.join(OUTPUT_NAME).exists() and not is_running:
+        res.pkupdate(
+            frameCount=1,
+            reports=[
+                PKDict(
+                    modelName="activityAnimation",
+                    frameCount=10,
+                ),
+            ],
+        )
+    return res
+
+
+def report_from_csv(title, fields, frame_index=1):
+
+    def _csv_to_cols():
+        with open(OUTPUT_NAME, "r") as f:
+            rows = csv.reader(f)
+            headers = next(rows)
+            cols = [[] for _ in headers]
+            for row in rows:
+                for i, c in enumerate(row):
+                    cols[i].append(float(c))
+        return PKDict((k.lower(), cols[i]) for i, k in enumerate(headers))
+
+    def _label(field):
+        return SCHEMA.model.dog[field][0]
+
+    def _plot(field, cols):
+        return {
+            "name": field,
+            "label": _label(field),
+            "points": (
+                numpy.array(cols[field]) * (1 + (frame_index - 1) * 0.1)
+            ).tolist(),
+        }
+
+    cols = _csv_to_cols()
+    x_points = cols["year"]
+    plots = [_plot(f, cols) for f in fields]
+    return PKDict(
+        title=title,
+        x_range=[x_points[0], x_points[-1]],
+        y_label=_label(fields[0]) if len(fields) == 1 else "",
+        x_label="Age (years)",
+        x_points=x_points,
+        plots=plots,
+        y_range=template_common.compute_plot_color_and_range(plots),
+    )
+
+
+def sim_frame_activityAnimation(frame_args):
+    return report_from_csv(
+        "Dog Activity Over Time",
+        ("activity",),
+        frame_args.frameIndex,
+    )
 
 
 def stateless_compute_global_resources(data, **kwargs):
@@ -64,7 +129,7 @@ def write_parameters(data, run_dir, is_parallel):
 
 def _generate_parameters_file(data):
     if "report" in data:
-        if data.report != "heightWeightReport":
+        if data.report not in ("activityAnimation", "heightWeightReport"):
             raise AssertionError(f"unknown report: {data.report}")
     v = copy.deepcopy(data.models, PKDict())
     v.input_name = INPUT_NAME
