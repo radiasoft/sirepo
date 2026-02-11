@@ -3875,7 +3875,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                 });
                 y2_axis = $scope.axes.y2;
                 delete $scope.axes.y2;
-                scaleFunction = plotting.scaleFunction($scope.modelName)
+                scaleFunction = plotting.scaleFunction($scope.modelName);
                 // override graphLine to work with multiple point sets
                 $scope.plotGraphLine = function(plotIndex) {
                     const p = ($scope.plots || [])[plotIndex] || {};
@@ -3903,7 +3903,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     //TODO(pjm): plot may be loaded with { state: 'canceled' }?
                     return;
                 }
-                scaleFunction = plotting.scaleFunction($scope.modelName)
+                scaleFunction = plotting.scaleFunction($scope.modelName);
                 normalizeInput(json);
                 updateAxes(json);
                 const oldPlots = $scope.plots;
