@@ -7,22 +7,34 @@ import { schema } from '@/services/schema.js';
 import { singleton } from '@/services/singleton.js';
 import { util } from '@/services/util.js';
 
+// qState
+const _PENDING = 'pending';
+const _PROCESSING = 'processing';
+const _DONE = 'done';
+const _REMOVING = 'removing';
+const _CANCELED = 'canceled';
+
+// qMode
+const _PERSISTENT_STATUS = 'persistentStatus';
+const _PERSISTENT = 'persistent';
+const _TRANSIENT = 'transient';
+
 class SimQueue {
-    runQueue = [];
+    #runQueue = [];
 
     #addItem(report, models, responseHandler, qMode) {
         models = util.clone(models);
         // simulationStatus is not used server side
         delete models.simulationStatus;
         const qi = {
-            firstRoute: qMode === 'persistentStatus' ? 'runStatus' : 'runSimulation',
+            firstRoute: qMode === _PERSISTENT_STATUS ? 'runStatus' : 'runSimulation',
             qMode: qMode,
             persistent: qMode.indexOf('persistent') > -1,
             // qState: pending, processing, done, removing, canceled
-            qState: 'pending',
+            qState: _PENDING,
             runStatusCount: 0,
             request: {
-                forceRun: qMode === 'persistent',
+                forceRun: qMode === _PERSISTENT,
                 report: report,
                 models: models,
                 simulationType: schema.simulationType,
@@ -30,7 +42,7 @@ class SimQueue {
             },
             responseHandler: responseHandler,
         };
-        this.runQueue.push(qi);
+        this.#runQueue.push(qi);
         if (qi.persistent) {
             this.#runItem(qi);
         }
@@ -48,18 +60,18 @@ class SimQueue {
     }
 
     #handleResult(qi, resp) {
-        qi.qState = 'done';
+        qi.qState = _DONE;
         this.removeItem(qi);
         qi.responseHandler(resp);
         this.#runFirstTransientItem();
     }
 
     #runFirstTransientItem() {
-        for (const e of this.runQueue) {
+        for (const e of this.#runQueue) {
             if (e.persistent) {
                 continue;
             }
-            if (e.qState === 'pending') {
+            if (e.qState === _PENDING) {
                 this.#runItem(e);
             }
             break;
@@ -87,10 +99,10 @@ class SimQueue {
         };
 
         const process = (resp) => {
-            if (qi.qState === 'removing') {
+            if (qi.qState === _REMOVING) {
                 return;
             }
-            if (resp.state === 'running' || resp.state === 'pending') {
+            if (resp.state === 'running' || resp.state === _PENDING) {
                 handleStatus(qi, resp);
             }
             else {
@@ -99,28 +111,32 @@ class SimQueue {
         };
 
         this.#cancelTimeout(qi);
-        qi.qState = 'processing';
-        process(await requestSender.sendRequest(qi.firstRoute, qi.request));
+        qi.qState = _PROCESSING;
+        //TODO(pjm): this call does not return immediately if the server is "Waiting for another sim op to complete"
+        const r = await requestSender.sendRequest(qi.firstRoute, qi.request)
+        if (qi.qState !== _REMOVING) {
+            process(r);
+        }
     }
 
     addPersistentStatusItem(report, models, responseHandler) {
-        return this.#addItem(report, models, responseHandler, 'persistentStatus');
+        return this.#addItem(report, models, responseHandler, _PERSISTENT_STATUS);
     }
 
     addPersistentItem(report, models, responseHandler) {
-        return this.#addItem(report, models, responseHandler, 'persistent');
+        return this.#addItem(report, models, responseHandler, _PERSISTENT);
     }
 
     addTransientItem(report, models, responseHandler) {
-        return this.#addItem(report, models, responseHandler, 'transient');
+        return this.#addItem(report, models, responseHandler, _TRANSIENT);
     }
 
     cancelItem(qi) {
-        qi.qMode = 'transient';
-        const isProcessingTransient = qi.qState === 'processing' && ! qi.persistent;
-        if (qi.qState === 'processing') {
+        qi.qMode = _TRANSIENT;
+        const isProcessingTransient = qi.qState === _PROCESSING && ! qi.persistent;
+        if (qi.qState === _PROCESSING) {
             requestSender.sendRequest('runCancel', qi.request);
-            qi.qState = 'canceled';
+            qi.qState = _CANCELED;
         }
         this.removeItem(qi);
         if (isProcessingTransient) {
@@ -129,30 +145,33 @@ class SimQueue {
     }
 
     cancelTransientItems() {
-        const rq = this.runQueue;
-        this.runQueue = [];
+        const rq = this.#runQueue;
+        this.#runQueue = [];
         rq.forEach((item) => {
-            if (item.qMode === 'transient') {
+            if (item.qMode === _TRANSIENT) {
                 this.removeItem(item);
             }
             else {
-                this.runQueue.push(item);
+                this.#runQueue.push(item);
             }
         });
     }
 
     removeItem(qi) {
         const qs = qi.qState;
-        if (qs === 'removing') {
+        if (qs === _REMOVING) {
             return;
         }
-        qi.qState = 'removing';
-        const i = this.runQueue.indexOf(qi);
-        if (i > -1) {
-            this.runQueue.splice(i, 1);
+        qi.qState = _REMOVING;
+        // look for report match, qi might be a Proxy object
+        for (let i = 0; i < this.#runQueue.length; i++) {
+            if (this.#runQueue[i].request.report === qi.request.report) {
+                this.#runQueue.splice(i, 1);
+                break;
+            }
         }
         this.#cancelTimeout(qi);
-        if (qs === 'processing' && ! qi.persistent) {
+        if (qs === _PROCESSING && ! qi.persistent) {
             requestSender.sendRequest('runCancel', qi.request);
         }
     }
@@ -160,4 +179,4 @@ class SimQueue {
     //$rootScope.$on('clearCache', this.cancelTransientItems);
 }
 
-export const simQueue = singleton.add('simQueue, () => new SimQueue());
+export const simQueue = singleton.add('simQueue', () => new SimQueue());

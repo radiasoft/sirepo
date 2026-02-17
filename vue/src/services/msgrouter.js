@@ -307,7 +307,8 @@ class MsgRouter {
 
     registerAsyncMsg(methodName, callback) {
         if (methodName in this.#asyncMsgMethods) {
-            throw new Error(`duplicate registerAsyncMsg methodName="${methodName}"`);
+            //TODO(pjm): HRM can call this twice
+            //throw new Error(`duplicate registerAsyncMsg methodName="${methodName}"`);
         }
         this.#asyncMsgMethods[methodName] = callback;
     }

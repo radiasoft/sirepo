@@ -15,6 +15,9 @@
             "js": ["myapp.js"]
         }
     },
+    "frameIdFields": {
+        "activityAnimation": []
+    },
     "localRoutes": {
         "source": {
             "config": {
@@ -24,7 +27,9 @@
         }
     },
     "model": {
+        "activityAnimation": {},
         "dog": {
+            "activity": ["Activity [kJ]", "Float"],
             "breed": ["Breed", "String"],
             "gender": ["Gender", "Gender", "male"],
             "height": ["Height [cm]", "Float", 50.0, "Distance from front paws to withers"],
@@ -32,9 +37,14 @@
             "disposition": ["Disposition", "DogDisposition", "friendly"],
             "favoriteTreat": ["Favorite Treat", "OptionalString", ""]
         },
-        "heightWeightReport": {}
+        "heightWeightReport": {},
+        "simulationStatus": {}
     },
     "view": {
+        "activityAnimation": {
+            "title": "Activity",
+            "advanced": []
+        },
         "dog": {
             "title": "Dog",
             "basic": [
@@ -53,6 +63,10 @@
         },
         "heightWeightReport": {
             "title": "Physical Characteristics",
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
             "advanced": []
         }
     }
