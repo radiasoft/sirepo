@@ -66,7 +66,7 @@
                                    />
                         </td>
                         <td>
-                            <div class="lead">{{ material.density }}</div>
+                            <div class="lead">{{ material.density }} {{ material.density_units }}</div>
                         </td>
                     </tr></tbody>
                     <VDOIRows

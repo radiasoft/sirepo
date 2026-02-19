@@ -3472,7 +3472,7 @@ SIREPO.app.directive('colorCircle', function() {
         template: `
               <svg width="30" height="10">
                 <line x1="0" y1="5" x2="30" y2="5"
-                  data-ng-attr-stroke-width="{{ plot.strokeWidth }}"
+                  data-ng-attr-stroke-width="{{ plot.strokeWidth > 4 ? plot.strokeWidth : 4 }}"
                   data-ng-attr-opacity="{{ plot.opacity || 1.0 }}"
                   data-ng-attr-stroke="{{ plot.color }}"
                   data-ng-attr-stroke-dasharray="{{ plot.dashes }}" />
@@ -3590,19 +3590,49 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             function normalizeInput(json) {
                 $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 4.0 / 7);
                 $scope.dynamicYLabel = json.dynamicYLabel || false;
-                // data may contain 2 plots (y1, y2) or multiple plots (plots)
-                json.plots = json.plots || [
-                    {
-                        points: json.points[0],
-                        label: json.y1_title,
-                        color: '#1f77b4',
-                    },
-                    {
-                        points: json.points[1],
-                        label: json.y2_title,
-                        color: '#ff7f0e',
-                    },
-                ];
+                if (! json.plots) {
+                    if (json.y2_title) {
+                        // legacy plot data may contain 2 plots (y1, y2)
+                        json.plots = [
+                            {
+                                points: json.points[0],
+                                label: json.y1_title,
+                                color: '#1f77b4',
+                            },
+                            {
+                                points: json.points[1],
+                                label: json.y2_title,
+                                color: '#ff7f0e',
+                            },
+                        ];
+                    }
+                    else {
+                        // legacy 2d plots
+                        $scope.focusStrategy = 'maximum';
+                        json.plots = [
+                            {
+                                points: json.points,
+                                label: json.y_label,
+                                color: '#1f77b4',
+                            },
+                        ];
+                        if (! json.x_points) {
+                            json.x_points = plotting.linearlySpacedArray(
+                                json.x_range[0],
+                                json.x_range[1],
+                                json.points.length,
+                            );
+                        }
+                        if (! json.y_range) {
+                            if (json.z_range) {
+                                json.y_range = json.z_range;
+                            }
+                            else {
+                                json.y_range = d3.extent(json.points);
+                            }
+                        }
+                    }
+                }
                 if (json.plots[0].x_points) {
                     $scope.noOverlay = true;
                 }
@@ -3842,10 +3872,11 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
-                    margin: {top: 50, right: yMargin, bottom: 20, left: yMargin}
+                    margin: {top: 50, right: 10, bottom: 20, left: yMargin}
                 });
                 y2_axis = $scope.axes.y2;
                 delete $scope.axes.y2;
+                scaleFunction = plotting.scaleFunction($scope.modelName);
                 // override graphLine to work with multiple point sets
                 $scope.plotGraphLine = function(plotIndex) {
                     const p = ($scope.plots || [])[plotIndex] || {};
@@ -3873,6 +3904,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     //TODO(pjm): plot may be loaded with { state: 'canceled' }?
                     return;
                 }
+                scaleFunction = plotting.scaleFunction($scope.modelName);
                 normalizeInput(json);
                 updateAxes(json);
                 const oldPlots = $scope.plots;

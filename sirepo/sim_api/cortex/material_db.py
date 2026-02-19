@@ -147,17 +147,19 @@ def init_from_api():
                 title="str 100",
                 xlabel="str 100",
                 ylabel="str 100",
-                type="str 10",
+                plot_type="str 10",
             ),
-            plot_value=PKDict(
+            plot_point=PKDict(
                 plot_id="primary_id primary_key index",
-                dim="int 32 primary_key",  # x|y1|y2|y3
+                # plot dimension 0: x, 1: y1, 2: y2 ...
+                dim="int 32 primary_key",
                 idx="int 32 primary_key",
-                value=f,
+                point=f,
             ),
             plot_legend=PKDict(
                 plot_id="primary_id primary_key index",
-                dim="int 32 primary_key",  # x|y1|y2|y3
+                # plot dimension 0: x, 1: y1, 2: y2 ...
+                dim="int 32 primary_key",
                 label="str 100",
             ),
         ),
@@ -225,36 +227,52 @@ def insert_material(parsed, uid):
 
 
 def insert_plot(plotdef):
-    with _session() as s:
-        rv = s.insert(
+    def _insert_plot(session, plotdef):
+        return session.insert(
             "plot",
             PKDict(
                 {
                     k: plotdef[k]
-                    for k in ("material_id", "title", "xlabel", "ylabel", "type")
+                    for k in (
+                        "material_id",
+                        "title",
+                        "model",
+                        "xlabel",
+                        "ylabel",
+                        "plot_type",
+                    )
                 }
             ),
-        )
+        ).plot_id
+
+    def _insert_plot_legend(session, plotdef, plot_id):
         for dim, label in enumerate(plotdef.legend):
-            s.insert(
+            session.insert(
                 "plot_legend",
                 PKDict(
-                    plot_id=rv.plot_id,
+                    plot_id=plot_id,
                     dim=dim,
                     label=label,
                 ),
             )
-        for dim, values in enumerate(plotdef["values"]):
-            for idx, v in enumerate(values):
+
+    def _insert_plot_points(session, plotdef, plot_id):
+        for dim, points in enumerate(plotdef["points"]):
+            for idx, v in enumerate(points):
                 s.insert(
-                    "plot_value",
+                    "plot_point",
                     PKDict(
-                        plot_id=rv.plot_id,
+                        plot_id=plot_id,
                         dim=dim,
                         idx=idx,
-                        value=v,
+                        point=v,
                     ),
                 )
+
+    with _session() as s:
+        p = _insert_plot(s, plotdef)
+        _insert_plot_legend(s, plotdef, p)
+        _insert_plot_points(s, plotdef, p)
 
 
 def list_materials(uid):

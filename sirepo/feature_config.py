@@ -13,6 +13,7 @@ To add a code that is not in the default list:
 
 #: Codes that depend on other codes
 _DEPENDENT_CODES = dict(
+    cortex=frozenset(("openmc",)),
     jspec=frozenset(("elegant",)),
     controls=frozenset(("madx",)),
     omega=frozenset(("elegant", "omega", "genesis")),
