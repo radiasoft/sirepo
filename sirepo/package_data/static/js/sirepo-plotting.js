@@ -2262,7 +2262,8 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
                 <div data-ng-style="{ opacity: opacity($index) }" style="height: 20px"
                   data-ng-repeat="p in plots track by p._label + $index">
                   <div style="display:inline" data-color-circle="p"></div>
-                  <span data-text-with-math="p._label"></span> = {{ pointText($index) }} {{ p._units }}
+                  <span data-text-with-math="p._label"></span> = {{ pointText($index) }}
+                  <span data-text-with-math="p._units"></span>
                 </div>
                 </div>
               </div>

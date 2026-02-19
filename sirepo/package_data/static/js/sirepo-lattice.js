@@ -1691,7 +1691,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             for (var k = 0; k < ovalCount; k++) {
                                 groupItem.ovals.push(groupItem.x + k * groupItem.ovalWidth + groupItem.ovalWidth / 2);
                             }
-                            groupItem.color = getPicColor(item, 'gold');
+                            groupItem.color = ('volt' in item && rpnValue(item.volt || 1) === 0)
+                                ? 'lightgrey'
+                                : getPicColor(item, 'gold');
                         }
                         else if (picType == 'recirc') {
                             groupItem.radius = 0.3;
@@ -1823,6 +1825,10 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         }
                     }
                     var picType = getPicType(item.type);
+                    //TODO(pjm): SOLRF is impactt-specific
+                    if (item.type == 'SOLRF' && ! item.solenoid_field_scale && item.rf_frequency) {
+                        item.type = 'RFCW';
+                    }
                     //TODO(pjm): CHANGREF is zgoubi-specific
                     if (picType != 'drift' && item.type.indexOf('CHANGREF') < 0) {
                         pos.count++;

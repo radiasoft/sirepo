@@ -35,9 +35,10 @@
                 </g>
                 <g ng-switch-when="rf">
                   <g ng-repeat="oval in ::item.ovals">
-                    <ellipse ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-cx="{{ ::oval }}" ng-attr-cy="{{ ::item.y }}" ng-attr-rx="{{ ::item.ovalWidth / 2 }}" ng-attr-ry="{{ ::item.height / 2 }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: 0.005"><title>{{ ::item.title }}</title></ellipse>
+                    <ellipse ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-cx="{{ ::oval }}" ng-attr-cy="{{ ::item.y }}" ng-attr-rx="{{ ::item.ovalWidth / 2 }}" ng-attr-ry="{{ ::item.height / 2 }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: 0.005"></ellipse>
                   </g>
-                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y - item.height / 6 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height / 3 }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: 0.005"><title>{{ ::item.title }}</title></rect>
+                  <rect ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-x="{{ ::item.x }}" ng-attr-y="{{ ::item.y - item.height / 6 }}" ng-attr-width="{{ ::item.width }}" ng-attr-height="{{ ::item.height / 3 }}" ng-attr-style="fill: {{ ::item.color }}; stroke: black; stroke-width: 0.005"></rect>
+                  <title>{{ ::item.title }}</title>
                 </g>
                 <g ng-switch-when="recirc" ng-attr-transform="rotate(-16, {{ ::item.x }}, {{ ::item.y }})">
                   <circle ng-attr-class="{{ ::item.element.indexClass }}" ng-attr-cx="{{ ::item.x }}" ng-attr-cy="{{ ::item.y }}" ng-attr-r="{{ ::item.radius }}" ng-attr-style="fill: none; stroke-width: 0.03; stroke: {{ ::item.color }}"><title>{{ ::item.title }}</title></circle>
