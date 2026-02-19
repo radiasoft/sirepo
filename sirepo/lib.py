@@ -26,7 +26,22 @@ class LibAdapterBase:
         self._sim_data, _, self._schema = sirepo.sim_data.template_globals(m.SIM_TYPE)
         self._code_var = m.code_var
         self._ignore_files = ignore_files if ignore_files else []
+        self._verified_files = set()
         self._update_filenames = update_filenames
+
+    def input_filenames(self, data):
+        return set(
+            [
+                self._sim_data.lib_file_name_without_type(v)
+                for v in LatticeUtil(data, self._schema)
+                .iterate_models(
+                    lattice.InputFileIterator(
+                        self._sim_data, update_filenames=self._update_filenames
+                    ),
+                )
+                .result
+            ]
+        )
 
     def _convert(self, data):
         def _model(model, name):
@@ -72,19 +87,13 @@ class LibAdapterBase:
             if f in self._ignore_files:
                 continue
             p = path.dirpath().join(f)
+            if p in self._verified_files:
+                continue
+            self._verified_files.add(p)
             assert p.check(file=True), f"file={f} missing"
 
     def _write_input_files(self, data, source_path, dest_dir):
-        for f in set(
-            LatticeUtil(data, self._schema)
-            .iterate_models(
-                lattice.InputFileIterator(
-                    self._sim_data, update_filenames=self._update_filenames
-                ),
-            )
-            .result,
-        ):
-            f = self._sim_data.lib_file_name_without_type(f)
+        for f in self.input_filenames(data):
             try:
                 d = dest_dir.join(f)
                 pykern.pkio.mkdir_parent_only(d)
@@ -145,6 +154,9 @@ class SimData(PKDict):
     def copy(self):
         """Allows copy.deepcopy"""
         return self.__class__(self, self.__source, self.__adapter)
+
+    def input_filenames(self):
+        return self.__adapter.input_filenames(self)
 
     def write_files(self, dest_dir):
         """Writes files for simulation state
