@@ -10,6 +10,7 @@ from sirepo.template import template_common
 import numpy
 import pykern.pkio
 import re
+import sirepo.mpi
 import sirepo.sim_data
 import sirepo.template.openmc
 
@@ -113,6 +114,7 @@ def write_parameters(data, run_dir, is_parallel):
                     sirepo.template.openmc.OPENMC_CACHE_DIR
                 ),
                 chainPath=sirepo.template.openmc.remote_datafile_path(_CHAIN_ENDF_FILE),
+                openmcRunArgs=f"threads={sirepo.mpi.cfg().cores}",
             ),
             "tile.py",
         ),

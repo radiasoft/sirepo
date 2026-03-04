@@ -344,7 +344,7 @@ he4_tally.filters = [cell_filter]
 he4_tally.scores = ["He4-production"]
 model.tallies.append(he4_tally)
 
-statepoint = model.run()
+statepoint = model.run({{ openmcRunArgs }})
 with openmc.StatePoint(statepoint) as sp:
 
     n_tally = sp.get_tally(id=n_flux_tally.id)
@@ -544,7 +544,7 @@ print('---------------------------')
 print(f'Performing D1S run')
 print('---------------------------')
 
-statepoint = model.run(output=False)
+statepoint = model.run(output=False, {{ openmcRunArgs }})
 
 with openmc.StatePoint(statepoint) as sp:
     tally = sp.get_tally(name='dose tally')
@@ -705,7 +705,7 @@ for i_cool, (t_cool, src_rate) in enumerate(zip(timesteps, source_rates)):
     # TODO: should technically also use activated material compositions in transport here
     model.settings.source = step_photon_sources
 
-    statepoint = model.run(cwd=f'r2s/cooling_{t_cool:.3e}_s', output=False)
+    statepoint = model.run(cwd=f'r2s/cooling_{t_cool:.3e}_s', output=False, {{ openmcRunArgs }})
 
     with openmc.StatePoint(statepoint) as sp:
         sp_dose = sp.get_tally(name=dose_tally.name)
