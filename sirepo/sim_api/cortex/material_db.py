@@ -190,7 +190,7 @@ def insert_material(parsed, uid):
                 **val,
             ).material_property_value_id
             for name, values_list in ivars.items():
-                if values_list[idx] is not None:
+                if idx < len(values_list) and values_list[idx] is not None:
                     session.insert(
                         "independent_variable_value",
                         independent_variable_id=ivar_ids[name],
