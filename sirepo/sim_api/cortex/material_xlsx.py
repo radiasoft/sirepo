@@ -22,7 +22,7 @@ _WALL_RE = re.compile(r"^(?:(iter)|demo)$", re.IGNORECASE)
 
 _NEUTRON_SOURCE_RE = re.compile(r"\b(?:(d\W?t)|d\W?d)\b", re.IGNORECASE)
 
-_POINTER_RE = re.compile(r"^((?:p|t|f)\d+(?:[\.\-]\d+)*)$", re.IGNORECASE)
+_POINTER_RE = re.compile(r"^((?:(?:p|t|f)\d+(?:[\.\-]\d+)*[,;]?\s*)+)$", re.IGNORECASE)
 
 _SOURCE_RE = re.compile(r"^(exp|pp|nom|ml|dft)$", re.IGNORECASE)
 
@@ -335,8 +335,10 @@ class Parser:
         def _property_value(cols):
             self._in_property_values = True
             i = len(_PROPERTY_VALUE_LABELS)
-            while cols[i] and not _IGNORE_INDEPENDENT_VARIABLE_HEADER_RE.search(
-                cols[i]
+            while (
+                i < len(cols)
+                and cols[i]
+                and not _IGNORE_INDEPENDENT_VARIABLE_HEADER_RE.search(cols[i])
             ):
                 self._independent_variables[i] = PKDict(name=cols[i], vals=[])
                 i += 1
