@@ -3163,7 +3163,7 @@ SIREPO.app.directive('latticeImportDialog', function(appState, commandService, f
                             <div class="form-group" data-ng-repeat="item in missingFiles">
                               <div class="col-sm-11 col-sm-offset-1">
                                 <span data-ng-if="item.file && isCorrectMissingFile(item)" class="glyphicon glyphicon-ok"></span>
-                                <span data-ng-if="item.file && ! isCorrectMissingFile(item)" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="item.file && ! isCorrectMissingFile(item)" class="text-danger">Filename does not match, expected: </span>
+                                <span data-ng-if="item.file && ! isCorrectMissingFile(item)" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="item.file && ! isCorrectMissingFile(item)" class="text-danger">Filename: <b>{{item.file.name}}</b> does not match, expected: </span>
                                 <label>{{ item.filename }}</label> ({{ auxFileName(item) }})
                                 <input type="file" data-file-model="item.file" />
                               </div>
