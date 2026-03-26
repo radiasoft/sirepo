@@ -7,7 +7,6 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common
-import asyncio
 import math
 import numpy
 import os
@@ -299,23 +298,46 @@ def _plot_from_file(run_dir, material_id, report, stat):
 
 
 def _save_plots_to_database(run_dir, report, stats):
-
-    async def call_db(material_id, plot):
-        with sirepo.quest.start(in_pkcli=True) as qcall:
-            with qcall.auth.logged_in_user_set(
-                os.environ["SIREPO_AUTH_LOGGED_IN_USER"]
-            ):
-                r = await qcall.call_api(
-                    "cortexDb",
-                    body=PKDict(
-                        op_name="insert_plot",
-                        op_args=PKDict(
-                            plot=plot,
-                        ),
-                    ),
-                )
-
+    c = _SIM_DATA.sim_db_client()
     m = _material_id_from_run_dir(run_dir)
+    # TODO(pjm): group plots into one call
     for s in stats:
         p = _plot_from_file(run_dir, m, report, s)
-        asyncio.run(call_db(m, p))
+        c.call_sim_api(
+            _simulation_id_from_run_dir(run_dir),
+            "cortexDb",
+            PKDict(
+                op_name="insert_plot",
+                op_args=PKDict(
+                    plot=p,
+                ),
+            ),
+            SIM_TYPE,
+        )
+
+
+def _simulation_id_from_run_dir(run_dir):
+    return sirepo.simulation_db.read_json(
+        run_dir.join(template_common.INPUT_BASE_NAME)
+    ).models.simulation.simulationId
+
+
+# def _old_save_plots_to_database(run_dir, report, stats):
+#     async def call_db(material_id, plot):
+#         with sirepo.quest.start(in_pkcli=True) as qcall:
+#             with qcall.auth.logged_in_user_set(
+#                 os.environ["SIREPO_AUTH_LOGGED_IN_USER"]
+#             ):
+#                 r = await qcall.call_api(
+#                     "cortexDb",
+#                     body=PKDict(
+#                         op_name="insert_plot",
+#                         op_args=PKDict(
+#                             plot=plot,
+#                         ),
+#                     ),
+#                 )
+#     m = _material_id_from_run_dir(run_dir)
+#     for s in stats:
+#         p = _plot_from_file(run_dir, m, report, s)
+#         asyncio.run(call_db(m, p))

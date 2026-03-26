@@ -133,16 +133,18 @@
  };
 
  onMounted(() => {
+     const downloadActions = [{
+         onClick: () => { downloadCSV() },
+         label: 'Download CSV',
+     }];
      const getFrameCount = () => {
          if (props.reportData) {
+             props.reportData.downloadActions = downloadActions;
              return 1;
          }
          for (let r of props.sim.reports) {
              if (r.modelName == props.modelName) {
-                 r.downloadActions = [{
-                     onClick: () => { downloadCSV() },
-                     label: 'Download CSV',
-                 }];
+                 r.downloadActions = downloadActions;
                  return r.frameCount;
              }
          }

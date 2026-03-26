@@ -18,7 +18,7 @@
                     v-bind:viewName="report.viewName"
                     v-bind:title="report.title"
                     v-bind:canFullScreen="true"
-                    v-bind:downloadActions="report.downloadActions"
+                    v-bind:downloadActions="report.reportData.downloadActions"
                 >
                     <VFramePlot
                         v-bind:modelName="report.modelName"
@@ -79,7 +79,6 @@
          }
          reportsBySection[r.meta.section].push({
              modelName: r.meta.model,
-             stat: r.meta.stat,
              viewName: r.meta.model,
              trackBy: r.meta.model + r.meta.stat,
              reportData: r,

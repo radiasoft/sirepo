@@ -42,6 +42,18 @@ class SimDbClient:
         super().__init__()
         self._sim_data = sim_data
 
+    def call_sim_api(self, simulationId, api_name, args, sim_type):
+        self._post(
+            simulationId,
+            args=PKDict(
+                api_name=api_name,
+                api_args=args,
+            ),
+            sim_type=sim_type,
+            # TODO(pjm): is this needed?
+            basename="sim_api",
+        )
+
     def copy(self, src_uri, dst_uri):
         """Copy `src_uri` to `dst_uri`
 
@@ -109,7 +121,7 @@ class SimDbClient:
 
         Args:
             lib_sid_uri (object): see above
-            basename (str): naem without directories (see above)
+            basename (str): name without directories (see above)
             sim_type (str): valid code [sim_data.sim_type]
         Returns:
             SimDbUri: valid in any string context
@@ -265,6 +277,18 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
             else:
                 pkio.unchecked_remove(t)
         return PKDict(size=size)
+
+    async def _sr_post_call_sim_api(self, path, args):
+        pkdp("call_sim_api: {} {}", path, args)
+        from sirepo import quest
+
+        # TODO(pjm): this fails because uri_router._api_to_route is None
+        with quest.start() as qcall:
+            with qcall.auth.logged_in_user_set(self.__uid):
+                return await qcall.call_api(
+                    args.api_name,
+                    body=args.api_args,
+                )
 
     async def _sr_post_save_sim(self, path, args):
         from sirepo import quest, simulation_db
