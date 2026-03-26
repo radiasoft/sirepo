@@ -90,17 +90,8 @@ def background_percent_complete(report, run_dir, is_running):
         _save_plots_to_database(run_dir, report, o)
         return PKDict(
             frameCount=1,
-            percentComplete=0,
-            reports=[
-                PKDict(
-                    modelName=report,
-                    modelIndex=idx,
-                    stat=n,
-                    frameCount=1,
-                    title=_REPORT_TITLE[report][n],
-                )
-                for idx, n in enumerate(o)
-            ],
+            percentComplete=100,
+            reports=[],
         )
     return PKDict(
         frameCount=0,
@@ -145,18 +136,6 @@ def plotdef_to_sim_frame(plotdef):
     if res.type == "loglog" or res.type == "semilog":
         _adjust_log_ranges(res)
     return res
-
-
-# plot data is now returned from database
-# def sim_frame(frame_args):
-#     return plotdef_to_sim_frame(
-#         _plot_from_file(
-#             frame_args.run_dir,
-#             _material_id_from_run_dir(frame_args.run_dir),
-#             frame_args.frameReport,
-#             frame_args.stat,
-#         )
-#     )
 
 
 def write_parameters(data, run_dir, is_parallel):

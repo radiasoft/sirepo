@@ -422,6 +422,7 @@ operator.output_dir = 'r2s/activation'
 # could also do this. It's simpler, but less efficient
 # since it involves additional transport steps
 ###########################################################
+openmc.deplete.pool.USE_MULTIPROCESSING = False
 model.deplete(
     method='cf4',  # CF4Integrator is an accurate but slower method
     final_step=False,

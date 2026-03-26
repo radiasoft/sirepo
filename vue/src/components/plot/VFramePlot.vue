@@ -35,7 +35,7 @@
  const props = defineProps({
      modelName: String,
      sim: Object,
-     // optional, supply report data directly
+     // optional, supply report data directly instead of sim
      reportData: Object,
  });
 
@@ -80,6 +80,9 @@
 
  const load = () => {
      if (props.reportData) {
+         if (props.sim) {
+             throw new Error("VFramePlot does now allow both sim and reportData properties")
+         }
          data.value = () => props.reportData;
          return;
      }

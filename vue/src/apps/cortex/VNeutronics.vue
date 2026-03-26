@@ -1,8 +1,8 @@
 <template>
-    <VCol v-if="isLoaded">
+    <VCol>
         <VCard viewName="simulationStatus" v-bind:title="title">
             <div class="row">
-                <div class="col-sm-7" v-if="! hasReportData">
+                <div class="col-sm-7" v-if="isLoaded">
                     <VRunSim v-bind:sim="sim" v-bind:viewName="neutronics"></VRunSim>
                 </div>
                 <div class="col-sm-5" v-if="neutronics == 'slabAnimation'">
@@ -21,7 +21,6 @@
                     v-bind:downloadActions="report.downloadActions"
                 >
                     <VFramePlot
-                        v-bind:sim="sim"
                         v-bind:modelName="report.modelName"
                         v-bind:reportData="report.reportData"
                     ></VFramePlot>
@@ -39,7 +38,7 @@
  import VRunSim from '@/components/VRunSim.vue';
  import slabUrl from '@/assets/cortex/slab.png';
  import { appState } from '@/services/appstate.js';
- import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+ import { nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
 
  const props = defineProps({
@@ -47,7 +46,7 @@
      neutronics: String,
      title: String,
  });
- const isLoaded = ref(false);
+ const isLoaded = appState.isLoadedRef;
  const reportsBySection = reactive({});
  const sections = {
      steady_state: 'Steady State',
@@ -56,18 +55,20 @@
  };
  const sim = ref({});
  let reportData;
- const hasReportData = ref(false);
+ let simId;
 
- const rebuildReports = () => {
-     hasReportData.value = false;
-     if (reportData) {
-         for (const r of reportData) {
-             if (r.meta.model === props.neutronics) {
-                 hasReportData.value = true;
-                 break;
-             }
-         }
-     }
+ const loadFromDatabase = async () => {
+     const r = await requestSender.sendRequest("cortexSim", {
+         op_name: 'synchronize',
+         op_args: {
+             material_id: props.materialId,
+         },
+     });
+     reportData = r.reports;
+     simId = r.simulationId;
+ };
+
+ const rebuildReports = async () => {
      for (const v in sections) {
          reportsBySection[v] = [];
      }
@@ -89,39 +90,43 @@
              delete reportsBySection[v];
          }
      }
- };
-
- const loadFromDatabase = async () => {
-     const r = await requestSender.sendRequest("cortexSim", {
-         op_name: 'synchronize',
-         op_args: {
-             material_id: props.materialId,
-         },
-     });
-     reportData = r.reports;
-     await appState.loadModels(r.simulationId);
-     isLoaded.value = true;
+     if (Object.keys(reportsBySection).length) {
+         if (isLoaded.value) {
+             appState.clearModels();
+         }
+     }
+     else {
+         if (! isLoaded.value) {
+             await appState.loadModels(simId);
+         }
+     }
  };
 
  onMounted(async () => {
      await loadFromDatabase();
-     rebuildReports();
+     await rebuildReports();
  });
 
  onUnmounted(() => {
-     isLoaded.value = false;
-     hasReportData.value = false;
-     appState.clearModels();
+     if (isLoaded.value) {
+         appState.clearModels();
+     }
  });
 
- watch(() => sim.value.reports, async () => {
+ watch(() => sim.value.frameCount, async () => {
      if (sim.value.reports) {
-         appState.clearModels();
          await loadFromDatabase();
      }
-     rebuildReports();
+     await rebuildReports();
  });
 
- watch(() => props.neutronics, rebuildReports);
+ watch(() => props.neutronics, () => {
+     sim.value = {};
+     appState.clearModels();
+     // isLoaded.value is not updated immediately after clearModels()
+     nextTick(async () => {
+         await rebuildReports();
+     });
+ });
 
 </script>

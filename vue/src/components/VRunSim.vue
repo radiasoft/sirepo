@@ -1,5 +1,5 @@
 <template>
-    <div class="mb-3">Simulation state: {{ state }}{{ statusDots }}</div>
+    <div v-if="state != 'missing'" class="mb-3">Simulation state: {{ state }}{{ statusDots }}</div>
     <div v-if="! isBusy()">
       <button v-on:click="startSim">Start New Simulation</button>
     </div>
@@ -32,13 +32,14 @@
          simQueue.cancelItem(qItem);
      }
      state.value = "canceled";
+     statusDots.value = '';
      qItem = null;
  };
 
  const simStatusHandler = (data) => {
      //TODO(pjm): display and update elapsed time and percent complete
      //TODO(pjm): display errors
-     if (data.state !== "missing" && data.queueState) {
+     if (data.state !== "missing" && data.state !== "canceled" && data.queueState) {
          state.value = data.queueState;
      }
      else if (data.state) {
@@ -81,7 +82,7 @@
  };
 
  onMounted(() => {
-     simQueue.addPersistentStatusItem(
+     qItem = simQueue.addPersistentStatusItem(
          props.viewName,
          appState.models,
          simStatusHandler,
@@ -95,7 +96,10 @@
  });
 
  watch(() => props.viewName, () => {
-     simQueue.addPersistentStatusItem(
+     if (qItem) {
+         simQueue.removeItem(qItem);
+     }
+     qItem = simQueue.addPersistentStatusItem(
          props.viewName,
          appState.models,
          simStatusHandler,

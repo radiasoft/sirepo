@@ -421,8 +421,7 @@ model.settings.dagmc = True
 model.settings.photon_transport = True
 model.settings.batches = 10
 # for faster results
-# model.settings.particles = 100_000
-model.settings.particles = 1000
+model.settings.particles = 100_000
 model.settings.run_mode = "fixed source"
 model.settings.surf_source_read = {"path": SURF_SOURCE_FILE}
 
@@ -2043,7 +2042,7 @@ def process_chunk(
         if t is None:
             continue
 
-        
+
         denom_atoms = float(bm.cell_total_atoms_struct.get(cid, 0.0))
         if denom_atoms <= 0.0:
             continue
@@ -2066,7 +2065,7 @@ def process_chunk(
             dmg_mean *= fs
             dmg_std  *= fs
 
-            
+
             # Find element Ed for the nuclide
             el = element_from_nuclide(nuc)
             Ed = float(bm.materials.Ed(el)) # if not on list material default is 25 eV
@@ -2090,7 +2089,7 @@ def process_chunk(
             sum_mean += dpa_mean_per_nuclide
             sum_var += dpa_std_per_nuclide**2
 
-            
+
         dpa_y[i] = sum_mean
         dpa_y_std[i] = math.sqrt(sum_var)
         dpa_by_nuclide[cid] = breakdown
@@ -2104,7 +2103,7 @@ def process_chunk(
     lower= np.maximum(dpa_y - dpa_y_std, 1e-30)
     upper = dpa_y + dpa_y_std
 
-    
+
     fig, ax = plt.subplots()
     ax.set_yscale("log")
     ax.step(xedges, np.r_[dpa_y, dpa_y[-1]], where="post", label="NRT-dpa/y")
@@ -2910,6 +2909,7 @@ integrator = openmc.deplete.PredictorIntegrator(
     timesteps,
     source_rates=source_rates,
 )
+openmc.deplete.pool.USE_MULTIPROCESSING = False
 integrator.integrate()
 
 # -----------------------------------------------------------------------------
@@ -3907,7 +3907,7 @@ def run_chunk_postprocess(
 
         print(f"[DONE] {chunk_key} -> {out_dir}")
 
-        
+
 # ============================================================
 # Run
 # ============================================================
@@ -3938,8 +3938,8 @@ if True:
     IB_CHUNK_SIZE = _cells_chunk["IB_CHUNK_SIZE"]
     n_breeder  = int(geom["n_breeder"])
 
-    cell_ids_for_key   = _cells_chunk["cell_ids_for_key"](OB_KEY)    
-    radial_bins_for_key = _cells_chunk["radial_bins_for_key"](OB_KEY) 
+    cell_ids_for_key   = _cells_chunk["cell_ids_for_key"](OB_KEY)
+    radial_bins_for_key = _cells_chunk["radial_bins_for_key"](OB_KEY)
 
     CHUNKS = {
         OB_KEY: ob_by_key.get(OB_KEY, []),
