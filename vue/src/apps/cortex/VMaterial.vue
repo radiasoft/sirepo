@@ -32,7 +32,11 @@
                 ></button>
                 <ul class="dropdown-menu dropdown-menu-end" id="sr-neutronics-dropdown-menu">
                     <li v-for="sim in Object.keys(neutronicsSims)">
-                        <button class="dropdown-item" v-on:click="selectNeutronics(sim)">
+                        <button
+                            class="dropdown-item"
+                            v-on:click="selectNeutronics(sim)"
+                            v-bind:class="{active: isSelected('neutronics') && neutronicsSim == sim}"
+                        >
                             {{ neutronicsSims[sim] }}
                         </button>
                     </li>
@@ -51,7 +55,10 @@
         </div>
         <div class="container-lg sr-fixed-lg">
             <div v-if="isSelected('overview')">
-                <VOverview v-bind:material="material" />
+                <VOverview
+                    v-bind:materialId="materialId"
+                    v-bind:material="material"
+                />
             </div>
             <div v-if="isSelected('properties')">
                 <VProperties v-bind:material="material" />
@@ -71,6 +78,7 @@
 
  const neutronicsSims = {
      tileAnimation: 'Homogeneous Tile',
+     slabAnimation: 'Slab',
  };
 
  const material = ref(null);

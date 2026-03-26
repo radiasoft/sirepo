@@ -10,7 +10,7 @@
 
 <script setup>
  import { appState } from '@/services/appstate.js';
- import { ref, onMounted, onUnmounted } from 'vue';
+ import { ref, onMounted, onUnmounted, watch } from 'vue';
  import { simQueue } from '@/services/simqueue.js';
 
  const props = defineProps({
@@ -93,4 +93,13 @@
          simQueue.removeItem(qItem);
      }
  });
+
+ watch(() => props.viewName, () => {
+     simQueue.addPersistentStatusItem(
+         props.viewName,
+         appState.models,
+         simStatusHandler,
+     );
+ });
+
 </script>

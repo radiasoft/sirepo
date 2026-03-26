@@ -1,0 +1,568 @@
+import openmc
+import openmc.data
+import re
+
+# This file defines default materials to populate into existing models
+
+def PbLi(li6_enrichment, density):
+  """ Return an OpenMC material for PbLi. We first add the impurity concentrations
+      from ITER recommendations [10.1016/j.nme.2022.101146, table 2] (at their
+      maximum values). Then, of the remaining material, we take Li at 0.62 weight %
+      and Pb at 99.38 weight % [10.1016/j.nme.2022.101146, page 2].
+
+      We assume that this material is not depletable, since it will be flowing on
+      a timescale much faster than depletion.
+
+      TODO: non-metallic impurities (O, C, N, H) are not included, even though
+      some will remain when ingots are melted. Do we need to include these?
+
+      Keyword arguments:
+      li6_enrichment -- the Li6 enrichment in Li [atomic percent]
+      density -- the overall density of the material [g/cc]
+  """
+
+  print('Adding PbLi material...')
+
+  PbLi = openmc.Material()
+
+  # Impurities are given in wppm (weight part per million)
+  PbLi.add_element('Ag', 10e-6, 'wo')
+  PbLi.add_element('Cu', 10e-6, 'wo')
+  PbLi.add_element('Nb', 10e-6, 'wo')
+  PbLi.add_element('Pd', 10e-6, 'wo')
+  PbLi.add_element('Zn', 10e-6, 'wo')
+  PbLi.add_element('Cr', 50e-6, 'wo')
+  PbLi.add_element('Fe', 50e-6, 'wo')
+  PbLi.add_element('Mn', 50e-6, 'wo')
+  PbLi.add_element('Ni', 50e-6, 'wo')
+  PbLi.add_element('Pd', 50e-6, 'wo')
+  PbLi.add_element('V' , 50e-6, 'wo')
+  PbLi.add_element('Al', 100e-6, 'wo')
+  PbLi.add_element('Si', 100e-6, 'wo')
+  PbLi.add_element('Bi', 200e-6, 'wo')
+  PbLi.add_element('Sn', 200e-6, 'wo')
+  PbLi.add_element('W', 200e-6, 'wo')
+
+  weight_sum = 0
+  for nuclide in PbLi.nuclides:
+    weight_sum += nuclide.percent
+
+  print('\tImpurities (weight %): ', weight_sum * 100)
+
+  # TODO: I don't know if these papers are using weight or atomic percents.
+  # Try to find which one. Here, I am assuming atomic.
+  molar_mass_lithium = li6_enrichment * openmc.data.atomic_mass('Li6') + \
+    (1 - li6_enrichment) * openmc.data.atomic_mass('Li7')
+
+  # total Li concentration taken as 0.62% by weight of whatever remains after impurities
+  li_weight_percent = 0.62e-2 * (1 - weight_sum)
+  li6_grams_in_1_g_li = li6_enrichment * openmc.data.atomic_mass('Li6') / molar_mass_lithium
+  li7_grams_in_1_g_li = 1.0 - li6_grams_in_1_g_li
+  print('\tLithium (weight %):    ', li_weight_percent * 100)
+
+  PbLi.add_nuclide('Li6', li6_grams_in_1_g_li * li_weight_percent, 'wo')
+  weight_sum += li6_grams_in_1_g_li * li_weight_percent
+  PbLi.add_nuclide('Li7', li7_grams_in_1_g_li * li_weight_percent, 'wo')
+  weight_sum += li7_grams_in_1_g_li * li_weight_percent
+
+  # total Pb concentration taken as 99.38% by weight of whatever remains after impurities
+  PbLi.add_element('Pb', 0.9938 * (1 - weight_sum), 'wo')
+  print('\tLead (weight %):    ', (1 - weight_sum) * 100)
+
+  PbLi.set_density('g/cc', density)
+  PbLi.depletable = False
+  return PbLi
+
+def eurofer97(density):
+  """ Return an OpenMC material for Eurofer97 RAFM steel
+      (10.1016/j.fusengdes.2018.06.027). This paper gives min, max, and target values
+      for the main alloying elements, and maximum values for impurities (radiologically
+      undesirable quantities, which may or may not be the same as other impurities
+      which are not undesirable, per se). Composition is given in weight %.
+
+      The table in the reference includes min weight %, max weight %, and target
+      weight %, but not all elements have all three numbers provided. We make the
+      following assumption:
+        - if a target % is given, we use it
+        - if only a range, between min and max is given, we take the average
+        - if only one numeric value is given, we use it
+        - if the minimum is as-low-as-possible, we take the maximum given
+        - for the As, Sn, Sb, and Zr (these are lumped together), we assume the 0.05 weight % is evenly split among these
+  """
+  eurofer97 = openmc.Material()
+  eurofer97.add_element('C', 0.11, 'wo')
+  eurofer97.add_element('Cr', 9.0, 'wo')
+  eurofer97.add_element('W', 1.1, 'wo')
+  eurofer97.add_element('Mn', 0.4, 'wo')
+  eurofer97.add_element('V', (0.25 + 0.15)/2, 'wo')
+  eurofer97.add_element('Ta', 0.12, 'wo')
+  eurofer97.add_element('N', 0.03, 'wo')
+  eurofer97.add_element('P', 0.005, 'wo')
+  eurofer97.add_element('S', 0.005, 'wo')
+  eurofer97.add_element('B', 0.002, 'wo')
+  eurofer97.add_element('O', 0.01, 'wo')
+
+  alloy_weight_sum = 0
+  for nuclide in eurofer97.nuclides:
+    alloy_weight_sum += nuclide.percent
+
+  print('\tAlloying elements (weight %): ', alloy_weight_sum)
+
+  # impurities
+  eurofer97.add_element('Nb', 0.005, 'wo')
+  eurofer97.add_element('Mo', 0.005, 'wo')
+  eurofer97.add_element('Ni', 0.01, 'wo')
+  eurofer97.add_element('Cu', 0.01, 'wo')
+  eurofer97.add_element('Al', 0.01, 'wo')
+  eurofer97.add_element('Ti', 0.02, 'wo')
+  eurofer97.add_element('Si', 0.05, 'wo')
+  eurofer97.add_element('Co', 0.01, 'wo')
+  eurofer97.add_element('As', 0.05/4, 'wo')
+  eurofer97.add_element('Sn', 0.05/4, 'wo')
+  eurofer97.add_element('Sb', 0.05/4, 'wo')
+  eurofer97.add_element('Zr', 0.05/4, 'wo')
+
+  weight_sum = 0
+  for nuclide in eurofer97.nuclides:
+    weight_sum += nuclide.percent
+
+  print('\tImpurity elements (weight %): ', weight_sum - alloy_weight_sum)
+
+  eurofer97.add_element('Fe', 100 - weight_sum, 'wo')
+
+  print('\tIron (weight %):             ', 100 - weight_sum)
+
+  eurofer97.set_density('g/cc', density)
+  return eurofer97
+
+def Water(density):
+  """ Return an OpenMC material for water. TODO: add impurities
+  """
+
+  water = openmc.Material()
+  water.add_element('H', 2.0)
+  water.add_element('O', 1.0)
+  water.set_density('g/cc', density)
+  return water
+
+def Helium(density):
+  """ Return an OpenMC material for helium. TODO: add impurities
+  """
+
+  helium = openmc.Material()
+  helium.add_element('He', 1.0)
+  helium.set_density('g/cc', density)
+  return helium
+
+def W(density):
+  """ Return an OpenMC material for tungsten.
+
+  https://doi.org/10.1016/j.fusengdes.2021.112646
+
+  I am assuming this is weight percent, based on how other materials are presented in Table 1.
+  For instance, the SS316LN-IG column matches well with our other reference for SS316LN-IG
+  which we know is based on weight percent.
+  """
+
+  tungsten = openmc.Material()
+  tungsten.add_element('W', 99.94, 'wo')
+  tungsten.add_element('Ni', 0.01, 'wo')
+  tungsten.add_element('Fe', 0.01, 'wo')
+  tungsten.add_element('Si', 0.01, 'wo')
+  tungsten.add_element('O', 0.01, 'wo')
+  tungsten.add_element('N', 0.01, 'wo')
+  tungsten.add_element('C', 0.01, 'wo')
+  tungsten.set_density('g/cc', density)
+  return tungsten
+
+
+
+def CuCrZr(density):
+  """ Return an OpenMC material for CuCrZr.
+  DOI 10.1088/1741-4326/ac2a6b
+  """
+
+  CuCrZr = openmc.Material()
+  CuCrZr.add_element('Cu', 0.9879)
+  CuCrZr.add_element('Cr', 0.009, 'wo')
+  CuCrZr.add_element('Zr', 0.0015, 'wo')
+  CuCrZr.add_element('Co', 0.0005, 'wo')
+  CuCrZr.add_element('Ta', 0.0001, 'wo')
+  CuCrZr.add_element('Nb', 0.001, 'wo')
+  CuCrZr.set_density('g/cc', density)
+  return CuCrZr
+
+def ss316(density):
+  """ Return an OpenMC material for ss316.
+  https://doi.org/10.1016/j.fusengdes.2021.112646
+  """
+
+  ss316 = openmc.Material()
+  ss316.add_element('B', 0.000002, 'wo')
+  ss316.add_element('C', 0.0003, 'wo')
+  ss316.add_element('N', 0.0007, 'wo')
+  ss316.add_element('Si', 0.005, 'wo')
+  ss316.add_element('P', 0.00025, 'wo')
+  ss316.add_element('S', 0.0001, 'wo')
+  ss316.add_element('Ti', 0.001, 'wo')
+  ss316.add_element('Cr', 0.175, 'wo')
+  ss316.add_element('Mn', 0.018, 'wo')
+  ss316.add_element('Co', 0.0003, 'wo')
+  ss316.add_element('Ni', 0.1225, 'wo')
+  ss316.add_element('Cu', 0.003, 'wo')
+  ss316.add_element('Nb', 0.0001, 'wo')
+  ss316.add_element('Mo', 0.025, 'wo')
+  ss316.add_element('Ta', 0.0001, 'wo')
+
+  #ss316.add_element('Fe', 0.64863, 'wo')
+  weight_sum = 0
+  for nuclide in ss316.nuclides:
+    weight_sum += nuclide.percent
+
+  ss316.add_element('Fe', 1-weight_sum, 'wo')
+  ss316.set_density('g/cc', density)
+
+  return ss316
+
+def concrete(density):
+  """ Return an OpenMC material for concrete.
+  https://doi.org/10.1016/j.fusengdes.2021.112646
+  """
+  concrete = openmc.Material()
+  concrete.add_element('H',   0.36418/100, 'wo')
+  concrete.add_element('B',   0.00748/100, 'wo')
+  concrete.add_element('C',   5.88681/100, 'wo')
+  concrete.add_element('N',   0.049489/100, 'wo')
+  concrete.add_element('O',   49.09/100,   'wo')
+  concrete.add_element('Na',  0.30182/100, 'wo')
+  concrete.add_element('Mg',  0.51634/100, 'wo')
+  concrete.add_element('Al',  1.54553/100, 'wo')
+  concrete.add_element('Si',  15.58757/100,'wo')
+  concrete.add_element('P',   0.02245/100, 'wo')
+  concrete.add_element('S',   0.38913/100, 'wo')
+  concrete.add_element('Cl',  0.01247/100, 'wo')
+  concrete.add_element('K',   0.42156/100, 'wo')
+  concrete.add_element('Ca',  24.69467/100,'wo')
+  concrete.add_element('Ti',  0.07483/100, 'wo')
+  concrete.add_element('V',   0.00210/100, 'wo')
+  concrete.add_element('Cr',  0.00172/100, 'wo')
+  concrete.add_element('Mn',  0.00437/100, 'wo')
+  concrete.add_element('Fe',  0.93291/100, 'wo')
+  concrete.add_element('Co',  0.00025/100, 'wo')
+  concrete.add_element('Cu',  0.00087/100, 'wo')
+  concrete.add_element('Zn',  0.00334/100, 'wo')
+  concrete.add_element('Ga',  0.00277/100, 'wo')
+  concrete.add_element('Rb',  0.00534/100, 'wo')
+  concrete.add_element('Sr',  0.05163/100, 'wo')
+  concrete.add_element('Y',   0.00110/100, 'wo')
+  concrete.add_element('Zr',  0.00127/100, 'wo')
+  concrete.add_element('Cs',  0.00030/100, 'wo')
+  concrete.add_element('Ba',  0.00728/100, 'wo')
+  concrete.add_element('La',  0.00102/100, 'wo')
+  concrete.add_element('Ce',  0.00162/100, 'wo')
+  concrete.add_element('Pr',  0.00382/100, 'wo')
+  concrete.add_element('Nd',  0.00170/100, 'wo')
+  concrete.add_element('Eu',  0.00030/100, 'wo')
+  concrete.add_element('Gd',  0.00040/100, 'wo')
+  concrete.add_element('Tb',  0.00062/100, 'wo')
+  concrete.add_element('Er',  0.00040/100, 'wo')
+  concrete.add_element('Hf',  0.00020/100, 'wo')
+  concrete.add_element('Ta',  0.00025/100, 'wo')
+  concrete.add_element('Pb',  0.00130/100, 'wo')
+  concrete.add_element('U',   0.00499/100, 'wo')
+
+  concrete.set_density('g/cc', density)
+
+  return concrete
+
+# ------------- MATERIALS TO BE REFERENCED/UPDATED -------------------------
+
+def Cu(density):
+  """ Return an OpenMC material for pure Copper.
+  """
+
+  copper = openmc.Material()
+  copper.add_element('Cu', 1.0)
+  copper.set_density('g/cc', density)
+  return copper
+
+def NbTi(density):
+  """ Return an OpenMC material for NbTi.
+  """
+
+  NbTi = openmc.Material()
+  NbTi.add_element('Nb', 1.0)
+  NbTi.add_element('Ti', 1.0)
+  NbTi.set_density('g/cc', density)
+  return NbTi
+
+def Bronze(density):
+  """ Return an OpenMC material for Bronze.
+  """
+  bronze = openmc.Material()
+  bronze.add_element('Cu', 0.95, 'wo')
+  bronze.add_element('Sn', 0.06, 'wo')
+  bronze.set_density('g/cc', density)
+  return bronze
+
+def Nb3Sn(density):
+  """ Return an OpenMC material for Nb3Sn.
+  """
+  Nb3Sn = openmc.Material()
+  Nb3Sn.add_element('Nb', 3)
+  Nb3Sn.add_element('Sn', 1)
+  Nb3Sn.set_density('g/cc', density)
+  return Nb3Sn
+
+def Li4SiO4(density):
+  """ Return an OpenMC material for Li4SiO4.
+  """
+  Li4SiO4 = openmc.Material()
+  Li4SiO4.add_nuclide('Li6', 4 * 0.60)
+  Li4SiO4.add_nuclide('Li7', 4 * 0.40)
+  Li4SiO4.add_element('Si', 1)
+  Li4SiO4.add_element('O', 4)
+  Li4SiO4.set_density('g/cc', density)
+  return Li4SiO4
+
+def Epoxy(density):
+  """ Return an OpenMC material for Epoxy Resin.
+  """
+
+  epoxy = openmc.Material()
+  epoxy.add_element('Al', 0.0007074, 'wo')
+  epoxy.add_element('C', 0.0034056, 'wo')
+  epoxy.add_element('H', 0.0038934, 'wo')
+  epoxy.add_element('Mg', 0.0002142004, 'wo')
+  epoxy.add_element('N', 0.0003708, 'wo')
+  epoxy.add_element('O', 0.0048708, 'wo')
+  epoxy.add_element('S', 9.179996e-5, 'wo')
+  epoxy.add_element('Si', 0.0058552000000000005, 'wo')
+  epoxy.set_density('g/cc', density)
+  return epoxy
+
+def Be(density):
+  """ Return an OpenMC material for Beryllium.
+  """
+
+  beryllium = openmc.Material()
+  beryllium.add_element('Be', 0.99637)
+  beryllium.add_element('Al', 0.06e-2, 'wo')
+  beryllium.add_element('C', 0.1e-2, 'wo')
+  beryllium.add_element('Fe', 0.08e-2, 'wo')
+  beryllium.add_element('Mg', 0.06e-2, 'wo')
+  beryllium.add_element('Si', 0.06e-2, 'wo')
+  beryllium.add_element('U', 0.003e-2, 'wo')
+  beryllium.set_density('g/cc', density)
+  return beryllium
+
+def be12ti(density):
+  """ Return an OpenMC material for Be12Ti.
+  """
+  be12ti = openmc.Material()
+  be12ti.add_element('Be',0.6677, 'wo')
+  be12ti.add_element('Ti',0.308,'wo')
+  be12ti.add_element('Fe',0.0023, 'wo')
+  be12ti.add_element('Al',0.0006, 'wo')
+  be12ti.add_element('Si',0.0007, 'wo')
+  be12ti.add_element('Mn',0.0004, 'wo')
+  be12ti.add_element('Cu',0.0004, 'wo')
+  be12ti.add_element('Mg',0.0004, 'wo')
+  be12ti.add_element('Ni',0.0009, 'wo')
+  be12ti.add_element('Cr',0.0006, 'wo')
+  be12ti.add_element('O',0.013, 'wo')
+  be12ti.add_element('C',0.0010, 'wo')
+  be12ti.add_element('N',0.0005, 'wo')
+  be12ti.add_element('H',0.0035, 'wo')
+  be12ti.add_element('Cl',0.00004, 'wo')
+  be12ti.set_density('g/cc', density)
+
+  return be12ti
+
+def kalos_cb(density):
+  """ Return an OpenMC material for kalos_cb (Li4SiO4 + 35% mol Li2TiO3 (60% Li-6)).
+  """
+  # KALOS CB needs to be updated with impurites
+  kalos_cb = openmc.Material()
+  kalos_cb.add_nuclide('Li6', 0.2491, 'ao')
+  kalos_cb.add_nuclide('Li7', 0.1660, 'ao')
+  kalos_cb.add_element('Si',  0.0818, 'ao')
+  kalos_cb.add_element('Ti',  0.0440, 'ao')
+  kalos_cb.add_element('O',   0.4591, 'ao')
+  kalos_cb.set_density('g/cc', density)
+
+  return kalos_cb
+
+# April addition to ss316
+
+def ss304_b4(density):
+  """ Return an OpenMC material for SS304-B4, a borated SS-304 steel used for
+      shielding applications in nuclear.
+
+      The density is listed as 7.8 g/cc.
+
+      From [https://www.vegasfastener.com/materials/stainless-steel-304b/].
+  """
+
+  ss304b4 = openmc.Material()
+  ss304b4.add_element('B', 1.1, 'wo')
+  ss304b4.add_element('C', 0.013, 'wo')
+  ss304b4.add_element('Cr', 18.5, 'wo')
+  ss304b4.add_element('Mn', 0.8, 'wo')
+  ss304b4.add_element('N', 0.1, 'wo')
+  ss304b4.add_element('Ni', 12.5, 'wo')
+  ss304b4.add_element('Si', 0.3, 'wo')
+
+  weight_sum = 0
+  for nuclide in ss304b4.nuclides:
+    weight_sum += nuclide.percent
+
+  ss304b4.add_element('Fe', 100 - weight_sum, 'wo')
+
+  print('\tIron (weight %):             ', 100 - weight_sum)
+  ss304b4.set_density('g/cc', density)
+  return ss304b4
+
+
+def ss316Ln_ig(density):
+  """ Return an OpenMC material for SS316L(N)-IG, a special form of SS316L developed
+      specifically for ITER (ig = ITER-grade) in a nitrogen-controlled environment.
+
+      Several of the low-concentration constituents are specified with max ranges,
+      but it is not clear from the description if these are considered impurities
+      or not. No targets are given, only min/max (for some constituents) or simply
+      a max (for others). The paper does not explicitly state that iron is the
+      balance, but I think this is self explanatory (and the numbers in Table 1
+      don't sum to 100 anyways so the remaining is assumed iron). Values are given
+      in weight percent.
+
+      [https://conferences.iaea.org/event/392/papers/36393/files/13925-Manuscript_S.W.Kim%20FEC%202025_v1.1.pdf, page 2]
+
+      The procedure used is:
+        - if only a range, between min and max is given, we take the average
+        - if only the maximum is given, we use it
+
+      Not able to find density specifically for this alloy, but the UW fusion
+      materials database lists density as 7.93 kg/m3 (but the citation they list
+      does not actually include the density in it as far as I can see)
+      [https://fispact.ukaea.uk/wp-content/uploads/2016/10/CCFE-R1637.pdf]
+
+  """
+
+  ss316Ln_ig = openmc.Material()
+  ss316Ln_ig.add_element('C', 0.03, 'wo')
+  ss316Ln_ig.add_element('Mn', 0.5 * (1.6+2.0), 'wo')
+  ss316Ln_ig.add_element('Si', 0.5, 'wo')
+  ss316Ln_ig.add_element('P', 0.025, 'wo')
+  ss316Ln_ig.add_element('S', 0.01, 'wo')
+  ss316Ln_ig.add_element('Cr', 0.5*(17+18), 'wo')
+  ss316Ln_ig.add_element('Ni', 0.5*(12+12.5), 'wo')
+  ss316Ln_ig.add_element('Mo', 0.5*(2.3+2.7), 'wo')
+  ss316Ln_ig.add_element('N', 0.5*(0.06+0.08), 'wo')
+
+  # these five are referred to as trace elements, so it is possible that the
+  # low-concentration entities like C are still intentionally added and that only
+  # these are considered impurities.
+  ss316Ln_ig.add_element('Cu', 0.3, 'wo')
+  ss316Ln_ig.add_element('Ti', 0.1, 'wo')
+  ss316Ln_ig.add_element('Nb', 0.1, 'wo')
+  ss316Ln_ig.add_element('Ta', 0.01, 'wo')
+  ss316Ln_ig.add_element('Co', 0.05, 'wo')
+
+  weight_sum = 0
+  for nuclide in ss316Ln_ig.nuclides:
+    weight_sum += nuclide.percent
+
+  ss316Ln_ig.add_element('Fe', 100 - weight_sum, 'wo')
+
+  print('\tIron (weight %):             ', 100 - weight_sum)
+
+  ss316Ln_ig.set_density('g/cc', density)
+  return ss316Ln_ig
+
+
+
+# ------------------------------ END OF MATERIALS DEFINITIONS-----------------------------
+
+def atoms(material):
+  Na = 6.023e23
+
+  atoms = 0
+  for n in material.nuclides:
+    nuclide_mass = material.get_mass(nuclide=n.name)
+    atoms += nuclide_mass / openmc.data.atomic_mass(n.name) * Na
+
+  return atoms
+
+def atoms_of_each_element(material):
+  Na = 6.023e23
+
+  atoms_of_element = {}
+  for n in material.nuclides:
+    nuclide_mass = material.get_mass(nuclide=n.name)
+    element = re.sub(r'[0-9]+', '', n.name)
+    n_atoms = nuclide_mass / openmc.data.atomic_mass(n.name) * Na
+    if (element in atoms_of_element):
+      atoms_of_element[element] += n_atoms
+    else:
+      atoms_of_element[element] = n_atoms
+
+  return atoms_of_element
+
+def nuclides_for_each_element(material):
+  nuclides = {}
+  # get the nuclide names corresponding to each element in a material
+  for n in material.nuclides:
+    element = re.sub(r'[0-9]+', '', n.name)
+    if (element in nuclides):
+      nuclides[element].append(n.name)
+    else:
+      nuclides[element] = []
+      nuclides[element].append(n.name)
+
+  return nuclides
+
+def Ed(element):
+  # Get the threshold displacement energies from NJOY (Macfarlane), EXCEPT
+  # for tungsten, which is set to 55 eV based on more modern recommendations
+  # \cite{gilbert_2018}
+  ed = {}
+  ed['Be'] = 31
+  ed['C'] = 31
+  ed['Mg'] = 25
+  ed['Al'] = 27
+  ed['Si'] = 25
+  ed['Ca'] = 40
+  ed['Ti'] = 40
+  ed['V'] = 40
+  ed['Cr'] = 40
+  ed['Mn'] = 40
+  ed['Fe'] = 40
+  ed['Co'] = 40
+  ed['Ni'] = 40
+  ed['Cu'] = 40
+  ed['Zr'] = 40
+  ed['Nb'] = 40
+  ed['Mo'] = 60
+  ed['Ag'] = 60
+  ed['Ta'] = 90
+  #ed['W'] = 90
+  ed['W'] = 55
+  ed['Au'] = 30
+  ed['Pb'] = 25
+
+  default = 25
+  if element in ed:
+    return ed[element]
+  else:
+    return default
+
+def element(nuclides):
+  elem = 'UNKNOWN'
+  for n in nuclides:
+    result = re.sub(r'\d+', '', n)
+    if (elem == 'UNKNOWN'):
+      elem = result
+    elif (result != elem):
+      raise ValueError("Nuclide list not a single nuclide!")
+  return elem

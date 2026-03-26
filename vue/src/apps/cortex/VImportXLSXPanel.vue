@@ -116,8 +116,9 @@
      db.updated();
      // do not await simulation completion
      requestSender.sendRequest("cortexSim", {
-         op_name: 'runTile',
+         op_name: 'runSim',
          op_args: {
+             report: "tileAnimation",
              material_id: r.op_result.material_id,
          },
      });

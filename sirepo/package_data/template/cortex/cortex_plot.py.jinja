@@ -1,0 +1,156 @@
+from pykern.pkcollections import PKDict
+import numpy
+import pandas
+import pykern.pkjson
+
+# PJM: replaces matplotlib.pyplot.plt with plt stub to save plot info
+class plt:
+    _figure = PKDict(
+        plots=[],
+    )
+
+    @classmethod
+    def figure(cls):
+        pass
+
+    @classmethod
+    def subplots(cls, **kwargs):
+        return plt, plt
+
+    @classmethod
+    def subplots_adjust(cls, **kwargs):
+        pass
+
+    @classmethod
+    def _to_list(cls, value):
+        if isinstance(value, pandas.Series):
+            value = value.to_numpy()
+        if isinstance(value, numpy.ndarray):
+            return value.tolist()
+        return value
+
+    @classmethod
+    def _update_database(cls):
+        pass
+
+    @classmethod
+    def step(cls, x, y, label="", **kwargs):
+        cls._figure.plots.append(
+            PKDict(
+                x=cls._to_list(x),
+                y=cls._to_list(y),
+                label=label,
+                _type="step",
+            )
+        )
+
+    @classmethod
+    def fill_between(cls, *args, **kwargs):
+        pass
+
+    @classmethod
+    def loglog(cls, x, y, label=None, **kwargs):
+        cls._figure.type = "loglog"
+        cls._figure.plots.append(
+            PKDict(
+                x=cls._to_list(x),
+                y=cls._to_list(y),
+                label=label,
+            )
+        )
+
+    @classmethod
+    def plot(cls, x, y, label=None):
+        cls._figure.type = "semilog"
+        cls._figure.plots.append(
+            PKDict(
+                x=cls._to_list(x),
+                y=cls._to_list(y),
+                label=label,
+            )
+        )
+
+    @classmethod
+    def semilogy(
+        cls, x, y, label=None, marker=None, color=None, markersize=None, **kwargs
+    ):
+        cls._figure.type = "semilog"
+        cls._figure.plots.append(
+            PKDict(
+                x=cls._to_list(x),
+                y=cls._to_list(y),
+                label=label,
+                marker=marker,
+                color=color,
+                markersize=markersize,
+            )
+        )
+
+    @classmethod
+    def set_ylabel(cls, label):
+        cls._figure.ylabel = label
+
+    @classmethod
+    def set_xlabel(cls, label):
+        cls._figure.xlabel = label
+
+    @classmethod
+    def set_yscale(cls, scale):
+        if scale == "log":
+            cls._figure.type = "semilog"
+
+    @classmethod
+    def title(cls, title):
+        cls._figure.title = title
+
+    @classmethod
+    def set_title(cls, title):
+        cls.title(title)
+
+    @classmethod
+    def yscale(cls, scale):
+        if scale == "log":
+            cls._figure.type = "semilog"
+
+    @classmethod
+    def ylabel(cls, label):
+        cls._figure.ylabel = label
+
+    @classmethod
+    def xlabel(cls, label):
+        cls._figure.xlabel = label
+
+    @classmethod
+    def xlim(cls, limit1, limit2=None):
+        cls.set_xlim(limit1, limit2)
+
+    @classmethod
+    def set_xlim(cls, limit1, limit2=None):
+        cls._figure.xlim = [limit1, limit2] if limit2 is not None else limit1
+
+    @classmethod
+    def ylim(cls, limit1, limit2=None):
+        cls.set_ylim(limit1, limit2)
+
+    @classmethod
+    def set_ylim(cls, limit1, limit2=None):
+        cls._figure.ylim = [limit1, limit2] if limit2 is not None else limit1
+
+    @classmethod
+    def savefig(cls, filename, **kwargs):
+        assert len(cls._figure.plots)
+        pykern.pkjson.dump_pretty(cls._figure, f"{filename}.json")
+        cls._update_database()
+        cls._figure = PKDict(plots=[])
+
+    @classmethod
+    def close(cls, *args):
+        pass
+
+    @classmethod
+    def legend(cls, **kwargs):
+        pass
+
+    @classmethod
+    def grid(cls, *args, **kwargs):
+        pass

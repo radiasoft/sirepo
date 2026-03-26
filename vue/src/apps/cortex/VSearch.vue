@@ -20,11 +20,18 @@
                 <VImportXLSXPanel />
             </div>
         </div>
+        <div class="p-3" v-if="materialCount === 0"></div>
+        <div class="row">
+            <div class="col-sm-12">
+                <VFeaturedMaterials />
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup>
  import VCortexCard from '@/apps/cortex/VCortexCard.vue';
+ import VFeaturedMaterials from '@/apps/cortex/VFeaturedMaterials.vue';
  import VImportXLSXPanel from '@/apps/cortex/VImportXLSXPanel.vue';
  import VLoadingIndicator from '@/components/VLoadingIndicator.vue';
  import VMaterialTable from '@/apps/cortex/VMaterialTable.vue';

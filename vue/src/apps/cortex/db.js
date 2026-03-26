@@ -31,6 +31,10 @@ class DB {
         return r.op_result ? r.op_result.detail : {};
     }
 
+    async setMaterialPublic(material_id, is_public) {
+        return await this.#send('set_material_public', {material_id, is_public});
+    }
+
     updated() {
         pubSub.publish(DB_UPDATED);
     }

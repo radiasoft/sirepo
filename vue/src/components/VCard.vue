@@ -46,7 +46,7 @@
 
 <script setup>
  import VFormModal from '@/components/VFormModal.vue'
- import { onBeforeUnmount, onMounted, ref } from 'vue';
+ import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
  import { schema } from '@/services/schema.js';
 
  const props = defineProps({
@@ -63,7 +63,7 @@
  const cardStyle = ref({});
  const hidden = ref(false);
  const modal = ref(null);
- const title = props.title || schema.view[props.viewName].title;
+ const title = ref(props.title || schema.view[props.viewName].title);
 
  const onKeydown = (event) => {
      if (event.key == 'Escape' && isFullscreen()) {
@@ -100,4 +100,9 @@
  onMounted(() => {
      document.addEventListener('keydown', onKeydown);
  });
+
+ watch(() => props.title, () => {
+     title.value = props.title || schema.view[props.viewName].title;
+ });
+
 </script>

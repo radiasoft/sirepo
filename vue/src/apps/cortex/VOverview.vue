@@ -26,6 +26,30 @@
             </VCortexCard>
         </div>
         <div class="col-md-6">
+            <VCortexCard v-if="! material.is_public">
+                <span style="line-height: 40px; vertical-align: bottom">This material is private.</span>
+                <button
+                    type="button"
+                    class="btn btn-outline-primary float-end"
+                    v-on:click="setPublic(true)"
+                >
+                    Allow Public Access
+                    <VTooltip tooltip="Publicly accessible materials can be viewed by any user" />
+                </button>
+            </VCortexCard>
+            <VCortexCard v-if="material.is_public">
+                <span style="line-height: 40px; vertical-align: bottom">This material is public.</span>
+                <button
+                    type="button"
+                    class="btn btn-outline-primary float-end"
+                    v-on:click="setPublic(false)"
+                >
+                    Remove Public Access
+                    <VTooltip tooltip="Remove this material from public access" />
+                </button>
+            </VCortexCard>
+        </div>
+        <div class="col-md-6">
             <VCortexCard>
                 <div class="h4">
                     Components
@@ -87,13 +111,20 @@
  import VDOIRows from '@/apps/cortex/VDOIRows.vue';
  import VMasonry from '@/components/layout/VMasonry.vue'
  import VTooltip from '@/components/VTooltip.vue';
+ import { db } from '@/apps/cortex/db.js';
 
  const props = defineProps({
      material: Object,
+     materialId: String,
  });
 
  const formatNumber = (value) => {
      return value ? value.toFixed(4) : value;
+ };
+
+ const setPublic = async (isPublic) => {
+     await db.setMaterialPublic(props.materialId, isPublic);
+     props.material.is_public = isPublic;
  };
 
 </script>

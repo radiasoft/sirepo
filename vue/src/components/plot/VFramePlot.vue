@@ -35,6 +35,8 @@
  const props = defineProps({
      modelName: String,
      sim: Object,
+     // optional, supply report data directly
+     reportData: Object,
  });
 
  const errorMessage = ref("");
@@ -77,6 +79,10 @@
  };
 
  const load = () => {
+     if (props.reportData) {
+         data.value = () => props.reportData;
+         return;
+     }
      const i = frameIndex;
      const id = frameId(props.modelName);
      errorMessage.value = "";
@@ -125,6 +131,9 @@
 
  onMounted(() => {
      const getFrameCount = () => {
+         if (props.reportData) {
+             return 1;
+         }
          for (let r of props.sim.reports) {
              if (r.modelName == props.modelName) {
                  r.downloadActions = [{

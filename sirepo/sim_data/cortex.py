@@ -21,6 +21,8 @@ class SimData(sirepo.sim_data.SimDataBase):
     def _compute_model(cls, analysis_model, *args, **kwargs):
         if "tileAnimation" in analysis_model:
             return "tileAnimation"
+        if "slabAnimation" in analysis_model:
+            return "slabAnimation"
         return analysis_model
 
     @classmethod

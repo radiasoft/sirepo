@@ -1,0 +1,3975 @@
+from enum import Enum
+from typing import Dict, Tuple, List, Iterable, Set, Optional
+import math
+import re
+import json
+from pathlib import Path
+
+import openmc
+import numpy as np
+import pandas as pd
+from pymoab import core, types
+import pydagmc
+
+import os
+
+{{ materialDefinition }}
+
+# ---------------------------------------------------------------------------
+# RS: neutronics_model.py inline
+
+# =============================================================================
+# PATH SETUP
+# =============================================================================
+
+BLUEMIRA_DIR = Path('.') # cortex/detailed_bluemira
+
+# =============================================================================
+# USER INPUTS
+# =============================================================================
+
+_DAGMC_MODEL_FILE = Path("{{ eudemoH5m }}")
+INPUT_JSON = Path("{{ tokamakInputs }}")
+# Fixed-source run configuration
+SURF_SOURCE_FILE = "{{ surfaceSource }}"
+
+TARGET_VOL_ID = 66
+
+# Radial vacuum cylinders (cm)
+R_IN_CM = 1140.0
+R_OUT_CM = 1375.0
+
+# -----------------------------------------------------------------------------
+# SURFACE INFO HELPERS
+# -----------------------------------------------------------------------------
+class Orientation(Enum):
+    FORWARD = 1
+    REVERSE = -1
+
+def dagmc_bounding_box(pydagmc_model, volume_id):
+    volume = pydagmc_model.volumes_by_id[volume_id]
+    triangle_coords = volume.triangle_coords
+    min_coords = np.min(triangle_coords, axis=0)
+    max_coords = np.max(triangle_coords, axis=0)
+    return openmc.BoundingBox(min_coords, max_coords)
+
+def dagmc_volume_surface_info(pydagmc_model, volume_ids):
+    volume_ids_set = set(volume_ids)
+    result = {}
+
+    surface_ids_all = set()
+    surface_ids_external = set()
+    surface_ids_internal = set()
+
+    for vol_id in volume_ids:
+        volume = pydagmc_model.volumes_by_id[vol_id]
+
+        all_list = []
+        external_list = []
+        internal_list = []
+
+        for surface in volume.surfaces:
+            parent_volumes = surface.senses
+            if parent_volumes and parent_volumes[0].id == vol_id:
+                orientation = Orientation.FORWARD
+            else:
+                orientation = Orientation.REVERSE
+
+            adj_all = [v.id for v in surface.volumes if v.id != vol_id]
+            adj_ext = [aid for aid in adj_all if aid not in volume_ids_set]
+
+            entry = {
+                "surface_id": surface.id,
+                "orientation": orientation,
+                "adjacent_volumes_all": adj_all,
+                "adjacent_volumes_external": adj_ext,
+            }
+
+            all_list.append(entry)
+            surface_ids_all.add(surface.id)
+
+            if not adj_all or adj_ext:
+                external_list.append(entry)
+                surface_ids_external.add(surface.id)
+            else:
+                internal_list.append(entry)
+                surface_ids_internal.add(surface.id)
+
+        result[vol_id] = {
+            "all_surfaces": all_list,
+            "external_surfaces": external_list,
+            "internal_surfaces": internal_list,
+        }
+
+    return (
+        result,
+        sorted(surface_ids_all),
+        sorted(surface_ids_external),
+        sorted(surface_ids_internal),
+    )
+
+def get_breeder_reflective_cuts(
+    mb: core.Core,
+    pydagmc_model: pydagmc.Model,
+    volume_id: int,
+    plane_surface_ids=None,   # <-- NEW: list/tuple of 4 ints, or None
+    base_surface_id=50_000    # <-- NEW: used if plane_surface_ids is None
+    ):
+    """
+    Finds 2 Z-dominant and 2 Y-dominant reflective planes for a given volume.
+    Returns list of dicts: {id, area, region, normal, d, plane}.
+    Also assigns OpenMC surface IDs to the 4 cut planes (reflective).
+    """
+    surface_info_map, _, _, _ = dagmc_volume_surface_info(pydagmc_model, [volume_id])
+    volume_data = surface_info_map[int(volume_id)]
+
+    id_tag = mb.tag_get_handle("GLOBAL_ID")
+    dim_tag = mb.tag_get_handle("GEOM_DIMENSION")
+    s_sets = mb.get_entities_by_type_and_tag(0, types.MBENTITYSET, dim_tag, [2])
+
+    z_candidates = []
+    y_candidates = []
+
+    for surf_entry in volume_data["all_surfaces"]:
+        sid = int(surf_entry["surface_id"])
+        orientation = surf_entry["orientation"]
+
+        target_s_list = [s for s in s_sets if int(mb.tag_get_data(id_tag, s)[0][0]) == sid]
+        if not target_s_list:
+            continue
+        target_s = target_s_list[0]
+
+        s_entities = mb.get_entities_by_handle(target_s, True)
+        tris = [e for e in s_entities if mb.type_from_handle(e) == types.MBTRI]
+        if not tris:
+            continue
+
+        conn = mb.get_connectivity(tris).reshape(-1, 3)
+        coords = mb.get_coords(conn.flatten()).reshape(-1, 3, 3)
+        v1 = coords[:, 1] - coords[:, 0]
+        v2 = coords[:, 2] - coords[:, 0]
+        normals = np.cross(v1, v2)
+        norm_vals = np.linalg.norm(normals, axis=1)
+
+        valid = norm_vals > 1e-14
+        if not np.any(valid):
+            continue
+
+        avg_n = np.mean(normals[valid] / norm_vals[valid][:, np.newaxis], axis=0)
+        avg_n /= np.linalg.norm(avg_n)
+
+        surface_centroid = coords[valid].mean(axis=(0, 1))
+        d_openmc = float(np.dot(avg_n, surface_centroid))
+
+        # create the plane (ID assigned later, after we know the final 4)
+        p = openmc.Plane(
+            a=float(avg_n[0]), b=float(avg_n[1]), c=float(avg_n[2]),
+            d=d_openmc, boundary_type="reflective"
+        )
+
+        region = -p if orientation == Orientation.FORWARD else +p
+
+        area = float(0.5 * np.sum(norm_vals))
+        entry = {
+            "id": sid,
+            "area": area,
+            "region": region,
+            "normal": avg_n,
+            "d": d_openmc,
+            "plane": p,  # <-- NEW: keep a direct handle to the plane
+        }
+
+        if abs(avg_n[2]) > 0.7:
+            z_candidates.append(entry)
+        elif abs(avg_n[1]) > 0.7:
+            y_candidates.append(entry)
+
+    poloidal_cuts = sorted(z_candidates, key=lambda x: x["area"], reverse=True)[:2]
+    toroidal_cuts = sorted(y_candidates, key=lambda x: x["area"], reverse=True)[:2]
+    final_cuts = poloidal_cuts + toroidal_cuts
+
+    # ---- NEW: assign OpenMC surface IDs to the *final 4* planes ----
+    if plane_surface_ids is None:
+        plane_surface_ids = [base_surface_id + i for i in range(len(final_cuts))]
+
+    if len(plane_surface_ids) != len(final_cuts):
+        raise ValueError(
+            f"plane_surface_ids must have length {len(final_cuts)}, got {len(plane_surface_ids)}"
+        )
+
+    for cut, new_sid in zip(final_cuts, plane_surface_ids):
+        cut["plane"].id = int(new_sid)
+
+    return final_cuts
+
+# =============================================================================
+# INITIALIZE MODEL
+# =============================================================================
+model = openmc.Model()
+
+# =============================================================================
+# GEOMETRY
+# =============================================================================
+dagmc_universe = openmc.DAGMCUniverse(filename=_DAGMC_MODEL_FILE)
+pydagmc_model = pydagmc.Model(str(dagmc_universe.filename))
+
+mb = core.Core()
+mb.load_file(str(_DAGMC_MODEL_FILE))  # convert here only
+
+# reserve IDs
+openmc.reserve_ids([v.id for v in pydagmc_model.volumes], cls=openmc.Cell)
+openmc.reserve_ids([s.id for s in pydagmc_model.surfaces], cls=openmc.Surface)
+
+r_out = openmc.ZCylinder(r=float(R_OUT_CM), boundary_type="vacuum")
+r_in = openmc.ZCylinder(r=float(R_IN_CM), boundary_type="vacuum")
+
+final_cuts = get_breeder_reflective_cuts(mb, pydagmc_model, TARGET_VOL_ID,
+                                        base_surface_id=50_000) # or  plane_surface_ids=[9001, 9002, 9003, 9004]
+if len(final_cuts) != 4:
+    print(f"[warn] expected 4 cuts, got {len(final_cuts)} (continuing)")
+
+sector_region = (+r_in & -r_out)
+for cut in final_cuts:
+    sector_region &= cut["region"]
+
+sector_cell = openmc.Cell(
+    cell_id=10_000,
+    fill=dagmc_universe,
+    region=sector_region,
+    name="breeder_cell",
+)
+model.geometry = openmc.Geometry([sector_cell])
+
+# -----------------------------------------------------------------------------
+# MATERIALS
+# -----------------------------------------------------------------------------
+# TODO: add citations for where these densities come from
+# TODO: need to review materials.py for correctness for all materials
+ccz     = materials.CuCrZr(8.9)
+h       = materials.Helium(0.0001785)
+nb3sn   = materials.Nb3Sn(5.7)
+epoxy   = materials.Epoxy(1.207)
+bronze  = materials.Bronze(8.8775)
+nbti    = materials.NbTi(6.538)
+c       = materials.Cu(8.96)
+
+# tungsten, density based on PNNL material compendium value
+w       = materials.W(19.3)
+
+ss304_b4 = materials.ss304_b4(7.8)
+ss316   = materials.ss316Ln_ig(7.93)
+# Plasma Region
+plasma = openmc.Material()
+plasma.set_density("g/cm3", 1e-6)
+plasma.add_element("H", 1.0)
+
+# ----------------------------------------------
+# CASE MATERIALS
+# USER STRUCTURAL OR ARMOR MATERIAL + COOLANT
+# ----------------------------------------------
+{% if material_is_plasma_facing == '1' %}
+# Armor (default tungsten if not provided by user)
+armor_material = t
+# Structural material (Eurofer if not provided by user)
+structural_material = materials.eurofer97(7.87)
+{% else %}
+# Armor (default tungsten if not provided by user)
+armor_material = materials.W(19.3)
+# Structural material (Eurofer if not provided by user)
+structural_material = t
+{% endif %}
+
+
+# Coolant material (dependent on the breeder type) (water for WCLL)
+coolant_material = materials.Water(0.866)
+
+# Breeder material (dependent on the breeder type) (PbLi for WCLL)
+breeder_material = materials.PbLi(0.90, 9.8)
+
+# -----------------------------------------------------------------------------
+# Structural / breeder / coolant definitions
+# -----------------------------------------------------------------------------
+# TODO: very unclear what these lists are. Why are the other solid materials not included in structure_material_list?
+structure_material_list: list[openmc.Material] = [structural_material, armor_material, ss316]
+breeder_material_list: list[openmc.Material] = [breeder_material]
+coolant_material_list: list[openmc.Material] = [coolant_material]
+
+# -----------------------------------------------------------------------------
+# MIX RECIPES
+# (easier to find nuclides ratios with this)
+# (ADD any openmc.Materials.mix_materials() to this dict)
+# TODO: add citation for where these numbers come from
+# -----------------------------------------------------------------------------
+MIX_RECIPES_OBJ: dict[str, dict[openmc.Material, float]] = {
+    # Armor
+    "Armor": {armor_material: 1.00},
+    # FW
+    "First_Wall":  {armor_material: 0.0027, coolant_material: 0.14268, structural_material: 0.85462},
+    # IB
+    "ib_layer_1":  {breeder_material: 0.833, coolant_material: 0.025, structural_material: 0.139},
+    "ib_layer_2":  {breeder_material: 0.858, coolant_material: 0.018, structural_material: 0.124},
+    "ib_layer_3":  {breeder_material: 0.8132, coolant_material: 0.0158, structural_material: 0.171},
+    "ib_layer_4":  {breeder_material: 0.8132, coolant_material: 0.0158, structural_material: 0.171},
+    "ib_layer_5":  {breeder_material: 0.8132, coolant_material: 0.0158, structural_material: 0.171},
+    "ib_layer_6":  {breeder_material: 0.8132, coolant_material: 0.0158, structural_material: 0.171},
+    "ib_layer_7":  {breeder_material: 0.427, coolant_material: 0.016, structural_material: 0.558},
+    "ib_layer_8":  {coolant_material: 0.486, structural_material: 0.514},
+    # OB
+    "ob_layer_1":  {breeder_material: 0.833, coolant_material: 0.025, structural_material: 0.139},
+    "ob_layer_2":  {breeder_material: 0.858, coolant_material: 0.018, structural_material: 0.124},
+    "ob_layer_3":  {breeder_material: 0.8132, coolant_material: 0.0158, structural_material: 0.171},
+    "ob_layer_4":  {breeder_material: 0.8132, coolant_material: 0.0158, structural_material: 0.171},
+    "ob_layer_5":  {breeder_material: 0.8132, coolant_material: 0.0158, structural_material: 0.171},
+    "ob_layer_6":  {breeder_material: 0.8132, coolant_material: 0.0158, structural_material: 0.171},
+    "ob_layer_7":  {breeder_material: 0.427, coolant_material: 0.016, structural_material: 0.558},
+    "ob_layer_8":  {coolant_material: 0.486, structural_material: 0.514},
+    # Divertor
+    "Divertor":    {ccz: 0.00552, c: 0.00438, structural_material: 0.5238, armor_material: 0.01026, coolant_material: 0.45604},
+    # VV
+    "VV_IB":       {ss316: 0.6, coolant_material: 0.4},
+    "VV_OB":       {ss316: 0.6, coolant_material: 0.4},
+    "VV_ports_all":{ss316: 0.6, coolant_material: 0.4},
+    "VV_port_Fill":{ss316: 0.6, coolant_material: 0.4},
+    # Coils
+    "PC_PFC":      {nbti: 0.02895, c: 0.1169, epoxy: 0.18, bronze: 0.0735, h: 0.1682, ss316: 0.43245},
+    "TFcoil":      {nb3sn: 0.02895, c: 0.1169, epoxy: 0.18, bronze: 0.0735, h: 0.1682, ss316: 0.43245},
+    # Plasma Region
+    "Plasma_Region": {plasma: 1.00},
+    # Cryostat
+    "Cryostat": {ss316: 1.00},
+    # Shielding
+    "RadiationShield_all": {ss304_b4: 1.00},
+}
+
+# -----------------------------------------------------------------------------
+# Build mixed materials and assign model.materials (VO ONLY)
+# -----------------------------------------------------------------------------
+
+def normalize_mix_recipes_obj(
+    recipes_obj: dict[str, dict[openmc.Material, float]],
+    *,
+    drop_nonpositive: bool = True,
+    tol: float = 1e-14,
+    ) -> dict[str, dict[openmc.Material, float]]:
+    """
+    Normalize volume % of each materials components in the mixture of [mix_recipes_obj]
+
+    - If drop_nonpositive: remove components with vf <= 0 before normalizing.
+    - Raises if the sum is <= 0 after filtering.
+    """
+    out: dict[str, dict[openmc.Material, float]] = {}
+
+    for name, comp in recipes_obj.items():
+        if comp is None or len(comp) == 0:
+            raise ValueError(f"[MIX_RECIPES_OBJ] Recipe '{name}' is empty.")
+
+        items = []
+        for m, vf in comp.items():
+            vf = float(vf)
+            if drop_nonpositive and vf <= 0.0:
+                continue
+            items.append((m, vf))
+
+        s = sum(vf for _, vf in items)
+        if s <= tol:
+            raise ValueError(f"[MIX_RECIPES_OBJ] Recipe '{name}' fractions sum <= 0 (sum={s}).")
+
+        out[name] = {m: vf / s for m, vf in items}
+
+    return out
+
+
+def build_and_set_model_materials_from_obj_recipes_vo(
+    model: openmc.Model,
+    *,
+    recipes_obj: dict[str, dict[openmc.Material, float]],
+    ) -> dict[str, openmc.Material]:
+    """
+    VO-only builder: interprets recipe fractions as volume fractions.
+
+    This routine returns a dictionary of the material names, followed by the
+    openmc.Material definition for each material in the geometry.
+    """
+    mixed: dict[str, openmc.Material] = {}
+
+    for name, comp in recipes_obj.items():
+        mats = list(comp.keys())
+        fracs = [v for v in comp.values()]
+
+        m = openmc.Material.mix_materials(mats, fracs, percent_type="vo", name=name)
+        mixed[name] = m
+
+    model.materials = openmc.Materials(list(mixed.values()))
+    model.materials.download_cross_section_data(
+        libraries=["ENDFB-8.0-NNDC", "ENDFB-7.1-NNDC", "FENDL-3.1d", "TENDL-2019"],
+        destination="/home/vagrant/src/radiasoft/sirepo/run/user/5v93Uhzp/tmp/openmc-cache/",
+    )
+    return mixed
+
+MIX_RECIPES_OBJ_NORM = normalize_mix_recipes_obj(MIX_RECIPES_OBJ)
+
+mixed = build_and_set_model_materials_from_obj_recipes_vo(
+    model,
+    recipes_obj=MIX_RECIPES_OBJ_NORM,
+)
+
+# -----------------------------------------------------------------------------
+# SETTINGS
+# -----------------------------------------------------------------------------
+model.settings = openmc.Settings()
+model.settings.dagmc = True
+model.settings.photon_transport = True
+model.settings.batches = 10
+# for faster results
+# model.settings.particles = 100_000
+model.settings.particles = 1000
+model.settings.run_mode = "fixed source"
+model.settings.surf_source_read = {"path": SURF_SOURCE_FILE}
+
+# -----------------------------------------------------------------------------
+# DAGMC volume sync so cells have volumes
+# -----------------------------------------------------------------------------
+openmc.Cell.reset_ids()
+openmc.Surface.reset_ids()
+
+model.init_lib(output=False)
+model.sync_dagmc_universes()
+model.finalize_lib()
+
+openmc.reserve_ids([c_id for c_id in model.geometry.get_all_cells()], cls=openmc.Cell)
+openmc.reserve_ids([s_id for s_id in model.geometry.get_all_surfaces()], cls=openmc.Surface)
+
+# Apply volumes/bounding boxes to dagmc universe cells
+dagmc_universe_cells = dagmc_universe.get_all_cells()
+for volume in pydagmc_model.volumes:
+    dagmc_universe_cells[volume.id].volume = volume.volume
+    dagmc_universe_cells[volume.id].bounding_box = dagmc_bounding_box(pydagmc_model, volume.id)
+
+all_cells = model.geometry.get_all_cells()
+
+# -----------------------------------------------------------------------------
+# IMPORT JSON GEOMETRY INFO (cell IDs)
+# Also provide functions to create centroids and bin wedges
+# Added in the neutronics_model.py to simplify other scripts
+# -----------------------------------------------------------------------------
+_OB_KEY_RE = re.compile(r"^OB_(\d+)_b(\d+)$")
+_IB_KEY_RE = re.compile(r"^IB_(\d+)_b(\d+)$")
+
+def parse_key(key: str) -> Tuple[str, int, int]:
+    key = key.strip()
+    m = _OB_KEY_RE.match(key)
+    if m:
+        return "OB", int(m.group(1)), int(m.group(2))
+    m = _IB_KEY_RE.match(key)
+    if m:
+        return "IB", int(m.group(1)), int(m.group(2))
+    raise ValueError(f"Not a chunk key: {key!r} (expected 'OB_<r>_b<b>' or 'IB_<r>_b<b>')")
+
+def interp_three_point(t: float, start: float, mid: float, end: float) -> float:
+    """Piecewise-linear through (start -> mid -> end) with mid at t=0.5, t in [0,1]."""
+    t = float(t)
+    if t <= 0.5:
+        a = t / 0.5
+        return float(start + a * (mid - start))
+    a = (t - 0.5) / 0.5
+    return float(mid + a * (end - mid))
+
+def build_bins_from_thicknesses(thicknesses_cm: np.ndarray, *, start_cm: float = 0.0):
+    w = np.asarray(thicknesses_cm, dtype=float).ravel()
+    if np.any(w <= 0.0):
+        raise ValueError(f"Non-positive thickness encountered: {w}")
+    edges = float(start_cm) + np.concatenate(([0.0], np.cumsum(w)))
+    centroids = 0.5 * (edges[:-1] + edges[1:])
+    return centroids, w, edges
+
+def build_known_thicknesses_from_offsets(geom: dict, *, side: str) -> np.ndarray:
+    """
+    Returns thicknesses for the "known" part BEFORE the last breeder thickness:
+      [Armor, FW, breeder_1..breeder_(n_layers-1)]
+
+    offsets_cm are assumed measured from start of breeder stack (after Armor+FW),
+    so we do NOT include Armor/FW inside offsets; we prepend them explicitly.
+    """
+    side = side.lower()
+    armor_cm = float(geom["armor_cm"] - geom["fw_cm"])
+    fw_cm = float(geom["fw_cm"])
+    n_layers = int(geom[f"{side}_n_layers"])
+    offsets = np.asarray(geom[f"{side}_offsets_cm"], dtype=float).ravel()
+
+    if armor_cm <= 0.0:
+        raise ValueError(f"{side}: armor_cm must be positive (got {armor_cm})")
+    if fw_cm <= 0.0:
+        raise ValueError(f"{side}: fw_cm must be positive (got {fw_cm})")
+
+    need = n_layers - 1
+    if offsets.size != need:
+        raise ValueError(f"{side}: expected {need} offsets for n_layers={n_layers}, got {offsets.size}")
+
+    # breeder thicknesses from offsets: [|o0|, |o1-o0|, ...]
+    breeder = np.empty(need, dtype=float)
+    breeder[0] = abs(offsets[0])
+    if need > 1:
+        breeder[1:] = np.abs(np.diff(offsets))
+    if np.any(breeder <= 0.0):
+        raise ValueError(f"{side}: non-positive breeder thicknesses from offsets: {breeder}")
+
+    return np.concatenate(([armor_cm, fw_cm], breeder))
+
+def breeder_t_from_fractions(geom: dict, *, b: int) -> float:
+    """
+    Map breeder index b=1..n_breeder to a poloidal parameter t in [0,1].
+    """
+    n_breeder = int(geom["n_breeder"])
+    if not (1 <= b <= n_breeder):
+        raise ValueError(f"b={b} out of range 1..{n_breeder}")
+
+    fr = geom.get("fractions", None)
+    if fr is not None:
+        fr = np.asarray(fr, dtype=float).ravel()
+        if fr.size != max(n_breeder - 1, 0):
+            raise ValueError(f"fractions length {fr.size} != n_breeder-1 ({n_breeder-1})")
+        if np.any(fr <= 0.0) or np.any(fr >= 1.0) or np.any(np.diff(fr) <= 0.0):
+            raise ValueError(f"fractions must be strictly increasing in (0,1): {fr}")
+
+        bp = np.concatenate(([0.0], fr, [1.0]))
+        return float(0.5 * (bp[b - 1] + bp[b]))
+
+    if n_breeder < 2:
+        return 0.5
+    return float((b - 1) / (n_breeder - 1))
+
+def make_radial_bins_for_key(
+    *,
+    key: str,
+    geom: dict,
+    gap_cm: float = 2.0,
+    start_cm: float = 0.0,
+    ):
+    """
+    Build centroids/widths/edges for either OB_* or IB_* key.
+
+    thicknesses are:
+      [Armor, FW, breeder_1..breeder_(n_layers-1), breeder_last, (gap + vv)]
+
+    Correction:
+      - offsets are from breeder start -> last_offset must include (armor_cm + fw_cm)
+      - t is based on b using fractions (poloidal discretization)
+    """
+    OB_LAST_LAYER_TOP_MID_BOT = (87.62, 96.825, 89.67)
+    OB_VV_TOP_MID_BOT         = (76.5, 110.0, 84.63)
+
+    IB_LAST_LAYER_TOP_MID_BOT = (84.11, 75.5, 79.65)
+    IB_VV_TOP_MID_BOT         = (68.33, 60.0, 60.0)
+    side, _, b = parse_key(key)
+    side_l = side.lower()
+
+    n_layers = int(geom[f"{side_l}_n_layers"])
+    offsets = np.asarray(geom[f"{side_l}_offsets_cm"], dtype=float).ravel()
+    if offsets.size == 0:
+        raise ValueError(f"{key}: {side_l}_offsets_cm is empty.")
+
+    known = build_known_thicknesses_from_offsets(geom, side=side_l)
+
+    t = breeder_t_from_fractions(geom, b=b)
+
+    if side == "OB":
+        topL, midL, botL = OB_LAST_LAYER_TOP_MID_BOT
+        topV, midV, botV = OB_VV_TOP_MID_BOT
+        interp_last = interp_three_point(t, topL, midL, botL)
+        vv = interp_three_point(t, topV, midV, botV)
+    else:
+        topL, midL, botL = IB_LAST_LAYER_TOP_MID_BOT
+        topV, midV, botV = IB_VV_TOP_MID_BOT
+        interp_last = interp_three_point(t, topL, midL, botL)
+        vv = interp_three_point(t, topV, midV, botV)
+
+    pre_breeder_shift = float(geom["armor_cm"]) # geom["armor_cm"] => fw + armor offset
+    last_offset = float(abs(offsets[-1]) + pre_breeder_shift)
+
+    last_breeder = float(interp_last - last_offset)
+    if last_breeder <= 0.0:
+        raise ValueError(
+            f"{key}: last breeder thickness <= 0: "
+            f"interp_last={interp_last:.6g} cm, last_offset={last_offset:.6g} cm "
+            f"(t={t:.6f}, b={b}/{int(geom['n_breeder'])})"
+        )
+
+    thicknesses = np.concatenate([known, [last_breeder, float(gap_cm) + float(vv)]])
+
+    expected = n_layers + 3
+    if thicknesses.size != expected:
+        raise RuntimeError(f"{key}: thickness bins={thicknesses.size}, expected {expected}")
+
+    return build_bins_from_thicknesses(thicknesses, start_cm=start_cm)
+
+def build_breeder_chunks(
+    INPUT_JSON: Path,
+    *,
+    default_equatorial_ob_key: str = "OB_1_b6",
+    gap_cm: float = 2.0,
+    start_cm: float = 0.0,
+    ) -> dict:
+    with INPUT_JSON.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    inv  = data["inventory"]
+    geom = data["geometry"]
+
+    BLANKET_N   = int(inv["BLANKET_FINAL"])
+    ob_n_layers = int(geom["ob_n_layers"])
+    ib_n_layers = int(geom["ib_n_layers"])
+    n_breeder   = int(geom["n_breeder"])
+    ob_regions  = int(geom["ob_regions"])
+    ib_regions  = int(geom["ib_regions"])
+
+    OB_CHUNK_SIZE = ob_n_layers + 3
+    IB_CHUNK_SIZE = ib_n_layers + 3
+
+    cell_ids_all = list(range(1, BLANKET_N + 1))
+
+    OB_TOTAL = OB_CHUNK_SIZE * n_breeder * ob_regions
+    if OB_TOTAL > BLANKET_N:
+        raise ValueError(f"OB_TOTAL={OB_TOTAL} exceeds BLANKET_N={BLANKET_N}")
+
+    ob_ids = cell_ids_all[:OB_TOTAL]
+    ib_ids = cell_ids_all[OB_TOTAL:]
+
+    ob_chunks = [ob_ids[i:i + OB_CHUNK_SIZE] for i in range(0, len(ob_ids), OB_CHUNK_SIZE)]
+    ib_chunks = [ib_ids[i:i + IB_CHUNK_SIZE] for i in range(0, len(ib_ids), IB_CHUNK_SIZE)]
+
+    ob_by_key: Dict[str, List[int]] = {}
+    k = 0
+    for r in range(1, ob_regions + 1):
+        for b in range(1, n_breeder + 1):
+            ob_by_key[f"OB_{r}_b{b}"] = ob_chunks[k]
+            k += 1
+
+    ib_by_key: Dict[str, List[int]] = {}
+    k = 0
+    for r in range(1, ib_regions + 1):
+        for b in range(1, n_breeder + 1):
+            ib_by_key[f"IB_{r}_b{b}"] = ib_chunks[k]
+            k += 1
+
+    ALL_KEYS = list(ob_by_key.keys()) + list(ib_by_key.keys())
+
+    equatorial_ob_cell_ids = ob_by_key.get(default_equatorial_ob_key, [])
+
+    # convenience callables
+    def cell_ids_for_key(key: str) -> List[int]:
+        side, _, _ = parse_key(key)
+        return ob_by_key[key] if side == "OB" else ib_by_key[key]
+
+    def radial_bins_for_key(key: str):
+        return make_radial_bins_for_key(key=key, geom=geom, gap_cm=gap_cm, start_cm=start_cm)
+
+    return {
+        "data": data,
+        "geom": geom,
+        "cell_ids_all": cell_ids_all,
+        "ob_by_key": ob_by_key,
+        "ib_by_key": ib_by_key,
+        "ALL_KEYS": ALL_KEYS,
+        "OB_CHUNK_SIZE": OB_CHUNK_SIZE,
+        "IB_CHUNK_SIZE": IB_CHUNK_SIZE,
+        "equatorial_ob_key": default_equatorial_ob_key,
+        "equatorial_ob_cell_ids": equatorial_ob_cell_ids,
+        "cell_ids_for_key": cell_ids_for_key,
+        "radial_bins_for_key": radial_bins_for_key,
+    }
+
+_cells_chunk = build_breeder_chunks(INPUT_JSON, default_equatorial_ob_key="OB_1_b6")
+
+cell_ids = _cells_chunk["cell_ids_for_key"]("OB_1_b6")
+cell_ids_equatorial_ob = _cells_chunk["equatorial_ob_cell_ids"]
+
+info, all_surface_ids, external_surface_ids, internal_surface_ids = dagmc_volume_surface_info(
+    pydagmc_model,
+    cell_ids
+)
+OB_KEY = "OB_1_b6"
+
+present = sorted(int(cid) for cid in dagmc_universe.get_all_cells().keys())
+print(f"[present] dagmc_universe cells present: {len(present)}")
+print(f"[present] min/max: {present[0]}..{present[-1]}")
+print(f"[present] sample: {present[:20]}")
+
+ob_cells = _cells_chunk["cell_ids_for_key"](OB_KEY)
+ob_present = [cid for cid in ob_cells if cid in present]
+print(f"[chunk] {OB_KEY}: {len(ob_cells)} from JSON, {len(ob_present)} present in wrapper")
+print(f"[chunk] present ids: {ob_present}")
+# -----------------------------------------------------------------------------
+# TALLIES
+# -----------------------------------------------------------------------------
+
+# Source intensity -> scaling
+total_power = 2e9  # 2000 MW
+number_sectors = 16
+section_power = total_power / number_sectors
+ev_to_joule = 1.60218e-19
+ev_fusion = 17.6e6
+convert_e = ev_to_joule * ev_fusion
+neutron_source_rate = section_power / convert_e
+s_in_y = (365 * 24 * 60 * 60)
+
+# Filters
+cell_filter = openmc.CellFilter(cell_ids)
+particle_filter = openmc.ParticleFilter(bins=["neutron", "photon"])
+t_surf_filter = openmc.SurfaceFilter(external_surface_ids)
+n_particle_filter = openmc.ParticleFilter(bins=["neutron"])
+energies = openmc.mgxs.GROUP_STRUCTURES["CCFE-709"]
+energy_filter = openmc.EnergyFilter(energies)
+
+model.tallies = openmc.Tallies()
+
+# Neutron and photon flux
+flux_tally = openmc.Tally()
+flux_tally.filters = [cell_filter, particle_filter, energy_filter]
+flux_tally.scores = ["flux"]
+model.tallies.append(flux_tally)
+
+# TODO: this does not need to be its own tally, you have all the information in flux_tally already
+# (REPLY): You are correct! (I will remove this soon)
+flux_tally_total = openmc.Tally()
+flux_tally_total.filters = [cell_filter, particle_filter]
+flux_tally_total.scores = ["flux"]
+model.tallies.append(flux_tally_total)
+
+# Turn it off current tallies for albedo in the slab model
+DO_ALBEDO = False
+if DO_ALBEDO:
+    t_current_tally = openmc.Tally()
+    t_current_tally.filters = [t_surf_filter, n_particle_filter]
+    t_current_tally.scores = ["current"]
+    model.tallies.append(t_current_tally)
+
+    p_current_tallies: dict[int, openmc.Tally] = {}
+    for cid in cell_ids_equatorial_ob:
+        ocell = dagmc_universe_cells[cid]
+        surf_ids_for_cell = [int(s["surface_id"]) for s in info.get(cid, {}).get("all_surfaces", [])]
+        if not surf_ids_for_cell:
+            continue
+
+        cell_from_filter = openmc.CellFromFilter([ocell])
+        surf_filter = openmc.SurfaceFilter(surf_ids_for_cell)
+
+        p_current_tally = openmc.Tally()
+        p_current_tally.filters = [cell_from_filter, surf_filter, n_particle_filter]
+        p_current_tally.scores = ["current"]
+
+        model.tallies.append(p_current_tally)
+        p_current_tallies[cid] = p_current_tally
+
+heating_tally = openmc.Tally()
+heating_tally.filters = [cell_filter]
+heating_tally.scores = ["heating"]
+model.tallies.append(heating_tally)
+
+# -----------------------------------------------------------------------------
+# Define Structural_materials nuclides fractions and totals
+# -----------------------------------------------------------------------------
+_ATOMS_PER_BARNCM_TO_ATOMS = 1.0e24  # (barn*cm)^-1 * cm^3 * 1e24 = atoms
+
+def build_structural_nuclides(structural_materials: List[openmc.Material]) -> List[str]:
+    """
+    Sorted list of nuclides present in the provided *structural* materials.
+
+    This is a whitelist used to:
+      - restrict per-nuclide tallies (damage-energy, H/He production) to only
+        nuclides that exist in structural materials set.
+    """
+    s: Set[str] = set()
+    for m in structural_materials:
+        # Use the same API as the later accumulation (atom densities).
+        for nuc in m.get_nuclide_atom_densities().keys():
+            s.add(str(nuc))
+    return sorted(s)
+
+def build_structural_maps_vo(
+    model: openmc.Model,
+    *,
+    cell_ids: List[int],
+    mix_recipes_obj: Dict[str, Dict[openmc.Material, float]],
+    structural_materials: List[openmc.Material],
+    ) -> Tuple[
+    List[str],                    # structural_nuclides (whitelist)
+    Dict[int, Dict[str, float]],  # cell_nuclide_atoms (total atoms per nuclide)
+    Dict[int, Dict[str, float]],  # cell_struct_nuclide_atoms (struct atoms per nuclide)
+    Dict[int, float],             # cell_total_atoms_struct (sum struct atoms)
+    Dict[int, Dict[str, float]],  # cell_struct_origin_frac (struct/total per nuclide)
+    ]:
+    """
+    For each cell:
+        total_by_nuc(n)  = sum_i [ dens_i(n) * vol * vf_i * 1e24 ] over ALL components i
+        struct_by_nuc(n) = sum_{i in structural materials} [ dens_i(n) * vol * vf_i * 1e24 ]
+        f_struct_origin(n) = struct_by_nuc(n) / total_by_nuc(n)
+
+    Important:
+      - We only track nuclides in `structural_nuclides` (whitelist), defined as
+        nuclides present in the *structural materials list*.
+      - Structural-origin is determined by which *component material* contributed,
+        via membership in `structural_materials_set`.
+    """
+    structural_materials_set: Set[openmc.Material] = set(structural_materials)
+
+    structural_nuclides: List[str] = build_structural_nuclides(structural_materials)
+    structural_nuclide_set: Set[str] = set(structural_nuclides)
+
+    all_cells = model.geometry.get_all_cells()
+
+    cell_nuclide_atoms: Dict[int, Dict[str, float]] = {}
+    cell_struct_nuclide_atoms: Dict[int, Dict[str, float]] = {}
+    cell_total_atoms_struct: Dict[int, float] = {}
+    cell_struct_origin_frac: Dict[int, Dict[str, float]] = {}
+
+    for cid in map(int, cell_ids):
+        cell = all_cells[cid]
+        vol = float(cell.volume or 0.0)
+
+        cell_nuclide_atoms[cid] = {}
+        cell_struct_nuclide_atoms[cid] = {}
+        cell_total_atoms_struct[cid] = 0.0
+        cell_struct_origin_frac[cid] = {}
+
+        if vol <= 0.0 or not isinstance(cell.fill, openmc.Material):
+            continue
+
+        fill_mat: openmc.Material = cell.fill
+        fill_name = str(fill_mat.name or "")
+
+        recipe = mix_recipes_obj.get(fill_name)
+        if recipe is None:
+            raise KeyError(
+                f"[mix_recipes_obj] Missing recipe for fill material name '{fill_name}' "
+                f"(cell {cid})."
+            )
+
+        mats = list(recipe.keys())
+        vfs = [float(recipe[m]) for m in mats]
+
+        total_by_nuc: Dict[str, float] = {}
+        struct_by_nuc: Dict[str, float] = {}
+
+        for m_i, vf_i in zip(mats, vfs):
+            if vf_i <= 0.0:
+                continue
+
+            nd_i = m_i.get_nuclide_atom_densities()
+            scale = vol * vf_i * _ATOMS_PER_BARNCM_TO_ATOMS
+
+            # Structural-origin classification is by 'component material'
+            is_struct = (m_i in structural_materials_set)
+
+            for nuc, dens in nd_i.items():
+                nuc = str(nuc)
+
+                # only nuclides present in structural materials list.
+                if nuc not in structural_nuclide_set:
+                    continue
+
+                a = float(dens) * scale
+                total_by_nuc[nuc] = total_by_nuc.get(nuc, 0.0) + a
+                if is_struct:
+                    struct_by_nuc[nuc] = struct_by_nuc.get(nuc, 0.0) + a
+
+        # Structural-origin fraction per nuclide
+        frac_by_nuc: Dict[str, float] = {}
+        for nuc, n_tot in total_by_nuc.items():
+            n_str = float(struct_by_nuc.get(nuc, 0.0))
+            frac_by_nuc[nuc] = min((n_str / n_tot), 1.0) if n_tot > 0.0 else 0.0
+
+        # store
+        cell_nuclide_atoms[cid] = total_by_nuc
+        cell_struct_nuclide_atoms[cid] = struct_by_nuc
+        cell_total_atoms_struct[cid] = float(sum(struct_by_nuc.values()))
+        cell_struct_origin_frac[cid] = frac_by_nuc
+
+    return (
+        structural_nuclides,
+        cell_nuclide_atoms,
+        cell_struct_nuclide_atoms,
+        cell_total_atoms_struct,
+        cell_struct_origin_frac,
+    )
+
+
+structural_nuclides, cell_nuclide_atoms, cell_struct_nuclide_atoms, cell_total_atoms_struct, cell_struct_origin_frac = (
+    build_structural_maps_vo(
+        model,
+        cell_ids=cell_ids,
+        mix_recipes_obj=MIX_RECIPES_OBJ_NORM,
+        structural_materials=structure_material_list,
+    )
+)
+
+# -----------------------------------------------------------------------------
+# DPA + gas production tallies per cell
+# -----------------------------------------------------------------------------
+cell_filters_by_cid = {int(cid): openmc.CellFilter([int(cid)]) for cid in cell_ids}
+structural_nuclide_set = set(structural_nuclides)
+
+dpa_gas_tallies: Dict[int, openmc.Tally] = {}
+
+for cid in cell_ids:
+    cid = int(cid)
+
+    # NOTE: cell_nuclide_atoms was built using the whitelist already, so
+    # this membership filter is redundant but harmless. Keep it for clarity.
+    nuclides_in_cell = sorted(
+        nuc for nuc in cell_nuclide_atoms.get(cid, {}).keys()
+        if nuc in structural_nuclide_set
+    )
+    if not nuclides_in_cell:
+        continue
+
+    tg = openmc.Tally()
+    tg.filters = [cell_filters_by_cid[cid], n_particle_filter]
+    tg.scores = [
+        "damage-energy",
+        "H1-production", "H2-production", "H3-production",
+        "He3-production", "He4-production",
+    ]
+    tg.nuclides = nuclides_in_cell
+
+    model.tallies.append(tg)
+    dpa_gas_tallies[cid] = tg
+
+# -----------------------------------------------------------------------------
+# Export
+# -----------------------------------------------------------------------------
+model.export_to_model_xml(path="neutronics_model.xml")
+
+# TODO: is this necessary? How would these come to exist? Suggest to remove if not needed
+# remove redundant defaults
+# (REPLY): I think the model.init_lib(output=False) is creating these outputs (not the tallies)
+redundant_files = ["geometry.xml", "materials.xml", "settings.xml", "tallies.xml"]
+for f in redundant_files:
+    if os.path.exists(f):
+        os.remove(f)
+
+
+# ---------------------------------------------------------------------------
+# RS: run neutronics
+
+STATEPOINT_FILE = model.run(output=False, {{ openmcRunArgs }})
+
+# ---------------------------------------------------------------------------
+# RS: neutronics post processing
+
+# ----------------------------
+# Load neutronics model
+# ----------------------------
+# import neutronics_model as bm
+bm = PKDict(globals())
+
+# =============================================================================
+# PATH SETUP
+# =============================================================================
+
+RESULTS_DIR = Path('.')
+
+# =============================================================================
+# Optional: exclude surfaces from albedo summary
+EXCLUDED_SURFACES = set()
+
+# Source intensity -> scaling
+total_power = 2e9  # 2000 MW
+number_sectors = 16
+section_power = total_power / number_sectors
+ev_to_joule = 1.60218e-19
+ev_fusion = 17.6e6
+convert_e = ev_to_joule * ev_fusion
+SURFACE_SOURCE_POWER_RATIO = 7.171062e-02 # 0.0710619157080504
+neutron_source_rate = SURFACE_SOURCE_POWER_RATIO * section_power / convert_e
+s_in_y = (365 * 24 * 60 * 60)
+
+
+energies = openmc.mgxs.GROUP_STRUCTURES["CCFE-709"]
+unit_lethargy = np.array(
+    [np.log(energies[i + 1] / energies[i]) for i in range(len(energies) - 1)],
+    dtype=float,
+)
+E_mid = 0.5 * (np.asarray(energies[:-1], dtype=float) + np.asarray(energies[1:], dtype=float))
+
+# =============================================================================
+# Helpers
+# =============================================================================
+def subset_by_cells(data: np.ndarray, cell_bins: list[int], desired_cells: list[int]) -> np.ndarray:
+    """Return rows corresponding to desired_cells, preserving desired_cells order."""
+    idx = [cell_bins.index(int(cid)) for cid in desired_cells]
+    return data[idx]
+
+def get_cell_bins_from_tally(tally: openmc.Tally) -> list[int]:
+    cf = next(f for f in tally.filters if isinstance(f, openmc.CellFilter))
+    return [int(x) for x in cf.bins]
+
+def scaling_for_cells(cell_ids: list[int]) -> dict[int, float]:
+    """
+    scaling[cid] = neutron_source_rate / volume_cm3
+    """
+    scaling: dict[int, float] = {}
+    all_cells = getattr(bm, "all_cells", None)
+    if all_cells is None:
+        all_cells = bm.model.geometry.get_all_cells()
+
+    for cid in cell_ids:
+        cid = int(cid)
+        vol = all_cells[cid].volume
+        if vol is None or vol <= 0.0:
+            raise ValueError(f"Cell {cid} has no valid volume (got {vol}).")
+        scaling[cid] = neutron_source_rate / float(vol)
+    return scaling
+
+def set_ylim_and_ticks(
+    ax,
+    ydata,
+    ratio=0.3,
+    scale="auto",            # "auto" | "log" | "linear"
+    eps=1e-99,
+    n_linear_ticks=6,
+    log_threshold_decades=1.0,
+    min_log_pad_decades=0.10,
+    ):
+    ratio = float(ratio)
+    ratio = max(0.0, min(ratio, 0.95))
+
+    y = np.asarray(ydata, dtype=float)
+    y = y[np.isfinite(y)]
+    if y.size == 0:
+        return
+
+    if scale == "auto":
+        ypos = y[y > 0]
+        if ypos.size < 2:
+            scale_eff = "linear"
+        else:
+            lo = np.log10(np.min(ypos))
+            hi = np.log10(np.max(ypos))
+            scale_eff = "log" if (hi - lo) >= float(log_threshold_decades) else "linear"
+    else:
+        scale_eff = scale
+
+    if scale_eff == "log":
+        ypos = y[y > 0]
+        if ypos.size == 0:
+            scale_eff = "linear"
+        else:
+            logy = np.log10(ypos)
+            lo = float(logy.min())
+            hi = float(logy.max())
+            span = max(hi - lo, 1e-12)
+
+            pad = max(ratio * span, float(min_log_pad_decades))
+            ymin = max(10 ** (lo - pad), eps)
+            ymax = 10 ** (hi + pad)
+            ax.set_ylim(ymin, ymax)
+
+            # ax.yaxis.set_major_locator(mticker.LogLocator(base=10.0, subs=(1.0, 2.0, 5.0)))
+            # ax.yaxis.set_major_formatter(mticker.LogFormatterMathtext(base=10.0, labelOnlyBase=False))
+            # ax.yaxis.set_minor_locator(mticker.LogLocator(base=10.0, subs=np.arange(1, 10) * 0.1))
+            # ax.yaxis.set_minor_formatter(mticker.NullFormatter())
+            return
+
+    ymin = float(np.min(y))
+    ymax = float(np.max(y))
+    if ymin == ymax:
+        if ymin == 0.0:
+            ymin, ymax = -1.0, 1.0
+        else:
+            ymin = ymin * (1.0 - ratio)
+            ymax = ymax * (1.0 + ratio)
+    else:
+        span = ymax - ymin
+        ymin -= ratio * span
+        ymax += ratio * span
+
+    # ax.set_ylim(ymin, ymax)
+    # ax.yaxis.set_major_locator(mticker.MaxNLocator(n_linear_ticks))
+    # ax.yaxis.set_minor_locator(mticker.AutoMinorLocator())
+    # ax.yaxis.set_major_formatter(mticker.StrMethodFormatter("{x:g}"))
+
+# =============================================================================
+# structural-origin fractions per cell/nuclide
+# =============================================================================
+def require_struct_maps(bm):
+    need = [
+        "cell_struct_origin_frac",
+        "cell_struct_nuclide_atoms",
+        "cell_total_atoms_struct",
+    ]
+    missing = [k for k in need if not hasattr(bm, k)]
+    if missing:
+        raise RuntimeError(
+            f"Missing {missing} in neutronics_model module. "
+            "Expected you to compute these in neutronics_model.py via build_structural_maps_vo/build_structural_maps."
+        )
+
+def write_struct_origin_csv(
+    outdir: Path,
+    chunk_key: str,
+    cell_ids: list[int],
+    labels: list[str],
+    cell_struct_origin_frac: Dict[int, Dict[str, float]],
+    ):
+    rows = []
+    for cid, lab in zip(cell_ids, labels):
+        cid = int(cid)
+        frac_map = cell_struct_origin_frac.get(cid, {}) or {}
+        for nuc, f in sorted(frac_map.items()):
+            rows.append(
+                dict(
+                    chunk_key=chunk_key,
+                    cell_id=cid,
+                    layer_label=lab,
+                    nuclide=str(nuc),
+                    f_struct_origin=float(f),
+                )
+            )
+    df = pd.DataFrame(rows)
+    df.to_csv(outdir / f"struct_origin_fractions_{chunk_key}.csv", index=False)
+
+def tally_mean_std_for_nuclide(t, *, score: str, nuclide: str) -> tuple[float, float]:
+    """
+    Return (mean, std) for a single nuclide for a score in an OpenMC Tally result object `t`.
+    Works for a single cell filter bin (which is your case if `t` is already cell-specific).
+    """
+    mean = float(t.get_values(scores=[score], nuclides=[nuclide], value="mean").ravel()[0])
+    std  = float(t.get_values(scores=[score], nuclides=[nuclide], value="std_dev").ravel()[0])
+    return mean, std
+
+# ----------------------------
+# Load chunking + bin helpers from neutronics_model.py
+# ----------------------------
+_cells_chunk = bm.build_breeder_chunks(
+    INPUT_JSON,
+    default_equatorial_ob_key="OB_1_b6",
+    gap_cm=2.0,
+    start_cm=0.0,
+    )
+
+# Pull the things your post script needs
+data      = _cells_chunk["data"]
+geom      = _cells_chunk["geom"]
+
+cell_ids  = _cells_chunk["cell_ids_all"]
+ob_by_key = _cells_chunk["ob_by_key"]
+ib_by_key = _cells_chunk["ib_by_key"]
+n_breeder  = int(geom["n_breeder"])
+
+# def generate_colors(n):
+#     """Generates a smooth rainbow gradient of n RGB colors."""
+#     nc = n + 1
+#     cmap = plt.get_cmap('rainbow')
+#     color_range = cmap(np.linspace(1, 0, nc))
+#     return color_range
+
+# colors = generate_colors(n_breeder)
+colors = list(range(100))
+
+cell_ids_for_key   = _cells_chunk["cell_ids_for_key"]      # key -> list[int]
+radial_bins_for_key = _cells_chunk["radial_bins_for_key"]  # key -> (centroids,widths,edges)
+
+# =============================================================================
+# build tally maps from the *statepoint*
+# =============================================================================
+DPA_SCORES = {"damage-energy"}
+GAS_SCORES_EXPLICIT = {"H1-production", "He3-production", "He4-production"}
+GAS_SCORES_REACTION  = {"(n,Xp)", "(n,X3He)", "(n,Xa)"}
+
+def build_dpa_gas_map(sp: openmc.StatePoint) -> Dict[int, openmc.Tally]:
+    out: Dict[int, openmc.Tally] = {}
+    for t in sp.tallies.values():
+        scores = {str(s) for s in (t.scores or [])}
+
+        if "damage-energy" not in scores:
+            continue
+
+        has_explicit = GAS_SCORES_EXPLICIT.issubset(scores)
+        has_reaction = GAS_SCORES_REACTION.issubset(scores)
+        if not (has_explicit or has_reaction):
+            continue
+
+        cid = _get_cell_id_from_tally(t)
+        if cid is None:
+            continue
+        out[int(cid)] = t
+    return out
+
+def _get_cell_id_from_tally(t: openmc.Tally) -> Optional[int]:
+    cf = next((f for f in t.filters if isinstance(f, openmc.CellFilter)), None)
+    if cf is None or not cf.bins:
+        return None
+    return int(cf.bins[0])
+
+def require_tally_id(sp: openmc.StatePoint, bm_tally_obj: openmc.Tally, desc: str) -> int:
+    tid = int(bm_tally_obj.id)
+    if tid not in sp.tallies:
+        raise RuntimeError(
+            f"[fatal] {desc}: bm id={tid} not found in statepoint. "
+            f"Your postprocessing module and the statepoint were produced by different tally sets."
+        )
+    return tid
+
+# =============================================================================
+# Per-chunk labels
+# =============================================================================
+def layer_names_for_chunk(chunk_cells: list[int], region_tag: str) -> list[str]:
+    n = len(chunk_cells)
+    labels = ["Armor", "First_Wall"]
+    n_layers = n - 3
+    labels += [f"{region_tag}_{i+1}" for i in range(n_layers)]
+    labels += ["VV"]
+    return labels
+
+# =============================================================================
+# Albedo calculation
+# =============================================================================
+def _pydagmc_surface(pydagmc_model, sid: int):
+    return pydagmc_model.surfaces_by_id[int(sid)]
+
+def _surface_area(pydagmc_model, sid: int) -> float:
+    return float(_pydagmc_surface(pydagmc_model, sid).area)
+
+def _is_surface_unshared(pydagmc_model, sid: int) -> bool:
+    s = _pydagmc_surface(pydagmc_model, sid)
+    try:
+        return len(s.volumes) == 1
+    except Exception:
+        senses = getattr(s, "senses", [None, None])
+        vols = [v for v in senses if v is not None]
+        return len(vols) == 1
+
+def _cell_surface_ids_from_info_flat(bm_info_flat: dict, cell_id: int) -> List[int]:
+    out = []
+    for rec in bm_info_flat.get(int(cell_id), []):
+        try:
+            out.append(int(rec["surface_id"]))
+        except Exception:
+            pass
+    return out
+
+def _rank_sids_by_area(pydagmc_model, sids: List[int]) -> List[int]:
+    pairs = []
+    for sid in sids:
+        try:
+            pairs.append((_surface_area(pydagmc_model, sid), int(sid)))
+        except Exception:
+            continue
+    pairs.sort(key=lambda x: x[0], reverse=True)
+    return [sid for _, sid in pairs]
+
+def build_special_surfaces(
+    pydagmc_model,
+    bm_info_flat: dict,
+    *,
+    armor_cell_id: int,
+    obN_cell_id: int,
+    vv_cell_id: int,
+    allowed_surface_ids: Set[int],
+    external_surface_ids: Set[int],
+    internal_surface_ids: Set[int],
+    ) -> Tuple[Dict[str, int], Set[int], Dict[str, int], Dict[str, object]]:
+    allowed = set(int(x) for x in allowed_surface_ids)
+    ext_set = set(int(x) for x in external_surface_ids)
+    int_set = set(int(x) for x in internal_surface_ids)
+
+    special: Dict[str, int] = {}
+    owner: Dict[str, int] = {}
+    special_ids: Set[int] = set()
+    debug: Dict[str, object] = {}
+
+    armor_sids = [sid for sid in _cell_surface_ids_from_info_flat(bm_info_flat, armor_cell_id) if sid in allowed]
+    armor_ranked = _rank_sids_by_area(pydagmc_model, armor_sids)
+
+    armor_front = next((sid for sid in armor_ranked if sid in ext_set), None)
+    armor_internal_ranked = [sid for sid in armor_ranked if sid in int_set]
+    armor_back = armor_internal_ranked[0] if armor_internal_ranked else None
+
+    debug["armor"] = {
+        "cell_id": int(armor_cell_id),
+        "ranked_top": armor_ranked[:8],
+        "picked_front_ext": armor_front,
+        "picked_back_int": armor_back,
+        "internal_candidates": armor_internal_ranked[:8],
+    }
+
+    if armor_front is not None:
+        special["Armor_front_ext"] = int(armor_front)
+        owner["Armor_front_ext"] = int(armor_cell_id)
+        special_ids.add(int(armor_front))
+
+    if armor_back is not None:
+        special["Armor_back_int"] = int(armor_back)
+        owner["Armor_back_int"] = int(armor_cell_id)
+        special_ids.add(int(armor_back))
+
+    ob_sids = [sid for sid in _cell_surface_ids_from_info_flat(bm_info_flat, obN_cell_id) if sid in allowed]
+    ob_ranked = _rank_sids_by_area(pydagmc_model, ob_sids)
+    ob_ext = next((sid for sid in ob_ranked if sid in ext_set), None)
+
+    debug["obN"] = {"cell_id": int(obN_cell_id), "ranked_top": ob_ranked[:8], "picked_largest_ext": ob_ext}
+
+    if ob_ext is not None:
+        special["OBN_face_ext"] = int(ob_ext)
+        owner["OBN_face_ext"] = int(obN_cell_id)
+        special_ids.add(int(ob_ext))
+
+    vv_sids = [sid for sid in _cell_surface_ids_from_info_flat(bm_info_flat, vv_cell_id) if sid in allowed]
+    vv_ranked = _rank_sids_by_area(pydagmc_model, vv_sids)
+
+    vv_picks = []
+    vv_rejects = []
+    for sid in vv_ranked:
+        if _is_surface_unshared(pydagmc_model, sid):
+            vv_picks.append(sid)
+            if len(vv_picks) == 2:
+                break
+        else:
+            try:
+                vols = [v.id for v in _pydagmc_surface(pydagmc_model, sid).volumes]
+            except Exception:
+                vols = []
+            vv_rejects.append((sid, vols))
+
+    debug["vv"] = {
+        "cell_id": int(vv_cell_id),
+        "ranked_top": vv_ranked[:12],
+        "picked_unshared": vv_picks,
+        "first_rejects": vv_rejects[:8],
+    }
+
+    if len(vv_picks) >= 2:
+        special["VV_face_1"] = int(vv_picks[0])
+        special["VV_face_2"] = int(vv_picks[1])
+        owner["VV_face_1"] = int(vv_cell_id)
+        owner["VV_face_2"] = int(vv_cell_id)
+        special_ids.add(int(vv_picks[0]))
+        special_ids.add(int(vv_picks[1]))
+
+    return special, special_ids, owner, debug
+
+def compute_albedo_for_chunk(
+    sp: openmc.StatePoint,
+    bm,
+    *,
+    cell_ids: List[int],
+    labels: List[str],
+    outdir: Path,
+    chunk_key: str,
+    pydagmc_model,
+    EXCLUDED_SURFACES: Optional[set[int]] = None,
+    ) -> Dict[str, object]:
+    outdir = Path(outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
+    EXCLUDED_SURFACES = set(EXCLUDED_SURFACES or set())
+
+    required = ("info", "t_current_tally", "p_current_tallies", "external_surface_ids", "internal_surface_ids")
+    missing = [x for x in required if not hasattr(bm, x)]
+    if missing:
+        print(f"[warn] {chunk_key}: skipping albedo (bm missing: {missing})")
+        return {}
+
+    info = bm.info
+    ext_ids = [int(x) for x in bm.external_surface_ids]
+    int_ids = [int(x) for x in bm.internal_surface_ids]
+    all_ids = [int(x) for x in getattr(bm, "all_surface_ids", [])] or sorted(set(ext_ids) | set(int_ids))
+
+    ext_set = set(ext_ids)
+    int_set = set(int_ids)
+    all_set = set(all_ids)
+
+    chunk_cell_set = set(int(x) for x in cell_ids)
+    if len(labels) != len(cell_ids):
+        raise ValueError(f"{chunk_key}: labels length {len(labels)} != cell_ids length {len(cell_ids)}")
+
+    def _cell_surfaces(cid: int, which: str) -> List[dict]:
+        x = info.get(int(cid), {})
+        if isinstance(x, dict):
+            return list(x.get(which, []) or [])
+        return list(x or [])
+
+    surf_to_cells: Dict[int, set[int]] = {}
+    for cid in cell_ids:
+        cid = int(cid)
+        for s in _cell_surfaces(cid, "all_surfaces"):
+            try:
+                sid = int(s["surface_id"])
+            except Exception:
+                continue
+            surf_to_cells.setdefault(sid, set()).add(cid)
+
+    if not surf_to_cells:
+        print(f"[warn] {chunk_key}: no surfaces mapped from bm.info; skipping albedo.")
+        return {}
+
+    Jnet_by_sid: Dict[int, Tuple[float, float]] = {}
+    try:
+        t_tot = sp.get_tally(id=bm.t_current_tally.id)
+        t_sfilter = next(f for f in t_tot.filters if isinstance(f, openmc.SurfaceFilter))
+        surf_ids_tot = [int(x) for x in t_sfilter.bins]
+        Jnet_mean = np.atleast_1d(t_tot.mean.squeeze()).astype(float)
+        Jnet_std = np.atleast_1d(t_tot.std_dev.squeeze()).astype(float)
+
+        for i, sid in enumerate(surf_ids_tot):
+            if i < len(Jnet_mean) and i < len(Jnet_std):
+                Jnet_by_sid[int(sid)] = (float(Jnet_mean[i]), float(Jnet_std[i]))
+    except Exception as e:
+        print(f"[warn] {chunk_key}: could not read total current tally; external albedo limited. ({e})")
+
+    allowed_surface_ids = set(all_set)
+
+    special: Dict[str, int] = {}
+    special_surface_ids: set[int] = set()
+    special_owner_cell: Dict[str, int] = {}
+    special_debug: Dict[str, object] = {}
+
+    if len(cell_ids) >= 3:
+        armor_cell_id = int(cell_ids[0])
+        obN_cell_id = int(cell_ids[-2])
+        vv_cell_id = int(cell_ids[-1])
+
+        bm_info_flat = {int(cid): _cell_surfaces(int(cid), "all_surfaces") for cid in cell_ids}
+
+        special, special_surface_ids, special_owner_cell, special_debug = build_special_surfaces(
+            pydagmc_model,
+            bm_info_flat,
+            armor_cell_id=armor_cell_id,
+            obN_cell_id=obN_cell_id,
+            vv_cell_id=vv_cell_id,
+            allowed_surface_ids=allowed_surface_ids,
+            external_surface_ids=ext_set,
+            internal_surface_ids=int_set,
+        )
+        print(f"[debug] {chunk_key} specials picked: {special}")
+    else:
+        print(f"[warn] {chunk_key}: chunk has only {len(cell_ids)} cells; skipping special selection.")
+
+    partial_mean: Dict[Tuple[int, int], float] = {}
+    partial_std: Dict[Tuple[int, int], float] = {}
+
+    for cid, tt in bm.p_current_tallies.items():
+        cid = int(cid)
+        if cid not in chunk_cell_set:
+            continue
+        try:
+            tally = sp.get_tally(id=tt.id)
+        except Exception:
+            continue
+        try:
+            sfilter = next(f for f in tally.filters if isinstance(f, openmc.SurfaceFilter))
+        except StopIteration:
+            continue
+
+        sids = [int(x) for x in sfilter.bins]
+        mean = np.atleast_1d(tally.mean.squeeze()).astype(float)
+        std = np.atleast_1d(tally.std_dev.squeeze()).astype(float)
+
+        for sid, m, s in zip(sids, mean, std):
+            partial_mean[(cid, sid)] = float(m)
+            partial_std[(cid, sid)] = float(s)
+
+    rows: List[dict] = []
+    eps = 1e-15
+
+    for sid in ext_ids:
+        cset = (surf_to_cells.get(int(sid), set()) & chunk_cell_set)
+        if not cset:
+            continue
+        cid = sorted(cset)[0]
+
+        if int(sid) not in Jnet_by_sid:
+            continue
+
+        Jnet_m, Jnet_s = Jnet_by_sid[int(sid)]
+        Jout_m = partial_mean.get((cid, int(sid)), 0.0)
+        Jout_s = partial_std.get((cid, int(sid)), 0.0)
+
+        Jnet = abs(Jnet_m)
+        Jout = abs(Jout_m)
+        Jin = abs(Jout - Jnet)
+
+        if Jout < eps:
+            A_mean, A_std = 0.0, 0.0
+        else:
+            A_mean = Jin / Jout
+            dA_dJout = Jnet / (Jout**2)
+            dA_dJnet = -1.0 / Jout
+            A_var = (dA_dJout**2) * (Jout_s**2) + (dA_dJnet**2) * (Jnet_s**2)
+            A_std = math.sqrt(max(A_var, 0.0))
+
+        rows.append(
+            dict(
+                surface_id=int(sid),
+                cell_id=int(cid),
+                kind="external",
+                J_total_mean=float(Jnet_m),
+                J_total_std=float(Jnet_s),
+                J_out_mean=float(Jout_m),
+                J_out_std=float(Jout_s),
+                albedo_mean=float(A_mean),
+                albedo_std=float(A_std),
+            )
+        )
+
+    for sid in int_ids:
+        cset = (surf_to_cells.get(int(sid), set()) & chunk_cell_set)
+        if len(cset) != 2:
+            continue
+        c1, c2 = sorted(cset)
+
+        Jout1_m = float(partial_mean.get((c1, int(sid)), 0.0))
+        Jout2_m = float(partial_mean.get((c2, int(sid)), 0.0))
+
+        Jout1_s = float(partial_std.get((c1, int(sid)), 0.0))
+        Jout2_s = float(partial_std.get((c2, int(sid)), 0.0))
+
+        J1 = abs(Jout1_m)
+        J2 = abs(Jout2_m)
+        s1 = abs(Jout1_s)
+        s2 = abs(Jout2_s)
+
+        if J1 <= eps or J2 <= eps:
+            A1 = np.nan
+            A2 = np.nan
+            A1_std = np.nan
+            A2_std = np.nan
+        else:
+            A1 = J2 / J1
+            dA1_dJ2 = 1.0 / J1
+            dA1_dJ1 = -J2 / (J1 ** 2)
+            A1_var = (dA1_dJ2 ** 2) * (s2 ** 2) + (dA1_dJ1 ** 2) * (s1 ** 2)
+            A1_std = math.sqrt(max(A1_var, 0.0))
+
+            A2 = J1 / J2
+            dA2_dJ1 = 1.0 / J2
+            dA2_dJ2 = -J1 / (J2 ** 2)
+            A2_var = (dA2_dJ1 ** 2) * (s1 ** 2) + (dA2_dJ2 ** 2) * (s2 ** 2)
+            A2_std = math.sqrt(max(A2_var, 0.0))
+
+        rows.append(dict(
+            surface_id=int(sid),
+            cell_id=int(c1),
+            kind="internal",
+            J_total_mean=np.nan,
+            J_total_std=np.nan,
+            J_out_mean=float(Jout1_m),
+            J_out_std=float(Jout1_s),
+            albedo_mean=float(A1) if np.isfinite(A1) else np.nan,
+            albedo_std=float(A1_std) if np.isfinite(A1_std) else np.nan,
+        ))
+        rows.append(dict(
+            surface_id=int(sid),
+            cell_id=int(c2),
+            kind="internal",
+            J_total_mean=np.nan,
+            J_total_std=np.nan,
+            J_out_mean=float(Jout2_m),
+            J_out_std=float(Jout2_s),
+            albedo_mean=float(A2) if np.isfinite(A2) else np.nan,
+            albedo_std=float(A2_std) if np.isfinite(A2_std) else np.nan,
+        ))
+
+    if not rows:
+        print(f"[warn] {chunk_key}: no albedo rows created; skipping outputs.")
+        return {}
+
+    df_alb = pd.DataFrame(rows).sort_values(["kind", "surface_id", "cell_id"])
+    df_alb.to_csv(outdir / f"surface_albedo_all_{chunk_key}.csv", index=False)
+
+    special_rows = []
+    for key, sid in special.items():
+        sid = int(sid)
+        want_cid = int(special_owner_cell.get(key, -1))
+
+        cand = df_alb[df_alb["surface_id"] == sid]
+        if want_cid != -1:
+            cand2 = cand[cand["cell_id"] == want_cid]
+            if not cand2.empty:
+                cand = cand2
+
+        if cand.empty:
+            continue
+
+        r = cand.iloc[0].to_dict()
+        r["special_key"] = key
+        special_rows.append(r)
+
+    df_special = (
+        pd.DataFrame(special_rows)
+        if special_rows
+        else pd.DataFrame(columns=list(df_alb.columns) + ["special_key"])
+    )
+    df_special.to_csv(outdir / f"surface_albedo_special_{chunk_key}.csv", index=False)
+
+    df_external_rest = df_alb[
+        (df_alb["kind"] == "external")
+        & (~df_alb["surface_id"].isin(EXCLUDED_SURFACES))
+        & (~df_alb["surface_id"].isin(special_surface_ids))
+    ].copy()
+    df_external_rest.to_csv(outdir / f"surface_albedo_external_filtered_{chunk_key}.csv", index=False)
+
+    idx_map = {int(cid): i for i, cid in enumerate(cell_ids)}
+
+    cell_rows = []
+    for cid, grp in df_external_rest.groupby("cell_id"):
+        cid = int(cid)
+        A_mean = float(grp["albedo_mean"].mean()) if len(grp) else float("nan")
+        st = grp["albedo_std"].to_numpy(dtype=float)
+        A_std = float(np.sqrt(np.nansum(st * st)) / max(len(st), 1)) if len(st) else float("nan")
+        layer_label = labels[idx_map[cid]] if cid in idx_map else f"cell_{cid}"
+
+        cell_rows.append(
+            dict(
+                cell_id=cid,
+                layer_label=layer_label,
+                albedo_mean=A_mean,
+                albedo_std=A_std,
+                n_surfaces=int(len(grp)),
+            )
+        )
+
+    df_cell = (
+        pd.DataFrame(cell_rows).sort_values("cell_id")
+        if cell_rows
+        else pd.DataFrame(columns=["cell_id", "layer_label", "albedo_mean", "albedo_std", "n_surfaces"])
+    )
+    df_cell.to_csv(outdir / f"cell_albedo_summary_external_{chunk_key}.csv", index=False)
+
+    xpos = np.arange(len(labels))
+    y = np.full(len(labels), np.nan, dtype=float)
+    e = np.full(len(labels), np.nan, dtype=float)
+
+    for _, row in df_cell.iterrows():
+        cid = int(row["cell_id"])
+        if cid not in idx_map:
+            continue
+        i = idx_map[cid]
+        y[i] = float(row["albedo_mean"]) if pd.notna(row["albedo_mean"]) else np.nan
+        e[i] = float(row["albedo_std"]) if pd.notna(row["albedo_std"]) else np.nan
+
+    plt.figure(figsize=(11, 6))
+    plt.errorbar(xpos, y, yerr=e, fmt="none", elinewidth=1, capsize=4)
+    plt.scatter(xpos, y, marker="x", s=90, linewidths=2, label="Cell avg (external, excluding specials)")
+
+    special_labels = {
+        "Armor_front_ext": "Armor Front",
+        "Armor_back_int": "Armor Back",
+        "OBN_face_ext": "OB_N Back",
+        "VV_face_1": "VV Back",
+        "VV_face_2": "VV Front",
+    }
+    special_colors = {
+        "Armor_front_ext": "tab:red",
+        "Armor_back_int": "tab:orange",
+        "OBN_face_ext": "tab:purple",
+        "VV_face_1": "tab:green",
+        "VV_face_2": "tab:olive",
+    }
+    special_markers = {k: "x" for k in special_labels.keys()}
+
+    used_labels = set()
+    MIN_VISIBLE_YERR = 1e-4
+
+    if not df_special.empty:
+        for _, r in df_special.iterrows():
+            key = str(r.get("special_key", "special"))
+            cid = int(r["cell_id"])
+            if cid not in idx_map:
+                continue
+
+            x0 = idx_map[cid]
+            y0 = float(r["albedo_mean"]) if pd.notna(r["albedo_mean"]) else np.nan
+            e0 = float(r["albedo_std"]) if pd.notna(r["albedo_std"]) else np.nan
+            if not np.isfinite(y0):
+                continue
+
+            color = special_colors.get(key, "black")
+            label = special_labels.get(key, key)
+            marker = special_markers.get(key, "x")
+            plot_label = None if label in used_labels else label
+            used_labels.add(label)
+
+            if np.isfinite(e0) and e0 > 0:
+                e_vis = max(e0, MIN_VISIBLE_YERR)
+                plt.errorbar(
+                    [x0], [y0],
+                    yerr=[[e_vis], [e_vis]],
+                    fmt="none",
+                    ecolor=color,
+                    elinewidth=2,
+                    capsize=6,
+                    capthick=2,
+                    zorder=5,
+                )
+
+            plt.scatter([x0], [y0], marker=marker, s=120, color=color, zorder=6, label=plot_label)
+
+    plt.xticks(xpos, labels, rotation=45, fontsize=11)
+    plt.xlabel("Layer", fontsize=12)
+    plt.ylabel("Albedo", fontsize=12)
+    plt.title(f"Albedo per Layer: {chunk_key}", fontsize=15)
+    plt.grid(axis="y", linestyle="--", alpha=0.6)
+    plt.tight_layout()
+    plt.legend()
+    plt.savefig(outdir / f"albedo_layers_{chunk_key}.png", dpi=300)
+    plt.close()
+
+    print(f"[ok] {chunk_key}: albedo done")
+
+    return dict(
+        df_albedo=df_alb,
+        df_albedo_external_filtered=df_external_rest,
+        df_special=df_special,
+        df_cell_summary=df_cell,
+        special=special,
+        special_surface_ids=special_surface_ids,
+        special_owner_cell=special_owner_cell,
+        special_debug=special_debug,
+        excluded_surfaces=EXCLUDED_SURFACES,
+    )
+
+# =============================================================================
+# DPA helper
+# =============================================================================
+def element_from_nuclide(nuc: str) -> str:
+    m = re.match(r"[A-Za-z]+", nuc)
+    return m.group(0) if m else nuc
+
+# =============================================================================
+# Corrected summations (apply f_struct_origin)
+# =============================================================================
+def corrected_sum_mean_std_getvalues(
+    t: openmc.Tally,
+    *,
+    score: str,
+    nuclides: list[str],
+    f_struct: Dict[str, float],
+    ) -> tuple[float, float]:
+    """
+    Return (mean, std) for Σ_n T(score, n) * f_struct_origin(n)
+    using tally_mean_std_for_nuclide() for the per-nuclide fetch.
+
+    Assumes nuclide contributions are uncorrelated for std (quadrature).
+    """
+    mean_tot = 0.0
+    var_tot = 0.0
+
+    for nuc in nuclides:
+        nuc = str(nuc)
+        w = float(f_struct.get(nuc, 0.0))
+        if w == 0.0:
+            continue
+
+        try:
+            m, sd = tally_mean_std_for_nuclide(t, score=score, nuclide=nuc)
+        except Exception:
+            # nuclide not present in results for this tally, etc.
+            continue
+
+        mean_tot += w * m
+        var_tot += (w * sd) ** 2
+
+    return mean_tot, math.sqrt(max(var_tot, 0.0))
+
+# =============================================================================
+# Core per-chunk
+# =============================================================================
+def process_chunk(
+    sp: openmc.StatePoint,
+    chunk_key: str,
+    cell_ids: list[int],
+    pydagmc_model,
+    *,
+    dpa_gas_map: Dict[int, openmc.Tally],
+    xcentroids,
+    xedges,
+    ):
+    #outdir = RESULTS_DIR / chunk_key
+    #outdir.mkdir(parents=True, exist_ok=True)
+    outdir = Path('.')
+
+    is_ob = chunk_key.startswith("OB_")
+    region_tag = "OB" if is_ob else "IB"
+
+    xcent = np.asarray(xcentroids, float)
+    xedges = np.asarray(xedges, float)
+
+    labels = layer_names_for_chunk(cell_ids, region_tag)
+    scaling = scaling_for_cells(cell_ids)
+
+    # build & save structural-origin fractions for this chunk
+    cell_struct_origin_frac = bm.cell_struct_origin_frac  # dict[cid] -> dict[nuc] -> f_origin
+    write_struct_origin_csv(outdir, chunk_key, cell_ids, labels, cell_struct_origin_frac)
+
+    # ==========================================
+    # Neutron & photon spectra (flux_tally)
+    # ==========================================
+    t_flux_id = require_tally_id(sp, bm.flux_tally, "flux spectrum tally")
+    t_flux = sp.get_tally(id=t_flux_id)
+    cell_bins_flux = get_cell_bins_from_tally(t_flux)
+
+    flux_mean = t_flux.get_reshaped_data(value="mean")
+    flux_std = t_flux.get_reshaped_data(value="std_dev")
+
+    neutron_flux = flux_mean[:, 0, :]
+    neutron_flux_std = flux_std[:, 0, :]
+    photon_flux = flux_mean[:, 1, :]
+    photon_flux_std = flux_std[:, 1, :]
+
+    neutron_flux_chunk = subset_by_cells(neutron_flux, cell_bins_flux, cell_ids)
+    photon_flux_chunk = subset_by_cells(photon_flux, cell_bins_flux, cell_ids)
+
+    plt.figure()
+    for i, cid in enumerate(cell_ids):
+        flux_scaled = neutron_flux_chunk[i].flatten() * scaling[int(cid)] / unit_lethargy
+        plt.loglog(energies[:-1], flux_scaled, label=f"{labels[i]} (x = {xcent[i]:.1f} cm)", color=colors[i])
+    plt.legend(fontsize=8,ncol=2)
+    plt.grid(True, which="both")
+    plt.ylabel("Neutron flux per unit lethargy [1/cm$^2$/s]")
+    plt.xlabel("Energy [eV]")
+    plt.xlim([1, 100e6])
+    plt.savefig(outdir / f"n_flux_spectrum_{chunk_key}.png", dpi=300, bbox_inches="tight")
+    plt.close()
+
+    plt.figure()
+    for i, cid in enumerate(cell_ids):
+        flux_scaled = photon_flux_chunk[i].flatten() * scaling[int(cid)] / unit_lethargy
+        plt.loglog(energies[:-1], flux_scaled, label=f"{labels[i]} (x={xcent[i]:.1f} cm)", color=colors[i])
+    plt.legend(fontsize=8,loc='lower left')
+    plt.grid(True, which="both")
+    plt.ylabel("Photon flux per unit lethargy [1/cm$^2$/s]")
+    plt.xlabel("Energy [eV]")
+    plt.xlim([1, 100e6])
+    plt.savefig(outdir / f"p_flux_spectrum_{chunk_key}.png", dpi=300, bbox_inches="tight")
+    plt.close()
+
+    # ==========================================
+    # Total flux (flux_tally_total)
+    # ==========================================
+    t_flux_tot_id = require_tally_id(sp, bm.flux_tally_total, "total flux tally")
+    t_flux_tot = sp.get_tally(id=t_flux_tot_id)
+    cell_bins_tot = get_cell_bins_from_tally(t_flux_tot)
+
+    flux_tot_mean = t_flux_tot.get_reshaped_data(value="mean").squeeze()
+    flux_tot_std = t_flux_tot.get_reshaped_data(value="std_dev").squeeze()
+
+    tot_mean_chunk = subset_by_cells(flux_tot_mean, cell_bins_tot, cell_ids)
+    tot_std_chunk = subset_by_cells(flux_tot_std, cell_bins_tot, cell_ids)
+
+    direct_total_neut = np.array([tot_mean_chunk[i, 0] * scaling[int(cid)] for i, cid in enumerate(cell_ids)], dtype=float)
+    direct_total_neut_std = np.array([tot_std_chunk[i, 0] * scaling[int(cid)] for i, cid in enumerate(cell_ids)], dtype=float)
+    direct_total_phot = np.array([tot_mean_chunk[i, 1] * scaling[int(cid)] for i, cid in enumerate(cell_ids)], dtype=float)
+    direct_total_phot_std = np.array([tot_std_chunk[i, 1] * scaling[int(cid)] for i, cid in enumerate(cell_ids)], dtype=float)
+
+    fig, ax = plt.subplots()
+    neut_lower = np.maximum(direct_total_neut - direct_total_neut_std, 1e-30)
+    neut_upper = direct_total_neut + direct_total_neut_std
+    phot_lower = np.maximum(direct_total_phot - direct_total_phot_std, 1e-30)
+    phot_upper = direct_total_phot + direct_total_phot_std
+
+    ax.step(xedges, np.r_[direct_total_neut, direct_total_neut[-1]], where="post", label="neutron")
+    ax.fill_between(xedges, np.r_[neut_lower, neut_lower[-1]], np.r_[neut_upper, neut_upper[-1]], step="post", alpha=0.15)
+
+    ax.step(xedges, np.r_[direct_total_phot, direct_total_phot[-1]], where="post", label="photon")
+    ax.fill_between(xedges, np.r_[phot_lower, phot_lower[-1]], np.r_[phot_upper, phot_upper[-1]], step="post", alpha=0.15)
+
+    ax.set_yscale("log")
+    ax.set_ylabel("Total Flux [1/cm$^2$/s]")
+    ax.set_xlabel("Radial Position [cm]")
+    ax.grid(True, which="both", linestyle="--", linewidth=0.5)
+    ax.legend()
+    fig.savefig(outdir / f"flux_total_{chunk_key}.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    # ==========================================
+    # Heating (heating_tally)
+    # ==========================================
+    t_heat_id = require_tally_id(sp, bm.heating_tally, "heating tally")
+    t_heat = sp.get_tally(id=t_heat_id)
+    cell_bins_heat = get_cell_bins_from_tally(t_heat)
+
+    heat_mean = t_heat.get_values(value="mean").flatten()
+    heat_std = t_heat.get_values(value="std_dev").flatten()
+
+    heat_mean_chunk = subset_by_cells(heat_mean, cell_bins_heat, cell_ids)
+    heat_std_chunk = subset_by_cells(heat_std, cell_bins_heat, cell_ids)
+
+    heat_w = np.array([heat_mean_chunk[i] * scaling[int(cid)] * ev_to_joule for i, cid in enumerate(cell_ids)], dtype=float)
+    heat_w_std = np.array([heat_std_chunk[i] * scaling[int(cid)] * ev_to_joule for i, cid in enumerate(cell_ids)], dtype=float)
+
+    lower_h = np.maximum(heat_w - heat_w_std, 1e-30)
+    upper_h = heat_w + heat_w_std
+
+    fig, ax = plt.subplots()
+    ax.set_yscale("log")
+    ax.step(xedges, np.r_[heat_w, heat_w[-1]], where="post", label="Heating")
+    ax.fill_between(xedges, np.r_[lower_h, lower_h[-1]], np.r_[upper_h, upper_h[-1]], step="post", alpha=0.3)
+    ax.grid(True, which="both", linestyle="--", linewidth=0.5)
+    ax.set_ylabel("Heating [W/cm³]")
+    ax.set_xlabel("Radial Position [cm]")
+    #ax.legend()
+    fig.savefig(outdir / f"heating_{chunk_key}.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    # ==========================================
+    # H production -> appm/fpy
+    # ==========================================
+    h_appm_y = np.zeros(len(cell_ids), dtype=float)
+    h_appm_y_std = np.zeros(len(cell_ids), dtype=float)
+
+    for i, cid in enumerate(cell_ids):
+        cid = int(cid)
+        t = dpa_gas_map.get(cid, None)
+        if t is None:
+            continue
+
+        scores = {str(s) for s in (t.scores or [])}
+        if GAS_SCORES_EXPLICIT.issubset(scores):
+            h1_score = "H1-production"
+            h2_score = "H2-production"
+            h3_score = "H3-production"
+        elif GAS_SCORES_REACTION.issubset(scores):
+            h1_score = "(n,Xp)"
+            h2_score = "(n,Xd)"
+            h3_score = "(n,Xt)"
+        else:
+            continue
+
+        f_struct = cell_struct_origin_frac.get(cid, {}) or {}
+        nuclides = list(t.nuclides or [])
+
+        # Apply here the structural_nuclide_fraction
+        h1_mean_corr, h1_std_corr = corrected_sum_mean_std_getvalues(
+            t, score=h1_score, nuclides=nuclides, f_struct=f_struct
+        )
+        h2_mean_corr, h2_std_corr = corrected_sum_mean_std_getvalues(
+            t, score=h2_score, nuclides=nuclides, f_struct=f_struct
+        )
+        h3_mean_corr, h3_std_corr = corrected_sum_mean_std_getvalues(
+            t, score=h3_score, nuclides=nuclides, f_struct=f_struct
+        )
+
+        h_mean_corr = h1_mean_corr + h2_mean_corr + h3_mean_corr
+        h_std_corr = math.sqrt(h1_std_corr ** 2 + h2_std_corr ** 2 + h3_std_corr ** 2)
+
+        denom = float(bm.cell_total_atoms_struct.get(cid, 0.0))
+        if denom > 0.0:
+            factor = neutron_source_rate * s_in_y / denom * 1e6
+            h_appm_y[i] = h_mean_corr * factor
+            h_appm_y_std[i] = h_std_corr * factor
+
+    lower = np.maximum(h_appm_y - h_appm_y_std, 1e-30)
+    upper = h_appm_y + h_appm_y_std
+
+    fig, ax = plt.subplots()
+    ax.set_yscale("log")
+    ax.step(xedges, np.r_[h_appm_y, h_appm_y[-1]], where="post", label="H [appm/fpy] (struct-origin)")
+    ax.fill_between(xedges, np.r_[lower, lower[-1]], np.r_[upper, upper[-1]], step="post", alpha=0.3)
+    ax.grid(True, which="both", linestyle="--", linewidth=0.5)
+    ax.set_ylabel("H [appm/fpy]")
+    ax.set_xlabel("Radial Position [cm]")
+    #ax.legend()
+    fig.savefig(outdir / f"h1_{chunk_key}.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    # ==========================================
+    # He production -> appm/y
+    # ==========================================
+    he_appm_y = np.zeros(len(cell_ids), dtype=float)
+    he_appm_y_std = np.zeros(len(cell_ids), dtype=float)
+
+    for i, cid in enumerate(cell_ids):
+        cid = int(cid)
+        t = dpa_gas_map.get(cid, None)
+        if t is None:
+            continue
+
+        scores = {str(s) for s in (t.scores or [])}
+        if GAS_SCORES_EXPLICIT.issubset(scores):
+            he3_score = "He3-production"
+            he4_score = "He4-production"
+        elif GAS_SCORES_REACTION.issubset(scores):
+            he3_score = "(n,X3He)"
+            he4_score = "(n,Xa)"
+        else:
+            continue
+
+        f_struct = cell_struct_origin_frac.get(cid, {}) or {}
+        nuclides = list(t.nuclides or [])
+
+        # Grab tally values and sum += score * structural_nuclide_fraction
+        he3_mean_corr, he3_std_corr = corrected_sum_mean_std_getvalues(
+            t, score=he3_score, nuclides=nuclides, f_struct=f_struct
+        )
+        he4_mean_corr, he4_std_corr = corrected_sum_mean_std_getvalues(
+            t, score=he4_score, nuclides=nuclides, f_struct=f_struct
+        )
+
+        he_mean_corr = he3_mean_corr + he4_mean_corr
+        he_std_corr = math.sqrt(he3_std_corr ** 2 + he4_std_corr ** 2)
+
+        denom = float(bm.cell_total_atoms_struct.get(cid, 0.0))
+        if denom > 0.0:
+            factor = neutron_source_rate * s_in_y / denom * 1e6
+            he_appm_y[i] = he_mean_corr * factor
+            he_appm_y_std[i] = he_std_corr * factor
+
+    lower = np.maximum(he_appm_y - he_appm_y_std, 1e-30)
+    upper = he_appm_y + he_appm_y_std
+
+    fig, ax = plt.subplots()
+    ax.set_yscale("log")
+    ax.step(xedges, np.r_[he_appm_y, he_appm_y[-1]], where="post", label="He [appm/fpy] (struct-origin)")
+    ax.fill_between(xedges, np.r_[lower, lower[-1]], np.r_[upper, upper[-1]], step="post", alpha=0.3)
+    ax.grid(True, which="both", linestyle="--", linewidth=0.5)
+    ax.set_ylabel("He [appm/fpy]")
+    ax.set_xlabel("Radial Position [cm]")
+    #ax.legend()
+    fig.savefig(outdir / f"he_{chunk_key}.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    # ==========================================
+    # DPA per full power year -> DPA/fpy
+    # ==========================================
+
+    dpa_y = np.zeros(len(cell_ids), dtype=float)
+    dpa_y_std = np.zeros(len(cell_ids), dtype=float)
+
+    dpa_by_nuclide = {}
+
+    for i, cid in enumerate(cell_ids):
+        cid = int(cid)
+        t = dpa_gas_map.get(cid, None)
+        if t is None:
+            continue
+
+        
+        denom_atoms = float(bm.cell_total_atoms_struct.get(cid, 0.0))
+        if denom_atoms <= 0.0:
+            continue
+
+        f_struct = cell_struct_origin_frac.get(cid, {}) or {}
+        nuclides = list(t.nuclides or [])
+
+        sum_mean = 0.0
+        sum_var = 0.0
+        breakdown = {}
+
+        for nuc in nuclides:
+            nuc = str(nuc)
+
+            # get Tally values damage-energy per nuclide
+            dmg_mean, dmg_std = tally_mean_std_for_nuclide(t, score="damage-energy", nuclide=nuc)
+
+            # Apply  *= structural_nuclide_fraction
+            fs = float(f_struct.get(nuc, 0.0))
+            dmg_mean *= fs
+            dmg_std  *= fs
+
+            
+            # Find element Ed for the nuclide
+            el = element_from_nuclide(nuc)
+            Ed = float(bm.materials.Ed(el)) # if not on list material default is 25 eV
+
+            # NRT scaling per nuclide (Ed)
+            disp_scale = (0.8)/(2.0 * Ed)
+
+            # Scale by source intensity
+            source_scale = neutron_source_rate * s_in_y
+
+            disp_mean = disp_scale * source_scale * dmg_mean
+            disp_std = disp_scale  * source_scale * dmg_std
+
+            # Scale per total structurl atoms
+            dpa_mean_per_nuclide = disp_mean / denom_atoms
+            dpa_std_per_nuclide = disp_std / denom_atoms
+
+            breakdown[nuc] = dpa_mean_per_nuclide
+
+            # 'store' summed contributions for all different nuclides
+            sum_mean += dpa_mean_per_nuclide
+            sum_var += dpa_std_per_nuclide**2
+
+            
+        dpa_y[i] = sum_mean
+        dpa_y_std[i] = math.sqrt(sum_var)
+        dpa_by_nuclide[cid] = breakdown
+
+        # print for  debugging or extra info (comment if undesired)
+        print(f"\n[DPA breakdown] cell {cid}")
+        for nuc, val in sorted(breakdown.items(), key=lambda x: x[1], reverse=True)[:10]:
+            print(f"  {nuc:>8s} : {val:.3e} DPA/y")
+
+
+    lower= np.maximum(dpa_y - dpa_y_std, 1e-30)
+    upper = dpa_y + dpa_y_std
+
+    
+    fig, ax = plt.subplots()
+    ax.set_yscale("log")
+    ax.step(xedges, np.r_[dpa_y, dpa_y[-1]], where="post", label="NRT-dpa/y")
+    ax.fill_between(xedges, np.r_[lower, lower[-1]], np.r_[upper, upper[-1]], step="post", alpha=0.3)
+    ax.grid(True, which="both", linestyle="--", linewidth=0.5)
+    ax.set_ylabel("NRT-dpa/fpy")
+    ax.set_xlabel("Radial Position [cm]")
+    #ax.legend()
+    fig.savefig(outdir / f"dpa_{chunk_key}.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    # ==========================================
+    # Albedo post-processing
+    # ==========================================
+    # Albedo post-processing is currently off for slab
+
+    if DO_ALBEDO:
+        compute_albedo_for_chunk(
+            sp,
+            bm,
+            cell_ids=cell_ids,
+            labels=labels,
+            outdir=outdir,
+            chunk_key=chunk_key,
+            pydagmc_model=pydagmc_model,
+            EXCLUDED_SURFACES=EXCLUDED_SURFACES,
+        )
+
+# =============================================================================
+# Region-1-only per-layer analysis helpers
+# =============================================================================
+def layer_cells_first_region(ob_by_key, ib_by_key, layer_index, n_breeder, order="OB_THEN_IB"):
+    keys_ob = [f"OB_1_b{b}" for b in range(1, n_breeder + 1)]
+    keys_ib = [f"IB_1_b{b}" for b in range(1, n_breeder + 1)]
+
+    if order == "OB_THEN_IB":
+        keys = keys_ob + keys_ib
+    elif order == "IB_THEN_OB":
+        keys = keys_ib + keys_ob
+    else:
+        raise ValueError("order must be 'OB_THEN_IB' or 'IB_THEN_OB'")
+
+    cell_ids_layer = []
+    chunk_labels = []
+
+    for k in keys:
+        chunk = ob_by_key.get(k) if k.startswith("OB_") else ib_by_key.get(k)
+        if not chunk:
+            continue
+        if layer_index >= len(chunk):
+            continue
+        cell_ids_layer.append(int(chunk[layer_index]))
+        chunk_labels.append(k)
+
+    return cell_ids_layer, chunk_labels
+
+def compute_dpa_layer_region1_only(
+    sp: openmc.StatePoint,
+    cell_ids_layer: list[int],
+    neutron_source_rate: float,
+    s_in_y: float,
+    *,
+    dpa_gas_map: Dict[int, openmc.Tally],
+    ):
+    """
+    Region-1-only DPA that MATCHES method A used in process_chunk():
+
+      For each cell:
+        DPA/fpy = (neutron_source_rate*s_in_y / N_struct) * Σ_n [ (0.8/(2*Ed(elem(n)))) * (damage-energy_n * f_struct_origin(n)) ]
+
+    - Applies f_struct_origin(n) per nuclide (structural-origin correction)
+    - Uses Ed per element per nuclide (NOT a single Ed_eff)
+    - Assumes nuclide contributions uncorrelated for std_dev (quadrature), consistent with method A
+    """
+    idx_map = {int(cid): i for i, cid in enumerate(cell_ids_layer)}
+    n = len(cell_ids_layer)
+
+    dpa_y = np.zeros(n, dtype=float)
+    dpa_y_std = np.zeros(n, dtype=float)
+
+    cell_struct_origin_frac = bm.cell_struct_origin_frac
+
+    source_scale = float(neutron_source_rate) * float(s_in_y)
+
+    for cid in cell_ids_layer:
+        cid = int(cid)
+        t = dpa_gas_map.get(cid, None)
+        if t is None:
+            continue
+
+        denom_atoms = float(bm.cell_total_atoms_struct.get(cid, 0.0))
+        if denom_atoms <= 0.0:
+            continue
+
+        f_struct = cell_struct_origin_frac.get(cid, {}) or {}
+        nuclides = list(t.nuclides or [])
+
+        sum_mean = 0.0
+        sum_var = 0.0
+
+        for nuc in nuclides:
+            nuc = str(nuc)
+
+            # get Tally values damage-energy per nuclide
+            try:
+                dmg_mean, dmg_std = tally_mean_std_for_nuclide(t, score="damage-energy", nuclide=nuc)
+            except Exception:
+                # Nuclide may not have results for this score in this tally
+                continue
+
+            # Apply  *= structural_nuclide_fraction
+            fs = float(f_struct.get(nuc, 0.0))
+            if fs == 0.0:
+                continue
+            dmg_mean *= fs
+            dmg_std *= fs
+
+            # element-specific displacement energy
+            el = element_from_nuclide(nuc)
+            Ed = float(bm.materials.Ed(el))
+
+            # NRT scaling per nuclide (Ed)
+            disp_scale = 0.8 / (2.0 * Ed)
+
+            disp_mean = disp_scale * source_scale * dmg_mean
+            disp_std  = disp_scale * source_scale * dmg_std
+
+            # Scale per total structurl atoms
+            dpa_mean = disp_mean / denom_atoms
+            dpa_std  = disp_std / denom_atoms
+
+            # 'store' summed contributions for all different nuclides
+            sum_mean += dpa_mean
+            sum_var  += dpa_std ** 2
+
+        i = idx_map[cid]
+        dpa_y[i] = sum_mean
+        dpa_y_std[i] = math.sqrt(max(sum_var, 0.0))
+
+    return dpa_y, dpa_y_std
+
+def empty_poloidal_plot(x_data, num_pts):
+  fig, ax = plt.subplots(figsize=(8.5, 5.5))
+
+  split = n_breeder - 0.5
+  xticks = np.arange(num_pts)
+
+  ax.set_yscale("linear")
+
+  ax.set_xlim([-0.5, len(x_data) - 2.5])
+  # ax.axvline(split, linestyle="--", linewidth=1, color='k')
+  # ax.text(split - 0.15, 0.95, "$\\leftarrow$ outboard   inboard $\\rightarrow$", transform=ax.get_xaxis_transform(),
+  #         ha="center", va="top", fontsize=10)
+
+  ax.set_xticks(xticks)
+  xlabels = [f"OB{i+1}" if i < n_breeder else f"IB{i+1-n_breeder}" for i in range(num_pts)]
+  ax.set_xticklabels(xlabels, rotation=45, ha="right", fontsize=9)
+  ax.set_xlabel("Poloidal regions", fontsize=11)
+
+  # ax.grid(True, which="major", linestyle="--", linewidth=0.6, alpha=0.8)
+  # ax.yaxis.grid(True, which="minor", linestyle=":", linewidth=0.4, alpha=0.5)
+  # ax.minorticks_on()
+  # plt.gca().tick_params(axis='x', which='minor', bottom=False)
+  # fig.tight_layout()
+
+  return fig, ax
+
+def pad_poloidal_data(data):
+  return np.concatenate([[data[0]], data, [data[-1]]])
+
+def process_layer_region1_only(
+    sp: openmc.StatePoint,
+    layer_index: int,
+    layer_tag: str,
+    ob_by_key: dict,
+    ib_by_key: dict,
+    n_breeder: int,
+    outdir: Path,
+    flux_tally_total_id: int,
+    heating_tally_id: int,
+    *,
+    dpa_gas_map: Dict[int, openmc.Tally],
+    dpa: bool = True,
+    hprod: bool = True,
+    heprod: bool = True,
+    ylim_ratio: float = 0.3,
+    yscale_mode: str = "auto",
+    log_threshold_decades: float = 1.0,
+    ):
+    outdir = Path(outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
+
+    cell_ids_layer, _chunk_labels = layer_cells_first_region(
+        ob_by_key, ib_by_key, layer_index=layer_index, n_breeder=n_breeder, order="OB_THEN_IB"
+    )
+    n = len(cell_ids_layer)
+    if n == 0:
+        print(f"[warn] No cells found for layer_index={layer_index} (region 1 only). Skipping.")
+        return
+
+    scaling = scaling_for_cells(cell_ids_layer)
+
+    # array which will be used for plotting along the poloidal direction for the step plots.
+    # add extra dummy values so that the first and last step are same length as the other stair steps
+    x = np.arange(n)
+    x = np.concatenate([[x[0] - 1], x, [x[-1] + 1]])
+
+    # Build struct-origin fractions for these cells (for gas correction below)
+    cell_struct_origin_frac = bm.cell_struct_origin_frac
+
+    def _apply_scale(ax, data, eps_for_log):
+        if yscale_mode == "log":
+            scale_eff = "log"
+        elif yscale_mode == "linear":
+            scale_eff = "linear"
+        else:
+            d = np.asarray(data, dtype=float)
+            d = d[np.isfinite(d)]
+            dpos = d[d > 0]
+            if dpos.size < 2:
+                scale_eff = "linear"
+            else:
+                lo = np.log10(np.min(dpos))
+                hi = np.log10(np.max(dpos))
+                scale_eff = "log" if (hi - lo) >= float(log_threshold_decades) else "linear"
+
+        ax.set_yscale(scale_eff)
+        set_ylim_and_ticks(
+            ax,
+            data,
+            ratio=ylim_ratio,
+            scale=scale_eff,
+            eps=eps_for_log,
+            log_threshold_decades=log_threshold_decades,
+        )
+        return scale_eff
+
+    # TOTAL FLUX
+    t_flux_tot = sp.get_tally(id=int(flux_tally_total_id))
+    cell_bins_tot = get_cell_bins_from_tally(t_flux_tot)
+
+    flux_tot_mean = t_flux_tot.get_reshaped_data(value="mean").squeeze()
+    flux_tot_std = t_flux_tot.get_reshaped_data(value="std_dev").squeeze()
+
+    tot_mean_layer = subset_by_cells(flux_tot_mean, cell_bins_tot, cell_ids_layer)
+    tot_std_layer = subset_by_cells(flux_tot_std, cell_bins_tot, cell_ids_layer)
+
+    neut = np.zeros(n, dtype=float)
+    neut_std = np.zeros(n, dtype=float)
+    phot = np.zeros(n, dtype=float)
+    phot_std = np.zeros(n, dtype=float)
+
+    for i, cid in enumerate(cell_ids_layer):
+        s = scaling[int(cid)]
+        neut[i] = tot_mean_layer[i, 0] * s
+        neut_std[i] = tot_std_layer[i, 0] * s
+        phot[i] = tot_mean_layer[i, 1] * s
+        phot_std[i] = tot_std_layer[i, 1] * s
+
+    fig, ax = empty_poloidal_plot(x, n)
+
+    eps_flux = 1e-99
+    neut = pad_poloidal_data(neut)
+    phot = pad_poloidal_data(phot)
+    neut_std = pad_poloidal_data(neut_std)
+    phot_std = pad_poloidal_data(phot_std)
+
+    neut_plot = np.clip(neut, eps_flux, None)
+    phot_plot = np.clip(phot, eps_flux, None)
+    neut_low = np.clip(neut - neut_std, eps_flux, None)
+    phot_low = np.clip(phot - phot_std, eps_flux, None)
+    neut_high = np.clip(neut + neut_std, eps_flux, None)
+    phot_high = np.clip(phot + phot_std, eps_flux, None)
+
+    _apply_scale(ax, np.r_[neut_plot, phot_plot], eps_for_log=eps_flux)
+    ax.step(x, neut_plot, where="mid", linewidth=2, label="neutron")
+    ax.step(x, phot_plot, where="mid", linewidth=2, label="photon")
+    ax.fill_between(x, neut_low, neut_high, step="mid", alpha=0.15)
+    ax.fill_between(x, phot_low, phot_high, step="mid", alpha=0.15)
+
+    ax.set_ylabel("Total Flux [1/cm$^2$/s]")
+    ax.set_title(f"Total Flux — {layer_tag}")
+    plt.legend()
+    fig.savefig(outdir / f"flux_total_{layer_tag}.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    # HEATING
+    t_heat = sp.get_tally(id=int(heating_tally_id))
+    cell_bins_heat = get_cell_bins_from_tally(t_heat)
+
+    heat_mean = t_heat.get_values(value="mean").flatten()
+    heat_std = t_heat.get_values(value="std_dev").flatten()
+    heat_mean_layer = subset_by_cells(heat_mean, cell_bins_heat, cell_ids_layer)
+    heat_std_layer = subset_by_cells(heat_std, cell_bins_heat, cell_ids_layer)
+
+    heat_w = np.zeros(n, dtype=float)
+    heat_w_std = np.zeros(n, dtype=float)
+    for i, cid in enumerate(cell_ids_layer):
+        s = scaling[int(cid)]
+        heat_w[i] = heat_mean_layer[i] * s * ev_to_joule
+        heat_w_std[i] = heat_std_layer[i] * s * ev_to_joule
+
+    heat_w = pad_poloidal_data(heat_w)
+    heat_w_std = pad_poloidal_data(heat_w_std)
+
+    fig, ax = empty_poloidal_plot(x, n)
+
+    eps_heat = 1e-99
+    heat_plot = np.clip(heat_w, eps_heat, None)
+    heat_low = np.clip(heat_w - heat_w_std, eps_heat, None)
+    heat_high = np.clip(heat_w + heat_w_std, eps_heat, None)
+
+    _apply_scale(ax, heat_plot, eps_for_log=eps_heat)
+    ax.step(x, heat_plot, where="mid", linewidth=2)
+    ax.fill_between(x, heat_low, heat_high, step="mid", alpha=0.15)
+
+    ax.set_ylabel("Heating [W/cm³]")
+    ax.set_title(f"Heating — {layer_tag}")
+    fig.savefig(outdir / f"heating_{layer_tag}.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    # DPA/y
+    if dpa:
+        dpa_y, dpa_y_std = compute_dpa_layer_region1_only(
+            sp=sp,
+            cell_ids_layer=cell_ids_layer,
+            neutron_source_rate=neutron_source_rate,
+            s_in_y=s_in_y,
+            dpa_gas_map=dpa_gas_map,
+        )
+
+        # TODO (optional): would be nice to have the uncertainty plotted as shaded region
+        fig, ax = empty_poloidal_plot(x, n)
+        dpa_plot = pad_poloidal_data(np.asarray(dpa_y, dtype=float))
+        dpa_plot_std = pad_poloidal_data(np.asarray(dpa_y_std, dtype=float))
+
+        dpa_low = np.clip(dpa_plot - dpa_plot_std, eps_heat, None)
+        dpa_high = np.clip(dpa_plot + dpa_plot_std, eps_heat, None)
+
+        set_ylim_and_ticks(ax, dpa_plot, ratio=ylim_ratio, scale="linear")
+        ax.step(x, dpa_plot, where="mid", linewidth=2)
+        ax.fill_between(x, dpa_low, dpa_high, step="mid", alpha=0.15)
+
+        ax.set_ylabel("NRT-dpa/fpy", fontsize=11)
+        ax.set_title(f"NRT-dpa/fpy — {layer_tag}", fontsize=12)
+
+        fig.savefig(outdir / f"dpa_{layer_tag}.png", dpi=300, bbox_inches="tight")
+        plt.close(fig)
+
+    # H production
+    if hprod:
+        h_appm_y = np.zeros(n, dtype=float)
+        h_appm_y_std = np.zeros(n, dtype=float)
+
+        for i, cid in enumerate(cell_ids_layer):
+            cid = int(cid)
+            t = dpa_gas_map.get(cid, None)
+            if t is None:
+                continue
+
+            scores = {str(s) for s in (t.scores or [])}
+            if GAS_SCORES_EXPLICIT.issubset(scores):
+                h_score = "H1-production"
+            elif GAS_SCORES_REACTION.issubset(scores):
+                h_score = "(n,Xp)"
+            else:
+                continue
+
+            f_struct = cell_struct_origin_frac.get(cid, {}) or {}
+            nuclides = list(t.nuclides or [])
+            h1_mean_corr, h1_std_corr = corrected_sum_mean_std_getvalues(
+                t, score=h_score, nuclides=nuclides, f_struct=f_struct
+            )
+
+            denom = float(bm.cell_total_atoms_struct.get(cid, 0.0))
+            if denom > 0.0:
+                factor = neutron_source_rate * s_in_y / denom * 1e6
+                h_appm_y[i] = h1_mean_corr * factor
+                h_appm_y_std[i] = h1_std_corr * factor
+
+        fig, ax = empty_poloidal_plot(x, n)
+        h_appm_y = pad_poloidal_data(h_appm_y)
+        h_appm_y_std = pad_poloidal_data(h_appm_y_std)
+
+        eps_h = 1e-30
+        h_plot = np.clip(h_appm_y, eps_h, None)
+        h_low = np.clip(h_appm_y - h_appm_y_std, eps_h, None)
+        h_high = np.clip(h_appm_y + h_appm_y_std, eps_h, None)
+
+        _apply_scale(ax, h_plot, eps_for_log=eps_h)
+        ax.step(x, h_plot, where="mid", linewidth=2)
+        ax.fill_between(x, h_low, h_high, step="mid", alpha=0.15)
+
+        ax.set_ylabel("H production [appm/fpy]")
+        ax.set_title(f"H production — {layer_tag}")
+        fig.savefig(outdir / f"h1_{layer_tag}.png", dpi=300, bbox_inches="tight")
+        plt.close(fig)
+
+    # He production
+    if heprod:
+        he_appm_y = np.zeros(n, dtype=float)
+        he_appm_y_std = np.zeros(n, dtype=float)
+
+        for i, cid in enumerate(cell_ids_layer):
+            cid = int(cid)
+            t = dpa_gas_map.get(cid, None)
+            if t is None:
+                continue
+
+            scores = {str(s) for s in (t.scores or [])}
+            if GAS_SCORES_EXPLICIT.issubset(scores):
+                he3_score = "He3-production"
+                he4_score = "He4-production"
+            elif GAS_SCORES_REACTION.issubset(scores):
+                he3_score = "(n,X3He)"
+                he4_score = "(n,Xa)"
+            else:
+                continue
+
+            f_struct = cell_struct_origin_frac.get(cid, {}) or {}
+            nuclides = list(t.nuclides or [])
+            he3_mean_corr, he3_std_corr = corrected_sum_mean_std_getvalues(
+                t, score=he3_score, nuclides=nuclides, f_struct=f_struct
+            )
+            he4_mean_corr, he4_std_corr = corrected_sum_mean_std_getvalues(
+                t, score=he4_score, nuclides=nuclides, f_struct=f_struct
+            )
+
+            he_mean_corr = he3_mean_corr + he4_mean_corr
+            he_std_corr = math.sqrt(he3_std_corr ** 2 + he4_std_corr ** 2)
+
+            denom = float(bm.cell_total_atoms_struct.get(cid, 0.0))
+            if denom > 0.0:
+                factor = neutron_source_rate * s_in_y / denom * 1e6
+                he_appm_y[i] = he_mean_corr * factor
+                he_appm_y_std[i] = he_std_corr * factor
+
+        fig, ax = empty_poloidal_plot(x, n)
+        he_appm_y = pad_poloidal_data(he_appm_y)
+        he_appm_y_std = pad_poloidal_data(he_appm_y_std)
+
+        eps_he = 1e-30
+        he_plot = np.clip(he_appm_y, eps_he, None)
+        he_low = np.clip(he_appm_y - he_appm_y_std, eps_he, None)
+        he_high = np.clip(he_appm_y + he_appm_y_std, eps_h, None)
+
+        ax.step(x, he_plot, where="mid", linewidth=2)
+        ax.fill_between(x, he_low, he_high, step="mid", alpha=0.15)
+
+        _apply_scale(ax, he_plot, eps_for_log=eps_he)
+
+        ax.set_ylabel("He production [appm/fpy]")
+        ax.set_title(f"He production — {layer_tag}")
+        fig.savefig(outdir / f"he_{layer_tag}.png", dpi=300, bbox_inches="tight")
+        plt.close(fig)
+
+# =============================================================================
+# Choose which chunks to process
+# =============================================================================
+KEYS_TO_PROCESS = [
+    "OB_1_b6",
+]
+
+# layer poloidal analysis (region 1 only)
+vv_index = -1
+layers = [("Armor", 0), ("First_Wall", 1), ("VV", vv_index)]
+
+# =============================================================================
+# Run
+# =============================================================================
+with openmc.StatePoint(STATEPOINT_FILE) as sp:
+    dpa_gas_map = build_dpa_gas_map(sp)
+    require_struct_maps(bm)
+    DO_ALBEDO = False
+
+    for key in KEYS_TO_PROCESS:
+        if key in ob_by_key:
+            chunk_cells = ob_by_key[key]
+        elif key in ib_by_key:
+            chunk_cells = ib_by_key[key]
+        else:
+            print(f"[warn] Unknown chunk key: {key} (skipping)")
+            continue
+
+        try:
+            xcentroids, widths, x_edges = radial_bins_for_key(key)
+        except KeyError:
+            print(f"[warn] No radial bins found for key={key} (skipping)")
+            continue
+
+        process_chunk(
+            sp, key, chunk_cells, bm.pydagmc_model,
+            dpa_gas_map=dpa_gas_map,
+            xcentroids=xcentroids,
+            xedges=x_edges,
+        )
+
+# ---------------------------------------------------------------------------
+# RS: depletion model
+
+#!/usr/bin/env python3
+"""
+depletion_model.py
+
+Runs:
+  (1) D1S shutdown dose tally for a single breeder chunk (OB_KEY)
+  (2) Depletion microXS + flux (fixed-source, KEEPING surface_source)
+      using Strategy B: set VOID material in every non-target DAGMC cell
+
+Key idea:
+  DAGMCUniverse still contains all DAGMC volume-cells. Even if your wrapper
+  "sector_cell" clips the geometry, OpenMC can still encounter/initialize
+  materials for many DAGMC cells. If any DAGMC cell references a material ID
+  that is not present, you'll get:
+     "Material with ID 'X' not found for DAGMC cell Y"
+  or crashes.
+
+So:
+  - Keep surf_source_read (you said you don't want to remove it)
+  - Force all non-target material-filled DAGMC cells to a known VOID material
+  - Only keep real materials in the 11 OB_1_b6 cells
+"""
+
+# from __future__ import annotations
+
+from pathlib import Path
+import os
+import sys
+
+import numpy as np
+import pandas as pd
+# import matplotlib.pyplot as plt
+
+import openmc
+import openmc.data
+import openmc.deplete
+from openmc.deplete import d1s
+
+import openmc_data_downloader
+
+OB_KEY = "OB_1_b6"
+
+# Chain file (base)
+chain_path = Path("{{ chainPath }}")
+if not chain_path.exists():
+    raise FileNotFoundError(f"Chain file not found: {chain_path}")
+chain = openmc.deplete.Chain.from_xml(str(chain_path))
+
+# Register for both Python-side and OpenMC executable
+openmc.config["chain_file"] = str(chain_path)
+model.settings.depletion = {"chain_file": str(chain_path)}
+
+# -----------------------------------------------------------------------------
+# Build chunk mapping (from JSON), then restrict to cells PRESENT in model
+# -----------------------------------------------------------------------------
+_cells_chunk = build_breeder_chunks(INPUT_JSON, default_equatorial_ob_key=OB_KEY)
+ob_by_key = _cells_chunk["ob_by_key"]
+OB_CHUNK_SIZE = _cells_chunk["OB_CHUNK_SIZE"]
+
+if OB_KEY not in ob_by_key:
+    raise KeyError(f"{OB_KEY} not found in ob_by_key. Available (sample): {list(ob_by_key)[:10]}")
+
+# Cells from JSON mapping
+ob_cells_json = [int(x) for x in ob_by_key[OB_KEY]]
+
+# What cells actually exist in this *reduced* model geometry
+present_cell_ids = set(int(c.id) for c in model.geometry.get_all_cells().values())
+# Restrict to those present
+ob_cells = [cid for cid in ob_cells_json if cid in present_cell_ids]
+
+print(f"[chunk] {OB_KEY}: {len(ob_cells_json)} from JSON, {len(ob_cells)} present in wrapper")
+print(f"[chunk] present ids: {ob_cells}")
+if len(ob_cells) == 0:
+    raise RuntimeError(f"{OB_KEY}: none of the JSON chunk cells are present in model.geometry")
+
+# Radial binning (centroids/widths/edges) for OB_KEY
+centroids_cm, widths_cm, edges_cm = _cells_chunk["radial_bins_for_key"](OB_KEY)
+
+# Sanity checks: binning returns per-layer for one OB chunk
+if len(ob_cells_json) != OB_CHUNK_SIZE:
+    raise ValueError(f"{OB_KEY}: JSON chunk size {len(ob_cells_json)} != OB_CHUNK_SIZE {OB_CHUNK_SIZE}")
+if len(centroids_cm) != OB_CHUNK_SIZE:
+    raise ValueError(f"{OB_KEY}: len(centroids_cm)={len(centroids_cm)} != OB_CHUNK_SIZE={OB_CHUNK_SIZE}")
+
+# Map cell_id -> radial center
+center_by_cell_full = dict(zip(ob_cells_json, map(float, centroids_cm)))
+
+# -----------------------------------------------------------------------------
+# Time grids / source rates
+# -----------------------------------------------------------------------------
+s_to_h = 3600.0
+y_to_s = 24.0 * 365.0 * s_to_h
+to_μSv = 1e-6
+to_mSv = 1e-9
+
+# irradiation (5 years)
+irradiation_time_y = np.array([5.0])
+irradiation_time = (irradiation_time_y * y_to_s).tolist()
+
+# cooling (1e-8 y to 1000 y)
+timesteps_years = np.concatenate([
+    np.logspace(-8, -4, 6),
+    np.logspace(-4,  0, 8)[1:],   # drop 1e-4 duplicate
+    np.logspace( 0,  3, 14)[1:],  # drop 1e0 duplicate
+])
+cooling_times = (timesteps_years * y_to_s).tolist()
+
+timesteps = irradiation_time + cooling_times
+
+SURFACE_SOURCE_POWER_RATIO = 7.171062e-02
+constant_power_ratio = 0.3 * SURFACE_SOURCE_POWER_RATIO
+source_rates = [constant_power_ratio * neutron_source_rate] * len(irradiation_time) + [0.0] * len(cooling_times)
+
+# -----------------------------------------------------------------------------
+# Volumes from DAGMC cells (already synced in neutronics_model.py)
+# -----------------------------------------------------------------------------
+vol_by_cell = {int(cid): float(cell.volume) for cid, cell in all_cells.items() if getattr(cell, "volume", None) is not None}
+
+# -----------------------------------------------------------------------------
+# D1S: Build dose tally for ONLY the present OB cells
+# -----------------------------------------------------------------------------
+dose_cells_all = list(ob_cells)
+cell_filter2 = openmc.CellFilter(dose_cells_all)
+
+# Per-cell volumes for normalization
+vol_by_cell_all = {}
+for cid in dose_cells_all:
+    v = vol_by_cell.get(int(cid), None)
+    if v is None:
+        raise KeyError(f"Missing volume for cell {cid} in vol_by_cell (all_cells).")
+    vol_by_cell_all[int(cid)] = float(v)
+
+# Save the current tallies to restore later
+orig_tallies = [t for t in model.tallies]
+
+# Dose coefficients + tally
+energies, pSv_cm2 = openmc.data.dose_coefficients(particle="photon", geometry="AP")
+dose_filter = openmc.EnergyFunctionFilter(energies, pSv_cm2, interpolation="cubic")
+photon_filter = openmc.ParticleFilter("photon")
+
+dose_tally = openmc.Tally(name="dose tally")
+dose_tally.filters = [dose_filter, photon_filter, cell_filter2]
+dose_tally.scores = ["flux"]
+
+# Use only dose tally for D1S run
+model.tallies = [dose_tally]
+
+# D1S settings
+model.settings.photon_transport = True
+model.settings.use_decay_photons = True
+
+nuclides = d1s.prepare_tallies(model)
+factors = d1s.time_correction_factors(nuclides, timesteps, source_rates)
+
+print("---------------------------")
+print("Performing D1S run")
+print("---------------------------")
+
+statepoint = model.run(output=False, {{ openmcRunArgs }})
+
+with openmc.StatePoint(statepoint) as sp:
+    tally = sp.get_tally(name="dose tally")
+
+corrected_tallies = [d1s.apply_time_correction(tally, factors, i + 1) for i in range(len(timesteps))]
+
+print("Displaying cell dose rates")
+
+profiles = []
+for t_cool, ctally in zip(timesteps[1:], corrected_tallies[1:]):
+    d1s_df = ctally.get_pandas_dataframe()
+
+    if "cell" in d1s_df.columns:
+        cell_col = "cell"
+    elif "cell_id" in d1s_df.columns:
+        cell_col = "cell_id"
+    else:
+        raise KeyError(f"Could not find a cell column in tally dataframe. Columns: {list(d1s_df.columns)}")
+
+    d1s_df["cell_volume"] = d1s_df[cell_col].map(vol_by_cell_all)
+    if d1s_df["cell_volume"].isna().any():
+        missing = d1s_df.loc[d1s_df["cell_volume"].isna(), cell_col].unique().tolist()
+        raise KeyError(f"Missing volumes for cells: {missing}")
+
+    d1s_df["μSv/h"] = d1s_df["mean"] * (s_to_h * to_μSv) / d1s_df["cell_volume"]
+    d1s_df["mSv/h"] = d1s_df["mean"] * (s_to_h * to_mSv) / d1s_df["cell_volume"]
+
+    df_prof = d1s_df[d1s_df[cell_col].isin(dose_cells_all)].copy()
+    df_prof["centers"] = df_prof[cell_col].map(center_by_cell_full)
+
+    if df_prof["centers"].isna().any():
+        missing = df_prof.loc[df_prof["centers"].isna(), cell_col].unique().tolist()
+        raise KeyError(f"Missing centroids for OB cells: {missing}")
+
+    df_prof = df_prof.sort_values("centers")
+    profiles.append({"t_s": float(t_cool), "df": df_prof.copy()})
+
+    print(f"Cooling {t_cool:.3e} s | {OB_KEY} rows={len(df_prof)}")
+
+# Plot a few profiles
+if len(profiles) == 0:
+    raise RuntimeError("profiles is empty: OB rows were never captured.")
+
+ncurves = min(10, len(profiles))
+idxs = np.linspace(0, len(profiles) - 1, ncurves, dtype=int)
+
+plt.figure()
+for i in idxs:
+    t_s_i = profiles[i]["t_s"]
+    dfp = profiles[i]["df"]
+    plt.plot(dfp["centers"], dfp["μSv/h"], label=f"{t_s_i:.1e} s")
+plt.grid()
+plt.yscale("log")
+plt.ylim(1e-6, 1e12)
+plt.ylabel("Shutdown Dose (μSv/h)")
+plt.xlabel("Radial Position [cm]")
+plt.title(f"D1S spatial profile: {OB_KEY}")
+plt.legend()
+plt.savefig(f"sdr_profile_{OB_KEY}.png", dpi=300)
+# plt.show()
+
+
+
+# -----------------------------------------------------------------------------
+# Depletion
+# -----------------------------------------------------------------------------
+print("--------------------------------")
+print("Performing depletion")
+print("--------------------------------")
+# -----------------------------------------------------------------------------
+# 1. Prepare Geometry & Materials
+# -----------------------------------------------------------------------------
+# Differentiate only what is necessary
+model.differentiate_mats("match cell", depletable_only=True)
+
+# Synchronize the model materials after differentiation
+model.materials = openmc.Materials(model.geometry.get_all_materials().values())
+model.materials.download_cross_section_data(
+    libraries=["ENDFB-8.0-NNDC", "ENDFB-7.1-NNDC", "FENDL-3.1d", "TENDL-2019"],
+    destination="/home/vagrant/src/radiasoft/sirepo/run/user/5v93Uhzp/tmp/openmc-cache/",
+)
+
+
+# -----------------------------------------------------------------------------
+# 2. Build Target Lists (Cells 55-66)
+# -----------------------------------------------------------------------------
+target_ids = sorted([int(cid) for cid in ob_cells]) # Ensure sorted order
+deplete_mats = []
+dagmc_cell_ids = [] # Store this alongside materials
+
+all_cells = model.geometry.get_all_cells()
+
+for cid in target_ids:
+    cell = all_cells.get(cid)
+    if cell and isinstance(cell.fill, openmc.Material):
+        mat = cell.fill
+
+        # Ensure volume is set
+        if mat.volume is None:
+            mat.volume = getattr(cell, "volume", None)
+
+        if mat.volume is None:
+            print(f"[Warning] Cell {cid} has no volume assigned. Results will be 0.")
+
+        mat.depletable = True
+
+        deplete_mats.append(mat)
+        dagmc_cell_ids.append(cid)
+
+if not deplete_mats:
+    raise RuntimeError(f"No materials found in cells {target_ids}. Check cell IDs.")
+
+print(f"Targeting {len(deplete_mats)} cells/materials for depletion.")
+
+# -----------------------------------------------------------------------------
+# 3. Chain Reduction & MicroXS
+# -----------------------------------------------------------------------------
+initial_nuclides = model.geometry.get_all_nuclides()
+reduced_chain = chain.reduce(initial_nuclides, level=2)
+reduced_chain.export_to_xml("bluemira_chain.xml")
+
+# Run MicroXS calculation
+fluxes, micros = openmc.deplete.get_microxs_and_flux(
+    model,
+    deplete_mats,
+    chain_file="bluemira_chain.xml",
+    run_kwargs={"output": True} # Threads=1 helps debug SEGV
+)
+
+# -----------------------------------------------------------------------------
+# Operator + Integrator
+# -----------------------------------------------------------------------------
+operator = openmc.deplete.IndependentOperator(
+    deplete_mats,
+    fluxes,
+    micros,
+    chain_file="bluemira_chain.xml",
+    normalization_mode="source-rate",
+)
+operator.output_dir = "r2s/activation"
+
+integrator = openmc.deplete.PredictorIntegrator(
+    operator,
+    timesteps,
+    source_rates=source_rates,
+)
+integrator.integrate()
+
+# -----------------------------------------------------------------------------
+# Post-processing: results + cell-material map
+# -----------------------------------------------------------------------------
+results = openmc.deplete.Results("r2s/activation/depletion_results.h5")
+
+rows = []
+for cid, mat in zip(dagmc_cell_ids, deplete_mats):
+    rows.append({"cell_id": int(cid), "mat_id": int(mat.id), "material_name": mat.name})
+
+Path("r2s/activation").mkdir(parents=True, exist_ok=True)
+df_map = pd.DataFrame(rows)
+df_map.to_csv("r2s/activation/cell_material_map.csv", index=False)
+print("Written r2s/activation/cell_material_map.csv")
+
+print("[done] depletion_model.py finished successfully")
+
+# ---------------------------------------------------------------------------
+# RS: depletion post
+
+# from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, List, Sequence, Tuple, Optional
+from itertools import cycle
+
+import math
+import numpy as np
+import pandas as pd
+
+# import matplotlib.pyplot as plt
+# import matplotlib.ticker as mticker
+import openmc
+import openmc.deplete
+
+# Some reference papers:
+# https://doi.org/10.1016/j.fusengdes.2021.112428
+# https://doi.org/10.1016/j.fusengdes.2021.112338
+# https://iopscience.iop.org/article/10.1088/1741-4326/aca61f
+
+# parameters
+SECONDS_PER_YEAR = 365.25 * 24 * 3600.0
+
+# def generate_colors(n):
+#     """Generates a smooth rainbow gradient of n RGB colors."""
+#     cmap = plt.get_cmap('turbo') # plasma also looks nice
+#     color_range = cmap(np.linspace(1, 0, n))
+#     return color_range
+
+def display_half_life(nuclide):
+  half_life = openmc.data.half_life(nuclide)
+
+  # display in best units for s, h, d, y; this guarantees that each of these will be at minimum
+  # 0.01 in their base units
+  if (half_life < 60): # less than 1 min, display in s
+    return ' ({0:.2f} s)'.format(half_life)
+  elif (half_life < 60*60): # less than 1 hour, display in m
+    return ' ({0:.2f} m)'.format(half_life/(60))
+  elif (half_life < 60*60*24): # less than 1 day, display in h
+    return ' ({0:.2f} h)'.format(half_life / (60*60))
+  elif (half_life < 60*60*24*365/12.): # less than 1 month, display in d
+    return ' ({0:.2f} d)'.format(half_life / (60*60*24))
+  elif (half_life < 60*60*24*365/12*100000): # less than 100000 year, display in y
+    return ' ({0:.2f} y)'.format(half_life / (60*60*24*365/12.))
+  elif (half_life < 60*60*24*365/12*1e6*100): # less than 100 My year, display in My
+    return ' ({0:.2f} My)'.format(half_life / (60*60*24*365/12.*1e6))
+  else:
+    return ' ( > 100 My)'
+    #return ' ({0:.2f} Gy)'.format(half_life / (60*60*24*365/12.*1e9))
+
+# -----------------------------
+# Layer tags
+# -----------------------------
+def make_default_layer_tags(
+    n_breeder_layers: int,
+    include_armor: bool = True,
+    include_fw: bool = True,
+    include_vv: bool = True,
+    breeder_prefix: str = "OB",
+    ) -> List[str]:
+    """
+    Build tags like:
+      Armor, First Wall, OB_1..OB_N, VV
+    where N is provided at runtime.
+
+    Assumes per-chunk ordering:
+      [Armor, FW, breeder_layers..., VV]
+    """
+    tags: List[str] = []
+    if include_armor:
+        tags.append("Armor")
+    if include_fw:
+        tags.append("First Wall")
+
+    tags.extend([f"{breeder_prefix}_{i}" for i in range(1, n_breeder_layers + 1)])
+
+    if include_vv:
+        tags.append("VV")
+    return tags
+
+def build_cell_id_to_name(
+    cell_ids: Sequence[int],
+    layer_tags: Optional[Sequence[str]] = None,
+    chunk_key: Optional[str] = None,
+    ) -> Dict[int, str]:
+    """
+    Map each cell_id to human-friendly region name.
+    If tags mismatch, fall back to Layer_00-style names.
+    """
+    if layer_tags is not None and len(layer_tags) == len(cell_ids):
+        return {cid: str(layer_tags[i]) for i, cid in enumerate(cell_ids)}
+
+    prefix = f"{chunk_key}_" if chunk_key else ""
+    return {cid: f"{prefix}Layer_{i:02d}" for i, cid in enumerate(cell_ids)}
+
+# -----------------------------
+# Results I/O + mapping
+# -----------------------------
+# @dataclass(frozen=True)
+# class DepletionMapping:
+#     cell_to_mat: Dict[int, str]            # cell_id -> mat_id (string)
+#     cells_by_mat: Dict[str, List[int]]     # mat_id -> [cell_id, ...]
+#     mat_id_to_name: Dict[str, str]         # mat_id -> name
+#     vol_by_mat: Dict[str, float]           # mat_id -> volume (from results[0].volume)
+
+def load_depletion_mapping(
+    results: openmc.deplete.Results,
+    map_csv: str | Path = "r2s/activation/cell_material_map.csv",
+    ):
+    """
+    Loads r2s/activation/cell_material_map.csv and volumes from step0.
+    """
+    map_df = pd.read_csv(str(map_csv))
+    map_df["mat_id"] = map_df["mat_id"].astype(str)
+
+    cell_to_mat = dict(zip(map_df["cell_id"], map_df["mat_id"]))
+    cells_by_mat = map_df.groupby("mat_id")["cell_id"].apply(list).to_dict()
+    mat_id_to_name = map_df.groupby("mat_id")["material_name"].first().to_dict()
+
+    step0 = results[0]
+    vol_by_mat = step0.volume  # dict-like: mat_id(str) -> volume
+
+    return PKDict(
+        cell_to_mat=cell_to_mat,
+        cells_by_mat=cells_by_mat,
+        mat_id_to_name=mat_id_to_name,
+        vol_by_mat=vol_by_mat,
+    )
+
+def ensure_chunk_outdir(base_out_dir: str | Path, chunk_key: str) -> Path:
+    out = Path(base_out_dir) / chunk_key
+    out.mkdir(parents=True, exist_ok=True)
+    return out
+
+# -----------------------------
+# Time utilities
+# -----------------------------
+def shutdown_index_from_source_rates(source_rates: np.ndarray, n_steps: int) -> int:
+    """
+    source_rates length = number of intervals.
+    results times length = n_steps.
+    End-of-irradiation 'state' index = last non-zero interval + 1.
+    """
+    irr_intervals = np.where(source_rates > 0.0)[0]
+    if irr_intervals.size == 0:
+        return 0
+    idx = int(irr_intervals[-1] + 1)
+    return min(idx, n_steps - 1)
+
+# ============================================================
+# Formatting helpers
+# ============================================================
+_MARKERS = ["o", "s", "^", "D", "v", "P", "X", "<", ">", "h"]
+#_LINESTYLES = ["-", "--", ":", "-."]
+_LINESTYLES = ["-"]
+
+def _style_cycle(reset: bool = True):
+    """Return new independent cycles so each plot starts consistent."""
+    m = cycle(_MARKERS)
+    ls = cycle(_LINESTYLES)
+    return m, ls
+
+def _finalize_legend(ax, *, ncol: int = 2, fontsize: int = 8, title: str = ""):
+    """Sorted, multi-column, outside legend."""
+    # handles, labels = ax.get_legend_handles_labels()
+    # if not handles:
+    #     return
+
+    # order = np.argsort(labels)
+    # handles = [handles[i] for i in order]
+    # labels = [labels[i] for i in order]
+
+    # ax.legend(
+    #     handles,
+    #     labels,
+    #     title=title,
+    #     fontsize=fontsize,
+    #     loc="center left",
+    #     bbox_to_anchor=(1.02, 0.5),
+    #     ncol=ncol,
+    #     frameon=False,
+    #     borderaxespad=0.0,
+    #     handlelength=2.0,
+    #     columnspacing=1.0,
+    #     labelspacing=0.4,
+    # )
+    pass
+
+def _format_log_axes(ax):
+    """Cleaner log grid and ticks."""
+    ax.grid(True, which="major", linewidth=0.8, alpha=0.35)
+    ax.grid(True, which="minor", linewidth=0.5, alpha=0.15)
+
+    # ax.xaxis.set_minor_locator(mticker.LogLocator(base=10, subs=np.arange(2, 10) * 0.1))
+    # ax.yaxis.set_minor_locator(mticker.LogLocator(base=10, subs=np.arange(2, 10) * 0.1))
+    # ax.xaxis.set_minor_formatter(mticker.NullFormatter())
+    # ax.yaxis.set_minor_formatter(mticker.NullFormatter())
+
+def _has_positive_finite(y: np.ndarray) -> bool:
+    y = np.asarray(y, dtype=float)
+    return bool(np.any(np.isfinite(y) & (y > 0.0)))
+
+def _ymin_from_topn_edge(global_min_topn_edge: float) -> Optional[float]:
+    try:
+        v = float(global_min_topn_edge)
+    except Exception:
+        return None
+    if not np.isfinite(v) or v <= 0.0:
+        return None
+    return 0.1 * v
+
+def _select_topn(
+    sorted_items: list[tuple[str, float]]
+    ) -> list[tuple[str, float]]:
+    """
+    For a given step, we add nuclides to plot until the next incremental percent of
+    total activity to show is below 5% of the total. This limits the number of nuclides
+    plotted and is more robust than simply plotting the top 95% of nuclides because in
+    short cooling times, there's dozens of nuclides which contribute to the total activity,
+    which would result in way too many nuclides to plot.
+    """
+
+    total = 0.0
+    for i in range(len(sorted_items)):
+      total += float(sorted_items[i][1])
+
+    running_total = 0.0
+    prev_running_total = 0.0
+    index = 0
+    for i in range(len(sorted_items)):
+      prev_running_total = running_total
+      running_total += float(sorted_items[i][1])
+
+      # could have just a single very strong nuclide
+      if (i == 0 and running_total / total >= 0.99):
+        index = i
+        break
+
+      # otherwise, compare the gain
+      if ((running_total - prev_running_total) / total <= 0.05):
+        index = i
+        break
+
+    return sorted_items[:i]
+
+def _select(dict_list, n_steps):
+    # selections per step; first, loop through all the time steps to find the top nuclides
+    # on each given step. Then, we take the union of these and then obtain the data to
+    # plot on each step by writing that nuclide for all time steps
+    topn_list_by_step: list[list[tuple[str, float]]] = [[] for _ in range(n_steps)]
+    top_nucs_union: set[str] = set()
+
+    for istep in range(n_steps):
+        d = dict_list[istep] or {}
+        if not d:
+            continue
+
+        step_sorted = sorted(d.items(), key=lambda x: x[1], reverse=True)
+        for nuc, _ in _select_topn(step_sorted):
+            top_nucs_union.add(nuc)
+
+    for istep in range(n_steps):
+        d = dict_list[istep] or {}
+        if not d:
+            continue
+
+        step_sorted = sorted(d.items(), key=lambda x: x[1], reverse=True)
+        selected = []
+        for s in step_sorted:
+          if (s[0] in top_nucs_union):
+            selected.append(s)
+
+        topn_list_by_step[istep] = selected
+
+    return topn_list_by_step, top_nucs_union
+
+def _add_time_reference_lines(ax):
+    """Useful reference lines (x-axis in years)."""
+
+    SEC_PER_YEAR = 365.0 * 24.0 * 3600.0
+    MIN_PER_YEAR = 365.0 * 24.0 * 60
+    HOUR_PER_YEAR = 365.0 * 24.0
+    WEEK_PER_YEAR = 52
+    DAY_PER_YEAR = 365.0
+    MONTH_PER_YEAR = 12.0
+
+    refs = [
+        (1.0 / SEC_PER_YEAR,   "1 s"),
+        (1.0 / MIN_PER_YEAR,   "1 m"),
+        (1.0 / HOUR_PER_YEAR,  "1 h"),
+        (1.0 / WEEK_PER_YEAR,  "1 w"),
+        (1.0 / DAY_PER_YEAR,   "1 d"),
+        (1.0 / MONTH_PER_YEAR, "4 w"),
+        (1.0,                 "1 y"),
+        (10.0,                "10 y"),
+        (100.0,               "100 y"),
+        (1000.0,              "1000 y"),
+    ]
+
+    # for x, txt in refs:
+    #     ax.axvline(x, color="gray", linestyle="--", linewidth=1, alpha=0.6)
+    #     ax.text(
+    #         x,
+    #         0.98,
+    #         txt,
+    #         transform=ax.get_xaxis_transform(),
+    #         rotation=90,
+    #         va="top",
+    #         ha="right",
+    #         fontsize=8,
+    #         alpha=0.8,
+    #     )
+
+# ============================================================
+# Activity
+# ============================================================
+def plot_activity_nuclides_per_cell(
+    results: openmc.deplete.Results,
+    mapping,
+    cell_ids: Sequence[int],
+    cell_id_to_name: Dict[int, str],
+    out_dir: Path,
+    *,
+    idx_shutdown: int,
+    top_n: int = 5,
+    activity_units: str = "Bq/kg",      # "Bq/kg" or "Bq"
+    similarity_threshold: float = 0.10, # 10%
+    print_similarity: bool = True,
+    ) -> Tuple[Dict[int, Tuple[np.ndarray, np.ndarray]], float]:
+    """
+    Returns:
+      total_activity_all[cid] = (t_rel_years, total_activity_in_units)
+    """
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    total_activity_all: Dict[int, Tuple[np.ndarray, np.ndarray]] = {}
+    global_min_topn_edge = np.inf
+
+    for cid in cell_ids:
+        if cid not in mapping.cell_to_mat:
+            print(f"[Activity] WARNING: cell {cid} not found in map; skipping.")
+            continue
+
+        mat_id = str(mapping.cell_to_mat[cid])
+        if mat_id not in mapping.vol_by_mat:
+            print(f"[Activity] WARNING: mat_id {mat_id} missing volume; skipping cell {cid}.")
+            continue
+
+        vol = mapping.vol_by_mat[mat_id]
+
+        # Total activity
+        _, total_act = results.get_activity(mat=mat_id, by_nuclide=False, units=activity_units, volume=vol)
+
+        # Per-nuclide activity
+        time_nuc, act_dict_list = results.get_activity(mat=mat_id, by_nuclide=True, units=activity_units, volume=vol)
+
+        time_grid = np.asarray(time_nuc, dtype=float)
+        n_steps = len(time_grid)
+
+        if not (0 <= int(idx_shutdown) < n_steps):
+            raise ValueError(f"[Activity] idx_shutdown={idx_shutdown} out of bounds for n_steps={n_steps}")
+
+        total_act = np.asarray(total_act, dtype=float)
+        if len(total_act) != n_steps:
+            raise ValueError(
+                f"[Activity] Time grid mismatch total vs nuclide activity "
+                f"(len(total_act)={len(total_act)} vs n_steps={n_steps}) for cell {cid}, mat {mat_id}."
+            )
+
+        t_rel = time_grid - time_grid[int(idx_shutdown)]
+        mask = t_rel > 0.0
+
+        t_rel_plot = (t_rel[mask] / SECONDS_PER_YEAR).astype(float)
+        total_act_plot = total_act[mask]
+        total_activity_all[cid] = (t_rel_plot, total_act_plot)
+
+        topn_list_by_step, top_nucs_union = _select(act_dict_list, n_steps)
+        top_nucs = sorted(top_nucs_union)
+
+        nuc_series: Dict[str, np.ndarray] = {nuc: np.full(n_steps, np.nan, dtype=float) for nuc in top_nucs}
+        others_series = np.full(n_steps, np.nan, dtype=float)
+
+        for istep in range(n_steps):
+            d = act_dict_list[istep] or {}
+            if not d:
+                continue
+
+            sel = topn_list_by_step[istep]
+            top_sum = 0.0
+            for nuc, val in sel:
+                nuc_series[nuc][istep] = float(val)
+                top_sum += float(val)
+
+            tot_val = float(total_act[istep])
+            others_series[istep] = max(0.0, tot_val - top_sum)
+
+        def _mask(arr: np.ndarray) -> np.ndarray:
+            return np.asarray(arr, dtype=float)[mask]
+
+        others_plot = _mask(others_series)
+
+        # Plot per-cell breakdown
+        fig, ax = plt.subplots(figsize=(11, 6))
+        mcycle, lscycle = _style_cycle()
+
+        # Nuclides (markers + varied linestyles)
+        halflife_list = [openmc.data.half_life(i) for i in top_nucs]
+        nuclide_list = top_nucs
+        sorted_halflife_list, sorted_nuclide_list = zip(*sorted(zip(halflife_list, nuclide_list)))
+        colors = list(range(len(top_nucs)))
+
+        for i, nuc in enumerate(top_nucs):
+            vals_plot = _mask(nuc_series[nuc])
+            if not _has_positive_finite(vals_plot):
+                continue
+
+            ax.loglog(
+                t_rel_plot,
+                vals_plot,
+                label=nuc + display_half_life(nuc),
+                color=colors[sorted_nuclide_list.index(nuc) % len(colors)],
+                marker=next(mcycle),
+                linestyle=next(lscycle),
+                markersize=3,
+                linewidth=1.3,
+            )
+
+        # Others
+        if _has_positive_finite(others_plot):
+            ax.loglog(t_rel_plot, others_plot, label="Others", linewidth=2.0, color='black', linestyle='--')
+
+        # Total
+        if _has_positive_finite(total_act_plot):
+            ax.loglog(t_rel_plot, total_act_plot, color="black", linewidth=2.0, label="Total", zorder=10)
+
+        region = cell_id_to_name.get(cid, str(cid))
+        ax.set_xlabel("Time after irradiation [years]")
+        ax.set_ylabel(f"Activity [{activity_units}]")
+        ax.set_title(f"Activity — {region} (mat {mat_id})")
+
+        _add_time_reference_lines(ax)
+        _format_log_axes(ax)
+
+        # y-min cutoff; cut off at 1 order of magnitude below the other activity and 1 order of magnitude
+        # above the total activity (rounded to powers of 10)
+        ax.set_ylim([10 ** math.floor(math.log10(np.min(others_plot))), 10 ** math.ceil(math.log10(np.max(total_act_plot)))])
+
+        # Legend
+        # n_entries = len(ax.get_legend_handles_labels()[1])
+        # ncol = 2 if n_entries <= 24 else 3
+        # _finalize_legend(ax, ncol=ncol, title="Components", fontsize=8)
+
+        fig.subplots_adjust(right=0.72)
+        safe_region = str(region).replace(" ", "_").replace("/", "_")
+        fig.savefig(out_dir / f"activity_cell_{safe_region}.png", dpi=200, bbox_inches="tight")
+        plt.close(fig)
+
+    if not np.isfinite(global_min_topn_edge):
+        global_min_topn_edge = 0.0
+
+    return total_activity_all, float(global_min_topn_edge)
+
+def plot_activity_all_cells(
+    total_activity_all: Dict[int, Tuple[np.ndarray, np.ndarray]],
+    cell_id_to_name: Dict[int, str],
+    out_dir: Path,
+    *,
+    activity_units: str = "Bq/kg",
+    global_min_topn_edge: float = 0.0,
+    ):
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    fig, ax = plt.subplots(figsize=(11, 6))
+    mcycle, lscycle = _style_cycle()
+
+    num_cells = max(1, len(total_activity_all))
+    colors = list(range(20))
+
+    ymax = 0.0
+    for i, (cid, (t_rel_y, y)) in enumerate(total_activity_all.items()):
+        region = cell_id_to_name.get(cid, str(cid))
+        yy = np.asarray(y, float)
+        if yy.size:
+            ymax = max(ymax, float(np.nanmax(yy)))
+
+        ax.loglog(
+            t_rel_y,
+            yy,
+            label=region,
+            color=colors[i % len(colors)],
+            marker=next(mcycle),
+            linestyle=next(lscycle),
+            markersize=3.5,
+            linewidth=1.1,
+        )
+
+    ax.set_xlabel("Time after irradiation [years]")
+    ax.set_ylabel(f"Activity [{activity_units}]")
+    ax.set_title("Total Activity over cooling time")
+
+    _add_time_reference_lines(ax)
+    _format_log_axes(ax)
+
+    ymin = _ymin_from_topn_edge(global_min_topn_edge)
+    if ymin is not None and ymax > 0.0:
+        ax.set_ylim(ymin, 10.0 * ymax)
+
+    # n_entries = len(ax.get_legend_handles_labels()[1])
+    # ncol = 2 if n_entries <= 24 else 3
+    # _finalize_legend(ax, ncol=ncol, title="Regions", fontsize=8)
+
+    fig.subplots_adjust(right=0.72)
+    fig.savefig(out_dir / "activity_all_cells.png", dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+def plot_activity_radial_profiles(
+    total_activity_all: Dict[int, Tuple[np.ndarray, np.ndarray]],
+    cell_ids: Sequence[int],
+    xcentroids: Sequence[float],
+    out_dir: Path,
+    *,
+    idx_to_plot: Sequence[int] = (0, 3, 6, 9, 12, 15),
+    activity_units: str = "Bq/kg",
+    global_min_topn_edge: float = 0.0,
+    ):
+    if not cell_ids:
+        return
+
+    ref_cid = next((cid for cid in cell_ids if cid in total_activity_all), None)
+    if ref_cid is None:
+        return
+
+    t_rel_y, _ = total_activity_all[ref_cid]
+    n_times = len(t_rel_y)
+
+    idx_to_plot = [int(i) for i in idx_to_plot if int(i) < n_times]
+    if not idx_to_plot:
+        return
+
+    x = np.asarray(xcentroids, dtype=float)
+    n_cells = len(cell_ids)
+    radial = np.full((n_cells, n_times), np.nan, dtype=float)
+
+    ymax = 0.0
+    for i, cid in enumerate(cell_ids):
+        if cid not in total_activity_all:
+            continue
+        _, act = total_activity_all[cid]
+        radial[i, :] = np.asarray(act, dtype=float)
+        if np.asarray(act).size:
+            ymax = max(ymax, float(np.nanmax(act)))
+
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    mcycle, lscycle = _style_cycle()
+
+    colors = list(range(20))
+
+    for k, j in enumerate(idx_to_plot):
+        y = radial[:, j]
+        ax.semilogy(
+            x,
+            y,
+            label=f"t = {t_rel_y[j]:.2e} y",
+            color=colors[k % len(colors)],
+            marker=next(mcycle),
+            linestyle=next(lscycle),
+            markersize=4,
+            linewidth=1.5,
+        )
+
+    ax.set_xlabel("Radial position [cm]")
+    ax.set_ylabel(f"Total activity [{activity_units}]")
+    ax.set_title("Radial profile of Total activity per cooling time")
+
+    ax.grid(True, which="major", linewidth=0.8, alpha=0.35)
+    ax.grid(True, which="minor", linewidth=0.5, alpha=0.15)
+
+    ymin = _ymin_from_topn_edge(global_min_topn_edge)
+    if ymin is not None and ymax > 0.0:
+        ax.set_ylim(ymin, 10.0 * ymax)
+
+    # n_entries = len(ax.get_legend_handles_labels()[1])
+    # ncol = 1 if n_entries <= 12 else 2
+    # _finalize_legend(ax, ncol=ncol, title="Timesteps", fontsize=8)
+
+    fig.subplots_adjust(right=0.76)
+    fig.savefig(out_dir / "radial_activity_profiles.png", dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+# ============================================================
+# Decay heat
+# ============================================================
+def plot_decayheat_nuclides_per_cell(
+    results: openmc.deplete.Results,
+    mapping,
+    cell_ids: Sequence[int],
+    cell_id_to_name: Dict[int, str],
+    out_dir: Path,
+    *,
+    idx_shutdown: int,
+    top_n: int = 10,
+    decayheat_units: str = "W/cm3",
+    similarity_threshold: float = 0.10,
+    print_similarity: bool = True,
+    ) -> Tuple[Dict[int, Tuple[np.ndarray, np.ndarray]], float, float]:
+    """
+    Returns:
+      total_heat_all[cid] = (t_rel_years, total_heat_in_units)
+      max_decay_comb = global max for y-max scaling
+    """
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    total_heat_all: Dict[int, Tuple[np.ndarray, np.ndarray]] = {}
+    max_decay_comb = 0.0
+    global_min_topn_edge = np.inf
+
+    for cid in cell_ids:
+        if cid not in mapping.cell_to_mat:
+            print(f"[DecayHeat] WARNING: cell {cid} not found in map; skipping.")
+            continue
+
+        mat_id = str(mapping.cell_to_mat[cid])
+        if mat_id not in mapping.vol_by_mat:
+            print(f"[DecayHeat] WARNING: mat_id {mat_id} missing volume; skipping cell {cid}.")
+            continue
+
+        vol = mapping.vol_by_mat[mat_id]
+
+        _, total_h = results.get_decay_heat(mat=mat_id, by_nuclide=False, units=decayheat_units, volume=vol)
+        time_nuc_h, heat_dict_list = results.get_decay_heat(mat=mat_id, by_nuclide=True, units=decayheat_units, volume=vol)
+
+        time_grid = np.asarray(time_nuc_h, dtype=float)
+        n_steps = len(time_grid)
+
+        if not (0 <= int(idx_shutdown) < n_steps):
+            raise ValueError(f"[DecayHeat] idx_shutdown={idx_shutdown} out of bounds for n_steps={n_steps}")
+
+        total_h = np.asarray(total_h, dtype=float)
+        if len(total_h) != n_steps:
+            raise ValueError(
+                f"[DecayHeat] Time grid mismatch total vs nuclide heat "
+                f"(len(total_h)={len(total_h)} vs n_steps={n_steps}) for cell {cid}, mat {mat_id}."
+            )
+
+        t_rel = time_grid - time_grid[int(idx_shutdown)]
+        mask = t_rel > 0.0
+
+        t_rel_plot = (t_rel[mask] / SECONDS_PER_YEAR).astype(float)
+        total_h_plot = total_h[mask]
+        total_heat_all[cid] = (t_rel_plot, total_h_plot)
+
+        if total_h_plot.size and np.nanmax(total_h_plot) > 0.0:
+            max_decay_comb = max(max_decay_comb, float(np.nanmax(total_h_plot)))
+
+        topn_list_by_step, top_nucs_union = _select(heat_dict_list, n_steps)
+        top_nucs = sorted(top_nucs_union)
+
+        nuc_series: Dict[str, np.ndarray] = {nuc: np.full(n_steps, np.nan, dtype=float) for nuc in top_nucs}
+        others_series = np.full(n_steps, np.nan, dtype=float)
+
+        for istep in range(n_steps):
+            d = heat_dict_list[istep] or {}
+            if not d:
+                continue
+
+            sel = topn_list_by_step[istep]
+            top_sum = 0.0
+            for nuc, val in sel:
+                nuc_series[nuc][istep] = float(val)
+                top_sum += float(val)
+
+            tot_val = float(total_h[istep])
+            others_series[istep] = max(0.0, tot_val - top_sum)
+
+        def _mask(arr: np.ndarray) -> np.ndarray:
+            return np.asarray(arr, dtype=float)[mask]
+
+        others_plot = _mask(others_series)
+
+        # Plot per-cell breakdown (formatting 1,2,3)
+        fig, ax = plt.subplots(figsize=(11, 6))
+        mcycle, lscycle = _style_cycle()
+
+        # form a color scale based on the half lives
+        halflife_list = [openmc.data.half_life(i) for i in top_nucs]
+        nuclide_list = top_nucs
+        sorted_halflife_list, sorted_nuclide_list = zip(*sorted(zip(halflife_list, nuclide_list)))
+        colors = list(range(len(top_nucs)))
+
+        for i, nuc in enumerate(top_nucs):
+            vals_plot = _mask(nuc_series[nuc])
+            if not _has_positive_finite(vals_plot):
+                continue
+
+            ax.loglog(
+                t_rel_plot,
+                vals_plot,
+                label=nuc + display_half_life(nuc),
+                color=colors[sorted_nuclide_list.index(nuc) % len(colors)],
+                marker=next(mcycle),
+                linestyle=next(lscycle),
+                markersize=3,
+                linewidth=1.3,
+            )
+
+        if _has_positive_finite(others_plot):
+            ax.loglog(t_rel_plot, others_plot, label="Others", linewidth=2.0, color='black', linestyle='--')
+
+        if _has_positive_finite(total_h_plot):
+            ax.loglog(t_rel_plot, total_h_plot, color="black", linewidth=3.0, label="Total", zorder=10)
+
+        region = cell_id_to_name.get(cid, str(cid))
+        ax.set_xlabel("Time after irradiation [years]")
+        ax.set_ylabel(f"Decay heat [{decayheat_units}]")
+        ax.set_title(f"Decay heat — {region} (mat {mat_id})")
+
+        # y-min cutoff; cut off at 1 order of magnitude below the other decay heat and 1 order of magnitude
+        # above the total decay heat (rounded to powers of 10)
+        ax.set_ylim([10 ** math.floor(math.log10(np.min(others_plot))), 10 ** math.ceil(math.log10(np.max(total_h_plot)))])
+
+        _add_time_reference_lines(ax)
+        _format_log_axes(ax)
+
+        if total_h_plot.size and np.nanmax(total_h_plot) > 0.0:
+            ymax = float(np.nanmax(total_h_plot))
+            ymin = _ymin_from_topn_edge(global_min_topn_edge)
+            ax.set_xlim(1e-8, 2e3)
+            if ymin is not None:
+                ax.set_ylim(ymin, 10.0 * ymax)
+
+        # n_entries = len(ax.get_legend_handles_labels()[1])
+        # ncol = 2 if n_entries <= 24 else 3
+        # _finalize_legend(ax, ncol=ncol, title="Components", fontsize=8)
+
+        fig.subplots_adjust(right=0.72)
+        safe_region = str(region).replace(" ", "_").replace("/", "_")
+        fig.savefig(out_dir / f"decayheat_{safe_region}.png", dpi=200, bbox_inches="tight")
+        plt.close(fig)
+
+    if not np.isfinite(global_min_topn_edge):
+        global_min_topn_edge = 0.0
+
+    return total_heat_all, float(max_decay_comb), float(global_min_topn_edge)
+
+def plot_decayheat_all_cells(
+    total_heat_all: Dict[int, Tuple[np.ndarray, np.ndarray]],
+    cell_id_to_name: Dict[int, str],
+    max_decay_comb: float,
+    out_dir: Path,
+    *,
+    decayheat_units: str = "W/cm3",
+    global_min_topn_edge: float = 0.0,
+    ):
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    fig, ax = plt.subplots(figsize=(11, 6))
+    mcycle, lscycle = _style_cycle()
+
+    num_cells = max(1, len(total_heat_all))
+    colors = list(range(20))
+
+    for i, (cid, (t_rel_y, y)) in enumerate(total_heat_all.items()):
+        region = cell_id_to_name.get(cid, str(cid))
+        yy = np.asarray(y, float)
+        ax.loglog(
+            t_rel_y,
+            yy,
+            label=region,
+            color=colors[i % len(colors)],
+            marker=next(mcycle),
+            linestyle=next(lscycle),
+            markersize=3.5,
+            linewidth=1.1,
+        )
+
+    ax.set_xlabel("Time after irradiation [years]")
+    ax.set_ylabel(f"Decay heat [{decayheat_units}]")
+    ax.set_title("Total decay heat")
+
+    _add_time_reference_lines(ax)
+    _format_log_axes(ax)
+
+    ax.set_xlim(1e-8, 2e3)
+    ymin = _ymin_from_topn_edge(global_min_topn_edge)
+    if max_decay_comb > 0 and ymin is not None:
+        ax.set_ylim(ymin, 10.0 * max_decay_comb)
+
+    # n_entries = len(ax.get_legend_handles_labels()[1])
+    # ncol = 2 if n_entries <= 24 else 3
+    # _finalize_legend(ax, ncol=ncol, title="Regions", fontsize=8)
+
+    fig.subplots_adjust(right=0.72)
+    fig.savefig(out_dir / "decayheat_all_cells.png", dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+def plot_decayheat_radial_profiles(
+    total_heat_all: Dict[int, Tuple[np.ndarray, np.ndarray]],
+    cell_ids: Sequence[int],
+    xcentroids: Sequence[float],
+    out_dir: Path,
+    *,
+    idx_to_plot: Sequence[int] = (0, 3, 6, 9, 12, 15),
+    decayheat_units: str = "W/cm3",
+    global_min_topn_edge: float = 0.0,
+    max_decay_comb: float = 0.0,
+    ):
+    if not cell_ids:
+        return
+
+    ref_cid = next((cid for cid in cell_ids if cid in total_heat_all), None)
+    if ref_cid is None:
+        return
+
+    t_rel_y, _ = total_heat_all[ref_cid]
+    n_times = len(t_rel_y)
+
+    idx_to_plot = [int(i) for i in idx_to_plot if int(i) < n_times]
+    if not idx_to_plot:
+        return
+
+    x = np.asarray(xcentroids, dtype=float)
+    n_cells = len(cell_ids)
+    radial = np.full((n_cells, n_times), np.nan, dtype=float)
+
+    for i, cid in enumerate(cell_ids):
+        if cid not in total_heat_all:
+            continue
+        _, h = total_heat_all[cid]
+        radial[i, :] = np.asarray(h, dtype=float)
+
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    mcycle, lscycle = _style_cycle()
+    colors = list(range(20))
+
+    for k, j in enumerate(idx_to_plot):
+        y = radial[:, j]
+        ax.semilogy(
+            x,
+            y,
+            label=f"t = {t_rel_y[j]:.2e} y",
+            color=colors[k % len(colors)],
+            marker=next(mcycle),
+            linestyle=next(lscycle),
+            markersize=4,
+            linewidth=1.5,
+        )
+
+    ax.set_xlabel("Radial position [cm]")
+    ax.set_ylabel(f"Decay heat [{decayheat_units}]")
+    ax.set_title("Radial profile of decay heat per cooling time")
+    ax.grid(True, which="major", linewidth=0.8, alpha=0.35)
+    ax.grid(True, which="minor", linewidth=0.5, alpha=0.15)
+
+    ymin = _ymin_from_topn_edge(global_min_topn_edge)
+    if max_decay_comb > 0 and ymin is not None:
+        ax.set_ylim(ymin, 10.0 * max_decay_comb)
+
+    # n_entries = len(ax.get_legend_handles_labels()[1])
+    # ncol = 1 if n_entries <= 12 else 2
+    # _finalize_legend(ax, ncol=ncol, title="Timesteps", fontsize=8)
+
+    fig.subplots_adjust(right=0.76)
+    fig.savefig(out_dir / "radial_decayheat_profiles.png", dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+# ============================================================
+# Chunk postprocessing
+# ============================================================
+def run_chunk_postprocess(
+    results: openmc.deplete.Results,
+    chunks: Dict[str, Sequence[int]],
+    *,
+    base_out_dir: str | Path = "./depletion_results",
+    xcentroids_by_chunk: Optional[Dict[str, Sequence[float]]] = None,
+    layer_tags_by_chunk: Optional[Dict[str, Sequence[str]]] = None,
+    source_rates: Optional[np.ndarray] = None,
+    idx_shutdown: Optional[int] = None,
+    activity_units: str = "Bq/kg",
+    decayheat_units: str = "W/cm3",
+    activity_top_n: int = 5,
+    decayheat_top_n: int = 5,
+    similarity_threshold: float = 0.10,
+    idx_to_plot: Sequence[int] = (0, 4, 8, 12, 16, 20),
+    ):
+    if xcentroids_by_chunk is None:
+        xcentroids_by_chunk = {}
+    if layer_tags_by_chunk is None:
+        layer_tags_by_chunk = {}
+
+    # Shutdown index once
+    if idx_shutdown is None:
+        if source_rates is None:
+            source_rates = results.get_source_rates()
+        times = results.get_times()
+        idx_shutdown = shutdown_index_from_source_rates(source_rates, n_steps=len(times))
+
+    mapping = load_depletion_mapping(results)
+
+    for chunk_key, cell_ids in chunks.items():
+        cell_ids = list(cell_ids)
+        if not cell_ids:
+            continue
+
+        #out_dir = ensure_chunk_outdir(base_out_dir, chunk_key)
+        out_dir = Path('.')
+
+        cell_id_to_name = build_cell_id_to_name(
+            cell_ids,
+            layer_tags=layer_tags_by_chunk.get(chunk_key, None),
+            chunk_key=chunk_key,
+        )
+
+        if chunk_key in xcentroids_by_chunk and len(xcentroids_by_chunk[chunk_key]) == len(cell_ids):
+            x = xcentroids_by_chunk[chunk_key]
+        else:
+            x = np.arange(len(cell_ids), dtype=float)
+
+        #  Activity
+        total_activity_all, act_min_topn_edge = plot_activity_nuclides_per_cell(
+            results, mapping, cell_ids, cell_id_to_name,
+            out_dir=out_dir,
+            idx_shutdown=int(idx_shutdown),
+            top_n=activity_top_n,
+            activity_units=activity_units,
+            similarity_threshold=similarity_threshold,
+        )
+        plot_activity_all_cells(
+            total_activity_all, cell_id_to_name,
+            out_dir=out_dir,
+            activity_units=activity_units,
+            global_min_topn_edge=act_min_topn_edge,
+        )
+        plot_activity_radial_profiles(
+            total_activity_all, cell_ids, x,
+            out_dir=out_dir,
+            idx_to_plot=idx_to_plot,
+            activity_units=activity_units,
+            global_min_topn_edge=act_min_topn_edge,
+        )
+
+        # Decay heat
+        total_heat_all, max_decay_comb, dh_min_topn_edge = plot_decayheat_nuclides_per_cell(
+            results, mapping, cell_ids, cell_id_to_name,
+            out_dir=out_dir,
+            idx_shutdown=int(idx_shutdown),
+            top_n=decayheat_top_n,
+            decayheat_units=decayheat_units,
+            similarity_threshold=similarity_threshold,
+        )
+        plot_decayheat_all_cells(
+            total_heat_all, cell_id_to_name,
+            max_decay_comb=max_decay_comb,
+            out_dir=out_dir,
+            decayheat_units=decayheat_units,
+            global_min_topn_edge=dh_min_topn_edge,
+        )
+        plot_decayheat_radial_profiles(
+            total_heat_all, cell_ids, x,
+            out_dir=out_dir,
+            idx_to_plot=idx_to_plot,
+            decayheat_units=decayheat_units,
+            global_min_topn_edge=dh_min_topn_edge,
+            max_decay_comb=max_decay_comb,
+        )
+
+        print(f"[DONE] {chunk_key} -> {out_dir}")
+
+        
+# ============================================================
+# Run
+# ============================================================
+if True:
+    CHAIN_FILE = Path("{{ chainPath }}")
+    if not CHAIN_FILE.exists():
+        raise FileNotFoundError(f"Chain file not found: {CHAIN_FILE}")
+    openmc.config["chain_file"] = str(CHAIN_FILE)
+
+    results = openmc.deplete.Results("r2s/activation/depletion_results.h5")
+
+    # To be updated:
+    xcentroids_ob = (0.1, 1.1, 6.0, 15.0, 25.0, 35.0, 45.0, 55.0, 65.0, 84.4, 156.0)
+    xcentroids_ib = (0.1, 1.1, 6.0, 15.0, 25.0, 35.0, 45.0, 55.0, 65.0, 73.8, 108.0)
+
+    #from neutronics_model import build_breeder_chunks
+
+    OB_KEY = "OB_1_b6"
+
+    _cells_chunk = build_breeder_chunks(INPUT_JSON, default_equatorial_ob_key=OB_KEY)
+
+    data      = _cells_chunk["data"]
+    geom      = _cells_chunk["geom"]
+    cell_ids  = _cells_chunk["cell_ids_all"]
+    ob_by_key = _cells_chunk["ob_by_key"]
+    ib_by_key = _cells_chunk["ib_by_key"]
+    OB_CHUNK_SIZE = _cells_chunk["OB_CHUNK_SIZE"]
+    IB_CHUNK_SIZE = _cells_chunk["IB_CHUNK_SIZE"]
+    n_breeder  = int(geom["n_breeder"])
+
+    cell_ids_for_key   = _cells_chunk["cell_ids_for_key"](OB_KEY)    
+    radial_bins_for_key = _cells_chunk["radial_bins_for_key"](OB_KEY) 
+
+    CHUNKS = {
+        OB_KEY: ob_by_key.get(OB_KEY, []),
+    }
+
+    layer_tags_by_chunk: Dict[str, Sequence[str]] = {}
+    xcentroids_by_chunk: Dict[str, Sequence[float]] = {}
+
+    if CHUNKS[OB_KEY]:
+        n_ob_layers = len(CHUNKS[OB_KEY]) - 3
+        layer_tags_by_chunk[OB_KEY] = make_default_layer_tags(n_ob_layers, breeder_prefix="OB")
+        if len(xcentroids_ob) == len(CHUNKS[OB_KEY]):
+            xcentroids_by_chunk[OB_KEY] = xcentroids_ob
+
+
+    source_rates = results.get_source_rates()
+    times = results.get_times()
+    idx_shutdown = shutdown_index_from_source_rates(source_rates, n_steps=len(times))
+
+    run_chunk_postprocess(
+        results,
+        CHUNKS,
+        base_out_dir="./depletion_results",
+        xcentroids_by_chunk=xcentroids_by_chunk,
+        layer_tags_by_chunk=layer_tags_by_chunk,
+        idx_shutdown=int(idx_shutdown),
+        activity_units="Bq/kg",       # "Bq" or "Bq/kg"
+        decayheat_units="W/cm3",
+        activity_top_n=10,
+        decayheat_top_n=5,
+        similarity_threshold=0.10,
+        idx_to_plot=(0, 4, 8, 12, 16, 20),
+    )

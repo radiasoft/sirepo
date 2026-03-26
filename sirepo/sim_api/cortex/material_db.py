@@ -6,11 +6,11 @@
 
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-import contextlib
 import pykern.sql_db
+import sirepo.srdb
+import sirepo.template.cortex
 import sqlalchemy
 import sqlalchemy.exc
-import sirepo.srdb
 
 _BASE = "cortex_material.sqlite3"
 
@@ -26,13 +26,8 @@ def db_upgrade():
         # for tests, db may not exist to upgrade
         return
     with _session() as s:
-        if "is_public" in [
-            v["name"]
-            for v in sqlalchemy.inspect(s.meta._engine).get_columns("material")
-        ]:
-            return
-        for c in ("is_public", "is_featured"):
-            s.execute(f"ALTER TABLE material ADD COLUMN {c} BOOLEAN")
+        s.execute(f"ALTER TABLE plot ADD COLUMN stat VARCHAR(100)")
+        s.execute(f"CREATE INDEX ix_plot_stat ON plot (stat)")
 
 
 def delete_material(material_id, uid):
@@ -64,7 +59,10 @@ def delete_material(material_id, uid):
                 _delete(s, "independent_variable_value", material_property_value_id=v)
             _delete(s, "material_property_value", material_property_id=p)
             _delete(s, "independent_variable", material_property_id=p)
-        for t in ("material_property", "material_component", "material"):
+        for p in _select_id(s, "plot", material_id=material_id):
+            _delete(s, "plot_legend", plot_id=p)
+            _delete(s, "plot_point", plot_id=p)
+        for t in ("material_property", "material_component", "plot", "material"):
             _delete(s, t, material_id=material_id)
     return True
 
@@ -142,8 +140,9 @@ def init_from_api():
             ),
             plot=PKDict(
                 plot_id="primary_id 6",
-                material_id="primary_id",
+                material_id="primary_id index",
                 model="str 100",
+                stat="str 100 index",
                 title="str 100",
                 xlabel="str 100",
                 ylabel="str 100",
@@ -226,7 +225,7 @@ def insert_material(parsed, uid):
         return PKDict((k, rv[k]) for k in ("material_id", "material_name"))
 
 
-def insert_plot(plotdef):
+def insert_plot(plotdef, uid):
     def _insert_plot(session, plotdef):
         return session.insert(
             "plot",
@@ -237,6 +236,7 @@ def insert_plot(plotdef):
                         "material_id",
                         "title",
                         "model",
+                        "stat",
                         "xlabel",
                         "ylabel",
                         "plot_type",
@@ -270,6 +270,16 @@ def insert_plot(plotdef):
                 )
 
     with _session() as s:
+        # ensure authorized to material
+        _material_by_id(s, plotdef.material_id, uid)
+        if m := s.select_one_or_none(
+            "plot",
+            where=PKDict(
+                material_id=plotdef.material_id, model=plotdef.model, stat=plotdef.stat
+            ),
+        ):
+            for n in ("plot_legend", "plot_point", "plot"):
+                s.delete(n, PKDict(plot_id=m.plot_id))
         p = _insert_plot(s, plotdef)
         _insert_plot_legend(s, plotdef, p)
         _insert_plot_points(s, plotdef, p)
@@ -285,6 +295,44 @@ def list_materials(uid):
 
     with _session() as s:
         return [_convert(r) for r in s.select("material", where=PKDict(uid=uid)).all()]
+
+
+def load_plots(material_id, uid):
+    def _format_plot(plot):
+        return sirepo.template.cortex.plotdef_to_sim_frame(plot)
+
+    def _load_plot(row):
+        p = PKDict(row).pkupdate(
+            points=[],
+            legend=[
+                r["label"]
+                for r in s.select(
+                    "plot_legend", where=PKDict(plot_id=row.plot_id)
+                ).all()
+            ],
+        )
+        for point in s.select(
+            sqlalchemy.select(s.t.plot_point)
+            .where(s.t.plot_point.c.plot_id == p.plot_id)
+            .order_by(s.t.plot_point.c.dim, s.t.plot_point.c.idx)
+        ).all():
+            if point.idx == 0:
+                assert point.dim == len(p.points)
+                p.points.append([])
+            assert point.idx == len(p.points[point.dim])
+            p.points[point.dim].append(point.point)
+        return _format_plot(p)
+
+    def _load_plots(session):
+        return [
+            _load_plot(r)
+            for r in s.select("plot", where=PKDict(material_id=material_id)).all()
+        ]
+
+    with _session() as s:
+        # ensure authorized to material
+        _material_by_id(s, material_id, uid)
+        return _load_plots(s)
 
 
 def material_detail(material_id, uid):
@@ -306,7 +354,7 @@ def material_detail(material_id, uid):
         rv = _record(
             s,
             "material",
-            s.select_one("material", where=PKDict(material_id=material_id, uid=uid)),
+            _material_by_id(s, material_id, uid),
         )
         # Makes testing hard, and don't need to return
         rv.pkdel("uid")
@@ -328,6 +376,22 @@ def material_detail(material_id, uid):
                 ):
                     mpv[ivs[iv.independent_variable_id]] = iv.value
         return rv
+
+
+def set_public(material_id, is_public):
+    with _session() as s:
+        s.execute(
+            sqlalchemy.update(s.t.material)
+            .values(is_public=is_public)
+            .where(s.t.material.c.material_id == material_id)
+        )
+
+
+def _material_by_id(session, material_id, uid, check_public=False):
+    # TODO(pjm): could check is_public here
+    return session.select_one(
+        "material", where=PKDict(material_id=material_id, uid=uid)
+    )
 
 
 def _path():

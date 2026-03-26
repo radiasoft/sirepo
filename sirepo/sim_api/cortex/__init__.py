@@ -90,6 +90,23 @@ class API(sirepo.quest.API):
         d.models.simulation.name = str(material_id)
         return sirepo.simulation_db.save_new_simulation(d, qcall=self)
 
+    async def _load_plots_from_database(self, material_id):
+        return (
+            (
+                await self.call_api(
+                    "cortexDb",
+                    body=PKDict(
+                        op_name="load_plots",
+                        op_args=PKDict(
+                            material_id=material_id,
+                        ),
+                    ),
+                )
+            )
+            .content_as_object()
+            .op_result.rows
+        )
+
     async def _sim_delete(self, args):
         s = await self._get_sim_data(args.material_id)
         if s:
@@ -102,13 +119,13 @@ class API(sirepo.quest.API):
             )
         return PKDict()
 
-    async def _sim_runTile(self, args):
+    async def _sim_runSim(self, args):
         s = await self._update_material_sim(args.material_id)
         await self.call_api(
             "runSimulation",
             body=PKDict(
                 forceRun=True,
-                report="tileAnimation",
+                report=args.report,
                 models=s.models,
                 simulationType=SIM_TYPE,
                 simulationId=s.models.simulation.simulationId,
@@ -116,11 +133,12 @@ class API(sirepo.quest.API):
         )
         return PKDict()
 
-    async def _sim_sync(self, args):
+    async def _sim_synchronize(self, args):
         return PKDict(
             simulationId=(
                 await self._update_material_sim(args.material_id)
             ).models.simulation.simulationId,
+            reports=(await self._load_plots_from_database(args.material_id)),
         )
 
     async def _update_material_sim(self, material_id):
@@ -151,6 +169,9 @@ class API(sirepo.quest.API):
                 name=m.name,
                 density=m.density,
                 percent_type="ao" if m.is_atom_pct else "wo",
+                # Sirepo booleans are 0/1 strings
+                is_plasma_facing="1" if m.is_plasma_facing else "0",
+                material_id=material_id,
                 components=[
                     PKDict(
                         component_type=(
@@ -215,8 +236,17 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         except sirepo.sim_api.cortex.material_db.Error as e:
             return PKDict(error=[PKDict(msg=str(e.args[0]))])
 
+    def action_insert_plot(self, arg, uid):
+        sirepo.sim_api.cortex.material_db.insert_plot(arg.plot, uid)
+        return PKDict()
+
     def action_list_materials(self, arg, uid):
         return PKDict(rows=sirepo.sim_api.cortex.material_db.list_materials(uid=uid))
+
+    def action_load_plots(self, arg, uid):
+        return PKDict(
+            rows=sirepo.sim_api.cortex.material_db.load_plots(arg.material_id, uid)
+        )
 
     def action_material_detail(self, arg, uid):
         try:
@@ -224,6 +254,10 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         except pykern.sql_db.NoRows:
             raise sirepo.util.NotFound("Material not found")
         return PKDict(detail=self._format_material(r))
+
+    def action_set_material_public(self, arg, uid):
+        sirepo.sim_api.cortex.material_db.set_public(arg.material_id, arg.is_public)
+        return PKDict()
 
     def _destroy(self):
         pass
@@ -318,6 +352,8 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
             density=material.density_g_cm3,
             density_units="g/cm³",
             is_atom_pct=material.is_atom_pct,
+            is_plasma_facing=material.is_plasma_facing,
+            is_public=material.is_public,
             section1=PKDict(
                 {
                     "Material Type": (
