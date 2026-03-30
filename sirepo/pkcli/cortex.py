@@ -5,6 +5,7 @@
 """
 
 from datetime import datetime
+from pykern import pksubprocess
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sqlalchemy.schema import MetaData
@@ -12,15 +13,17 @@ import csv
 import io
 import openmc.data
 import openpyxl
+import os
 import pykern.pkio
 import pykern.pkjson
 import pykern.sql_db
 import re
 import requests
-import sirepo.template.template_common
 import sirepo.auth
+import sirepo.mpi
 import sirepo.quest
 import sirepo.sim_api.cortex
+import sirepo.template.template_common
 import sqlalchemy
 
 _CENTURY = 100.0 * 365 * 24 * 60 * 60
@@ -183,7 +186,19 @@ MATERIALS = {_json_to_python(pykern.pkjson.dump_pretty(m))}"""
 
 
 def run_background(cfg_dir):
-    sirepo.template.template_common.exec_parameters()
+    # sirepo.template.template_common.exec_parameters()
+    # TODO(pjm): must run as a separate process or OMP_NUM_THREADS will already
+    #  be cached in libgomp with the wrong value
+    from sirepo.template.cortex import CORTEX_RUN_LOG
+
+    pksubprocess.check_call_with_signals(
+        ["python", sirepo.template.template_common.PARAMETERS_PYTHON_FILE],
+        msg=pkdlog,
+        output=CORTEX_RUN_LOG,
+        env=PKDict(os.environ).pkupdate(
+            OMP_NUM_THREADS=str(sirepo.mpi.cfg().cores),
+        ),
+    )
 
 
 def import_xlsx(uid_or_email, *args):

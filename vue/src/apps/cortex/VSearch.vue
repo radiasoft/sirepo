@@ -21,7 +21,7 @@
             </div>
         </div>
         <div class="p-3" v-if="materialCount === 0"></div>
-        <div class="row">
+        <div class="row" v-if="hasFeatured">
             <div class="col-sm-12">
                 <VFeaturedMaterials />
             </div>
@@ -39,6 +39,7 @@
 
  const materialCount = ref(0);
  const loadingMessage = ref('');
+ const hasFeatured = ref(false);
 
  const updateMaterialCount = (size) => {
      loadingMessage.value = size === undefined ? 'Connecting to the database' : '';

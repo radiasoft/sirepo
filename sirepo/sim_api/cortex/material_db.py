@@ -26,6 +26,10 @@ def db_upgrade():
         # for tests, db may not exist to upgrade
         return
     with _session() as s:
+        if "stat" in [
+            v["name"] for v in sqlalchemy.inspect(s.meta._engine).get_columns("plot")
+        ]:
+            return
         s.execute(f"ALTER TABLE plot ADD COLUMN stat VARCHAR(100)")
         s.execute(f"CREATE INDEX ix_plot_stat ON plot (stat)")
 
@@ -219,6 +223,8 @@ def insert_material(parsed, uid):
                 ),
             )
         for n in parsed.properties:
+            if not parsed.properties[n].property_unit:
+                parsed.properties[n].property_unit = "1"
             _insert_property(
                 s, n, parsed.properties[n].pkupdate(material_id=rv.material_id)
             )

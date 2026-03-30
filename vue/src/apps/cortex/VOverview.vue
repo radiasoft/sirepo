@@ -25,7 +25,7 @@
                 </tbody></table>
             </VCortexCard>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-6" v-if="showPublic">
             <VCortexCard v-if="! material.is_public">
                 <span style="line-height: 40px; vertical-align: bottom">This material is private.</span>
                 <button
@@ -112,11 +112,14 @@
  import VMasonry from '@/components/layout/VMasonry.vue'
  import VTooltip from '@/components/VTooltip.vue';
  import { db } from '@/apps/cortex/db.js';
+ import { ref } from 'vue';
 
  const props = defineProps({
      material: Object,
      materialId: String,
  });
+
+ const showPublic = ref(false);
 
  const formatNumber = (value) => {
      return value ? value.toFixed(4) : value;

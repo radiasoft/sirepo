@@ -421,7 +421,8 @@ model.settings.dagmc = True
 model.settings.photon_transport = True
 model.settings.batches = 10
 # for faster results
-model.settings.particles = 100_000
+######model.settings.particles = 100_000
+model.settings.particles = 1000
 model.settings.run_mode = "fixed source"
 model.settings.surf_source_read = {"path": SURF_SOURCE_FILE}
 
@@ -431,7 +432,7 @@ model.settings.surf_source_read = {"path": SURF_SOURCE_FILE}
 openmc.Cell.reset_ids()
 openmc.Surface.reset_ids()
 
-model.init_lib(output=False)
+model.init_lib(output=True)
 model.sync_dagmc_universes()
 model.finalize_lib()
 
@@ -940,7 +941,7 @@ model.export_to_model_xml(path="neutronics_model.xml")
 
 # TODO: is this necessary? How would these come to exist? Suggest to remove if not needed
 # remove redundant defaults
-# (REPLY): I think the model.init_lib(output=False) is creating these outputs (not the tallies)
+# (REPLY): I think the model.init_lib(output=True) is creating these outputs (not the tallies)
 redundant_files = ["geometry.xml", "materials.xml", "settings.xml", "tallies.xml"]
 for f in redundant_files:
     if os.path.exists(f):
@@ -950,7 +951,7 @@ for f in redundant_files:
 # ---------------------------------------------------------------------------
 # RS: run neutronics
 
-STATEPOINT_FILE = model.run(output=False, {{ openmcRunArgs }})
+STATEPOINT_FILE = model.run()
 
 # ---------------------------------------------------------------------------
 # RS: neutronics post processing
@@ -2631,7 +2632,6 @@ So:
 
 from pathlib import Path
 import os
-import sys
 
 import numpy as np
 import pandas as pd
@@ -2641,8 +2641,6 @@ import openmc
 import openmc.data
 import openmc.deplete
 from openmc.deplete import d1s
-
-import openmc_data_downloader
 
 OB_KEY = "OB_1_b6"
 
@@ -2762,7 +2760,7 @@ print("---------------------------")
 print("Performing D1S run")
 print("---------------------------")
 
-statepoint = model.run(output=False, {{ openmcRunArgs }})
+statepoint = model.run()
 
 with openmc.StatePoint(statepoint) as sp:
     tally = sp.get_tally(name="dose tally")
@@ -2909,7 +2907,6 @@ integrator = openmc.deplete.PredictorIntegrator(
     timesteps,
     source_rates=source_rates,
 )
-openmc.deplete.pool.USE_MULTIPROCESSING = False
 integrator.integrate()
 
 # -----------------------------------------------------------------------------

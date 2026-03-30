@@ -1,10 +1,22 @@
 <template>
-    <div v-if="state != 'missing'" class="mb-3">Simulation state: {{ state }}{{ statusDots }}</div>
-    <div v-if="! isBusy()">
-      <button v-on:click="startSim">Start New Simulation</button>
-    </div>
+    <div v-if="showState()">Simulation state: {{ state }}{{ statusDots }}</div>
+    <div v-if="elapsedTime && state != 'canceled'">Elapsed time: {{ elapsedTime }}</div>
     <div v-if="isRunning()">
-      <button v-on:click="cancelSim">End Simulation</button>
+      <div class="progress mt-3" role="progressbar">
+          <div class="progress-bar progress-bar-striped" v-bind:style="{ width: percentComplete + '%' }"></div>
+      </div>
+      <button
+          type="button"
+          class="btn btn-outline-primary mt-3"
+          v-on:click="cancelSim">End Simulation
+      </button>
+    </div>
+    <div v-if="! isBusy()">
+      <button
+          type="button"
+          class="btn btn-outline-primary mt-3"
+          v-on:click="startSim">Start New Simulation
+      </button>
     </div>
 </template>
 
@@ -12,6 +24,7 @@
  import { appState } from '@/services/appstate.js';
  import { ref, onMounted, onUnmounted, watch } from 'vue';
  import { simQueue } from '@/services/simqueue.js';
+ import { util } from '@/services/util.js';
 
  const props = defineProps({
      sim: Object,
@@ -20,6 +33,8 @@
 
  const state = ref("unknown"); // unknown or sim state
  const statusDots = ref("");
+ const percentComplete = ref(0);
+ const elapsedTime = ref(0);
  let qItem = null;
 
  //TODO(pjm): unknown + isRunning
@@ -36,8 +51,12 @@
      qItem = null;
  };
 
+ const showState = () => ! ["missing", "unknown"].includes(state.value);
+
  const simStatusHandler = (data) => {
-     //TODO(pjm): display and update elapsed time and percent complete
+     percentComplete.value = parseInt(data.percentComplete || 2);
+     elapsedTime.value = data.elapsedTime ? util.formatTime(data.elapsedTime) : 0;
+
      //TODO(pjm): display errors
      if (data.state !== "missing" && data.state !== "canceled" && data.queueState) {
          state.value = data.queueState;
@@ -73,6 +92,7 @@
      }
      //TODO(pjm): clear all sim state
      props.sim.reports = [];
+     elapsedTime.value = 0
      state.value = "pending";
      qItem = simQueue.addPersistentItem(
          props.viewName,

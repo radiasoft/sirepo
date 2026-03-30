@@ -147,7 +147,7 @@ he4_tally.filters = [cell_filter]
 he4_tally.scores = ['He4-production']
 model.tallies.append(he4_tally)
 
-statepoint = model.run({{ openmcRunArgs }})
+statepoint = model.run()
 with openmc.StatePoint(statepoint) as sp:
 
   n_tally = sp.get_tally(id=n_flux_tally.id)
@@ -263,13 +263,12 @@ from openmc.deplete import d1s
 openmc.config['chain_file'] = '{{ chainPath }}'
 openmc.config['cross_sections'] = '{{ materialDirectory }}/cross_sections.xml'
 
-
 # compute cell volumes
 bbox = model.geometry.bounding_box
 all_cells = list(model.geometry.get_all_cells().values())
 cell_vc = openmc.VolumeCalculation(all_cells, 10_000_000, *bbox)
 model.settings.volume_calculations = [cell_vc]
-model.calculate_volumes(apply_volumes=True, output=False)
+model.calculate_volumes(apply_volumes=True, output=True)
 
 # all cell volumes are equal in this case
 # cell_volume = all_cells[0].volume
@@ -340,7 +339,7 @@ print('---------------------------')
 print(f'Performing D1S run')
 print('---------------------------')
 
-statepoint = model.run(output=False, {{ openmcRunArgs }})
+statepoint = model.run(output=True)
 
 with openmc.StatePoint(statepoint) as sp:
     tally = sp.get_tally(name='dose tally')
@@ -401,7 +400,7 @@ cell_volume = cells[0].volume
 fluxes, micros = openmc.deplete.get_microxs_and_flux(model,
                                                      cells,
                                                      chain_file=tungsten_chain,
-                                                     run_kwargs={'output': False})
+                                                     run_kwargs={'output': True})
 
 # perform neutron activation and produces a depletion_results.h5 file
 activation_materials = list(model.geometry.get_all_materials().values())
@@ -422,7 +421,6 @@ operator.output_dir = 'r2s/activation'
 # could also do this. It's simpler, but less efficient
 # since it involves additional transport steps
 ###########################################################
-openmc.deplete.pool.USE_MULTIPROCESSING = False
 model.deplete(
     method='cf4',  # CF4Integrator is an accurate but slower method
     final_step=False,
@@ -432,7 +430,7 @@ model.deplete(
         'reduce_chain_level': 5,
     },
     directory='r2s/activation',
-    output=False,
+    output=True,
     timesteps=timesteps,
     source_rates=source_rates,
 )
@@ -486,7 +484,7 @@ for i_cool, (t_cool, src_rate) in enumerate(zip(timesteps, source_rates)):
     # TODO: should technically also use activated material compositions in transport here
     model.settings.source = step_photon_sources
 
-    statepoint = model.run(cwd=f'r2s/cooling_{t_cool:.3e}_s', output=False, {{ openmcRunArgs }})
+    statepoint = model.run(cwd=f'r2s/cooling_{t_cool:.3e}_s', output=True)
 
     with openmc.StatePoint(statepoint) as sp:
         sp_dose = sp.get_tally(name=dose_tally.name)

@@ -26,6 +26,10 @@ class DB {
         return [];
     }
 
+    async loadPlots(material_id) {
+        return (await this.#send('load_plots', {material_id})).op_result.rows;
+    }
+
     async materialDetail(material_id) {
         const r = await this.#send('material_detail', {material_id});
         return r.op_result ? r.op_result.detail : {};

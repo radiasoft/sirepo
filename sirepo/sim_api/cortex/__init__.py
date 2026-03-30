@@ -117,28 +117,10 @@ class API(sirepo.quest.API):
         return PKDict()
 
     async def _sim_synchronize(self, args):
-        async def _load_plots_from_database(material_id):
-            return (
-                (
-                    await self.call_api(
-                        "cortexDb",
-                        body=PKDict(
-                            op_name="load_plots",
-                            op_args=PKDict(
-                                material_id=material_id,
-                            ),
-                        ),
-                    )
-                )
-                .content_as_object()
-                .op_result.rows
-            )
-
         return PKDict(
             simulationId=(
                 await self._update_material_sim(args.material_id)
             ).models.simulation.simulationId,
-            reports=(await _load_plots_from_database(args.material_id)),
         )
 
     async def _update_material_sim(self, material_id):

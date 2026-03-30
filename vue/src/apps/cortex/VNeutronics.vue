@@ -2,8 +2,12 @@
     <VCol>
         <VCard viewName="simulationStatus" v-bind:title="title">
             <div class="row">
-                <div class="col-sm-7" v-if="isLoaded">
-                    <VRunSim v-bind:sim="sim" v-bind:viewName="neutronics"></VRunSim>
+                <div class="col-sm-7" v-if="isReady && ! hasPlots">
+                    <VNeutronicsSim
+                        v-bind:materialId="materialId"
+                        v-bind:neutronics="neutronics"
+                        v-on:simCompleted="loadAndRebuild()"
+                    />
                 </div>
                 <div class="col-sm-5" v-if="neutronics == 'slabAnimation'">
                     <img  class="img-fluid" v-bind:src="slabUrl" alt="Slab" />
@@ -35,45 +39,32 @@
  import VCol from '@/components/layout/VCol.vue';
  import VCortexCard from '@/apps/cortex/VCortexCard.vue';
  import VFramePlot from '@/components/plot/VFramePlot.vue';
- import VRunSim from '@/components/VRunSim.vue';
+ import VNeutronicsSim from '@/apps/cortex/VNeutronicsSim.vue';
  import slabUrl from '@/assets/cortex/slab.png';
- import { appState } from '@/services/appstate.js';
- import { nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
- import { requestSender } from '@/services/requestsender.js';
+ import { db } from '@/apps/cortex/db.js';
+ import { onMounted, reactive, ref, watch } from 'vue';
 
  const props = defineProps({
      materialId: String,
      neutronics: String,
      title: String,
  });
- const isLoaded = appState.isLoadedRef;
  const reportsBySection = reactive({});
  const sections = {
      steady_state: 'Steady State',
      flux: 'ParticleFluxes',
      time_dependent: 'Time-Dependent Responses',
  };
- const sim = ref({});
- let reportData;
- let simId;
-
- const loadFromDatabase = async () => {
-     const r = await requestSender.sendRequest("cortexSim", {
-         op_name: 'synchronize',
-         op_args: {
-             material_id: props.materialId,
-         },
-     });
-     reportData = r.reports;
-     simId = r.simulationId;
- };
+ let allPlots;
+ const hasPlots = ref(false);
+ const isReady = ref(false);
 
  const rebuildReports = async () => {
      for (const v in sections) {
          reportsBySection[v] = [];
      }
      let i = 0;
-     for (const r of reportData || []) {
+     for (const r of allPlots || []) {
          if (r.meta.model !== props.neutronics) {
              continue;
          }
@@ -89,43 +80,23 @@
              delete reportsBySection[v];
          }
      }
-     if (Object.keys(reportsBySection).length) {
-         if (isLoaded.value) {
-             appState.clearModels();
-         }
-     }
-     else {
-         if (! isLoaded.value) {
-             await appState.loadModels(simId);
-         }
-     }
+     hasPlots.value = Boolean(Object.keys(reportsBySection).length);
+     isReady.value = true;
+ };
+
+ const loadAndRebuild = async () => {
+     allPlots = await db.loadPlots(props.materialId);
+     await rebuildReports();
  };
 
  onMounted(async () => {
-     await loadFromDatabase();
+     await loadAndRebuild();
+ });
+
+ watch(() => props.neutronics, async () => {
+     hasPlots.value = false;
+     isReady.value = false;
      await rebuildReports();
- });
-
- onUnmounted(() => {
-     if (isLoaded.value) {
-         appState.clearModels();
-     }
- });
-
- watch(() => sim.value.frameCount, async () => {
-     if (sim.value.reports) {
-         await loadFromDatabase();
-     }
-     await rebuildReports();
- });
-
- watch(() => props.neutronics, () => {
-     sim.value = {};
-     appState.clearModels();
-     // isLoaded.value is not updated immediately after clearModels()
-     nextTick(async () => {
-         await rebuildReports();
-     });
  });
 
 </script>

@@ -34,6 +34,26 @@ class Util {
         return v1 == v2;
     }
 
+    formatTime(unixTime) {
+        function format(val) {
+            return leftPadZero(Math.floor(val));
+        }
+
+        function leftPadZero(num) {
+            return num >= 10 ? num : ('0' + num);
+        }
+
+        const d = Math.floor(unixTime / (3600*24));
+        const h = format(unixTime % (3600*24) / 3600);
+        const m = format(unixTime % 3600 / 60);
+        const s = format(unixTime % 60);
+        let res = d > 0 ? d : '';
+        if (res) {
+            res += d === 1 ? ' day ': ' days ';
+        }
+        return res + h + ':' + m + ':' + s;
+    }
+
     isArray(arr) {
         return Array.isArray(arr) || arr instanceof Array;
     }

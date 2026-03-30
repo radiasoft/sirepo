@@ -12,12 +12,12 @@ import numpy
 import os
 import pykern.pkio
 import re
-import sirepo.mpi
 import sirepo.quest
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.template.openmc
 
+CORTEX_RUN_LOG = "cortex.log"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _CHAIN_ENDF_FILE = "chain_endf_b8.0.xml"
@@ -82,8 +82,83 @@ _SIM_OUTPUT = PKDict(
     tileAnimation=list(_REPORT_TITLE.tileAnimation.keys()),
 )
 
+_SIM_TIME = PKDict(
+    tileAnimation=104,
+    slabAnimation=9540,
+)
+_LOG_TIME = PKDict(
+    tileAnimation=[
+        [v[0], v[1] / _SIM_TIME.tileAnimation]
+        for v in (
+            ["setting OPENMC_CROSS_SECTIONS", 10],
+            ["Creating state point", 20],
+            ["Performing D1S run", 30],
+            ["Performing R2S Activation run", 40],
+            ["Creating state point statepoint", 50],
+            ["Simulating batch 25", 60],
+            ["Simulating batch 25", 70],
+            ["Creating state point", 80],
+            ["OpenMP Threads", 90],
+            ["Simulating batch 1", 100],
+        )
+    ],
+    slabAnimation=[
+        [v[0], v[1] / _SIM_TIME.slabAnimation]
+        for v in (
+            ["Simulating batch 2", 210],
+            ["Simulating batch 3", 330],
+            ["Simulating batch 4", 480],
+            ["Simulating batch 5", 600],
+            ["Simulating batch 6", 750],
+            ["Simulating batch 7", 900],
+            ["Simulating batch 8", 1020],
+            ["Simulating batch 9", 1170],
+            ["Simulating batch 10", 1320],
+            ["Performing D1S run", 1440],
+            ["Simulating batch 1", 1470],
+            ["Simulating batch 2", 1890],
+            ["Simulating batch 3", 2310],
+            ["Simulating batch 4", 2730],
+            ["Simulating batch 5", 3150],
+            ["Simulating batch 6", 3570],
+            ["Simulating batch 7", 3990],
+            ["Simulating batch 8", 4410],
+            ["Simulating batch 9", 4830],
+            ["Simulating batch 10", 5250],
+            ["Creating state point", 5640],
+            ["Simulating batch 1", 5670],
+            ["Simulating batch 2", 6030],
+            ["Simulating batch 3", 6420],
+            ["Simulating batch 4", 6810],
+            ["Simulating batch 5", 7200],
+            ["Simulating batch 6", 7590],
+            ["Simulating batch 7", 7980],
+            ["Simulating batch 8", 8370],
+            ["Simulating batch 9", 8760],
+            ["Simulating batch 10", 9150],
+            ["Creating state point", 9510],
+        )
+    ],
+)
+
 
 def background_percent_complete(report, run_dir, is_running):
+
+    def _percent_complete():
+        r = 0
+        i = 0
+        log_time = _LOG_TIME[report]
+        n = run_dir.join(CORTEX_RUN_LOG)
+        if n.exists():
+            with pykern.pkio.open_text(n) as f:
+                for line in f:
+                    if log_time[i][0] in line:
+                        r = log_time[i][1]
+                        i += 1
+                        if i >= len(log_time):
+                            break
+        return r * 100
+
     o = _SIM_OUTPUT[report]
     if not is_running and run_dir.join(_json_filename(o[0])).exists():
         _save_plots_to_database(run_dir, report, o)
@@ -94,7 +169,7 @@ def background_percent_complete(report, run_dir, is_running):
         )
     return PKDict(
         frameCount=0,
-        percentComplete=0,
+        percentComplete=_percent_complete(),
     )
 
 
@@ -177,7 +252,6 @@ def write_parameters(data, run_dir, is_parallel):
                 materialDirectory=sirepo.sim_run.cache_dir(
                     sirepo.template.openmc.OPENMC_CACHE_DIR
                 ),
-                openmcRunArgs=f"threads={sirepo.mpi.cfg().cores}",
             )
             .pkupdate(v),
             f"{_SIM_JINJA[data.report]}.py",
@@ -211,12 +285,14 @@ def _generate_material_definition(data):
 # this import add openmc.Materials.download_cross_section_data()
 import openmc_data_downloader
 from pykern.pkcollections import PKDict
-# import generated modules from work directory
-import sys
-sys.path.append('.')
+import openmc.deplete.pool
+import pykern.pkrunpy
+
+# RS: disable multiprocessing, there is no way to set process count
+openmc.deplete.pool.USE_MULTIPROCESSING = False
 # replaces matplotlib with stub which saves plot data
-from cortex_plot import plt
-import cortex_materials as materials
+plt = pykern.pkrunpy.run_path_as_module("cortex_plot.py").plt
+materials = pykern.pkrunpy.run_path_as_module("cortex_materials.py")
 
 
 def material_from_definition(definition):
@@ -298,46 +374,24 @@ def _plot_from_file(run_dir, material_id, report, stat):
 
 
 def _save_plots_to_database(run_dir, report, stats):
-    c = _SIM_DATA.sim_db_client()
+    import asyncio
+
+    async def call_db(material_id, plot):
+        with sirepo.quest.start(in_pkcli=True) as qcall:
+            with qcall.auth.logged_in_user_set(
+                os.environ["SIREPO_AUTH_LOGGED_IN_USER"]
+            ):
+                r = await qcall.call_api(
+                    "cortexDb",
+                    body=PKDict(
+                        op_name="insert_plot",
+                        op_args=PKDict(
+                            plot=plot,
+                        ),
+                    ),
+                )
+
     m = _material_id_from_run_dir(run_dir)
-    # TODO(pjm): group plots into one call
     for s in stats:
         p = _plot_from_file(run_dir, m, report, s)
-        c.call_sim_api(
-            _simulation_id_from_run_dir(run_dir),
-            "cortexDb",
-            PKDict(
-                op_name="insert_plot",
-                op_args=PKDict(
-                    plot=p,
-                ),
-            ),
-            SIM_TYPE,
-        )
-
-
-def _simulation_id_from_run_dir(run_dir):
-    return sirepo.simulation_db.read_json(
-        run_dir.join(template_common.INPUT_BASE_NAME)
-    ).models.simulation.simulationId
-
-
-# def _old_save_plots_to_database(run_dir, report, stats):
-#     async def call_db(material_id, plot):
-#         with sirepo.quest.start(in_pkcli=True) as qcall:
-#             with qcall.auth.logged_in_user_set(
-#                 os.environ["SIREPO_AUTH_LOGGED_IN_USER"]
-#             ):
-#                 r = await qcall.call_api(
-#                     "cortexDb",
-#                     body=PKDict(
-#                         op_name="insert_plot",
-#                         op_args=PKDict(
-#                             plot=plot,
-#                         ),
-#                     ),
-#                 )
-#     m = _material_id_from_run_dir(run_dir)
-#     for s in stats:
-#         p = _plot_from_file(run_dir, m, report, s)
-#         asyncio.run(call_db(m, p))
+        asyncio.run(call_db(m, p))
