@@ -42,8 +42,8 @@ def test_all():
             pkunit.file_eq(_data("tea.py"), actual_path="tea.py")
             pkunit.file_eq(
                 "detail.json",
-                material_db.material_detail(material_id=1001, uid=uid),
+                material_db.material_detail(material_id=1001, is_public=False, uid=uid),
             )
             material_db.delete_material(material_id=1001, uid=uid)
             with pkunit.pkexcept("NoRows"):
-                material_db.material_detail(material_id=1001, uid=uid)
+                material_db.material_detail(material_id=1001, is_public=False, uid=uid)
