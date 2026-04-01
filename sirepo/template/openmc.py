@@ -111,7 +111,7 @@ def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data, qcall=qcall)
 
 
-def remote_datafile_path(filename):
+def remote_datafile_path(filename, compress=True):
     """Download and cache file from sirepo data repo"""
 
     def _remote_uri(base):
@@ -125,15 +125,18 @@ def remote_datafile_path(filename):
     m = sirepo.sim_run.cache_dir(_STANDARD_MATERIAL_CACHE_DIR).join(filename)
     if m.exists():
         return m
-    n = f"{filename}.gz"
+    n = f"{filename}.gz" if compress else filename
 
     if not _SIM_DATA.lib_file_exists(n):
         c = _SIM_DATA.sim_db_client()
         c.save_from_url(_remote_uri(n), c.uri(_SIM_DATA.LIB_DIR, n))
 
-    with gzip.open(str(_SIM_DATA.lib_file_abspath(n)), "rb") as f_in:
-        with open(str(m), "wb") as f_out:
-            shutil.copyfileobj(f_in, f_out)
+    if compress:
+        with gzip.open(str(_SIM_DATA.lib_file_abspath(n)), "rb") as f_in:
+            with open(str(m), "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
+    else:
+        shutil.copy2(str(_SIM_DATA.lib_file_abspath(n)), str(m))
     return m
 
 

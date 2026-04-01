@@ -114,7 +114,7 @@ class UIContext {
             // structure for the model id would be required
 
             for (const m of appState.models[this.containerName]) {
-                if (m._id == this.model._id) {
+                if (m._id === this.model._id) {
                     updateModel(m, v);
                     break;
                 }

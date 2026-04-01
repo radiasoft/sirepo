@@ -1,11 +1,15 @@
 [
     {
         "created": 1753290501,
+        "is_plasma_facing": false,
+        "is_public": null,
         "material_id": 1001,
         "material_name": "Eurofer 97"
     },
     {
         "created": 1753293622,
+        "is_plasma_facing": true,
+        "is_public": null,
         "material_id": 2001,
         "material_name": "Tungsten carbide"
     }

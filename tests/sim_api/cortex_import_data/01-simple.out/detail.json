@@ -39,6 +39,8 @@
         "density": 3.33,
         "density_units": "g/cm\u00b3",
         "is_atom_pct": false,
+        "is_plasma_facing": false,
+        "is_public": null,
         "name": "Simple One",
         "properties": [],
         "section1": {

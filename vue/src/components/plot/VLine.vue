@@ -33,7 +33,7 @@
      if (s.match(/^10+$/)) {
          return '10' + superscriptNumber(s.length - 1);
      }
-     if (value == 0) {
+     if (value === 0) {
          return value;
      }
      if (s.match(/^0\.0*1$/)) {
@@ -151,7 +151,7 @@
 
  function scale(dimension, domain, range) {
      const s = d3[isLog(dimension) ? 'scaleLog' : 'scaleLinear'](domain, range);
-     if (dimension == 'y') {
+     if (dimension === 'y') {
         s.nice();
      }
      if (isLog(dimension)) {

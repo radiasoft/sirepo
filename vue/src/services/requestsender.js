@@ -21,7 +21,7 @@ class RequestSender {
     }
 
     async sendRequest(routeName, requestData) {
-        if (typeof(routeName) != 'string') {
+        if (typeof(routeName) !== 'string') {
             throw new Error(`Invalid routeName, expecting string: ${routeName}`);
         }
         if (requestData.responseType) {

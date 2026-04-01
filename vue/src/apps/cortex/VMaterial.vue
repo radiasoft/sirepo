@@ -1,4 +1,7 @@
 <template>
+    <div v-if="error" class="h2 text-center">
+        {{ error }}
+    </div>
     <div v-if="material" class="container-lg sr-fixed-lg">
         <div class="float-end">
             <VNavButton
@@ -32,7 +35,11 @@
                 ></button>
                 <ul class="dropdown-menu dropdown-menu-end" id="sr-neutronics-dropdown-menu">
                     <li v-for="sim in Object.keys(neutronicsSims)">
-                        <button class="dropdown-item" v-on:click="selectNeutronics(sim)">
+                        <button
+                            class="dropdown-item"
+                            v-on:click="selectNeutronics(sim)"
+                            v-bind:class="{active: isSelected('neutronics') && neutronicsSim === sim}"
+                        >
                             {{ neutronicsSims[sim] }}
                         </button>
                     </li>
@@ -51,7 +58,10 @@
         </div>
         <div class="container-lg sr-fixed-lg">
             <div v-if="isSelected('overview')">
-                <VOverview v-bind:material="material" />
+                <VOverview
+                    v-bind:materialId="materialId"
+                    v-bind:material="material"
+                />
             </div>
             <div v-if="isSelected('properties')">
                 <VProperties v-bind:material="material" />
@@ -71,8 +81,10 @@
 
  const neutronicsSims = {
      tileAnimation: 'Homogeneous Tile',
+     slabAnimation: 'Slab',
  };
 
+ const error = ref(null);
  const material = ref(null);
  const materialId = ref(null);
  const route = useRoute();
@@ -100,6 +112,12 @@
 
  onMounted(async () => {
      materialId.value = route.params.materialId;
-     material.value = await db.materialDetail(materialId.value);
+     const r = await db.materialDetail(materialId.value, route.name === "view");
+     if (r.error) {
+         error.value = r.error.value;
+     }
+     else {
+         material.value = r.detail;
+     }
  });
 </script>

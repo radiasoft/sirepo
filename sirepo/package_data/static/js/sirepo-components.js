@@ -3865,7 +3865,7 @@ SIREPO.app.directive('jobsList', function(requestSender, appState, $location) {
                 'statusMessage',
                 'queuedTime',
                 'driverDetails',
-                'isPremiumUser'
+                'activePlan'
             ] : [
                 'startTime',
                 'lastUpdateTime',

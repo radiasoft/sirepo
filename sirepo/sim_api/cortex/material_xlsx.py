@@ -76,22 +76,6 @@ _PROPERTY_VALUE_LABELS = (
     "Uncertainty",
 )
 
-_PROPERTY_NAMES = (
-    "density",
-    "yield strength",
-    "tensile strength",
-    "Young's modulus",
-    "Poisson ratio",
-    "fracture toughness",
-    "creep",
-    "thermal conductivity",
-    "specific heat",
-    "swelling",
-    "hardness",
-    "DBTT",
-)
-_PROPERTY_KEY_TO_NAME = None
-
 _COMPONENT_ERROR = "error"
 
 _BALANCE = "balance"
@@ -537,17 +521,11 @@ def _init():
             for y in _COMPONENTS[x]:
                 yield y.lower(), y
 
-    global _COMPONENT_FROM_LOWER, _LABEL_TO_COL, _VALID_COLS, _PROPERTY_KEY_TO_NAME
+    global _COMPONENT_FROM_LOWER, _LABEL_TO_COL, _VALID_COLS
     _COMPONENT_FROM_LOWER = PKDict(_components())
     _LABEL_TO_COL = PKDict(_cols())
     _VALID_COLS = PKDict(
         {c.name: c for c in [v for v in _LABEL_TO_COL.values() if v.is_required]}
-    )
-    _PROPERTY_KEY_TO_NAME = PKDict(
-        zip(
-            [_format_property(v) for v in _PROPERTY_NAMES],
-            _PROPERTY_NAMES,
-        )
     )
 
 
@@ -655,8 +633,8 @@ def _parse_pointer(value):
 
 
 def _parse_property_name(value):
-    if value and _format_property(value) not in _PROPERTY_KEY_TO_NAME:
-        return None, f"unknown property name"
+    if not value or not _format_property(value):
+        return None, f"missing property name"
     return _format_property(value), None
 
 

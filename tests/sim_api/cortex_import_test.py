@@ -36,7 +36,9 @@ def test_all(fc):
                 "cortexDb",
                 data=PKDict(
                     op_name="material_detail",
-                    op_args=PKDict(material_id=r.op_result.material_id),
+                    op_args=PKDict(
+                        material_id=r.op_result.material_id, is_public=False
+                    ),
                 ),
             ).op_result,
             filename="detail.json",

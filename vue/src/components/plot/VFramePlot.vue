@@ -35,6 +35,8 @@
  const props = defineProps({
      modelName: String,
      sim: Object,
+     // optional, supply report data directly instead of sim
+     reportData: Object,
  });
 
  const errorMessage = ref("");
@@ -77,6 +79,13 @@
  };
 
  const load = () => {
+     if (props.reportData) {
+         if (props.sim) {
+             throw new Error("VFramePlot does now allow both sim and reportData properties")
+         }
+         data.value = () => props.reportData;
+         return;
+     }
      const i = frameIndex;
      const id = frameId(props.modelName);
      errorMessage.value = "";
@@ -99,7 +108,7 @@
          }
          else {
              objectStore.saveFrame(id, props.modelName, resp);
-             if (i == frameIndex) {
+             if (i === frameIndex) {
                  data.value = () => resp;
              }
              else {
@@ -124,13 +133,18 @@
  };
 
  onMounted(() => {
+     const downloadActions = [{
+         onClick: () => { downloadCSV() },
+         label: 'Download CSV',
+     }];
      const getFrameCount = () => {
+         if (props.reportData) {
+             props.reportData.downloadActions = downloadActions;
+             return 1;
+         }
          for (let r of props.sim.reports) {
-             if (r.modelName == props.modelName) {
-                 r.downloadActions = [{
-                     onClick: () => { downloadCSV() },
-                     label: 'Download CSV',
-                 }];
+             if (r.modelName === props.modelName) {
+                 r.downloadActions = downloadActions;
                  return r.frameCount;
              }
          }

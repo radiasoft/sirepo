@@ -5,8 +5,16 @@ import { requestSender } from '@/services/requestsender.js';
 export const DB_UPDATED = 'DbUpdated';
 
 class DB {
+    async canSetMaterialPublic(material_id) {
+        return Object.keys((await this.loadSummary(material_id, false)).sim).length === 2;
+    }
+
     async deleteMaterial(material_id) {
         return await this.#send('delete_material', {material_id});
+    }
+
+    async featuredMaterials() {
+        return (await this.#send('featured_materials')).op_result;
     }
 
     async insertMaterial(file) {
@@ -16,19 +24,30 @@ class DB {
     async listMaterials() {
         const r = await this.#send('list_materials');
         if (r.op_result) {
-            for (const row of r.op_result.rows) {
-                // convert python datetime to javascript datetime
-                row.created *= 1000;
-            }
             return r.op_result.rows;
         }
         //TODO(robnagler) should no op_result be logged?
         return [];
     }
 
-    async materialDetail(material_id) {
-        const r = await this.#send('material_detail', {material_id});
-        return r.op_result ? r.op_result.detail : {};
+    async loadSummary(material_id, is_public) {
+        return (await this.#send('load_summary', {material_id, is_public})).op_result;
+    }
+
+    async materialDetail(material_id, is_public) {
+        const r = await this.#send('material_detail', {material_id, is_public});
+        if (r.error) {
+            return r;
+        }
+        return r.op_result;
+    }
+
+    async publicMaterials() {
+        return (await this.#send('public_materials')).op_result;
+    }
+
+    async setMaterialPublic(material_id, is_public) {
+        return await this.#send('set_material_public', {material_id, is_public});
     }
 
     updated() {

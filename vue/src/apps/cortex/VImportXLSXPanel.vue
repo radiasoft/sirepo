@@ -116,8 +116,9 @@
      db.updated();
      // do not await simulation completion
      requestSender.sendRequest("cortexSim", {
-         op_name: 'runTile',
+         op_name: 'runSim',
          op_args: {
+             report: "tileAnimation",
              material_id: r.op_result.material_id,
          },
      });
@@ -130,6 +131,9 @@
 <style scoped>
  .sr-drop-zone {
      border: 2px dashed #ccc;
+     min-height: 270px;
+     display: flex;
+     justify-content: center;
  }
  .sr-drop-zone.sr-drag-over {
      border: 2px solid var(--bs-primary);

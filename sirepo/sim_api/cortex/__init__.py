@@ -8,8 +8,11 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import asyncio
 import asyncio.exceptions
+import datetime
 import pykern.pkasyncio
+import pykern.pkio
 import re
+import shutil
 import sirepo.quest
 import sirepo.sim_api.cortex.material_db
 import sirepo.sim_api.cortex.material_xlsx
@@ -44,16 +47,16 @@ class API(sirepo.quest.API):
             _action_loop.action(a.op_name, a.op_args.pkupdate(qcall=self))
             r = await asyncio.wait_for(self.__result.get(), timeout=_ACTION_TIMEOUT)
             self.__result.task_done()
-            if isinstance(r, Exception):
-                # TODO(pjm): Raising an exception caused a timeout and no response returned to the client
-                #           instead it returns a general system-error message
-                # raise r
+            err = None
+            if isinstance(r, sirepo.util.NotFound):
+                err = "Not Found"
+            elif isinstance(r, Exception):
+                err = "An internal error occurred. Please contact support@sirepo.com"
+            if err:
                 return PKDict(
-                    error=[
-                        PKDict(
-                            value="An internal error occurred. Please contact support@sirepo.com",
-                        ),
-                    ],
+                    error=PKDict(
+                        value=err,
+                    ),
                 )
             return r
         except asyncio.exceptions.TimeoutError:
@@ -102,13 +105,13 @@ class API(sirepo.quest.API):
             )
         return PKDict()
 
-    async def _sim_runTile(self, args):
+    async def _sim_runSim(self, args):
         s = await self._update_material_sim(args.material_id)
         await self.call_api(
             "runSimulation",
             body=PKDict(
                 forceRun=True,
-                report="tileAnimation",
+                report=args.report,
                 models=s.models,
                 simulationType=SIM_TYPE,
                 simulationId=s.models.simulation.simulationId,
@@ -116,7 +119,7 @@ class API(sirepo.quest.API):
         )
         return PKDict()
 
-    async def _sim_sync(self, args):
+    async def _sim_synchronize(self, args):
         return PKDict(
             simulationId=(
                 await self._update_material_sim(args.material_id)
@@ -137,6 +140,7 @@ class API(sirepo.quest.API):
                             op_name="material_detail",
                             op_args=PKDict(
                                 material_id=material_id,
+                                is_public=False,
                             ),
                         ),
                     )
@@ -151,6 +155,9 @@ class API(sirepo.quest.API):
                 name=m.name,
                 density=m.density,
                 percent_type="ao" if m.is_atom_pct else "wo",
+                # Sirepo booleans are 0/1 strings
+                is_plasma_facing="1" if m.is_plasma_facing else "0",
+                material_id=material_id,
                 components=[
                     PKDict(
                         component_type=(
@@ -190,6 +197,11 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         # TODO(pjm): need to delete the Sirepo sim associated with the material_id
         return PKDict()
 
+    def action_featured_materials(self, arg, uid):
+        return PKDict(
+            rows=sirepo.sim_api.cortex.material_db.featured_materials(),
+        )
+
     def action_insert_material(self, arg, uid):
         def _save():
             f = arg.qcall.sreq.form_file_get()
@@ -216,17 +228,51 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
             return PKDict(error=[PKDict(msg=str(e.args[0]))])
 
     def action_list_materials(self, arg, uid):
-        return PKDict(rows=sirepo.sim_api.cortex.material_db.list_materials(uid=uid))
+        self._check_for_sim_summary(arg.qcall, uid)
+        return PKDict(
+            rows=sirepo.sim_api.cortex.material_db.list_materials(uid=uid),
+        )
+
+    def action_load_summary(self, arg, uid):
+        if not arg.is_public:
+            self._check_for_sim_summary(arg.qcall, uid)
+        return sirepo.sim_api.cortex.material_db.load_summary(
+            arg.material_id, arg.is_public, uid
+        )
 
     def action_material_detail(self, arg, uid):
+        self._check_for_sim_summary(arg.qcall, uid)
         try:
-            r = sirepo.sim_api.cortex.material_db.material_detail(arg.material_id, uid)
+            r = sirepo.sim_api.cortex.material_db.material_detail(
+                arg.material_id, arg.is_public, uid
+            )
         except pykern.sql_db.NoRows:
             raise sirepo.util.NotFound("Material not found")
         return PKDict(detail=self._format_material(r))
 
+    def action_set_material_public(self, arg, uid):
+        sirepo.sim_api.cortex.material_db.set_public(
+            arg.material_id, arg.is_public, uid
+        )
+        return PKDict()
+
     def _destroy(self):
         pass
+
+    def _check_for_sim_summary(self, qcall, uid):
+        # TODO(pjm): this should be replaced with a direct sim_api call from template.cortex
+        for p in pykern.pkio.sorted_glob(
+            str(_SIM_DATA.lib_file_write_path(_SIM_DATA.SUMMARY_GLOB, qcall=qcall))
+        ):
+            report, material_id = _SIM_DATA.parts_from_summary_file(p.basename)
+            # move the file before processing to prevent other import attempts
+            n = p.dirpath().join(f"{p.basename}.import")
+            shutil.move(str(p), str(n))
+            with open(str(n)) as f:
+                d = pykern.pkjson.load_any(f)
+                d.completed = datetime.datetime.fromisoformat(d.completed)
+            sirepo.sim_api.cortex.material_db.update_sim_summary(d, uid)
+            n.remove()
 
     def _dispatch_action(self, method, arg):
         qcall = arg.qcall
@@ -318,6 +364,8 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
             density=material.density_g_cm3,
             density_units="g/cm³",
             is_atom_pct=material.is_atom_pct,
+            is_plasma_facing=material.is_plasma_facing,
+            is_public=material.is_public,
             section1=PKDict(
                 {
                     "Material Type": (
