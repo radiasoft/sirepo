@@ -66,9 +66,26 @@ def delete_material(material_id, uid):
         for p in _select_id(s, "plot", material_id=material_id):
             _delete(s, "plot_legend", plot_id=p)
             _delete(s, "plot_point", plot_id=p)
-        for t in ("material_property", "material_component", "plot", "material"):
+        for t in (
+            "material_property",
+            "material_component",
+            "plot",
+            "sim_summary_value",
+            "sim_summary",
+            "material",
+        ):
             _delete(s, t, material_id=material_id)
     return True
+
+
+def featured_materials():
+    with _session() as s:
+        return [
+            _row_values(r, ("material_id", "material_name", "is_plasma_facing"))
+            for r in s.select(
+                "material", where=PKDict(is_featured=True, is_public=True)
+            ).all()
+        ]
 
 
 def init_from_api():
@@ -165,6 +182,18 @@ def init_from_api():
                 dim="int 32 primary_key",
                 label="str 100",
             ),
+            sim_summary=PKDict(
+                material_id="primary_id primary_key index",
+                model="str 100 primary_key",
+                completed="datetime",
+                version="str 100",
+            ),
+            sim_summary_value=PKDict(
+                material_id="primary_id primary_key index",
+                model="str 100 primary_key",
+                name="str 100 primary_key",
+                value=f,
+            ),
         ),
     )
 
@@ -231,79 +260,36 @@ def insert_material(parsed, uid):
         return PKDict((k, rv[k]) for k in ("material_id", "material_name"))
 
 
-def insert_plot(plotdef, uid):
-    def _insert_plot(session, plotdef):
-        return session.insert(
-            "plot",
-            PKDict(
-                {
-                    k: plotdef[k]
-                    for k in (
-                        "material_id",
-                        "title",
-                        "model",
-                        "stat",
-                        "xlabel",
-                        "ylabel",
-                        "plot_type",
-                    )
-                }
-            ),
-        ).plot_id
-
-    def _insert_plot_legend(session, plotdef, plot_id):
-        for dim, label in enumerate(plotdef.legend):
-            session.insert(
-                "plot_legend",
-                PKDict(
-                    plot_id=plot_id,
-                    dim=dim,
-                    label=label,
-                ),
-            )
-
-    def _insert_plot_points(session, plotdef, plot_id):
-        for dim, points in enumerate(plotdef["points"]):
-            for idx, v in enumerate(points):
-                s.insert(
-                    "plot_point",
-                    PKDict(
-                        plot_id=plot_id,
-                        dim=dim,
-                        idx=idx,
-                        point=v,
-                    ),
-                )
-
-    with _session() as s:
-        # ensure authorized to material
-        _material_by_id(s, plotdef.material_id, uid)
-        if m := s.select_one_or_none(
-            "plot",
-            where=PKDict(
-                material_id=plotdef.material_id, model=plotdef.model, stat=plotdef.stat
-            ),
-        ):
-            for n in ("plot_legend", "plot_point", "plot"):
-                s.delete(n, PKDict(plot_id=m.plot_id))
-        p = _insert_plot(s, plotdef)
-        _insert_plot_legend(s, plotdef, p)
-        _insert_plot_points(s, plotdef, p)
-
-
 def list_materials(uid):
-    def _convert(row):
+    def _sim_summary_values(session, material_id):
         return PKDict(
-            material_id=row.material_id,
-            created=int(row.created.timestamp()),
-            material_name=row.material_name,
+            [
+                (r["name"], r["value"])
+                for r in s.select(
+                    "sim_summary_value", where=PKDict(material_id=material_id)
+                ).all()
+            ]
         )
 
     with _session() as s:
-        return [_convert(r) for r in s.select("material", where=PKDict(uid=uid)).all()]
+        return [
+            _row_values(
+                r,
+                (
+                    "material_id",
+                    "created",
+                    "material_name",
+                    "is_public",
+                    "is_plasma_facing",
+                ),
+            ).pkupdate(
+                _sim_summary_values(s, r["material_id"]),
+            )
+            for r in s.select("material", where=PKDict(uid=uid)).all()
+        ]
 
 
-def load_plots(material_id, uid):
+def load_summary(material_id, is_public, uid):
     def _format_plot(plot):
         return sirepo.template.cortex.plotdef_to_sim_frame(plot)
 
@@ -335,13 +321,33 @@ def load_plots(material_id, uid):
             for r in s.select("plot", where=PKDict(material_id=material_id)).all()
         ]
 
+    def _load_summary(session):
+        r = PKDict()
+        for summary in s.select(
+            sqlalchemy.select(s.t.sim_summary).where(
+                s.t.sim_summary.c.material_id == material_id
+            )
+        ).all():
+            r[summary["model"]] = _row_values(
+                summary, ("completed", "version")
+            ).pkupdate(
+                current_version=sirepo.template.cortex.SIM_VERSION[summary["model"]],
+            )
+        return r
+
     with _session() as s:
         # ensure authorized to material
-        _material_by_id(s, material_id, uid)
-        return _load_plots(s)
+        if is_public:
+            _public_material_by_id(s, material_id)
+        else:
+            _material_by_id(s, material_id, uid)
+        return PKDict(
+            plots=_load_plots(s),
+            sim=_load_summary(s),
+        )
 
 
-def material_detail(material_id, uid):
+def material_detail(material_id, is_public, uid):
     def _record(session, table_name, row):
         return PKDict(
             zip(
@@ -360,7 +366,11 @@ def material_detail(material_id, uid):
         rv = _record(
             s,
             "material",
-            _material_by_id(s, material_id, uid),
+            (
+                _public_material_by_id(s, material_id)
+                if is_public
+                else _material_by_id(s, material_id, uid)
+            ),
         )
         # Makes testing hard, and don't need to return
         rv.pkdel("uid")
@@ -384,19 +394,123 @@ def material_detail(material_id, uid):
         return rv
 
 
-def set_public(material_id, is_public):
+def public_materials():
     with _session() as s:
-        s.execute(
-            sqlalchemy.update(s.t.material)
-            .values(is_public=is_public)
-            .where(s.t.material.c.material_id == material_id)
+        return [
+            _row_values(r, ("material_id", "material_name", "is_plasma_facing"))
+            for r in s.select("material", where=PKDict(is_public=True)).all()
+        ]
+
+
+def set_featured(material_id, is_featured, uid):
+    _update_material(material_id, uid, PKDict(is_featured=is_featured))
+
+
+def set_public(material_id, is_public, uid):
+    _update_material(material_id, uid, PKDict(is_public=is_public))
+
+
+def update_sim_summary(summary, uid):
+    with _session() as s:
+        # ensure authorized to material
+        _material_by_id(s, summary.material_id, uid)
+
+        s.delete(
+            "sim_summary_value",
+            PKDict(material_id=summary.material_id, model=summary.model),
         )
+        s.delete(
+            "sim_summary",
+            PKDict(material_id=summary.material_id, model=summary.model),
+        )
+        s.insert(
+            "sim_summary",
+            PKDict(
+                {
+                    n: summary[n]
+                    for n in ("material_id", "model", "completed", "version")
+                }
+            ),
+        )
+        for k, v in summary["values"].items():
+            s.insert(
+                "sim_summary_value",
+                PKDict({n: summary[n] for n in ("material_id", "model")}).pkupdate(
+                    name=k,
+                    value=v,
+                ),
+            )
+
+        for p in summary.plots:
+            _insert_plot(s, p, uid)
 
 
-def _material_by_id(session, material_id, uid, check_public=False):
-    # TODO(pjm): could check is_public here
+def _insert_plot(session, plotdef, uid):
+    def _insert():
+        return session.insert(
+            "plot",
+            PKDict(
+                {
+                    k: plotdef[k]
+                    for k in (
+                        "material_id",
+                        "title",
+                        "model",
+                        "stat",
+                        "xlabel",
+                        "ylabel",
+                        "plot_type",
+                    )
+                }
+            ),
+        ).plot_id
+
+    def _insert_plot_legend(plot_id):
+        for dim, label in enumerate(plotdef.legend):
+            session.insert(
+                "plot_legend",
+                PKDict(
+                    plot_id=plot_id,
+                    dim=dim,
+                    label=label,
+                ),
+            )
+
+    def _insert_plot_points(plot_id):
+        for dim, points in enumerate(plotdef["points"]):
+            for idx, v in enumerate(points):
+                session.insert(
+                    "plot_point",
+                    PKDict(
+                        plot_id=plot_id,
+                        dim=dim,
+                        idx=idx,
+                        point=v,
+                    ),
+                )
+
+    if m := session.select_one_or_none(
+        "plot",
+        where=PKDict(
+            material_id=plotdef.material_id, model=plotdef.model, stat=plotdef.stat
+        ),
+    ):
+        for n in ("plot_legend", "plot_point", "plot"):
+            session.delete(n, PKDict(plot_id=m.plot_id))
+    p = _insert()
+    _insert_plot_legend(p)
+    _insert_plot_points(p)
+
+
+def _material_by_id(session, material_id, uid):
     return session.select_one(
         "material", where=PKDict(material_id=material_id, uid=uid)
+    )
+
+
+def _public_material_by_id(session, material_id):
+    return session.select_one(
+        "material", where=PKDict(material_id=material_id, is_public=True)
     )
 
 
@@ -404,5 +518,24 @@ def _path():
     return sirepo.srdb.root().join(_BASE)
 
 
+def _row_values(row, names):
+    def _convert(row, name):
+        if name in ("created", "completed"):
+            return int(row[name].timestamp())
+        return row[name]
+
+    return PKDict([(n, _convert(row, n)) for n in names])
+
+
 def _session():
     return _meta.session()
+
+
+def _update_material(material_id, uid, values):
+    with _session() as s:
+        # ensure authorized to material
+        s.execute(
+            sqlalchemy.update(s.t.material)
+            .values(values)
+            .where(s.t.material.c.material_id == material_id)
+        )

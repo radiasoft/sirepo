@@ -1,4 +1,7 @@
 <template>
+    <div v-if="error" class="h2 text-center">
+        {{ error }}
+    </div>
     <div v-if="material" class="container-lg sr-fixed-lg">
         <div class="float-end">
             <VNavButton
@@ -35,7 +38,7 @@
                         <button
                             class="dropdown-item"
                             v-on:click="selectNeutronics(sim)"
-                            v-bind:class="{active: isSelected('neutronics') && neutronicsSim == sim}"
+                            v-bind:class="{active: isSelected('neutronics') && neutronicsSim === sim}"
                         >
                             {{ neutronicsSims[sim] }}
                         </button>
@@ -81,6 +84,7 @@
      slabAnimation: 'Slab',
  };
 
+ const error = ref(null);
  const material = ref(null);
  const materialId = ref(null);
  const route = useRoute();
@@ -108,6 +112,12 @@
 
  onMounted(async () => {
      materialId.value = route.params.materialId;
-     material.value = await db.materialDetail(materialId.value);
+     const r = await db.materialDetail(materialId.value, route.name === "view");
+     if (r.error) {
+         error.value = r.error.value;
+     }
+     else {
+         material.value = r.detail;
+     }
  });
 </script>

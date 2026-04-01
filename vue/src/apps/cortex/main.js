@@ -20,6 +20,11 @@ appResources.setAppRoutes([
         path: `/material/:materialId`,
         component: VMaterial,
     },
+    {
+        name: 'view',
+        path: `/view/:materialId`,
+        component: VMaterial,
+    },
 ]);
 
 // no simulations page for this app

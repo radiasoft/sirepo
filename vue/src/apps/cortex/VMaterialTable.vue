@@ -5,12 +5,12 @@
                 <th
                     v-for="col in cols"
                     v-bind:key="col.name"
+                    class="sr-table-heading"
                 >
                     <a href v-on:click.prevent="sortCol(col)">
                         {{ col.heading }}
-                        <div class="sr-sort-icon">
-                            {{ sortIcon(col) }}
-                        </div>
+                    </a>&nbsp;<a href v-on:click.prevent="sortCol(col)" class="sr-sort-icon">
+                        {{ sortIcon(col) }}
                     </a>
                 </th>
                 <th></th>
@@ -30,17 +30,13 @@
                 <td class="sr-button-bar-td">
                     <div class="sr-button-bar-parent">
                         <div class="sr-button-bar">
-                            <RouterLink
-                                class="btn btm-sm btn-info"
-                                v-bind:to="{
-                                    name: 'material',
-                                    params: {
-                                        materialId: mat.material_id,
-                                    },
-                                }"
-                            >
-                                View
-                            </RouterLink>
+                            <VMaterialLink
+                                v-bind:materialId="mat.material_id"
+                                >
+                                <div class="btn btm-sm btn-info">
+                                    View
+                                </div>
+                            </VMaterialLink>
                             <button
                                 type="button"
                                 v-on:click="removeMaterial(mat)"
@@ -66,24 +62,19 @@
 
 <script setup>
  import VConfirmationModal from '@/components/VConfirmationModal.vue';
+ import VMaterialLink from '@/apps/cortex/VMaterialLink.vue';
  import { RouterLink } from 'vue-router';
  import { db, DB_UPDATED } from '@/apps/cortex/db.js';
  import { onMounted, onUnmounted, reactive, ref } from 'vue';
  import { pubSub } from '@/services/pubsub.js';
  import { requestSender } from '@/services/requestsender.js';
+ import { util } from '@/services/util.js';
 
  const emit = defineEmits(['materialCount']);
  const confirmDeleteModal = ref(null);
  const selectedMaterial = ref(null);
 
- const _dateFormat = Intl.DateTimeFormat('en-US', {
-     year: 'numeric',
-     month: 'short',
-     day: 'numeric',
-     hour: 'numeric',
-     minute: 'numeric',
- });
- const cols = [
+ const cols = reactive([
      {
          name: 'material_name',
          heading: 'Material Name',
@@ -91,9 +82,19 @@
      {
          name: 'created',
          heading: 'Date Uploaded',
-         format: (v) => _dateFormat.format(v),
+         format: (v) => util.formatDate(v),
      },
- ];
+     {
+         name: 'is_public',
+         heading: 'Public',
+         format: (v) => v ? 'Yes' : 'No',
+     },
+     {
+         name: 'is_plasma_facing',
+         heading: 'Material Type',
+         format: (v) => v ? 'plasma-facing' : 'structural',
+     },
+ ]);
  const state = reactive({
      sort: ['material_name', true],
      materials: [],
@@ -142,6 +143,20 @@
      // don't show the import panel until we know how many materials are present
      emit('materialCount', undefined);
      state.materials = await db.listMaterials();
+
+     const c = cols.map((v) => v.name);
+     for (const r of state.materials) {
+         for (const k in r) {
+             if (k !== 'material_id' && ! c.includes(k)) {
+                 c.push(k);
+                 cols.push({
+                     name: k,
+                     heading: k,
+                     format: (v) => util.formatExponential(v),
+                 });
+             }
+         }
+     }
      emit('materialCount', state.materials.length);
      _sortMaterials();
  };
@@ -154,13 +169,19 @@
              if (typeof a[col] === 'string') {
                  v = a[col].localeCompare(b[col]);
              }
+             else if (a[col] === undefined) {
+                 return 1;
+             }
+             else if (b[col] === undefined) {
+                 return -1;
+             }
              else if (a[col] < b[col]) {
                  v = -1;
              }
              else if (a[col] > b[col]) {
                  v = 1;
              }
-             return state.sort[1] ? v : -v;;
+             return state.sort[1] ? v : -v;
          },
      );
  };
@@ -178,6 +199,9 @@
 <style scoped>
  .sr-sort-icon {
      display: inline-block;
-     min-width: 2em;
+     min-width: 1em;
+ }
+ .sr-table-heading {
+     vertical-align: top;
  }
 </style>

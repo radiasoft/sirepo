@@ -11,7 +11,7 @@
                         type="button"
                         class="nav-link"
                         v-bind:class="{
-                                      active: p == selectedProperty,
+                                      active: p === selectedProperty,
                                       }"
                         v-on:click="selectProperty(p)"
                     >

@@ -2,6 +2,13 @@ import { singleton } from '@/services/singleton.js';
 
 class Util {
     uniqueIdCount = 0;
+    _dateFormat = Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+    });
 
     clone(obj) {
         return window.structuredClone
@@ -31,7 +38,15 @@ class Util {
             }
             return ! keys.some(k => ! this.deepEquals(v1[k], v2[k]));
         }
-        return v1 == v2;
+        return v1 === v2;
+    }
+
+    formatDate(pythonTime) {
+        return this._dateFormat.format(pythonTime * 1000);
+    }
+
+    formatExponential(value) {
+        return (value ? value.toExponential(3) : '').replace(/e\+0$/, '');
     }
 
     formatTime(unixTime) {

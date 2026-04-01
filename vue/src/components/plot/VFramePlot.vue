@@ -108,7 +108,7 @@
          }
          else {
              objectStore.saveFrame(id, props.modelName, resp);
-             if (i == frameIndex) {
+             if (i === frameIndex) {
                  data.value = () => resp;
              }
              else {
@@ -143,7 +143,7 @@
              return 1;
          }
          for (let r of props.sim.reports) {
-             if (r.modelName == props.modelName) {
+             if (r.modelName === props.modelName) {
                  r.downloadActions = downloadActions;
                  return r.frameCount;
              }

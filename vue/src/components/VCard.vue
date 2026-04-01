@@ -66,7 +66,7 @@
  const title = ref(props.title || schema.view[props.viewName].title);
 
  const onKeydown = (event) => {
-     if (event.key == 'Escape' && isFullscreen()) {
+     if (event.key === 'Escape' && isFullscreen()) {
          toggleFullscreen();
      }
  };

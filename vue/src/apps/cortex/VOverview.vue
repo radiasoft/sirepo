@@ -104,30 +104,50 @@
             </VCortexCard>
         </div>
     </VMasonry>
+    <VConfirmationModal
+        ref="confirm"
+        cancelText="Close"
+        title="Error"
+    >
+        Both neutronics simulations (Homogeneous Tile and Slab) need to be completed before
+        a material can be made publicly available.
+    </VConfirmationModal>
 </template>
 
 <script setup>
+ import VConfirmationModal from '@/components/VConfirmationModal.vue';
  import VCortexCard from '@/apps/cortex/VCortexCard.vue';
  import VDOIRows from '@/apps/cortex/VDOIRows.vue';
  import VMasonry from '@/components/layout/VMasonry.vue'
  import VTooltip from '@/components/VTooltip.vue';
  import { db } from '@/apps/cortex/db.js';
  import { ref } from 'vue';
+ import { useRoute } from 'vue-router';
 
  const props = defineProps({
      material: Object,
      materialId: String,
  });
 
- const showPublic = ref(false);
+ const confirm = ref(null);
+ const route = useRoute();
+ const showPublic = ref(route.name === "material");
 
  const formatNumber = (value) => {
      return value ? value.toFixed(4) : value;
  };
 
  const setPublic = async (isPublic) => {
-     await db.setMaterialPublic(props.materialId, isPublic);
-     props.material.is_public = isPublic;
+     if (isPublic) {
+         if (! (await db.canSetMaterialPublic(props.materialId))) {
+             confirm.value.showModal();
+             return;
+         }
+     }
+     const r = await db.setMaterialPublic(props.materialId, isPublic);
+     if (! r.error) {
+         props.material.is_public = isPublic;
+     }
  };
 
 </script>

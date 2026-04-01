@@ -1,10 +1,10 @@
 <template>
     <div class="text-center" v-if="frameCount > 1">
         <button class="btn btn-outline-secondary sr-frame-nav-btn"
-                v-bind:disabled="frameIndex == 1"
+                v-bind:disabled="frameIndex === 1"
                 v-on:click="goStart"><span class="bi bi-chevron-bar-left"></span></button>
         <button class="btn btn-outline-secondary sr-frame-nav-btn"
-                v-bind:disabled="frameIndex == 1"
+                v-bind:disabled="frameIndex === 1"
                 v-on:click="goPrev"><span class="bi bi-chevron-left"></span></button>
 
         <button v-if="! isPlaying" class="btn btn-outline-secondary sr-frame-nav-btn"
@@ -13,10 +13,10 @@
                 v-on:click="pause"><span class="bi bi-pause"></span></button>
 
         <button class="btn btn-outline-secondary sr-frame-nav-btn"
-                v-bind:disabled="frameIndex == frameCount"
+                v-bind:disabled="frameIndex === frameCount"
                 v-on:click="goNext"><span class="bi bi-chevron-right"></span></button>
         <button class="btn btn-outline-secondary sr-frame-nav-btn"
-                v-bind:disabled="frameIndex == frameCount"
+                v-bind:disabled="frameIndex === frameCount"
                 v-on:click="goEnd"><span class="bi bi-chevron-bar-right"></span></button>
     </div>
 </template>
@@ -63,7 +63,7 @@
  };
 
  const updateIsPlaying = (newIsPlaying) => {
-     if (newIsPlaying != isPlaying.value) {
+     if (newIsPlaying !== isPlaying.value) {
          isPlaying.value = newIsPlaying;
          emit('isPlayingChanged', isPlaying.value);
      }

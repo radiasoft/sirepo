@@ -131,6 +131,9 @@
 <style scoped>
  .sr-drop-zone {
      border: 2px dashed #ccc;
+     min-height: 270px;
+     display: flex;
+     justify-content: center;
  }
  .sr-drop-zone.sr-drag-over {
      border: 2px solid var(--bs-primary);

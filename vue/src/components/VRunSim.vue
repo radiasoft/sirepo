@@ -1,6 +1,6 @@
 <template>
     <div v-if="showState()">Simulation state: {{ state }}{{ statusDots }}</div>
-    <div v-if="elapsedTime && state != 'canceled'">Elapsed time: {{ elapsedTime }}</div>
+    <div v-if="elapsedTime && state !== 'canceled'">Elapsed time: {{ elapsedTime }}</div>
     <div v-if="isRunning()">
       <div class="progress mt-3" role="progressbar">
           <div class="progress-bar progress-bar-striped" v-bind:style="{ width: percentComplete + '%' }"></div>
@@ -62,7 +62,7 @@
          state.value = data.queueState;
      }
      else if (data.state) {
-         if (state.value != data.state) {
+         if (state.value !== data.state) {
              state.value = data.state;
              statusDots.value = '';
          }

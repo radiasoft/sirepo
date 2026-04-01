@@ -11,10 +11,11 @@ import math
 import numpy
 import os
 import pykern.pkio
+import pykern.pkjson
 import re
-import sirepo.quest
 import sirepo.sim_data
 import sirepo.simulation_db
+import sirepo.srtime
 import sirepo.template.openmc
 
 CORTEX_RUN_LOG = "cortex.log"
@@ -77,9 +78,26 @@ _SIM_JINJA = PKDict(
     tileAnimation="tile",
 )
 
+SIM_VERSION = PKDict(
+    slabAnimation="1.02",
+    tileAnimation="1.04",
+)
+
 _SIM_OUTPUT = PKDict(
     slabAnimation=list(_REPORT_TITLE.slabAnimation.keys()),
     tileAnimation=list(_REPORT_TITLE.tileAnimation.keys()),
+)
+
+_SAVE_SIM_RESULTS = PKDict(
+    slabAnimation=PKDict(
+        dpa_OB_1_b6=[[1, 45, "DPA at 45cm"]],
+        h1_OB_1_b6=[[1, 45, "H at 45cm"]],
+        he_OB_1_b6=[[1, 45, "He at 45cm"]],
+        activity_all_cells=[
+            [1, 100, "Armor activity at 100 years"],
+            [2, 100, "First wall activity at 100 years"],
+        ],
+    ),
 )
 
 _SIM_TIME = PKDict(
@@ -161,7 +179,7 @@ def background_percent_complete(report, run_dir, is_running):
 
     o = _SIM_OUTPUT[report]
     if not is_running and run_dir.join(_json_filename(o[0])).exists():
-        _save_plots_to_database(run_dir, report, o)
+        _save_summary_to_database(run_dir, report, o)
         return PKDict(
             frameCount=1,
             percentComplete=100,
@@ -362,7 +380,7 @@ def _plot_from_file(run_dir, material_id, report, stat):
         legend.append(p.label or d.ylabel)
     return PKDict(
         material_id=material_id,
-        title="",
+        title=_REPORT_TITLE[report][stat],
         xlabel=_label(d.xlabel),
         ylabel=_label(d.ylabel),
         plot_type=d.type or "linear",
@@ -373,25 +391,28 @@ def _plot_from_file(run_dir, material_id, report, stat):
     )
 
 
-def _save_plots_to_database(run_dir, report, stats):
-    import asyncio
-
-    async def call_db(material_id, plot):
-        with sirepo.quest.start(in_pkcli=True) as qcall:
-            with qcall.auth.logged_in_user_set(
-                os.environ["SIREPO_AUTH_LOGGED_IN_USER"]
-            ):
-                r = await qcall.call_api(
-                    "cortexDb",
-                    body=PKDict(
-                        op_name="insert_plot",
-                        op_args=PKDict(
-                            plot=plot,
-                        ),
-                    ),
-                )
-
+def _save_summary_to_database(run_dir, report, stats):
     m = _material_id_from_run_dir(run_dir)
+    summary = PKDict(
+        material_id=m,
+        model=report,
+        version=SIM_VERSION[report],
+        completed=sirepo.srtime.utc_now(),
+        plots=[],
+        values=PKDict(),
+    )
     for s in stats:
         p = _plot_from_file(run_dir, m, report, s)
-        asyncio.run(call_db(m, p))
+        summary.plots.append(p)
+        if report in _SAVE_SIM_RESULTS and s in _SAVE_SIM_RESULTS[report]:
+            for d in _SAVE_SIM_RESULTS[report][s]:
+                idx, pos, label = d
+                for i in range(len(p.points[0])):
+                    if pos < p.points[0][i]:
+                        summary["values"][label] = p.points[idx][i]
+                        break
+
+    _SIM_DATA.lib_file_write(
+        _SIM_DATA.summary_file_from_parts(report, m),
+        pykern.pkjson.dump_str(summary),
+    )

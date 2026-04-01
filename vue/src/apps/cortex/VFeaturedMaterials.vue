@@ -1,22 +1,27 @@
 <template>
     <VCortexCard
         title="Featured Materials"
-        v-show="featured.length"
+        v-show="rows.length"
     >
         <div class="row ps-5 pe-5">
             <div
                 class="col-sm-4"
-                v-for="f in featured"
+                v-for="f in rows"
             >
-                <button class="w-100 btn btn-outline-primary">
-                    <div class="cortex-material-button pt-3">
-                    <span class="cortex-material-icon bi bi-database"></span>
-                    <h5>{{ f.name }}</h5>
-                    <p class="Card-text">
-                        {{ f.is_plasma_facing ? 'plasma-facing' : 'structural' }}
-                    </p>
-                    </div>
-                </button>
+                <VMaterialLink
+                    v-bind:materialId="f.material_id"
+                    v-bind:isPublic="true"
+                >
+                    <button class="w-100 btn btn-outline-primary">
+                        <div class="cortex-material-button pt-3">
+                            <span class="cortex-material-icon bi bi-database"></span>
+                            <h5>{{ f.material_name }}</h5>
+                            <p class="Card-text">
+                                {{ f.is_plasma_facing ? 'plasma-facing' : 'structural' }}
+                            </p>
+                        </div>
+                    </button>
+                </VMaterialLink>
             </div>
         </div>
     </VCortexCard>
@@ -24,22 +29,12 @@
 
 <script setup>
  import VCortexCard from '@/apps/cortex/VCortexCard.vue';
+ import VMaterialLink from '@/apps/cortex/VMaterialLink.vue';
  import { ref } from 'vue';
 
- const featured = ref([
-     {
-         name: 'Ditungsten Carbide',
-         is_plasma_facing: true,
-     },
-     {
-         name: 'Stainless Steel 316',
-         is_plasma_facing: false,
-     },
-     {
-         name: 'Tungsten Carbide with Iron and Chromium Binding',
-         is_plasma_facing: false,
-     },
- ]);
+ const props = defineProps({
+     rows: Array,
+ })
 </script>
 
 <style scoped>

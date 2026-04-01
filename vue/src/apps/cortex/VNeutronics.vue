@@ -1,20 +1,34 @@
 <template>
-    <VCol>
+    <div class="col-md-8 col-xl-6">
         <VCard viewName="simulationStatus" v-bind:title="title">
             <div class="row">
-                <div class="col-sm-7" v-if="isReady && ! hasPlots">
-                    <VNeutronicsSim
-                        v-bind:materialId="materialId"
-                        v-bind:neutronics="neutronics"
-                        v-on:simCompleted="loadAndRebuild()"
-                    />
+                <div class="col-sm-7" v-if="isReady">
+                    <div v-if="simSummary">
+                        <div>
+                            <b>Completed:</b> {{ util.formatDate(simSummary.completed) }}
+                            <b>Version:</b> {{ simSummary.version }}
+                        </div>
+                        <div v-if="isSimOutOfDate()" class="mb-3">
+                            This simulation was run with an older model.
+                        </div>
+                        <div v-else>
+                            This simulation was run with the most recent model.
+                        </div>
+                    </div>
+                    <div v-if="showRunSim()">
+                        <VNeutronicsSim
+                            v-bind:materialId="materialId"
+                            v-bind:neutronics="neutronics"
+                            v-on:simCompleted="loadAndRebuild()"
+                        />
+                    </div>
                 </div>
-                <div class="col-sm-5" v-if="neutronics == 'slabAnimation'">
-                    <img  class="img-fluid" v-bind:src="slabUrl" alt="Slab" />
+                <div class="col-sm-5" v-if="neutronics === 'slabAnimation'">
+                    <img class="img-fluid" v-bind:src="slabUrl" alt="Slab" style="max-height: 250px"/>
                 </div>
             </div>
         </VCard>
-    </VCol>
+    </div>
     <VCortexCard v-bind:title="sections[section]" v-for="section in Object.keys(reportsBySection)">
         <div class="row">
             <VCol v-for="report in reportsBySection[section]" v-bind:key="report.trackBy">
@@ -43,6 +57,8 @@
  import slabUrl from '@/assets/cortex/slab.png';
  import { db } from '@/apps/cortex/db.js';
  import { onMounted, reactive, ref, watch } from 'vue';
+ import { useRoute } from 'vue-router';
+ import { util } from '@/services/util.js';
 
  const props = defineProps({
      materialId: String,
@@ -55,20 +71,47 @@
      flux: 'ParticleFluxes',
      time_dependent: 'Time-Dependent Responses',
  };
- let allPlots;
+ let summary;
  const hasPlots = ref(false);
  const isReady = ref(false);
+ const route = useRoute();
+ const simSummary = ref(null);
+
+ const showRunSim = () => {
+     if (isViewing()) {
+         return false;
+     }
+     if (isSimOutOfDate()) {
+         return true;
+     }
+     return ! hasPlots.value;
+ };
+
+ const isSimOutOfDate = () => {
+     if (! (summary && summary.sim[props.neutronics])) {
+         return true;
+     }
+     return summary.sim[props.neutronics].version !== summary.sim[props.neutronics].current_version;
+ };
+
+ const isViewing = () => route.name === "view";
 
  const rebuildReports = async () => {
      for (const v in sections) {
          reportsBySection[v] = [];
      }
      let i = 0;
-     for (const r of allPlots || []) {
+     for (const r of summary.plots) {
          if (r.meta.model !== props.neutronics) {
              continue;
          }
+         if (r.title) {
+             // only show the report title on panel
+             r.panelTitle = r.title;
+             r.title = "";
+         }
          reportsBySection[r.meta.section].push({
+             title: r.panelTitle,
              modelName: r.meta.model,
              viewName: r.meta.model,
              trackBy: r.meta.model + r.meta.stat,
@@ -81,11 +124,12 @@
          }
      }
      hasPlots.value = Boolean(Object.keys(reportsBySection).length);
+     simSummary.value = summary.sim[props.neutronics];
      isReady.value = true;
  };
 
  const loadAndRebuild = async () => {
-     allPlots = await db.loadPlots(props.materialId);
+     summary = await db.loadSummary(props.materialId, isViewing());
      await rebuildReports();
  };
 
@@ -96,7 +140,10 @@
  watch(() => props.neutronics, async () => {
      hasPlots.value = false;
      isReady.value = false;
-     await rebuildReports();
+     simSummary.value = null;
+     if (summary) {
+         await rebuildReports();
+     }
  });
 
 </script>
