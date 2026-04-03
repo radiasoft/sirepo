@@ -3154,7 +3154,7 @@ def _select_topn(
 
     running_total = 0.0
     prev_running_total = 0.0
-    index = 0
+    index = len(sorted_items) - 1
     for i in range(len(sorted_items)):
       prev_running_total = running_total
       running_total += float(sorted_items[i][1])
@@ -3169,7 +3169,7 @@ def _select_topn(
         index = i
         break
 
-    return sorted_items[:i]
+    return sorted_items[:index + 1]
 
 def _select(dict_list, n_steps):
     # selections per step; first, loop through all the time steps to find the top nuclides
@@ -3333,7 +3333,7 @@ def plot_activity_nuclides_per_cell(
         mcycle, lscycle = _style_cycle()
 
         # Nuclides (markers + varied linestyles)
-        halflife_list = [openmc.data.half_life(i) for i in top_nucs]
+        halflife_list = [openmc.data.half_life(i) or MAX_HALFLIFE for i in top_nucs]
         nuclide_list = top_nucs
         sorted_halflife_list, sorted_nuclide_list = zip(*sorted(zip(halflife_list, nuclide_list)))
         colors = list(range(len(top_nucs)))
@@ -3372,7 +3372,7 @@ def plot_activity_nuclides_per_cell(
 
         # y-min cutoff; cut off at 1 order of magnitude below the other activity and 1 order of magnitude
         # above the total activity (rounded to powers of 10)
-        ax.set_ylim([10 ** math.floor(math.log10(np.min(others_plot))), 10 ** math.ceil(math.log10(np.max(total_act_plot)))])
+        ax.set_ylim([10 ** math.floor(math.log10(max(np.min(others_plot), 10e-10))), 10 ** math.ceil(math.log10(np.max(total_act_plot)))])
 
         # Legend
         # n_entries = len(ax.get_legend_handles_labels()[1])
@@ -3616,7 +3616,7 @@ def plot_decayheat_nuclides_per_cell(
         mcycle, lscycle = _style_cycle()
 
         # form a color scale based on the half lives
-        halflife_list = [openmc.data.half_life(i) for i in top_nucs]
+        halflife_list = [openmc.data.half_life(i) or MAX_HALFLIFE for i in top_nucs]
         nuclide_list = top_nucs
         sorted_halflife_list, sorted_nuclide_list = zip(*sorted(zip(halflife_list, nuclide_list)))
         colors = list(range(len(top_nucs)))
@@ -3650,7 +3650,7 @@ def plot_decayheat_nuclides_per_cell(
 
         # y-min cutoff; cut off at 1 order of magnitude below the other decay heat and 1 order of magnitude
         # above the total decay heat (rounded to powers of 10)
-        ax.set_ylim([10 ** math.floor(math.log10(np.min(others_plot))), 10 ** math.ceil(math.log10(np.max(total_h_plot)))])
+        ax.set_ylim([10 ** math.floor(math.log10(max(np.min(others_plot), 10e-10))), 10 ** math.ceil(math.log10(np.max(total_h_plot)))])
 
         _add_time_reference_lines(ax)
         _format_log_axes(ax)
