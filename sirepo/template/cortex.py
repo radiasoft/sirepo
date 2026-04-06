@@ -10,12 +10,12 @@ from sirepo.template import template_common
 import math
 import numpy
 import os
+import pykern.pkcompat
 import pykern.pkio
 import pykern.pkjson
 import re
 import sirepo.sim_data
 import sirepo.simulation_db
-import sirepo.srtime
 import sirepo.template.openmc
 
 CORTEX_RUN_LOG = "cortex.log"
@@ -397,7 +397,7 @@ def _save_summary_to_database(run_dir, report, stats):
         material_id=m,
         model=report,
         version=SIM_VERSION[report],
-        completed=sirepo.srtime.utc_now(),
+        completed=pykern.pkcompat.utcnow(),
         plots=[],
         values=PKDict(),
     )

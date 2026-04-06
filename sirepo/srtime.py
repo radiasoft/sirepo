@@ -96,6 +96,8 @@ def utc_now():
     Returns:
         datetime.datetime: adjusted `pykern.pkcompat.utcnow`
     """
+    # Must call sirepo.srtime.init_module() for this to work on prod
+    # Do not use this method in sirepo.template modules
     assert pkconfig.channel_in_internal_test()
     if _timedelta is None:
         return pkcompat.utcnow()
