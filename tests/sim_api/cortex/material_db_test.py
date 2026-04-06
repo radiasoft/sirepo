@@ -19,6 +19,10 @@ def test_all():
     def _data(base):
         return pkunit.data_dir().join(base)
 
+    def _remove_uid(record):
+        del record["uid"]
+        return record
+
     def _sqlite3(name, uid):
         nonlocal db_path
 
@@ -34,7 +38,10 @@ def test_all():
 
             uid = qcall.auth.logged_in_user()
             _sqlite3("data", uid)
-            pkunit.file_eq("out.json", material_db.list_materials(uid=uid))
+            pkunit.file_eq(
+                "out.json",
+                [_remove_uid(r) for r in material_db.list_materials(uid=uid)],
+            )
             pkio.write_text(
                 "tea.py",
                 re.sub(r"# Generated on .*\n", "", cortex.export_tea(db_path)),
