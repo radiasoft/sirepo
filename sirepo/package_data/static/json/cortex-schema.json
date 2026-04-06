@@ -1,7 +1,8 @@
 {
     "apiRoute": {
         "cortexDb": "/cortex-db",
-        "cortexSim": "/cortex-sim"
+        "cortexSim": "/cortex-sim",
+        "cortexAdm": "/cortex-adm"
     },
     "appInfo": {
         "cortex": {

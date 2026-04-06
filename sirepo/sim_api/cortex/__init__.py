@@ -37,6 +37,11 @@ def init_apis(**kwargs):
 
 
 class API(sirepo.quest.API):
+    @sirepo.quest.Spec("require_adm")
+    async def api_cortexAdm(self):
+        # TODO(pjm): does this need a asyncio loop also?
+        a = self.parse_post(type=SIM_TYPE).req_data
+        return await getattr(self, f"_adm_{a.op_name}")(a.op_args)
 
     @sirepo.quest.Spec("require_plan", sim_type=f"SimType const={SIM_TYPE}")
     async def api_cortexDb(self):
@@ -72,6 +77,75 @@ class API(sirepo.quest.API):
 
     def cortex_db_done(self, result):
         self.__loop.call_soon_threadsafe(self.__result.put_nowait, result)
+
+    async def _adm_list_materials(self, args):
+        async def _all_materials():
+            return (
+                await self.call_api(
+                    "cortexDb",
+                    body=PKDict(
+                        op_name="list_materials",
+                        op_args=PKDict(
+                            is_admin=True,
+                        ),
+                    ),
+                )
+            ).content_as_object()
+
+        async def _uid_map():
+            s = (
+                await self.call_api(
+                    "admUsers",
+                    body=PKDict(
+                        showAll=True,
+                        simulationType=SIM_TYPE,
+                    ),
+                )
+            ).content_as_object()
+            u = PKDict()
+            for r in s.rows:
+                u[r.uid] = r.Name
+            return u
+
+        u = await _uid_map()
+        m = await _all_materials()
+        for r in m.op_result.rows:
+            # TODO(pjm): there isn't synchronization between auth db and material db
+            # so a user may have been removed from auth db which is still present in material db
+            if r.uid in u:
+                r.username = u[r.uid]
+        return m
+
+    async def _adm_load_summary(self, args):
+        r = (
+            await self.call_api(
+                "cortexDb",
+                body=PKDict(
+                    op_name="load_summary",
+                    op_args=PKDict(
+                        material_id=args.material_id,
+                        is_public=False,
+                        is_admin=True,
+                    ),
+                ),
+            )
+        ).content_as_object()
+        return r
+
+    async def _adm_material_detail(self, args):
+        return (
+            await self.call_api(
+                "cortexDb",
+                body=PKDict(
+                    op_name="material_detail",
+                    op_args=PKDict(
+                        material_id=args.material_id,
+                        is_public=False,
+                        is_admin=True,
+                    ),
+                ),
+            )
+        ).content_as_object()
 
     async def _get_sim_data(self, material_id, create=False):
         s = (
@@ -230,21 +304,26 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
     def action_list_materials(self, arg, uid):
         self._check_for_sim_summary(arg.qcall, uid)
         return PKDict(
-            rows=sirepo.sim_api.cortex.material_db.list_materials(uid=uid),
+            rows=sirepo.sim_api.cortex.material_db.list_materials(
+                uid=uid, is_admin=self._check_is_admin(arg)
+            ),
         )
 
     def action_load_summary(self, arg, uid):
         if not arg.is_public:
             self._check_for_sim_summary(arg.qcall, uid)
         return sirepo.sim_api.cortex.material_db.load_summary(
-            arg.material_id, arg.is_public, uid
+            arg.material_id,
+            arg.is_public,
+            uid,
+            is_admin=self._check_is_admin(arg),
         )
 
     def action_material_detail(self, arg, uid):
         self._check_for_sim_summary(arg.qcall, uid)
         try:
             r = sirepo.sim_api.cortex.material_db.material_detail(
-                arg.material_id, arg.is_public, uid
+                arg.material_id, arg.is_public, uid, is_admin=self._check_is_admin(arg)
             )
         except pykern.sql_db.NoRows:
             raise sirepo.util.NotFound("Material not found")
@@ -256,8 +335,11 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         )
         return PKDict()
 
-    def _destroy(self):
-        pass
+    def _check_is_admin(self, arg):
+        if arg.get("is_admin", False):
+            arg.qcall.auth.require_adm()
+            return True
+        return False
 
     def _check_for_sim_summary(self, qcall, uid):
         # TODO(pjm): this should be replaced with a direct sim_api call from template.cortex
@@ -273,6 +355,9 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
                 d.completed = datetime.datetime.fromisoformat(d.completed)
             sirepo.sim_api.cortex.material_db.update_sim_summary(d, uid)
             n.remove()
+
+    def _destroy(self):
+        pass
 
     def _dispatch_action(self, method, arg):
         qcall = arg.qcall

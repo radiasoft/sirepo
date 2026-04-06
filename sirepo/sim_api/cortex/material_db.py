@@ -260,7 +260,7 @@ def insert_material(parsed, uid):
         return PKDict((k, rv[k]) for k in ("material_id", "material_name"))
 
 
-def list_materials(uid):
+def list_materials(uid, is_admin=False):
     def _sim_summary_values(session, material_id):
         return PKDict(
             [
@@ -281,15 +281,18 @@ def list_materials(uid):
                     "material_name",
                     "is_public",
                     "is_plasma_facing",
+                    "uid",
                 ),
             ).pkupdate(
                 _sim_summary_values(s, r["material_id"]),
             )
-            for r in s.select("material", where=PKDict(uid=uid)).all()
+            for r in s.select(
+                "material", where=PKDict() if is_admin else PKDict(uid=uid)
+            ).all()
         ]
 
 
-def load_summary(material_id, is_public, uid):
+def load_summary(material_id, is_public, uid, is_admin=False):
     def _format_plot(plot):
         return sirepo.template.cortex.plotdef_to_sim_frame(plot)
 
@@ -340,14 +343,14 @@ def load_summary(material_id, is_public, uid):
         if is_public:
             _public_material_by_id(s, material_id)
         else:
-            _material_by_id(s, material_id, uid)
+            _material_by_id(s, material_id, uid, is_admin=is_admin)
         return PKDict(
             plots=_load_plots(s),
             sim=_load_summary(s),
         )
 
 
-def material_detail(material_id, is_public, uid):
+def material_detail(material_id, is_public, uid, is_admin=False):
     def _record(session, table_name, row):
         return PKDict(
             zip(
@@ -369,7 +372,7 @@ def material_detail(material_id, is_public, uid):
             (
                 _public_material_by_id(s, material_id)
                 if is_public
-                else _material_by_id(s, material_id, uid)
+                else _material_by_id(s, material_id, uid, is_admin)
             ),
         )
         # Makes testing hard, and don't need to return
@@ -502,9 +505,12 @@ def _insert_plot(session, plotdef, uid):
     _insert_plot_points(p)
 
 
-def _material_by_id(session, material_id, uid):
+def _material_by_id(session, material_id, uid, is_admin=False):
     return session.select_one(
-        "material", where=PKDict(material_id=material_id, uid=uid)
+        "material",
+        where=PKDict(material_id=material_id).pkupdate(
+            PKDict() if is_admin else PKDict(uid=uid)
+        ),
     )
 
 

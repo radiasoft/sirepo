@@ -112,7 +112,7 @@
 
  onMounted(async () => {
      materialId.value = route.params.materialId;
-     const r = await db.materialDetail(materialId.value, route.name === "view");
+     const r = await db.materialDetail(materialId.value, route.name);
      if (r.error) {
          error.value = r.error.value;
      }

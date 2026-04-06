@@ -28,6 +28,9 @@ class RequestSender {
             throw new Error(`requestData.responseType not yet supported: ${requestData.responseType}`);
         }
         const r = schema.route[routeName];
+        if (! r) {
+            throw new Error(`unknown routeName: ${routeName}`);
+        }
         requestData[
             r.includes('<simulation_type>')
                 ? 'simulation_type'

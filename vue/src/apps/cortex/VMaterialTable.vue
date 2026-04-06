@@ -32,12 +32,14 @@
                         <div class="sr-button-bar">
                             <VMaterialLink
                                 v-bind:materialId="mat.material_id"
-                                >
+                                v-bind:adminView="adminView"
+                            >
                                 <div class="btn btm-sm btn-info">
                                     View
                                 </div>
                             </VMaterialLink>
                             <button
+                                v-if="! adminView"
                                 type="button"
                                 v-on:click="removeMaterial(mat)"
                                 class="btn btn-danger btn-sm"
@@ -69,6 +71,10 @@
  import { pubSub } from '@/services/pubsub.js';
  import { requestSender } from '@/services/requestsender.js';
  import { util } from '@/services/util.js';
+
+ const props = defineProps({
+     adminView: Boolean,
+ });
 
  const emit = defineEmits(['materialCount']);
  const confirmDeleteModal = ref(null);
@@ -142,12 +148,12 @@
  const _loadMaterials = async () => {
      // don't show the import panel until we know how many materials are present
      emit('materialCount', undefined);
-     state.materials = await db.listMaterials();
+     state.materials = await db.listMaterials(props.adminView);
 
      const c = cols.map((v) => v.name);
      for (const r of state.materials) {
          for (const k in r) {
-             if (k !== 'material_id' && ! c.includes(k)) {
+             if (k !== 'material_id' && k !== 'uid' && ! c.includes(k)) {
                  c.push(k);
                  cols.push({
                      name: k,
@@ -187,6 +193,12 @@
  };
 
  onMounted(async () => {
+     if (props.adminView) {
+         cols.unshift({
+             name: 'username',
+             heading: 'User Name',
+         });
+     }
      pubSub.subscribe(DB_UPDATED, _loadMaterials);
      await _loadMaterials();
  });

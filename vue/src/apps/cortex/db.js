@@ -21,21 +21,49 @@ class DB {
         return await this.#send('insert_material', {}, file);
     }
 
-    async listMaterials() {
-        const r = await this.#send('list_materials');
-        if (r.op_result) {
+    async listMaterials(isAdmin) {
+        let r;
+        if (isAdmin) {
+            // uses the admin api
+            r = await requestSender.sendRequest("cortexAdm", {
+                op_name: 'list_materials',
+                op_args: {},
+            });
+        }
+        else {
+            r = await this.#send('list_materials');
+        }
+        if (r && r.op_result) {
             return r.op_result.rows;
         }
         //TODO(robnagler) should no op_result be logged?
         return [];
     }
 
-    async loadSummary(material_id, is_public) {
-        return (await this.#send('load_summary', {material_id, is_public})).op_result;
+    async loadSummary(material_id, routeName) {
+        let r;
+        if (routeName === "admin-view") {
+            r = await requestSender.sendRequest("cortexAdm", {
+                op_name: 'load_summary',
+                op_args: {material_id},
+            });
+        }
+        else {
+            r = await this.#send('load_summary', {material_id, is_public: routeName === "view"});
+        }
+        return r.op_result;
     }
 
-    async materialDetail(material_id, is_public) {
-        const r = await this.#send('material_detail', {material_id, is_public});
+    async materialDetail(material_id, routeName) {
+        let r;
+        if (routeName === "admin-view") {
+            r = await requestSender.sendRequest("cortexAdm", {
+                op_name: 'material_detail',
+                op_args: {material_id},
+            });
+        } else {
+            r = await this.#send('material_detail', {material_id, is_public: routeName === "view"});
+        }
         if (r.error) {
             return r;
         }

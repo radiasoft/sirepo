@@ -19,6 +19,17 @@
             </li>
         </ul>
         <div class="navbar-nav ms-auto"></div>
+        <div v-if="authState.hasRole('adm')" class="float-end">
+            <RouterLink to="/cortex/admin">
+                <button
+                    type="button"
+                    class="btn btn-default"
+                    v-bind:class="{'btn-warning': isAdmin()}"
+                >
+                    Admin
+                </button>
+            </RouterLink>
+        </div>
         <VHelpAndLogout />
         </div>
     </VNavHolder>
@@ -30,8 +41,10 @@
  import VNavHolder from '@/components/nav/VNavHolder.vue';
  import VSimNav from '@/components/nav/VSimNav.vue';
  import { RouterLink } from 'vue-router';
+ import { authState } from '@/services/authstate.js';
  import { useRoute } from 'vue-router';
 
  const route = useRoute();
+ const isAdmin = () => ['admin', 'admin-view'].includes(route.name);
  const isSearch = () => route.name === 'search';
 </script>

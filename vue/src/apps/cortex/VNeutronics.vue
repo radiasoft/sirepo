@@ -78,7 +78,7 @@
  const simSummary = ref(null);
 
  const showRunSim = () => {
-     if (isViewing()) {
+     if (route.name === "view" || route.name === "admin-view") {
          return false;
      }
      if (isSimOutOfDate()) {
@@ -93,8 +93,6 @@
      }
      return summary.sim[props.neutronics].version !== summary.sim[props.neutronics].current_version;
  };
-
- const isViewing = () => route.name === "view";
 
  const rebuildReports = async () => {
      for (const v in sections) {
@@ -129,7 +127,7 @@
  };
 
  const loadAndRebuild = async () => {
-     summary = await db.loadSummary(props.materialId, isViewing());
+     summary = await db.loadSummary(props.materialId, route.name);
      await rebuildReports();
  };
 

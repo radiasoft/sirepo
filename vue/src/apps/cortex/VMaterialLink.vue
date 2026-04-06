@@ -17,7 +17,8 @@
  const props = defineProps({
      materialId: Number,
      isPublic: Boolean,
+     adminView: Boolean,
  });
 
- const routeName = props.isPublic ? 'view' : 'material';
+ const routeName = props.adminView ? 'admin-view' : props.isPublic ? 'view' : 'material';
 </script>

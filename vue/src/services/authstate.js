@@ -46,6 +46,13 @@ class AuthState {
             || `Server reported an error, please contact ${schema.feature_config.support_email}`
         );
     }
+
+    hasRole(role) {
+        if (! schema.constants.authStateRoles.includes(role)) {
+            throw new Error(`invalid role=${role}`);
+        }
+        return this.roles.hasOwnProperty(role);
+    }
 }
 
 export const authState = singleton.add('authState', () => reactive(new AuthState()));

@@ -16,9 +16,7 @@
                         <div class="cortex-material-button pt-3">
                             <span class="cortex-material-icon bi bi-database"></span>
                             <h5>{{ f.material_name }}</h5>
-                            <p class="Card-text">
-                                {{ f.is_plasma_facing ? 'plasma-facing' : 'structural' }}
-                            </p>
+                            <p>{{ f.is_plasma_facing ? 'plasma-facing' : 'structural' }}</p>
                         </div>
                     </button>
                 </VMaterialLink>
