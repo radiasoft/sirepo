@@ -48,6 +48,10 @@ class AuthState {
     }
 
     hasRole(role) {
+        //TODO(pjm): why does guest have auth role?
+        if (this.getAuthMethod() === "guest" && role === "adm") {
+            return false;
+        }
         if (! schema.constants.authStateRoles.includes(role)) {
             throw new Error(`invalid role=${role}`);
         }
