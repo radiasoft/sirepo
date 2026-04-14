@@ -350,6 +350,7 @@
             "folder": "/",
             "name": "first",
             "notes": "",
+            "simulationMode": "serial",
             "simulationSerial": 0,
             "visualizationBeamlineId": 104
         }
