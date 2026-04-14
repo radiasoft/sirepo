@@ -29,8 +29,15 @@ def run_background(cfg_dir):
 
 
 def run_opal(with_mpi=False, compute_positions=False):
-    if with_mpi and sirepo.mpi.cfg().cores < 2:
-        with_mpi = False
+    if with_mpi:
+        if (
+            sirepo.mpi.cfg().cores < 2
+            or simulation_db.read_json(
+                template_common.INPUT_BASE_NAME
+            ).models.simulation.simulationMode
+            == "serial"
+        ):
+            with_mpi = False
     if with_mpi:
         sirepo.mpi.run_program(
             ["opal", template.OPAL_INPUT_FILE],

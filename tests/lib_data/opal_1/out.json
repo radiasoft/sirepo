@@ -464,6 +464,7 @@
             "folder": "/",
             "name": "AWA Photoinjector",
             "notes": "",
+            "simulationMode": "serial",
             "simulationSerial": 0,
             "visualizationBeamlineId": 113
         }

@@ -649,6 +649,7 @@
             "folder": "/",
             "name": "Photoinjector Beamline",
             "notes": "",
+            "simulationMode": "serial",
             "simulationSerial": 0,
             "visualizationBeamlineId": 113
         }

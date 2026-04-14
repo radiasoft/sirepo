@@ -399,7 +399,7 @@ class LatticeParser(object):
                 if (
                     model_schema
                     and f not in model_schema
-                    and f not in ("at", "elemedge", "z")
+                    and f not in ("at", "elemedge", "z", "origin")
                 ):
                     continue
                 if f != "name":

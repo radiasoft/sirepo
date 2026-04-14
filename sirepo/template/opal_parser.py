@@ -246,6 +246,15 @@ class OpalParser(lattice.LatticeParser):
         self.data.models.elements = elements
 
     def __set_element_positions(self, code_var):
+        def _position(el):
+            if "origin" in el:
+                p = self.__split_values(el.origin)[2]
+            else:
+                p = el.get("elemedge", el.get("z", 0))
+            return PKDict(
+                elemedge=p,
+            )
+
         beamline_ids = []
         for beamline in self.data.models.beamlines:
             beamline_ids.append(beamline.id)
@@ -261,11 +270,7 @@ class OpalParser(lattice.LatticeParser):
                         )
                     )
                 else:
-                    positions.append(
-                        PKDict(
-                            elemedge=el.get("elemedge", el.get("z", 0)),
-                        )
-                    )
+                    positions.append(_position(el))
             beamline.positions = positions
         for beamline in self.data.models.beamlines:
             if "origin" in beamline:

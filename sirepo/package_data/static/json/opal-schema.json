@@ -315,6 +315,10 @@
             ["PARALLEL-T", "PARALLEL-T"],
             ["CYCLOTRON-T", "CYCLOTRON-T"]
         ],
+        "SimulationMode": [
+            ["serial", "Serial"],
+            ["parallel", "Parallel"]
+        ],
         "TrackTimeintegrator": [
             ["RK-4", "RK-4"],
             ["LF-2", "LF-2"],
@@ -483,7 +487,8 @@
         },
         "simulation": {
             "elementPosition": ["Element Positioning", "ElementPosition", "absolute", "Beamline elements may be positioned relative to each other using Drifts for spacing, or positioned absolute using Elemedge."],
-            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
+            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""],
+            "simulationMode": ["Execution", "SimulationMode", "serial"]
         },
         "_ELEMENT": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -1333,7 +1338,8 @@
                 "command_track.dt",
                 "command_track.maxsteps",
                 "command_track.zstart",
-                "command_track.zstop"
+                "command_track.zstop",
+                "simulation.simulationMode"
             ],
             "advanced": []
         },

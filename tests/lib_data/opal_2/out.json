@@ -553,6 +553,7 @@
             "folder": "/",
             "name": "conversion",
             "notes": "",
+            "simulationMode": "serial",
             "simulationSerial": 0,
             "visualizationBeamlineId": 114
         }
