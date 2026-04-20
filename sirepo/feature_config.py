@@ -225,7 +225,6 @@ def _init():
         ),
         sim_types=(set(), set, "simulation types (codes) to be imported"),
         srw=dict(
-            app_url=("/en/xray-beamlines.html", str, "URL for SRW link"),
             mask_in_toolbar=_test("Show the mask element in toolbar"),
             show_video_links=(False, bool, "Display instruction video links"),
             show_open_shadow=_test('Show "Open as a New Shadow Simulation" menu item'),
