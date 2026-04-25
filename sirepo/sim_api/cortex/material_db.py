@@ -92,7 +92,8 @@ def featured_materials():
 def init_module(**imports):
     global _meta
 
-    if _meta is not None:
+    u = pykern.sql_db.sqlite_uri(_path())
+    if _meta is not None and _meta.uri == u:
         return
     sirepo.util.setattr_imports(imports)
 
@@ -101,7 +102,7 @@ def init_module(**imports):
 
     f = "float 64"
     _meta = pykern.sql_db.Meta(
-        uri=pykern.sql_db.sqlite_uri(_path()),
+        uri=u,
         schema=PKDict(
             material=PKDict(
                 material_id="primary_id 1",

@@ -68,11 +68,27 @@ def test_no_user():
 
 
 def test_user_info():
+    import datetime
     from pykern import pkunit
     from pykern.pkcli import CommandError
+    from pykern.pkcollections import PKDict
     from sirepo.pkcli import admin
+    from sirepo.sim_api.cortex import material_db
 
     _init_db()
+    material_db.init_module()
+    material_db.insert_material(
+        PKDict(
+            created=datetime.datetime.utcnow(),
+            material_name="test",
+            density_g_cm3=1.0,
+            is_atom_pct=False,
+            is_plasma_facing=False,
+            components=PKDict(),
+            properties=PKDict(),
+        ),
+        _UID_IN_DB,
+    )
     r = admin.user_info(_UID_IN_DB)
     pkunit.pkeq(_UID_IN_DB, r.uid)
     pkunit.pkeq("testername", r.name)
@@ -81,6 +97,7 @@ def test_user_info():
     pkunit.pkeq(1, len(r.roles))
     pkunit.pkeq("sim_type_jupyterhublogin", r.roles[0].role)
     pkunit.pkeq(None, r.roles[0].expiration)
+    pkunit.pkeq(1, r.cortex_material_count)
 
     r = admin.user_info("tester@b.c")
     pkunit.pkeq(_UID_IN_DB, r.uid)
