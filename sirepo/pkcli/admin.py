@@ -184,12 +184,10 @@ def user_info(uid_or_email):
 
 def _app_info(rv):
     if "cortex" in feature_config.cfg().sim_types:
-        import sirepo.sim_api.cortex.material_db
+        from sirepo.sim_api.cortex import material_db
 
-        sirepo.sim_api.cortex.material_db.init_module()
-        rv.cortex_material_count = len(
-            sirepo.sim_api.cortex.material_db.list_materials(rv.uid)
-        )
+        material_db.init_module()
+        rv.cortex_material_count = len(material_db.list_materials(rv.uid))
     return rv
 
 
