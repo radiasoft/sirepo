@@ -15,8 +15,9 @@ def setup_module(module):
 
     srunit.setup_srdb_root()
     os.environ.update(
-        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES="jupyterhublogin",
         SIREPO_AUTH_METHODS="email:guest",
+        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES="jupyterhublogin",
+        SIREPO_FEATURE_CONFIG_SIM_TYPES="myapp",
     )
 
 
@@ -68,34 +69,17 @@ def test_no_user():
 
 
 def test_user_info():
-    import datetime
     from pykern import pkunit
     from pykern.pkcli import CommandError
-    from pykern.pkcollections import PKDict
     from sirepo.pkcli import admin
-    from sirepo.sim_api.cortex import material_db
 
     _init_db()
-    material_db.init_module()
-    material_db.insert_material(
-        PKDict(
-            created=datetime.datetime.utcnow(),
-            material_name="test",
-            density_g_cm3=1.0,
-            is_atom_pct=False,
-            is_plasma_facing=False,
-            components=PKDict(),
-            properties=PKDict(),
-        ),
-        _UID_IN_DB,
-    )
     r = admin.user_info(_UID_IN_DB)
     pkunit.pkeq(_UID_IN_DB, r.uid)
     pkunit.pkeq("testername", r.name)
     pkunit.pkeq("tester@b.c", r.email)
     pkunit.pkok(r.registered, "registered should be set")
     pkunit.pkok(len(r.roles), "roles not set")
-    pkunit.pkeq(1, r.cortex_material_count)
     with pkunit.pkexcept(CommandError):
         admin.user_info(_UID_NOT_IN_DB)
 
