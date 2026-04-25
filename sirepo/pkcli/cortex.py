@@ -202,18 +202,20 @@ def run_background(cfg_dir):
 
 
 def set_material_featured(material_id, is_featured, uid):
-    sirepo.sim_api.cortex.material_db.init_from_api()
+    sirepo.sim_api.cortex.material_db.init_module()
     sirepo.sim_api.cortex.material_db.set_featured(
         material_id, bool(int(is_featured)), uid
     )
 
 
 def set_material_public(material_id, is_public, uid):
-    sirepo.sim_api.cortex.material_db.init_from_api()
+    sirepo.sim_api.cortex.material_db.init_module()
     sirepo.sim_api.cortex.material_db.set_public(material_id, bool(int(is_public)), uid)
 
 
 def import_xlsx(uid_or_email, *args):
+    sirepo.sim_api.cortex.material_db.init_module()
+
     def _import_xlsx(filename):
         pkdlog("import: {}", filename)
         p = sirepo.sim_api.cortex.material_xlsx.Parser(filename)

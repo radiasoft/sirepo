@@ -9,6 +9,7 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 import pykern.sql_db
 import sirepo.srdb
 import sirepo.template.cortex
+import sirepo.util
 import sqlalchemy
 import sqlalchemy.exc
 
@@ -88,8 +89,12 @@ def featured_materials():
         ]
 
 
-def init_from_api():
+def init_module(**imports):
     global _meta
+
+    if _meta is not None:
+        return
+    sirepo.util.setattr_imports(imports)
 
     def _optional(v):
         return f"{v} nullable"

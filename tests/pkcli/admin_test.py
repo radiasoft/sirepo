@@ -67,6 +67,28 @@ def test_no_user():
     admin.delete_user(_UID_NOT_IN_DB)
 
 
+def test_user_info():
+    from pykern import pkunit
+    from pykern.pkcli import CommandError
+    from sirepo.pkcli import admin
+
+    _init_db()
+    r = admin.user_info(_UID_IN_DB)
+    pkunit.pkeq(_UID_IN_DB, r.uid)
+    pkunit.pkeq("testername", r.name)
+    pkunit.pkeq("tester@b.c", r.email)
+    pkunit.pkok(r.registered, "registered should be set")
+    pkunit.pkeq(1, len(r.roles))
+    pkunit.pkeq("sim_type_jupyterhublogin", r.roles[0].role)
+    pkunit.pkeq(None, r.roles[0].expiration)
+
+    r = admin.user_info("tester@b.c")
+    pkunit.pkeq(_UID_IN_DB, r.uid)
+
+    with pkunit.pkexcept(CommandError):
+        admin.user_info(_UID_NOT_IN_DB)
+
+
 def _init_db():
     from pykern import pkio
     from pykern import pkunit

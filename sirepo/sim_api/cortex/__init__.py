@@ -32,7 +32,7 @@ _action_loop = None
 def init_apis(**kwargs):
     global _action_loop
 
-    sirepo.sim_api.cortex.material_db.init_from_api()
+    sirepo.sim_api.cortex.material_db.init_module()
     _action_loop = _CortexDb()
 
 
