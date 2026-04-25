@@ -167,7 +167,7 @@ def user_info(uid_or_email):
         PKDict: user information
     """
     with sirepo.quest.start() as qcall:
-        if (u := qcall.auth.unchecked_get_user(uid_or_email) is None:
+        if (u := qcall.auth.unchecked_get_user(uid_or_email)) is None:
             pykern.pkcli.command_error("uid_or_email={} not found", uid_or_email)
         r = qcall.auth_db.model("UserRegistration").unchecked_search_by(uid=u)
         e = qcall.auth_db.model("AuthEmailUser").unchecked_search_by(uid=u)

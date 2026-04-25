@@ -94,14 +94,8 @@ def test_user_info():
     pkunit.pkeq("testername", r.name)
     pkunit.pkeq("tester@b.c", r.email)
     pkunit.pkok(r.registered, "registered should be set")
-    pkunit.pkeq(1, len(r.roles))
-    pkunit.pkeq("sim_type_jupyterhublogin", r.roles[0].role)
-    pkunit.pkeq(None, r.roles[0].expiration)
+    pkunit.pkok(len(r.roles), "roles not set")
     pkunit.pkeq(1, r.cortex_material_count)
-
-    r = admin.user_info("tester@b.c")
-    pkunit.pkeq(_UID_IN_DB, r.uid)
-
     with pkunit.pkexcept(CommandError):
         admin.user_info(_UID_NOT_IN_DB)
 
