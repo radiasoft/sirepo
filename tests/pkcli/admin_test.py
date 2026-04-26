@@ -15,8 +15,9 @@ def setup_module(module):
 
     srunit.setup_srdb_root()
     os.environ.update(
-        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES="jupyterhublogin",
         SIREPO_AUTH_METHODS="email:guest",
+        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES="jupyterhublogin",
+        SIREPO_FEATURE_CONFIG_SIM_TYPES="myapp",
     )
 
 
@@ -65,6 +66,22 @@ def test_no_user():
 
     _init_db()
     admin.delete_user(_UID_NOT_IN_DB)
+
+
+def test_user_info():
+    from pykern import pkunit
+    from pykern.pkcli import CommandError
+    from sirepo.pkcli import admin
+
+    _init_db()
+    r = admin.user_info(_UID_IN_DB)
+    pkunit.pkeq(_UID_IN_DB, r.uid)
+    pkunit.pkeq("testername", r.name)
+    pkunit.pkeq("tester@b.c", r.email)
+    pkunit.pkok(r.registered, "registered should be set")
+    pkunit.pkok(len(r.roles), "roles not set")
+    with pkunit.pkexcept(CommandError):
+        admin.user_info(_UID_NOT_IN_DB)
 
 
 def _init_db():

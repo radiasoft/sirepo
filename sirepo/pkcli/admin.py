@@ -18,6 +18,7 @@ import datetime
 import glob
 import json
 import os.path
+import pykern.pkcli
 import re
 import shutil
 import sirepo.auth_role
@@ -154,6 +155,40 @@ def reset_examples():
             o = _build_ops(list(s[t].values()), t, e)
             _revert(qcall, o, e)
             _delete(qcall, o)
+
+
+def user_info(uid_or_email):
+    """Show uid, name, email, roles and expiries, date registered.
+
+    Args:
+        uid_or_email (str): UID or email of the user
+
+    Returns:
+        PKDict: user information
+    """
+    with sirepo.quest.start() as qcall:
+        if (u := qcall.auth.unchecked_get_user(uid_or_email)) is None:
+            pykern.pkcli.command_error("uid_or_email={} not found", uid_or_email)
+        r = qcall.auth_db.model("UserRegistration").unchecked_search_by(uid=u)
+        e = qcall.auth_db.model("AuthEmailUser").unchecked_search_by(uid=u)
+        return _app_info(
+            PKDict(
+                uid=u,
+                name=r.display_name if r else None,
+                registered=str(r.created) if r else None,
+                email=e.user_name if e else None,
+                roles=qcall.auth_db.model("UserRole").get_roles_and_expiration(u),
+            )
+        )
+
+
+def _app_info(rv):
+    if "cortex" in feature_config.cfg().sim_types:
+        from sirepo.sim_api.cortex import material_db
+
+        material_db.init_module()
+        rv.cortex_material_count = len(material_db.list_materials(rv.uid))
+    return rv
 
 
 def _build_ops(simulations, sim_type, examples):
