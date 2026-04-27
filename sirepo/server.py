@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Primary sirepo.quest.API's
 
 :copyright: Copyright (c) 2015-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -338,7 +338,12 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("allow_visitor", path_info="PathInfo optional")
     async def api_homePage(self, path_info=None):
         return await self.call_api(
-            "staticFile", kwargs=PKDict(path_info="en/" + (path_info or "landing.html"))
+            "staticFile",
+            kwargs=PKDict(
+                path_info=sirepo.feature_config.cfg().home_page_subdir
+                + "/"
+                + (path_info or "index.html")
+            ),
         )
 
     @sirepo.quest.Spec("require_plan", folder="FolderName", name="SimName")
@@ -536,7 +541,8 @@ class API(sirepo.quest.API):
             raise sirepo.util.NotFound("empty path info")
         self._proxy_vue(f"{sirepo.const.STATIC_D}/" + path_info)
         p = sirepo.resource.static(sirepo.util.validate_path(path_info))
-        if re.match(r"^(html|en)/[^/]+html$", path_info):
+        s = sirepo.feature_config.cfg().home_page_subdir
+        if re.match(rf"^(html|{re.escape(s)})/[^/]+html$", path_info):
             return self.reply_html(p)
         return self.reply_file(p)
 
@@ -804,7 +810,7 @@ _cfg = pkconfig.init(
         bool,
         "enable source cache key, disable to allow local file edits in Chrome",
     ),
-    home_page_uri=("/en/landing.html", str, "home page to redirect to"),
+    home_page_uri=("/en/", str, "home page to redirect to"),
     vue_server=(
         None if pkconfig.in_dev_mode() else _VUE_SERVER_BUILD,
         _cfg_vue_server,
