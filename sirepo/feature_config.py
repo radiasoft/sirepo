@@ -160,6 +160,11 @@ def _init():
             bool,
             "enable the global resources allocation system",
         ),
+        home_page_subdir=(
+            "simple_en" if pkconfig.in_dev_mode() else "wp_en",
+            str,
+            "subdirectory under static for home page (en/) files",
+        ),
         is_registration_moderated=(
             False,
             bool,
