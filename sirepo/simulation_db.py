@@ -859,9 +859,8 @@ def _init():
         sbatch_display=(None, str, "how to display sbatch cluster to user"),
     )
     _init_schemas()
-    c = sirepo.mpi.cfg().cores
     JOB_RUN_MODE_MAP = PKDict(
-        parallel="{} cores (SMP)".format(c),
+        parallel="{} cores (SMP)".format(sirepo.mpi.cfg().cores),
         sequential="Serial",
     )
     if _cfg.sbatch_display:
