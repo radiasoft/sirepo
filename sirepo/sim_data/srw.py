@@ -192,15 +192,9 @@ class SimData(sirepo.sim_data.SimDataBase):
             for f in cs:
                 if f not in dm.coherentModesAnimation and f in si:
                     dm.coherentModesAnimation[f] = si[f]
-        import sirepo.mpi
-
         for m in dm:
-            if "parallelCores" not in dm[m]:
-                continue
-            if dm[m].get("jobRunMode") == "sequential":
+            if "parallelCores" in dm[m] and dm[m].get("jobRunMode") == "sequential":
                 dm[m].jobRunMode = "parallel"
-            if not dm[m].parallelCores:
-                dm[m].parallelCores = sirepo.mpi.cfg().cores
         cls._organize_example(data)
 
     @classmethod
