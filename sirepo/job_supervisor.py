@@ -814,8 +814,6 @@ class _ComputeJob(_Supervisor):
                 old.canceledAfterSecs = old.pkdel("cancelledAfterSecs", default=None)
                 for h in old.history:
                     h.canceledAfterSecs = old.pkdel("cancelledAfterSecs", default=None)
-            if old.get("jobRunMode") not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
-                old.jobRunMode = "parallel"
             return old
 
         p = cls._db_file(compute_jid)
