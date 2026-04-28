@@ -4701,22 +4701,14 @@ SIREPO.app.directive('parallelOptions', function(appState, authState) {
                 const m = $scope.model();
                 return m && 'parallelCores' in m && m.jobRunMode === 'parallel';
             };
-            function _fixParallelCores(m) {
+            appState.whenModelsLoaded($scope, function() {
+                const m = $scope.model();
                 if (m && 'parallelCores' in m) {
                     if (!m.parallelCores || m.parallelCores > authState.parallelCoresMax) {
                         m.parallelCores = authState.parallelCoresMax;
                     }
-                    if (m.jobRunMode === 'sequential') {
-                        m.jobRunMode = 'parallel';
-                    }
                 }
-            }
-            appState.whenModelsLoaded($scope, () => _fixParallelCores($scope.model()));
-            appState.watchModelFields(
-                $scope,
-                [`${$scope.simState.model}.jobRunMode`],
-                () => _fixParallelCores($scope.model()),
-            );
+            });
         },
     };
 });
