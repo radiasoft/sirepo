@@ -100,12 +100,15 @@ class API(sirepo.quest.API):
                 qcall=self,
             ):
                 r = await _first()
-            s = r.content_as_object().nextRequest.computeJobSerial
+            o = r.content_as_object()
+            if (body := _next(o)) is None:
+                return o.get("computeJobSerial", 0)
+            s = body.computeJobSerial
             for _ in range(_cfg.max_calls):
-                if (body := _next(r.content_as_object())) is None:
-                    return s
                 r.destroy()
                 r = await self.call_api("runStatus", body=body)
+                if (body := _next(r.content_as_object())) is None:
+                    return s
                 await asyncio.sleep(_SLEEP)
             raise RuntimeError(f"timeout={_cfg.max_calls * _SLEEP}s last resp={r}")
         finally:
