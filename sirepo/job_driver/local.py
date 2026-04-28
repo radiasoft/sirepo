@@ -96,7 +96,10 @@ class LocalDriver(job_driver.DriverBase):
 
     async def prepare_send(self, op):
         if op.op_name == job.OP_RUN:
-            op.msg.mpiCores = sirepo.mpi.cfg().cores if op.msg.isParallel else 1
+            op.msg.mpiCores = self._mpi_cores(
+                op,
+                sirepo.mpi.cfg().cores if op.msg.isParallel else 1,
+            )
         return await super().prepare_send(op)
 
     def _agent_on_exit(self, returncode):
