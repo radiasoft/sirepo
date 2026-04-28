@@ -597,8 +597,8 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
                 <div data-model-field="'jobRunMode'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
               </div>
               <div data-sbatch-options="simState"></div>
-              <div data-parallel-options="simState"></div>
             </div>
+            <div data-parallel-options="simState"></div>
             <div data-ng-if="sbatchLoginService.query('showLoginOrStatus')">
               <button ng-disabled="! sbatchLoginService.query('showLogin')" class="col-sm-6 pull-right btn btn-default" data-ng-click="loginClicked()">{{ label() }}</button>
             </div>
@@ -4691,7 +4691,7 @@ SIREPO.app.directive('parallelOptions', function(appState) {
         controller: function($scope) {
             $scope.isParallel = function() {
                 const m = appState.models[$scope.simState.model];
-                return m && m.jobRunMode === 'parallel';
+                return m && 'parallelCores' in m && m.jobRunMode !== 'sbatch';
             };
         },
     };
