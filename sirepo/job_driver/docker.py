@@ -218,12 +218,14 @@ class DockerDriver(job_driver.DriverBase):
         # logging in _DockerCmd
 
     async def prepare_send(self, op):
-        if op.op_name == job.OP_RUN:
+        def _cores():
             m = self.cfg[self.kind].get("cores", 1)
             if op.msg.isParallel and (c := op.msg.get("parallelCores")):
-                op.msg.mpiCores = min(int(c), m)
-            else:
-                op.msg.mpiCores = m
+                return min(int(c), m)
+            return m
+
+        if op.op_name == job.OP_RUN:
+            op.msg.mpiCores = _cores()
         return await super().prepare_send(op)
 
     def _agent_env(self, op):
