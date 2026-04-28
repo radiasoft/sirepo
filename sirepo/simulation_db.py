@@ -860,8 +860,8 @@ def _init():
     )
     _init_schemas()
     JOB_RUN_MODE_MAP = PKDict(
-        parallel="{} cores (SMP)".format(sirepo.mpi.cfg().cores),
         sequential="Serial",
+        parallel="{} cores (SMP)".format(sirepo.mpi.cfg().cores),
     )
     if _cfg.sbatch_display:
         JOB_RUN_MODE_MAP.sbatch = _cfg.sbatch_display
