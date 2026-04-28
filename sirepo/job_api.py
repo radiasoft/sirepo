@@ -391,7 +391,7 @@ class API(sirepo.quest.API):
                 "sbatchNodes",
                 "tasksPerNode",
             ):
-                if f not in m:
+                if f not in m or m[f] == 0:
                     continue
                 assert m[f] > 0, f"{f}={m[f]} must be greater than 0"
                 c[f] = m[f]
