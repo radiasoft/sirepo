@@ -598,6 +598,7 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
               </div>
               <div data-sbatch-options="simState"></div>
             </div>
+            <div data-parallel-options="simState"></div>
             <div data-ng-if="sbatchLoginService.query('showLoginOrStatus')">
               <button ng-disabled="! sbatchLoginService.query('showLogin')" class="col-sm-6 pull-right btn btn-default" data-ng-click="loginClicked()">{{ label() }}</button>
             </div>
@@ -4671,6 +4672,44 @@ SIREPO.app.directive('sbatchOptions', function(appState, sbatchLoginService) {
                 appState.watchModelFields($scope, [$scope.simState.model + '.' + e], trimHoursAndCores);
             });
         }
+    };
+});
+
+SIREPO.app.directive('parallelOptions', function(appState, authState) {
+    return {
+        restrict: 'A',
+        scope: {
+            simState: '=parallelOptions',
+        },
+        template: `
+            <div data-ng-show="isParallel()">
+              <div class="form-group form-group-sm">
+                <label class="col-sm-6 control-label">Processes</label>
+                <div class="col-sm-6">
+                  <select class="form-control" data-ng-model="model().parallelCores" data-ng-options="v for v in processOptions"></select>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.processOptions = Array.from(
+                {length: authState.parallelCoresMax},
+                (_, i) => i + 1
+            );
+            $scope.model = () => appState.models[$scope.simState.model];
+            $scope.isParallel = function() {
+                const m = $scope.model();
+                return m && 'parallelCores' in m && m.jobRunMode === 'parallel';
+            };
+            appState.whenModelsLoaded($scope, function() {
+                const m = $scope.model();
+                if (m && 'parallelCores' in m) {
+                    if (!m.parallelCores || m.parallelCores > authState.parallelCoresMax) {
+                        m.parallelCores = authState.parallelCoresMax;
+                    }
+                }
+            });
+        },
     };
 });
 
