@@ -705,10 +705,8 @@ class _ComputeJob(_Supervisor):
         # not self.db.jobRunMode
         r = req.content.get("jobRunMode", self.db.jobRunMode)
         if r not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
-            # happens only when config changes, e.g. sequential removed when cores > 1
-            if "parallel" not in sirepo.simulation_db.JOB_RUN_MODE_MAP:
-                raise sirepo.util.NotFound("invalid jobRunMode={} req={}", r, req)
-            r = "parallel"
+            # happens only when config changes, and only when sbatch is missing
+            raise sirepo.util.NotFound("invalid jobRunMode={} req={}", r, req)
         msg_kwargs.setdefault(
             "kind",
             (
