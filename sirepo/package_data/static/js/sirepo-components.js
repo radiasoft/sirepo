@@ -4699,7 +4699,7 @@ SIREPO.app.directive('parallelOptions', function(appState, authState) {
             $scope.model = () => appState.models[$scope.simState.model];
             $scope.isParallel = function() {
                 const m = $scope.model();
-                return m && 'parallelCores' in m && m.jobRunMode !== 'sbatch';
+                return m && 'parallelCores' in m && m.jobRunMode === 'parallel';
             };
         },
     };
