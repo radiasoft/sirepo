@@ -1344,10 +1344,13 @@ class _Op(PKDict):
 
     async def reply_get(self):
         pkdlog("{} await _reply_q.get()", self)
-        if (r := await self._reply_q.get()) is None:
+        q = self._reply_q
+        r = await q.get()
+        # May be destroyed but still have to task_done
+        q.task_done()
+        if r is None:
             pkdlog("{} no reply", self)
             return None
-        self._reply_q.task_done()
         return r
 
     def reply_put(self, reply_content):
