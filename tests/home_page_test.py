@@ -14,4 +14,4 @@ def setup_module(module):
 def test_wp_en(fc):
     from pykern.pkunit import pkre
 
-    pkre("wp_en_home_page", fc.sr_get("/en/").data)
+    pkre("Sirepo by RadiaSoft", fc.sr_get("/en/").data)

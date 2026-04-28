@@ -1,0 +1,1 @@
+<svg xmlns="http://www.w3.org/2000/svg" height="52" width="347"><defs><mask id="header-mask"><path fill="#fff" d="M0 0h347v52H0z"/><path id="curve1" d="M24 0s45 114 97 0" fill="#000"/><path id="curve2" d="M109 0s43 114 95 0" fill="#000"/><path id="curve3" d="M193 0s43 114 96 0" fill="#000"/></mask></defs><path fill="#fff" mask="url(#header-mask)" d="M0 0h347v52H0z"/></svg>
