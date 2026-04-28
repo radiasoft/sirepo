@@ -372,7 +372,13 @@ class API(sirepo.quest.API):
                     request_content.computeJid,
                 )
             request_content.jobRunMode = j
-            return _validate_and_add_sbatch_fields(request_content, m)
+            if j == sirepo.job.SBATCH:
+                return _validate_and_add_sbatch_fields(request_content, m)
+            if j == sirepo.job.PARALLEL and (p := m.get("parallelCores")):
+                request_content.parallelCores = p
+            elif j == sirepo.job.SEQUENTIAL:
+                request_content.parallelCores = 1
+            return request_content
 
         def _validate_and_add_sbatch_fields(request_content, compute_model):
             m = compute_model
@@ -385,7 +391,6 @@ class API(sirepo.quest.API):
                 c.sbatchQueue = m.sbatchQueue
                 c.sbatchProject = m.sbatchProject
             for f in (
-                "parallelCores",
                 "sbatchCores",
                 "sbatchHours",
                 "sbatchNodes",
