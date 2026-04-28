@@ -18,6 +18,7 @@ import sirepo.cookie
 import sirepo.events
 import sirepo.feature_config
 import sirepo.job
+import sirepo.mpi
 import sirepo.payments
 import sirepo.quest
 import sirepo.reply
@@ -704,6 +705,7 @@ class _Auth(sirepo.quest.Attr):
             isModerated=sirepo.feature_config.cfg().is_registration_moderated,
             jobRunModeMap=simulation_db.JOB_RUN_MODE_MAP,
             max_message_bytes=sirepo.job.cfg().max_message_bytes,
+            parallelCoresMax=sirepo.mpi.cfg().cores,
             method=self._qcall_bound_method(),
             needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
             roles=[],

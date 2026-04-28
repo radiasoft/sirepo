@@ -4675,7 +4675,7 @@ SIREPO.app.directive('sbatchOptions', function(appState, sbatchLoginService) {
     };
 });
 
-SIREPO.app.directive('parallelOptions', function(appState) {
+SIREPO.app.directive('parallelOptions', function(appState, authState) {
     return {
         restrict: 'A',
         scope: {
@@ -4684,13 +4684,21 @@ SIREPO.app.directive('parallelOptions', function(appState) {
         template: `
             <div data-ng-show="isParallel()">
               <div class="form-group form-group-sm">
-                <div data-model-field="'parallelCores'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
+                <label class="col-sm-6 control-label">Processes</label>
+                <div class="col-sm-6">
+                  <select class="form-control" data-ng-model="model().parallelCores" data-ng-options="v for v in processOptions"></select>
+                </div>
               </div>
             </div>
         `,
         controller: function($scope) {
+            $scope.processOptions = Array.from(
+                {length: authState.parallelCoresMax},
+                (_, i) => i + 1
+            );
+            $scope.model = () => appState.models[$scope.simState.model];
             $scope.isParallel = function() {
-                const m = appState.models[$scope.simState.model];
+                const m = $scope.model();
                 return m && 'parallelCores' in m && m.jobRunMode !== 'sbatch';
             };
         },
