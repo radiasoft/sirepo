@@ -534,7 +534,7 @@
         "coherentModesAnimation": {
             "_super": ["_", "model", "_INTENSITY_REPORT"],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "parallelCores": ["Processes", "Integer", 2],
+            "parallelCores": ["Processes", "Integer", 0],
             "tasksPerNode": ["Processes per node", "Integer", 128],
             "sbatchCores": ["Cores", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
@@ -717,7 +717,7 @@
             "savingPeriodicity": ["Saving periodicity (in terms of macro-electrons)", "Integer", 5],
             "notes": ["Notes", "Text", ""],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "parallelCores": ["Processes", "Integer", 2],
+            "parallelCores": ["Processes", "Integer", 0],
             "sbatchCores": ["Cores", "Integer", 128],
             "tasksPerNode": ["Processes per node", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
@@ -823,7 +823,7 @@
         },
         "machineLearningAnimation": {
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "parallelCores": ["Processes", "Integer", 2],
+            "parallelCores": ["Processes", "Integer", 0],
             "tasksPerNode": ["Processes per node", "Integer", 128],
             "sbatchCores": ["Cores", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
@@ -871,7 +871,7 @@
         "multiElectronAnimation": {
             "_super": ["_", "model", "_INTENSITY_REPORT"],
             "jobRunMode": ["Execution Mode", "JobRunMode", "parallel"],
-            "parallelCores": ["Processes", "Integer", 2],
+            "parallelCores": ["Processes", "Integer", 0],
             "tasksPerNode": ["Processes per node", "Integer", 128],
             "sbatchCores": ["Cores", "Integer", 128],
             "sbatchHours": ["Hours", "Float", 0.4],
