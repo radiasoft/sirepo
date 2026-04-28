@@ -597,6 +597,7 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
                 <div data-model-field="'jobRunMode'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
               </div>
               <div data-sbatch-options="simState"></div>
+              <div data-parallel-options="simState"></div>
             </div>
             <div data-ng-if="sbatchLoginService.query('showLoginOrStatus')">
               <button ng-disabled="! sbatchLoginService.query('showLogin')" class="col-sm-6 pull-right btn btn-default" data-ng-click="loginClicked()">{{ label() }}</button>
@@ -4671,6 +4672,28 @@ SIREPO.app.directive('sbatchOptions', function(appState, sbatchLoginService) {
                 appState.watchModelFields($scope, [$scope.simState.model + '.' + e], trimHoursAndCores);
             });
         }
+    };
+});
+
+SIREPO.app.directive('parallelOptions', function(appState) {
+    return {
+        restrict: 'A',
+        scope: {
+            simState: '=parallelOptions',
+        },
+        template: `
+            <div data-ng-show="isParallel()">
+              <div class="form-group form-group-sm">
+                <div data-model-field="'parallelCores'" data-model-name="simState.model" data-label-size="6" data-field-size="6"></div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.isParallel = function() {
+                const m = appState.models[$scope.simState.model];
+                return m && m.jobRunMode === 'parallel';
+            };
+        },
     };
 });
 

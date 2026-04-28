@@ -384,7 +384,7 @@ class API(sirepo.quest.API):
                 ), f"sbatchQueue={m.sbatchQueue} not in NERSC_QUEUES={sirepo.job.NERSC_QUEUES}"
                 c.sbatchQueue = m.sbatchQueue
                 c.sbatchProject = m.sbatchProject
-            for f in "sbatchCores", "sbatchHours", "sbatchNodes", "tasksPerNode":
+            for f in "parallelCores", "sbatchCores", "sbatchHours", "sbatchNodes", "tasksPerNode":
                 if f not in m:
                     continue
                 assert m[f] > 0, f"{f}={m[f]} must be greater than 0"
