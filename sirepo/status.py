@@ -81,7 +81,9 @@ class API(sirepo.quest.API):
             rv = await self.call_api("runSimulation", body=d)
             o = rv.content_as_object()
             if o.get("nextRequest") is None:
-                raise RuntimeError(f"no nextRequest state={o.get('state')} error={o.get('error')} sid={sim_id}")
+                raise RuntimeError(
+                    f"no nextRequest state={o.get('state')} error={o.get('error')} sid={sim_id}"
+                )
             return rv
 
         def _next(reply):

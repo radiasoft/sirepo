@@ -37,6 +37,7 @@ def test_basic(auth_fc):
 
     def _status(fc, headers, timestamps, delay=0):
         import time
+
         if delay:
             time.sleep(delay)
         r = fc.sr_get_json("serverStatus", headers=headers)
@@ -49,6 +50,8 @@ def test_basic(auth_fc):
     auth_fc.sr_logout()
     t = []
     for i in range(10):
-        auth_fc.sr_thread_start(f"t{i}", _status, headers=_headers(u), timestamps=t, delay=i * 0.5)
+        auth_fc.sr_thread_start(
+            f"t{i}", _status, headers=_headers(u), timestamps=t, delay=i * 0.5
+        )
     auth_fc.sr_thread_join()
     pkeq(10, len(t))
