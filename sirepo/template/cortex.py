@@ -309,7 +309,7 @@ import pykern.pkrunpy
 # RS: disable multiprocessing, there is no way to set process count
 openmc.deplete.pool.USE_MULTIPROCESSING = False
 # replaces matplotlib with stub which saves plot data
-plt = pykern.pkrunpy.run_path_as_module("cortex_plot.py").plt
+plt = pykern.pkrunpy.run_path_as_module("cortex_plot.py").pyplot
 materials = pykern.pkrunpy.run_path_as_module("cortex_materials.py")
 
 

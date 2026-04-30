@@ -420,7 +420,6 @@ model.settings = openmc.Settings()
 model.settings.dagmc = True
 model.settings.photon_transport = True
 model.settings.batches = 10
-# for faster results
 model.settings.particles = 100_000
 model.settings.run_mode = "fixed source"
 model.settings.surf_source_read = {"path": SURF_SOURCE_FILE}
@@ -1063,10 +1062,10 @@ def set_ylim_and_ticks(
             ymax = 10 ** (hi + pad)
             ax.set_ylim(ymin, ymax)
 
-            # ax.yaxis.set_major_locator(mticker.LogLocator(base=10.0, subs=(1.0, 2.0, 5.0)))
-            # ax.yaxis.set_major_formatter(mticker.LogFormatterMathtext(base=10.0, labelOnlyBase=False))
-            # ax.yaxis.set_minor_locator(mticker.LogLocator(base=10.0, subs=np.arange(1, 10) * 0.1))
-            # ax.yaxis.set_minor_formatter(mticker.NullFormatter())
+            ax.yaxis.set_major_locator(mticker.LogLocator(base=10.0, subs=(1.0, 2.0, 5.0)))
+            ax.yaxis.set_major_formatter(mticker.LogFormatterMathtext(base=10.0, labelOnlyBase=False))
+            ax.yaxis.set_minor_locator(mticker.LogLocator(base=10.0, subs=np.arange(1, 10) * 0.1))
+            ax.yaxis.set_minor_formatter(mticker.NullFormatter())
             return
 
     ymin = float(np.min(y))
@@ -1082,10 +1081,10 @@ def set_ylim_and_ticks(
         ymin -= ratio * span
         ymax += ratio * span
 
-    # ax.set_ylim(ymin, ymax)
-    # ax.yaxis.set_major_locator(mticker.MaxNLocator(n_linear_ticks))
-    # ax.yaxis.set_minor_locator(mticker.AutoMinorLocator())
-    # ax.yaxis.set_major_formatter(mticker.StrMethodFormatter("{x:g}"))
+    ax.set_ylim(ymin, ymax)
+    ax.yaxis.set_major_locator(mticker.MaxNLocator(n_linear_ticks))
+    ax.yaxis.set_minor_locator(mticker.AutoMinorLocator())
+    ax.yaxis.set_major_formatter(mticker.StrMethodFormatter("{x:g}"))
 
 # =============================================================================
 # structural-origin fractions per cell/nuclide
@@ -1155,15 +1154,14 @@ ob_by_key = _cells_chunk["ob_by_key"]
 ib_by_key = _cells_chunk["ib_by_key"]
 n_breeder  = int(geom["n_breeder"])
 
-# def generate_colors(n):
-#     """Generates a smooth rainbow gradient of n RGB colors."""
-#     nc = n + 1
-#     cmap = plt.get_cmap('rainbow')
-#     color_range = cmap(np.linspace(1, 0, nc))
-#     return color_range
+def generate_colors(n):
+    """Generates a smooth rainbow gradient of n RGB colors."""
+    nc = n + 1
+    cmap = plt.get_cmap('rainbow')
+    color_range = cmap(np.linspace(1, 0, nc))
+    return color_range
 
-# colors = generate_colors(n_breeder)
-colors = list(range(100))
+colors = generate_colors(n_breeder)
 
 cell_ids_for_key   = _cells_chunk["cell_ids_for_key"]      # key -> list[int]
 radial_bins_for_key = _cells_chunk["radial_bins_for_key"]  # key -> (centroids,widths,edges)
@@ -2254,21 +2252,21 @@ def empty_poloidal_plot(x_data, num_pts):
   ax.set_yscale("linear")
 
   ax.set_xlim([-0.5, len(x_data) - 2.5])
-  # ax.axvline(split, linestyle="--", linewidth=1, color='k')
-  # ax.text(split - 0.15, 0.95, "$\\leftarrow$ outboard   inboard $\\rightarrow$", transform=ax.get_xaxis_transform(),
-  #         ha="center", va="top", fontsize=10)
+  ax.axvline(split, linestyle="--", linewidth=1, color='k')
+  ax.text(split - 0.15, 0.95, "$\\leftarrow$ outboard   inboard $\\rightarrow$", transform=ax.get_xaxis_transform(),
+          ha="center", va="top", fontsize=10)
 
   ax.set_xticks(xticks)
   xlabels = [f"OB{i+1}" if i < n_breeder else f"IB{i+1-n_breeder}" for i in range(num_pts)]
   ax.set_xticklabels(xlabels, rotation=45, ha="right", fontsize=9)
   ax.set_xlabel("Poloidal regions", fontsize=11)
 
-  # ax.grid(True, which="major", linestyle="--", linewidth=0.6, alpha=0.8)
-  # ax.yaxis.grid(True, which="minor", linestyle=":", linewidth=0.4, alpha=0.5)
-  # ax.minorticks_on()
-  # plt.gca().tick_params(axis='x', which='minor', bottom=False)
-  # fig.tight_layout()
-
+  ax.grid(True, which="major", linestyle="--", linewidth=0.6, alpha=0.8)
+  ax.yaxis.grid(True, which="minor", linestyle=":", linewidth=0.4, alpha=0.5)
+  ax.minorticks_on()
+  plt.gca().tick_params(axis='x', which='minor', bottom=False)
+  fig.tight_layout()
+  
   return fig, ax
 
 def pad_poloidal_data(data):
@@ -2937,7 +2935,7 @@ import numpy as np
 import pandas as pd
 
 # import matplotlib.pyplot as plt
-# import matplotlib.ticker as mticker
+import matplotlib.ticker as mticker
 import openmc
 import openmc.deplete
 
@@ -2951,11 +2949,11 @@ SECONDS_PER_YEAR = 365.25 * 24 * 3600.0
 
 MAX_HALFLIFE = 60*60*24*365/12*1e6*100
 
-# def generate_colors(n):
-#     """Generates a smooth rainbow gradient of n RGB colors."""
-#     cmap = plt.get_cmap('turbo') # plasma also looks nice
-#     color_range = cmap(np.linspace(1, 0, n))
-#     return color_range
+def generate_colors(n):
+    """Generates a smooth rainbow gradient of n RGB colors."""
+    cmap = plt.get_cmap('turbo') # plasma also looks nice
+    color_range = cmap(np.linspace(1, 0, n))
+    return color_range
 
 def display_half_life(nuclide):
   half_life = openmc.data.half_life(nuclide)
@@ -3092,39 +3090,38 @@ def _style_cycle(reset: bool = True):
 
 def _finalize_legend(ax, *, ncol: int = 2, fontsize: int = 8, title: str = ""):
     """Sorted, multi-column, outside legend."""
-    # handles, labels = ax.get_legend_handles_labels()
-    # if not handles:
-    #     return
+    handles, labels = ax.get_legend_handles_labels()
+    if not handles:
+        return
 
-    # order = np.argsort(labels)
-    # handles = [handles[i] for i in order]
-    # labels = [labels[i] for i in order]
+    order = np.argsort(labels)
+    handles = [handles[i] for i in order]
+    labels = [labels[i] for i in order]
 
-    # ax.legend(
-    #     handles,
-    #     labels,
-    #     title=title,
-    #     fontsize=fontsize,
-    #     loc="center left",
-    #     bbox_to_anchor=(1.02, 0.5),
-    #     ncol=ncol,
-    #     frameon=False,
-    #     borderaxespad=0.0,
-    #     handlelength=2.0,
-    #     columnspacing=1.0,
-    #     labelspacing=0.4,
-    # )
-    pass
+    ax.legend(
+        handles,
+        labels,
+        title=title,
+        fontsize=fontsize,
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        ncol=ncol,
+        frameon=False,
+        borderaxespad=0.0,
+        handlelength=2.0,
+        columnspacing=1.0,
+        labelspacing=0.4,
+    )
 
 def _format_log_axes(ax):
     """Cleaner log grid and ticks."""
     ax.grid(True, which="major", linewidth=0.8, alpha=0.35)
     ax.grid(True, which="minor", linewidth=0.5, alpha=0.15)
 
-    # ax.xaxis.set_minor_locator(mticker.LogLocator(base=10, subs=np.arange(2, 10) * 0.1))
-    # ax.yaxis.set_minor_locator(mticker.LogLocator(base=10, subs=np.arange(2, 10) * 0.1))
-    # ax.xaxis.set_minor_formatter(mticker.NullFormatter())
-    # ax.yaxis.set_minor_formatter(mticker.NullFormatter())
+    ax.xaxis.set_minor_locator(mticker.LogLocator(base=10, subs=np.arange(2, 10) * 0.1))
+    ax.yaxis.set_minor_locator(mticker.LogLocator(base=10, subs=np.arange(2, 10) * 0.1))
+    ax.xaxis.set_minor_formatter(mticker.NullFormatter())
+    ax.yaxis.set_minor_formatter(mticker.NullFormatter())
 
 def _has_positive_finite(y: np.ndarray) -> bool:
     y = np.asarray(y, dtype=float)
@@ -3227,19 +3224,19 @@ def _add_time_reference_lines(ax):
         (1000.0,              "1000 y"),
     ]
 
-    # for x, txt in refs:
-    #     ax.axvline(x, color="gray", linestyle="--", linewidth=1, alpha=0.6)
-    #     ax.text(
-    #         x,
-    #         0.98,
-    #         txt,
-    #         transform=ax.get_xaxis_transform(),
-    #         rotation=90,
-    #         va="top",
-    #         ha="right",
-    #         fontsize=8,
-    #         alpha=0.8,
-    #     )
+    for x, txt in refs:
+        ax.axvline(x, color="gray", linestyle="--", linewidth=1, alpha=0.6)
+        ax.text(
+            x,
+            0.98,
+            txt,
+            transform=ax.get_xaxis_transform(),
+            rotation=90,
+            va="top",
+            ha="right",
+            fontsize=8,
+            alpha=0.8,
+        )
 
 # ============================================================
 # Activity
@@ -3338,7 +3335,7 @@ def plot_activity_nuclides_per_cell(
         halflife_list = [openmc.data.half_life(i) or MAX_HALFLIFE for i in top_nucs]
         nuclide_list = top_nucs
         sorted_halflife_list, sorted_nuclide_list = zip(*sorted(zip(halflife_list, nuclide_list)))
-        colors = list(range(len(top_nucs)))
+        colors = generate_colors(len(top_nucs))
 
         for i, nuc in enumerate(top_nucs):
             vals_plot = _mask(nuc_series[nuc])
@@ -3377,9 +3374,9 @@ def plot_activity_nuclides_per_cell(
         ax.set_ylim([10 ** math.floor(math.log10(max(np.min(others_plot), 10e-10))), 10 ** math.ceil(math.log10(np.max(total_act_plot)))])
 
         # Legend
-        # n_entries = len(ax.get_legend_handles_labels()[1])
-        # ncol = 2 if n_entries <= 24 else 3
-        # _finalize_legend(ax, ncol=ncol, title="Components", fontsize=8)
+        n_entries = len(ax.get_legend_handles_labels()[1])
+        ncol = 2 if n_entries <= 24 else 3
+        _finalize_legend(ax, ncol=ncol, title="Components", fontsize=8)
 
         fig.subplots_adjust(right=0.72)
         safe_region = str(region).replace(" ", "_").replace("/", "_")
@@ -3406,7 +3403,7 @@ def plot_activity_all_cells(
     mcycle, lscycle = _style_cycle()
 
     num_cells = max(1, len(total_activity_all))
-    colors = list(range(20))
+    colors = plt.cm.tab20(np.linspace(0, 1, max(1, min(num_cells, 20))))
 
     ymax = 0.0
     for i, (cid, (t_rel_y, y)) in enumerate(total_activity_all.items()):
@@ -3437,9 +3434,9 @@ def plot_activity_all_cells(
     if ymin is not None and ymax > 0.0:
         ax.set_ylim(ymin, 10.0 * ymax)
 
-    # n_entries = len(ax.get_legend_handles_labels()[1])
-    # ncol = 2 if n_entries <= 24 else 3
-    # _finalize_legend(ax, ncol=ncol, title="Regions", fontsize=8)
+    n_entries = len(ax.get_legend_handles_labels()[1])
+    ncol = 2 if n_entries <= 24 else 3
+    _finalize_legend(ax, ncol=ncol, title="Regions", fontsize=8)
 
     fig.subplots_adjust(right=0.72)
     fig.savefig(out_dir / "activity_all_cells.png", dpi=200, bbox_inches="tight")
@@ -3488,7 +3485,7 @@ def plot_activity_radial_profiles(
     fig, ax = plt.subplots(figsize=(10, 6))
     mcycle, lscycle = _style_cycle()
 
-    colors = list(range(20))
+    colors = plt.cm.tab20(np.linspace(0, 1, max(1, len(idx_to_plot))))
 
     for k, j in enumerate(idx_to_plot):
         y = radial[:, j]
@@ -3514,9 +3511,9 @@ def plot_activity_radial_profiles(
     if ymin is not None and ymax > 0.0:
         ax.set_ylim(ymin, 10.0 * ymax)
 
-    # n_entries = len(ax.get_legend_handles_labels()[1])
-    # ncol = 1 if n_entries <= 12 else 2
-    # _finalize_legend(ax, ncol=ncol, title="Timesteps", fontsize=8)
+    n_entries = len(ax.get_legend_handles_labels()[1])
+    ncol = 1 if n_entries <= 12 else 2
+    _finalize_legend(ax, ncol=ncol, title="Timesteps", fontsize=8)
 
     fig.subplots_adjust(right=0.76)
     fig.savefig(out_dir / "radial_activity_profiles.png", dpi=200, bbox_inches="tight")
@@ -3621,7 +3618,7 @@ def plot_decayheat_nuclides_per_cell(
         halflife_list = [openmc.data.half_life(i) or MAX_HALFLIFE for i in top_nucs]
         nuclide_list = top_nucs
         sorted_halflife_list, sorted_nuclide_list = zip(*sorted(zip(halflife_list, nuclide_list)))
-        colors = list(range(len(top_nucs)))
+        colors = generate_colors(len(top_nucs))
 
         for i, nuc in enumerate(top_nucs):
             vals_plot = _mask(nuc_series[nuc])
@@ -3664,9 +3661,9 @@ def plot_decayheat_nuclides_per_cell(
             if ymin is not None:
                 ax.set_ylim(ymin, 10.0 * ymax)
 
-        # n_entries = len(ax.get_legend_handles_labels()[1])
-        # ncol = 2 if n_entries <= 24 else 3
-        # _finalize_legend(ax, ncol=ncol, title="Components", fontsize=8)
+        n_entries = len(ax.get_legend_handles_labels()[1])
+        ncol = 2 if n_entries <= 24 else 3
+        _finalize_legend(ax, ncol=ncol, title="Components", fontsize=8)
 
         fig.subplots_adjust(right=0.72)
         safe_region = str(region).replace(" ", "_").replace("/", "_")
@@ -3694,7 +3691,7 @@ def plot_decayheat_all_cells(
     mcycle, lscycle = _style_cycle()
 
     num_cells = max(1, len(total_heat_all))
-    colors = list(range(20))
+    colors = plt.cm.tab20(np.linspace(0, 1, max(1, min(num_cells, 20))))
 
     for i, (cid, (t_rel_y, y)) in enumerate(total_heat_all.items()):
         region = cell_id_to_name.get(cid, str(cid))
@@ -3722,9 +3719,9 @@ def plot_decayheat_all_cells(
     if max_decay_comb > 0 and ymin is not None:
         ax.set_ylim(ymin, 10.0 * max_decay_comb)
 
-    # n_entries = len(ax.get_legend_handles_labels()[1])
-    # ncol = 2 if n_entries <= 24 else 3
-    # _finalize_legend(ax, ncol=ncol, title="Regions", fontsize=8)
+    n_entries = len(ax.get_legend_handles_labels()[1])
+    ncol = 2 if n_entries <= 24 else 3
+    _finalize_legend(ax, ncol=ncol, title="Regions", fontsize=8)
 
     fig.subplots_adjust(right=0.72)
     fig.savefig(out_dir / "decayheat_all_cells.png", dpi=200, bbox_inches="tight")
@@ -3770,7 +3767,7 @@ def plot_decayheat_radial_profiles(
 
     fig, ax = plt.subplots(figsize=(10, 6))
     mcycle, lscycle = _style_cycle()
-    colors = list(range(20))
+    colors = plt.cm.tab20(np.linspace(0, 1, max(1, len(idx_to_plot))))
 
     for k, j in enumerate(idx_to_plot):
         y = radial[:, j]
@@ -3795,9 +3792,9 @@ def plot_decayheat_radial_profiles(
     if max_decay_comb > 0 and ymin is not None:
         ax.set_ylim(ymin, 10.0 * max_decay_comb)
 
-    # n_entries = len(ax.get_legend_handles_labels()[1])
-    # ncol = 1 if n_entries <= 12 else 2
-    # _finalize_legend(ax, ncol=ncol, title="Timesteps", fontsize=8)
+    n_entries = len(ax.get_legend_handles_labels()[1])
+    ncol = 1 if n_entries <= 12 else 2
+    _finalize_legend(ax, ncol=ncol, title="Timesteps", fontsize=8)
 
     fig.subplots_adjust(right=0.76)
     fig.savefig(out_dir / "radial_decayheat_profiles.png", dpi=200, bbox_inches="tight")
