@@ -18,11 +18,14 @@ import sirepo.sim_api.cortex.material_db
 import sirepo.sim_api.cortex.material_xlsx
 import sirepo.sim_data
 import sirepo.simulation_db
+import sirepo.srdb
 
 _SIM_DATA, SIM_TYPE, _ = sirepo.sim_data.template_globals(sim_type="cortex")
 
 #: These operations are all fast. There shouldn't be much contention
 _ACTION_TIMEOUT = 20
+
+_CORTEXDB_DIR = "cortexdb"
 
 _EXT = ".xlsx"
 
@@ -273,6 +276,14 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
                 d.completed = datetime.datetime.fromisoformat(d.completed)
             sirepo.sim_api.cortex.material_db.update_sim_summary(d, uid)
             n.remove()
+        for p in pykern.pkio.sorted_glob(
+            str(_SIM_DATA.lib_file_write_path(_SIM_DATA.PNG_GLOB, qcall=qcall))
+        ):
+            report, material_id, stat = _SIM_DATA.parts_from_png_file(p.basename)
+            dst = pykern.pkio.mkdir_parent(
+                sirepo.srdb.root().join(_CORTEXDB_DIR, str(material_id), report)
+            ).join(f"{stat}.png")
+            shutil.move(str(p), str(dst))
 
     def _dispatch_action(self, method, arg):
         qcall = arg.qcall

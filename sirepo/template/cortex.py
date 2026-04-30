@@ -337,7 +337,7 @@ t = material_from_definition(
 
 
 def _json_filename(stat):
-    return f"{stat}.png.json"
+    return f"{_png_filename(stat)}.json"
 
 
 def _material_id_from_run_dir(run_dir):
@@ -391,6 +391,10 @@ def _plot_from_file(run_dir, material_id, report, stat):
     )
 
 
+def _png_filename(stat):
+    return f"{stat}.png"
+
+
 def _save_summary_to_database(run_dir, report, stats):
     m = _material_id_from_run_dir(run_dir)
     summary = PKDict(
@@ -411,6 +415,10 @@ def _save_summary_to_database(run_dir, report, stats):
                     if pos < p.points[0][i]:
                         summary["values"][label] = p.points[idx][i]
                         break
+        _SIM_DATA.lib_file_write(
+            _SIM_DATA.png_file_from_parts(report, m, s),
+            run_dir.join(_png_filename(s)),
+        )
 
     _SIM_DATA.lib_file_write(
         _SIM_DATA.summary_file_from_parts(report, m),
