@@ -553,7 +553,7 @@ class _ComputeJob(_Supervisor):
             except sirepo.util.UserDirNotFound:
                 pkdlog(
                     "not found user_path={} not recreating jid={}",
-                    sirepo.simulation_db.user_path(check=none, qcall=qcall),
+                    sirepo.simulation_db.user_path(check=None, qcall=qcall),
                     jid,
                 )
                 return
