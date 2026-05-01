@@ -50,6 +50,14 @@ class DB {
         return await this.#send('set_material_public', {material_id, is_public});
     }
 
+    async statImage(material_id, modelName, stat) {
+        const r = await this.#send('stat_image', {material_id, modelName, stat});
+        if (r.op_result && r.op_result.image) {
+            return new Blob([new Uint8Array(r.op_result.image)], {type: 'image/png'});
+        }
+        return null;
+    }
+
     updated() {
         pubSub.publish(DB_UPDATED);
     }

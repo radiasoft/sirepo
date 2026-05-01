@@ -18,6 +18,8 @@
  const isLoaded = appState.isLoadedRef;
  const sim = ref({});
 
+ const isCompleted = () => sim.value.frameCount && sim.value.reports;
+
  onMounted(async () => {
      const r = await requestSender.sendRequest("cortexSim", {
          op_name: 'synchronize',
@@ -26,6 +28,9 @@
          },
      });
      await appState.loadModels(r.simulationId);
+     if (isCompleted()) {
+         emit('simCompleted');
+     }
  });
 
  onUnmounted(() => {
@@ -34,8 +39,8 @@
      }
  });
 
- watch(() => sim.value.frameCount, async () => {
-     if (sim.value.reports) {
+ watch(() => sim.value.frameCount, () => {
+     if (isCompleted()) {
          emit('simCompleted');
      }
  });

@@ -19,6 +19,7 @@ import sirepo.sim_api.cortex.material_xlsx
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.srdb
+import sirepo.util
 
 _SIM_DATA, SIM_TYPE, _ = sirepo.sim_data.template_globals(sim_type="cortex")
 
@@ -197,8 +198,20 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         sirepo.sim_api.cortex.material_db.delete_material(
             material_id=arg.material_id, uid=uid
         )
-        # TODO(pjm): need to delete the Sirepo sim associated with the material_id
+        pykern.pkio.unchecked_remove(
+            sirepo.srdb.root().join(_CORTEXDB_DIR, str(arg.material_id))
+        )
         return PKDict()
+
+    def action_stat_image(self, arg, uid):
+        p = sirepo.srdb.root().join(
+            _CORTEXDB_DIR, str(arg.material_id), arg.modelName, f"{arg.stat}.png"
+        )
+        if not p.exists():
+            raise sirepo.util.NotFound(
+                f"stat={arg.stat} material_id={arg.material_id} modelName={arg.modelName}"
+            )
+        return PKDict(image=list(p.read_binary()))
 
     def action_featured_materials(self, arg, uid):
         return PKDict(
