@@ -82,6 +82,7 @@ class DriverBase(PKDict):
             _websocket=None,
             _websocket_ready=sirepo.tornado.Event(),
             _websocket_ready_timeout=None,
+            _websocket_waiters=set(),
         )
         self._sim_db_file_token = sirepo.sim_db_file.SimDbServer.token_for_user(
             self.uid
@@ -109,9 +110,15 @@ class DriverBase(PKDict):
             async with self._agent_life_change_lock:
                 await self.kill()
                 self._websocket_ready_timeout_cancel()
+                e = f"job_driver.free_resources caller={caller}"
+                w, self._websocket_waiters = self._websocket_waiters, set()
+                for o in w:
+                    o.destroy(internal_error=e)
+                # set() wakes waiters so they can check is_destroyed; clear()
+                # prevents new ops from bypassing _agent_start
+                self._websocket_ready.set()
                 self._websocket_ready.clear()
                 self._websocket_close()
-                e = f"job_driver.free_resources caller={caller}"
                 for o in list(self._prepared_sends.values()):
                     o.destroy(internal_error=e)
         except Exception as e:
@@ -295,7 +302,11 @@ class DriverBase(PKDict):
             pkdlog("after agent_start op={} destroyed", op)
             return False
         pkdlog("{} {} await _websocket_ready", self, op)
-        await self._websocket_ready.wait()
+        self._websocket_waiters.add(op)
+        try:
+            await self._websocket_ready.wait()
+        finally:
+            self._websocket_waiters.discard(op)
         pkdlog("{} {} websocket alive", self, op)
         if op.is_destroyed:
             pkdlog("after websocket_ready op={} destroyed", op)
@@ -424,8 +435,10 @@ class DriverBase(PKDict):
         if not x:
             return t
         op._agent_start_delay = int(x.group(1))
-        pkdlog("op={} agent_start_delay={}", op, self._agent_start_delay)
-        return t + op._agent_start_delay
+        pkdlog("op={} agent_start_delay={}", op, op._agent_start_delay)
+        # Return t (not t+delay): timeout must fire before agent connects so
+        # tests can verify ops waiting in _agent_ready are canceled, not stuck.
+        return t
 
     def __str__(self):
         return f"{type(self).__name__}({self._agent_id:.4}, {self.uid:.4}, ops={list(self._prepared_sends.values())})"
