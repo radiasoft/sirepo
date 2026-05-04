@@ -490,6 +490,27 @@
             "useDetectorAspectRatio": ["Use Detector Aspect Ratio", "Boolean", "0"],
             "notes": ["Notes", "Text", ""]
         },
+        "_MIRROR": {
+            "tangentialSize": ["Tangential Size [m]", "Float", 0.5],
+            "sagittalSize": ["Sagittal Size [m]", "Float", 0.1],
+            "grazingAngle": ["Grazing Angle [mrad]", "Float", 4],
+            "autocomputeVectors": ["Auto-compute Vectors", "AutocomputeVectors", "horizontal"],
+            "normalVectorX": ["Horizontal", "Float", 0],
+            "normalVectorY": ["Vertical", "Float", 0],
+            "normalVectorZ": ["Longitudinal", "Float", 0],
+            "tangentialVectorX": ["Horizontal", "Float", 0],
+            "tangentialVectorY": ["Vertical", "Float", 0],
+            "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
+            "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
+            "heightAmplification": ["Height Amplification Coefficient", "Float", 1],
+            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
+            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0],
+            "outoptvx": ["Horizontal", "Float", 0],
+            "outoptvy": ["Vertical", "Float", 0],
+            "outoptvz": ["Longitudinal", "Float", 0],
+            "outframevx": ["Horizontal", "Float", 0],
+            "outframevy": ["Vertical", "Float", 0]
+        },
         "aperture": {
             "title": ["Element Name", "String", "Aperture"],
             "position": ["Position along Optical Path [m]", "Float"],
@@ -647,24 +668,11 @@
             "drift": ["Drift [m]", "Float"]
         },
         "ellipsoidMirror": {
+            "_super": ["_", "model", "_MIRROR"],
             "title": ["Element Name", "String", "Elliptical Cylinder Mirror"],
             "position": ["Position along Optical Path [m]", "Float"],
             "firstFocusLength": ["Distance from Source to Mirror Center (p) [m]", "Float", 20],
-            "focalLength": ["Distance from Mirror Center to Second Focus (q) [m]", "Float", 1.7],
-            "tangentialSize": ["Tangential Size [m]", "Float", 0.5],
-            "sagittalSize": ["Sagittal Size [m]", "Float", 0.01],
-            "grazingAngle": ["Grazing Angle [mrad]", "Float", 3.6],
-            "autocomputeVectors": ["Auto-compute Vectors", "AutocomputeVectors", "horizontal"],
-            "normalVectorX": ["Horizontal", "Float", 0.9999935200069984],
-            "normalVectorY": ["Vertical", "Float", 0],
-            "normalVectorZ": ["Longitudinal", "Float", -0.0035999922240050387],
-            "tangentialVectorX": ["Horizontal", "Float", -0.0035999922240050387],
-            "tangentialVectorY": ["Vertical", "Float", 0],
-            "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
-            "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
-            "heightAmplification": ["Height Amplification Coefficient", "Float", 1],
-            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
-            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
+            "focalLength": ["Distance from Mirror Center to Second Focus (q) [m]", "Float", 1.7]
         },
         "exportRsOpt": {
             "characteristic": ["Characteristic to Extract", "Characteristic", "1"],
@@ -1032,23 +1040,10 @@
             "verticalRange": ["Range of Vertical Position [mm]", "Float"]
         },
         "sphericalMirror": {
+            "_super": ["_", "model", "_MIRROR"],
             "title": ["Element Name", "String", "Circular Cylinder Mirror"],
             "position": ["Position along Optical Path [m]", "Float"],
-            "radius": ["Radius of Surface Curvature [m]", "Float", 1049],
-            "tangentialSize": ["Tangential Size [m]", "Float", 0.3],
-            "sagittalSize": ["Sagittal Size [m]", "Float", 0.11],
-            "grazingAngle": ["Grazing Angle [mrad]", "Float", 3.1415926],
-            "autocomputeVectors": ["Auto-compute Vectors", "AutocomputeVectors", "horizontal"],
-            "normalVectorX": ["Horizontal", "Float", 0.9999025244842406],
-            "normalVectorY": ["Vertical", "Float", 0],
-            "normalVectorZ": ["Longitudinal", "Float", -0.013962146326506367],
-            "tangentialVectorX": ["Horizontal", "Float", 0.013962146326506367],
-            "tangentialVectorY": ["Vertical", "Float", 0],
-            "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
-            "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
-            "heightAmplification": ["Height Amplification Coefficient", "Float", 1],
-            "horizontalOffset": ["Horizontal Center Position [mm]", "Float", 0],
-            "verticalOffset": ["Vertical Center Position [mm]", "Float", 0]
+            "radius": ["Radius of Surface Curvature [m]", "Float", 1049]
         },
         "tabulatedUndulator": {
             "undulatorSelector": ["Existing Undulator", "UndulatorList"],
@@ -1059,25 +1054,12 @@
             "magneticFile": ["Magnetic Data File", "MagneticZipFile", "magnetic_measurements.zip"]
         },
         "toroidalMirror": {
+            "_super": ["_", "model", "_MIRROR"],
             "title": ["Element Name", "String", "Toroid Mirror"],
             "position": ["Position along Optical Path [m]", "Float"],
             "tangentialRadius": ["Tangential Radius [m]", "Float", 7592.12],
             "sagittalRadius": ["Sagittal Radius [m]", "Float", 0.186],
-            "tangentialSize": ["Tangential Size [m]", "Float", 0.96],
-            "sagittalSize": ["Sagittal Size [m]", "Float", 0.08],
-            "horizontalPosition": ["Horizontal Center Position [m]", "Float", 0],
-            "verticalPosition": ["Vertical Center Position [m]", "Float", 0],
-            "apertureShape": ["Shape of Aperture", "ApertureShapeToroidalMirror", "r"],
-            "grazingAngle": ["Grazing Angle [mrad]", "Float", 7],
-            "autocomputeVectors": ["Auto-compute Vectors", "AutocomputeVectors", "horizontal"],
-            "normalVectorX": ["Horizontal", "Float", 0.9999755001000415],
-            "normalVectorY": ["Vertical", "Float", 0],
-            "normalVectorZ": ["Longitudinal", "Float", -0.006999942833473391],
-            "tangentialVectorX": ["Horizontal", "Float", 0.006999942833473391],
-            "tangentialVectorY": ["Vertical", "Float", 0],
-            "heightProfileFile": ["Height Profile Data File", "MirrorFile", ""],
-            "orientation": ["Orientation of Reflection Plane", "MirrorOrientation", "x"],
-            "heightAmplification": ["Height Amplification Coefficient", "Float", 1]
+            "apertureShape": ["Shape of Aperture", "ApertureShapeToroidalMirror", "r"]
         },
         "trajectoryReport": {
             "timeMomentEstimation": ["Estimate Time Moment Parameters", "EstimateTimeMomentParameters", "auto"],
@@ -2165,10 +2147,10 @@
                     "position",
                     [
                         ["Horizontal", [
-                            "horizontalPosition"
+                            "horizontalOffset"
                         ]],
                         ["Vertical", [
-                            "verticalPosition"
+                            "verticalOffset"
                         ]]
                     ]
                 ]],

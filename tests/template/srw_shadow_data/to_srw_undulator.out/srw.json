@@ -17,6 +17,7 @@
             "verticalSize": 1.5
         },
         {
+            "_super": "_MIRROR",
             "autocomputeVectors": "horizontal",
             "grazingAngle": 13.962599999998252,
             "heightAmplification": 1,
@@ -28,6 +29,11 @@
             "normalVectorY": 0,
             "normalVectorZ": -0.013962146326504618,
             "orientation": "x",
+            "outframevx": 0.9996101169399145,
+            "outframevy": 0,
+            "outoptvx": 0.027921570718180664,
+            "outoptvy": 0,
+            "outoptvz": 0.9996101169399145,
             "position": 42,
             "radius": 1410.0,
             "sagittalSize": 0.11,
@@ -62,6 +68,7 @@
             "verticalSize": 1.25
         },
         {
+            "_super": "_MIRROR",
             "autocomputeVectors": "vertical",
             "firstFocusLength": 64.75,
             "focalLength": 1.0,
@@ -75,6 +82,11 @@
             "normalVectorY": 0.9999968750016276,
             "normalVectorZ": -0.002499997395834189,
             "orientation": "x",
+            "outframevx": 1,
+            "outframevy": 0,
+            "outoptvx": 0,
+            "outoptvy": 0.004999979166692792,
+            "outoptvz": 0.9999875000260416,
             "position": 66,
             "sagittalSize": 1e+40,
             "tangentialSize": 0.5,
@@ -86,6 +98,7 @@
             "verticalTransverseSize": 1
         },
         {
+            "_super": "_MIRROR",
             "autocomputeVectors": "horizontal",
             "firstFocusLength": 11.5,
             "focalLength": 0.5,
@@ -99,6 +112,11 @@
             "normalVectorY": 0,
             "normalVectorZ": -0.002499997395834189,
             "orientation": "x",
+            "outframevx": 0.9999875000260416,
+            "outframevy": 0,
+            "outoptvx": 0.004999979166692792,
+            "outoptvy": 0,
+            "outoptvz": 0.9999875000260416,
             "position": 66.5,
             "sagittalSize": 1e+40,
             "tangentialSize": 0.5,

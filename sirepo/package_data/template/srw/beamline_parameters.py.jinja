@@ -66,7 +66,7 @@
 {% elif item.type == 'toroidalMirror' %}
     {{- fields(item, 'file', ('heightProfileFile',)) }}
     {{- fields(item, 's', ('orientation', 'apertureShape')) }}
-    {{- fields(item, 'f', ('tangentialRadius', 'sagittalRadius', 'tangentialSize', 'sagittalSize', 'grazingAngle', 'horizontalPosition', 'verticalPosition', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'heightAmplification')) }}
+    {{- fields(item, 'f', ('tangentialRadius', 'sagittalRadius', 'tangentialSize', 'sagittalSize', 'grazingAngle', 'horizontalOffset', 'verticalOffset', 'normalVectorX', 'normalVectorY', 'normalVectorZ', 'tangentialVectorX', 'tangentialVectorY', 'heightAmplification')) }}
 {% elif item.type == 'zonePlate' %}
     {{- fields(item, 'f', ('outerRadius', 'thickness', 'mainRefractiveIndex', 'mainAttenuationLength', 'complementaryRefractiveIndex', 'complementaryAttenuationLength', 'horizontalOffset', 'verticalOffset')) }}
     {{- fields(item, 'i', ('numberOfZones', )) }}

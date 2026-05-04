@@ -1526,11 +1526,22 @@ def _compute_grazing_orientation(model):
         preserve_sign(model, "tangentialVectorX", math.sin(grazing_angle))
         model.normalVectorY = 0
         model.tangentialVectorY = 0
+        model.outoptvx = math.copysign(math.sin(grazing_angle * 2), model.normalVectorX)
+        model.outoptvy = 0
+        model.outoptvz = math.cos(grazing_angle * 2)
+        model.outframevx = math.cos(grazing_angle * 2)
+        model.outframevy = 0
+
     elif model.autocomputeVectors == "vertical":
         preserve_sign(model, "normalVectorY", math.cos(grazing_angle))
         preserve_sign(model, "tangentialVectorY", math.sin(grazing_angle))
         model.normalVectorX = 0
         model.tangentialVectorX = 0
+        model.outoptvx = 0
+        model.outoptvy = math.copysign(math.sin(grazing_angle * 2), model.normalVectorY)
+        model.outoptvz = math.cos(grazing_angle * 2)
+        model.outframevx = 1
+        model.outframevy = 0
     return model
 
 
