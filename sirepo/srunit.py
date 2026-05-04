@@ -1059,7 +1059,7 @@ class _WebSocket:
             )
         if rv is None:
             # Avoids complex stack traces
-            raise JobAgentError("Check job_agent.log for errors")
+            raise JobAgentError("Check stderr or (sbatch) job_agent.log for errors")
         if isinstance(rv, str):
             raise AssertionError(rv)
         return rv
