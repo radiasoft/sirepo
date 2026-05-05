@@ -7,6 +7,7 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import pykern.sql_db
+import re
 import sirepo.srdb
 import sirepo.template.cortex
 import sirepo.util
@@ -324,6 +325,7 @@ def load_summary(material_id, is_public, uid):
         return [
             _load_plot(r)
             for r in s.select("plot", where=PKDict(material_id=material_id)).all()
+            if not re.search(r"(cell|decayheat)_OB", r.stat)
         ]
 
     def _load_summary(session):
