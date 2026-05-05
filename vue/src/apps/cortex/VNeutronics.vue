@@ -40,7 +40,7 @@
                     v-bind:viewName="report.viewName"
                     v-bind:title="report.title"
                     v-bind:canFullScreen="true"
-                    v-bind:downloadActions="report.reportData.downloadActions"
+                    v-bind:downloadActions="report.downloadActions"
                 >
                     <div v-if="report.error">{{ report.error }}</div>
                     <div v-if="report.image">
@@ -123,8 +123,8 @@
              modelName: r.meta.model,
              viewName: r.meta.model,
              trackBy: r.meta.model + r.meta.stat,
-             reportData: r,
              stat: r.meta.stat,
+             downloadActions: util.reportDownloadActions(r),
          });
      }
      for (const v in sections) {

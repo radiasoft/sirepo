@@ -41,6 +41,19 @@ class Util {
         return v1 === v2;
     }
 
+    downloadCSV = (report) => {
+        //TODO(pjm): could be in plotutil.js
+        if (! report) {
+            return;
+        }
+        let res = [report.x_label, ...report.plots.map((p) => p.label)].map((v) => `"${v}"`).join(',') + "\n";
+        for (let i = 0; i < report.x_points.length; i++) {
+            res += [report.x_points[i], ...report.plots.map((p) => p.points[i])].join(',') + "\n";
+        }
+        const n = report.y_label.replace(/ \[.*/, '');
+        saveAs(new Blob([res], {type: 'text/csv;charset=utf-8'}), `${n}.csv`);
+    }
+
     formatDate(pythonTime) {
         return this._dateFormat.format(pythonTime * 1000);
     }
@@ -75,6 +88,13 @@ class Util {
 
     isObject(value) {
         return value !== null && typeof value === 'object';
+    }
+
+    reportDownloadActions(report) {
+        return [{
+            onClick: () => this.downloadCSV(report),
+            label: 'Download CSV',
+        }];
     }
 
     uniqueId() {
