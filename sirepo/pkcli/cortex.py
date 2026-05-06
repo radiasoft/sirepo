@@ -211,18 +211,16 @@ def run_batch(run_dir, uid, material_id):
         sirepo.simulation_db._cfg.logged_in_user = uid
         sirepo.template.cortex.write_parameters(data, run_dir, is_parallel=True)
 
-    def _sim_for_material(run_dir, uid, material_id):
+    def _sim_for_material(run_dir, uid, material_id, qcall):
         r = run_dir.basename
         if r not in sirepo.template.cortex._SIM_OUTPUT:
             raise AssertionError(f"invalid report={r} for run_dir={run_dir}")
-        with sirepo.quest.start() as qcall:
-            with qcall.auth.logged_in_user_set(uid, method=sirepo.auth.METHOD_EMAIL):
-                s = sirepo.simulation_db.iterate_simulation_datafiles(
-                    sirepo.template.cortex.SIM_TYPE,
-                    lambda v, _p, d: v.append(d),
-                    search={"simulation.name": str(material_id)},
-                    qcall=qcall,
-                )
+        s = sirepo.simulation_db.iterate_simulation_datafiles(
+            sirepo.template.cortex.SIM_TYPE,
+            lambda v, _p, d: v.append(d),
+            search={"simulation.name": str(material_id)},
+            qcall=qcall,
+        )
         if not s:
             raise AssertionError(
                 f"no sim found for material_id={material_id} uid={uid}"
@@ -231,12 +229,15 @@ def run_batch(run_dir, uid, material_id):
 
     p = pykern.pkio.py_path(run_dir)
     with pykern.pkio.save_chdir(p, mkdir=True):
-        d = _sim_for_material(p, uid, material_id)
-        _prep_sim(p, uid, d)
-        run_background(p)
-        sirepo.template.cortex.background_percent_complete(
-            d.report, p, is_running=False
-        )
+        with sirepo.quest.start() as qcall:
+            with qcall.auth.logged_in_user_set(uid, method=sirepo.auth.METHOD_EMAIL):
+                d = _sim_for_material(p, uid, material_id, qcall)
+                _prep_sim(p, uid, d)
+                run_background(p)
+                sirepo.template.cortex.background_percent_complete(
+                    d.report, p, is_running=False
+                )
+                sirepo.sim_api.cortex.check_for_sim_summary(qcall, uid)
 
 
 def set_material_featured(material_id, is_featured, uid):
