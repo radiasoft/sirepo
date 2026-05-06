@@ -9,10 +9,12 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import asyncio
 import asyncio.exceptions
 import datetime
+import io
 import pykern.pkasyncio
 import pykern.pkio
 import re
 import shutil
+import zipfile
 import sirepo.quest
 import sirepo.sim_api.cortex.material_db
 import sirepo.sim_api.cortex.material_xlsx
@@ -38,6 +40,40 @@ def init_apis(**kwargs):
 
     sirepo.sim_api.cortex.material_db.init_module()
     _action_loop = _CortexDb()
+
+
+def check_for_sim_summary(qcall, uid):
+    # TODO(pjm): this should be replaced with a direct sim_api call from template.cortex
+    for p in pykern.pkio.sorted_glob(
+        str(_SIM_DATA.lib_file_write_path(_SIM_DATA.SUMMARY_GLOB, qcall=qcall))
+    ):
+        report, material_id = _SIM_DATA.parts_from_summary_file(p.basename)
+        # move the file before processing to prevent other import attempts
+        n = p.dirpath().join(f"{p.basename}.import")
+        shutil.move(str(p), str(n))
+        with open(str(n)) as f:
+            d = pykern.pkjson.load_any(f)
+            d.completed = datetime.datetime.fromisoformat(d.completed)
+        sirepo.sim_api.cortex.material_db.update_sim_summary(d, uid)
+        r = pykern.pkio.mkdir_parent(
+            sirepo.srdb.root().join(_CORTEXDB_DIR, material_id, report)
+        )
+        for q in d.plots:
+            r.join(f"{q.stat}.csv").write(q.csv)
+        n.remove()
+    for suffix in ("png", "hdf5"):
+        for p in pykern.pkio.sorted_glob(
+            str(_SIM_DATA.lib_file_write_path(_SIM_DATA.lib_glob(suffix), qcall=qcall))
+        ):
+            report, material_id, name = _SIM_DATA.parts_from_lib_file(p.basename)
+            shutil.move(
+                str(p),
+                str(
+                    pykern.pkio.mkdir_parent(
+                        sirepo.srdb.root().join(_CORTEXDB_DIR, str(material_id), report)
+                    ).join(f"{name}.{suffix}")
+                ),
+            )
 
 
 class API(sirepo.quest.API):
@@ -244,20 +280,33 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
             return PKDict(error=[PKDict(msg=str(e.args[0]))])
 
     def action_list_materials(self, arg, uid):
-        self._check_for_sim_summary(arg.qcall, uid)
+        check_for_sim_summary(arg.qcall, uid)
         return PKDict(
             rows=sirepo.sim_api.cortex.material_db.list_materials(uid=uid),
         )
 
+    def action_load_output_zip(self, arg, uid):
+        d = sirepo.srdb.root().join(_CORTEXDB_DIR, str(arg.material_id), arg.modelName)
+        if not d.exists():
+            raise sirepo.util.NotFound(
+                f"material_id={arg.material_id} modelName={arg.modelName}"
+            )
+        v = io.BytesIO()
+        with zipfile.ZipFile(v, "w", zipfile.ZIP_DEFLATED) as z:
+            for p in d.visit():
+                if p.check(file=True):
+                    z.write(str(p), p.relto(d))
+        return PKDict(zipfile=list(v.getvalue()))
+
     def action_load_summary(self, arg, uid):
         if not arg.is_public:
-            self._check_for_sim_summary(arg.qcall, uid)
+            check_for_sim_summary(arg.qcall, uid)
         return sirepo.sim_api.cortex.material_db.load_summary(
             arg.material_id, arg.is_public, uid
         )
 
     def action_material_detail(self, arg, uid):
-        self._check_for_sim_summary(arg.qcall, uid)
+        check_for_sim_summary(arg.qcall, uid)
         try:
             r = sirepo.sim_api.cortex.material_db.material_detail(
                 arg.material_id, arg.is_public, uid
@@ -274,29 +323,6 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
 
     def _destroy(self):
         pass
-
-    def _check_for_sim_summary(self, qcall, uid):
-        # TODO(pjm): this should be replaced with a direct sim_api call from template.cortex
-        for p in pykern.pkio.sorted_glob(
-            str(_SIM_DATA.lib_file_write_path(_SIM_DATA.SUMMARY_GLOB, qcall=qcall))
-        ):
-            report, material_id = _SIM_DATA.parts_from_summary_file(p.basename)
-            # move the file before processing to prevent other import attempts
-            n = p.dirpath().join(f"{p.basename}.import")
-            shutil.move(str(p), str(n))
-            with open(str(n)) as f:
-                d = pykern.pkjson.load_any(f)
-                d.completed = datetime.datetime.fromisoformat(d.completed)
-            sirepo.sim_api.cortex.material_db.update_sim_summary(d, uid)
-            n.remove()
-        for p in pykern.pkio.sorted_glob(
-            str(_SIM_DATA.lib_file_write_path(_SIM_DATA.PNG_GLOB, qcall=qcall))
-        ):
-            report, material_id, stat = _SIM_DATA.parts_from_png_file(p.basename)
-            dst = pykern.pkio.mkdir_parent(
-                sirepo.srdb.root().join(_CORTEXDB_DIR, str(material_id), report)
-            ).join(f"{stat}.png")
-            shutil.move(str(p), str(dst))
 
     def _dispatch_action(self, method, arg):
         qcall = arg.qcall

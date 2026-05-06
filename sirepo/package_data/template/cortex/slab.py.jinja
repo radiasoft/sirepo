@@ -949,7 +949,7 @@ for f in redundant_files:
 # ---------------------------------------------------------------------------
 # RS: run neutronics
 
-STATEPOINT_FILE = model.run()
+STATEPOINT_FILE = rsrun(model.run())
 
 # ---------------------------------------------------------------------------
 # RS: neutronics post processing
@@ -2266,7 +2266,7 @@ def empty_poloidal_plot(x_data, num_pts):
   ax.minorticks_on()
   plt.gca().tick_params(axis='x', which='minor', bottom=False)
   fig.tight_layout()
-  
+
   return fig, ax
 
 def pad_poloidal_data(data):
@@ -2757,7 +2757,7 @@ print("---------------------------")
 print("Performing D1S run")
 print("---------------------------")
 
-statepoint = model.run()
+statepoint = rsrun(model.run())
 
 with openmc.StatePoint(statepoint) as sp:
     tally = sp.get_tally(name="dose tally")

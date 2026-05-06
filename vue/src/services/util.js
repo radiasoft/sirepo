@@ -54,6 +54,10 @@ class Util {
         saveAs(new Blob([res], {type: 'text/csv;charset=utf-8'}), `${n}.csv`);
     }
 
+    downloadFilename(name, suffix) {
+        return name.replace(/[^\w\s-]/g, '_').trim() + '.' + suffix;
+    }
+
     formatDate(pythonTime) {
         return this._dateFormat.format(pythonTime * 1000);
     }

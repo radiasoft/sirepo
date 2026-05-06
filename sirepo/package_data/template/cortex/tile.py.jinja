@@ -147,7 +147,7 @@ he4_tally.filters = [cell_filter]
 he4_tally.scores = ['He4-production']
 model.tallies.append(he4_tally)
 
-statepoint = model.run()
+statepoint = rsrun(model.run())
 with openmc.StatePoint(statepoint) as sp:
 
   n_tally = sp.get_tally(id=n_flux_tally.id)
@@ -339,7 +339,7 @@ print('---------------------------')
 print(f'Performing D1S run')
 print('---------------------------')
 
-statepoint = model.run(output=True)
+statepoint = rsrun(model.run(output=True))
 
 with openmc.StatePoint(statepoint) as sp:
     tally = sp.get_tally(name='dose tally')

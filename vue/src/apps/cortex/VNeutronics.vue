@@ -1,6 +1,11 @@
 <template>
     <div class="col-md-8 col-xl-6">
         <VCard viewName="simulationStatus" v-bind:title="title">
+            <div v-if="hasPlots" class="float-end">
+                <button class="btn btn-sm btn-outline-secondary" v-on:click="downloadOutputZip" title="Download output files">
+                    <span class="bi bi-download"></span>
+                </button>
+            </div>
             <div class="row">
                 <div class="col-sm-7" v-if="isReady">
                     <div v-if="simSummary">
@@ -69,6 +74,7 @@
 
  const props = defineProps({
      materialId: String,
+     materialName: String,
      neutronics: String,
      title: String,
  });
@@ -84,6 +90,20 @@
  const isReady = ref(false);
  const route = useRoute();
  const simSummary = ref(null);
+
+ const downloadOutputZip = async () => {
+     const b = await db.loadOutputZip(props.materialId, props.neutronics);
+     if (! b) {
+         //TODO(pjm): error handling
+         return;
+     }
+     const u = URL.createObjectURL(b);
+     const a = document.createElement('a');
+     a.href = u;
+     a.download = util.downloadFilename(`${props.materialName} ${props.title}`, 'zip');
+     a.click();
+     URL.revokeObjectURL(u);
+ };
 
  const showRunSim = () => {
      if (isViewing()) {

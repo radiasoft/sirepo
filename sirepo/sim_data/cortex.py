@@ -13,7 +13,6 @@ import sirepo.util
 
 
 class SimData(sirepo.sim_data.SimDataBase):
-    PNG_GLOB = "*-[0-9]*-*.png"
     SUMMARY_GLOB = "*-summary.json"
 
     @classmethod
@@ -21,10 +20,18 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(data.models)
 
     @classmethod
-    def parts_from_png_file(cls, filename):
-        m = re.search(r"^(.*?)-(\d+)-(.+)\.png$", filename)
+    def lib_file_from_parts(cls, report, material_id, stat, suffix):
+        return f"{report}-{material_id}-{stat}.{suffix}"
+
+    @classmethod
+    def lib_glob(cls, suffix):
+        return f"*-[0-9]*-*.{suffix}"
+
+    @classmethod
+    def parts_from_lib_file(cls, filename):
+        m = re.search(r"^(.*?)-(\d+)-(.+)\.[^.]+$", filename)
         if not m:
-            raise AssertionError(f"Unexpected png filename: {filename}")
+            raise AssertionError(f"Unexpected lib filename: {filename}")
         return m.group(1), int(m.group(2)), m.group(3)
 
     @classmethod
@@ -33,10 +40,6 @@ class SimData(sirepo.sim_data.SimDataBase):
         if not m:
             raise AssertionError(f"Unexpected summary filename: {filename}")
         return m.group(1, 2)
-
-    @classmethod
-    def png_file_from_parts(cls, report, material_id, stat):
-        return f"{report}-{material_id}-{stat}.png"
 
     @classmethod
     def summary_file_from_parts(cls, report, material_id):
