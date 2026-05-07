@@ -161,6 +161,11 @@ class DriverBase(PKDict):
         self._prepared_sends[op.op_id] = op
         return True
 
+    def _mpi_cores(self, op, base):
+        if op.msg.isParallel and (c := op.msg.get("parallelCores")):
+            return min(int(c), base)
+        return base
+
     @classmethod
     def receive(cls, msg):
         """Receive message from agent"""

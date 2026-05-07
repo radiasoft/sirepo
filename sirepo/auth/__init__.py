@@ -18,6 +18,7 @@ import sirepo.cookie
 import sirepo.events
 import sirepo.feature_config
 import sirepo.job
+import sirepo.mpi
 import sirepo.payments
 import sirepo.quest
 import sirepo.reply
@@ -706,6 +707,7 @@ class _Auth(sirepo.quest.Attr):
             max_message_bytes=sirepo.job.cfg().max_message_bytes,
             method=self._qcall_bound_method(),
             needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
+            parallelCoresMax=sirepo.mpi.cfg().cores,
             roles=[],
             userName=None,
             uiWebSocket=sirepo.feature_config.cfg().ui_websocket,

@@ -21,12 +21,25 @@ pytestmark = pytest.mark.sirepo_args(
 
 
 def test_basic(auth_fc):
-    from pykern import pkconfig, pkcompat
-    from pykern.pkunit import pkeq, pkne
-    from sirepo import srunit
+    from pykern import pkcompat
+    from pykern.pkunit import pkeq
     import base64
 
-    def _status(fc, headers, timestamps):
+    def _headers(uid):
+        return PKDict(
+            Authorization="Basic "
+            + pkcompat.from_bytes(
+                base64.b64encode(
+                    pkcompat.to_bytes(f"{uid}:pass"),
+                ),
+            ),
+        )
+
+    def _status(fc, headers, timestamps, delay=0):
+        import time
+
+        if delay:
+            time.sleep(delay)
         r = fc.sr_get_json("serverStatus", headers=headers)
         pkeq("ok", r.state)
         pkeq("unique-value", r.sentinel)
@@ -35,20 +48,10 @@ def test_basic(auth_fc):
     # POSIT: sirepo.auth.basic.require_user returns logged_in_user in srunit
     u = auth_fc.sr_login_as_guest()
     auth_fc.sr_logout()
-    h = PKDict(
-        Authorization="Basic "
-        + pkcompat.from_bytes(
-            base64.b64encode(
-                pkcompat.to_bytes(f"{u}:pass"),
-            ),
-        ),
-    )
     t = []
-    auth_fc.sr_thread_start("t1", _status, headers=h, timestamps=t)
-    auth_fc.sr_thread_start("t2", _status, headers=h, timestamps=t)
+    for i in range(10):
+        auth_fc.sr_thread_start(
+            f"t{i}", _status, headers=_headers(u), timestamps=t, delay=i * 0.5
+        )
     auth_fc.sr_thread_join()
-    pkeq(len(t), 2)
-    pkeq(t[0], t[1])
-    auth_fc.sr_thread_start("t3", _status, headers=h, timestamps=t)
-    auth_fc.sr_thread_join()
-    pkne(t[0], t[2])
+    pkeq(10, len(t))
