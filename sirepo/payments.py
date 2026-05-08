@@ -51,7 +51,7 @@ class API(sirepo.quest.API):
                 clientSecret=(
                     await stripe.checkout.Session.create_async(
                         customer_email=self.auth.user_name(u),
-                        ui_mode="embedded_page",
+                        ui_mode="embedded",
                         line_items=[
                             PKDict(
                                 price=self._plan_to_price(p),
