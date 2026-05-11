@@ -192,7 +192,6 @@ class DockerDriver(job_driver.DriverBase):
             no_hdf5_do_mpi_file_sync=(
                 False,
                 bool,
-                bool,
                 "turn off HDF5_DO_MPI_FILE_SYNC for NFS",
             ),
             supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
