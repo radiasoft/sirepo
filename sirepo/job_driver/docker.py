@@ -189,6 +189,12 @@ class DockerDriver(job_driver.DriverBase):
             enterprise=_plan_cfg(_ENTERPRISE_PLAN),
             image=("radiasoft/sirepo", str, "docker image to run all jobs"),
             mpich_shm_clean_up=(False, bool, "mpich4 orphans shm; see sirepo#7741"),
+            no_hdf5_do_mpi_file_sync=(
+                False,
+                bool,
+                bool,
+                "turn off HDF5_DO_MPI_FILE_SYNC for NFS",
+            ),
             supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
             tls_dir=pkconfig.RequiredUnlessDev(
                 None, _cfg_tls_dir, "directory containing host certs"
@@ -223,14 +229,11 @@ class DockerDriver(job_driver.DriverBase):
         return await super().prepare_send(op)
 
     def _agent_env(self, op):
-        return super()._agent_env(
-            op,
-            env=PKDict(
-                SIREPO_PKCLI_JOB_AGENT_MPICH_SHM_CLEAN_UP=(
-                    "1" if self.cfg.mpich_shm_clean_up else ""
-                ),
-            ),
-        )
+        def _env():
+            for x in "mpich_shm_clean_up", "no_hdf5_do_mpi_file_sync":
+                yield f"SIREPO_PKCLI_JOB_AGENT_{x.upper()}", str(self.cfg[x])
+
+        return super()._agent_env(op, env=PKDict(_env()))
 
     async def _do_agent_start(self, op):
         def _create():
