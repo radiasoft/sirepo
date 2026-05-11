@@ -1531,7 +1531,14 @@ def _compute_grazing_orientation(model):
         preserve_sign(model, "tangentialVectorY", math.sin(grazing_angle))
         model.normalVectorX = 0
         model.tangentialVectorX = 0
-    return model
+    o = _mirror_for_orient(model, grazing_angle).get_orient()[1]
+    return model.pkupdate(
+        outframevx=o[0][0],
+        outframevy=o[0][1],
+        outoptvx=o[2][0],
+        outoptvy=o[2][1],
+        outoptvz=o[2][2],
+    )
 
 
 def _copy_frame_args_into_model(frame_args, name):
@@ -2279,6 +2286,42 @@ def _machine_learning_percent_complete(run_dir, res):
     res.frameCount = count
     res.percentComplete = 100 * count / dm.exportRsOpt.totalSamples
     return res
+
+
+def _mirror_for_orient(model, grazing_angle):
+    def _common_mirror_fields():
+        return PKDict(
+            _size_tang=model.get("tangentialSize", 1),
+            _size_sag=model.get("sagittalSize", 1),
+            _nvx=model.normalVectorX,
+            _nvy=model.normalVectorY,
+            _nvz=model.normalVectorZ,
+            _tvx=model.tangentialVectorX,
+            _tvy=model.tangentialVectorY,
+            _x=model.get("horizontalOffset", 0),
+            _y=model.get("verticalOffset", 0),
+        )
+
+    if model.type == "ellipsoidMirror":
+        return srwpy.srwlib.SRWLOptMirEl(
+            _p=model.get("firstFocusLength", 1),
+            _q=model.get("focalLength", 1),
+            _ang_graz=grazing_angle,
+            **_common_mirror_fields(),
+        )
+    if model.type == "sphericalMirror":
+        return srwpy.srwlib.SRWLOptMirSph(
+            _r=model.get("radius", 1),
+            **_common_mirror_fields(),
+        )
+    if model.type == "toroidalMirror":
+        return srwpy.srwlib.SRWLOptMirTor(
+            _rt=model.get("tangentialRadius", 1),
+            _rs=model.get("sagittalRadius", 1),
+            _ap_shape=model.get("apertureShape", "r"),
+            **_common_mirror_fields(),
+        )
+    raise AssertionError(f"unsupported mirror type={model.type}")
 
 
 def _plot_z_footer(z_label, allrange, points):
