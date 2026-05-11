@@ -20,6 +20,21 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(data.models)
 
     @classmethod
+    def lib_file_from_parts(cls, report, material_id, stat, suffix):
+        return f"{report}-{material_id}-{stat}.{suffix}"
+
+    @classmethod
+    def lib_glob(cls, suffix):
+        return f"*-[0-9]*-*.{suffix}"
+
+    @classmethod
+    def parts_from_lib_file(cls, filename):
+        m = re.search(r"^(.*?)-(\d+)-(.+)\.[^.]+$", filename)
+        if not m:
+            raise AssertionError(f"Unexpected lib filename: {filename}")
+        return m.group(1), int(m.group(2)), m.group(3)
+
+    @classmethod
     def parts_from_summary_file(cls, filename):
         m = re.search(r"(.*?)-(.*?)-summary.json", filename)
         if not m:

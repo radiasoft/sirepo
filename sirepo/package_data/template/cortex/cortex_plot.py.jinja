@@ -1,156 +1,289 @@
+"""Matplotlib wrapper that captures plot data as JSON and saves PNG images
+
+Intercepts ``matplotlib.pyplot`` calls to build a serializable ``PKDict`` of
+plot data.  On ``savefig()`` writes both the real PNG and a companion
+``<filename>.json``.
+"""
 from pykern.pkcollections import PKDict
+import matplotlib.cm as _cm
+import matplotlib.pyplot as _plt
 import numpy
 import pandas
 import pykern.pkjson
 
-# PJM: replaces matplotlib.pyplot.plt with plt stub to save plot info
-class plt:
-    _figure = PKDict(
-        plots=[],
-    )
+
+def _to_list(value):
+    if isinstance(value, pandas.Series):
+        value = value.to_numpy()
+    if isinstance(value, numpy.ndarray):
+        return value.tolist()
+    return value
+
+
+class pyplot:
+    """Drop-in replacement for ``matplotlib.pyplot``.
+
+    Acts as ``fig``, ``ax``, and ``plt`` simultaneously — all three are
+    returned as this class from ``subplots()``.
+    """
+
+    cm = _cm
+    _figure = PKDict(plots=[])
+    _ax = None
+    _fig = None
+    xaxis = None
+    yaxis = None
 
     @classmethod
-    def figure(cls):
-        pass
+    def figure(cls, **kwargs):
+        _plt.figure(**kwargs)
 
     @classmethod
     def subplots(cls, **kwargs):
-        return plt, plt
+        cls._fig, cls._ax = _plt.subplots(**kwargs)
+        cls.xaxis = cls._ax.xaxis
+        cls.yaxis = cls._ax.yaxis
+        return cls, cls
 
     @classmethod
     def subplots_adjust(cls, **kwargs):
-        pass
+        _plt.subplots_adjust(**kwargs)
 
     @classmethod
-    def _to_list(cls, value):
-        if isinstance(value, pandas.Series):
-            value = value.to_numpy()
-        if isinstance(value, numpy.ndarray):
-            return value.tolist()
-        return value
-
-    @classmethod
-    def _update_database(cls):
-        pass
+    def tight_layout(cls, **kwargs):
+        _plt.tight_layout(**kwargs)
 
     @classmethod
     def step(cls, x, y, label="", **kwargs):
         cls._figure.plots.append(
             PKDict(
-                x=cls._to_list(x),
-                y=cls._to_list(y),
+                x=_to_list(x),
+                y=_to_list(y),
                 label=label,
                 _type="step",
             )
         )
-
-    @classmethod
-    def fill_between(cls, *args, **kwargs):
-        pass
+        _plt.step(x, y, label=label, **kwargs)
 
     @classmethod
     def loglog(cls, x, y, label=None, **kwargs):
         cls._figure.type = "loglog"
         cls._figure.plots.append(
             PKDict(
-                x=cls._to_list(x),
-                y=cls._to_list(y),
+                x=_to_list(x),
+                y=_to_list(y),
                 label=label,
             )
         )
+        _plt.loglog(x, y, label=label, **kwargs)
 
     @classmethod
-    def plot(cls, x, y, label=None):
+    def plot(cls, x, y, label=None, **kwargs):
         cls._figure.type = "semilog"
         cls._figure.plots.append(
             PKDict(
-                x=cls._to_list(x),
-                y=cls._to_list(y),
+                x=_to_list(x),
+                y=_to_list(y),
                 label=label,
             )
         )
+        _plt.plot(x, y, label=label, **kwargs)
 
     @classmethod
-    def semilogy(
-        cls, x, y, label=None, marker=None, color=None, markersize=None, **kwargs
-    ):
+    def semilogy(cls, x, y, label=None, marker=None, color=None, markersize=None, **kwargs):
         cls._figure.type = "semilog"
         cls._figure.plots.append(
             PKDict(
-                x=cls._to_list(x),
-                y=cls._to_list(y),
+                x=_to_list(x),
+                y=_to_list(y),
                 label=label,
                 marker=marker,
                 color=color,
                 markersize=markersize,
             )
         )
+        _plt.semilogy(x, y, label=label, marker=marker, color=color, markersize=markersize, **kwargs)
 
     @classmethod
-    def set_ylabel(cls, label):
-        cls._figure.ylabel = label
+    def errorbar(cls, x, y, **kwargs):
+        _plt.errorbar(x, y, **kwargs)
+
+    @classmethod
+    def fill_between(cls, *args, **kwargs):
+        _plt.fill_between(*args, **kwargs)
+
+    @classmethod
+    def scatter(cls, x, y, **kwargs):
+        _plt.scatter(x, y, **kwargs)
+
+    @classmethod
+    def axvline(cls, x, **kwargs):
+        if cls._ax is not None:
+            cls._ax.axvline(x, **kwargs)
+        else:
+            _plt.axvline(x, **kwargs)
+
+    @classmethod
+    def text(cls, x, y, s, **kwargs):
+        if cls._ax is not None:
+            cls._ax.text(x, y, s, **kwargs)
+        else:
+            _plt.text(x, y, s, **kwargs)
 
     @classmethod
     def set_xlabel(cls, label):
         cls._figure.xlabel = label
+        if cls._ax is not None:
+            cls._ax.set_xlabel(label)
+        else:
+            _plt.xlabel(label)
+
+    @classmethod
+    def set_ylabel(cls, label):
+        cls._figure.ylabel = label
+        if cls._ax is not None:
+            cls._ax.set_ylabel(label)
+        else:
+            _plt.ylabel(label)
+
+    @classmethod
+    def set_xlim(cls, limit1, limit2=None):
+        cls._figure.xlim = [limit1, limit2] if limit2 is not None else limit1
+        args = (limit1, limit2) if limit2 is not None else (limit1,)
+        if cls._ax is not None:
+            cls._ax.set_xlim(*args)
+        else:
+            _plt.xlim(*args)
+
+    @classmethod
+    def set_ylim(cls, limit1, limit2=None):
+        cls._figure.ylim = [limit1, limit2] if limit2 is not None else limit1
+        args = (limit1, limit2) if limit2 is not None else (limit1,)
+        if cls._ax is not None:
+            cls._ax.set_ylim(*args)
+        else:
+            _plt.ylim(*args)
 
     @classmethod
     def set_yscale(cls, scale):
         if scale == "log":
             cls._figure.type = "semilog"
-
-    @classmethod
-    def title(cls, title):
-        cls._figure.title = title
+        if cls._ax is not None:
+            cls._ax.set_yscale(scale)
+        else:
+            _plt.yscale(scale)
 
     @classmethod
     def set_title(cls, title):
-        cls.title(title)
+        cls._figure.title = title
+        if cls._ax is not None:
+            cls._ax.set_title(title)
+        else:
+            _plt.title(title)
 
     @classmethod
-    def yscale(cls, scale):
-        if scale == "log":
-            cls._figure.type = "semilog"
+    def set_xticks(cls, ticks, **kwargs):
+        if cls._ax is not None:
+            cls._ax.set_xticks(ticks, **kwargs)
+        else:
+            _plt.xticks(ticks, **kwargs)
 
     @classmethod
-    def ylabel(cls, label):
-        cls._figure.ylabel = label
+    def set_xticklabels(cls, labels, **kwargs):
+        if cls._ax is not None:
+            cls._ax.set_xticklabels(labels, **kwargs)
+        else:
+            _plt.xticks(labels=labels, **kwargs)
 
     @classmethod
     def xlabel(cls, label):
         cls._figure.xlabel = label
+        _plt.xlabel(label)
+
+    @classmethod
+    def ylabel(cls, label):
+        cls._figure.ylabel = label
+        _plt.ylabel(label)
 
     @classmethod
     def xlim(cls, limit1, limit2=None):
         cls.set_xlim(limit1, limit2)
 
     @classmethod
-    def set_xlim(cls, limit1, limit2=None):
-        cls._figure.xlim = [limit1, limit2] if limit2 is not None else limit1
-
-    @classmethod
     def ylim(cls, limit1, limit2=None):
         cls.set_ylim(limit1, limit2)
 
     @classmethod
-    def set_ylim(cls, limit1, limit2=None):
-        cls._figure.ylim = [limit1, limit2] if limit2 is not None else limit1
+    def yscale(cls, scale):
+        if scale == "log":
+            cls._figure.type = "semilog"
+        _plt.yscale(scale)
+
+    @classmethod
+    def title(cls, t):
+        cls._figure.title = t
+        _plt.title(t)
+
+    @classmethod
+    def xticks(cls, *args, **kwargs):
+        _plt.xticks(*args, **kwargs)
+
+    @classmethod
+    def legend(cls, *args, **kwargs):
+        _plt.legend(*args, **kwargs)
+
+    @classmethod
+    def grid(cls, *args, **kwargs):
+        if cls._ax is not None:
+            cls._ax.grid(*args, **kwargs)
+        else:
+            _plt.grid(*args, **kwargs)
+
+    @classmethod
+    def minorticks_on(cls):
+        if cls._ax is not None:
+            cls._ax.minorticks_on()
+        else:
+            _plt.minorticks_on()
+
+    @classmethod
+    def gca(cls):
+        return cls._ax if cls._ax is not None else _plt.gca()
+
+    @classmethod
+    def get_cmap(cls, name, lut=None):
+        return _plt.get_cmap(name, lut)
+
+    @classmethod
+    def get_legend_handles_labels(cls):
+        if cls._ax is not None:
+            return cls._ax.get_legend_handles_labels()
+        return _plt.gca().get_legend_handles_labels()
+
+    @classmethod
+    def get_xaxis_transform(cls):
+        if cls._ax is not None:
+            return cls._ax.get_xaxis_transform()
+        return _plt.gca().get_xaxis_transform()
 
     @classmethod
     def savefig(cls, filename, **kwargs):
         assert len(cls._figure.plots)
         pykern.pkjson.dump_pretty(cls._figure, f"{filename}.json")
-        cls._update_database()
+        _plt.savefig(filename, **kwargs)
         cls._figure = PKDict(plots=[])
+        cls._ax = None
+        cls._fig = None
+        cls.xaxis = None
+        cls.yaxis = None
 
     @classmethod
     def close(cls, *args):
-        pass
+        if not args or args[0] is cls:
+            _plt.close()
+        else:
+            _plt.close(*args)
 
     @classmethod
-    def legend(cls, **kwargs):
-        pass
-
-    @classmethod
-    def grid(cls, *args, **kwargs):
+    def show(cls):
         pass

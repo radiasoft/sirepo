@@ -52,6 +52,7 @@
         <div v-if="isSelected('neutronics')">
             <VNeutronics
                 v-bind:materialId="materialId"
+                v-bind:materialName="material.name"
                 v-bind:neutronics="neutronicsSim"
                 v-bind:title="neutronicsSims[neutronicsSim]"
             />

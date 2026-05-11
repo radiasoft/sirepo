@@ -23,6 +23,9 @@ import sirepo.auth
 import sirepo.mpi
 import sirepo.quest
 import sirepo.sim_api.cortex
+import sirepo.sim_data
+import sirepo.simulation_db
+import sirepo.template.cortex
 import sirepo.template.template_common
 import sqlalchemy
 
@@ -186,19 +189,55 @@ MATERIALS = {_json_to_python(pykern.pkjson.dump_pretty(m))}"""
 
 
 def run_background(cfg_dir):
-    # sirepo.template.template_common.exec_parameters()
     # TODO(pjm): must run as a separate process or OMP_NUM_THREADS will already
     #  be cached in libgomp with the wrong value
-    from sirepo.template.cortex import CORTEX_RUN_LOG
-
     pksubprocess.check_call_with_signals(
         ["python", sirepo.template.template_common.PARAMETERS_PYTHON_FILE],
         msg=pkdlog,
-        output=CORTEX_RUN_LOG,
+        output=sirepo.template.cortex.CORTEX_RUN_LOG,
         env=PKDict(os.environ).pkupdate(
             OMP_NUM_THREADS=str(sirepo.mpi.cfg().cores),
         ),
     )
+
+
+def run_batch(run_dir, uid, material_id):
+    """Generate and run sim in run_dir. Updates database."""
+
+    def _prep_sim(run_dir, uid, data):
+        sirepo.sim_data.get_class(
+            sirepo.template.cortex.SIM_TYPE
+        ).sim_run_input_to_run_dir(data, run_dir)
+        sirepo.simulation_db._cfg.logged_in_user = uid
+        sirepo.template.cortex.write_parameters(data, run_dir, is_parallel=True)
+
+    def _sim_for_material(run_dir, uid, material_id, qcall):
+        r = run_dir.basename
+        if r not in sirepo.template.cortex._SIM_OUTPUT:
+            raise AssertionError(f"invalid report={r} for run_dir={run_dir}")
+        s = sirepo.simulation_db.iterate_simulation_datafiles(
+            sirepo.template.cortex.SIM_TYPE,
+            lambda v, _p, d: v.append(d),
+            search={"simulation.name": str(material_id)},
+            qcall=qcall,
+        )
+        if not s:
+            raise AssertionError(
+                f"no sim found for material_id={material_id} uid={uid}"
+            )
+        return s[0].pkupdate(report=r)
+
+    p = pykern.pkio.py_path(run_dir)
+    with pykern.pkio.save_chdir(p, mkdir=True):
+        with sirepo.quest.start() as qcall:
+            with qcall.auth.logged_in_user_set(uid, method=sirepo.auth.METHOD_EMAIL):
+                d = _sim_for_material(p, uid, material_id, qcall)
+                _prep_sim(p, uid, d)
+                run_background(p)
+                sirepo.template.cortex.background_percent_complete(
+                    d.report, p, is_running=False
+                )
+                sirepo.sim_api.cortex.check_for_sim_summary(qcall, uid)
 
 
 def set_material_featured(material_id, is_featured, uid):

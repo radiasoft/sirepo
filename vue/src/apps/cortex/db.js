@@ -30,6 +30,14 @@ class DB {
         return [];
     }
 
+    async loadOutputZip(material_id, modelName) {
+        const r = await this.#send('load_output_zip', {material_id, modelName});
+        if (r.op_result && r.op_result.zipfile) {
+            return new Blob([new Uint8Array(r.op_result.zipfile)], {type: 'application/zip'});
+        }
+        return null;
+    }
+
     async loadSummary(material_id, is_public) {
         return (await this.#send('load_summary', {material_id, is_public})).op_result;
     }
@@ -48,6 +56,14 @@ class DB {
 
     async setMaterialPublic(material_id, is_public) {
         return await this.#send('set_material_public', {material_id, is_public});
+    }
+
+    async statImage(material_id, modelName, stat) {
+        const r = await this.#send('stat_image', {material_id, modelName, stat});
+        if (r.op_result && r.op_result.image) {
+            return new Blob([new Uint8Array(r.op_result.image)], {type: 'image/png'});
+        }
+        return null;
     }
 
     updated() {

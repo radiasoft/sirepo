@@ -7,6 +7,8 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common
+import csv
+import io
 import math
 import numpy
 import os
@@ -19,6 +21,7 @@ import sirepo.simulation_db
 import sirepo.template.openmc
 
 CORTEX_RUN_LOG = "cortex.log"
+STATEPOINTS = ["neutronics", "depletion"]
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 _CHAIN_ENDF_FILE = "chain_endf_b8.0.xml"
@@ -290,6 +293,15 @@ def _adjust_log_ranges(plot):
     plot.y_range[0] = min_value
 
 
+def _csv_from_plot(plot):
+    v = io.StringIO()
+    w = csv.writer(v)
+    w.writerow([plot.xlabel] + plot.legend[1:])
+    for i in range(len(plot.points[0])):
+        w.writerow([plot.points[j][i] for j in range(len(plot.points))])
+    return v.getvalue()
+
+
 def _generate_material_definition(data):
     m = data.models.material
     components = ""
@@ -305,11 +317,12 @@ import openmc_data_downloader
 from pykern.pkcollections import PKDict
 import openmc.deplete.pool
 import pykern.pkrunpy
+import shutil
 
 # RS: disable multiprocessing, there is no way to set process count
 openmc.deplete.pool.USE_MULTIPROCESSING = False
 # replaces matplotlib with stub which saves plot data
-plt = pykern.pkrunpy.run_path_as_module("cortex_plot.py").plt
+plt = pykern.pkrunpy.run_path_as_module("cortex_plot.py").pyplot
 materials = pykern.pkrunpy.run_path_as_module("cortex_materials.py")
 
 
@@ -325,6 +338,16 @@ def material_from_definition(definition):
     m.set_density("g/cc", definition.density_gcc)
     return m
 
+sp_count = 0
+sp_names = {STATEPOINTS}
+
+def rsrun(statepoint):
+    global sp_count
+    if sp_count < len(sp_names):
+        shutil.copy(statepoint, f"{{sp_names[sp_count]}}.hdf5")
+    sp_count += 1
+    return statepoint
+
 
 t = material_from_definition(
     PKDict(
@@ -337,7 +360,7 @@ t = material_from_definition(
 
 
 def _json_filename(stat):
-    return f"{stat}.png.json"
+    return f"{_png_filename(stat)}.json"
 
 
 def _material_id_from_run_dir(run_dir):
@@ -391,6 +414,10 @@ def _plot_from_file(run_dir, material_id, report, stat):
     )
 
 
+def _png_filename(stat):
+    return f"{stat}.png"
+
+
 def _save_summary_to_database(run_dir, report, stats):
     m = _material_id_from_run_dir(run_dir)
     summary = PKDict(
@@ -403,6 +430,7 @@ def _save_summary_to_database(run_dir, report, stats):
     )
     for s in stats:
         p = _plot_from_file(run_dir, m, report, s)
+        p.csv = _csv_from_plot(p)
         summary.plots.append(p)
         if report in _SAVE_SIM_RESULTS and s in _SAVE_SIM_RESULTS[report]:
             for d in _SAVE_SIM_RESULTS[report][s]:
@@ -411,7 +439,15 @@ def _save_summary_to_database(run_dir, report, stats):
                     if pos < p.points[0][i]:
                         summary["values"][label] = p.points[idx][i]
                         break
-
+        _SIM_DATA.lib_file_write(
+            _SIM_DATA.lib_file_from_parts(report, m, s, "png"),
+            run_dir.join(_png_filename(s)),
+        )
+    for s in STATEPOINTS:
+        _SIM_DATA.lib_file_write(
+            _SIM_DATA.lib_file_from_parts(report, m, s, "hdf5"),
+            run_dir.join(f"{s}.hdf5"),
+        )
     _SIM_DATA.lib_file_write(
         _SIM_DATA.summary_file_from_parts(report, m),
         pykern.pkjson.dump_str(summary),

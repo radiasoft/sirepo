@@ -31,6 +31,7 @@
  import { requestSender } from '@/services/requestsender.js';
  import { saveAs } from 'file-saver';
  import { schema } from '@/services/schema.js';
+ import { util } from '@/services/util.js';
 
  const props = defineProps({
      modelName: String,
@@ -46,17 +47,12 @@
  let frameIndex = 1;
  let isPlaying = false;
 
- const downloadCSV = () => {
-     const d = data.value && data.value();
-     if (! d) {
-         return;
+ const addDownloadActions = (plot) => {
+     for (let r of props.sim.reports) {
+         if (r.modelName == props.modelName) {
+             r.downloadActions = util.reportDownloadActions(plot);
+         }
      }
-     let res = [d.x_label, ...d.plots.map((p) => p.label)].map((v) => `"${v}"`).join(',') + "\n";
-     for (let i = 0; i < d.x_points.length; i++) {
-         res += [d.x_points[i], ...d.plots.map((p) => p.points[i])].join(',') + "\n";
-     }
-     const n = d.y_label.replace(/ \[.*/, '');
-     saveAs(new Blob([res], {type: 'text/csv;charset=utf-8'}), `${n}.csv`);
  };
 
  const frameId = (frameReport) => {
@@ -92,6 +88,7 @@
      objectStore.getFrame(id, props.modelName, async (resp) => {
          if (resp) {
              data.value = () => resp;
+             addDownloadActions(resp);
              return;
          }
          if (isLoading.value) {
@@ -110,6 +107,7 @@
              objectStore.saveFrame(id, props.modelName, resp);
              if (i === frameIndex) {
                  data.value = () => resp;
+                 addDownloadActions(resp);
              }
              else {
                  // the requested frame has changed during the request, load new data
@@ -133,18 +131,12 @@
  };
 
  onMounted(() => {
-     const downloadActions = [{
-         onClick: () => { downloadCSV() },
-         label: 'Download CSV',
-     }];
      const getFrameCount = () => {
          if (props.reportData) {
-             props.reportData.downloadActions = downloadActions;
              return 1;
          }
          for (let r of props.sim.reports) {
              if (r.modelName === props.modelName) {
-                 r.downloadActions = downloadActions;
                  return r.frameCount;
              }
          }
