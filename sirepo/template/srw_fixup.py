@@ -25,5 +25,5 @@ def _do_beamline(template, data):
         elif t == "grating":
             template._compute_PGM_value(i)
         elif t in ("ellipsoidMirror", "sphericalMirror", "toroidalMirror"):
-            if i.get("outoptvz", 0) == 0:
+            if i.get("outoptvz") is None:
                 template._compute_grazing_orientation(i)
