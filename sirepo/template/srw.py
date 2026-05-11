@@ -1526,23 +1526,58 @@ def _compute_grazing_orientation(model):
         preserve_sign(model, "tangentialVectorX", math.sin(grazing_angle))
         model.normalVectorY = 0
         model.tangentialVectorY = 0
-        model.outoptvx = math.copysign(math.sin(grazing_angle * 2), model.normalVectorX)
-        model.outoptvy = 0
-        model.outoptvz = math.cos(grazing_angle * 2)
-        model.outframevx = math.cos(grazing_angle * 2)
-        model.outframevy = 0
-
     elif model.autocomputeVectors == "vertical":
         preserve_sign(model, "normalVectorY", math.cos(grazing_angle))
         preserve_sign(model, "tangentialVectorY", math.sin(grazing_angle))
         model.normalVectorX = 0
         model.tangentialVectorX = 0
-        model.outoptvx = 0
-        model.outoptvy = math.copysign(math.sin(grazing_angle * 2), model.normalVectorY)
-        model.outoptvz = math.cos(grazing_angle * 2)
-        model.outframevx = 1
-        model.outframevy = 0
+    try:
+        orient = _srw_mirror_for_orient(model, grazing_angle).get_orient()[1]
+        model.outframevx = orient[0][0]
+        model.outframevy = orient[0][1]
+        model.outoptvx = orient[2][0]
+        model.outoptvy = orient[2][1]
+        model.outoptvz = orient[2][2]
+    except Exception:
+        pkdlog("\n{}", traceback.format_exc())
+        for k in ("outoptvx", "outoptvy", "outoptvz", "outframevx", "outframevy"):
+            model[k] = None
     return model
+
+
+def _srw_mirror_for_orient(model, grazing_angle):
+    common = PKDict(
+        _size_tang=model.get("tangentialSize", 1),
+        _size_sag=model.get("sagittalSize", 1),
+        _nvx=model.normalVectorX,
+        _nvy=model.normalVectorY,
+        _nvz=model.normalVectorZ,
+        _tvx=model.tangentialVectorX,
+        _tvy=model.tangentialVectorY,
+        _x=model.get("horizontalOffset", 0),
+        _y=model.get("verticalOffset", 0),
+    )
+    t = model.type
+    if t == "ellipsoidMirror":
+        return srwpy.srwlib.SRWLOptMirEl(
+            _p=model.get("firstFocusLength", 1),
+            _q=model.get("focalLength", 1),
+            _ang_graz=grazing_angle,
+            **common,
+        )
+    if t == "sphericalMirror":
+        return srwpy.srwlib.SRWLOptMirSph(
+            _r=model.get("radius", 1),
+            **common,
+        )
+    if t == "toroidalMirror":
+        return srwpy.srwlib.SRWLOptMirTor(
+            _rt=model.get("tangentialRadius", 1),
+            _rs=model.get("sagittalRadius", 1),
+            _ap_shape=model.get("apertureShape", "r"),
+            **common,
+        )
+    raise AssertionError(f"unsupported mirror type={t}")
 
 
 def _copy_frame_args_into_model(frame_args, name):
