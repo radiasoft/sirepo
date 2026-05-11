@@ -22,5 +22,8 @@ def _do_beamline(template, data):
         _SIM_DATA.update_model_defaults(i, t)
         if t == "crystal":
             template._compute_crystal_orientation(i)
-        if t == "grating":
+        elif t == "grating":
             template._compute_PGM_value(i)
+        elif t in ("ellipsoidMirror", "sphericalMirror", "toroidalMirror"):
+            if i.get("outoptvz") is None:
+                template._compute_grazing_orientation(i)

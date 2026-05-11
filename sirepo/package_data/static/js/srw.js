@@ -688,61 +688,49 @@ SIREPO.app.controller('BeamlineController', function (activeSection, appState, b
         if (! appState.isLoaded()) {
             return;
         }
-        var beamline = appState.models.beamline;
+        const b = appState.models.beamline;
         if (! appState.models.propagation) {
             appState.models.propagation = {};
         }
-        var propagation = appState.models.propagation;
+        const propagation = appState.models.propagation;
         self.propagations = [];
-        var i;
-        for (i = 0; i < beamline.length; i++) {
-            if (! propagation[beamline[i].id]) {
-                propagation[beamline[i].id] = [
+        for (let i = 0; i < b.length; i++) {
+            const item = b[i];
+            if (! propagation[item.id]) {
+                propagation[item.id] = [
                     defaultItemPropagationParams(),
                     defaultDriftPropagationParams(),
                 ];
             }
-            var p = propagation[beamline[i].id];
-
-            if (beamline[i].type != 'watch' && beamline[i].type != 'grating' && beamline[i].type != 'crystal') {
+            const p = propagation[item.id];
+            if (item.type !== 'watch') {
                 self.propagations.push({
-                    item: beamline[i],
-                    title: beamline[i].title,
+                    item,
+                    title: item.title,
                     params: p[0],
-                    defaultparams: [p[0][12], p[0][13], p[0][14], p[0][15], p[0][16] ],
+                    defaultparams: 'outoptvx' in item
+                        ? [item.outoptvx, item.outoptvy, item.outoptvz, item.outframevx, item.outframevy]
+                        : [p[0][12], p[0][13], p[0][14], p[0][15], p[0][16]],
                 });
             }
-
-            if (beamline[i].type != 'watch' && (beamline[i].type == 'grating' || beamline[i].type == 'crystal')) {
-                self.propagations.push({
-                    item: beamline[i],
-                    title: beamline[i].title,
-                    params: p[0],
-                    defaultparams: [beamline[i].outoptvx, beamline[i].outoptvy, beamline[i].outoptvz, beamline[i].outframevx, beamline[i].outframevy],
-                });
-            }
-
-            if (i == beamline.length - 1) {
-                break;
-            }
-            var d = parseFloat(beamline[i + 1].position) - parseFloat(beamline[i].position);
-            if (d > 0) {
-                self.propagations.push({
-                    position: beamline[i].position,
-                    title: 'Drift ' + srwService.formatFloat4(d) + ' m',
-                    params: p[1],
-                    defaultparams: [p[1][12], p[1][13], p[1][14], p[1][15], p[1][16] ],
-                });
+            if (i < b.length - 1) {
+                const d = parseFloat(b[i + 1].position) - parseFloat(item.position);
+                if (d > 0) {
+                    self.propagations.push({
+                        position: item.position,
+                        title: 'Drift ' + srwService.formatFloat4(d) + ' m',
+                        params: p[1],
+                        defaultparams: [p[1][12], p[1][13], p[1][14], p[1][15], p[1][16]],
+                    });
+                }
             }
         }
         if (! appState.models.postPropagation || appState.models.postPropagation.length === 0) {
             appState.models.postPropagation = defaultItemPropagationParams();
         }
         self.postPropagation = appState.models.postPropagation;
-
-        var newPropagations = {};
-        for (i = 0; i < appState.models.beamline.length; i++) {
-            var item = appState.models.beamline[i];
+        const newPropagations = {};
+        for (const item of appState.models.beamline) {
             newPropagations[item.id] = appState.models.propagation[item.id];
         }
         appState.models.propagation = newPropagations;
@@ -943,6 +931,8 @@ var srwGrazingAngleLogic = function(panelState, srwService, $scope) {
     var fields = [
         'normalVectorX', 'normalVectorY', 'normalVectorZ',
         'tangentialVectorX', 'tangentialVectorY',
+        'outoptvx', 'outoptvy', 'outoptvz',
+        'outframevx', 'outframevy',
     ];
     function computeVectors(item) {
         updateVectorFields(item);
