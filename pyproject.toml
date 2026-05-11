@@ -35,7 +35,7 @@ dependencies = [
     "pytest-asyncio",
     "pytz",
     "requests",
-    "stripe",
+    "stripe==14.*",
     "tornado>=6.5.2",
     "user-agents",
     # only needed for testing (srunit)
