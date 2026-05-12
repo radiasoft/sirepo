@@ -9,7 +9,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdc, pkdexc, pkdformat
 from sirepo import job
 import importlib
-import os
 import pykern.pkio
 import re
 import sirepo.auth
@@ -257,10 +256,7 @@ class DriverBase(PKDict):
                     # These don't need to be passed
                     SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agent_id,
                     # POSIT: same as pkcli.job_agent.start
-                    SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS=os.environ.get(
-                        "SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS",
-                        str(pkconfig.in_dev_mode()),
-                    ),
+                    SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS=str(_cfg.dev_source_dirs),
                     SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_TOKEN=self._global_resources_token,
                     SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_URI=f"{self.cfg.supervisor_uri}{job.GLOBAL_RESOURCES_URI}",
                     SIREPO_PKCLI_JOB_AGENT_START_DELAY=str(
@@ -510,12 +506,17 @@ def init_module(**imports):
     # import sirepo.job_supervisor
     sirepo.util.setattr_imports(imports)
     _cfg = pkconfig.init(
-        modules=((_DEFAULT_MODULE,), set, "available job driver modules"),
+        dev_source_dirs=(
+            pkconfig.in_dev_mode(),
+            bool,
+            "pass dev source dirs to agents so they use ~/src/radiasoft packages",
+        ),
         idle_check_secs=(
             1800,
             pkconfig.parse_seconds,
             "how many seconds to wait between checks",
         ),
+        modules=((_DEFAULT_MODULE,), set, "available job driver modules"),
     )
     _CLASSES = PKDict()
     p = pkinspect.this_module().__name__
