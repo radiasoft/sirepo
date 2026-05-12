@@ -249,14 +249,18 @@ class DriverBase(PKDict):
             )
             return new_env
 
+        def _pythonpath(env):
+            p = pkconfig.TUPLE_SEP.join(_cfg.dev_source_dirs)
+            if p:
+                env.PYTHONPATH = p
+            env.SIREPO_PKCLI_JOB_AGENT_PYTHONPATH = p
+            return env
+
         return job.agent_env(
             env=_clear(
-                (env or PKDict()).pksetdefault(
+                _pythonpath(env or PKDict()).pksetdefault(
                     PYKERN_PKDEBUG_WANT_PID_TIME="1",
-                    # These don't need to be passed
                     SIREPO_PKCLI_JOB_AGENT_AGENT_ID=self._agent_id,
-                    # POSIT: same as pkcli.job_agent.start
-                    SIREPO_PKCLI_JOB_AGENT_DEV_SOURCE_DIRS=str(_cfg.dev_source_dirs),
                     SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_TOKEN=self._global_resources_token,
                     SIREPO_PKCLI_JOB_AGENT_GLOBAL_RESOURCES_SERVER_URI=f"{self.cfg.supervisor_uri}{job.GLOBAL_RESOURCES_URI}",
                     SIREPO_PKCLI_JOB_AGENT_START_DELAY=str(
@@ -507,9 +511,9 @@ def init_module(**imports):
     sirepo.util.setattr_imports(imports)
     _cfg = pkconfig.init(
         dev_source_dirs=(
-            pkconfig.in_dev_mode(),
-            bool,
-            "pass dev source dirs to agents so they use ~/src/radiasoft packages",
+            tuple(),
+            tuple,
+            "source dirs passed to agents as PYTHONPATH",
         ),
         idle_check_secs=(
             1800,

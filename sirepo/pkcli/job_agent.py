@@ -59,11 +59,6 @@ _MAX_SBATCH_QUERY_TRIES = 5
 
 _cfg = None
 
-_DEV_PYTHON_PATH = ":".join(
-    str(pkio.py_path(sirepo.const.DEV_SRC_RADIASOFT_DIR).join(p))
-    for p in ("sirepo", "pykern")
-)
-
 
 def start():
     # TODO(robnagler) commands need their own init hook like the server has
@@ -71,12 +66,7 @@ def start():
 
     _cfg = pkconfig.init(
         agent_id=pkconfig.Required(str, "id of this agent"),
-        # POSIT: same as job_driver.DriverBase._agent_env
-        dev_source_dirs=(
-            pkconfig.in_dev_mode(),
-            bool,
-            f"set PYTHONPATH={_DEV_PYTHON_PATH}",
-        ),
+        pythonpath=("", str, "PYTHONPATH for job commands"),
         fastcgi_sock_dir=(
             pkio.py_path("/tmp"),
             pkio.py_path,
@@ -674,6 +664,8 @@ class _Cmd(PKDict):
         )
         if _cfg.no_hdf5_do_mpi_file_sync:
             e.HDF5_DO_MPI_FILE_SYNC = "FALSE"
+        if _cfg.pythonpath:
+            e.PYTHONPATH = _cfg.pythonpath
         return job.agent_env(env=e, uid=self._uid)
 
     def job_cmd_source_bashrc(self):
@@ -965,10 +957,7 @@ class _SbatchCmd(_Cmd):
 
     def job_cmd_env(self):
         # POSIT: sirepo.mpi cfg sentinel for running in slurm
-        e = PKDict(SIREPO_MPI_IN_SLURM=1)
-        if _cfg.dev_source_dirs:
-            e.PYTHONPATH = _DEV_PYTHON_PATH
-        return super().job_cmd_env(e)
+        return super().job_cmd_env(PKDict(SIREPO_MPI_IN_SLURM=1))
 
     def job_cmd_source_bashrc(self):
         if not self.msg.get("shifterImage"):
