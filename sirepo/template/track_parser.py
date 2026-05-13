@@ -14,6 +14,7 @@ import sirepo.sim_data
 import sirepo.template.template_common
 
 
+_CM_MRAD_TO_M_RAD = 1e-5
 _CM_TO_M = 1e-2
 _GAUSS_TO_T = 1e-4
 _SIM_DATA = sirepo.sim_data.get_class("opal")
@@ -180,18 +181,22 @@ def parse_track_file(track_text):
     g = e / m
     b = math.sqrt(1.0 - 1.0 / g**2)
 
+    # 6D waterbag: e_total = 8 * e_rms per plane; cutoffs at sqrt(8) sigma match boundary
+    _WATERBAG_FACTOR = 8.0
+    _WATERBAG_CUTOFF = round(math.sqrt(_WATERBAG_FACTOR), 9)
+
     def _transverse_sigmas(epsn, alfa, beta_t):
-        r = epsn * 1e-5 / 4.0 / (b * g)
+        r = epsn * _CM_MRAD_TO_M_RAD / _WATERBAG_FACTOR / (b * g)
         s = math.sqrt(beta_t * 1e-2 * r)
-        p = math.sqrt((1.0 + alfa**2) / (beta_t * 1e-2) * r)
+        p = math.sqrt((1.0 + alfa**2) / (beta_t * 1e-2) * r) * b * g
         c = -alfa / math.sqrt(1.0 + alfa**2) if alfa != 0 else 0.0
         return round(s, 9), round(p, 9), round(c, 9)
 
     f = v.get("freqb", 162.5e6)
     # epsnz in deg*%; betaz in deg/% — solve for sigma_phi and sigma_dw
     ez, az, bz = v.get("epsnz", 0.0), v.get("alfaz", 0.0), v.get("betaz", 0.0)
-    sp = math.sqrt(ez * bz / 4.0) if ez * bz > 0 else 0.0
-    sw = math.sqrt(ez / bz / 4.0) if ez * bz > 0 else 0.0
+    sp = math.sqrt(ez * bz / _WATERBAG_FACTOR) if ez * bz > 0 else 0.0
+    sw = math.sqrt(ez / bz / _WATERBAG_FACTOR) if ez * bz > 0 else 0.0
     sx, spx, cx = _transverse_sigmas(
         v.get("epsnx", 0.0), v.get("alfax", 0.0), v.get("betax", 1.0)
     )
@@ -216,11 +221,17 @@ def parse_track_file(track_text):
         sigmaz=round(sp / 360.0 * b * scipy.constants.c / f, 9),
         sigmapx=spx,
         sigmapy=spy,
-        # dp/p from dW/W: dp/p = (dW/W) * (gamma-1)/(gamma*beta^2)
-        sigmapz=round(sw / 100.0 * (g - 1.0) / (g * b**2), 9),
+        # beta*gamma * dp/p, where dp/p = (dW/W) * (gamma-1)/(gamma*beta^2)
+        sigmapz=round(sw / 100.0 * (g - 1.0) / b, 9),
         corrx=cx,
         corry=cy,
         corrz=round(-az / math.sqrt(1.0 + az**2) if az != 0 else 0.0, 9),
+        cutoffx=_WATERBAG_CUTOFF,
+        cutoffy=_WATERBAG_CUTOFF,
+        cutofflong=_WATERBAG_CUTOFF,
+        cutoffpx=_WATERBAG_CUTOFF,
+        cutoffpy=_WATERBAG_CUTOFF,
+        cutoffpz=_WATERBAG_CUTOFF,
         name="DIST1",
     )
     d.models.rpnVariables = [
