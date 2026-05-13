@@ -6,7 +6,6 @@
 
 from pykern import pkcompat
 from pykern import pkio
-from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
@@ -17,12 +16,11 @@ from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
 import math
-import numpy as np
+import numpy
+import pykern.pkjson
 import re
-import sirepo.const
 import sirepo.lib
 import sirepo.sim_data
-import os.path
 
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -447,7 +445,7 @@ def background_percent_complete(report, run_dir, is_running):
 
 def bunch_plot(model, run_dir, frame_index, filename=_OPAL_H5_FILE):
     def _points(file, frame_index, name):
-        return np.array(file["/Step#{}/{}".format(frame_index, name)])
+        return numpy.array(file["/Step#{}/{}".format(frame_index, name)])
 
     def _title(file, frame_index):
         t = "Step {}".format(frame_index)
@@ -669,6 +667,7 @@ def sim_frame_plot2Animation(frame_args):
 def stateful_compute_import_file(data, **kwargs):
     from sirepo.template import elegant
     from sirepo.template import opal_parser
+    from sirepo.template import track_parser
 
     if data.args.ext_lower == ".in":
         res, input_files = opal_parser.parse_file(
@@ -694,6 +693,28 @@ def stateful_compute_import_file(data, **kwargs):
             elegant.ElegantMadxConverter(qcall=None).to_madx_text(
                 elegant.elegant_file_import(data).imported_data
             )
+        )
+    # TRACK specific datafiles
+    elif data.args.basename.lower() == "track.dat":
+        res = track_parser.parse_track_file(data.args.file_as_str)
+        return PKDict(
+            importState="needLattice", eleData=res, latticeFileName="sclinac.dat"
+        )
+    elif data.args.basename.lower() == "sclinac.dat":
+        # optional track.dat info
+        d = data.args.pkunchecked_nested_get("import_file_arguments")
+        if d:
+            d = pykern.pkjson.load_any(d)
+        d, files = track_parser.parse_sclinac_file(data.args.file_as_str, d)
+        # only if has rfcavity elements
+        return PKDict(importState="needLattice", eleData=d, latticeFileName="fi_in.dat")
+    elif data.args.basename.lower() == "fi_in.dat":
+        # must have already imported sclinac.dat
+        d = data.args.pkunchecked_nested_get("import_file_arguments")
+        if not d:
+            raise IOError("Import a sclinac.dat first")
+        res = track_parser.parse_fi_in_file(
+            data.args.file_as_str, pykern.pkjson.load_any(d)
         )
     else:
         raise IOError(
@@ -892,7 +913,7 @@ def _compute_3d_bounds(run_dir):
             m = re.search(r'^".*?"\s+(\S*?)\s+(\S*?)\s+(\S*?)\s*$', line)
             if m:
                 res.append([float(v) for v in (m.group(1), m.group(2), m.group(3))])
-    res = np.array(res)
+    res = numpy.array(res)
     bounds = []
     for n in range(3):
         v = res[:, n]
@@ -908,7 +929,7 @@ def _compute_range_across_frames(run_dir, **kwargs):
     def _walk_file(h5file, key, step, res):
         if key:
             for field in res:
-                v = np.array(h5file["/{}/{}".format(key, field)])
+                v = numpy.array(h5file["/{}/{}".format(key, field)])
                 min1, max1 = v.min(), v.max()
                 if res[field]:
                     if res[field][0] > min1:
@@ -938,13 +959,13 @@ def _field_units(units, field):
         units = ""
     elif units[0] == "M" and len(units) > 1:
         units = re.sub(r"^.", "", units)
-        field.points = (np.array(field.points) * 1e6).tolist()
+        field.points = (numpy.array(field.points) * 1e6).tolist()
     elif units[0] == "G" and len(units) > 1:
         units = re.sub(r"^.", "", units)
-        field.points = (np.array(field.points) * 1e9).tolist()
+        field.points = (numpy.array(field.points) * 1e9).tolist()
     elif units == "ns":
         units = "s"
-        field.points = (np.array(field.points) / 1e9).tolist()
+        field.points = (numpy.array(field.points) / 1e9).tolist()
     if units:
         if re.search(r"^#", units):
             field.label += " ({})".format(units)

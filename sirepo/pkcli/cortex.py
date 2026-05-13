@@ -232,6 +232,8 @@ def run_batch(run_dir, uid, material_id):
         with sirepo.quest.start() as qcall:
             with qcall.auth.logged_in_user_set(uid, method=sirepo.auth.METHOD_EMAIL):
                 d = _sim_for_material(p, uid, material_id, qcall)
+                # this may be missing for old data
+                d.models.material.material_id = material_id
                 _prep_sim(p, uid, d)
                 run_background(p)
                 sirepo.template.cortex.background_percent_complete(
