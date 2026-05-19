@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="Integer19StringArray" class="col-sm-7">
           <div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="19"></div>

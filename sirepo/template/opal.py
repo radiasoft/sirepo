@@ -641,6 +641,7 @@ def sim_frame_plotAnimation(frame_args):
                 _walk_file,
                 plots,
             ),
+            y_fields=("y1", "y2", "y3", "y4", "y5"),
         )
     )
 
@@ -660,6 +661,7 @@ def sim_frame_plot2Animation(frame_args):
             format_plot=_format_plot,
             model=template_common.model_from_frame_args(frame_args),
             dynamicYLabel=True,
+            y_fields=("y1", "y2", "y3", "y4", "y5"),
         )
     )
 

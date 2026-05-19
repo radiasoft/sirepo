@@ -241,28 +241,20 @@
         },
         "bunchReport1": {
             "colorMap": "afmhot",
-            "histogramBins": 200,
-            "notes": "",
             "x": "x",
             "y": "px"
         },
         "bunchReport2": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
             "notes": "",
             "x": "y",
             "y": "py"
         },
         "bunchReport3": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
             "notes": "",
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
             "notes": "",
             "x": "t",
             "y": "pt"
@@ -540,108 +532,7 @@
                 "_type": "ptc_end"
             }
         ],
-        "elementAnimation291-20": {
-            "aspectRatio": "1",
-            "colorMap": "afmhot",
-            "framesPerSecond": "2",
-            "histogramBins": 200,
-            "horizontalOffset": 0,
-            "horizontalSize": 0,
-            "includeLattice": "1",
-            "notes": "",
-            "panelTitle": "twiss.file",
-            "plotRangeType": "none",
-            "valueList": {
-                "x": [
-                    "s",
-                    "x",
-                    "y"
-                ],
-                "y1": [
-                    "s",
-                    "x",
-                    "y"
-                ],
-                "y2": [
-                    "None",
-                    "s",
-                    "x",
-                    "y"
-                ],
-                "y3": [
-                    "None",
-                    "s",
-                    "x",
-                    "y"
-                ]
-            },
-            "verticalOffset": 0,
-            "verticalSize": 0,
-            "x": "s",
-            "y1": "betx",
-            "y2": "bety",
-            "y3": "None"
-        },
-        "elementAnimation291-6": {
-            "aspectRatio": "1",
-            "colorMap": "afmhot",
-            "framesPerSecond": "2",
-            "histogramBins": 200,
-            "horizontalOffset": 0,
-            "horizontalSize": 0,
-            "includeLattice": "0",
-            "notes": "",
-            "panelTitle": "ptc_track.file",
-            "plotRangeType": "none",
-            "valueList": {
-                "x": [
-                    "x",
-                    "px",
-                    "y",
-                    "py",
-                    "pt",
-                    "s",
-                    "e"
-                ],
-                "y1": [
-                    "x",
-                    "px",
-                    "y",
-                    "py",
-                    "pt",
-                    "s",
-                    "e"
-                ],
-                "y2": [
-                    "None",
-                    "x",
-                    "px",
-                    "y",
-                    "py",
-                    "pt",
-                    "s",
-                    "e"
-                ],
-                "y3": [
-                    "None",
-                    "x",
-                    "px",
-                    "y",
-                    "py",
-                    "pt",
-                    "s",
-                    "e"
-                ]
-            },
-            "verticalOffset": 0,
-            "verticalSize": 0,
-            "x": "x",
-            "y1": "y",
-            "y2": "None",
-            "y3": "None"
-        },
         "elementAnimation294-20": {
-            "aspectRatio": "1",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
@@ -892,10 +783,10 @@
             "x": "s",
             "y1": "betx",
             "y2": "bety",
-            "y3": "dx"
+            "y3": "dx",
+            "y3Position": "right"
         },
         "elementAnimation295-15": {
-            "aspectRatio": "1",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
@@ -1086,7 +977,8 @@
             "x": "s",
             "y1": "betx",
             "y2": "bety",
-            "y3": "disp1"
+            "y3": "disp1",
+            "y3Position": "right"
         },
         "elements": [
             {
@@ -3480,7 +3372,6 @@
             "visualizationBeamlineId": 287
         },
         "twissFromParticlesAnimation": {
-            "aspectRatio": "1",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
@@ -3679,7 +3570,8 @@
             "x": "s",
             "y1": "betx",
             "y2": "bety",
-            "y3": "eta_x"
+            "y3": "eta_x",
+            "y3Position": "right"
         },
         "twissReport": {
             "includeLattice": "1",

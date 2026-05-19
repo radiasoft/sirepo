@@ -440,7 +440,6 @@
             }
         ],
         "elementAnimation118-6": {
-            "aspectRatio": "1",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
@@ -502,7 +501,6 @@
             "y3": "None"
         },
         "elementAnimation121-20": {
-            "aspectRatio": "1",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
@@ -785,10 +783,10 @@
             "x": "s",
             "y1": "betx",
             "y2": "bety",
-            "y3": "dx"
+            "y3": "dx",
+            "y3Position": "right"
         },
         "elementAnimation126-15": {
-            "aspectRatio": "1",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
@@ -1055,7 +1053,8 @@
             "x": "s",
             "y1": "betx",
             "y2": "bety",
-            "y3": "None"
+            "y3": "disp1",
+            "y3Position": "right"
         },
         "elements": [
             {

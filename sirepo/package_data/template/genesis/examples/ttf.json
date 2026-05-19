@@ -128,15 +128,6 @@
             "y2": "yrms",
             "y3": "r_size"
         },
-        "particleAnimation": {
-            "aspectRatio": "1",
-            "colorMap": "viridis",
-            "framesPerSecond": "2",
-            "histogramBins": 200,
-            "notes": "",
-            "x": "x",
-            "y": "pxmc"
-        },
         "particleLoading": {
             "iall": "0",
             "igamgaus": "1",

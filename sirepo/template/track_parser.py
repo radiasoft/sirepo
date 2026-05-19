@@ -8,6 +8,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template.line_parser import LineParser
 import math
+import numpy
 import re
 import scipy.constants
 import sirepo.sim_data
@@ -17,6 +18,8 @@ import sirepo.template.template_common
 _CM_MRAD_TO_M_RAD = 1e-5
 _CM_TO_M = 1e-2
 _GAUSS_TO_T = 1e-4
+_WATERBAG_FACTOR = 8.0
+_WATERBAG_CUTOFF = round(math.sqrt(_WATERBAG_FACTOR), 9)
 _SIM_DATA = sirepo.sim_data.get_class("opal")
 _BEAM_FREQUENCY_VAR = "beam_frequency_mhz"
 
@@ -167,6 +170,7 @@ def parse_sclinac_file(sclinac_text, data=None):
 def parse_track_file(track_text):
     from sirepo import simulation_db
 
+    # TODO(pjm): more sub methods, too many remaining conversion constants, common round()
     def find_first_command(data, name):
         return [c for c in d.models.commands if c._type == name][0]
 
@@ -180,10 +184,6 @@ def parse_track_file(track_text):
     e = v.get("win", 0.0) * v.get("atp", 1.0) / 1e9 + m
     g = e / m
     b = math.sqrt(1.0 - 1.0 / g**2)
-
-    # 6D waterbag: e_total = 8 * e_rms per plane; cutoffs at sqrt(8) sigma match boundary
-    _WATERBAG_FACTOR = 8.0
-    _WATERBAG_CUTOFF = round(math.sqrt(_WATERBAG_FACTOR), 9)
 
     def _transverse_sigmas(epsn, alfa, beta_t):
         r = epsn * _CM_MRAD_TO_M_RAD / _WATERBAG_FACTOR / (b * g)
@@ -238,6 +238,110 @@ def parse_track_file(track_text):
         PKDict(name=_BEAM_FREQUENCY_VAR, value=round(f / 1e6, 6)),
     ]
     return d
+
+
+def impactx_particles(track_text):
+    from impactx import ImpactX, distribution, elements
+
+    v = _parse_tran_namelist(track_text)
+    m = (
+        v.get("atp", 1.0)
+        * scipy.constants.physical_constants["proton mass energy equivalent in MeV"][0]
+        / 1e3
+    )
+    e = v.get("win", 0.0) * v.get("atp", 1.0) / 1e9 + m
+    w = waterbag_distribution(track_text)
+    sim = ImpactX()
+    sim.particle_shape = 2
+    sim.space_charge = False
+    sim.init_grids()
+    sim.particle_container().ref_particle().set_charge_qe(
+        v.get("qq", 1.0)
+    ).set_mass_MeV(m * 1e3).set_kin_energy_MeV((e - m) * 1e3)
+    sim.add_particles(
+        # v.get("current", 0) * 1e-3,
+        1e-10,
+        distribution.Waterbag(
+            lambdaX=w.lambdaX,
+            lambdaY=w.lambdaY,
+            lambdaT=w.lambdaT,
+            lambdaPx=w.lambdaPx,
+            lambdaPy=w.lambdaPy,
+            lambdaPt=w.lambdaPt,
+            muxpx=w.muxpx,
+            muypy=w.muypy,
+            mutpt=w.mutpt,
+        ),
+        int(v.get("npat", 0)),
+    )
+    r = "monitor"
+    sim.lattice.extend(
+        [
+            elements.Drift(ds=0, nslice=1),
+            elements.BeamMonitor(r, backend="h5"),
+        ]
+    )
+    sim.evolve()
+    sim.finalize()
+    return f"diags/openPMD/{r}.h5"
+
+
+def waterbag_distribution(track_text):
+    from impactx import distribution_input_helpers
+
+    v = _parse_tran_namelist(track_text)
+    m = (
+        v.get("atp", 1.0)
+        * scipy.constants.physical_constants["proton mass energy equivalent in MeV"][0]
+        / 1e3
+    )
+    e = v.get("win", 0.0) * v.get("atp", 1.0) / 1e9 + m
+    g = e / m
+    b = math.sqrt(1.0 - 1.0 / g**2)
+    f = v.get("freqb", 162.5e6)
+    phi_to_t = b * scipy.constants.c / (f * 360)
+    pct_to_pt = (g - 1.0) / (g * b**2) / 100
+    return PKDict(
+        distribution_input_helpers.twiss(
+            beta_x=v.get("betax", 1.0) * _CM_TO_M,
+            beta_y=v.get("betay", 1.0) * _CM_TO_M,
+            beta_t=v.get("betaz", 1.0) * phi_to_t / pct_to_pt,
+            emitt_x=v.get("epsnx", 0.0)
+            * _CM_MRAD_TO_M_RAD
+            / (b * g)
+            / _WATERBAG_FACTOR,
+            emitt_y=v.get("epsny", 0.0)
+            * _CM_MRAD_TO_M_RAD
+            / (b * g)
+            / _WATERBAG_FACTOR,
+            emitt_t=v.get("epsnz", 0.0) / _WATERBAG_FACTOR * phi_to_t * pct_to_pt,
+            alpha_x=v.get("alfax", 0.0),
+            alpha_y=v.get("alfay", 0.0),
+            alpha_t=v.get("alfaz", 0.0),
+        )
+    )
+
+
+def write_opal(h5_filename, outfile):
+    import h5py
+
+    with h5py.File(h5_filename, "r") as f:
+        step = sorted(f["data"].keys())[-1]
+        b = f[f"data/{step}/particles/beam"]
+        pz_ref = b.attrs["pz_ref"]
+        x = b["position/x"][:]
+        y = b["position/y"][:]
+        z = b["position/t"][:]
+        GBx = pz_ref * b["momentum/x"][:]
+        GBy = pz_ref * b["momentum/y"][:]
+        GBz = pz_ref * (1.0 + b["momentum/t"][:])
+    numpy.savetxt(
+        outfile,
+        numpy.array([x, GBx, y, GBy, z, GBz]).T,
+        header=str(len(x)),
+        comments="",
+        fmt="%20.12e",
+    )
 
 
 def _parse_tran_namelist(text):

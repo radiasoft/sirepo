@@ -627,12 +627,12 @@
             "isRunning": 0,
             "notes": "",
             "x": "s",
-            "y1": "emit x",
-            "y2": "rms x",
-            "y3": "none"
+            "y1": "rms x",
+            "y2": "rms y",
+            "y3": "emit x",
+            "y3Position": "right"
         },
         "plotAnimation": {
-            "aspectRatio": "1",
             "includeLattice": "0",
             "isRunning": 0,
             "notes": "",

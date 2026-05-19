@@ -805,8 +805,12 @@ def extract_report_data(filename, frame_args, page_count=0):
             plot_attrs.pkupdate(
                 title="Plot {} of {}".format(plot_attrs.page_index + 1, page_count)
             )
-
-        return sdds_util.SDDSUtil(filename).lineplot(plot_attrs=plot_attrs)
+        return sdds_util.SDDSUtil(filename).lineplot(
+            plot_attrs=plot_attrs.pkupdate(
+                y_fields=("y1", "y2", "y3", "y4", "y5"),
+                dynamicYLabel=True,
+            )
+        )
 
     y_field = "y1" if "y1" in frame_args else "y"
     return sdds_util.SDDSUtil(filename).heatmap(

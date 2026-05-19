@@ -590,18 +590,22 @@
             "notes": "",
             "x": "s",
             "y1": "rms x",
-            "y2": "rms s",
-            "y3": "emit x"
+            "y2": "rms y",
+            "y3": "rms s",
+            "y4": "emit x",
+            "y4Position": "right",
+            "y5": "emit y",
+            "y5Position": "right"
         },
         "plotAnimation": {
-            "aspectRatio": "1",
             "includeLattice": "0",
             "isRunning": 0,
             "notes": "",
             "x": "SPOS",
             "y1": "#varepsilon x",
             "y2": "#varepsilon y",
-            "y3": "#varepsilon z"
+            "y3": "#varepsilon z",
+            "y3Position": "right"
         },
         "rpnVariables": [
             {

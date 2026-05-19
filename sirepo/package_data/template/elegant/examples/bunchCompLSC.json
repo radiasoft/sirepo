@@ -415,9 +415,6 @@
                     "dt",
                     "particleID"
                 ],
-                "y1File": [
-                    "w1.filename.sdds"
-                ],
                 "y2": [
                     " ",
                     "x",
@@ -429,15 +426,6 @@
                     "dt",
                     "particleID"
                 ],
-                "y2File": [
-                    "w0.filename.sdds",
-                    "w1.filename.sdds",
-                    "w2.filename.sdds",
-                    "w3.filename.sdds",
-                    "w4.filename.sdds",
-                    "w5.filename.sdds",
-                    "w6.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "x",
@@ -448,15 +436,6 @@
                     "p",
                     "dt",
                     "particleID"
-                ],
-                "y3File": [
-                    "w0.filename.sdds",
-                    "w1.filename.sdds",
-                    "w2.filename.sdds",
-                    "w3.filename.sdds",
-                    "w4.filename.sdds",
-                    "w5.filename.sdds",
-                    "w6.filename.sdds"
                 ]
             },
             "values": [
@@ -474,14 +453,8 @@
             "xFileId": "10-5",
             "y": "p",
             "y1": "p",
-            "y1File": "w1.filename.sdds",
-            "y1FileId": "10-5",
             "y2": " ",
-            "y2File": "w1.filename.sdds",
-            "y2FileId": "10-5",
-            "y3": " ",
-            "y3File": "w1.filename.sdds",
-            "y3FileId": "10-5"
+            "y3": " "
         },
         "elementAnimation10-6": {
             "fileId": "10-6",
@@ -525,9 +498,6 @@
                     "dt",
                     "dtFrequency"
                 ],
-                "y1File": [
-                    "h1.filename.sdds"
-                ],
                 "y2": [
                     " ",
                     "t",
@@ -537,15 +507,6 @@
                     "dt",
                     "dtFrequency"
                 ],
-                "y2File": [
-                    "h0.filename.sdds",
-                    "h1.filename.sdds",
-                    "h2.filename.sdds",
-                    "h3.filename.sdds",
-                    "h4.filename.sdds",
-                    "h5.filename.sdds",
-                    "h6.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "t",
@@ -554,15 +515,6 @@
                     "deltaFrequency",
                     "dt",
                     "dtFrequency"
-                ],
-                "y3File": [
-                    "h0.filename.sdds",
-                    "h1.filename.sdds",
-                    "h2.filename.sdds",
-                    "h3.filename.sdds",
-                    "h4.filename.sdds",
-                    "h5.filename.sdds",
-                    "h6.filename.sdds"
                 ]
             },
             "values": [
@@ -578,14 +530,8 @@
             "xFileId": "11-5",
             "y": "tFrequency",
             "y1": "tFrequency",
-            "y1File": "h1.filename.sdds",
-            "y1FileId": "11-5",
             "y2": " ",
-            "y2File": "h1.filename.sdds",
-            "y2FileId": "11-5",
-            "y3": " ",
-            "y3File": "h1.filename.sdds",
-            "y3FileId": "11-5"
+            "y3": " "
         },
         "elementAnimation11-6": {
             "fileId": "11-6",
@@ -631,9 +577,6 @@
                     "dt",
                     "particleID"
                 ],
-                "y1File": [
-                    "w2.filename.sdds"
-                ],
                 "y2": [
                     " ",
                     "x",
@@ -645,15 +588,6 @@
                     "dt",
                     "particleID"
                 ],
-                "y2File": [
-                    "w0.filename.sdds",
-                    "w1.filename.sdds",
-                    "w2.filename.sdds",
-                    "w3.filename.sdds",
-                    "w4.filename.sdds",
-                    "w5.filename.sdds",
-                    "w6.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "x",
@@ -664,15 +598,6 @@
                     "p",
                     "dt",
                     "particleID"
-                ],
-                "y3File": [
-                    "w0.filename.sdds",
-                    "w1.filename.sdds",
-                    "w2.filename.sdds",
-                    "w3.filename.sdds",
-                    "w4.filename.sdds",
-                    "w5.filename.sdds",
-                    "w6.filename.sdds"
                 ]
             },
             "values": [
@@ -690,14 +615,8 @@
             "xFileId": "12-5",
             "y": "p",
             "y1": "p",
-            "y1File": "w2.filename.sdds",
-            "y1FileId": "12-5",
             "y2": " ",
-            "y2File": "w2.filename.sdds",
-            "y2FileId": "12-5",
-            "y3": " ",
-            "y3File": "w2.filename.sdds",
-            "y3FileId": "12-5"
+            "y3": " "
         },
         "elementAnimation12-6": {
             "fileId": "12-6",
@@ -741,9 +660,6 @@
                     "dt",
                     "dtFrequency"
                 ],
-                "y1File": [
-                    "h2.filename.sdds"
-                ],
                 "y2": [
                     " ",
                     "t",
@@ -753,15 +669,6 @@
                     "dt",
                     "dtFrequency"
                 ],
-                "y2File": [
-                    "h0.filename.sdds",
-                    "h1.filename.sdds",
-                    "h2.filename.sdds",
-                    "h3.filename.sdds",
-                    "h4.filename.sdds",
-                    "h5.filename.sdds",
-                    "h6.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "t",
@@ -770,15 +677,6 @@
                     "deltaFrequency",
                     "dt",
                     "dtFrequency"
-                ],
-                "y3File": [
-                    "h0.filename.sdds",
-                    "h1.filename.sdds",
-                    "h2.filename.sdds",
-                    "h3.filename.sdds",
-                    "h4.filename.sdds",
-                    "h5.filename.sdds",
-                    "h6.filename.sdds"
                 ]
             },
             "values": [
@@ -794,14 +692,8 @@
             "xFileId": "13-5",
             "y": "tFrequency",
             "y1": "tFrequency",
-            "y1File": "h2.filename.sdds",
-            "y1FileId": "13-5",
             "y2": " ",
-            "y2File": "h2.filename.sdds",
-            "y2FileId": "13-5",
-            "y3": " ",
-            "y3File": "h2.filename.sdds",
-            "y3FileId": "13-5"
+            "y3": " "
         },
         "elementAnimation13-6": {
             "fileId": "13-6",
@@ -847,9 +739,7 @@
                     "dt",
                     "particleID"
                 ],
-                "y1File": [
-                    "w3.filename.sdds"
-                ],
+
                 "y2": [
                     " ",
                     "x",
@@ -861,15 +751,6 @@
                     "dt",
                     "particleID"
                 ],
-                "y2File": [
-                    "w0.filename.sdds",
-                    "w1.filename.sdds",
-                    "w2.filename.sdds",
-                    "w3.filename.sdds",
-                    "w4.filename.sdds",
-                    "w5.filename.sdds",
-                    "w6.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "x",
@@ -880,15 +761,6 @@
                     "p",
                     "dt",
                     "particleID"
-                ],
-                "y3File": [
-                    "w0.filename.sdds",
-                    "w1.filename.sdds",
-                    "w2.filename.sdds",
-                    "w3.filename.sdds",
-                    "w4.filename.sdds",
-                    "w5.filename.sdds",
-                    "w6.filename.sdds"
                 ]
             },
             "values": [
@@ -906,14 +778,8 @@
             "xFileId": "14-5",
             "y": "p",
             "y1": "p",
-            "y1File": "w3.filename.sdds",
-            "y1FileId": "14-5",
             "y2": " ",
-            "y2File": "w3.filename.sdds",
-            "y2FileId": "14-5",
-            "y3": " ",
-            "y3File": "w3.filename.sdds",
-            "y3FileId": "14-5"
+            "y3": " "
         },
         "elementAnimation14-6": {
             "fileId": "14-6",
@@ -957,9 +823,6 @@
                     "dt",
                     "dtFrequency"
                 ],
-                "y1File": [
-                    "h3.filename.sdds"
-                ],
                 "y2": [
                     " ",
                     "t",
@@ -969,15 +832,6 @@
                     "dt",
                     "dtFrequency"
                 ],
-                "y2File": [
-                    "h0.filename.sdds",
-                    "h1.filename.sdds",
-                    "h2.filename.sdds",
-                    "h3.filename.sdds",
-                    "h4.filename.sdds",
-                    "h5.filename.sdds",
-                    "h6.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "t",
@@ -986,15 +840,6 @@
                     "deltaFrequency",
                     "dt",
                     "dtFrequency"
-                ],
-                "y3File": [
-                    "h0.filename.sdds",
-                    "h1.filename.sdds",
-                    "h2.filename.sdds",
-                    "h3.filename.sdds",
-                    "h4.filename.sdds",
-                    "h5.filename.sdds",
-                    "h6.filename.sdds"
                 ]
             },
             "values": [
@@ -1010,14 +855,8 @@
             "xFileId": "15-5",
             "y": "tFrequency",
             "y1": "tFrequency",
-            "y1File": "h3.filename.sdds",
-            "y1FileId": "15-5",
             "y2": " ",
-            "y2File": "h3.filename.sdds",
-            "y2FileId": "15-5",
-            "y3": " ",
-            "y3File": "h3.filename.sdds",
-            "y3FileId": "15-5"
+            "y3": " "
         },
         "elementAnimation15-6": {
             "fileId": "15-6",
@@ -1063,9 +902,6 @@
                     "dt",
                     "particleID"
                 ],
-                "y1File": [
-                    "w4.filename.sdds"
-                ],
                 "y2": [
                     " ",
                     "x",
@@ -1077,15 +913,6 @@
                     "dt",
                     "particleID"
                 ],
-                "y2File": [
-                    "w0.filename.sdds",
-                    "w1.filename.sdds",
-                    "w2.filename.sdds",
-                    "w3.filename.sdds",
-                    "w4.filename.sdds",
-                    "w5.filename.sdds",
-                    "w6.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "x",
@@ -1096,15 +923,6 @@
                     "p",
                     "dt",
                     "particleID"
-                ],
-                "y3File": [
-                    "w0.filename.sdds",
-                    "w1.filename.sdds",
-                    "w2.filename.sdds",
-                    "w3.filename.sdds",
-                    "w4.filename.sdds",
-                    "w5.filename.sdds",
-                    "w6.filename.sdds"
                 ]
             },
             "values": [
@@ -1122,14 +940,8 @@
             "xFileId": "16-5",
             "y": "p",
             "y1": "p",
-            "y1File": "w4.filename.sdds",
-            "y1FileId": "16-5",
             "y2": " ",
-            "y2File": "w4.filename.sdds",
-            "y2FileId": "16-5",
-            "y3": " ",
-            "y3File": "w4.filename.sdds",
-            "y3FileId": "16-5"
+            "y3": " "
         },
         "elementAnimation16-6": {
             "fileId": "16-6",
@@ -1173,9 +985,6 @@
                     "dt",
                     "dtFrequency"
                 ],
-                "y1File": [
-                    "h4.filename.sdds"
-                ],
                 "y2": [
                     " ",
                     "t",
@@ -1185,15 +994,6 @@
                     "dt",
                     "dtFrequency"
                 ],
-                "y2File": [
-                    "h0.filename.sdds",
-                    "h1.filename.sdds",
-                    "h2.filename.sdds",
-                    "h3.filename.sdds",
-                    "h4.filename.sdds",
-                    "h5.filename.sdds",
-                    "h6.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "t",
@@ -1202,15 +1002,6 @@
                     "deltaFrequency",
                     "dt",
                     "dtFrequency"
-                ],
-                "y3File": [
-                    "h0.filename.sdds",
-                    "h1.filename.sdds",
-                    "h2.filename.sdds",
-                    "h3.filename.sdds",
-                    "h4.filename.sdds",
-                    "h5.filename.sdds",
-                    "h6.filename.sdds"
                 ]
             },
             "values": [
@@ -1226,14 +1017,8 @@
             "xFileId": "17-5",
             "y": "tFrequency",
             "y1": "tFrequency",
-            "y1File": "h4.filename.sdds",
-            "y1FileId": "17-5",
             "y2": " ",
-            "y2File": "h4.filename.sdds",
-            "y2FileId": "17-5",
-            "y3": " ",
-            "y3File": "h4.filename.sdds",
-            "y3FileId": "17-5"
+            "y3": " "
         },
         "elementAnimation17-6": {
             "fileId": "17-6",
@@ -1279,9 +1064,6 @@
                     "dt",
                     "particleID"
                 ],
-                "y1File": [
-                    "w5.filename.sdds"
-                ],
                 "y2": [
                     " ",
                     "x",
@@ -1293,15 +1075,6 @@
                     "dt",
                     "particleID"
                 ],
-                "y2File": [
-                    "w0.filename.sdds",
-                    "w1.filename.sdds",
-                    "w2.filename.sdds",
-                    "w3.filename.sdds",
-                    "w4.filename.sdds",
-                    "w5.filename.sdds",
-                    "w6.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "x",
@@ -1312,15 +1085,6 @@
                     "p",
                     "dt",
                     "particleID"
-                ],
-                "y3File": [
-                    "w0.filename.sdds",
-                    "w1.filename.sdds",
-                    "w2.filename.sdds",
-                    "w3.filename.sdds",
-                    "w4.filename.sdds",
-                    "w5.filename.sdds",
-                    "w6.filename.sdds"
                 ]
             },
             "values": [
@@ -1338,14 +1102,8 @@
             "xFileId": "18-5",
             "y": "p",
             "y1": "p",
-            "y1File": "w5.filename.sdds",
-            "y1FileId": "18-5",
             "y2": " ",
-            "y2File": "w5.filename.sdds",
-            "y2FileId": "18-5",
-            "y3": " ",
-            "y3File": "w5.filename.sdds",
-            "y3FileId": "18-5"
+            "y3": " "
         },
         "elementAnimation18-6": {
             "fileId": "18-6",
@@ -1389,9 +1147,6 @@
                     "dt",
                     "dtFrequency"
                 ],
-                "y1File": [
-                    "h5.filename.sdds"
-                ],
                 "y2": [
                     " ",
                     "t",
@@ -1401,15 +1156,6 @@
                     "dt",
                     "dtFrequency"
                 ],
-                "y2File": [
-                    "h0.filename.sdds",
-                    "h1.filename.sdds",
-                    "h2.filename.sdds",
-                    "h3.filename.sdds",
-                    "h4.filename.sdds",
-                    "h5.filename.sdds",
-                    "h6.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "t",
@@ -1418,15 +1164,6 @@
                     "deltaFrequency",
                     "dt",
                     "dtFrequency"
-                ],
-                "y3File": [
-                    "h0.filename.sdds",
-                    "h1.filename.sdds",
-                    "h2.filename.sdds",
-                    "h3.filename.sdds",
-                    "h4.filename.sdds",
-                    "h5.filename.sdds",
-                    "h6.filename.sdds"
                 ]
             },
             "values": [
@@ -1442,14 +1179,8 @@
             "xFileId": "19-5",
             "y": "tFrequency",
             "y1": "tFrequency",
-            "y1File": "h5.filename.sdds",
-            "y1FileId": "19-5",
             "y2": " ",
-            "y2File": "h5.filename.sdds",
-            "y2FileId": "19-5",
-            "y3": " ",
-            "y3File": "h5.filename.sdds",
-            "y3FileId": "19-5"
+            "y3": " "
         },
         "elementAnimation19-6": {
             "fileId": "19-6",
@@ -1495,9 +1226,6 @@
                     "dt",
                     "particleID"
                 ],
-                "y1File": [
-                    "w6.filename.sdds"
-                ],
                 "y2": [
                     " ",
                     "x",
@@ -1509,15 +1237,6 @@
                     "dt",
                     "particleID"
                 ],
-                "y2File": [
-                    "w0.filename.sdds",
-                    "w1.filename.sdds",
-                    "w2.filename.sdds",
-                    "w3.filename.sdds",
-                    "w4.filename.sdds",
-                    "w5.filename.sdds",
-                    "w6.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "x",
@@ -1528,15 +1247,6 @@
                     "p",
                     "dt",
                     "particleID"
-                ],
-                "y3File": [
-                    "w0.filename.sdds",
-                    "w1.filename.sdds",
-                    "w2.filename.sdds",
-                    "w3.filename.sdds",
-                    "w4.filename.sdds",
-                    "w5.filename.sdds",
-                    "w6.filename.sdds"
                 ]
             },
             "values": [
@@ -1554,14 +1264,8 @@
             "xFileId": "20-5",
             "y": "p",
             "y1": "p",
-            "y1File": "w6.filename.sdds",
-            "y1FileId": "20-5",
             "y2": " ",
-            "y2File": "w6.filename.sdds",
-            "y2FileId": "20-5",
-            "y3": " ",
-            "y3File": "w6.filename.sdds",
-            "y3FileId": "20-5"
+            "y3": " "
         },
         "elementAnimation20-6": {
             "fileId": "20-6",
@@ -1605,9 +1309,6 @@
                     "dt",
                     "dtFrequency"
                 ],
-                "y1File": [
-                    "h6.filename.sdds"
-                ],
                 "y2": [
                     " ",
                     "t",
@@ -1617,15 +1318,6 @@
                     "dt",
                     "dtFrequency"
                 ],
-                "y2File": [
-                    "h0.filename.sdds",
-                    "h1.filename.sdds",
-                    "h2.filename.sdds",
-                    "h3.filename.sdds",
-                    "h4.filename.sdds",
-                    "h5.filename.sdds",
-                    "h6.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "t",
@@ -1634,15 +1326,6 @@
                     "deltaFrequency",
                     "dt",
                     "dtFrequency"
-                ],
-                "y3File": [
-                    "h0.filename.sdds",
-                    "h1.filename.sdds",
-                    "h2.filename.sdds",
-                    "h3.filename.sdds",
-                    "h4.filename.sdds",
-                    "h5.filename.sdds",
-                    "h6.filename.sdds"
                 ]
             },
             "values": [
@@ -1658,14 +1341,8 @@
             "xFileId": "21-5",
             "y": "tFrequency",
             "y1": "tFrequency",
-            "y1File": "h6.filename.sdds",
-            "y1FileId": "21-5",
             "y2": " ",
-            "y2File": "h6.filename.sdds",
-            "y2FileId": "21-5",
-            "y3": " ",
-            "y3File": "h6.filename.sdds",
-            "y3FileId": "21-5"
+            "y3": " "
         },
         "elementAnimation21-6": {
             "fileId": "21-6",
@@ -1709,9 +1386,6 @@
                     "p",
                     "particleID"
                 ],
-                "y1File": [
-                    "run_setup.output.sdds"
-                ],
                 "y2": [
                     " ",
                     "x",
@@ -1722,9 +1396,6 @@
                     "p",
                     "particleID"
                 ],
-                "y2File": [
-                    "run_setup.output.sdds"
-                ],
                 "y3": [
                     " ",
                     "x",
@@ -1734,9 +1405,6 @@
                     "t",
                     "p",
                     "particleID"
-                ],
-                "y3File": [
-                    "run_setup.output.sdds"
                 ]
             },
             "values": [
@@ -1753,14 +1421,8 @@
             "xFileId": "29-18",
             "y": "p",
             "y1": "p",
-            "y1File": "run_setup.output.sdds",
-            "y1FileId": "29-18",
             "y2": " ",
-            "y2File": "run_setup.output.sdds",
-            "y2FileId": "29-18",
-            "y3": " ",
-            "y3File": "run_setup.output.sdds",
-            "y3FileId": "29-18"
+            "y3": " "
         },
         "elementAnimation29-25": {
             "fileId": "29-25",
@@ -1915,9 +1577,6 @@
                     "betayBeam",
                     "alphayBeam"
                 ],
-                "y1File": [
-                    "run_setup.sigma.sdds"
-                ],
                 "y2": [
                     " ",
                     "s",
@@ -1991,11 +1650,6 @@
                     "betayBeam",
                     "alphayBeam"
                 ],
-                "y2File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds",
-                    "twiss_output.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "s",
@@ -2068,11 +1722,6 @@
                     "alphaxBeam",
                     "betayBeam",
                     "alphayBeam"
-                ],
-                "y3File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds",
-                    "twiss_output.filename.sdds"
                 ]
             },
             "values": [
@@ -2152,14 +1801,8 @@
             "xFileId": "29-25",
             "y": "s1",
             "y1": "Sx",
-            "y1File": "run_setup.sigma.sdds",
-            "y1FileId": "29-25",
             "y2": "Sy",
-            "y2File": "run_setup.sigma.sdds",
-            "y2FileId": "29-25",
-            "y3": " ",
-            "y3File": "run_setup.sigma.sdds",
-            "y3FileId": "29-25"
+            "y3": " "
         },
         "elementAnimation29-3": {
             "fileId": "29-3",
@@ -2196,9 +1839,6 @@
                     "pCentral",
                     "Charge"
                 ],
-                "y1File": [
-                    "run_setup.centroid.sdds"
-                ],
                 "y2": [
                     " ",
                     "s",
@@ -2213,11 +1853,6 @@
                     "pCentral",
                     "Charge"
                 ],
-                "y2File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds",
-                    "twiss_output.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "s",
@@ -2231,11 +1866,6 @@
                     "Particles",
                     "pCentral",
                     "Charge"
-                ],
-                "y3File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds",
-                    "twiss_output.filename.sdds"
                 ]
             },
             "values": [
@@ -2255,14 +1885,8 @@
             "xFileId": "29-3",
             "y": "Cx",
             "y1": "Cx",
-            "y1File": "run_setup.centroid.sdds",
-            "y1FileId": "29-3",
             "y2": "Cxp",
-            "y2File": "run_setup.centroid.sdds",
-            "y2FileId": "29-3",
-            "y3": " ",
-            "y3File": "run_setup.centroid.sdds",
-            "y3FileId": "29-3"
+            "y3": " "
         },
         "elementAnimation31-13": {
             "fileId": "31-13",
@@ -2308,9 +1932,6 @@
                     "pCentral0",
                     "ElementOccurence"
                 ],
-                "y1File": [
-                    "twiss_output.filename.sdds"
-                ],
                 "y2": [
                     " ",
                     "s",
@@ -2329,11 +1950,6 @@
                     "pCentral0",
                     "ElementOccurence"
                 ],
-                "y2File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds",
-                    "twiss_output.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "s",
@@ -2351,11 +1967,6 @@
                     "yAperture",
                     "pCentral0",
                     "ElementOccurence"
-                ],
-                "y3File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds",
-                    "twiss_output.filename.sdds"
                 ]
             },
             "values": [
@@ -2380,14 +1991,8 @@
             "xFileId": "31-13",
             "y": "betax",
             "y1": "betax",
-            "y1File": "twiss_output.filename.sdds",
-            "y1FileId": "31-13",
             "y2": "betay",
-            "y2File": "twiss_output.filename.sdds",
-            "y2FileId": "31-13",
-            "y3": "etax",
-            "y3File": "twiss_output.filename.sdds",
-            "y3FileId": "31-13"
+            "y3": "etax"
         },
         "elementAnimation4-54": {
             "fileId": "4-54",
@@ -2416,9 +2021,6 @@
                     "DeltaGammaT1",
                     "DeltaGammaT2"
                 ],
-                "y1File": [
-                    "B1.output_file.sdds"
-                ],
                 "y2": [
                     " ",
                     "s",
@@ -2429,10 +2031,6 @@
                     "DeltaGammaT1",
                     "DeltaGammaT2"
                 ],
-                "y2File": [
-                    "B1.output_file.sdds",
-                    "B2.output_file.sdds"
-                ],
                 "y3": [
                     " ",
                     "s",
@@ -2442,10 +2040,6 @@
                     "GammaDeriv",
                     "DeltaGammaT1",
                     "DeltaGammaT2"
-                ],
-                "y3File": [
-                    "B1.output_file.sdds",
-                    "B2.output_file.sdds"
                 ]
             },
             "values": [
@@ -2462,14 +2056,8 @@
             "xFileId": "4-54",
             "y": "LinearDensity",
             "y1": "LinearDensity",
-            "y1File": "B1.output_file.sdds",
-            "y1FileId": "4-54",
             "y2": " ",
-            "y2File": "B1.output_file.sdds",
-            "y2FileId": "4-54",
-            "y3": " ",
-            "y3File": "B1.output_file.sdds",
-            "y3FileId": "4-54"
+            "y3": " "
         },
         "elementAnimation4-55": {
             "fileId": "4-55",
@@ -2514,9 +2102,6 @@
                     "DeltaGammaT1",
                     "DeltaGammaT2"
                 ],
-                "y1File": [
-                    "B2.output_file.sdds"
-                ],
                 "y2": [
                     " ",
                     "s",
@@ -2527,10 +2112,6 @@
                     "DeltaGammaT1",
                     "DeltaGammaT2"
                 ],
-                "y2File": [
-                    "B1.output_file.sdds",
-                    "B2.output_file.sdds"
-                ],
                 "y3": [
                     " ",
                     "s",
@@ -2540,10 +2121,6 @@
                     "GammaDeriv",
                     "DeltaGammaT1",
                     "DeltaGammaT2"
-                ],
-                "y3File": [
-                    "B1.output_file.sdds",
-                    "B2.output_file.sdds"
                 ]
             },
             "values": [
@@ -2560,14 +2137,8 @@
             "xFileId": "5-54",
             "y": "LinearDensity",
             "y1": "LinearDensity",
-            "y1File": "B2.output_file.sdds",
-            "y1FileId": "5-54",
             "y2": " ",
-            "y2File": "B2.output_file.sdds",
-            "y2FileId": "5-54",
-            "y3": " ",
-            "y3File": "B2.output_file.sdds",
-            "y3FileId": "5-54"
+            "y3": " "
         },
         "elementAnimation5-55": {
             "fileId": "5-55",
@@ -2612,9 +2183,6 @@
                     "DeltaGammaT1",
                     "DeltaGammaT2"
                 ],
-                "y1File": [
-                    "B3.output_file.sdds"
-                ],
                 "y2": [
                     " ",
                     "s",
@@ -2625,10 +2193,6 @@
                     "DeltaGammaT1",
                     "DeltaGammaT2"
                 ],
-                "y2File": [
-                    "B3.output_file.sdds",
-                    "B4.output_file.sdds"
-                ],
                 "y3": [
                     " ",
                     "s",
@@ -2638,10 +2202,6 @@
                     "GammaDeriv",
                     "DeltaGammaT1",
                     "DeltaGammaT2"
-                ],
-                "y3File": [
-                    "B3.output_file.sdds",
-                    "B4.output_file.sdds"
                 ]
             },
             "values": [
@@ -2658,14 +2218,8 @@
             "xFileId": "6-54",
             "y": "LinearDensity",
             "y1": "LinearDensity",
-            "y1File": "B3.output_file.sdds",
-            "y1FileId": "6-54",
             "y2": " ",
-            "y2File": "B3.output_file.sdds",
-            "y2FileId": "6-54",
-            "y3": " ",
-            "y3File": "B3.output_file.sdds",
-            "y3FileId": "6-54"
+            "y3": " "
         },
         "elementAnimation6-55": {
             "fileId": "6-55",
@@ -2710,9 +2264,6 @@
                     "DeltaGammaT1",
                     "DeltaGammaT2"
                 ],
-                "y1File": [
-                    "B4.output_file.sdds"
-                ],
                 "y2": [
                     " ",
                     "s",
@@ -2723,10 +2274,6 @@
                     "DeltaGammaT1",
                     "DeltaGammaT2"
                 ],
-                "y2File": [
-                    "B3.output_file.sdds",
-                    "B4.output_file.sdds"
-                ],
                 "y3": [
                     " ",
                     "s",
@@ -2736,10 +2283,6 @@
                     "GammaDeriv",
                     "DeltaGammaT1",
                     "DeltaGammaT2"
-                ],
-                "y3File": [
-                    "B3.output_file.sdds",
-                    "B4.output_file.sdds"
                 ]
             },
             "values": [
@@ -2756,14 +2299,8 @@
             "xFileId": "7-54",
             "y": "LinearDensity",
             "y1": "LinearDensity",
-            "y1File": "B4.output_file.sdds",
-            "y1FileId": "7-54",
             "y2": " ",
-            "y2File": "B4.output_file.sdds",
-            "y2FileId": "7-54",
-            "y3": " ",
-            "y3File": "B4.output_file.sdds",
-            "y3FileId": "7-54"
+            "y3": " "
         },
         "elementAnimation7-55": {
             "fileId": "7-55",
@@ -2810,9 +2347,6 @@
                     "dt",
                     "particleID"
                 ],
-                "y1File": [
-                    "w0.filename.sdds"
-                ],
                 "y2": [
                     " ",
                     "x",
@@ -2824,15 +2358,6 @@
                     "dt",
                     "particleID"
                 ],
-                "y2File": [
-                    "w0.filename.sdds",
-                    "w1.filename.sdds",
-                    "w2.filename.sdds",
-                    "w3.filename.sdds",
-                    "w4.filename.sdds",
-                    "w5.filename.sdds",
-                    "w6.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "x",
@@ -2843,15 +2368,6 @@
                     "p",
                     "dt",
                     "particleID"
-                ],
-                "y3File": [
-                    "w0.filename.sdds",
-                    "w1.filename.sdds",
-                    "w2.filename.sdds",
-                    "w3.filename.sdds",
-                    "w4.filename.sdds",
-                    "w5.filename.sdds",
-                    "w6.filename.sdds"
                 ]
             },
             "values": [
@@ -2869,14 +2385,8 @@
             "xFileId": "8-5",
             "y": "p",
             "y1": "p",
-            "y1File": "w0.filename.sdds",
-            "y1FileId": "8-5",
             "y2": " ",
-            "y2File": "w0.filename.sdds",
-            "y2FileId": "8-5",
-            "y3": " ",
-            "y3File": "w0.filename.sdds",
-            "y3FileId": "8-5"
+            "y3": " "
         },
         "elementAnimation8-6": {
             "fileId": "8-6",
@@ -2920,9 +2430,6 @@
                     "dt",
                     "dtFrequency"
                 ],
-                "y1File": [
-                    "h0.filename.sdds"
-                ],
                 "y2": [
                     " ",
                     "t",
@@ -2932,15 +2439,6 @@
                     "dt",
                     "dtFrequency"
                 ],
-                "y2File": [
-                    "h0.filename.sdds",
-                    "h1.filename.sdds",
-                    "h2.filename.sdds",
-                    "h3.filename.sdds",
-                    "h4.filename.sdds",
-                    "h5.filename.sdds",
-                    "h6.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "t",
@@ -2949,15 +2447,6 @@
                     "deltaFrequency",
                     "dt",
                     "dtFrequency"
-                ],
-                "y3File": [
-                    "h0.filename.sdds",
-                    "h1.filename.sdds",
-                    "h2.filename.sdds",
-                    "h3.filename.sdds",
-                    "h4.filename.sdds",
-                    "h5.filename.sdds",
-                    "h6.filename.sdds"
                 ]
             },
             "values": [
@@ -2973,14 +2462,8 @@
             "xFileId": "9-5",
             "y": "tFrequency",
             "y1": "tFrequency",
-            "y1File": "h0.filename.sdds",
-            "y1FileId": "9-5",
             "y2": " ",
-            "y2File": "h0.filename.sdds",
-            "y2FileId": "9-5",
-            "y3": " ",
-            "y3File": "h0.filename.sdds",
-            "y3FileId": "9-5"
+            "y3": " "
         },
         "elementAnimation9-6": {
             "fileId": "9-6",

@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
     SIREPO.FILE_UPLOAD_TYPE = {
         'bunchFile-sourceFile': '.sdds,.h5',
     };
@@ -514,7 +515,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     function loadElementReports(outputInfo) {
         self.outputFiles = [];
         self.outputFileMap = {};
-        var similarRowCounts = {};
 
         outputInfo.forEach(function (info) {
             if (info.isAuxFile) {
@@ -536,11 +536,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             self.outputFiles.push(outputFile);
             self.outputFileMap[outputFile.filename] = outputFile;
             var rowCountsKey = info.rowCounts.join(' ');
-            if (!(rowCountsKey in similarRowCounts)) {
-                similarRowCounts[rowCountsKey] = [];
-            }
-            similarRowCounts[rowCountsKey].push(info.filename);
-            info.similarFiles = similarRowCounts[rowCountsKey];
         });
 
         self.outputFiles.forEach(function (outputFile, i) {
@@ -551,7 +546,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 m = appState.models[modelKey];
                 m.xFileId = info.id;
                 m.xFile = info.filename;
-                m.y1File = info.filename;
                 if (info.plottableColumns.indexOf(m.x) < 0) {
                     m.x = info.plottableColumns[0];
                 }
@@ -562,7 +556,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             else {
                 m = appState.models[modelKey] = {
                     xFile: info.filename,
-                    y1File: info.filename,
                     x: info.plottableColumns[0],
                     xFileId: info.id,
                 };
@@ -571,17 +564,14 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                     panelState.toggleHidden(modelKey);
                 }
             }
-            if (outputFile.reportType != 'heatmap') {
-                m.aspectRatio = 4.0 / 7;
+            if (! m.aspectRatio) {
+                m.aspectRatio = outputFile.reportType === 'heatmap' ? '1' : '0.5625';
             }
             appState.setModelDefaults(m, 'elementAnimation');
             m.valueList = {
                 x: info.plottableColumns,
                 y1: info.plottableColumns,
                 xFile: [m.xFile],
-                y1File: [m.xFile],
-                y2File: info.similarFiles,
-                y3File: info.similarFiles,
             };
             m.latticeId = info.latticeId;
             m.panelTitle = cleanFilename(m.xFile);
@@ -591,12 +581,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             if (! info.pageCount) {
                 panelState.setError(modelKey, 'No output was generated for this report.');
             }
-            appState.watchModelFields(
-                $scope,
-                [modelKey + '.y2File', modelKey + '.y3File'],
-                function () {
-                    yFileUpdate(modelKey);
-                });
         });
         $rootScope.$broadcast('elementAnimation.outputInfo', outputInfo);
     }
@@ -606,13 +590,8 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         if (! m.y1 && m.y) {
             m.y1 = m.y;
         }
-        ['y1', 'y2', 'y3'].forEach(function(f) {
-            var field = f + 'File';
-            if (m.valueList[field].indexOf(m[field]) < 0) {
-                m[field] = m.xFile;
-            }
-            var info = self.outputFileMap[m[field]].info;
-            m[field + 'Id'] = info.id;
+        ['y1', 'y2', 'y3', 'y4', 'y5'].forEach(function(f) {
+            var info = self.outputFileMap[m.xFile].info;
             var cols = m.valueList[f] = appState.clone(info.plottableColumns);
             if (f != 'y1') {
                 cols.unshift('None');

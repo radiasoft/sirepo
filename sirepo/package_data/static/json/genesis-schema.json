@@ -693,6 +693,7 @@
         "particleAnimation": {
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "notes": ["Notes", "Text", ""],
@@ -702,6 +703,7 @@
         "finalParticleAnimation": {
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
             "histogramBins": ["Histogram Bins", "Integer", 200],
             "notes": ["Notes", "Text", ""],
             "x": ["Horizontal Value to Plot", "ParticleColumn", "x"],
@@ -711,7 +713,6 @@
             "fieldPlot": ["Value to Plot", "FieldPlot", "fieldDistributionPlot"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
             "colorMap": ["Color Map", "ColorMap", "coolwarm"],
-            "histogramBins": ["Histogram Bins", "Integer", 200],
             "notes": ["Notes", "Text", ""]
         },
         "particleLoading": {
@@ -1274,6 +1275,7 @@
         "particleAnimation": {
             "title": "Particle Distribution over Time",
             "advanced": [
+                "plotType",
                 [
                     ["Horizontal", [
                         "x"
@@ -1292,6 +1294,7 @@
         "finalParticleAnimation": {
             "title": "Final Particle Distribution",
             "advanced": [
+                "plotType",
                 [
                     ["Horizontal", [
                         "x"
@@ -1310,7 +1313,6 @@
             "title": "Final Field Distribution",
             "advanced": [
                 "fieldPlot",
-                "histogramBins",
                 "aspectRatio",
                 "colorMap",
                 "notes"

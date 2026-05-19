@@ -230,9 +230,6 @@
                     "p",
                     "particleID"
                 ],
-                "y1File": [
-                    "run_setup.output.sdds"
-                ],
                 "y2": [
                     "None",
                     "x",
@@ -243,9 +240,6 @@
                     "p",
                     "particleID"
                 ],
-                "y2File": [
-                    "run_setup.output.sdds"
-                ],
                 "y3": [
                     "None",
                     "x",
@@ -255,9 +249,6 @@
                     "t",
                     "p",
                     "particleID"
-                ],
-                "y3File": [
-                    "run_setup.output.sdds"
                 ]
             },
             "verticalOffset": 0,
@@ -267,19 +258,11 @@
             "xFileId": "2-21",
             "y": "xp",
             "y1": "xp",
-            "y1File": "run_setup.output.sdds",
-            "y1FileId": "2-21",
             "y2": "None",
-            "y2File": "run_setup.output.sdds",
-            "y2FileId": "2-21",
-            "y3": "None",
-            "y3File": "run_setup.output.sdds",
-            "y3FileId": "2-21",
-            "yFile": "run_setup.output.sdds",
-            "yFileId": "2-18"
+            "y3": "None"
         },
         "elementAnimation2-29": {
-            "aspectRatio": "1",
+            "aspectRatio": "0.5625",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
@@ -438,9 +421,6 @@
                     "betayBeam",
                     "alphayBeam"
                 ],
-                "y1File": [
-                    "run_setup.sigma.sdds"
-                ],
                 "y2": [
                     "None",
                     "s",
@@ -514,9 +494,6 @@
                     "betayBeam",
                     "alphayBeam"
                 ],
-                "y2File": [
-                    "run_setup.sigma.sdds"
-                ],
                 "y3": [
                     "None",
                     "s",
@@ -589,9 +566,6 @@
                     "alphaxBeam",
                     "betayBeam",
                     "alphayBeam"
-                ],
-                "y3File": [
-                    "run_setup.sigma.sdds"
                 ]
             },
             "verticalOffset": 0,
@@ -600,14 +574,8 @@
             "xFile": "run_setup.sigma.sdds",
             "xFileId": "2-29",
             "y1": "Sx",
-            "y1File": "run_setup.sigma.sdds",
-            "y1FileId": "2-29",
             "y2": "Sy",
-            "y2File": "run_setup.sigma.sdds",
-            "y2FileId": "2-29",
-            "y3": "None",
-            "y3File": "run_setup.sigma.sdds",
-            "y3FileId": "2-29"
+            "y3": "None"
         },
         "elements": [
             {

@@ -287,9 +287,6 @@
                     "p",
                     "particleID"
                 ],
-                "y1File": [
-                    "run_setup.output.sdds"
-                ],
                 "y2": [
                     " ",
                     "x",
@@ -300,9 +297,6 @@
                     "p",
                     "particleID"
                 ],
-                "y2File": [
-                    "run_setup.output.sdds"
-                ],
                 "y3": [
                     " ",
                     "x",
@@ -312,30 +306,30 @@
                     "t",
                     "p",
                     "particleID"
-                ],
-                "y3File": [
-                    "run_setup.output.sdds"
                 ]
             },
             "x": "x",
             "xFile": "run_setup.output.sdds",
             "xFileId": "20-18",
             "y1": "xp",
-            "y1File": "run_setup.output.sdds",
-            "y1FileId": "20-18",
             "y2": " ",
-            "y2File": "run_setup.output.sdds",
-            "y2FileId": "20-18",
-            "y3": " ",
-            "y3File": "run_setup.output.sdds",
-            "y3FileId": "20-18"
+            "y3": " "
         },
-        "elementAnimation20-25": {
+        "elementAnimation20-29": {
+            "aspectRatio": "0.5625",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "includeLattice": "1",
+            "latticeId": 19,
+            "leftLimit": 0,
             "notes": "",
             "panelTitle": "run_setup.sigma",
+            "plotRangeType": "none",
+            "plotType": "heatmap",
+            "rightLimit": 0,
             "valueList": {
                 "x": [
                     "s",
@@ -484,11 +478,8 @@
                     "betayBeam",
                     "alphayBeam"
                 ],
-                "y1File": [
-                    "run_setup.sigma.sdds"
-                ],
                 "y2": [
-                    " ",
+                    "None",
                     "s",
                     "ElementOccurence",
                     "s1",
@@ -559,13 +550,9 @@
                     "alphaxBeam",
                     "betayBeam",
                     "alphayBeam"
-                ],
-                "y2File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds"
                 ],
                 "y3": [
-                    " ",
+                    "None",
                     "s",
                     "ElementOccurence",
                     "s1",
@@ -637,23 +624,168 @@
                     "betayBeam",
                     "alphayBeam"
                 ],
-                "y3File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds"
+                "y4": [
+                    "None",
+                    "s",
+                    "ElementOccurence",
+                    "s1",
+                    "s12",
+                    "s13",
+                    "s14",
+                    "s15",
+                    "s16",
+                    "s17",
+                    "s2",
+                    "s23",
+                    "s24",
+                    "s25",
+                    "s26",
+                    "s27",
+                    "s3",
+                    "s34",
+                    "s35",
+                    "s36",
+                    "s37",
+                    "s4",
+                    "s45",
+                    "s46",
+                    "s47",
+                    "s5",
+                    "s56",
+                    "s57",
+                    "s6",
+                    "s67",
+                    "s7",
+                    "ma1",
+                    "ma2",
+                    "ma3",
+                    "ma4",
+                    "ma5",
+                    "ma6",
+                    "ma7",
+                    "minimum1",
+                    "minimum2",
+                    "minimum3",
+                    "minimum4",
+                    "minimum5",
+                    "minimum6",
+                    "minimum7",
+                    "maximum1",
+                    "maximum2",
+                    "maximum3",
+                    "maximum4",
+                    "maximum5",
+                    "maximum6",
+                    "maximum7",
+                    "Sx",
+                    "Sxp",
+                    "Sy",
+                    "Syp",
+                    "Ss",
+                    "Sdelta",
+                    "St",
+                    "ex",
+                    "enx",
+                    "ecx",
+                    "ecnx",
+                    "ey",
+                    "eny",
+                    "ecy",
+                    "ecny",
+                    "betaxBeam",
+                    "alphaxBeam",
+                    "betayBeam",
+                    "alphayBeam"
+                ],
+                "y5": [
+                    "None",
+                    "s",
+                    "ElementOccurence",
+                    "s1",
+                    "s12",
+                    "s13",
+                    "s14",
+                    "s15",
+                    "s16",
+                    "s17",
+                    "s2",
+                    "s23",
+                    "s24",
+                    "s25",
+                    "s26",
+                    "s27",
+                    "s3",
+                    "s34",
+                    "s35",
+                    "s36",
+                    "s37",
+                    "s4",
+                    "s45",
+                    "s46",
+                    "s47",
+                    "s5",
+                    "s56",
+                    "s57",
+                    "s6",
+                    "s67",
+                    "s7",
+                    "ma1",
+                    "ma2",
+                    "ma3",
+                    "ma4",
+                    "ma5",
+                    "ma6",
+                    "ma7",
+                    "minimum1",
+                    "minimum2",
+                    "minimum3",
+                    "minimum4",
+                    "minimum5",
+                    "minimum6",
+                    "minimum7",
+                    "maximum1",
+                    "maximum2",
+                    "maximum3",
+                    "maximum4",
+                    "maximum5",
+                    "maximum6",
+                    "maximum7",
+                    "Sx",
+                    "Sxp",
+                    "Sy",
+                    "Syp",
+                    "Ss",
+                    "Sdelta",
+                    "St",
+                    "ex",
+                    "enx",
+                    "ecx",
+                    "ecnx",
+                    "ey",
+                    "eny",
+                    "ecy",
+                    "ecny",
+                    "betaxBeam",
+                    "alphaxBeam",
+                    "betayBeam",
+                    "alphayBeam"
                 ]
             },
+            "verticalOffset": 0,
+            "verticalSize": 0,
             "x": "s",
             "xFile": "run_setup.sigma.sdds",
-            "xFileId": "20-25",
+            "xFileId": "20-29",
             "y1": "Sx",
-            "y1File": "run_setup.sigma.sdds",
-            "y1FileId": "20-25",
+            "y1Position": "left",
             "y2": "Sy",
-            "y2File": "run_setup.sigma.sdds",
-            "y2FileId": "20-25",
-            "y3": " ",
-            "y3File": "run_setup.sigma.sdds",
-            "y3FileId": "20-25"
+            "y2Position": "left",
+            "y3": "Ss",
+            "y3Position": "right",
+            "y4": "None",
+            "y4Position": "right",
+            "y5": "None",
+            "y5Position": "right"
         },
         "elementAnimation20-3": {
             "colorMap": "afmhot",
@@ -691,9 +823,6 @@
                     "pCentral",
                     "Charge"
                 ],
-                "y1File": [
-                    "run_setup.centroid.sdds"
-                ],
                 "y2": [
                     " ",
                     "s",
@@ -708,10 +837,6 @@
                     "pCentral",
                     "Charge"
                 ],
-                "y2File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds"
-                ],
                 "y3": [
                     " ",
                     "s",
@@ -725,32 +850,30 @@
                     "Particles",
                     "pCentral",
                     "Charge"
-                ],
-                "y3File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds"
                 ]
             },
             "x": "s",
             "xFile": "run_setup.centroid.sdds",
             "xFileId": "20-3",
             "y1": "Cx",
-            "y1File": "run_setup.centroid.sdds",
-            "y1FileId": "20-3",
             "y2": "Cxp",
-            "y2File": "run_setup.centroid.sdds",
-            "y2FileId": "20-3",
-            "y3": " ",
-            "y3File": "run_setup.centroid.sdds",
-            "y3FileId": "20-3"
+            "y3": " "
         },
         "elementAnimation22-13": {
+            "aspectRatio": "0.5625",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
             "includeLattice": "1",
+            "latticeId": null,
+            "leftLimit": 0,
             "notes": "",
             "panelTitle": "twiss_output",
+            "plotRangeType": "none",
+            "plotType": "heatmap",
+            "rightLimit": 0,
             "valueList": {
                 "x": [
                     "s",
@@ -789,11 +912,8 @@
                     "pCentral0",
                     "ElementOccurence"
                 ],
-                "y1File": [
-                    "twiss_output.filename.sdds"
-                ],
                 "y2": [
-                    " ",
+                    "None",
                     "s",
                     "betax",
                     "alphax",
@@ -809,12 +929,9 @@
                     "yAperture",
                     "pCentral0",
                     "ElementOccurence"
-                ],
-                "y2File": [
-                    "twiss_output.filename.sdds"
                 ],
                 "y3": [
-                    " ",
+                    "None",
                     "s",
                     "betax",
                     "alphax",
@@ -831,22 +948,58 @@
                     "pCentral0",
                     "ElementOccurence"
                 ],
-                "y3File": [
-                    "twiss_output.filename.sdds"
+                "y4": [
+                    "None",
+                    "s",
+                    "betax",
+                    "alphax",
+                    "psix",
+                    "etax",
+                    "etaxp",
+                    "xAperture",
+                    "betay",
+                    "alphay",
+                    "psiy",
+                    "etay",
+                    "etayp",
+                    "yAperture",
+                    "pCentral0",
+                    "ElementOccurence"
+                ],
+                "y5": [
+                    "None",
+                    "s",
+                    "betax",
+                    "alphax",
+                    "psix",
+                    "etax",
+                    "etaxp",
+                    "xAperture",
+                    "betay",
+                    "alphay",
+                    "psiy",
+                    "etay",
+                    "etayp",
+                    "yAperture",
+                    "pCentral0",
+                    "ElementOccurence"
                 ]
             },
+            "verticalOffset": 0,
+            "verticalSize": 0,
             "x": "s",
             "xFile": "twiss_output.filename.sdds",
             "xFileId": "22-13",
             "y1": "betax",
-            "y1File": "twiss_output.filename.sdds",
-            "y1FileId": "22-13",
+            "y1Position": "left",
             "y2": "betay",
-            "y2File": "twiss_output.filename.sdds",
-            "y2FileId": "22-13",
+            "y2Position": "left",
             "y3": "etax",
-            "y3File": "twiss_output.filename.sdds",
-            "y3FileId": "22-13"
+            "y3Position": "right",
+            "y4": "None",
+            "y4Position": "right",
+            "y5": "None",
+            "y5Position": "right"
         },
         "elements": [
             {

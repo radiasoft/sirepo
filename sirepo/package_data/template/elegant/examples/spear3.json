@@ -457,9 +457,6 @@
                     "p",
                     "particleID"
                 ],
-                "y1File": [
-                    "run_setup.output.sdds"
-                ],
                 "y2": [
                     " ",
                     "x",
@@ -470,9 +467,6 @@
                     "p",
                     "particleID"
                 ],
-                "y2File": [
-                    "run_setup.output.sdds"
-                ],
                 "y3": [
                     " ",
                     "x",
@@ -482,23 +476,14 @@
                     "t",
                     "p",
                     "particleID"
-                ],
-                "y3File": [
-                    "run_setup.output.sdds"
                 ]
             },
             "x": "x",
             "xFile": "run_setup.output.sdds",
             "xFileId": "62-18",
             "y1": "xp",
-            "y1File": "run_setup.output.sdds",
-            "y1FileId": "62-18",
             "y2": " ",
-            "y2File": "run_setup.output.sdds",
-            "y2FileId": "62-18",
-            "y3": " ",
-            "y3File": "run_setup.output.sdds",
-            "y3FileId": "62-18"
+            "y3": " "
         },
         "elementAnimation62-25": {
             "colorMap": "afmhot",
@@ -654,9 +639,6 @@
                     "betayBeam",
                     "alphayBeam"
                 ],
-                "y1File": [
-                    "run_setup.sigma.sdds"
-                ],
                 "y2": [
                     " ",
                     "s",
@@ -730,10 +712,6 @@
                     "betayBeam",
                     "alphayBeam"
                 ],
-                "y2File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds"
-                ],
                 "y3": [
                     " ",
                     "s",
@@ -806,24 +784,15 @@
                     "alphaxBeam",
                     "betayBeam",
                     "alphayBeam"
-                ],
-                "y3File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds"
                 ]
             },
             "x": "s",
             "xFile": "run_setup.sigma.sdds",
             "xFileId": "62-25",
             "y1": "Sx",
-            "y1File": "run_setup.sigma.sdds",
-            "y1FileId": "62-25",
             "y2": "Sy",
-            "y2File": "run_setup.sigma.sdds",
-            "y2FileId": "62-25",
-            "y3": " ",
-            "y3File": "run_setup.sigma.sdds",
-            "y3FileId": "62-25"
+            "y3": "Ss",
+            "y3Position": "right"
         },
         "elementAnimation62-3": {
             "colorMap": "afmhot",
@@ -861,9 +830,6 @@
                     "pCentral",
                     "Charge"
                 ],
-                "y1File": [
-                    "run_setup.centroid.sdds"
-                ],
                 "y2": [
                     " ",
                     "s",
@@ -878,10 +844,6 @@
                     "pCentral",
                     "Charge"
                 ],
-                "y2File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds"
-                ],
                 "y3": [
                     " ",
                     "s",
@@ -895,24 +857,14 @@
                     "Particles",
                     "pCentral",
                     "Charge"
-                ],
-                "y3File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds"
                 ]
             },
             "x": "s",
             "xFile": "run_setup.centroid.sdds",
             "xFileId": "62-3",
             "y1": "Cx",
-            "y1File": "run_setup.centroid.sdds",
-            "y1FileId": "62-3",
             "y2": "Cxp",
-            "y2File": "run_setup.centroid.sdds",
-            "y2FileId": "62-3",
-            "y3": " ",
-            "y3File": "run_setup.centroid.sdds",
-            "y3FileId": "62-3"
+            "y3": " "
         },
         "elementAnimation67-13": {
             "colorMap": "afmhot",
@@ -959,9 +911,6 @@
                     "pCentral0",
                     "ElementOccurence"
                 ],
-                "y1File": [
-                    "twiss_output.filename.sdds"
-                ],
                 "y2": [
                     " ",
                     "s",
@@ -980,9 +929,6 @@
                     "pCentral0",
                     "ElementOccurence"
                 ],
-                "y2File": [
-                    "twiss_output.filename.sdds"
-                ],
                 "y3": [
                     " ",
                     "s",
@@ -1000,23 +946,15 @@
                     "yAperture",
                     "pCentral0",
                     "ElementOccurence"
-                ],
-                "y3File": [
-                    "twiss_output.filename.sdds"
                 ]
             },
             "x": "s",
             "xFile": "twiss_output.filename.sdds",
             "xFileId": "67-13",
             "y1": "betax",
-            "y1File": "twiss_output.filename.sdds",
-            "y1FileId": "67-13",
             "y2": "betay",
-            "y2File": "twiss_output.filename.sdds",
-            "y2FileId": "67-13",
             "y3": "etax",
-            "y3File": "twiss_output.filename.sdds",
-            "y3FileId": "67-13"
+            "y3Position": "right"
         },
         "elements": [
             {
@@ -2113,8 +2051,7 @@
         "panelState": {
             "hidden": [
                 "elementAnimation62-18",
-                "elementAnimation62-25",
-                "elementAnimation67-13"
+                "elementAnimation62-25"
             ]
         },
         "parameterTable": {

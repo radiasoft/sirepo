@@ -38,8 +38,6 @@ class SimData(sirepo.sim_data.lattice.LatticeSimData):
                 ]:
                     cmd.type = ""
                 cmd.material = cmd.material.upper()
-        if "aspectRatio" in dm.plotAnimation:
-            del dm.plotAnimation["aspectRatio"]
         for bl in dm.beamlines:
             cls.update_model_defaults(bl, "beamline")
         cls._remove_deprecated_items(dm)

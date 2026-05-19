@@ -25,6 +25,13 @@ class SimData(sirepo.sim_data.lattice.LatticeSimData):
                 m.filename = "1"
                 if m.mode == "coordinates" or m.mode == "coord":
                     m.mode = "coordinate"
+        for m in dm.values():
+            if (
+                isinstance(m, dict)
+                and "aspectRatio" in m
+                and m.aspectRatio == 0.5714285714285714
+            ):
+                m.aspectRatio = "0.5625"
         cls._organize_example(data)
         from sirepo.template.elegant import OutputFileIterator
 

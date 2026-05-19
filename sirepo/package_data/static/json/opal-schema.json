@@ -385,8 +385,8 @@
             "verticalOffset",
             "isRunning"
         ],
-        "plotAnimation": ["x", "y1", "y2", "y3"],
-        "plot2Animation": ["x", "y1", "y2", "y3"]
+        "plotAnimation": ["x", "y1", "y2", "y3", "y4", "y5"],
+        "plot2Animation": ["x", "y1", "y2", "y3", "y4", "y5"]
     },
     "localRoutes": {
         "source": {
@@ -433,14 +433,16 @@
         "bunchReport": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "x"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "y"],
-            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 80],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
         "bunchAnimation": {
             "x": ["X Value", "PhaseSpaceCoordinate", "x"],
             "y": ["Y Value", "PhaseSpaceCoordinate", "px"],
-            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 80],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "fit"],
@@ -454,7 +456,8 @@
         "elementAnimation": {
             "x": ["X Value", "PhaseSpaceCoordinate2", "x"],
             "y": ["Y Value", "PhaseSpaceCoordinate2", "px"],
-            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 80],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "none"],
@@ -466,20 +469,22 @@
             "notes": ["Notes", "Text", ""]
         },
         "plotAnimation": {
+            "_super": ["_", "model", "_PARAMETER_PLOT_COMMON"],
             "x": ["Horizontal Value to Plot", "PlotField", "SPOS"],
             "y1": ["Vertical Value to Plot", "PlotField", "#varepsilon x"],
             "y2": ["Vertical Value to Plot", "PlotField", "#varepsilon y"],
             "y3": ["Vertical Value to Plot", "PlotField", "none"],
-            "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
-            "notes": ["Notes", "Text", ""]
+            "y4": ["Vertical Value to Plot", "PlotField", "none"],
+            "y5": ["Vertical Value to Plot", "PlotField", "none"]
         },
         "plot2Animation": {
+            "_super": ["_", "model", "_PARAMETER_PLOT_COMMON"],
             "x": ["Horizontal Value to Plot", "Plot2Field", "s"],
             "y1": ["Vertical Value to Plot", "Plot2Field", "rms x"],
             "y2": ["Vertical Value to Plot", "Plot2Field", "rms y"],
             "y3": ["Vertical Value to Plot", "Plot2Field", "rms s"],
-            "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
-            "notes": ["Notes", "Text", ""]
+            "y4": ["Vertical Value to Plot", "Plot2Field", "none"],
+            "y5": ["Vertical Value to Plot", "Plot2Field", "none"]
         },
         "rpnVariable": {
             "name": ["Name", "String"],
@@ -1212,6 +1217,7 @@
             "title": "Beam Phase Space",
             "advanced": [
                 ["Main", [
+                    "plotType",
                     [
                         ["Horizontal", [
                             "x"
@@ -1244,6 +1250,7 @@
         "bunchReport": {
             "title": "Beam Phase Space",
             "advanced": [
+                "plotType",
                 [
                     ["Horizontal", [
                         "x"
@@ -1261,6 +1268,7 @@
             "title": "Output Report",
             "advanced": [
                 ["Main", [
+                    "plotType",
                     [
                         ["Horizontal", [
                             "x"
@@ -1293,35 +1301,79 @@
         "plotAnimation": {
             "title": "Beam Variables",
             "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y1",
-                        "y2",
-                        "y3"
-                    ]]
-                ],
-                "includeLattice",
-                "notes"
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1",
+                            "y2",
+                            "y3",
+                            "y4",
+                            "y5"
+                        ]],
+                        ["Position", [
+                            "y1Position",
+                            "y2Position",
+                            "y3Position",
+                            "y4Position",
+                            "y5Position"
+                        ]]
+                    ],
+                    "includeLattice",
+                    "aspectRatio",
+                    "notes"
+                ]],
+                ["Limits", [
+                    [
+                        ["Left", [
+                            "leftLimit"
+                        ]],
+                        ["Right", [
+                            "rightLimit"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "plot2Animation": {
             "title": "Beam Statistics",
             "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y1",
-                        "y2",
-                        "y3"
-                    ]]
-                ],
-                "includeLattice",
-                "notes"
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1",
+                            "y2",
+                            "y3",
+                            "y4",
+                            "y5"
+                        ]],
+                        ["Position", [
+                            "y1Position",
+                            "y2Position",
+                            "y3Position",
+                            "y4Position",
+                            "y5Position"
+                        ]]
+                    ],
+                    "includeLattice",
+                    "aspectRatio",
+                    "notes"
+                ]],
+                ["Limits", [
+                    [
+                        ["Left", [
+                            "leftLimit"
+                        ]],
+                        ["Right", [
+                            "rightLimit"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "simulation": {

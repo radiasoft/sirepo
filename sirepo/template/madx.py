@@ -356,15 +356,20 @@ def extract_parameter_report(
     t = results or madx_parser.parse_tfs_file(run_dir.join(filename))
     plots = []
     m = data.models[data.report]
-    for f in ("y1", "y2", "y3"):
-        if m[f] == "None":
+    for f in ("y1", "y2", "y3", "y4", "y5"):
+        if f not in m or m[f] == "None" or m[f] == "":
             continue
         if m[f] not in t:
             return PKDict(
                 error=f'Missing column "{m[f]}" in report output file.',
             )
         plots.append(
-            PKDict(field=m[f], points=to_floats(t[m[f]]), label=field_label(m[f])),
+            PKDict(
+                field=m[f],
+                points=to_floats(t[m[f]]),
+                label=field_label(m[f]),
+                dim=f,
+            ),
         )
     x = m.get("x", "s")
     res = template_common.parameter_plot(

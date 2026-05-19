@@ -201,9 +201,6 @@
                     "p",
                     "particleID"
                 ],
-                "y1File": [
-                    "run_setup.output.sdds"
-                ],
                 "y2": [
                     "None",
                     "x",
@@ -214,10 +211,6 @@
                     "p",
                     "particleID"
                 ],
-                "y2File": [
-                    "run_setup.output.sdds",
-                    "F1.filename.sdds"
-                ],
                 "y3": [
                     "None",
                     "x",
@@ -227,10 +220,6 @@
                     "t",
                     "p",
                     "particleID"
-                ],
-                "y3File": [
-                    "run_setup.output.sdds",
-                    "F1.filename.sdds"
                 ]
             },
             "verticalOffset": 0,
@@ -239,17 +228,11 @@
             "xFile": "run_setup.output.sdds",
             "xFileId": "1-19",
             "y1": "xp",
-            "y1File": "run_setup.output.sdds",
-            "y1FileId": "1-19",
             "y2": "None",
-            "y2File": "run_setup.output.sdds",
-            "y2FileId": "1-19",
-            "y3": "None",
-            "y3File": "run_setup.output.sdds",
-            "y3FileId": "1-19"
+            "y3": "None"
         },
         "elementAnimation1-26": {
-            "aspectRatio": "1",
+            "aspectRatio": "0.5625",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
@@ -407,9 +390,6 @@
                     "betayBeam",
                     "alphayBeam"
                 ],
-                "y1File": [
-                    "run_setup.sigma.sdds"
-                ],
                 "y2": [
                     "None",
                     "s",
@@ -483,10 +463,6 @@
                     "betayBeam",
                     "alphayBeam"
                 ],
-                "y2File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds"
-                ],
                 "y3": [
                     "None",
                     "s",
@@ -559,10 +535,6 @@
                     "alphaxBeam",
                     "betayBeam",
                     "alphayBeam"
-                ],
-                "y3File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds"
                 ]
             },
             "verticalOffset": 0,
@@ -570,18 +542,15 @@
             "x": "s",
             "xFile": "run_setup.sigma.sdds",
             "xFileId": "1-26",
-            "y1": "s1",
-            "y1File": "run_setup.sigma.sdds",
-            "y1FileId": "1-26",
-            "y2": "s2",
-            "y2File": "run_setup.sigma.sdds",
-            "y2FileId": "1-26",
-            "y3": "s3",
-            "y3File": "run_setup.sigma.sdds",
-            "y3FileId": "1-26"
+            "y1": "Sx",
+            "y1Position": "left",
+            "y2": "Sy",
+            "y2Position": "left",
+            "y3": "Ss",
+            "y3Position": "right"
         },
         "elementAnimation1-4": {
-            "aspectRatio": "1",
+            "aspectRatio": "0.5625",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
@@ -621,9 +590,6 @@
                     "pCentral",
                     "Charge"
                 ],
-                "y1File": [
-                    "run_setup.centroid.sdds"
-                ],
                 "y2": [
                     "None",
                     "s",
@@ -638,10 +604,6 @@
                     "pCentral",
                     "Charge"
                 ],
-                "y2File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds"
-                ],
                 "y3": [
                     "None",
                     "s",
@@ -655,10 +617,6 @@
                     "Particles",
                     "pCentral",
                     "Charge"
-                ],
-                "y3File": [
-                    "run_setup.centroid.sdds",
-                    "run_setup.sigma.sdds"
                 ]
             },
             "verticalOffset": 0,
@@ -667,14 +625,8 @@
             "xFile": "run_setup.centroid.sdds",
             "xFileId": "1-4",
             "y1": "Cx",
-            "y1File": "run_setup.centroid.sdds",
-            "y1FileId": "1-4",
             "y2": "Cxp",
-            "y2File": "run_setup.centroid.sdds",
-            "y2FileId": "1-4",
-            "y3": "None",
-            "y3File": "run_setup.centroid.sdds",
-            "y3FileId": "1-4"
+            "y3": "None"
         },
         "elementAnimation19-5": {
             "aspectRatio": "1",
@@ -711,9 +663,6 @@
                     "dt",
                     "particleID"
                 ],
-                "y1File": [
-                    "F1.filename.sdds"
-                ],
                 "y2": [
                     "None",
                     "x",
@@ -725,10 +674,6 @@
                     "dt",
                     "particleID"
                 ],
-                "y2File": [
-                    "run_setup.output.sdds",
-                    "F1.filename.sdds"
-                ],
                 "y3": [
                     "None",
                     "x",
@@ -739,10 +684,6 @@
                     "p",
                     "dt",
                     "particleID"
-                ],
-                "y3File": [
-                    "run_setup.output.sdds",
-                    "F1.filename.sdds"
                 ]
             },
             "verticalOffset": 0,
@@ -751,14 +692,8 @@
             "xFile": "F1.filename.sdds",
             "xFileId": "19-5",
             "y1": "xp",
-            "y1File": "F1.filename.sdds",
-            "y1FileId": "19-5",
             "y2": "None",
-            "y2File": "F1.filename.sdds",
-            "y2FileId": "19-5",
-            "y3": "None",
-            "y3File": "F1.filename.sdds",
-            "y3FileId": "19-5"
+            "y3": "None"
         },
         "elements": [
             {

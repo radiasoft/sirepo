@@ -292,7 +292,6 @@
             }
         ],
         "elementAnimation109-20": {
-            "aspectRatio": "1",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
@@ -1327,10 +1326,10 @@
             "x": "s",
             "y1": "betx",
             "y2": "bety",
-            "y3": "dx"
+            "y3": "dx",
+            "y3Position": "right"
         },
         "elementAnimation114-6": {
-            "aspectRatio": "1",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
             "histogramBins": 200,
