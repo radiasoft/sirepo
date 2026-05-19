@@ -3588,7 +3588,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function normalizeInput(json) {
-                $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 4.0 / 7);
+                $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 0.5625);
                 $scope.dynamicYLabel = json.dynamicYLabel || false;
                 if (! json.plots) {
                     if (json.y2_title) {
@@ -4073,7 +4073,7 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
             };
 
             $scope.load = function(json) {
-                $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 4.0 / 7);
+                $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 0.5625);
                 allPoints = [];
                 var xdom = [json.x_range[0], json.x_range[1]];
                 $scope.axes.x.domain = xdom;

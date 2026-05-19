@@ -30,6 +30,7 @@
             "horizontalSize": 0.0,
             "notes": "",
             "plotRangeType": "fit",
+            "plotType": "heatmap",
             "verticalOffset": 0.0,
             "verticalSize": 0.0,
             "x": "x",
@@ -37,29 +38,33 @@
         },
         "bunchReport1": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 80,
             "notes": "",
+            "plotType": "heatmap",
             "x": "x",
             "y": "px"
         },
         "bunchReport2": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 80,
             "notes": "",
+            "plotType": "heatmap",
             "x": "y",
             "y": "py"
         },
         "bunchReport3": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 80,
             "notes": "",
+            "plotType": "heatmap",
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 80,
             "notes": "",
+            "plotType": "heatmap",
             "x": "z",
             "y": "pz"
         },
@@ -326,20 +331,42 @@
             }
         ],
         "plot2Animation": {
+            "_super": "_PARAMETER_PLOT_COMMON",
+            "aspectRatio": "0.5625",
             "includeLattice": "0",
+            "leftLimit": 0.0,
             "notes": "",
+            "rightLimit": 0.0,
             "x": "s",
             "y1": "rms x",
+            "y1Position": "left",
             "y2": "rms y",
-            "y3": "rms s"
+            "y2Position": "left",
+            "y3": "rms s",
+            "y3Position": "left",
+            "y4": "none",
+            "y4Position": "right",
+            "y5": "none",
+            "y5Position": "right"
         },
         "plotAnimation": {
+            "_super": "_PARAMETER_PLOT_COMMON",
+            "aspectRatio": "0.5625",
             "includeLattice": "0",
+            "leftLimit": 0.0,
             "notes": "",
+            "rightLimit": 0.0,
             "x": "SPOS",
             "y1": "#varepsilon x",
+            "y1Position": "left",
             "y2": "#varepsilon y",
-            "y3": "none"
+            "y2Position": "left",
+            "y3": "none",
+            "y3Position": "left",
+            "y4": "none",
+            "y4Position": "right",
+            "y5": "none",
+            "y5Position": "right"
         },
         "rpnVariables": [],
         "sequences": [],

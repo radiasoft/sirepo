@@ -484,7 +484,7 @@
                 "leftLimit": ["Left Axis Limit", "Float", 0],
                 "rightLimit": ["Right Axis Limit", "Float", 0],
                 "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
-                "aspectRatio": ["Aspect Ratio", "AspectRatio"],
+                "aspectRatio": ["Aspect Ratio", "AspectRatio", null],
                 "notes": ["Notes", "Text", ""]
             },
             "completeRegistration": {
