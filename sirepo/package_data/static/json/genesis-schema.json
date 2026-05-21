@@ -6,7 +6,13 @@
     "dynamicFiles": {
         "sirepoLibs": {
             "js": [
-                "genesis.js"
+                "genesis.js",
+                "sirepo-command.js",
+                "sirepo-lattice.js"
+            ],
+            "css": [
+                "command.css",
+                "lattice.css"
             ]
         }
     },

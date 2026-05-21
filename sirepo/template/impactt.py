@@ -317,17 +317,8 @@ def stateful_compute_import_file(data, **kwargs):
     if data.args.ext_lower != ".in":
         raise IOError(f"invalid file={data.args.basename} extension, expecting .in")
     res = ImpactTParser().parse_file(data.args.file_as_str)
-    # always returns all files as missing (names are always rfdata# and will be renamed after import)
-    missing_files = set()
-    for f in (
-        sirepo.template.lattice.LatticeUtil(res, SCHEMA)
-        .iterate_models(sirepo.template.lattice.InputFileIterator(_SIM_DATA))
-        .result
-    ):
-        missing_files.add(re.sub(r"^.*?-filename\.", "", f))
     res.models.simulation.name = "Imported Sim"
     return PKDict(
-        missingFiles=sorted(list(missing_files)),
         imported_data=res,
     )
 
@@ -650,12 +641,6 @@ def _stat_report_info(run_dir):
         name="Beam Variables",
         modelKey="statAnimation",
         report="statAnimation",
-        x="mean_z",
-        y1="norm_emit_x",
-        y2="norm_emit_y",
-        y3="sigma_x",
-        y4="sigma_y",
-        y5="sigma_z",
     )
 
 

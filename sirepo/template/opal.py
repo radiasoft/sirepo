@@ -426,20 +426,31 @@ def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
 
 
 def background_percent_complete(report, run_dir, is_running):
+    def _percent(run_dir, spos):
+        if not spos:
+            return 0
+        t = LatticeUtil.find_first_command(_SIM_DATA.sim_run_input(run_dir), "track")
+        if t and t.zstop:
+            return spos * 100 / t.zstop
+        return 0
+
+    if is_running:
+        c, p = read_frame_count(run_dir)
+        return PKDict(
+            frameCount=c - 1,
+            percentComplete=_percent(run_dir, p),
+        )
     res = PKDict(
         percentComplete=0,
         frameCount=0,
     )
-    if is_running:
-        data = _SIM_DATA.sim_run_input(run_dir)
-        # TODO(pjm): determine total frame count and set percentComplete
-        res.frameCount = read_frame_count(run_dir) - 1
-        return res
     if _SIM_DATA.sim_run_input(run_dir, checked=False):
-        res.frameCount = read_frame_count(run_dir)
+        res.frameCount = read_frame_count(run_dir)[0]
         if res.frameCount > 0:
-            res.percentComplete = 100
-            res.outputInfo = _output_info(run_dir)
+            return res.pkupdate(
+                percentComplete=100,
+                outputInfo=_output_info(run_dir),
+            )
     return res
 
 
@@ -515,9 +526,10 @@ def read_frame_count(run_dir):
     def _walk_file(h5file, key, step, res):
         if key:
             res[0] = step + 1
+            res[1] = h5file[key].attrs["SPOS"][0]
 
     try:
-        return _iterate_hdf5_steps(run_dir.join(_OPAL_H5_FILE), _walk_file, [0])[0]
+        return _iterate_hdf5_steps(run_dir.join(_OPAL_H5_FILE), _walk_file, [0, 0])[:2]
     except IOError:
         pass
     except RuntimeError:
@@ -676,15 +688,6 @@ def stateful_compute_import_file(data, **kwargs):
             data.args.file_as_str,
             filename=data.args.basename,
         )
-        missing_files = []
-        for infile in input_files:
-            if not _SIM_DATA.lib_file_exists(infile.lib_filename):
-                missing_files.append(infile)
-        if missing_files:
-            return PKDict(
-                missingFiles=missing_files,
-                imported_data=res,
-            )
     elif data.args.ext_lower == ".madx" or data.args.ext_lower == ".seq":
         res = OpalMadxConverter(qcall=None).from_madx_text(data.args.file_as_str)
         res.models.simulation.name = data.args.purebasename
@@ -707,9 +710,11 @@ def stateful_compute_import_file(data, **kwargs):
         d = data.args.pkunchecked_nested_get("import_file_arguments")
         if d:
             d = pykern.pkjson.load_any(d)
-        d, files = track_parser.parse_sclinac_file(data.args.file_as_str, d)
-        # only if has rfcavity elements
-        return PKDict(importState="needLattice", eleData=d, latticeFileName="fi_in.dat")
+        return PKDict(
+            importState="needLattice",
+            eleData=track_parser.parse_sclinac_file(data.args.file_as_str, d),
+            latticeFileName="fi_in.dat",
+        )
     elif data.args.basename.lower() == "fi_in.dat":
         # must have already imported sclinac.dat
         d = data.args.pkunchecked_nested_get("import_file_arguments")
@@ -723,6 +728,26 @@ def stateful_compute_import_file(data, **kwargs):
             f"invalid file={data.args.basename} extension, expecting .in, .ele, .lte or .madx"
         )
     return PKDict(imported_data=res)
+
+
+def validate_file(file_type, path, sim_id, qcall):
+    # imported TRACK input files are always eh_EMS#\d+ or eh_MWS#\d+
+    m = re.search(r"/eh_(\w+\.\d+)$", str(path))
+    if not m:
+        return None
+    d = simulation_db.read_simulation_json(SIM_TYPE, sim_id, qcall)
+    n = None
+    for e in d.models.elements:
+        if e.get("fmapfn") and e.fmapfn.replace("#", "") == path.basename:
+            if n is None:
+                n = f"{m.group(1)}-{path.computehash()[:8]}.txt"
+            e.fmapfn = n
+    if n:
+        simulation_db.save_simulation_json(d, False, qcall=qcall)
+        return PKDict(
+            filename=n,
+        )
+    return None
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -1123,7 +1148,6 @@ def _iterate_hdf5_steps_from_handle(h5file, callback, state):
 
 
 def _output_info(run_dir):
-    # TODO(pjm): cache to file with version, similar to template.elegant
     data = _SIM_DATA.sim_run_input(run_dir)
     files = LatticeUtil(data, SCHEMA).iterate_models(OpalOutputFileIterator()).result
     res = []
@@ -1137,33 +1161,6 @@ def _output_info(run_dir):
                 )
             )
     return res
-
-
-def _read_data_file(path):
-    col_names = []
-    rows = []
-    with pkio.open_text(str(path)) as f:
-        col_names = []
-        rows = []
-        mode = ""
-        for line in f:
-            if "---" in line:
-                if mode == "header":
-                    mode = "data"
-                elif mode == "data":
-                    break
-                if not mode:
-                    mode = "header"
-                continue
-            line = re.sub("\0", "", line)
-            if mode == "header":
-                col_names = re.split(r"\s+", line.lower())
-            elif mode == "data":
-                # TODO(pjm): separate overlapped columns. Instead should explicitly set field dimensions
-                line = re.sub(r"(\d)(\-\d)", r"\1 \2", line)
-                line = re.sub(r"(\.\d{3})(\d+\.)", r"\1 \2", line)
-                rows.append(re.split(r"\s+", line))
-    return col_names, rows
 
 
 def _units_from_hdf5(h5file, field):

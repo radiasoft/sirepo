@@ -174,10 +174,6 @@ def _field_type_for_field(el, field):
     return field_type
 
 
-def _strip_file_prefix(value, model, field):
-    return re.sub(r"^{}-{}\.".format(model, field), "", value)
-
-
 def _validate_beamline(bl, name_to_id, element_names):
     items = []
     for name in bl["items"]:
@@ -242,12 +238,14 @@ def _validate_field(el, field, rpn_cache, code_var, update_filenames):
         return
     # Input files may have been from a sirepo export. Strip the sirepo file prefix if present.
     if field_type.startswith("InputFile"):
-        el[field] = _strip_file_prefix(
+        el[field] = _SIM_DATA.lib_file_name_without_type(
             el[field], lattice.LatticeUtil.model_name_for_data(el), field
         )
     elif field_type == "BeamInputFile":
         el[field] = ntpath.basename(el[field])
-        el[field] = _strip_file_prefix(el[field], "bunchFile", "sourceFile")
+        el[field] = _SIM_DATA.lib_file_name_without_type(
+            el[field], "bunchFile", "sourceFile"
+        )
 
 
 def _validate_input_file(el, field):

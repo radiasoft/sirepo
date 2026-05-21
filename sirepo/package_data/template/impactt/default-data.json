@@ -22,6 +22,20 @@
         "simulation": {
             "elementPosition": "absolute",
             "visualizationBeamlineId": ""
+        },
+        "statAnimation": {
+            "aspectRatio": "0.5625",
+            "x": "mean_z",
+            "y1": "norm_emit_x",
+            "y1Position": "left",
+            "y2": "norm_emit_y",
+            "y2Position": "left",
+            "y3": "sigma_x",
+            "y3Position": "right",
+            "y4": "sigma_y",
+            "y4Position": "right",
+            "y5": "sigma_z",
+            "y5Position": "right"
         }
     },
     "simulationType": "impactt"

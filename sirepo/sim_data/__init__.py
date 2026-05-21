@@ -463,7 +463,7 @@ class SimDataBase(object):
         return "{}.{}".format(file_type, filename)
 
     @classmethod
-    def lib_file_name_without_type(cls, basename):
+    def lib_file_name_without_type(cls, basename, model_name=None, field=None):
         """Strip the file type prefix
 
         See `lib_file_name` which prefixes with ``model-field.``
@@ -473,6 +473,8 @@ class SimDataBase(object):
         Returns:
             str: basename without type prefix
         """
+        if model_name and field:
+            return re.sub(r"^{}-{}\.".format(model_name, field), "", basename)
         return re.sub(r"^.*?-.*?\.(.+)$", r"\1", basename)
 
     @classmethod

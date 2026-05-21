@@ -168,7 +168,7 @@ def get_data_file(run_dir, model, frame, options):
                 data=pmd_beamphysics.interfaces.elegant.elegant_to_data(particle_file),
             )
         elif sim_type == "opal":
-            step = _template_for_sim_type(sim_type).read_frame_count(run_dir)
+            step, p = _template_for_sim_type(sim_type).read_frame_count(run_dir)
             with h5py.File(particle_file, "r") as f:
                 return pmd_beamphysics.ParticleGroup(
                     data=pmd_beamphysics.interfaces.opal.opal_to_data(

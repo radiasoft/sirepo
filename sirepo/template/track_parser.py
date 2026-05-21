@@ -47,7 +47,6 @@ class TRACKParser:
         self.parser = LineParser(100)
         r = self._parse_sclinac(sclinac_text)
         self._build_beamline(models, r)
-        return sorted(set(r.files))
 
     def _build_beamline(self, models, r):
         bl = _SIM_DATA.model_defaults("beamline").pkupdate(
@@ -76,8 +75,7 @@ class TRACKParser:
         d_elem, harm, te00 = float(params[0]), float(params[1]), float(params[2])
         return _SIM_DATA.model_defaults("RFCAVITY").pkupdate(
             aperture=f"circle(0.01)",
-            # TODO(pjm): unique filenames
-            fmapfn=f"mws{n:02d}.txt",
+            fmapfn=f"eh_MWS.#{n:02d}",
             freq=f"{harm} * {_BEAM_FREQUENCY_VAR}",
             l=round(d_elem * _CM_TO_M, 6),
             name=self._new_name("CAV"),
@@ -105,7 +103,6 @@ class TRACKParser:
 
     def _parse_sclinac(self, sclinac_text):
         elements = []
-        files = []
         position = 0.0
         for line in sclinac_text.split("\n"):
             v = line.strip()
@@ -117,33 +114,31 @@ class TRACKParser:
             n, ele_type = int(t[0]), t[1].lower()
             if ele_type in _CONTROL_TYPES:
                 continue
-            e = self._to_element(n, ele_type, t[2:], files)
+            e = self._to_element(n, ele_type, t[2:])
             if e is None:
                 continue
             elements.append((e, round(position, 6)))
             position += e.l
-        return PKDict(elements=elements, files=files)
+        return PKDict(elements=elements)
 
-    def _sol3d_element(self, n, params, files):
+    def _sol3d_element(self, n, params):
         bf, d_elem, rap = float(params[0]), float(params[1]), float(params[2])
-        files.append(f"eh_EMS.#{n:02d}")
         return _SIM_DATA.model_defaults("SOLENOID").pkupdate(
             aperture=f"circle({rap * 2 * _CM_TO_M})",
-            fmapfn=f"ems{n:02d}_1d.txt",
+            fmapfn=f"eh_EMS.#{n:02d}",
             ks=round(bf * _GAUSS_TO_T, 8),
             l=round(d_elem * _CM_TO_M, 6),
             name=self._new_name("SOL"),
             type="SOLENOID",
         )
 
-    def _to_element(self, n, ele_type, params, files):
+    def _to_element(self, n, ele_type, params):
         if ele_type == "cav":
-            files.append(f"eh_MWS.#{n:02d}")
             return self._cav_element(n, params)
         if ele_type == "drift":
             return self._drift_element(params)
         if ele_type == "sol3d":
-            return self._sol3d_element(n, params, files)
+            return self._sol3d_element(n, params)
         pkdlog("unhandled TRACK element type={}", ele_type)
         return None
 
@@ -161,10 +156,10 @@ def parse_sclinac_file(sclinac_text, data=None):
 
     if not data:
         data = simulation_db.default_data("opal")
-    files = TRACKParser().parse_file(sclinac_text, data.models)
+    TRACKParser().parse_file(sclinac_text, data.models)
     if not data.models.beamlines or not data.models.beamlines[0]["items"]:
         raise AssertionError("No elements parsed from TRACK input")
-    return data, files
+    return data
 
 
 def parse_track_file(track_text):
@@ -259,7 +254,7 @@ def impactx_particles(track_text):
         v.get("qq", 1.0)
     ).set_mass_MeV(m * 1e3).set_kin_energy_MeV((e - m) * 1e3)
     sim.add_particles(
-        # v.get("current", 0) * 1e-3,
+        # current isn't used for opal output, but must be non zero
         1e-10,
         distribution.Waterbag(
             lambdaX=w.lambdaX,

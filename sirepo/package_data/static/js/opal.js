@@ -34,6 +34,7 @@ SIREPO.app.config(function() {
         <li data-download-csv-link=""></li>
     `;
     SIREPO.lattice = {
+        latticeImport: ".ele, .in, .lte, .madx, .seq, .dat",
         canReverseBeamline: true,
         elementColor: {
             CCOLLIMATOR: 'magenta',
@@ -227,8 +228,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: `
             <div data-common-footer="nav"></div>
-            <div data-lattice-import-dialog=""
-              data-lattice-format=".ele, .in, .lte, .madx, .seq, .dat"></div>
+            <div data-lattice-import-dialog=""></div>
         `,
     };
 });

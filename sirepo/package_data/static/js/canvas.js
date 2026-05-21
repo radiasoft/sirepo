@@ -11,6 +11,7 @@ SIREPO.app.config(() => {
     ];
     SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
     SIREPO.lattice = {
+        latticeImport: '.madx, .seq',
         canReverseBeamline: true,
         elementColor: {
             OCTUPOLE: 'yellow',
@@ -82,7 +83,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: `
             <div data-common-footer="nav"></div>
-            <div data-lattice-import-dialog="" data-lattice-format=".madx, .seq"></div>
+            <div data-lattice-import-dialog=""></div>
         `,
     };
 });
