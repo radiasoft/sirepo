@@ -28,6 +28,7 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 OPAL_INPUT_FILE = "opal.in"
 OPAL_OUTPUT_FILE = "opal.out"
 OPAL_POSITION_FILE = "opal-vtk.py"
+TRACK_FIELDMAP_CONVERSION_FILE = "track-fieldmap-conversion.py"
 
 _DIM_INDEX = PKDict(
     x=0,
@@ -751,6 +752,14 @@ def validate_file(file_type, path, sim_id, qcall):
 
 
 def write_parameters(data, run_dir, is_parallel):
+    def _has_track_fieldmap(elements):
+        return any(_using_track_fieldmap(e) for e in elements)
+
+    if _has_track_fieldmap(data.models.elements):
+        pkio.write_text(
+            run_dir.join(TRACK_FIELDMAP_CONVERSION_FILE),
+            _generate_track_fieldmap_conversion_file(data),
+        )
     pkio.write_text(
         run_dir.join(OPAL_INPUT_FILE),
         _generate_parameters_file(data),
@@ -1129,6 +1138,34 @@ def _generate_beamline(
     return res, edge, names, visited
 
 
+def _generate_track_fieldmap_conversion_file(data):
+    def _conversions():
+        cv = code_var(data.models.rpnVariables)
+        r = []
+        seen = set()
+        for e in data.models.elements:
+            m = _using_track_fieldmap(e)
+            if not m:
+                continue
+            lib_file = _SIM_DATA.lib_file_name_with_model_field(
+                e.type, "fmapfn", e.fmapfn
+            )
+            if lib_file in seen:
+                continue
+            seen.add(lib_file)
+            f = PKDict(type=m, lib_file=lib_file)
+            if m == "MWS":
+                f.pkupdate(frequency_mhz=cv.eval_var_with_assert(e.freq))
+            r.append(f)
+        return r
+
+    return template_common.render_jinja(
+        SIM_TYPE,
+        PKDict(conversions=_conversions()),
+        TRACK_FIELDMAP_CONVERSION_FILE,
+    )
+
+
 def _iterate_hdf5_steps(path, callback, state):
     def _read(file_obj):
         _iterate_hdf5_steps_from_handle(file_obj, callback, state)
@@ -1167,3 +1204,8 @@ def _units_from_hdf5(h5file, field):
     return _field_units(
         pkcompat.from_bytes(h5file.attrs["{}Unit".format(field.name)]), field
     )
+
+
+def _using_track_fieldmap(element):
+    m = re.match(r"(EMS|MWS)\.\d+-.+\.txt$", element.get("fmapfn", ""))
+    return m.group(1) if m else None

@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
 """Impact-T execution template.
 :copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pmd_beamphysics.labels import mathlabel
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
@@ -65,6 +65,14 @@ _S_ELEMENTS = set(
 )
 _TIME_AND_ENERGY_FILE_NO = 18
 _HEADER_M = set(["sigx", "xmu1", "sigy", "ymu1", "sigz", "zmu1"])
+_INPUT_FILENAME_TEMPLATE = PKDict(
+    DIPOLE="rfdata{}",
+    EMFIELD_CARTESIAN="1T{}.T7",
+    EMFIELD_CYLINDRICAL="1T{}.T7",
+    SOLENOID="1T{}.T7",
+    SOLRF="rfdata{}",
+    WAKEFIELD="fort.{}",
+)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -399,18 +407,6 @@ def _find_last_stop(data, beamline_id):
             "l", 0
         )
     raise AssertionError("No beamline items defined")
-
-
-_INPUT_FILENAME_TEMPLATE = PKDict(
-    DIPOLE="rfdata{}",
-    EMFIELD_CARTESIAN="1T{}.T7",
-    EMFIELD_CYLINDRICAL="1T{}.T7",
-    SOLENOID="1T{}.T7",
-    SOLRF="rfdata{}",
-    WAKEFIELD="fort.{}",
-)
-
-# , "{_INPUT_FILENAME_TEMPLATE[name]}"
 
 
 def _format_field(code_var, name, field, field_type, value):
