@@ -59,17 +59,17 @@ class TRACKParser:
         for e, p in r.elements:
             e._id = self.parser.next_id()
             bl["items"].append(e._id)
-            # TODO(pjm): don't need elemedge
-            bl.positions.append(PKDict(elemedge=p))
             models.elements.append(e)
         # TODO(pjm): use LatticeUtil for this
         models.elements = sorted(
             models.elements,
             key=lambda e: (e.type, e.name.lower()),
         )
-        models.simulation.activeBeamlineId = (
-            models.simulation.visualizationBeamlineId
-        ) = bl.id
+        models.simulation.pkupdate(
+            activeBeamlineId=bl.id,
+            visualizationBeamlineId=bl.id,
+            elementPosition="relative",
+        )
 
     def _cav_element(self, n, params):
         d_elem, harm, te00 = float(params[0]), float(params[1]), float(params[2])

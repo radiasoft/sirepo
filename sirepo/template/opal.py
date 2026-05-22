@@ -431,7 +431,7 @@ def background_percent_complete(report, run_dir, is_running):
         if not spos:
             return 0
         t = LatticeUtil.find_first_command(_SIM_DATA.sim_run_input(run_dir), "track")
-        if t and t.zstop:
+        if t and isinstance(t.zstop, float):
             return spos * 100 / t.zstop
         return 0
 
@@ -535,7 +535,7 @@ def read_frame_count(run_dir):
         pass
     except RuntimeError:
         pass
-    return 0
+    return 0, 0
 
 
 def parse_opal_log(run_dir):
