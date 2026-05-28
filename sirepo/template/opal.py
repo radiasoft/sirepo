@@ -15,6 +15,7 @@ from sirepo.template import lattice
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
+import h5py
 import math
 import numpy
 import pykern.pkjson
@@ -586,7 +587,86 @@ def save_sequential_report_data(data, run_dir):
     )
 
 
+def _bunch_comparison(frame_args):
+    def _get_range(field, p1, p2):
+        return [
+            min(min(p1[field]), min(p2[field])),
+            max(max(p1[field]), max(p2[field])),
+        ]
+
+    def _points(file, frame_index, name):
+        return numpy.array(file["/Step#{}/{}".format(frame_index, name)])
+
+    def _read_opal():
+        with h5py.File(str(frame_args.run_dir.join(_OPAL_H5_FILE)), "r") as f:
+            return [
+                _points(f, frame_args.frameIndex, frame_args.x),
+                _points(f, frame_args.frameIndex, frame_args.y),
+            ]
+
+    def _read_coords(coord_file):
+        # Nseed iq dt[ns] dW[MeV/u] x[cm] x'[mrad] y[cm] y'[mrad]
+        d = numpy.loadtxt(coord_file, skiprows=1)
+        return PKDict(
+            dt_ns=d[:, 2],
+            dW=d[:, 3],
+            x_cm=d[:, 4],
+            xp_mrad=d[:, 5],
+            y_cm=d[:, 6],
+            yp_mrad=d[:, 7],
+        )
+
+    p1 = _read_opal()
+    d = _read_coords(
+        _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.lib_file_name_with_model_field(
+                "trackComparison",
+                "coordOut",
+                frame_args.coordOut,
+            )
+        )
+    )
+    p2 = [d.x_cm * 1e-2, d.y_cm * 1e-2]
+    xrange = _get_range(0, p1, p2)
+    yrange = _get_range(1, p1, p2)
+    frame_args.pkupdate(
+        plotRangeType="fixed",
+        horizontalSize=xrange[1] - xrange[0],
+        horizontalOffset=(xrange[0] + xrange[1]) / 2,
+        verticalSize=yrange[1] - yrange[0],
+        verticalOffset=(yrange[0] + yrange[1]) / 2,
+    )
+
+    b1 = sim_frame_bunchAnimation(frame_args)
+    if frame_args.frameReport == "bunchAnimation1":
+        return b1.pkupdate(
+            title="OPAL",
+        )
+    b2 = template_common.heatmap(
+        p2,
+        frame_args,
+        PKDict(
+            x_label="x [m]",
+            y_label="y [m]",
+        ),
+    )
+    if frame_args.frameReport == "bunchAnimation2":
+        return b2.pkupdate(
+            title="TRACK",
+        )
+    if frame_args.frameReport == "bunchAnimation3":
+        for i in range(len(b1.z_matrix)):
+            for j in range(len(b1.z_matrix[0])):
+                b1.z_matrix[i][j] -= b2.z_matrix[i][j]
+        return b1.pkupdate(
+            title="difference",
+        )
+    raise AssertionError(f"unknown comparison plot {frame_args.frameReport}")
+
+
 def sim_frame(frame_args):
+    if "bunchAnimation" in frame_args.frameReport:
+        return _bunch_comparison(frame_args)
     # elementAnimations
     return bunch_plot(
         frame_args,
@@ -634,6 +714,76 @@ def sim_frame_bunchAnimation(frame_args):
     a = frame_args.sim_in.models.bunchAnimation
     a.update(frame_args)
     return bunch_plot(a, a.run_dir, a.frameIndex)
+
+
+def sim_frame_comparisonAnimation(frame_args):
+    from sirepo.template import sdds_util
+
+    def _read_track(track_file):
+        with open(track_file, "r") as f:
+            table = [line.strip().split() for line in f]
+            return numpy.asarray(table[1::])[:, 2::].astype(float)
+
+    plots = []
+    d = _read_track(
+        _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.lib_file_name_with_model_field(
+                "trackComparison",
+                "beamOut",
+                frame_args.beamOut,
+            )
+        )
+    )
+
+    x = d[:, 0].tolist()
+    plots.append(
+        PKDict(
+            x_points=x,
+            points=(d[:, 3] * 1e-2).tolist(),
+            label="TRACK x rms [m]",
+            style="scatter",
+            circleRadius=4,
+        )
+    )
+    plots.append(
+        PKDict(
+            x_points=x,
+            points=(d[:, 4] * 1e-2).tolist(),
+            label="TRACK y rms [m]",
+            style="scatter",
+            circleRadius=4,
+        )
+    )
+
+    x = sdds_util.extract_sdds_column(_OPAL_SDDS_FILE, "s", 0)["values"]
+    plots.append(
+        PKDict(
+            x_points=x,
+            points=sdds_util.extract_sdds_column(_OPAL_SDDS_FILE, "rms_x", 0)["values"],
+            label="OPAL x rms [m]",
+            style="scatter",
+            circleRadius=1,
+        ),
+    )
+    plots.append(
+        PKDict(
+            x_points=x,
+            points=sdds_util.extract_sdds_column(_OPAL_SDDS_FILE, "rms_y", 0)["values"],
+            label="OPAL y rms [m]",
+            style="scatter",
+            circleRadius=1,
+        ),
+    )
+    return template_common.parameter_plot(
+        x,
+        plots,
+        frame_args,
+        PKDict(
+            y_label="",
+            x_label="s [m]",
+            dynamicYLabel=True,
+        ),
+    )
 
 
 def sim_frame_plotAnimation(frame_args):
@@ -732,17 +882,27 @@ def stateful_compute_import_file(data, **kwargs):
 
 
 def validate_file(file_type, path, sim_id, qcall):
-    # imported TRACK input files are always eh_EMS#\d+ or eh_MWS#\d+
-    m = re.search(r"/eh_(\w+\.\d+)$", str(path))
-    if not m:
-        return None
-    d = simulation_db.read_simulation_json(SIM_TYPE, sim_id, qcall)
-    n = None
-    for e in d.models.elements:
-        if e.get("fmapfn") and e.fmapfn.replace("#", "") == path.basename:
-            if n is None:
-                n = f"{m.group(1)}-{path.computehash()[:8]}.txt"
-            e.fmapfn = n
+
+    def _hashed_name(name):
+        return (
+            simulation_db.read_simulation_json(SIM_TYPE, sim_id, qcall),
+            f"{name}-{path.computehash()[:8]}.txt",
+        )
+
+    d, n = (None, None)
+    if "beamOut" in file_type:
+        d, n = _hashed_name(path.basename)
+        d.models.trackComparison.beamOut = n
+    elif "coordOut" in file_type:
+        d, n = _hashed_name(path.basename)
+        d.models.trackComparison.coordOut = n
+    else:
+        # imported TRACK input files are always eh_EMS#\d+ or eh_MWS#\d+
+        if m := re.search(r"/eh_(\w+\.\d+)$", str(path)):
+            d, n = _hashed_name(m.group(1))
+            for e in d.models.elements:
+                if e.get("fmapfn") and e.fmapfn.replace("#", "") == path.basename:
+                    e.fmapfn = n
     if n:
         simulation_db.save_simulation_json(d, False, qcall=qcall)
         return PKDict(

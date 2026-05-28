@@ -15,13 +15,13 @@ import sirepo.sim_data
 import sirepo.template.template_common
 
 
+_BEAM_FREQUENCY_VAR = "beam_frequency_mhz"
 _CM_MRAD_TO_M_RAD = 1e-5
 _CM_TO_M = 1e-2
 _GAUSS_TO_T = 1e-4
+_SIM_DATA = sirepo.sim_data.get_class("opal")
 _WATERBAG_FACTOR = 8.0
 _WATERBAG_CUTOFF = round(math.sqrt(_WATERBAG_FACTOR), 9)
-_SIM_DATA = sirepo.sim_data.get_class("opal")
-_BEAM_FREQUENCY_VAR = "beam_frequency_mhz"
 
 # Elements that control simulation flow, not beamline geometry
 _CONTROL_TYPES = frozenset(
@@ -69,7 +69,11 @@ class TRACKParser:
             activeBeamlineId=bl.id,
             visualizationBeamlineId=bl.id,
             elementPosition="relative",
+            name="TRACK Sim",
         )
+        models.trackComparison.isTrackImport = "1"
+        for n in ("plotAnimation", "plot2Animation"):
+            models[n].includeLattice = "1"
 
     def _cav_element(self, n, params):
         d_elem, harm, te00 = float(params[0]), float(params[1]), float(params[2])
@@ -156,6 +160,9 @@ def parse_sclinac_file(sclinac_text, data=None):
 
     if not data:
         data = simulation_db.default_data("opal")
+        data.models.rpnVariables = [
+            PKDict(name=_BEAM_FREQUENCY_VAR, value=0),
+        ]
     TRACKParser().parse_file(sclinac_text, data.models)
     if not data.models.beamlines or not data.models.beamlines[0]["items"]:
         raise AssertionError("No elements parsed from TRACK input")

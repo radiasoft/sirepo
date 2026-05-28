@@ -362,6 +362,17 @@
         }
     },
     "frameIdFields": {
+        "animation": [
+            "x",
+            "y",
+            "histogramBins",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset",
+            "isRunning"
+        ],
         "beamline3dAnimation": [],
         "bunchAnimation": [
             "x",
@@ -374,16 +385,26 @@
             "verticalOffset",
             "isRunning"
         ],
-        "animation": [
+        "bunchAnimation1": [
+            "histogramBins",
             "x",
             "y",
+            "coordOut"
+        ],
+        "bunchAnimation2": [
             "histogramBins",
-            "plotRangeType",
-            "horizontalSize",
-            "horizontalOffset",
-            "verticalSize",
-            "verticalOffset",
-            "isRunning"
+            "x",
+            "y",
+            "coordOut"
+        ],
+        "bunchAnimation3": [
+            "histogramBins",
+            "x",
+            "y",
+            "coordOut"
+        ],
+        "comparisonAnimation": [
+            "beamOut"
         ],
         "plotAnimation": ["x", "y1", "y2", "y3", "y4", "y5"],
         "plot2Animation": ["x", "y1", "y2", "y3", "y4", "y5"]
@@ -414,6 +435,13 @@
             "config": {
               "controller": "VisualizationController as visualization",
               "templateUrl": "/static/html/opal-visualization.html"
+            }
+        },
+        "comparison": {
+            "route": "/comparison/:simulationId",
+            "config": {
+              "controller": "ComparisonController as comparison",
+              "templateUrl": "/static/html/opal-comparison.html"
             }
         }
     },
@@ -451,6 +479,40 @@
             "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
             "verticalOffset": ["Vertical Offset", "Float", 0.0],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "selectedFrame": ["", "FrameSlider", 0],
+            "notes": ["Notes", "Text", ""]
+        },
+        "bunchAnimation1": {
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "coordOut": ["TRACK Coord Output", "InputFile", "", "TRACK coord.out output file"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "bunchAnimation2": {
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "coordOut": ["TRACK Coord Output", "InputFile", "", "TRACK coord.out output file"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "bunchAnimation3": {
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "coordOut": ["TRACK Coord Output", "InputFile", "", "TRACK coord.out output file"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "comparisonAnimation": {
+            "beamOut": ["TRACK Beam Output", "InputFile", "", "TRACK beam.out output file"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.5"],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "elementAnimation": {
@@ -496,6 +558,12 @@
             "elementPosition": ["Element Positioning", "ElementPosition", "absolute", "Beamline elements may be positioned relative to each other using Drifts for spacing, or positioned absolute using Elemedge."],
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""],
             "simulationMode": ["Execution", "SimulationMode", "serial"]
+        },
+        "trackComparison": {
+            "isTrackImport": ["", "Boolean", "0"],
+            "showComparisonTab": ["", "Boolean", "0"],
+            "beamOut": ["TRACK Beam Output", "InputFile", "", "TRACK beam.out output file"],
+            "coordOut": ["TRACK Coord Output", "InputFile", "", "TRACK coord.out output file"]
         },
         "_ELEMENT": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -1189,7 +1257,7 @@
     },
     "strings": {
         "simulationSource": "OPAL Source (*.in)",
-        "importText": "Import a lattice file (.ele, .lte, .in, .madx, .seq, or .dat)"
+        "importText": "Import a lattice file (.ele, .lte, .in, .madx, .seq, or track.dat)"
     },
     "view": {
         "beamline": {
@@ -1249,6 +1317,18 @@
                 ]]
             ]
         },
+        "bunchAnimation1": {
+            "title": "Phase Space",
+            "advanced": []
+        },
+        "bunchAnimation2": {
+            "title": "Phase Space",
+            "advanced": []
+        },
+        "bunchAnimation3": {
+            "title": "Phase Space",
+            "advanced": []
+        },
         "bunchReport": {
             "title": "Beam Phase Space",
             "advanced": [
@@ -1263,6 +1343,15 @@
                 ],
                 "histogramBins",
                 "colorMap",
+                "notes"
+            ]
+        },
+        "comparisonAnimation": {
+            "hasDataFile": false,
+            "title": "Beam Size",
+            "advanced": [
+                "aspectRatio",
+                "includeLattice",
                 "notes"
             ]
         },
@@ -1399,6 +1488,14 @@
         },
         "simulationStatus": {
             "title": "Simulation Status",
+            "advanced": []
+        },
+        "trackComparison": {
+            "title": "TRACK Code Comparison",
+            "basic": [
+                "beamOut",
+                "coordOut"
+            ],
             "advanced": []
         },
         "CCOLLIMATOR": {

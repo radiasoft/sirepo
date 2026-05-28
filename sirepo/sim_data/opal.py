@@ -25,8 +25,13 @@ class SimData(sirepo.sim_data.lattice.LatticeSimData):
             (
                 "beamline3dAnimation",
                 "bunchAnimation",
+                "bunchAnimation1",
+                "bunchAnimation2",
+                "bunchAnimation3",
+                "comparisonAnimation",
                 "plotAnimation",
                 "plot2Animation",
+                "trackComparison",
             ),
         )
         for cmd in dm.commands:

@@ -3365,7 +3365,7 @@ SIREPO.app.directive('latticeImportDialog', function(appState, commandService, f
                         }
                         else if (data.importState === "needLattice") {
                             //TODO(pjm): need generalization for lattice extension
-                            $scope.latticeFileExtension = $scope.filename.toLowerCase() === 'track.dat'
+                            $scope.latticeFileExtension = $scope.filename.toLowerCase().endsWith('.dat')
                                 ? '.dat' : '.lte';
                             $scope.state = 'lattice';
                             $scope.latticeFile = null;
