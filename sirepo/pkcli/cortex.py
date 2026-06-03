@@ -213,7 +213,7 @@ def run_batch(run_dir, uid, material_id):
 
     def _sim_for_material(run_dir, uid, material_id, qcall):
         r = run_dir.basename
-        if r not in sirepo.template.cortex._SIM_OUTPUT:
+        if r not in sirepo.template.cortex.SIM_VERSION:
             raise AssertionError(f"invalid report={r} for run_dir={run_dir}")
         s = sirepo.simulation_db.iterate_simulation_datafiles(
             sirepo.template.cortex.SIM_TYPE,
@@ -222,9 +222,17 @@ def run_batch(run_dir, uid, material_id):
             qcall=qcall,
         )
         if not s:
-            raise AssertionError(
-                f"no sim found for material_id={material_id} uid={uid}"
+            # create a proxy sim data
+            d = sirepo.simulation_db.default_data(sirepo.template.cortex.SIM_TYPE)
+            d.models.simulation.name = str(material_id)
+            sirepo.sim_api.cortex.update_sim_from_material_detail(
+                d,
+                material_id,
+                sirepo.sim_api.cortex.material_db.format_material_detail(
+                    material_id, False, uid
+                ),
             )
+            s = [d]
         return s[0].pkupdate(report=r)
 
     p = pykern.pkio.py_path(run_dir)

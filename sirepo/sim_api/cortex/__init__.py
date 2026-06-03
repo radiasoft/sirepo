@@ -76,6 +76,29 @@ def check_for_sim_summary(qcall, uid):
             )
 
 
+def update_sim_from_material_detail(sim, material_id, detail):
+    sim.models.material.pkupdate(
+        name=detail.name,
+        density=detail.density,
+        percent_type="ao" if detail.is_atom_pct else "wo",
+        # Sirepo booleans are 0/1 strings
+        is_plasma_facing="1" if detail.is_plasma_facing else "0",
+        material_id=material_id,
+        components=[
+            PKDict(
+                component_type=(
+                    "nuclide"
+                    if re.search(r"\d", c.material_component_name)
+                    else "element"
+                ),
+                component=c.material_component_name,
+                percent=c.target_pct,
+            )
+            for c in detail.components
+        ],
+    )
+
+
 class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_plan", sim_type=f"SimType const={SIM_TYPE}")
@@ -191,26 +214,7 @@ class API(sirepo.quest.API):
 
         async def _update_sim(sim, material_id):
             m = await _material_detail(material_id)
-            sim.models.material.pkupdate(
-                name=m.name,
-                density=m.density,
-                percent_type="ao" if m.is_atom_pct else "wo",
-                # Sirepo booleans are 0/1 strings
-                is_plasma_facing="1" if m.is_plasma_facing else "0",
-                material_id=material_id,
-                components=[
-                    PKDict(
-                        component_type=(
-                            "nuclide"
-                            if re.search(r"\d", c.material_component_name)
-                            else "element"
-                        ),
-                        component=c.material_component_name,
-                        percent=c.target_pct,
-                    )
-                    for c in m.components
-                ],
-            )
+            update_sim_from_material_detail(sim, material_id, m)
             return sirepo.simulation_db.save_simulation_json(
                 sim, fixup=True, qcall=self
             )
@@ -221,14 +225,6 @@ class API(sirepo.quest.API):
 
 
 class _CortexDb(pykern.pkasyncio.ActionLoop):
-
-    _SOURCE_DESC = PKDict(
-        EXP="experiment",
-        PP="predictive physics model",
-        NOM="nominal (design target) value",
-        ML="maching learning",
-        DFT="Density Functional Theory",
-    )
 
     def action_delete_material(self, arg, uid):
         sirepo.sim_api.cortex.material_db.delete_material(
@@ -308,12 +304,13 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
     def action_material_detail(self, arg, uid):
         check_for_sim_summary(arg.qcall, uid)
         try:
-            r = sirepo.sim_api.cortex.material_db.material_detail(
-                arg.material_id, arg.is_public, uid
+            return PKDict(
+                detail=sirepo.sim_api.cortex.material_db.format_material_detail(
+                    arg.material_id, arg.is_public, uid
+                )
             )
         except pykern.sql_db.NoRows:
             raise sirepo.util.NotFound("Material not found")
-        return PKDict(detail=self._format_material(r))
 
     def action_set_material_public(self, arg, uid):
         sirepo.sim_api.cortex.material_db.set_public(
@@ -346,113 +343,3 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
             r = e
         qcall.cortex_db_done(r)
         return None
-
-    def _format_material(self, material):
-
-        # these were required for old xls imports, now they are brought in with independent_variables
-        _OLD_PROPERTY_COLUMNS = PKDict(
-            temperature_k="Temperature [K]",
-            neutron_fluence_1_cm2="Neutron Fluence [1/cm²]",
-        )
-
-        def _add_doi(prop):
-            if prop.doi_or_url is None:
-                t = None
-                u = None
-            elif prop.doi_or_url.lower().startswith("http"):
-                t = "URL"
-                u = prop.doi_or_url
-            else:
-                t = "DOI"
-                u = f"https://doi.org/{prop.doi_or_url}"
-            prop.doi = PKDict(
-                type=t,
-                url=u,
-                linkText=prop.doi_or_url,
-                rows=PKDict(
-                    Source=(
-                        f"{prop.source}, {self._SOURCE_DESC[prop.source]}"
-                        if prop.source in self._SOURCE_DESC
-                        else prop.source
-                    ),
-                    Pointer=prop.pointer,
-                    Comments=prop.comments,
-                ),
-            )
-
-        def _add_property_values(prop):
-            def _has_column_value(rows, key):
-                for r in rows:
-                    if r[k]:
-                        return True
-                return False
-
-            prop.valueHeadings = PKDict(
-                value="Value"
-                + (f" [{prop.property_unit}]" if prop.property_unit else ""),
-                uncertainty="Uncertainty",
-            )
-            for k in prop.vals[0]:
-                if k in prop.valueHeadings or k.endswith("_id"):
-                    continue
-                if _has_column_value(prop.vals, k):
-                    prop.valueHeadings[k] = _OLD_PROPERTY_COLUMNS.get(k, k)
-
-        def _find_property(properties, name):
-            for p in properties:
-                if p.property_name == name:
-                    return p
-            return None
-
-        def _to_yes_no(value):
-            if value is None:
-                return ""
-            return "Yes" if value else "No"
-
-        res = PKDict(
-            name=material.material_name,
-            density=material.density_g_cm3,
-            density_units="g/cm³",
-            is_atom_pct=material.is_atom_pct,
-            is_plasma_facing=material.is_plasma_facing,
-            is_public=material.is_public,
-            section1=PKDict(
-                {
-                    "Material Type": (
-                        "plasma-facing" if material.is_plasma_facing else "structural"
-                    ),
-                    "Structure": material.structure,
-                    "Microstructure Information": material.microstructure,
-                    "Processing": material.processing_steps,
-                }
-            ),
-            section2=PKDict(
-                {
-                    "Neutron Source": "D-T" if material.is_neutron_source_dt else "D-D",
-                    "Neutron Wall Loading": material.neutron_wall_loading,
-                    "Availability Factor": (
-                        f"{material.availability_factor}%"
-                        if material.availability_factor
-                        else ""
-                    ),
-                }
-            ),
-            components=material.components,
-            composition=_find_property(material.properties, "composition"),
-            composition_density=_find_property(
-                material.properties, "composition_density"
-            ),
-            properties=[
-                p
-                for p in material.properties
-                if not p.property_name.startswith("composition")
-            ],
-        )
-        for c in res.components:
-            c.material_component_name = c.material_component_name.capitalize()
-        for p in material.properties:
-            if "vals" in p and len(p.vals):
-                _add_property_values(p)
-            if p.doi_or_url or p.comments:
-                _add_doi(p)
-        return res

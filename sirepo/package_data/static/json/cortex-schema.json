@@ -25,10 +25,18 @@
         ]
     },
     "frameIdFields": {
-        "slabAnimation": ["stat"],
-        "tileAnimation": ["stat"]
+        "hcllSlabAnimation": ["stat"],
+        "hcpbSlabAnimation": ["stat"],
+        "tileAnimation": ["stat"],
+        "wcllSlabAnimation": ["stat"]
     },
     "model": {
+        "hcllSlabAnimation": {
+            "stat": ["", "String"]
+        },
+        "hcpbSlabAnimation": {
+            "stat": ["", "String"]
+        },
         "material": {
             "name": ["Name", "String", ""],
             "density": ["Density", "Float"],
@@ -40,23 +48,31 @@
             "component_type": ["Component Type", "ComponentType"],
             "percent": ["Percent", "Float"]
         },
-        "slabAnimation": {
+        "tileAnimation": {
             "stat": ["", "String"]
         },
-        "tileAnimation": {
+        "wcllSlabAnimation": {
             "stat": ["", "String"]
         }
     },
     "view": {
+        "hcllSlabAnimation": {
+            "title": "Neutronics Plot",
+            "advanced": []
+        },
+        "hcpbSlabAnimation": {
+            "title": "Neutronics Plot",
+            "advanced": []
+        },
         "simulationStatus": {
             "title": "Simulation Status",
             "advanced": []
         },
-        "slabAnimation": {
+        "tileAnimation": {
             "title": "Neutronics Plot",
             "advanced": []
         },
-        "tileAnimation": {
+        "wcllSlabAnimation": {
             "title": "Neutronics Plot",
             "advanced": []
         }

@@ -131,6 +131,11 @@ class pyplot:
             _plt.text(x, y, s, **kwargs)
 
     @classmethod
+    def set(cls, **kwargs):
+        for k, v in kwargs.items():
+            getattr(cls, f"set_{k}")(v)
+
+    @classmethod
     def set_xlabel(cls, label):
         cls._figure.xlabel = label
         if cls._ax is not None:
@@ -270,6 +275,8 @@ class pyplot:
     def savefig(cls, filename, **kwargs):
         assert len(cls._figure.plots)
         pykern.pkjson.dump_pretty(cls._figure, f"{filename}.json")
+        # ensure plots label fit on canvas
+        _plt.tight_layout()
         _plt.savefig(filename, **kwargs)
         cls._figure = PKDict(plots=[])
         cls._ax = None

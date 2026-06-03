@@ -28,7 +28,7 @@
                         />
                     </div>
                 </div>
-                <div class="col-sm-5" v-if="neutronics === 'slabAnimation'">
+                <div class="col-sm-5" v-if="neutronics.indexOf('SlabAnimation') > 0">
                     <img class="img-fluid" v-bind:src="slabUrl" alt="Slab" style="max-height: 250px"/>
                 </div>
             </div>

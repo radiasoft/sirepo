@@ -16,6 +16,20 @@ import sqlalchemy.exc
 
 _BASE = "cortex_material.sqlite3"
 
+# these were required for old xls imports, now they are brought in with independent_variables
+_OLD_PROPERTY_COLUMNS = PKDict(
+    temperature_k="Temperature [K]",
+    neutron_fluence_1_cm2="Neutron Fluence [1/cm²]",
+)
+
+_SOURCE_DESC = PKDict(
+    EXP="experiment",
+    PP="predictive physics model",
+    NOM="nominal (design target) value",
+    ML="maching learning",
+    DFT="Density Functional Theory",
+)
+
 _meta = None
 
 
@@ -88,6 +102,105 @@ def featured_materials():
                 "material", where=PKDict(is_featured=True, is_public=True)
             ).all()
         ]
+
+
+def format_material_detail(material_id, is_public, uid):
+
+    def _add_doi(prop):
+        if prop.doi_or_url is None:
+            t = None
+            u = None
+        elif prop.doi_or_url.lower().startswith("http"):
+            t = "URL"
+            u = prop.doi_or_url
+        else:
+            t = "DOI"
+            u = f"https://doi.org/{prop.doi_or_url}"
+        prop.doi = PKDict(
+            type=t,
+            url=u,
+            linkText=prop.doi_or_url,
+            rows=PKDict(
+                Source=(
+                    f"{prop.source}, {_SOURCE_DESC[prop.source]}"
+                    if prop.source in _SOURCE_DESC
+                    else prop.source
+                ),
+                Pointer=prop.pointer,
+                Comments=prop.comments,
+            ),
+        )
+
+    def _add_property_values(prop):
+        def _has_column_value(rows, key):
+            for r in rows:
+                if r[key]:
+                    return True
+            return False
+
+        prop.valueHeadings = PKDict(
+            value="Value" + (f" [{prop.property_unit}]" if prop.property_unit else ""),
+            uncertainty="Uncertainty",
+        )
+        for k in prop.vals[0]:
+            if k in prop.valueHeadings or k.endswith("_id"):
+                continue
+            if _has_column_value(prop.vals, k):
+                prop.valueHeadings[k] = _OLD_PROPERTY_COLUMNS.get(k, k)
+
+    def _find_property(properties, name):
+        for p in properties:
+            if p.property_name == name:
+                return p
+        return None
+
+    def _to_yes_no(value):
+        if value is None:
+            return ""
+        return "Yes" if value else "No"
+
+    m = material_detail(material_id, is_public, uid)
+    res = PKDict(
+        name=m.material_name,
+        density=m.density_g_cm3,
+        density_units="g/cm³",
+        is_atom_pct=m.is_atom_pct,
+        is_plasma_facing=m.is_plasma_facing,
+        is_public=m.is_public,
+        section1=PKDict(
+            {
+                "Material Type": (
+                    "plasma-facing" if m.is_plasma_facing else "structural"
+                ),
+                "Structure": m.structure,
+                "Microstructure Information": m.microstructure,
+                "Processing": m.processing_steps,
+            }
+        ),
+        section2=PKDict(
+            {
+                "Neutron Source": "D-T" if m.is_neutron_source_dt else "D-D",
+                "Neutron Wall Loading": m.neutron_wall_loading,
+                "Availability Factor": (
+                    f"{m.availability_factor}%" if m.availability_factor else ""
+                ),
+            }
+        ),
+        components=m.components,
+        composition=_find_property(m.properties, "composition"),
+        composition_density=_find_property(m.properties, "composition_density"),
+        properties=[
+            p for p in m.properties if not p.property_name.startswith("composition")
+        ],
+    )
+    for c in res.components:
+        c.material_component_name = c.material_component_name.capitalize()
+    for p in m.properties:
+        if "vals" in p and len(p.vals):
+            _add_property_values(p)
+        if p.doi_or_url or p.comments:
+            _add_doi(p)
+    return res
 
 
 def init_module(**imports):
@@ -325,7 +438,7 @@ def load_summary(material_id, is_public, uid):
         return [
             _load_plot(r)
             for r in s.select("plot", where=PKDict(material_id=material_id)).all()
-            if not re.search(r"(cell|decayheat)_OB", r.stat)
+            if not re.search(r"(cell|decayheat)_(OB|Breeder)", r.stat)
         ]
 
     def _load_summary(session):
@@ -335,6 +448,8 @@ def load_summary(material_id, is_public, uid):
                 s.t.sim_summary.c.material_id == material_id
             )
         ).all():
+            if summary["model"] not in sirepo.template.cortex.SIM_VERSION:
+                continue
             r[summary["model"]] = _row_values(
                 summary, ("completed", "version")
             ).pkupdate(
@@ -355,29 +470,17 @@ def load_summary(material_id, is_public, uid):
 
 
 def material_detail(material_id, is_public, uid):
-    def _record(session, table_name, row):
-        return PKDict(
-            zip(
-                [c.name for c in session.meta.tables[table_name].columns],
-                row,
-            )
-        )
-
     def _records(session, table_name, record, field):
         return [
-            _record(s, table_name, r)
+            PKDict(r)
             for r in session.select(table_name, where={field: record[field]}).all()
         ]
 
     with _session() as s:
-        rv = _record(
-            s,
-            "material",
-            (
-                _public_material_by_id(s, material_id)
-                if is_public
-                else _material_by_id(s, material_id, uid)
-            ),
+        rv = PKDict(
+            _public_material_by_id(s, material_id)
+            if is_public
+            else _material_by_id(s, material_id, uid)
         )
         # Makes testing hard, and don't need to return
         rv.pkdel("uid")
