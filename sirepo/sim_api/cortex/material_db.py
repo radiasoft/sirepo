@@ -438,7 +438,7 @@ def load_summary(material_id, is_public, uid):
         return [
             _load_plot(r)
             for r in s.select("plot", where=PKDict(material_id=material_id)).all()
-            if not re.search(r"(cell|decayheat)_OB", r.stat)
+            if not re.search(r"(cell|decayheat)_(OB|Breeder)", r.stat)
         ]
 
     def _load_summary(session):
@@ -448,6 +448,8 @@ def load_summary(material_id, is_public, uid):
                 s.t.sim_summary.c.material_id == material_id
             )
         ).all():
+            if summary["model"] not in sirepo.template.cortex.SIM_VERSION:
+                continue
             r[summary["model"]] = _row_values(
                 summary, ("completed", "version")
             ).pkupdate(
@@ -468,29 +470,17 @@ def load_summary(material_id, is_public, uid):
 
 
 def material_detail(material_id, is_public, uid):
-    def _record(session, table_name, row):
-        return PKDict(
-            zip(
-                [c.name for c in session.meta.tables[table_name].columns],
-                row,
-            )
-        )
-
     def _records(session, table_name, record, field):
         return [
-            _record(s, table_name, r)
+            PKDict(r)
             for r in session.select(table_name, where={field: record[field]}).all()
         ]
 
     with _session() as s:
-        rv = _record(
-            s,
-            "material",
-            (
-                _public_material_by_id(s, material_id)
-                if is_public
-                else _material_by_id(s, material_id, uid)
-            ),
+        rv = PKDict(
+            _public_material_by_id(s, material_id)
+            if is_public
+            else _material_by_id(s, material_id, uid)
         )
         # Makes testing hard, and don't need to return
         rv.pkdel("uid")

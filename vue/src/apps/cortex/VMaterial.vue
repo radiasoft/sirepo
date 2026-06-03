@@ -82,7 +82,9 @@
 
  const neutronicsSims = {
      tileAnimation: 'Homogeneous Tile',
-     slabAnimation: 'Slab',
+     hcllSlabAnimation: 'HCLL Slab',
+     hcpbSlabAnimation: 'HCPB Slab',
+     wcllSlabAnimation: 'WCLL Slab',
  };
 
  const error = ref(null);
