@@ -213,7 +213,7 @@ def run_batch(run_dir, uid, material_id):
 
     def _sim_for_material(run_dir, uid, material_id, qcall):
         r = run_dir.basename
-        if r not in sirepo.template.cortex._SIM_OUTPUT:
+        if r not in sirepo.template.cortex.SIM_VERSION:
             raise AssertionError(f"invalid report={r} for run_dir={run_dir}")
         s = sirepo.simulation_db.iterate_simulation_datafiles(
             sirepo.template.cortex.SIM_TYPE,

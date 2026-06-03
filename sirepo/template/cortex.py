@@ -27,7 +27,6 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _CHAIN_ENDF_FILE = "chain_endf_b8.0.xml"
 _EUDEMO_H5M_FILE = "eudemo_f_1_27a.h5m"
 _SLAB_CHAIN_ENDF_FILE = "chain_endfb80_sfr.xml"
-_SURFACE_SOURCE_FILE = "surface_source.h5"
 _TOKAMAK_INPUTS_FILE = "Tokamak_inputs.json"
 _REPORT_TITLE = PKDict(
     tileAnimation=PKDict(
@@ -269,9 +268,6 @@ def write_parameters(data, run_dir, is_parallel):
             dagmcPath=sirepo.template.openmc.remote_datafile_path(
                 f"eudemo_{t.lower()}.h5m", compress=False
             ).dirname,
-            surfaceSource=sirepo.template.openmc.remote_datafile_path(
-                _SURFACE_SOURCE_FILE, compress=False
-            ),
             slabType=t,
         )
 

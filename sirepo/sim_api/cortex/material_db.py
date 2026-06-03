@@ -134,7 +134,7 @@ def format_material_detail(material_id, is_public, uid):
     def _add_property_values(prop):
         def _has_column_value(rows, key):
             for r in rows:
-                if r[k]:
+                if r[key]:
                     return True
             return False
 
