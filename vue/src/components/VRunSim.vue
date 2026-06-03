@@ -91,6 +91,7 @@
          return;
      }
      //TODO(pjm): clear all sim state
+     props.sim.frameCount = 0;
      props.sim.reports = [];
      elapsedTime.value = 0
      state.value = "pending";

@@ -83,10 +83,10 @@ _SIM_JINJA = PKDict(
 )
 
 SIM_VERSION = PKDict(
-    hcllSlabAnimation="1.05",
-    hcpbSlabAnimation="1.05",
+    hcllSlabAnimation="1.01",
+    hcpbSlabAnimation="1.01",
     tileAnimation="1.05",
-    wcllSlabAnimation="1.05",
+    wcllSlabAnimation="1.01",
 )
 
 _SIM_OUTPUT = PKDict(
@@ -457,11 +457,8 @@ def _save_summary_to_database(run_dir, report, stats):
         p = _plot_from_file(run_dir, m, report, s)
         p.csv = _csv_from_plot(p)
         summary.plots.append(p)
-        if (
-            _report_type(report) in _SAVE_SIM_RESULTS
-            and s in _SAVE_SIM_RESULTS[_report_type(report)]
-        ):
-            for d in _SAVE_SIM_RESULTS[_report_type(report)][s]:
+        if report in _SAVE_SIM_RESULTS and s in _SAVE_SIM_RESULTS[report]:
+            for d in _SAVE_SIM_RESULTS[report][s]:
                 idx, pos, label = d
                 for i in range(len(p.points[0])):
                     if pos < p.points[0][i]:

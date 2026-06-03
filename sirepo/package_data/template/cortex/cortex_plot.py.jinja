@@ -275,6 +275,8 @@ class pyplot:
     def savefig(cls, filename, **kwargs):
         assert len(cls._figure.plots)
         pykern.pkjson.dump_pretty(cls._figure, f"{filename}.json")
+        # ensure plots label fit on canvas
+        _plt.tight_layout()
         _plt.savefig(filename, **kwargs)
         cls._figure = PKDict(plots=[])
         cls._ax = None
