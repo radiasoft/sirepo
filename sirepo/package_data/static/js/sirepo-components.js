@@ -5604,6 +5604,7 @@ SIREPO.app.directive('phaseSpacePlots', function() {
         restrict: 'A',
         scope: {
             hideFrameSelector: '@',
+            longitudinal: '@',
         },
         template: `
             <div class="col-sm-12">
@@ -5638,7 +5639,7 @@ SIREPO.app.directive('phaseSpacePlots', function() {
                 Horizontal: 'x-px',
                 Vertical: 'y-py',
                 'Cross-section': 'x-y',
-                Longitudinal: 't-pt',
+                Longitudinal: $scope.longitudinal || 't-pt',
             };
             $scope.reports = SIREPO.BUNCH_ANIMATION_NAMES;
 

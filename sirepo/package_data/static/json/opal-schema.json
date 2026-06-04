@@ -389,18 +389,21 @@
             "histogramBins",
             "x",
             "y",
+            "beamOut",
             "coordOut"
         ],
         "bunchAnimation2": [
             "histogramBins",
             "x",
             "y",
+            "beamOut",
             "coordOut"
         ],
         "bunchAnimation3": [
             "histogramBins",
             "x",
             "y",
+            "beamOut",
             "coordOut"
         ],
         "comparisonAnimation": [
@@ -470,7 +473,7 @@
             "x": ["X Value", "PhaseSpaceCoordinate", "x"],
             "y": ["Y Value", "PhaseSpaceCoordinate", "px"],
             "plotType": ["Plot Type", "PlotType", "heatmap"],
-            "histogramBins": ["Histogram Bins", "Integer", 80],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "fit"],
@@ -511,7 +514,7 @@
         },
         "comparisonAnimation": {
             "beamOut": ["TRACK Beam Output", "InputFile", "", "TRACK beam.out output file"],
-            "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.5"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.25"],
             "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
             "notes": ["Notes", "Text", ""]
         },

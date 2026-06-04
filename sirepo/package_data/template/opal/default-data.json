@@ -1,20 +1,6 @@
 {
     "models": {
         "beamlines": [],
-        "bunchAnimation": {
-            "aspectRatio": "1",
-            "colorMap": "viridis",
-            "framesPerSecond": "2",
-            "histogramBins": 200,
-            "horizontalOffset": 0.0,
-            "horizontalSize": 0,
-            "notes": "",
-            "plotRangeType": "fit",
-            "verticalOffset": 0.0,
-            "verticalSize": 0,
-            "x": "x",
-            "y": "px"
-        },
         "bunchReport1": {
             "x": "x",
             "y": "px"

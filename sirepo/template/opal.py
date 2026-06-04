@@ -20,9 +20,9 @@ import math
 import numpy
 import pykern.pkjson
 import re
+import scipy.constants
 import sirepo.lib
 import sirepo.sim_data
-
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
@@ -588,6 +588,56 @@ def save_sequential_report_data(data, run_dir):
 
 
 def _bunch_comparison(frame_args):
+
+    def _final_energy():
+        d = _read_track_beam_out(frame_args)
+        return d[-1][1]
+
+    #TODO(pjm): need to move all track specific code to track_parser.py
+
+    def _stats(coords):
+        r = PKDict()
+        # energy to W0, assuming proton
+        amu_mev = scipy.constants.physical_constants[
+            "proton mass energy equivalent in MeV"
+        ][0]
+        W0 = _final_energy()
+        W = W0 + coords.dW
+        gamma = 1.0 + W / amu_mev
+        beta_gamma = numpy.sqrt(gamma**2 - 1.0)
+        r.beta = beta_gamma / gamma
+        xp = coords.xp_mrad * 1e-3
+        yp = coords.yp_mrad * 1e-3
+        r.tx = numpy.tan(xp)
+        r.ty = numpy.tan(yp)
+        r.pz = beta_gamma / numpy.sqrt(1.0 + r.tx**2 + r.ty**2)
+        return r
+
+    def _coord(name, coords):
+        if name == "x":
+            return coords.x_cm * 1e-2, "x [m]"
+        if name == "y":
+            return coords.y_cm * 1e-2, "y [m]"
+        if name == "z":
+            s = _stats(coords)
+            return (
+                -s.beta
+                * scipy.constants.physical_constants["speed of light in vacuum"][0]
+                * (coords.dt_ns * 1e-9)
+            ), "z [m]"
+        if name == "px":
+            s = _stats(coords)
+            return s.pz * s.tx, "px (#beta#gamma)"
+        if name == "py":
+            s = _stats(coords)
+            return s.pz * s.ty, "py (#beta#gamma)"
+        if name == "pz":
+            s = _stats(coords)
+            return s.pz, "pz (#beta#gamma)"
+        if name == "q":
+            return coords.iq, ""
+        assert False
+
     def _get_range(field, p1, p2):
         return [
             min(min(p1[field]), min(p2[field])),
@@ -597,17 +647,11 @@ def _bunch_comparison(frame_args):
     def _points(file, frame_index, name):
         return numpy.array(file["/Step#{}/{}".format(frame_index, name)])
 
-    def _read_opal():
-        with h5py.File(str(frame_args.run_dir.join(_OPAL_H5_FILE)), "r") as f:
-            return [
-                _points(f, frame_args.frameIndex, frame_args.x),
-                _points(f, frame_args.frameIndex, frame_args.y),
-            ]
-
     def _read_coords(coord_file):
         # Nseed iq dt[ns] dW[MeV/u] x[cm] x'[mrad] y[cm] y'[mrad]
         d = numpy.loadtxt(coord_file, skiprows=1)
         return PKDict(
+            iq=d[:, 1],
             dt_ns=d[:, 2],
             dW=d[:, 3],
             x_cm=d[:, 4],
@@ -616,17 +660,29 @@ def _bunch_comparison(frame_args):
             yp_mrad=d[:, 7],
         )
 
-    p1 = _read_opal()
-    d = _read_coords(
-        _SIM_DATA.lib_file_abspath(
-            _SIM_DATA.lib_file_name_with_model_field(
-                "trackComparison",
-                "coordOut",
-                frame_args.coordOut,
+    def _read_opal():
+        with h5py.File(str(frame_args.run_dir.join(_OPAL_H5_FILE)), "r") as f:
+            return [
+                _points(f, frame_args.frameIndex, frame_args.x),
+                _points(f, frame_args.frameIndex, frame_args.y),
+            ]
+
+    def _read_track():
+        d = _read_coords(
+            _SIM_DATA.lib_file_abspath(
+                _SIM_DATA.lib_file_name_with_model_field(
+                    "trackComparison",
+                    "coordOut",
+                    frame_args.coordOut,
+                )
             )
         )
-    )
-    p2 = [d.x_cm * 1e-2, d.y_cm * 1e-2]
+        x, xlabel = _coord(frame_args.x, d)
+        y, ylabel = _coord(frame_args.y, d)
+        return [x, y], PKDict(x=xlabel, y=ylabel)
+
+    p1 = _read_opal()
+    p2, labels = _read_track()
     xrange = _get_range(0, p1, p2)
     yrange = _get_range(1, p1, p2)
     frame_args.pkupdate(
@@ -646,8 +702,8 @@ def _bunch_comparison(frame_args):
         p2,
         frame_args,
         PKDict(
-            x_label="x [m]",
-            y_label="y [m]",
+            x_label=labels.x,
+            y_label=labels.y,
         ),
     )
     if frame_args.frameReport == "bunchAnimation2":
@@ -716,16 +772,13 @@ def sim_frame_bunchAnimation(frame_args):
     return bunch_plot(a, a.run_dir, a.frameIndex)
 
 
-def sim_frame_comparisonAnimation(frame_args):
-    from sirepo.template import sdds_util
-
+def _read_track_beam_out(frame_args):
     def _read_track(track_file):
         with open(track_file, "r") as f:
             table = [line.strip().split() for line in f]
             return numpy.asarray(table[1::])[:, 2::].astype(float)
 
-    plots = []
-    d = _read_track(
+    return _read_track(
         _SIM_DATA.lib_file_abspath(
             _SIM_DATA.lib_file_name_with_model_field(
                 "trackComparison",
@@ -735,6 +788,12 @@ def sim_frame_comparisonAnimation(frame_args):
         )
     )
 
+
+def sim_frame_comparisonAnimation(frame_args):
+    from sirepo.template import sdds_util
+
+    plots = []
+    d = _read_track_beam_out(frame_args)
     x = d[:, 0].tolist()
     plots.append(
         PKDict(
@@ -884,31 +943,21 @@ def stateful_compute_import_file(data, **kwargs):
 def validate_file(file_type, path, sim_id, qcall):
 
     def _hashed_name(name):
-        return (
-            simulation_db.read_simulation_json(SIM_TYPE, sim_id, qcall),
-            f"{name}-{path.computehash()[:8]}.txt",
-        )
+        return f"{name}-{path.computehash()[:8]}.txt"
 
-    d, n = (None, None)
-    if "beamOut" in file_type:
-        d, n = _hashed_name(path.basename)
-        d.models.trackComparison.beamOut = n
-    elif "coordOut" in file_type:
-        d, n = _hashed_name(path.basename)
-        d.models.trackComparison.coordOut = n
+    n = None
+    if "beamOut" in file_type or "coordOut" in file_type:
+        n = _hashed_name(path.basename)
     else:
         # imported TRACK input files are always eh_EMS#\d+ or eh_MWS#\d+
         if m := re.search(r"/eh_(\w+\.\d+)$", str(path)):
-            d, n = _hashed_name(m.group(1))
+            n = _hashed_name(m.group(1))
+            d = simulation_db.read_simulation_json(SIM_TYPE, sim_id, qcall)
             for e in d.models.elements:
                 if e.get("fmapfn") and e.fmapfn.replace("#", "") == path.basename:
                     e.fmapfn = n
-    if n:
-        simulation_db.save_simulation_json(d, False, qcall=qcall)
-        return PKDict(
-            filename=n,
-        )
-    return None
+            simulation_db.save_simulation_json(d, False, qcall=qcall)
+    return PKDict(filename=n) if n else None
 
 
 def write_parameters(data, run_dir, is_parallel):

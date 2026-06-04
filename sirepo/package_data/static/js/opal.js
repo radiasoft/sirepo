@@ -431,17 +431,13 @@ SIREPO.app.controller('ComparisonController', function(appState, frameCache, per
     const self = this;
     self.simScope = $scope;
 
-    function updateBeamOut() {
-        appState.models.comparisonAnimation.beamOut = appState.models.trackComparison.beamOut;
-        appState.saveChanges('comparisonAnimation');
-    }
+    self.showBeamComparison = () => {
+        return appState.applicationState().trackComparison.beamOut && self.simState.hasFrames();
+    };
 
-    function updateCoordOut() {
-        for (const m of SIREPO.BUNCH_ANIMATION_NAMES) {
-            appState.models[m].coordOut = appState.models.trackComparison.coordOut;
-        }
-        appState.saveChanges(SIREPO.BUNCH_ANIMATION_NAMES);
-    }
+    self.showPhaseSpaceComparison = () => {
+        return appState.applicationState().trackComparison.coordOut && self.simState.hasFrames();
+    };
 
     self.simHandleStatus = function (data) {
         frameCache.setFrameCount(data.frameCount || 0);
@@ -453,13 +449,14 @@ SIREPO.app.controller('ComparisonController', function(appState, frameCache, per
 
     self.simState = persistentSimulation.initSimulationState(self);
 
-    appState.whenModelsLoaded($scope, () => {
-        appState.watchModelFields($scope, [
-            'trackComparison.coordOut',
-        ], updateCoordOut);
-        appState.watchModelFields($scope, [
-            'trackComparison.beamOut',
-        ], updateBeamOut);
+    $scope.$on('trackComparison.changed', () => {
+        appState.models.comparisonAnimation.beamOut = appState.models.trackComparison.beamOut;
+        appState.saveQuietly('comparisonAnimation');
+        for (const m of SIREPO.BUNCH_ANIMATION_NAMES) {
+            appState.models[m].coordOut = appState.models.trackComparison.coordOut;
+            appState.models[m].beamOut = appState.models.trackComparison.beamOut;
+            appState.saveQuietly(m);
+        }
     });
 });
 
