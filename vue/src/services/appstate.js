@@ -52,6 +52,9 @@ class UIContext {
                 enabled: true,
                 tooltip: sm[f][3],
                 widget: sm[f][1],
+                //TODO(pjm): this is only for numeric types
+                min: sm[f][4],
+                max: sm[f][5],
             };
         }
         return r;
