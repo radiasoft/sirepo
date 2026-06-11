@@ -295,7 +295,8 @@ def _adjust_log_ranges(plot):
         v = numpy.array(p.points)
         v[v <= 0] = 1e-24
         p.points = v.tolist()
-        m = numpy.min(v[v > 1e-24])
+        v = v[v > 1e-24]
+        m = numpy.min(v) if len(v) else 1e-24
         if min_value is None or m < min_value:
             min_value = m
     plot.y_range[0] = min_value

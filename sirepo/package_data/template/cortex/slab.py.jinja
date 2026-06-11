@@ -261,9 +261,9 @@ if SIM_TYPE == "tokamak":
     BATCHES                     = 15
     PARTICLES_PER_BATCH    = 1_000_000
 else:
-    TALLY_CONVERGENCE_THRESHOLD = 0.01 # 1%
+    TALLY_CONVERGENCE_THRESHOLD = {{ simulationSettings_tallyConvergenceThreshold }}
     BATCHES                     = 10
-    PARTICLES_PER_BATCH    = 100_000
+    PARTICLES_PER_BATCH    = {{ simulationSettings_particlesPerBatch }}
 
 
 USE_TRIGGER            = True   # False = fixed batches, no convergence check
