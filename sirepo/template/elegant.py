@@ -796,7 +796,7 @@ def extract_report_data(filename, frame_args, page_count=0):
             position = sdds_util.read_sdds_parameter(filename, "s")
         else:
             # for old sim output, use non-numbered file
-            filename = re.sub("\-\d+\.sdds", ".sdds", filename)
+            filename = re.sub(r"\-\d+\.sdds", ".sdds", filename)
     if not _is_histogram_file(
         filename,
         sdds_util.extract_sdds_column(filename, frame_args[x_field], 0)["column_names"],

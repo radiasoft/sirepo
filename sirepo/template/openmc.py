@@ -280,8 +280,8 @@ def stateful_compute_download_remote_lib_file(data, **kwargs):
             sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
             data.args.exampleURL,
         ),
-        "geometryInput",
-        "dagmcFile",
+        data.args.modelName,
+        data.args.fieldName,
     )
     return PKDict()
 
