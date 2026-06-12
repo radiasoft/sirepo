@@ -1,6 +1,6 @@
 """cortex execution template.
 
-:copyright: Copyright (c) 2025 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2026 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
@@ -27,7 +27,6 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _CHAIN_ENDF_FILE = "chain_endf_b8.0.xml"
 _EUDEMO_H5M_FILE = "eudemo_f_1_27a.h5m"
 _SLAB_CHAIN_ENDF_FILE = "chain_endfb80_sfr.xml"
-_SURFACE_SOURCE_FILE = "surface_source.h5"
 _TOKAMAK_INPUTS_FILE = "Tokamak_inputs.json"
 _REPORT_TITLE = PKDict(
     tileAnimation=PKDict(
@@ -48,31 +47,32 @@ _REPORT_TITLE = PKDict(
         n_flux_spectrum_OB_1_b6="Neutron Flux",
         activity_all_cells="Total Activity over cooling time",
         activity_cell_Armor="Activity - Armor",
-        activity_cell_First_Wall="Activity - First Wall",
-        activity_cell_OB_1="Activity - OB_1",
-        activity_cell_OB_2="Activity - OB_2",
-        activity_cell_OB_3="Activity - OB_3",
-        activity_cell_OB_4="Activity - OB_4",
-        activity_cell_OB_5="Activity - OB_5",
-        activity_cell_OB_6="Activity - OB_6",
-        activity_cell_OB_7="Activity - OB_7",
-        activity_cell_OB_8="Activity - OB_8",
+        activity_cell_First_wall="Activity - First Wall",
+        activity_cell_Breeder_layer_1="Activity - Breeder layer 1",
+        activity_cell_Breeder_layer_2="Activity - Breeder layer 2",
+        activity_cell_Breeder_layer_3="Activity - Breeder layer 3",
+        activity_cell_Breeder_layer_4="Activity - Breeder layer 4",
+        activity_cell_Breeder_layer_5="Activity - Breeder layer 5",
+        activity_cell_Breeder_layer_6="Activity - Breeder layer 6",
+        activity_cell_Breeder_layer_7="Activity - Breeder layer 7",
+        activity_cell_Breeder_layer_8="Activity - Breeder layer 8",
+        activity_cell_Breeder_layer_9="Activity - Breeder layer 9",
         activity_cell_VV="Activity - VV",
         decayheat_all_cells="Total decay heat",
         decayheat_Armor="Decay heat - Armor",
-        decayheat_First_Wall="Decay heat - First Wall",
-        decayheat_OB_1="Decay heat - OB1",
-        decayheat_OB_2="Decay heat - OB2",
-        decayheat_OB_3="Decay heat - OB3",
-        decayheat_OB_4="Decay heat - OB4",
-        decayheat_OB_5="Decay heat - OB5",
-        decayheat_OB_6="Decay heat - OB6",
-        decayheat_OB_7="Decay heat - OB7",
-        decayheat_OB_8="Decay heat - OB8",
+        decayheat_First_wall="Decay heat - First Wall",
+        decayheat_Breeder_layer_1="Decay heat - Breeder layer 1",
+        decayheat_Breeder_layer_2="Decay heat - Breeder layer 2",
+        decayheat_Breeder_layer_3="Decay heat - Breeder layer 3",
+        decayheat_Breeder_layer_4="Decay heat - Breeder layer 4",
+        decayheat_Breeder_layer_5="Decay heat - Breeder layer 5",
+        decayheat_Breeder_layer_6="Decay heat - Breeder layer 6",
+        decayheat_Breeder_layer_7="Decay heat - Breeder layer 7",
+        decayheat_Breeder_layer_8="Decay heat - Breeder layer 8",
+        decayheat_Breeder_layer_9="Decay heat - Breeder layer 9",
         decayheat_VV="Decay heat - VV",
         radial_activity_profiles="Radial profile of Total activity per cooling time",
         radial_decayheat_profiles="Radial profile of decay heat per cooling time",
-        sdr_profile_OB_1_b6="D1S spatial profile: OB_1_b6",
     ),
 )
 
@@ -82,8 +82,10 @@ _SIM_JINJA = PKDict(
 )
 
 SIM_VERSION = PKDict(
-    slabAnimation="1.02",
-    tileAnimation="1.04",
+    hcllSlabAnimation="1.01",
+    hcpbSlabAnimation="1.01",
+    tileAnimation="1.05",
+    wcllSlabAnimation="1.01",
 )
 
 _SIM_OUTPUT = PKDict(
@@ -92,7 +94,8 @@ _SIM_OUTPUT = PKDict(
 )
 
 _SAVE_SIM_RESULTS = PKDict(
-    slabAnimation=PKDict(
+    # TODO(pjm): choosing WCLL as the standard
+    wcllSlabAnimation=PKDict(
         dpa_OB_1_b6=[[1, 45, "DPA at 45cm"]],
         h1_OB_1_b6=[[1, 45, "H at 45cm"]],
         he_OB_1_b6=[[1, 45, "He at 45cm"]],
@@ -105,7 +108,8 @@ _SAVE_SIM_RESULTS = PKDict(
 
 _SIM_TIME = PKDict(
     tileAnimation=104,
-    slabAnimation=9540,
+    # TODO(pjm): measure this
+    slabAnimation=679,
 )
 _LOG_TIME = PKDict(
     tileAnimation=[
@@ -123,41 +127,43 @@ _LOG_TIME = PKDict(
             ["Simulating batch 1", 100],
         )
     ],
+    # TODO(pjm): measure this
     slabAnimation=[
         [v[0], v[1] / _SIM_TIME.slabAnimation]
         for v in (
-            ["Simulating batch 2", 210],
-            ["Simulating batch 3", 330],
-            ["Simulating batch 4", 480],
-            ["Simulating batch 5", 600],
-            ["Simulating batch 6", 750],
-            ["Simulating batch 7", 900],
-            ["Simulating batch 8", 1020],
-            ["Simulating batch 9", 1170],
-            ["Simulating batch 10", 1320],
-            ["Performing D1S run", 1440],
-            ["Simulating batch 1", 1470],
-            ["Simulating batch 2", 1890],
-            ["Simulating batch 3", 2310],
-            ["Simulating batch 4", 2730],
-            ["Simulating batch 5", 3150],
-            ["Simulating batch 6", 3570],
-            ["Simulating batch 7", 3990],
-            ["Simulating batch 8", 4410],
-            ["Simulating batch 9", 4830],
-            ["Simulating batch 10", 5250],
-            ["Creating state point", 5640],
-            ["Simulating batch 1", 5670],
-            ["Simulating batch 2", 6030],
-            ["Simulating batch 3", 6420],
-            ["Simulating batch 4", 6810],
-            ["Simulating batch 5", 7200],
-            ["Simulating batch 6", 7590],
-            ["Simulating batch 7", 7980],
-            ["Simulating batch 8", 8370],
-            ["Simulating batch 9", 8760],
-            ["Simulating batch 10", 9150],
-            ["Creating state point", 9510],
+            ["Reading model XML file", 50],
+            ["Simulating batch 2", 75],
+            ["Simulating batch 3", 93],
+            ["Simulating batch 4", 111],
+            ["Simulating batch 5", 128],
+            ["Simulating batch 6", 147],
+            ["Simulating batch 7", 165],
+            ["Simulating batch 8", 182],
+            ["Simulating batch 9", 200],
+            ["Simulating batch 10", 217],
+            ["Performing D1S run", 244],
+            ["Simulating batch 1", 252],
+            ["Simulating batch 2", 274],
+            ["Simulating batch 3", 297],
+            ["Simulating batch 4", 319],
+            ["Simulating batch 5", 342],
+            ["Simulating batch 6", 364],
+            ["Simulating batch 7", 387],
+            ["Simulating batch 8", 410],
+            ["Simulating batch 9", 432],
+            ["Simulating batch 10", 454],
+            ["Creating state point", 476],
+            ["Simulating batch 1", 488],
+            ["Simulating batch 2", 503],
+            ["Simulating batch 3", 520],
+            ["Simulating batch 4", 535],
+            ["Simulating batch 5", 551],
+            ["Simulating batch 6", 566],
+            ["Simulating batch 7", 582],
+            ["Simulating batch 8", 597],
+            ["Simulating batch 9", 613],
+            ["Simulating batch 10", 629],
+            ["Creating state point", 644],
         )
     ],
 )
@@ -168,7 +174,7 @@ def background_percent_complete(report, run_dir, is_running):
     def _percent_complete():
         r = 0
         i = 0
-        log_time = _LOG_TIME[report]
+        log_time = _LOG_TIME[_report_type(report)]
         n = run_dir.join(CORTEX_RUN_LOG)
         if n.exists():
             with pykern.pkio.open_text(n) as f:
@@ -180,7 +186,7 @@ def background_percent_complete(report, run_dir, is_running):
                             break
         return r * 100
 
-    o = _SIM_OUTPUT[report]
+    o = _SIM_OUTPUT[_report_type(report)]
     if not is_running and run_dir.join(_json_filename(o[0])).exists():
         _save_summary_to_database(run_dir, report, o)
         return PKDict(
@@ -247,20 +253,22 @@ def write_parameters(data, run_dir, is_parallel):
         v.pkupdate(
             chainPath=sirepo.template.openmc.remote_datafile_path(_CHAIN_ENDF_FILE),
         )
-    elif data.report == "slabAnimation":
+    elif "SlabAnimation" in data.report:
+        t = re.search(r"(\w+)SlabAnimation", data.report).group(1).upper()
+        for n in (
+            f"EUDEMO_{t}_inputs.json",
+            f"{t}_surface_source.h5",
+            f"{t}_armor_current_neutron.json",
+        ):
+            sirepo.template.openmc.remote_datafile_path(n, compress=False)
         v.pkupdate(
             chainPath=sirepo.template.openmc.remote_datafile_path(
                 _SLAB_CHAIN_ENDF_FILE
             ),
-            eudemoH5m=sirepo.template.openmc.remote_datafile_path(
-                _EUDEMO_H5M_FILE, compress=False
-            ),
-            tokamakInputs=sirepo.template.openmc.remote_datafile_path(
-                _TOKAMAK_INPUTS_FILE, compress=False
-            ),
-            surfaceSource=sirepo.template.openmc.remote_datafile_path(
-                _SURFACE_SOURCE_FILE, compress=False
-            ),
+            dagmcPath=sirepo.template.openmc.remote_datafile_path(
+                f"eudemo_{t.lower()}.h5m", compress=False
+            ).dirname,
+            slabType=t,
         )
 
     pykern.pkio.write_text(
@@ -275,7 +283,7 @@ def write_parameters(data, run_dir, is_parallel):
                 ),
             )
             .pkupdate(v),
-            f"{_SIM_JINJA[data.report]}.py",
+            f"{_SIM_JINJA[_report_type(data.report)]}.py",
         ),
     )
     return None
@@ -287,7 +295,8 @@ def _adjust_log_ranges(plot):
         v = numpy.array(p.points)
         v[v <= 0] = 1e-24
         p.points = v.tolist()
-        m = numpy.min(v[v > 1e-24])
+        v = v[v > 1e-24]
+        m = numpy.min(v) if len(v) else 1e-24
         if min_value is None or m < min_value:
             min_value = m
     plot.y_range[0] = min_value
@@ -311,6 +320,9 @@ def _generate_material_definition(data):
                 {c.component_type}="{c.component}",
                 percent={c.percent / 100.0},
             ),"""
+    material_directory = sirepo.sim_run.cache_dir(
+        sirepo.template.openmc.OPENMC_CACHE_DIR
+    )
     return f"""
 # this import add openmc.Materials.download_cross_section_data()
 import openmc_data_downloader
@@ -340,6 +352,12 @@ def material_from_definition(definition):
 
 sp_count = 0
 sp_names = {STATEPOINTS}
+
+def rsdownload(materials):
+    materials.download_cross_section_data(
+        libraries=["ENDFB-8.0-NNDC", "ENDFB-7.1-NNDC", "FENDL-3.1d", "TENDL-2019"],
+        destination="{ material_directory }",
+    )
 
 def rsrun(statepoint):
     global sp_count
@@ -403,7 +421,7 @@ def _plot_from_file(run_dir, material_id, report, stat):
         legend.append(p.label or d.ylabel)
     return PKDict(
         material_id=material_id,
-        title=_REPORT_TITLE[report][stat],
+        title=_REPORT_TITLE[_report_type(report)][stat],
         xlabel=_label(d.xlabel),
         ylabel=_label(d.ylabel),
         plot_type=d.type or "linear",
@@ -416,6 +434,10 @@ def _plot_from_file(run_dir, material_id, report, stat):
 
 def _png_filename(stat):
     return f"{stat}.png"
+
+
+def _report_type(report):
+    return re.sub(r"(\w+S)(labAnimation)", r"s\2", report)
 
 
 def _save_summary_to_database(run_dir, report, stats):

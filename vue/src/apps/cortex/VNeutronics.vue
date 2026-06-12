@@ -1,13 +1,21 @@
 <template>
     <div class="col-md-8 col-xl-6">
-        <VCard viewName="simulationStatus" v-bind:title="title">
+        <VCard
+            v-if="isReady"
+            v-bind:viewName="isViewing() ? 'simulationStatus' : 'simulationSettings'"
+            v-bind:title="title"
+        >
             <div v-if="hasPlots" class="float-end">
-                <button class="btn btn-sm btn-outline-secondary" v-on:click="downloadOutputZip" title="Download output files">
+                <button
+                    class="btn btn-sm btn-outline-secondary"
+                    v-on:click="downloadOutputZip"
+                    title="Download output files"
+                >
                     <span class="bi bi-download"></span>
                 </button>
             </div>
             <div class="row">
-                <div class="col-sm-7" v-if="isReady">
+                <div class="col-sm-7">
                     <div v-if="simSummary">
                         <div>
                             <b>Completed:</b> {{ util.formatDate(simSummary.completed) }}
@@ -20,7 +28,7 @@
                             This simulation was run with the most recent model.
                         </div>
                     </div>
-                    <div v-if="showRunSim()">
+                    <div v-if="! isViewing()" class="mt-3">
                         <VNeutronicsSim
                             v-bind:materialId="materialId"
                             v-bind:neutronics="neutronics"
@@ -28,7 +36,7 @@
                         />
                     </div>
                 </div>
-                <div class="col-sm-5" v-if="neutronics === 'slabAnimation'">
+                <div class="col-sm-5" v-if="neutronics.indexOf('SlabAnimation') > 0">
                     <img class="img-fluid" v-bind:src="slabUrl" alt="Slab" style="max-height: 250px"/>
                 </div>
             </div>
@@ -103,16 +111,6 @@
      a.download = util.downloadFilename(`${props.materialName} ${props.title}`, 'zip');
      a.click();
      URL.revokeObjectURL(u);
- };
-
- const showRunSim = () => {
-     if (isViewing()) {
-         return false;
-     }
-     if (isSimOutOfDate()) {
-         return true;
-     }
-     return ! hasPlots.value;
  };
 
  const isSimOutOfDate = () => {

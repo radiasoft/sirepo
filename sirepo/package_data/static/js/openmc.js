@@ -330,21 +330,23 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
     self.simScope = $scope;
     self.simComputeModel = 'dagmcAnimation';
 
-    function downloadRemoteGeometryFile() {
+    function downloadRemoteGeometryFile(modelName, fieldName) {
         requestSender.sendStatefulCompute(
             appState,
             data => {
                 if (data.error) {
                     throw new Error(data.error);
                 }
-                appState.models.geometryInput.exampleURL = "";
-                appState.saveQuietly('geometryInput');
+                appState.models[modelName].exampleURL = "";
+                appState.saveQuietly(modelName);
                 processGeometry();
             },
             {
                 method: 'download_remote_lib_file',
                 args: {
-                    exampleURL: appState.models.geometryInput.exampleURL,
+                    exampleURL: appState.models[modelName].exampleURL,
+                    modelName: modelName,
+                    fieldName: fieldName,
                 },
             }
         );
@@ -364,9 +366,11 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
         panelState.showFields('geometryInput', [
             ['dagmcFile', 'materialsFile'], false,
         ]);
-        if (appState.models.geometryInput.exampleURL) {
-            downloadRemoteGeometryFile();
-            return;
+        for (const m of [['geometryInput', 'dagmcFile'], ['source', 'file']]) {
+            if (appState.models[m[0]] && appState.models[m[0]].exampleURL) {
+                downloadRemoteGeometryFile(m[0], m[1]);
+                return;
+            }
         }
         hasGeometry = true;
         self.simState.runSimulation();
