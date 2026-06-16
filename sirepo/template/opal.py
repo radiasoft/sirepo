@@ -593,7 +593,7 @@ def _bunch_comparison(frame_args):
         d = _read_track_beam_out(frame_args)
         return d[-1][1]
 
-    #TODO(pjm): need to move all track specific code to track_parser.py
+    # TODO(pjm): need to move all track specific code to track_parser.py
 
     def _stats(coords):
         r = PKDict()
@@ -792,6 +792,13 @@ def _read_track_beam_out(frame_args):
 def sim_frame_comparisonAnimation(frame_args):
     from sirepo.template import sdds_util
 
+    def _reduce_array(v):
+        MAX_SIZE = 10000
+        step = int(round(len(v) / MAX_SIZE))
+        if step > 0:
+            return v[0 : len(v) : step]
+        return v
+
     plots = []
     d = _read_track_beam_out(frame_args)
     x = d[:, 0].tolist()
@@ -814,11 +821,13 @@ def sim_frame_comparisonAnimation(frame_args):
         )
     )
 
-    x = sdds_util.extract_sdds_column(_OPAL_SDDS_FILE, "s", 0)["values"]
+    x = _reduce_array(sdds_util.extract_sdds_column(_OPAL_SDDS_FILE, "s", 0)["values"])
     plots.append(
         PKDict(
             x_points=x,
-            points=sdds_util.extract_sdds_column(_OPAL_SDDS_FILE, "rms_x", 0)["values"],
+            points=_reduce_array(
+                sdds_util.extract_sdds_column(_OPAL_SDDS_FILE, "rms_x", 0)["values"]
+            ),
             label="OPAL x rms [m]",
             style="scatter",
             circleRadius=1,
@@ -827,13 +836,15 @@ def sim_frame_comparisonAnimation(frame_args):
     plots.append(
         PKDict(
             x_points=x,
-            points=sdds_util.extract_sdds_column(_OPAL_SDDS_FILE, "rms_y", 0)["values"],
+            points=_reduce_array(
+                sdds_util.extract_sdds_column(_OPAL_SDDS_FILE, "rms_y", 0)["values"]
+            ),
             label="OPAL y rms [m]",
             style="scatter",
             circleRadius=1,
         ),
     )
-    return template_common.parameter_plot(
+    r = template_common.parameter_plot(
         x,
         plots,
         frame_args,
@@ -843,6 +854,9 @@ def sim_frame_comparisonAnimation(frame_args):
             dynamicYLabel=True,
         ),
     )
+    r.plots[2].color = r.plots[0].color
+    r.plots[3].color = r.plots[1].color
+    return r
 
 
 def sim_frame_plotAnimation(frame_args):
