@@ -186,8 +186,8 @@
             "useReflectivePlanes": "1"
         },
         "source": {
-            "file": "HCPB_surface_source.h5",
-            "exampleURL": "HCPB_surface_source.h5"
+            "file": "EUDEMO_HCPB_tokamak_source.h5",
+            "exampleURL": "EUDEMO_HCPB_tokamak_source.h5"
         },
         "settings": {
             "batches": 5,
@@ -212,7 +212,7 @@
                     "energy": {
                         "_type": "None"
                     },
-                    "file": "HCPB_surface_source.h5",
+                    "file": "EUDEMO_HCPB_tokamak_source.h5",
                     "particle": "neutron",
                     "space": {
                         "_type": "None"
