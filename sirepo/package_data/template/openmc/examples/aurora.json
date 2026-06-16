@@ -1,5 +1,12 @@
 {
     "models": {
+        "_externalFiles": [
+            {
+                "name": "aurora.h5m",
+                "model": "geometryInput",
+                "field": "dagmcFile"
+            }
+        ],
         "dagmcAnimation": {},
         "geometry3DReport": {
             "bgColor": "#fff9ed",
@@ -7,8 +14,7 @@
             "showEdges": "0"
         },
         "geometryInput": {
-            "dagmcFile": "aurora.h5m",
-            "exampleURL": "aurora.h5m"
+            "dagmcFile": "aurora.h5m"
         },
         "openmcAnimation": {
             "aspect": "mean",

@@ -180,6 +180,13 @@ def _init():
             set,
             "codes where all users must be authorized via moderation",
         ),
+        opal=dict(
+            data_storage_url=(
+                "https://github.com/radiasoft/sirepo-data-opal/raw/main/",
+                str,
+                "url base to reach opal example data files",
+            ),
+        ),
         openmc=dict(
             data_storage_url=(
                 "https://github.com/radiasoft/sirepo-data-cloudmc/raw/master/",

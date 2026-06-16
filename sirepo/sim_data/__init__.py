@@ -256,8 +256,13 @@ class SimDataBase(object):
         res.update(
             "".join(
                 (
-                    str(cls.lib_file_abspath(b, data=data, qcall=qcall).mtime())
-                    for b in sorted(cls.lib_file_basenames(data))
+                    # file may not exist if it is an external example datafile
+                    str(p.mtime())
+                    for p in [
+                        cls._lib_file_abspath(b, qcall)
+                        for b in sorted(cls.lib_file_basenames(data))
+                    ]
+                    if p.exists()
                 ),
             ).encode()
         )
@@ -920,8 +925,26 @@ class SimDataBase(object):
                 return data
             raise FileNotFoundError(f"path={cls.sim_run_input_path(run_dir)}")
 
+        def _download_external_files(data):
+            for f in data.models.get("_externalFiles", []):
+                if cls.lib_file_exists(
+                    cls.lib_file_name_with_model_field(f.model, f.field, f.name)
+                ):
+                    continue
+                cls.lib_file_save_from_url(
+                    "{}/{}".format(
+                        sirepo.feature_config.for_sim_type(
+                            cls.sim_type()
+                        ).data_storage_url,
+                        f.name,
+                    ),
+                    f.model,
+                    f.field,
+                )
+
         r = pkio.py_path(run_dir)
         d = _data(r, data)
+        _download_external_files(d)
         cls.support_files_to_run_dir(data=d, run_dir=r)
         return _cmd(r, d, sirepo.template.import_module(cls.sim_type()))
 

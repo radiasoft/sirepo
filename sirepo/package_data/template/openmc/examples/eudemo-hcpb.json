@@ -1,5 +1,17 @@
 {
     "models": {
+        "_externalFiles": [
+            {
+                "name": "eudemo_hcpb.h5m",
+                "model": "geometryInput",
+                "field": "dagmcFile"
+            },
+            {
+                "name": "EUDEMO_HCPB_tokamak_source.h5",
+                "model": "source",
+                "field": "file"
+            }
+        ],
         "dagmcAnimation": {},
         "energyAnimation": {
             "score": "flux",
@@ -16,7 +28,6 @@
         },
         "geometryInput": {
             "dagmcFile": "eudemo_hcpb.h5m",
-            "exampleURL": "eudemo_hcpb.h5m",
             "materialsFile": ""
         },
         "openmcAnimation": {
@@ -185,10 +196,6 @@
             ],
             "useReflectivePlanes": "1"
         },
-        "source": {
-            "file": "HCPB_surface_source.h5",
-            "exampleURL": "HCPB_surface_source.h5"
-        },
         "settings": {
             "batches": 5,
             "eigenvalueHistory": 5,
@@ -212,7 +219,7 @@
                     "energy": {
                         "_type": "None"
                     },
-                    "file": "HCPB_surface_source.h5",
+                    "file": "EUDEMO_HCPB_tokamak_source.h5",
                     "particle": "neutron",
                     "space": {
                         "_type": "None"

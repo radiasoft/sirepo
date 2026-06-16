@@ -274,18 +274,6 @@ def stateful_compute_verify_geometry(data, **kwargs):
     )
 
 
-def stateful_compute_download_remote_lib_file(data, **kwargs):
-    _SIM_DATA.lib_file_save_from_url(
-        "{}/{}".format(
-            sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
-            data.args.exampleURL,
-        ),
-        data.args.modelName,
-        data.args.fieldName,
-    )
-    return PKDict()
-
-
 def stateful_compute_get_standard_material_names(data, **kwargs):
     res = []
     with _standard_material_open() as f:
