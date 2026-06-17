@@ -25,14 +25,42 @@
             "aspectRatio": "1",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 60,
             "horizontalOffset": 0.0,
             "horizontalSize": 0.0,
             "notes": "",
             "plotRangeType": "fit",
             "plotType": "heatmap",
+            "selectedFrame": 0,
             "verticalOffset": 0.0,
             "verticalSize": 0.0,
+            "x": "x",
+            "y": "px"
+        },
+        "bunchAnimation1": {
+            "colorMap": "viridis",
+            "coordOut": "",
+            "histogramBins": 60,
+            "notes": "",
+            "plotType": "heatmap",
+            "x": "x",
+            "y": "px"
+        },
+        "bunchAnimation2": {
+            "colorMap": "viridis",
+            "coordOut": "",
+            "histogramBins": 60,
+            "notes": "",
+            "plotType": "heatmap",
+            "x": "x",
+            "y": "px"
+        },
+        "bunchAnimation3": {
+            "colorMap": "viridis",
+            "coordOut": "",
+            "histogramBins": 60,
+            "notes": "",
+            "plotType": "heatmap",
             "x": "x",
             "y": "px"
         },
@@ -289,6 +317,12 @@
                 "zstop": "{0.28,8.25}"
             }
         ],
+        "comparisonAnimation": {
+            "aspectRatio": "0.25",
+            "beamOut": "",
+            "includeLattice": "1",
+            "notes": ""
+        },
         "elements": [
             {
                 "_id": 102,
@@ -380,6 +414,12 @@
             "simulationMode": "serial",
             "simulationSerial": 0,
             "visualizationBeamlineId": 104
+        },
+        "trackComparison": {
+            "beamOut": "",
+            "coordOut": "",
+            "isTrackImport": "0",
+            "showComparisonTab": "0"
         }
     },
     "simulationType": "opal"

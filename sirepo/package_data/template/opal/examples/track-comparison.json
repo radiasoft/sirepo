@@ -1293,7 +1293,7 @@
             "folder": "/Examples",
             "isInitialized": true,
             "name": "TRACK Sim Comparison",
-            "simulationMode": "serial",
+            "simulationMode": "parallel",
             "simulationSerial": 1781630553011110,
             "visualizationBeamlineId": 101
         },

@@ -274,7 +274,6 @@ SIREPO.app.directive('appHeader', function(appState, latticeService, opalService
                 return appState.models.commands.length > 0;
             };
 
-            //TODO(pjm): this will not be correct if a simulation is copied
             $scope.showComparisonTab = () => appState.models.trackComparison.showComparisonTab === "1";
         },
     };
@@ -430,6 +429,7 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
 SIREPO.app.controller('ComparisonController', function(appState, frameCache, persistentSimulation, $scope) {
     const self = this;
     self.simScope = $scope;
+    self.showWarning = false;
 
     self.showBeamComparison = () => {
         return appState.applicationState().trackComparison.beamOut && self.simState.hasFrames();
@@ -439,12 +439,13 @@ SIREPO.app.controller('ComparisonController', function(appState, frameCache, per
         return appState.applicationState().trackComparison.coordOut && self.simState.hasFrames();
     };
 
-    self.simHandleStatus = function (data) {
+    self.simHandleStatus = (data) => {
         frameCache.setFrameCount(data.frameCount || 0);
         for (const m of SIREPO.BUNCH_ANIMATION_NAMES) {
             frameCache.setFrameCount(data.frameCount || 0, m);
         }
         frameCache.setFrameCount(data.frameCount || 0, 'comparisonAnimation');
+        self.showWarning = ! self.simState.hasFrames();
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
