@@ -7,13 +7,30 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo.template.line_parser import LineParser
+import h5py
 import math
 import numpy
+import pykern.pkjson
 import re
 import scipy.constants
 import sirepo.sim_data
+import sirepo.template.sdds_util
 import sirepo.template.template_common
 
+
+_COMPARISON_MAX_POINTS = 10000
+_COMPARISON_PLOTS = PKDict(
+    energy=PKDict(track_col=1, track_scale=1e6, opal_scale=1e6, label="energy [eV]"),
+    emit_x=PKDict(
+        track_col=10, track_scale=1e-5 / 4, opal_scale=1, label="x emittance [m]"
+    ),
+    emit_y=PKDict(
+        track_col=13, track_scale=1e-5 / 4, opal_scale=1, label="y emittance [m]"
+    ),
+    rms_x=PKDict(track_col=3, track_scale=1e-2, opal_scale=1, label="x rms [m]"),
+    rms_y=PKDict(track_col=4, track_scale=1e-2, opal_scale=1, label="y rms [m]"),
+    s=PKDict(track_col=0, track_scale=1, opal_scale=1, label="s [m]"),
+)
 
 _BEAM_FREQUENCY_VAR = "beam_frequency_mhz"
 _CM_MRAD_TO_M_RAD = 1e-5
@@ -147,6 +164,227 @@ class TRACKParser:
         return None
 
 
+def bunch_comparison(frame_args, h5_file):
+    from sirepo.template import opal
+
+    def _final_energy():
+        d = _read_track_beam_out(frame_args)
+        return d[-1][1]
+
+    def _stats(coords):
+        r = PKDict()
+        # energy to W0, assuming proton
+        amu_mev = scipy.constants.physical_constants[
+            "proton mass energy equivalent in MeV"
+        ][0]
+        W0 = _final_energy()
+        W = W0 + coords.dW
+        gamma = 1.0 + W / amu_mev
+        beta_gamma = numpy.sqrt(gamma**2 - 1.0)
+        r.beta = beta_gamma / gamma
+        xp = coords.xp_mrad * 1e-3
+        yp = coords.yp_mrad * 1e-3
+        r.tx = numpy.tan(xp)
+        r.ty = numpy.tan(yp)
+        r.pz = beta_gamma / numpy.sqrt(1.0 + r.tx**2 + r.ty**2)
+        return r
+
+    def _coord(name, coords):
+        if name == "x":
+            return coords.x_cm * 1e-2, "x [m]"
+        if name == "y":
+            return coords.y_cm * 1e-2, "y [m]"
+        if name == "z":
+            s = _stats(coords)
+            return (
+                -s.beta
+                * scipy.constants.physical_constants["speed of light in vacuum"][0]
+                * (coords.dt_ns * 1e-9)
+            ), "z [m]"
+        if name == "px":
+            s = _stats(coords)
+            return s.pz * s.tx, "px (#beta#gamma)"
+        if name == "py":
+            s = _stats(coords)
+            return s.pz * s.ty, "py (#beta#gamma)"
+        if name == "pz":
+            s = _stats(coords)
+            return s.pz, "pz (#beta#gamma)"
+        if name == "q":
+            return coords.iq, ""
+        assert False
+
+    def _get_range(field, p1, p2):
+        return [
+            min(min(p1[field]), min(p2[field])),
+            max(max(p1[field]), max(p2[field])),
+        ]
+
+    def _points(file, frame_index, name):
+        return numpy.array(file["/Step#{}/{}".format(frame_index, name)])
+
+    def _read_coords(coord_file):
+        # Nseed iq dt[ns] dW[MeV/u] x[cm] x'[mrad] y[cm] y'[mrad]
+        d = numpy.loadtxt(coord_file, skiprows=1)
+        return PKDict(
+            iq=d[:, 1],
+            dt_ns=d[:, 2],
+            dW=d[:, 3],
+            x_cm=d[:, 4],
+            xp_mrad=d[:, 5],
+            y_cm=d[:, 6],
+            yp_mrad=d[:, 7],
+        )
+
+    def _read_opal():
+        with h5py.File(str(frame_args.run_dir.join(h5_file)), "r") as f:
+            return [
+                _points(f, frame_args.frameIndex, frame_args.x),
+                _points(f, frame_args.frameIndex, frame_args.y),
+            ]
+
+    def _read_track():
+        d = _read_coords(
+            _SIM_DATA.lib_file_abspath(
+                _SIM_DATA.lib_file_name_with_model_field(
+                    "trackComparison",
+                    "coordOut",
+                    frame_args.coordOut,
+                )
+            )
+        )
+        x, xlabel = _coord(frame_args.x, d)
+        y, ylabel = _coord(frame_args.y, d)
+        return [x, y], PKDict(x=xlabel, y=ylabel)
+
+    p1 = _read_opal()
+    p2, labels = _read_track()
+    xrange = _get_range(0, p1, p2)
+    yrange = _get_range(1, p1, p2)
+    frame_args.pkupdate(
+        plotRangeType="fixed",
+        horizontalSize=xrange[1] - xrange[0],
+        horizontalOffset=(xrange[0] + xrange[1]) / 2,
+        verticalSize=yrange[1] - yrange[0],
+        verticalOffset=(yrange[0] + yrange[1]) / 2,
+    )
+
+    b1 = opal.sim_frame_bunchAnimation(frame_args)
+    if frame_args.frameReport == "bunchAnimation1":
+        return b1.pkupdate(
+            title="OPAL",
+        )
+    b2 = sirepo.template.template_common.heatmap(
+        p2,
+        frame_args,
+        PKDict(
+            x_label=labels.x,
+            y_label=labels.y,
+        ),
+    )
+    if frame_args.frameReport == "bunchAnimation2":
+        return b2.pkupdate(
+            title="TRACK",
+        )
+    if frame_args.frameReport == "bunchAnimation3":
+        for i in range(len(b1.z_matrix)):
+            for j in range(len(b1.z_matrix[0])):
+                b1.z_matrix[i][j] -= b2.z_matrix[i][j]
+        return b1.pkupdate(
+            title="difference",
+        )
+    raise AssertionError(f"unknown comparison plot {frame_args.frameReport}")
+
+
+def beam_comparison(frame_args, sdds_filename):
+    def _columns():
+        if frame_args.quantity == "energy":
+            return ["energy"]
+        if frame_args.quantity == "emittance":
+            return ["emit_x", "emit_y"]
+        if frame_args.quantity == "rms":
+            return ["rms_x", "rms_y"]
+        raise AssertionError(f"unknown quantity={frame_args.quantity}")
+
+    def _opal_points(col):
+        v = sirepo.template.sdds_util.extract_sdds_column(sdds_filename, col, 0)[
+            "values"
+        ]
+        step = int(round(len(v) / _COMPARISON_MAX_POINTS))
+        if step > 0:
+            v = v[0 : len(v) : step]
+        return [p * _COMPARISON_PLOTS[col].opal_scale for p in v]
+
+    def _plots(opal_x):
+        d = _read_track_beam_out(frame_args)
+        return [
+            PKDict(
+                x_points=_track_points(d, "s"),
+                points=_track_points(d, s),
+                label=f"TRACK {_COMPARISON_PLOTS[s].label}",
+                style="scatter",
+                circleRadius=4,
+            )
+            for s in _columns()
+        ] + [
+            PKDict(
+                x_points=opal_x,
+                points=_opal_points(s),
+                label=f"OPAL {_COMPARISON_PLOTS[s].label}",
+                style="scatter",
+                circleRadius=1,
+            )
+            for s in _columns()
+        ]
+
+    def _track_points(beam_out, col):
+        return (
+            beam_out[:, _COMPARISON_PLOTS[col].track_col]
+            * _COMPARISON_PLOTS[col].track_scale
+        ).tolist()
+
+    x = _opal_points("s")
+    r = sirepo.template.template_common.parameter_plot(
+        x,
+        _plots(x),
+        frame_args,
+        PKDict(
+            y_label="",
+            x_label="s [m]",
+            dynamicYLabel=True,
+        ),
+    )
+    n = int(len(r.plots) / 2)
+    for i in range(n):
+        r.plots[n + i].color = r.plots[i].color
+    return r
+
+
+def import_file(name, text, import_args):
+    if name == "track.dat":
+        return PKDict(
+            importState="needLattice",
+            eleData=parse_track_file(text),
+            latticeFileName="sclinac.dat",
+        )
+    if name == "sclinac.dat":
+        return PKDict(
+            importState="needLattice",
+            eleData=parse_sclinac_file(
+                text,
+                # optional track.dat info
+                pykern.pkjson.load_any(import_args) if import_args else None,
+            ),
+            latticeFileName="fi_in.dat",
+        )
+    if name == "fi_in.dat":
+        # must have already imported sclinac.dat
+        if not import_args:
+            raise IOError("Import a sclinac.dat first")
+        return parse_fi_in_file(text, pykern.pkjson.load_any(import_args))
+    return None
+
+
 def parse_fi_in_file(fi_in_text, data):
     p = [float(v) for v in fi_in_text.split()]
     for e in data.models.elements:
@@ -242,108 +480,10 @@ def parse_track_file(track_text):
     return d
 
 
-def impactx_particles(track_text):
-    from impactx import ImpactX, distribution, elements
-
-    v = _parse_tran_namelist(track_text)
-    m = (
-        v.get("atp", 1.0)
-        * scipy.constants.physical_constants["proton mass energy equivalent in MeV"][0]
-        / 1e3
-    )
-    e = v.get("win", 0.0) * v.get("atp", 1.0) / 1e9 + m
-    w = waterbag_distribution(track_text)
-    sim = ImpactX()
-    sim.particle_shape = 2
-    sim.space_charge = False
-    sim.init_grids()
-    sim.particle_container().ref_particle().set_charge_qe(
-        v.get("qq", 1.0)
-    ).set_mass_MeV(m * 1e3).set_kin_energy_MeV((e - m) * 1e3)
-    sim.add_particles(
-        # current isn't used for opal output, but must be non zero
-        1e-10,
-        distribution.Waterbag(
-            lambdaX=w.lambdaX,
-            lambdaY=w.lambdaY,
-            lambdaT=w.lambdaT,
-            lambdaPx=w.lambdaPx,
-            lambdaPy=w.lambdaPy,
-            lambdaPt=w.lambdaPt,
-            muxpx=w.muxpx,
-            muypy=w.muypy,
-            mutpt=w.mutpt,
-        ),
-        int(v.get("npat", 0)),
-    )
-    r = "monitor"
-    sim.lattice.extend(
-        [
-            elements.Drift(ds=0, nslice=1),
-            elements.BeamMonitor(r, backend="h5"),
-        ]
-    )
-    sim.evolve()
-    sim.finalize()
-    return f"diags/openPMD/{r}.h5"
-
-
-def waterbag_distribution(track_text):
-    from impactx import distribution_input_helpers
-
-    v = _parse_tran_namelist(track_text)
-    m = (
-        v.get("atp", 1.0)
-        * scipy.constants.physical_constants["proton mass energy equivalent in MeV"][0]
-        / 1e3
-    )
-    e = v.get("win", 0.0) * v.get("atp", 1.0) / 1e9 + m
-    g = e / m
-    b = math.sqrt(1.0 - 1.0 / g**2)
-    f = v.get("freqb", 162.5e6)
-    phi_to_t = b * scipy.constants.c / (f * 360)
-    pct_to_pt = (g - 1.0) / (g * b**2) / 100
-    return PKDict(
-        distribution_input_helpers.twiss(
-            beta_x=v.get("betax", 1.0) * _CM_TO_M,
-            beta_y=v.get("betay", 1.0) * _CM_TO_M,
-            beta_t=v.get("betaz", 1.0) * phi_to_t / pct_to_pt,
-            emitt_x=v.get("epsnx", 0.0)
-            * _CM_MRAD_TO_M_RAD
-            / (b * g)
-            / _WATERBAG_FACTOR,
-            emitt_y=v.get("epsny", 0.0)
-            * _CM_MRAD_TO_M_RAD
-            / (b * g)
-            / _WATERBAG_FACTOR,
-            emitt_t=v.get("epsnz", 0.0) / _WATERBAG_FACTOR * phi_to_t * pct_to_pt,
-            alpha_x=v.get("alfax", 0.0),
-            alpha_y=v.get("alfay", 0.0),
-            alpha_t=v.get("alfaz", 0.0),
-        )
-    )
-
-
-def write_opal(h5_filename, outfile):
-    import h5py
-
-    with h5py.File(h5_filename, "r") as f:
-        step = sorted(f["data"].keys())[-1]
-        b = f[f"data/{step}/particles/beam"]
-        pz_ref = b.attrs["pz_ref"]
-        x = b["position/x"][:]
-        y = b["position/y"][:]
-        z = b["position/t"][:]
-        GBx = pz_ref * b["momentum/x"][:]
-        GBy = pz_ref * b["momentum/y"][:]
-        GBz = pz_ref * (1.0 + b["momentum/t"][:])
-    numpy.savetxt(
-        outfile,
-        numpy.array([x, GBx, y, GBy, z, GBz]).T,
-        header=str(len(x)),
-        comments="",
-        fmt="%20.12e",
-    )
+def read_track_beam_out(filename):
+    with open(filename, "r") as f:
+        table = [line.strip().split() for line in f]
+        return numpy.asarray(table[1::])[:, 2::].astype(float)
 
 
 def _parse_tran_namelist(text):
@@ -353,3 +493,15 @@ def _parse_tran_namelist(text):
     if "tran" not in v:
         raise AssertionError("No &TRAN...&END block found in track.dat")
     return v["tran"]
+
+
+def _read_track_beam_out(frame_args):
+    return read_track_beam_out(
+        _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.lib_file_name_with_model_field(
+                "trackComparison",
+                "beamOut",
+                frame_args.beamOut,
+            )
+        )
+    )

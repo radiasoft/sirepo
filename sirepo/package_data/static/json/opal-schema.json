@@ -478,7 +478,7 @@
         "bunchAnimation": {
             "x": ["X Value", "PhaseSpaceCoordinate", "x"],
             "y": ["Y Value", "PhaseSpaceCoordinate", "px"],
-            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
             "histogramBins": ["Histogram Bins", "Integer", 60],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
@@ -494,7 +494,7 @@
         "bunchAnimation1": {
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
-            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
             "histogramBins": ["Histogram Bins", "Integer", 60],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "coordOut": ["TRACK Coord Output", "InputFile", "", "TRACK coord.out output file"],
@@ -503,7 +503,7 @@
         "bunchAnimation2": {
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
-            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
             "histogramBins": ["Histogram Bins", "Integer", 60],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "coordOut": ["TRACK Coord Output", "InputFile", "", "TRACK coord.out output file"],
@@ -512,7 +512,7 @@
         "bunchAnimation3": {
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
-            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
             "histogramBins": ["Histogram Bins", "Integer", 60],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "coordOut": ["TRACK Coord Output", "InputFile", "", "TRACK coord.out output file"],

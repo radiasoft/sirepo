@@ -12,10 +12,11 @@ from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import hdf5_util
 from sirepo.template import lattice
+from sirepo.template import sdds_util
 from sirepo.template import template_common
+from sirepo.template import track_parser
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
-import h5py
 import math
 import numpy
 import pykern.pkjson
@@ -587,142 +588,9 @@ def save_sequential_report_data(data, run_dir):
     )
 
 
-def _bunch_comparison(frame_args):
-
-    def _final_energy():
-        d = _read_track_beam_out(frame_args)
-        return d[-1][1]
-
-    # TODO(pjm): need to move all track specific code to track_parser.py
-
-    def _stats(coords):
-        r = PKDict()
-        # energy to W0, assuming proton
-        amu_mev = scipy.constants.physical_constants[
-            "proton mass energy equivalent in MeV"
-        ][0]
-        W0 = _final_energy()
-        W = W0 + coords.dW
-        gamma = 1.0 + W / amu_mev
-        beta_gamma = numpy.sqrt(gamma**2 - 1.0)
-        r.beta = beta_gamma / gamma
-        xp = coords.xp_mrad * 1e-3
-        yp = coords.yp_mrad * 1e-3
-        r.tx = numpy.tan(xp)
-        r.ty = numpy.tan(yp)
-        r.pz = beta_gamma / numpy.sqrt(1.0 + r.tx**2 + r.ty**2)
-        return r
-
-    def _coord(name, coords):
-        if name == "x":
-            return coords.x_cm * 1e-2, "x [m]"
-        if name == "y":
-            return coords.y_cm * 1e-2, "y [m]"
-        if name == "z":
-            s = _stats(coords)
-            return (
-                -s.beta
-                * scipy.constants.physical_constants["speed of light in vacuum"][0]
-                * (coords.dt_ns * 1e-9)
-            ), "z [m]"
-        if name == "px":
-            s = _stats(coords)
-            return s.pz * s.tx, "px (#beta#gamma)"
-        if name == "py":
-            s = _stats(coords)
-            return s.pz * s.ty, "py (#beta#gamma)"
-        if name == "pz":
-            s = _stats(coords)
-            return s.pz, "pz (#beta#gamma)"
-        if name == "q":
-            return coords.iq, ""
-        assert False
-
-    def _get_range(field, p1, p2):
-        return [
-            min(min(p1[field]), min(p2[field])),
-            max(max(p1[field]), max(p2[field])),
-        ]
-
-    def _points(file, frame_index, name):
-        return numpy.array(file["/Step#{}/{}".format(frame_index, name)])
-
-    def _read_coords(coord_file):
-        # Nseed iq dt[ns] dW[MeV/u] x[cm] x'[mrad] y[cm] y'[mrad]
-        d = numpy.loadtxt(coord_file, skiprows=1)
-        return PKDict(
-            iq=d[:, 1],
-            dt_ns=d[:, 2],
-            dW=d[:, 3],
-            x_cm=d[:, 4],
-            xp_mrad=d[:, 5],
-            y_cm=d[:, 6],
-            yp_mrad=d[:, 7],
-        )
-
-    def _read_opal():
-        with h5py.File(str(frame_args.run_dir.join(_OPAL_H5_FILE)), "r") as f:
-            return [
-                _points(f, frame_args.frameIndex, frame_args.x),
-                _points(f, frame_args.frameIndex, frame_args.y),
-            ]
-
-    def _read_track():
-        d = _read_coords(
-            _SIM_DATA.lib_file_abspath(
-                _SIM_DATA.lib_file_name_with_model_field(
-                    "trackComparison",
-                    "coordOut",
-                    frame_args.coordOut,
-                )
-            )
-        )
-        x, xlabel = _coord(frame_args.x, d)
-        y, ylabel = _coord(frame_args.y, d)
-        return [x, y], PKDict(x=xlabel, y=ylabel)
-
-    p1 = _read_opal()
-    p2, labels = _read_track()
-    xrange = _get_range(0, p1, p2)
-    yrange = _get_range(1, p1, p2)
-    frame_args.pkupdate(
-        plotRangeType="fixed",
-        horizontalSize=xrange[1] - xrange[0],
-        horizontalOffset=(xrange[0] + xrange[1]) / 2,
-        verticalSize=yrange[1] - yrange[0],
-        verticalOffset=(yrange[0] + yrange[1]) / 2,
-    )
-
-    b1 = sim_frame_bunchAnimation(frame_args)
-    if frame_args.frameReport == "bunchAnimation1":
-        return b1.pkupdate(
-            title="OPAL",
-        )
-    b2 = template_common.heatmap(
-        p2,
-        frame_args,
-        PKDict(
-            x_label=labels.x,
-            y_label=labels.y,
-        ),
-    )
-    if frame_args.frameReport == "bunchAnimation2":
-        return b2.pkupdate(
-            title="TRACK",
-        )
-    if frame_args.frameReport == "bunchAnimation3":
-        for i in range(len(b1.z_matrix)):
-            for j in range(len(b1.z_matrix[0])):
-                b1.z_matrix[i][j] -= b2.z_matrix[i][j]
-        return b1.pkupdate(
-            title="difference",
-        )
-    raise AssertionError(f"unknown comparison plot {frame_args.frameReport}")
-
-
 def sim_frame(frame_args):
     if "bunchAnimation" in frame_args.frameReport:
-        return _bunch_comparison(frame_args)
+        return track_parser.bunch_comparison(frame_args, _OPAL_H5_FILE)
     # elementAnimations
     return bunch_plot(
         frame_args,
@@ -772,98 +640,8 @@ def sim_frame_bunchAnimation(frame_args):
     return bunch_plot(a, a.run_dir, a.frameIndex)
 
 
-def _read_track_beam_out(frame_args):
-    def _read_track(track_file):
-        with open(track_file, "r") as f:
-            table = [line.strip().split() for line in f]
-            return numpy.asarray(table[1::])[:, 2::].astype(float)
-
-    return _read_track(
-        _SIM_DATA.lib_file_abspath(
-            _SIM_DATA.lib_file_name_with_model_field(
-                "trackComparison",
-                "beamOut",
-                frame_args.beamOut,
-            )
-        )
-    )
-
-
 def sim_frame_comparisonAnimation(frame_args):
-    from sirepo.template import sdds_util
-
-    _MAX_POINTS = 10000
-    _PLOTS = PKDict(
-        energy=PKDict(
-            track_col=1, track_scale=1e6, opal_scale=1e6, label="energy [eV]"
-        ),
-        emit_x=PKDict(
-            track_col=10, track_scale=1e-5 / 4, opal_scale=1, label="x emittance [m]"
-        ),
-        emit_y=PKDict(
-            track_col=13, track_scale=1e-5 / 4, opal_scale=1, label="y emittance [m]"
-        ),
-        rms_x=PKDict(track_col=3, track_scale=1e-2, opal_scale=1, label="x rms [m]"),
-        rms_y=PKDict(track_col=4, track_scale=1e-2, opal_scale=1, label="y rms [m]"),
-        s=PKDict(track_col=0, track_scale=1, opal_scale=1, label="s [m]"),
-    )
-
-    def _columns():
-        if frame_args.quantity == "energy":
-            return ["energy"]
-        if frame_args.quantity == "emittance":
-            return ["emit_x", "emit_y"]
-        if frame_args.quantity == "rms":
-            return ["rms_x", "rms_y"]
-        raise AssertionError(f"unknown quantity={frame_args.quantity}")
-
-    def _opal_points(col):
-        v = sdds_util.extract_sdds_column(_OPAL_SDDS_FILE, col, 0)["values"]
-        step = int(round(len(v) / _MAX_POINTS))
-        if step > 0:
-            v = v[0 : len(v) : step]
-        return [p * _PLOTS[col].opal_scale for p in v]
-
-    def _plots(opal_x):
-        d = _read_track_beam_out(frame_args)
-        return [
-            PKDict(
-                x_points=_track_points(d, "s"),
-                points=_track_points(d, s),
-                label=f"TRACK {_PLOTS[s].label}",
-                style="scatter",
-                circleRadius=4,
-            )
-            for s in _columns()
-        ] + [
-            PKDict(
-                x_points=opal_x,
-                points=_opal_points(s),
-                label=f"OPAL {_PLOTS[s].label}",
-                style="scatter",
-                circleRadius=1,
-            )
-            for s in _columns()
-        ]
-
-    def _track_points(beam_out, col):
-        return (beam_out[:, _PLOTS[col].track_col] * _PLOTS[col].track_scale).tolist()
-
-    x = _opal_points("s")
-    r = template_common.parameter_plot(
-        x,
-        _plots(x),
-        frame_args,
-        PKDict(
-            y_label="",
-            x_label="s [m]",
-            dynamicYLabel=True,
-        ),
-    )
-    n = int(len(r.plots) / 2)
-    for i in range(n):
-        r.plots[n + i].color = r.plots[i].color
-    return r
+    return track_parser.beam_comparison(frame_args, _OPAL_SDDS_FILE)
 
 
 def sim_frame_plotAnimation(frame_args):
@@ -890,8 +668,6 @@ def sim_frame_plotAnimation(frame_args):
 
 
 def sim_frame_plot2Animation(frame_args):
-    from sirepo.template import sdds_util
-
     def _format_col_name(name):
         return name.replace(" ", "_")
 
@@ -912,7 +688,6 @@ def sim_frame_plot2Animation(frame_args):
 def stateful_compute_import_file(data, **kwargs):
     from sirepo.template import elegant
     from sirepo.template import opal_parser
-    from sirepo.template import track_parser
 
     if data.args.ext_lower == ".in":
         res, input_files = opal_parser.parse_file(
@@ -930,31 +705,16 @@ def stateful_compute_import_file(data, **kwargs):
                 elegant.elegant_file_import(data).imported_data
             )
         )
-    # TRACK specific datafiles
-    elif data.args.basename.lower() == "track.dat":
-        res = track_parser.parse_track_file(data.args.file_as_str)
-        return PKDict(
-            importState="needLattice", eleData=res, latticeFileName="sclinac.dat"
-        )
-    elif data.args.basename.lower() == "sclinac.dat":
-        # optional track.dat info
-        d = data.args.pkunchecked_nested_get("import_file_arguments")
-        if d:
-            d = pykern.pkjson.load_any(d)
-        return PKDict(
-            importState="needLattice",
-            eleData=track_parser.parse_sclinac_file(data.args.file_as_str, d),
-            latticeFileName="fi_in.dat",
-        )
-    elif data.args.basename.lower() == "fi_in.dat":
-        # must have already imported sclinac.dat
-        d = data.args.pkunchecked_nested_get("import_file_arguments")
-        if not d:
-            raise IOError("Import a sclinac.dat first")
-        res = track_parser.parse_fi_in_file(
-            data.args.file_as_str, pykern.pkjson.load_any(d)
-        )
     else:
+        # handle TRACK specific datafiles
+        res = track_parser.import_file(
+            data.args.basename.lower(),
+            data.args.file_as_str,
+            data.args.pkunchecked_nested_get("import_file_arguments"),
+        )
+        if res and "importState" in res and res.importState == "needLattice":
+            return res
+    if not res:
         raise IOError(
             f"invalid file={data.args.basename} extension, expecting .in, .ele, .lte or .madx"
         )
