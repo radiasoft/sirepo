@@ -30,6 +30,11 @@
         }
     },
     "enum": {
+        "ComparisonQuantity": [
+            ["rms", "Beam Size (RMS)"],
+            ["emittance", "Emittance"],
+            ["energy", "Energy"]
+        ],
         "ElementPosition": [
             ["relative", "Relative to each other (using DRIFT)"],
             ["absolute", "Absolute (using ELEMEDGE)"]
@@ -407,7 +412,8 @@
             "coordOut"
         ],
         "comparisonAnimation": [
-            "beamOut"
+            "beamOut",
+            "quantity"
         ],
         "plotAnimation": ["x", "y1", "y2", "y3", "y4", "y5"],
         "plot2Animation": ["x", "y1", "y2", "y3", "y4", "y5"]
@@ -514,6 +520,7 @@
         },
         "comparisonAnimation": {
             "beamOut": ["TRACK Beam Output", "InputFile", "", "TRACK beam.out output file"],
+            "quantity": ["Quantity", "ComparisonQuantity", "rms"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.25"],
             "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
             "notes": ["Notes", "Text", ""]
@@ -1351,8 +1358,9 @@
         },
         "comparisonAnimation": {
             "hasDataFile": false,
-            "title": "Beam Size",
+            "title": "Beam Comparison",
             "advanced": [
+                "quantity",
                 "aspectRatio",
                 "includeLattice",
                 "notes"

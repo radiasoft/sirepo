@@ -792,61 +792,67 @@ def _read_track_beam_out(frame_args):
 def sim_frame_comparisonAnimation(frame_args):
     from sirepo.template import sdds_util
 
-    def _reduce_array(v):
-        MAX_SIZE = 10000
-        step = int(round(len(v) / MAX_SIZE))
+    _MAX_POINTS = 10000
+    _PLOTS = PKDict(
+        energy=PKDict(
+            track_col=1, track_scale=1e6, opal_scale=1e6, label="energy [eV]"
+        ),
+        emit_x=PKDict(
+            track_col=10, track_scale=1e-5 / 4, opal_scale=1, label="x emittance [m]"
+        ),
+        emit_y=PKDict(
+            track_col=13, track_scale=1e-5 / 4, opal_scale=1, label="y emittance [m]"
+        ),
+        rms_x=PKDict(track_col=3, track_scale=1e-2, opal_scale=1, label="x rms [m]"),
+        rms_y=PKDict(track_col=4, track_scale=1e-2, opal_scale=1, label="y rms [m]"),
+        s=PKDict(track_col=0, track_scale=1, opal_scale=1, label="s [m]"),
+    )
+
+    def _columns():
+        if frame_args.quantity == "energy":
+            return ["energy"]
+        if frame_args.quantity == "emittance":
+            return ["emit_x", "emit_y"]
+        if frame_args.quantity == "rms":
+            return ["rms_x", "rms_y"]
+        raise AssertionError(f"unknown quantity={frame_args.quantity}")
+
+    def _opal_points(col):
+        v = sdds_util.extract_sdds_column(_OPAL_SDDS_FILE, col, 0)["values"]
+        step = int(round(len(v) / _MAX_POINTS))
         if step > 0:
-            return v[0 : len(v) : step]
-        return v
+            v = v[0 : len(v) : step]
+        return [p * _PLOTS[col].opal_scale for p in v]
 
-    plots = []
-    d = _read_track_beam_out(frame_args)
-    x = d[:, 0].tolist()
-    plots.append(
-        PKDict(
-            x_points=x,
-            points=(d[:, 3] * 1e-2).tolist(),
-            label="TRACK x rms [m]",
-            style="scatter",
-            circleRadius=4,
-        )
-    )
-    plots.append(
-        PKDict(
-            x_points=x,
-            points=(d[:, 4] * 1e-2).tolist(),
-            label="TRACK y rms [m]",
-            style="scatter",
-            circleRadius=4,
-        )
-    )
+    def _plots(opal_x):
+        d = _read_track_beam_out(frame_args)
+        return [
+            PKDict(
+                x_points=_track_points(d, "s"),
+                points=_track_points(d, s),
+                label=f"TRACK {_PLOTS[s].label}",
+                style="scatter",
+                circleRadius=4,
+            )
+            for s in _columns()
+        ] + [
+            PKDict(
+                x_points=opal_x,
+                points=_opal_points(s),
+                label=f"OPAL {_PLOTS[s].label}",
+                style="scatter",
+                circleRadius=1,
+            )
+            for s in _columns()
+        ]
 
-    x = _reduce_array(sdds_util.extract_sdds_column(_OPAL_SDDS_FILE, "s", 0)["values"])
-    plots.append(
-        PKDict(
-            x_points=x,
-            points=_reduce_array(
-                sdds_util.extract_sdds_column(_OPAL_SDDS_FILE, "rms_x", 0)["values"]
-            ),
-            label="OPAL x rms [m]",
-            style="scatter",
-            circleRadius=1,
-        ),
-    )
-    plots.append(
-        PKDict(
-            x_points=x,
-            points=_reduce_array(
-                sdds_util.extract_sdds_column(_OPAL_SDDS_FILE, "rms_y", 0)["values"]
-            ),
-            label="OPAL y rms [m]",
-            style="scatter",
-            circleRadius=1,
-        ),
-    )
+    def _track_points(beam_out, col):
+        return (beam_out[:, _PLOTS[col].track_col] * _PLOTS[col].track_scale).tolist()
+
+    x = _opal_points("s")
     r = template_common.parameter_plot(
         x,
-        plots,
+        _plots(x),
         frame_args,
         PKDict(
             y_label="",
@@ -854,8 +860,9 @@ def sim_frame_comparisonAnimation(frame_args):
             dynamicYLabel=True,
         ),
     )
-    r.plots[2].color = r.plots[0].color
-    r.plots[3].color = r.plots[1].color
+    n = int(len(r.plots) / 2)
+    for i in range(n):
+        r.plots[n + i].color = r.plots[i].color
     return r
 
 
