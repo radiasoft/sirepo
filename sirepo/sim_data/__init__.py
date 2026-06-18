@@ -256,7 +256,7 @@ class SimDataBase(object):
         res.update(
             "".join(
                 (
-                    # file may not exist if it is an external example datafile
+                    # file may not exist yet if it is an external example datafile
                     str(p.mtime())
                     for p in [
                         cls._lib_file_abspath(b, qcall)

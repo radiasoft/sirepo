@@ -431,14 +431,14 @@ def background_percent_complete(report, run_dir, is_running):
         if not spos:
             return 0
         t = LatticeUtil.find_first_command(_SIM_DATA.sim_run_input(run_dir), "track")
-        if t and isinstance(t.zstop, float):
+        if t and isinstance(t.zstop, (int, float)):
             return spos * 100 / t.zstop
         return 0
 
     if is_running:
         c, p = read_frame_count(run_dir)
         return PKDict(
-            frameCount=c - 1,
+            frameCount=c - 1 if c > 0 else 0,
             percentComplete=_percent(run_dir, p),
         )
     res = PKDict(
@@ -728,7 +728,7 @@ def validate_file(file_type, path, sim_id, qcall):
     if "beamOut" in file_type or "coordOut" in file_type:
         n = _hashed_name(path.basename)
     else:
-        # imported TRACK input files are always eh_EMS#\d+ or eh_MWS#\d+
+        # imported TRACK input files are always eh_EMS.\d+ or eh_MWS.\d+
         if m := re.search(r"/eh_(\w+\.\d+)$", str(path)):
             n = _hashed_name(m.group(1))
             d = simulation_db.read_simulation_json(SIM_TYPE, sim_id, qcall)
