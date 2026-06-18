@@ -56,7 +56,7 @@
             "horizontalSize": 0.0,
             "notes": "",
             "plotRangeType": "fit",
-            "plotType": "heatmap",
+            "plotType": "3d",
             "selectedFrame": 0,
             "verticalOffset": 0.0,
             "verticalSize": 0.0,
@@ -68,7 +68,7 @@
             "coordOut": "",
             "histogramBins": 60,
             "notes": "",
-            "plotType": "heatmap",
+            "plotType": "3d",
             "x": "x",
             "y": "px"
         },
@@ -77,7 +77,7 @@
             "coordOut": "",
             "histogramBins": 60,
             "notes": "",
-            "plotType": "heatmap",
+            "plotType": "3d",
             "x": "x",
             "y": "px"
         },
@@ -86,7 +86,7 @@
             "coordOut": "",
             "histogramBins": 60,
             "notes": "",
-            "plotType": "heatmap",
+            "plotType": "3d",
             "x": "x",
             "y": "px"
         },
@@ -446,7 +446,8 @@
             "aspectRatio": "0.25",
             "beamOut": "",
             "includeLattice": "1",
-            "notes": ""
+            "notes": "",
+            "quantity": "rms"
         },
         "elements": [
             {
