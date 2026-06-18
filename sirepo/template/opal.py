@@ -19,9 +19,7 @@ from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
 import math
 import numpy
-import pykern.pkjson
 import re
-import scipy.constants
 import sirepo.lib
 import sirepo.sim_data
 
