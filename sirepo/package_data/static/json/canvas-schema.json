@@ -61,10 +61,6 @@
             ["t", "t"],
             ["pt", "Pt"]
         ],
-        "PlotType": [
-            ["heatmap", "Heatmap"],
-            ["3d", "Heatmap with Histograms"]
-        ],
         "Species": [
             ["positron", "Positron"],
             ["electron", "Electron"],
@@ -124,7 +120,7 @@
         "bunchAnimation": {
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
-            "plotType": ["Plot Type", "PlotType", "3d"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
             "histogramBins": ["Histogram Bins", "Integer", 60],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "selectedFrame": ["", "FrameSlider", 0],
@@ -134,7 +130,7 @@
             "simCode": ["", "String", "elegant"],
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
-            "plotType": ["Plot Type", "PlotType", "3d"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
             "histogramBins": ["Histogram Bins", "Integer", 60],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
@@ -143,7 +139,7 @@
             "simCode": ["", "String", "madx"],
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
-            "plotType": ["Plot Type", "PlotType", "3d"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
             "histogramBins": ["Histogram Bins", "Integer", 60],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
@@ -152,7 +148,7 @@
             "simCode": ["", "String", "impactx"],
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
-            "plotType": ["Plot Type", "PlotType", "3d"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
             "histogramBins": ["Histogram Bins", "Integer", 60],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
@@ -160,6 +156,7 @@
         "bunchReport": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "x"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
             "histogramBins": ["Histogram Bins", "Integer", 80],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
@@ -315,6 +312,7 @@
         "bunchReport": {
             "title": "Beam Phase Space",
             "advanced": [
+                "plotType",
                 [
                     ["Horizontal", [
                         "x"

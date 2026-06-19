@@ -266,7 +266,7 @@ class LatticeParser(object):
         for cmd in self.data.models.commands:
             if cmd._type == cmd_type:
                 name = None
-                if field1 in cmd:
+                if field1 in cmd and cmd.get(field1):
                     name = cmd.get(field1)
                 elif field2 and field2 in cmd:
                     name = cmd.get(field2)

@@ -472,18 +472,20 @@
             "hidden": []
         },
         "plot2Animation": {
-            "aspectRatio": "1",
-            "includeLattice": "0",
+            "includeLattice": "1",
             "isRunning": 0,
             "notes": "",
             "startTime": 1572306100,
             "x": "s",
             "y1": "rms x",
             "y2": "rms y",
-            "y3": "rms s"
+            "y3": "rms s",
+            "y4": "emit x",
+            "y4Position": "right",
+            "y5": "emit y",
+            "y5Position": "right"
         },
         "plotAnimation": {
-            "aspectRatio": "1",
             "includeLattice": "0",
             "isRunning": 0,
             "notes": "",

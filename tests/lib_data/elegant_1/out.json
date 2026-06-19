@@ -2606,6 +2606,7 @@
             "colorMap": "afmhot",
             "histogramBins": 200,
             "notes": "",
+            "plotType": "heatmap",
             "x": "x",
             "y": "xp"
         },
@@ -2613,6 +2614,7 @@
             "colorMap": "afmhot",
             "histogramBins": 200,
             "notes": "",
+            "plotType": "heatmap",
             "x": "y",
             "y": "yp"
         },
@@ -2620,6 +2622,7 @@
             "colorMap": "afmhot",
             "histogramBins": 200,
             "notes": "",
+            "plotType": "heatmap",
             "x": "x",
             "y": "y"
         },
@@ -2627,6 +2630,7 @@
             "colorMap": "afmhot",
             "histogramBins": 200,
             "notes": "",
+            "plotType": "heatmap",
             "x": "t",
             "y": "p"
         },

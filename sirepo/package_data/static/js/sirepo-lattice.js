@@ -3115,9 +3115,7 @@ SIREPO.app.directive('varName', function(latticeService) {
 SIREPO.app.directive('latticeImportDialog', function(appState, commandService, fileManager, fileUpload, requestSender) {
     return {
         restrict: 'A',
-        scope: {
-            latticeFormat: '@',
-        },
+        scope: {},
         template: `
             <div class="modal fade" data-backdrop="static" id="simulation-import" tabindex="-1" role="dialog">
               <div class="modal-dialog modal-lg">
@@ -3145,7 +3143,7 @@ SIREPO.app.directive('latticeImportDialog', function(appState, commandService, f
                             </div>
                             <div data-ng-show="isState('lattice')" class="form-group">
                               <label>Select Lattice File ({{ latticeFileName }})</label>
-                              <input id="sr-lattice-import" type="file" data-file-model="latticeFile" accept="{ extension }" />
+                              <input id="sr-lattice-import" type="file" data-file-model="latticeFile" data-ng-attr-accept="{{ latticeFileExtension }}" />
                               <br />
                               <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
                             </div>
@@ -3204,9 +3202,13 @@ SIREPO.app.directive('latticeImportDialog', function(appState, commandService, f
 
             function hideAndRedirect() {
                 $('#simulation-import').modal('hide');
-                requestSender.localRedirect('lattice', {
+                requestSender.localRedirect(SIREPO.lattice.latticeRedirect || 'lattice', {
                     ':simulationId': $scope.id,
                 });
+            }
+
+            function latticeFormat() {
+                return SIREPO.lattice.latticeImport || '.ele, .in, .lte, .madx, .seq';
             }
 
             function loadFileLists() {
@@ -3240,13 +3242,17 @@ SIREPO.app.directive('latticeImportDialog', function(appState, commandService, f
             function verifyInputFiles(data) {
                 var requiredFiles = {};
                 var i;
-                for (i = 0; i < data.models.elements.length; i++) {
+                for (i = 0; i < data.models?.elements?.length; i++) {
                     var el = data.models.elements[i];
                     classifyInputFiles(el, el.type, el.name, requiredFiles);
                 }
-                for (i = 0; i < data.models.commands.length; i++) {
+                for (i = 0; i < data.models?.commands?.length; i++) {
                     var cmd = data.models.commands[i];
                     classifyInputFiles(cmd, commandService.commandModelName(cmd._type), cmd._type, requiredFiles);
+                }
+                //TODO(pjm): special case for genesis
+                if (data.models.io) {
+                    classifyInputFiles(data.models.io, 'io', 'io', requiredFiles);
                 }
                 $scope.inputFiles = [];
                 for (var type in requiredFiles) {
@@ -3324,14 +3330,12 @@ SIREPO.app.directive('latticeImportDialog', function(appState, commandService, f
             };
 
             $scope.acceptFileTypes = () => {
-                return (($scope.latticeFormat || '.ele,.in,.lte,.madx,.seq') + ',.zip').replace(' ', '');
+                return (latticeFormat() + ',.zip').replace(' ', '');
             };
 
             $scope.fileTypes = function() {
                 return (
-                    $scope.latticeFormat
-                        ? `Select Lattice (${$scope.latticeFormat}),`
-                        : 'Select Command (.ele), Lattice (.lte, .in, .madx, .seq),'
+                    `Select Lattice (${latticeFormat()}),`
                 ) + ` or ${SIREPO.APP_SCHEMA.productInfo.shortName} Export (.zip)`;
             };
 
@@ -3360,9 +3364,12 @@ SIREPO.app.directive('latticeImportDialog', function(appState, commandService, f
                             $scope.fileUploadError = data.error;
                         }
                         else if (data.importState === "needLattice") {
-                            $scope.extension = ".lte";
+                            //TODO(pjm): need generalization for lattice extension
+                            $scope.latticeFileExtension = $scope.filename.toLowerCase().endsWith('.dat')
+                                ? '.dat' : '.lte';
                             $scope.state = 'lattice';
                             $scope.latticeFile = null;
+                            $('#sr-lattice-import').val(null);
                             $scope.eleData = data.eleData;
                             $scope.latticeFileName = data.latticeFileName;
                         }

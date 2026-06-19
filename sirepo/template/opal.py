@@ -6,30 +6,29 @@
 
 from pykern import pkcompat
 from pykern import pkio
-from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import hdf5_util
 from sirepo.template import lattice
+from sirepo.template import sdds_util
 from sirepo.template import template_common
+from sirepo.template import track_parser
 from sirepo.template.lattice import LatticeUtil
 from sirepo.template.madx_converter import MadxConverter
 import math
-import numpy as np
+import numpy
 import re
-import sirepo.const
 import sirepo.lib
 import sirepo.sim_data
-import os.path
-
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
 OPAL_INPUT_FILE = "opal.in"
 OPAL_OUTPUT_FILE = "opal.out"
 OPAL_POSITION_FILE = "opal-vtk.py"
+TRACK_FIELDMAP_CONVERSION_FILE = "track-fieldmap-conversion.py"
 
 _DIM_INDEX = PKDict(
     x=0,
@@ -428,26 +427,37 @@ def analysis_job_compute_particle_ranges(data, run_dir, **kwargs):
 
 
 def background_percent_complete(report, run_dir, is_running):
+    def _percent(run_dir, spos):
+        if not spos:
+            return 0
+        t = LatticeUtil.find_first_command(_SIM_DATA.sim_run_input(run_dir), "track")
+        if t and isinstance(t.zstop, (int, float)):
+            return spos * 100 / t.zstop
+        return 0
+
+    if is_running:
+        c, p = read_frame_count(run_dir)
+        return PKDict(
+            frameCount=c - 1 if c > 0 else 0,
+            percentComplete=_percent(run_dir, p),
+        )
     res = PKDict(
         percentComplete=0,
         frameCount=0,
     )
-    if is_running:
-        data = _SIM_DATA.sim_run_input(run_dir)
-        # TODO(pjm): determine total frame count and set percentComplete
-        res.frameCount = read_frame_count(run_dir) - 1
-        return res
     if _SIM_DATA.sim_run_input(run_dir, checked=False):
-        res.frameCount = read_frame_count(run_dir)
+        res.frameCount = read_frame_count(run_dir)[0]
         if res.frameCount > 0:
-            res.percentComplete = 100
-            res.outputInfo = _output_info(run_dir)
+            return res.pkupdate(
+                percentComplete=100,
+                outputInfo=_output_info(run_dir),
+            )
     return res
 
 
 def bunch_plot(model, run_dir, frame_index, filename=_OPAL_H5_FILE):
     def _points(file, frame_index, name):
-        return np.array(file["/Step#{}/{}".format(frame_index, name)])
+        return numpy.array(file["/Step#{}/{}".format(frame_index, name)])
 
     def _title(file, frame_index):
         t = "Step {}".format(frame_index)
@@ -517,14 +527,15 @@ def read_frame_count(run_dir):
     def _walk_file(h5file, key, step, res):
         if key:
             res[0] = step + 1
+            res[1] = h5file[key].attrs["SPOS"][0]
 
     try:
-        return _iterate_hdf5_steps(run_dir.join(_OPAL_H5_FILE), _walk_file, [0])[0]
+        return _iterate_hdf5_steps(run_dir.join(_OPAL_H5_FILE), _walk_file, [0, 0])[:2]
     except IOError:
         pass
     except RuntimeError:
         pass
-    return 0
+    return 0, 0
 
 
 def parse_opal_log(run_dir):
@@ -576,6 +587,8 @@ def save_sequential_report_data(data, run_dir):
 
 
 def sim_frame(frame_args):
+    if "bunchAnimation" in frame_args.frameReport:
+        return track_parser.bunch_comparison(frame_args, _OPAL_H5_FILE)
     # elementAnimations
     return bunch_plot(
         frame_args,
@@ -625,6 +638,10 @@ def sim_frame_bunchAnimation(frame_args):
     return bunch_plot(a, a.run_dir, a.frameIndex)
 
 
+def sim_frame_comparisonAnimation(frame_args):
+    return track_parser.beam_comparison(frame_args, _OPAL_SDDS_FILE)
+
+
 def sim_frame_plotAnimation(frame_args):
     def _walk_file(h5file, key, step, res):
         if key:
@@ -643,13 +660,12 @@ def sim_frame_plotAnimation(frame_args):
                 _walk_file,
                 plots,
             ),
+            y_fields=("y1", "y2", "y3", "y4", "y5"),
         )
     )
 
 
 def sim_frame_plot2Animation(frame_args):
-    from sirepo.template import sdds_util
-
     def _format_col_name(name):
         return name.replace(" ", "_")
 
@@ -662,6 +678,7 @@ def sim_frame_plot2Animation(frame_args):
             format_plot=_format_plot,
             model=template_common.model_from_frame_args(frame_args),
             dynamicYLabel=True,
+            y_fields=("y1", "y2", "y3", "y4", "y5"),
         )
     )
 
@@ -675,15 +692,6 @@ def stateful_compute_import_file(data, **kwargs):
             data.args.file_as_str,
             filename=data.args.basename,
         )
-        missing_files = []
-        for infile in input_files:
-            if not _SIM_DATA.lib_file_exists(infile.lib_filename):
-                missing_files.append(infile)
-        if missing_files:
-            return PKDict(
-                missingFiles=missing_files,
-                imported_data=res,
-            )
     elif data.args.ext_lower == ".madx" or data.args.ext_lower == ".seq":
         res = OpalMadxConverter(qcall=None).from_madx_text(data.args.file_as_str)
         res.models.simulation.name = data.args.purebasename
@@ -696,13 +704,50 @@ def stateful_compute_import_file(data, **kwargs):
             )
         )
     else:
+        # handle TRACK specific datafiles
+        res = track_parser.import_file(
+            data.args.basename.lower(),
+            data.args.file_as_str,
+            data.args.pkunchecked_nested_get("import_file_arguments"),
+        )
+        if res and "importState" in res and res.importState == "needLattice":
+            return res
+    if not res:
         raise IOError(
             f"invalid file={data.args.basename} extension, expecting .in, .ele, .lte or .madx"
         )
     return PKDict(imported_data=res)
 
 
+def validate_file(file_type, path, sim_id, qcall):
+
+    def _hashed_name(name):
+        return f"{name}-{path.computehash()[:8]}.txt"
+
+    n = None
+    if "beamOut" in file_type or "coordOut" in file_type:
+        n = _hashed_name(path.basename)
+    else:
+        # imported TRACK input files are always eh_EMS.\d+ or eh_MWS.\d+
+        if m := re.search(r"/eh_(\w+\.\d+)$", str(path)):
+            n = _hashed_name(m.group(1))
+            d = simulation_db.read_simulation_json(SIM_TYPE, sim_id, qcall)
+            for e in d.models.elements:
+                if e.get("fmapfn") and e.fmapfn.replace("#", "") == path.basename:
+                    e.fmapfn = n
+            simulation_db.save_simulation_json(d, False, qcall=qcall)
+    return PKDict(filename=n) if n else None
+
+
 def write_parameters(data, run_dir, is_parallel):
+    def _has_track_fieldmap(elements):
+        return any(_using_track_fieldmap(e) for e in elements)
+
+    if _has_track_fieldmap(data.models.elements):
+        pkio.write_text(
+            run_dir.join(TRACK_FIELDMAP_CONVERSION_FILE),
+            _generate_track_fieldmap_conversion_file(data),
+        )
     pkio.write_text(
         run_dir.join(OPAL_INPUT_FILE),
         _generate_parameters_file(data),
@@ -892,7 +937,7 @@ def _compute_3d_bounds(run_dir):
             m = re.search(r'^".*?"\s+(\S*?)\s+(\S*?)\s+(\S*?)\s*$', line)
             if m:
                 res.append([float(v) for v in (m.group(1), m.group(2), m.group(3))])
-    res = np.array(res)
+    res = numpy.array(res)
     bounds = []
     for n in range(3):
         v = res[:, n]
@@ -908,7 +953,7 @@ def _compute_range_across_frames(run_dir, **kwargs):
     def _walk_file(h5file, key, step, res):
         if key:
             for field in res:
-                v = np.array(h5file["/{}/{}".format(key, field)])
+                v = numpy.array(h5file["/{}/{}".format(key, field)])
                 min1, max1 = v.min(), v.max()
                 if res[field]:
                     if res[field][0] > min1:
@@ -938,13 +983,13 @@ def _field_units(units, field):
         units = ""
     elif units[0] == "M" and len(units) > 1:
         units = re.sub(r"^.", "", units)
-        field.points = (np.array(field.points) * 1e6).tolist()
+        field.points = (numpy.array(field.points) * 1e6).tolist()
     elif units[0] == "G" and len(units) > 1:
         units = re.sub(r"^.", "", units)
-        field.points = (np.array(field.points) * 1e9).tolist()
+        field.points = (numpy.array(field.points) * 1e9).tolist()
     elif units == "ns":
         units = "s"
-        field.points = (np.array(field.points) / 1e9).tolist()
+        field.points = (numpy.array(field.points) / 1e9).tolist()
     if units:
         if re.search(r"^#", units):
             field.label += " ({})".format(units)
@@ -1081,6 +1126,34 @@ def _generate_beamline(
     return res, edge, names, visited
 
 
+def _generate_track_fieldmap_conversion_file(data):
+    def _conversions():
+        cv = code_var(data.models.rpnVariables)
+        r = []
+        seen = set()
+        for e in data.models.elements:
+            m = _using_track_fieldmap(e)
+            if not m:
+                continue
+            lib_file = _SIM_DATA.lib_file_name_with_model_field(
+                e.type, "fmapfn", e.fmapfn
+            )
+            if lib_file in seen:
+                continue
+            seen.add(lib_file)
+            f = PKDict(type=m, lib_file=lib_file)
+            if m == "MWS":
+                f.pkupdate(frequency_mhz=cv.eval_var_with_assert(e.freq))
+            r.append(f)
+        return r
+
+    return template_common.render_jinja(
+        SIM_TYPE,
+        PKDict(conversions=_conversions()),
+        TRACK_FIELDMAP_CONVERSION_FILE,
+    )
+
+
 def _iterate_hdf5_steps(path, callback, state):
     def _read(file_obj):
         _iterate_hdf5_steps_from_handle(file_obj, callback, state)
@@ -1100,7 +1173,6 @@ def _iterate_hdf5_steps_from_handle(h5file, callback, state):
 
 
 def _output_info(run_dir):
-    # TODO(pjm): cache to file with version, similar to template.elegant
     data = _SIM_DATA.sim_run_input(run_dir)
     files = LatticeUtil(data, SCHEMA).iterate_models(OpalOutputFileIterator()).result
     res = []
@@ -1116,34 +1188,12 @@ def _output_info(run_dir):
     return res
 
 
-def _read_data_file(path):
-    col_names = []
-    rows = []
-    with pkio.open_text(str(path)) as f:
-        col_names = []
-        rows = []
-        mode = ""
-        for line in f:
-            if "---" in line:
-                if mode == "header":
-                    mode = "data"
-                elif mode == "data":
-                    break
-                if not mode:
-                    mode = "header"
-                continue
-            line = re.sub("\0", "", line)
-            if mode == "header":
-                col_names = re.split(r"\s+", line.lower())
-            elif mode == "data":
-                # TODO(pjm): separate overlapped columns. Instead should explicitly set field dimensions
-                line = re.sub(r"(\d)(\-\d)", r"\1 \2", line)
-                line = re.sub(r"(\.\d{3})(\d+\.)", r"\1 \2", line)
-                rows.append(re.split(r"\s+", line))
-    return col_names, rows
-
-
 def _units_from_hdf5(h5file, field):
     return _field_units(
         pkcompat.from_bytes(h5file.attrs["{}Unit".format(field.name)]), field
     )
+
+
+def _using_track_fieldmap(element):
+    m = re.match(r"(EMS|MWS)\.\d+-.+\.txt$", element.get("fmapfn", ""))
+    return m.group(1) if m else None

@@ -63,6 +63,7 @@
             "colorMap": "afmhot",
             "histogramBins": 200,
             "notes": "",
+            "plotType": "heatmap",
             "x": "x",
             "y": "px"
         },
@@ -70,6 +71,7 @@
             "colorMap": "afmhot",
             "histogramBins": 200,
             "notes": "",
+            "plotType": "heatmap",
             "x": "y",
             "y": "py"
         },
@@ -77,6 +79,7 @@
             "colorMap": "afmhot",
             "histogramBins": 200,
             "notes": "",
+            "plotType": "heatmap",
             "x": "x",
             "y": "y"
         },
@@ -84,6 +87,7 @@
             "colorMap": "afmhot",
             "histogramBins": 200,
             "notes": "",
+            "plotType": "heatmap",
             "x": "t",
             "y": "pt"
         },

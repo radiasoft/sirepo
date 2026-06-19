@@ -124,30 +124,18 @@
             "randomSeed": 123456789
         },
         "bunchReport1": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
-            "notes": "",
             "x": "x",
             "y": "px"
         },
         "bunchReport2": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
-            "notes": "",
             "x": "y",
             "y": "py"
         },
         "bunchReport3": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
-            "notes": "",
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
-            "notes": "",
             "x": "t",
             "y": "pt"
         },
@@ -387,10 +375,8 @@
             }
         ],
         "elementAnimation124-20": {
-            "aspectRatio": "1",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
-            "histogramBins": 200,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -1422,13 +1408,12 @@
             "x": "s",
             "y1": "betx",
             "y2": "bety",
-            "y3": "dx"
+            "y3": "dx",
+            "y3Position": "right"
         },
         "elementAnimation132-6": {
-            "aspectRatio": "1",
             "colorMap": "afmhot",
             "framesPerSecond": "2",
-            "histogramBins": 200,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "0",

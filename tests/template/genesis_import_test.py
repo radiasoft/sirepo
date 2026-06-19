@@ -19,13 +19,14 @@ def test_lib_file_list(fc):
         # NOTE: first file must be first
         file=pkunit.data_dir().join("test.in"),
     )
-    pkunit.pkok(r.get("missingFiles"), "expecting missingFiles reply={}", r)
+    # missing files are now handled on the client
+    # pkunit.pkok(r.get("missingFiles"), "expecting missingFiles reply={}", r)
     r = fc.sr_post_form(
         "uploadLibFile",
         params=PKDict(
             simulation_type=fc.sr_sim_type,
             simulation_id="NONSIMID",
-            file_type=r.missingFiles[0].file_type,
+            file_type="io-maginfile",
         ),
         data=PKDict(),
         file=pkunit.data_dir().join("mag-test.in"),

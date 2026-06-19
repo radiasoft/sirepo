@@ -28,10 +28,6 @@
             ["REAL", "Real"],
             ["STRING", "String"]
         ],
-        "PlotType": [
-            ["heatmap", "Heatmap"],
-            ["3d", "Heatmap with Line-outs"]
-        ],
         "SetupArgumentDimension": [
             ["1", "1"],
             ["2", "2"],

@@ -19,6 +19,7 @@ class SimData(sirepo.sim_data.lattice.LatticeSimData):
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         super().fixup_old_data(data, qcall, **kwargs)
+        dm = data.models
         cls._init_models(
             data.models,
             (
@@ -27,6 +28,13 @@ class SimData(sirepo.sim_data.lattice.LatticeSimData):
                 "twissReport",
             ),
         )
+        for m in dm.values():
+            if (
+                isinstance(m, dict)
+                and "aspectRatio" in m
+                and m.aspectRatio == 0.5714285714285714
+            ):
+                m.aspectRatio = "0.5625"
 
     @classmethod
     def _compute_job_fields(cls, data, report, compute_model):

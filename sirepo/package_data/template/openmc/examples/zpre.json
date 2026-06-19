@@ -1,5 +1,12 @@
 {
     "models": {
+        "_externalFiles": [
+            {
+                "name": "zpre.h5m",
+                "model": "geometryInput",
+                "field": "dagmcFile"
+            }
+        ],
         "dagmcAnimation": {},
         "geometry3DReport": {
             "bgColor": "#fff9ed",
@@ -7,8 +14,7 @@
             "showEdges": "0"
         },
         "geometryInput": {
-            "dagmcFile": "zpre.h5m",
-            "exampleURL": "zpre.h5m"
+            "dagmcFile": "zpre.h5m"
         },
         "openmcAnimation": {
             "aspect": "mean",

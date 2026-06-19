@@ -327,7 +327,7 @@ class OpalParser(lattice.LatticeParser):
                     elif el_schema[f][1] == "InputFile" and el[f]:
                         if update_filenames:
                             el[f] = self.sim_data.lib_file_name_without_type(
-                                os.path.basename(el[f])
+                                os.path.basename(el[f]), model_name, f
                             )
                         filename = self.sim_data.lib_file_name_with_model_field(
                             model_name, f, el[f]

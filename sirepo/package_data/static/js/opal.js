@@ -4,8 +4,10 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.BUNCH_ANIMATION_NAMES = ['bunchAnimation1', 'bunchAnimation2', 'bunchAnimation3'];
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
     SIREPO.appDefaultSimulationValues.simulation.elementPosition = 'absolute';
-    SIREPO.SINGLE_FRAME_ANIMATION = ['beamline3dAnimation', 'plotAnimation', 'plot2Animation'];
+    SIREPO.SINGLE_FRAME_ANIMATION = ['beamline3dAnimation', 'comparisonAnimation', 'plotAnimation', 'plot2Animation'].concat(SIREPO.BUNCH_ANIMATION_NAMES);
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="BeamList" data-ng-class="fieldClass">
           <div data-command-list="" data-model="model" data-field="field" data-command-type="beam"></div>
@@ -29,10 +31,12 @@ SIREPO.app.config(function() {
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="beamline3d" data-beamline-3d="" class="sr-plot" data-model-name="{{ modelKey }}"></div>
     `;
-    SIREPO.appDownloadLinks = `
-        <li data-download-csv-link=""></li>
-    `;
+//TODO(pjm): conflicts with the phaseSpacePlots component
+//    SIREPO.appDownloadLinks = `
+//        <li data-download-csv-link=""></li>
+//    `;
     SIREPO.lattice = {
+        latticeImport: ".ele, .in, .lte, .madx, .seq, .dat",
         canReverseBeamline: true,
         elementColor: {
             CCOLLIMATOR: 'magenta',
@@ -244,10 +248,11 @@ SIREPO.app.directive('appHeader', function(appState, latticeService, opalService
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
                 <div data-ng-if="nav.isLoaded()" data-sim-sections="">
-                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'lattice\')}"><a href data-ng-click="nav.openSection(\'lattice\')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'source\')}"><a href data-ng-click="nav.openSection(\'source\')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
-                  <li class="sim-section" data-ng-class="{active: nav.isActive(\'control\')}"><a data-ng-href="{{ nav.sectionURL(\'control\') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>
-                  <li class="sim-section" data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive(\'visualization\')}"><a data-ng-href="{{ nav.sectionURL(\'visualization\') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('lattice')}"><a href data-ng-click="nav.openSection('lattice')"><span class="glyphicon glyphicon-option-horizontal"></span> Lattice</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('source')}"><a href data-ng-click="nav.openSection('source')"><span class="glyphicon glyphicon-flash"></span> Source</a></li>
+                  <li class="sim-section" data-ng-class="{active: nav.isActive('control')}"><a data-ng-href="{{ nav.sectionURL('control') }}"><span class="glyphicon glyphicon-list-alt"></span> Control</a></li>
+                  <li class="sim-section" data-ng-if="hasBeamlinesAndCommands()" data-ng-class="{active: nav.isActive('visualization')}"><a data-ng-href="{{ nav.sectionURL('visualization') }}"><span class="glyphicon glyphicon-picture"></span> Visualization</a></li>
+                  <li class="sim-section" data-ng-if="showComparisonTab()" data-ng-class="{active: nav.isActive('comparison')}"><a data-ng-href="{{ nav.sectionURL('comparison') }}">Comparison</a></li>
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
@@ -268,6 +273,8 @@ SIREPO.app.directive('appHeader', function(appState, latticeService, opalService
                 }
                 return appState.models.commands.length > 0;
             };
+
+            $scope.showComparisonTab = () => appState.models.trackComparison.showComparisonTab === "1";
         },
     };
 });
@@ -319,24 +326,6 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
         return fn.replace(/\.(?:h5|outfn)/g, '');
     }
 
-    self.hasBeamline3d = function() {
-        return frameCache.hasFrames() && self.simState.getPercentComplete() == 100;
-    };
-
-    self.simHandleStatus = function (data) {
-        self.errorMessage = data.error;
-        if ('percentComplete' in data && ! self.errorMessage) {
-            ['bunchAnimation', 'plotAnimation', 'plot2Animation'].forEach(function(m) {
-                plotRangeService.computeFieldRanges(self, m, data.percentComplete);
-                appState.saveQuietly(m);
-            });
-            if (data.frameCount && data.outputInfo) {
-                loadElementReports(data.outputInfo);
-            }
-        }
-        frameCache.setFrameCount(data.frameCount || 0);
-    };
-
     function loadElementReports(outputInfo) {
         self.outputFiles = [];
         outputInfo.forEach(function(info) {
@@ -364,6 +353,33 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
             frameCache.setFrameCount(1, info.modelKey);
         });
     }
+
+    self.hasBeamline3d = function() {
+        return frameCache.hasFrames() && self.simState.getPercentComplete() == 100;
+    };
+
+    self.simHandleStatus = function (data) {
+        self.errorMessage = data.error;
+        if ('percentComplete' in data && ! self.errorMessage) {
+            ['bunchAnimation', 'plotAnimation', 'plot2Animation'].forEach(function(m) {
+                plotRangeService.computeFieldRanges(self, m, data.percentComplete);
+                appState.saveQuietly(m);
+            });
+            if (data.frameCount && data.outputInfo) {
+                loadElementReports(data.outputInfo);
+                if (appState.models.trackComparison.isTrackImport === "1") {
+                    appState.models.trackComparison.showComparisonTab = "1";
+                    appState.saveQuietly("trackComparison");
+                }
+            }
+        }
+        frameCache.setFrameCount(data.frameCount || 0);
+    };
+
+    self.startSimulation = function() {
+        appState.models.trackComparison.showComparisonTab = "0";
+        self.simState.saveAndRunSimulation(['command_track', 'simulation', 'trackComparison']);
+    };
 
     self.simState = persistentSimulation.initSimulationState(self);
 
@@ -407,6 +423,41 @@ SIREPO.app.controller('VisualizationController', function (appState, commandServ
                 plotRangeService.processPlotRange(self, name);
             }
         });
+    });
+});
+
+SIREPO.app.controller('ComparisonController', function(appState, frameCache, persistentSimulation, $scope) {
+    const self = this;
+    self.simScope = $scope;
+    self.showWarning = false;
+
+    self.showBeamComparison = () => {
+        return appState.applicationState().trackComparison.beamOut && self.simState.hasFrames();
+    };
+
+    self.showPhaseSpaceComparison = () => {
+        return appState.applicationState().trackComparison.coordOut && self.simState.hasFrames();
+    };
+
+    self.simHandleStatus = (data) => {
+        frameCache.setFrameCount(data.frameCount || 0);
+        for (const m of SIREPO.BUNCH_ANIMATION_NAMES) {
+            frameCache.setFrameCount(data.frameCount || 0, m);
+        }
+        frameCache.setFrameCount(data.frameCount || 0, 'comparisonAnimation');
+        self.showWarning = ! self.simState.hasFrames();
+    };
+
+    self.simState = persistentSimulation.initSimulationState(self);
+
+    $scope.$on('trackComparison.changed', () => {
+        appState.models.comparisonAnimation.beamOut = appState.models.trackComparison.beamOut;
+        appState.saveQuietly('comparisonAnimation');
+        for (const m of SIREPO.BUNCH_ANIMATION_NAMES) {
+            appState.models[m].coordOut = appState.models.trackComparison.coordOut;
+            appState.models[m].beamOut = appState.models.trackComparison.beamOut;
+            appState.saveQuietly(m);
+        }
     });
 });
 
@@ -718,4 +769,27 @@ SIREPO.viewLogic('simulationView', function(appState, panelState, $scope) {
             panelState.showField(name, 'includeLattice', ! latticeService.isAbsolutePositioning());
         };
     });
+});
+
+SIREPO.viewLogic('simulationSettingsView', function(appState, latticeService, $scope) {
+    function updateZStop() {
+        const b = latticeService.elementForId(appState.models.command_track.line);
+        if (b) {
+            appState.models.command_track.zstop = Number.parseFloat(b.length.toFixed(6));
+        }
+    }
+
+    $scope.whenSelected = () => {
+        const s = appState.models.simulationStatus;
+        // update zstop if this is a new sim
+        if (s && s.animation && s.animation.state === 'missing'
+            && appState.models.command_track.zstop === 1) {
+            updateZStop();
+            appState.saveQuietly('command_track');
+        }
+    };
+
+    $scope.watchFields = [
+        ['command_track.line'], updateZStop,
+    ];
 });

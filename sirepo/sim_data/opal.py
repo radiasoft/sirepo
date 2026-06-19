@@ -25,8 +25,13 @@ class SimData(sirepo.sim_data.lattice.LatticeSimData):
             (
                 "beamline3dAnimation",
                 "bunchAnimation",
+                "bunchAnimation1",
+                "bunchAnimation2",
+                "bunchAnimation3",
+                "comparisonAnimation",
                 "plotAnimation",
                 "plot2Animation",
+                "trackComparison",
             ),
         )
         for cmd in dm.commands:
@@ -38,8 +43,6 @@ class SimData(sirepo.sim_data.lattice.LatticeSimData):
                 ]:
                     cmd.type = ""
                 cmd.material = cmd.material.upper()
-        if "aspectRatio" in dm.plotAnimation:
-            del dm.plotAnimation["aspectRatio"]
         for bl in dm.beamlines:
             cls.update_model_defaults(bl, "beamline")
         cls._remove_deprecated_items(dm)

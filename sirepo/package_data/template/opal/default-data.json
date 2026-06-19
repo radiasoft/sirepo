@@ -1,20 +1,6 @@
 {
     "models": {
         "beamlines": [],
-        "bunchAnimation": {
-            "aspectRatio": "1",
-            "colorMap": "viridis",
-            "framesPerSecond": "2",
-            "histogramBins": 200,
-            "horizontalOffset": 0.0,
-            "horizontalSize": 0,
-            "notes": "",
-            "plotRangeType": "fit",
-            "verticalOffset": 0.0,
-            "verticalSize": 0,
-            "x": "x",
-            "y": "px"
-        },
         "bunchReport1": {
             "x": "x",
             "y": "px"
@@ -243,7 +229,7 @@
                 "dtscinit": 1e-12,
                 "line": "",
                 "map_order": 1,
-                "maxsteps": 10000,
+                "maxsteps": 1000000,
                 "name": "TR1",
                 "run_beam": 3,
                 "run_boundarygeometry": "",

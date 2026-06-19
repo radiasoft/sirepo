@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="Integer19StringArray" class="col-sm-7">
           <div data-number-list="" data-field="model[field]" data-info="info" data-type="Integer" data-count="19"></div>
@@ -12,6 +13,10 @@ SIREPO.app.config(function() {
             <div data-magin-file-plot="" data-model-name="maginPlotReport"></div>
         </div>
     `;
+    SIREPO.lattice = {
+        latticeImport: ".in",
+        latticeRedirect: "source",
+    };
 });
 
 SIREPO.app.factory('genesisService', function(appState) {
@@ -52,9 +57,7 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: `
             <div data-common-footer="nav"></div>
-            <div data-import-dialog="" data-title="Import Genesis 1.3 File" data-description="Select an Genesis 1.3 (.in) or Sirepo Export (.zip)" data-file-formats=".in,.zip">
-                <div data-import-options=""></div>
-            </div>
+            <div data-lattice-import-dialog=""></div>
         `,
     };
 });

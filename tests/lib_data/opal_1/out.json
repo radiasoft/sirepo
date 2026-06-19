@@ -37,41 +37,74 @@
             "aspectRatio": "1",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 60,
             "horizontalOffset": 0.0,
             "horizontalSize": 0.0,
             "notes": "",
             "plotRangeType": "fit",
+            "plotType": "3d",
+            "selectedFrame": 0,
             "verticalOffset": 0.0,
             "verticalSize": 0.0,
             "x": "x",
             "y": "px"
         },
+        "bunchAnimation1": {
+            "colorMap": "viridis",
+            "coordOut": "",
+            "histogramBins": 60,
+            "notes": "",
+            "plotType": "3d",
+            "x": "x",
+            "y": "px"
+        },
+        "bunchAnimation2": {
+            "colorMap": "viridis",
+            "coordOut": "",
+            "histogramBins": 60,
+            "notes": "",
+            "plotType": "3d",
+            "x": "x",
+            "y": "px"
+        },
+        "bunchAnimation3": {
+            "colorMap": "viridis",
+            "coordOut": "",
+            "histogramBins": 60,
+            "notes": "",
+            "plotType": "3d",
+            "x": "x",
+            "y": "px"
+        },
         "bunchReport1": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 80,
             "notes": "",
+            "plotType": "heatmap",
             "x": "x",
             "y": "px"
         },
         "bunchReport2": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 80,
             "notes": "",
+            "plotType": "heatmap",
             "x": "y",
             "y": "py"
         },
         "bunchReport3": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 80,
             "notes": "",
+            "plotType": "heatmap",
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 80,
             "notes": "",
+            "plotType": "heatmap",
             "x": "z",
             "y": "pz"
         },
@@ -296,6 +329,13 @@
                 "zstop": 5.0
             }
         ],
+        "comparisonAnimation": {
+            "aspectRatio": "0.25",
+            "beamOut": "",
+            "includeLattice": "1",
+            "notes": "",
+            "quantity": "rms"
+        },
         "elements": [
             {
                 "_id": 103,
@@ -403,20 +443,42 @@
             }
         ],
         "plot2Animation": {
+            "_super": "_PARAMETER_PLOT_COMMON",
+            "aspectRatio": "0.5625",
             "includeLattice": "0",
+            "leftLimit": 0.0,
             "notes": "",
+            "rightLimit": 0.0,
             "x": "s",
             "y1": "rms x",
+            "y1Position": "left",
             "y2": "rms y",
-            "y3": "rms s"
+            "y2Position": "left",
+            "y3": "rms s",
+            "y3Position": "left",
+            "y4": "none",
+            "y4Position": "right",
+            "y5": "none",
+            "y5Position": "right"
         },
         "plotAnimation": {
+            "_super": "_PARAMETER_PLOT_COMMON",
+            "aspectRatio": "0.5625",
             "includeLattice": "0",
+            "leftLimit": 0.0,
             "notes": "",
+            "rightLimit": 0.0,
             "x": "SPOS",
             "y1": "#varepsilon x",
+            "y1Position": "left",
             "y2": "#varepsilon y",
-            "y3": "none"
+            "y2Position": "left",
+            "y3": "none",
+            "y3Position": "left",
+            "y4": "none",
+            "y4Position": "right",
+            "y5": "none",
+            "y5Position": "right"
         },
         "rpnVariables": [
             {
@@ -467,6 +529,12 @@
             "simulationMode": "serial",
             "simulationSerial": 0,
             "visualizationBeamlineId": 113
+        },
+        "trackComparison": {
+            "beamOut": "",
+            "coordOut": "",
+            "isTrackImport": "0",
+            "showComparisonTab": "0"
         }
     },
     "simulationType": "opal"

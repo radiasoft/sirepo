@@ -773,10 +773,10 @@
             "x": "s",
             "y1": "rms x",
             "y2": "rms y",
-            "y3": "rms s"
+            "y3": "rms s",
+            "y3Position": "right"
         },
         "plotAnimation": {
-            "aspectRatio": "1",
             "includeLattice": "0",
             "isRunning": 0,
             "notes": "",

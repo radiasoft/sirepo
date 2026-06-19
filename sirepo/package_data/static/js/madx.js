@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
     SIREPO.FILE_UPLOAD_TYPE = {
         'bunch-sourceFile': '.h5',
     };
@@ -224,8 +225,6 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
                     panelTitle: outputFile.panelTitle,
                     x: info.plottableColumns[0],
                     y1: info.plottableColumns[1],
-                    y2: 'None',
-                    y3: 'None',
                 };
                 // better twiss defaults
                 if (
@@ -240,8 +239,8 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
                 }
             }
             var m = appState.models[modelKey];
-            if (outputFile.reportType != 'heatmap') {
-                m.aspectRatio = 4.0 / 7;
+            if (! m.aspectRatio) {
+                m.aspectRatio = outputFile.reportType === 'heatmap' ? '1' : '0.5625';
             }
             appState.setModelDefaults(m, 'elementAnimation');
             var yColumnWithNone = appState.clone(info.plottableColumns);
@@ -251,6 +250,8 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
                 y1: info.plottableColumns,
                 y2: yColumnWithNone,
                 y3: yColumnWithNone,
+                y4: yColumnWithNone,
+                y5: yColumnWithNone,
             };
             appState.saveQuietly(modelKey);
             frameCache.setFrameCount(info.pageCount || 1, modelKey);

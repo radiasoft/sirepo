@@ -359,8 +359,7 @@
         },
         "geometryInput": {
             "dagmcFile": ["Model file", "InputFile", "", "A DAGMC (.h5m), Step (.stp or .step) file"],
-            "materialsFile": ["Materials XML file (optional)", "InputFile", "", "An OpenMC materials.xml (or model.xml) mapping from names to volume properties", false],
-            "exampleURL": ["", "String", ""]
+            "materialsFile": ["Materials XML file (optional)", "InputFile", "", "An OpenMC materials.xml (or model.xml) mapping from names to volume properties", false]
         },
         "geometry3DReport": {
             "bgColor": ["Background color", "Color", "#fff9ed"],
@@ -525,7 +524,6 @@
             "angle": ["Angular distribution", "UnitSphere", {"_type": "None"}],
             "energy": ["Energy distribution", "Univariate", {"_type": "None"}],
             "file": ["File", "InputFile", "", "openmc source file in hdf5 format", false],
-            "exampleURL": ["", "String", ""],
             "particle": ["Particle", "Particle", "neutron"],
             "space": ["Spatial distribution", "Spatial", {"_type": "None"}],
             "strength": ["Strength", "Float", 1],

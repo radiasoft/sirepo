@@ -30,6 +30,11 @@
         }
     },
     "enum": {
+        "ComparisonQuantity": [
+            ["rms", "Beam Size (RMS)"],
+            ["emittance", "Emittance"],
+            ["energy", "Energy"]
+        ],
         "ElementPosition": [
             ["relative", "Relative to each other (using DRIFT)"],
             ["absolute", "Absolute (using ELEMEDGE)"]
@@ -362,6 +367,17 @@
         }
     },
     "frameIdFields": {
+        "animation": [
+            "x",
+            "y",
+            "histogramBins",
+            "plotRangeType",
+            "horizontalSize",
+            "horizontalOffset",
+            "verticalSize",
+            "verticalOffset",
+            "isRunning"
+        ],
         "beamline3dAnimation": [],
         "bunchAnimation": [
             "x",
@@ -374,19 +390,33 @@
             "verticalOffset",
             "isRunning"
         ],
-        "animation": [
+        "bunchAnimation1": [
+            "histogramBins",
             "x",
             "y",
-            "histogramBins",
-            "plotRangeType",
-            "horizontalSize",
-            "horizontalOffset",
-            "verticalSize",
-            "verticalOffset",
-            "isRunning"
+            "beamOut",
+            "coordOut"
         ],
-        "plotAnimation": ["x", "y1", "y2", "y3"],
-        "plot2Animation": ["x", "y1", "y2", "y3"]
+        "bunchAnimation2": [
+            "histogramBins",
+            "x",
+            "y",
+            "beamOut",
+            "coordOut"
+        ],
+        "bunchAnimation3": [
+            "histogramBins",
+            "x",
+            "y",
+            "beamOut",
+            "coordOut"
+        ],
+        "comparisonAnimation": [
+            "beamOut",
+            "quantity"
+        ],
+        "plotAnimation": ["x", "y1", "y2", "y3", "y4", "y5"],
+        "plot2Animation": ["x", "y1", "y2", "y3", "y4", "y5"]
     },
     "localRoutes": {
         "source": {
@@ -415,6 +445,13 @@
               "controller": "VisualizationController as visualization",
               "templateUrl": "/static/html/opal-visualization.html"
             }
+        },
+        "comparison": {
+            "route": "/comparison/:simulationId",
+            "config": {
+              "controller": "ComparisonController as comparison",
+              "templateUrl": "/static/html/opal-comparison.html"
+            }
         }
     },
     "model": {
@@ -433,14 +470,16 @@
         "bunchReport": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "x"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "y"],
-            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 80],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
         "bunchAnimation": {
             "x": ["X Value", "PhaseSpaceCoordinate", "x"],
             "y": ["Y Value", "PhaseSpaceCoordinate", "px"],
-            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "plotType": ["Plot Type", "PlotType", "3d"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "fit"],
@@ -449,12 +488,48 @@
             "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
             "verticalOffset": ["Vertical Offset", "Float", 0.0],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "selectedFrame": ["", "FrameSlider", 0],
+            "notes": ["Notes", "Text", ""]
+        },
+        "bunchAnimation1": {
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "coordOut": ["TRACK Coord Output", "InputFile", "", "TRACK coord.out output file"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "bunchAnimation2": {
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "coordOut": ["TRACK Coord Output", "InputFile", "", "TRACK coord.out output file"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "bunchAnimation3": {
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
+            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "coordOut": ["TRACK Coord Output", "InputFile", "", "TRACK coord.out output file"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "comparisonAnimation": {
+            "beamOut": ["TRACK Beam Output", "InputFile", "", "TRACK beam.out output file"],
+            "quantity": ["Quantity", "ComparisonQuantity", "rms"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.25"],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
             "notes": ["Notes", "Text", ""]
         },
         "elementAnimation": {
             "x": ["X Value", "PhaseSpaceCoordinate2", "x"],
             "y": ["Y Value", "PhaseSpaceCoordinate2", "px"],
-            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 80],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "none"],
@@ -466,20 +541,24 @@
             "notes": ["Notes", "Text", ""]
         },
         "plotAnimation": {
+            "_super": ["_", "model", "_PARAMETER_PLOT_COMMON"],
             "x": ["Horizontal Value to Plot", "PlotField", "SPOS"],
             "y1": ["Vertical Value to Plot", "PlotField", "#varepsilon x"],
             "y2": ["Vertical Value to Plot", "PlotField", "#varepsilon y"],
             "y3": ["Vertical Value to Plot", "PlotField", "none"],
-            "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
-            "notes": ["Notes", "Text", ""]
+            "y4": ["Vertical Value to Plot", "PlotField", "none"],
+            "y5": ["Vertical Value to Plot", "PlotField", "none"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.5625"]
         },
         "plot2Animation": {
+            "_super": ["_", "model", "_PARAMETER_PLOT_COMMON"],
             "x": ["Horizontal Value to Plot", "Plot2Field", "s"],
             "y1": ["Vertical Value to Plot", "Plot2Field", "rms x"],
             "y2": ["Vertical Value to Plot", "Plot2Field", "rms y"],
             "y3": ["Vertical Value to Plot", "Plot2Field", "rms s"],
-            "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
-            "notes": ["Notes", "Text", ""]
+            "y4": ["Vertical Value to Plot", "Plot2Field", "none"],
+            "y5": ["Vertical Value to Plot", "Plot2Field", "none"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.5625"]
         },
         "rpnVariable": {
             "name": ["Name", "String"],
@@ -489,6 +568,12 @@
             "elementPosition": ["Element Positioning", "ElementPosition", "absolute", "Beamline elements may be positioned relative to each other using Drifts for spacing, or positioned absolute using Elemedge."],
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""],
             "simulationMode": ["Execution", "SimulationMode", "serial"]
+        },
+        "trackComparison": {
+            "isTrackImport": ["", "Boolean", "0"],
+            "showComparisonTab": ["", "Boolean", "0"],
+            "beamOut": ["TRACK Beam Output", "InputFile", "", "TRACK beam.out output file"],
+            "coordOut": ["TRACK Coord Output", "InputFile", "", "TRACK coord.out output file"]
         },
         "_ELEMENT": {
             "name": ["NAME", "ValidatedString", "", ""],
@@ -1182,7 +1267,7 @@
     },
     "strings": {
         "simulationSource": "OPAL Source (*.in)",
-        "importText": "Import a lattice file (.ele, .lte, .in, .madx, or .seq)"
+        "importText": "Import a lattice file (.ele, .lte, .in, .madx, .seq, or track.dat)"
     },
     "view": {
         "beamline": {
@@ -1212,6 +1297,7 @@
             "title": "Beam Phase Space",
             "advanced": [
                 ["Main", [
+                    "plotType",
                     [
                         ["Horizontal", [
                             "x"
@@ -1241,9 +1327,22 @@
                 ]]
             ]
         },
+        "bunchAnimation1": {
+            "title": "Phase Space",
+            "advanced": []
+        },
+        "bunchAnimation2": {
+            "title": "Phase Space",
+            "advanced": []
+        },
+        "bunchAnimation3": {
+            "title": "Phase Space",
+            "advanced": []
+        },
         "bunchReport": {
             "title": "Beam Phase Space",
             "advanced": [
+                "plotType",
                 [
                     ["Horizontal", [
                         "x"
@@ -1257,10 +1356,21 @@
                 "notes"
             ]
         },
+        "comparisonAnimation": {
+            "hasDataFile": false,
+            "title": "Beam Comparison",
+            "advanced": [
+                "quantity",
+                "aspectRatio",
+                "includeLattice",
+                "notes"
+            ]
+        },
         "elementAnimation": {
             "title": "Output Report",
             "advanced": [
                 ["Main", [
+                    "plotType",
                     [
                         ["Horizontal", [
                             "x"
@@ -1293,35 +1403,79 @@
         "plotAnimation": {
             "title": "Beam Variables",
             "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y1",
-                        "y2",
-                        "y3"
-                    ]]
-                ],
-                "includeLattice",
-                "notes"
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1",
+                            "y2",
+                            "y3",
+                            "y4",
+                            "y5"
+                        ]],
+                        ["Position", [
+                            "y1Position",
+                            "y2Position",
+                            "y3Position",
+                            "y4Position",
+                            "y5Position"
+                        ]]
+                    ],
+                    "includeLattice",
+                    "aspectRatio",
+                    "notes"
+                ]],
+                ["Limits", [
+                    [
+                        ["Left", [
+                            "leftLimit"
+                        ]],
+                        ["Right", [
+                            "rightLimit"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "plot2Animation": {
             "title": "Beam Statistics",
             "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y1",
-                        "y2",
-                        "y3"
-                    ]]
-                ],
-                "includeLattice",
-                "notes"
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1",
+                            "y2",
+                            "y3",
+                            "y4",
+                            "y5"
+                        ]],
+                        ["Position", [
+                            "y1Position",
+                            "y2Position",
+                            "y3Position",
+                            "y4Position",
+                            "y5Position"
+                        ]]
+                    ],
+                    "includeLattice",
+                    "aspectRatio",
+                    "notes"
+                ]],
+                ["Limits", [
+                    [
+                        ["Left", [
+                            "leftLimit"
+                        ]],
+                        ["Right", [
+                            "rightLimit"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "simulation": {
@@ -1345,6 +1499,14 @@
         },
         "simulationStatus": {
             "title": "Simulation Status",
+            "advanced": []
+        },
+        "trackComparison": {
+            "title": "TRACK Code Comparison",
+            "basic": [
+                "beamOut",
+                "coordOut"
+            ],
             "advanced": []
         },
         "CCOLLIMATOR": {
