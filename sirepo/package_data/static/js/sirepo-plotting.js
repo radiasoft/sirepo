@@ -3476,7 +3476,7 @@ SIREPO.app.directive('colorCircle', function() {
                   data-ng-attr-r="{{ plot.circleRadius }}"
                   data-ng-attr-fill="{{ plot.color }}"
                 />
-                <line data-ng-if="plot.circleRadius < 4"
+                <line data-ng-if="! plot.circleRadias || plot.circleRadius < 4"
                   x1="0" y1="5" x2="30" y2="5"
                   data-ng-attr-stroke-width="{{ plot.strokeWidth > 4 ? plot.strokeWidth : 4 }}"
                   data-ng-attr-opacity="{{ plot.opacity || 1.0 }}"
