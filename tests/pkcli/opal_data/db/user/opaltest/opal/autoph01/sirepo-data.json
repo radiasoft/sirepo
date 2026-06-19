@@ -1,0 +1,28 @@
+{
+  "simulationType": "opal",
+  "models": {
+    "simulation": {
+      "simulationId": "autoph01",
+      "simulationSerial": 1
+    },
+    "commands": [
+      {
+        "_id": 1,
+        "_super": "_COMMAND",
+        "_type": "option",
+        "autophase": 4,
+        "name": "Opt1"
+      }
+    ],
+    "elements": [
+      {
+        "_id": 2,
+        "_super": "_ELEMENT",
+        "lag": 0,
+        "name": "FINSS_RGUN",
+        "type": "RFCAVITY"
+      }
+    ],
+    "beamlines": []
+  }
+}
