@@ -55,7 +55,7 @@ _OPAL_CONSTANTS = PKDict(
     p0=1,
     seed=123456789,
 )
-_OPAL_H5_FILE = "opal.h5"
+OPAL_H5_FILE = "opal.h5"
 _OPAL_SDDS_FILE = "opal.stat"
 _OPAL_VTK_FILE = "opal_ElementPositions.vtk"
 _ELEMENTS_WITH_TYPE_FIELD = ("CYCLOTRON", "MONITOR", "RFCAVITY")
@@ -455,7 +455,7 @@ def background_percent_complete(report, run_dir, is_running):
     return res
 
 
-def bunch_plot(model, run_dir, frame_index, filename=_OPAL_H5_FILE):
+def bunch_plot(model, run_dir, frame_index, filename=OPAL_H5_FILE):
     def _points(file, frame_index, name):
         return numpy.array(file["/Step#{}/{}".format(frame_index, name)])
 
@@ -502,7 +502,7 @@ def code_var(variables):
 
 def get_data_file(run_dir, model, frame, options):
     if model in ("bunchAnimation", "plotAnimation") or "bunchReport" in model:
-        return _OPAL_H5_FILE
+        return OPAL_H5_FILE
     if frame < 0:
         return template_common.text_data_file(OPAL_OUTPUT_FILE, run_dir)
     if model == "plot2Animation":
@@ -530,7 +530,7 @@ def read_frame_count(run_dir):
             res[1] = h5file[key].attrs["SPOS"][0]
 
     try:
-        return _iterate_hdf5_steps(run_dir.join(_OPAL_H5_FILE), _walk_file, [0, 0])[:2]
+        return _iterate_hdf5_steps(run_dir.join(OPAL_H5_FILE), _walk_file, [0, 0])[:2]
     except IOError:
         pass
     except RuntimeError:
@@ -588,7 +588,7 @@ def save_sequential_report_data(data, run_dir):
 
 def sim_frame(frame_args):
     if "bunchAnimation" in frame_args.frameReport:
-        return track_parser.bunch_comparison(frame_args, _OPAL_H5_FILE)
+        return track_parser.bunch_comparison(frame_args, OPAL_H5_FILE)
     # elementAnimations
     return bunch_plot(
         frame_args,
@@ -651,7 +651,7 @@ def sim_frame_plotAnimation(frame_args):
             for field in res.values():
                 _units_from_hdf5(h5file, field)
 
-    return hdf5_util.HDF5Util(frame_args.run_dir.join(_OPAL_H5_FILE)).lineplot(
+    return hdf5_util.HDF5Util(frame_args.run_dir.join(OPAL_H5_FILE)).lineplot(
         PKDict(
             model=frame_args,
             index=lambda parts: _DIM_INDEX[parts[1]] if len(parts) > 1 else 0,
@@ -966,7 +966,7 @@ def _compute_range_across_frames(run_dir, **kwargs):
     res = PKDict()
     for v in SCHEMA.enum.PhaseSpaceCoordinate:
         res[v[0]] = None
-    return _iterate_hdf5_steps(run_dir.join(_OPAL_H5_FILE), _walk_file, res)
+    return _iterate_hdf5_steps(run_dir.join(OPAL_H5_FILE), _walk_file, res)
 
 
 def _column_data(col, col_names, rows):

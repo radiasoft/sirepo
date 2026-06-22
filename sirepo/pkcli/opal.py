@@ -13,6 +13,7 @@ from sirepo import simulation_db
 from sirepo.template import template_common
 import py.path
 import pykern.pkcli
+import h5py
 import re
 import sirepo.mpi
 import sirepo.quest
@@ -61,13 +62,17 @@ def run_opal(with_mpi=False, compute_positions=False):
 def save_autophase_values(sim_id):
     def _parse_phi(sim_dir):
         r = PKDict()
-        p = sim_dir.join("animation", template.OPAL_OUTPUT_FILE)
+        p = sim_dir.join("animation", template.OPAL_H5_FILE)
         if not p.exists():
             raise pykern.pkcli.CommandError("simulation must be run first")
-        for z in p.read().splitlines():
-            m = re.search(r"Saved phases.*?(\w+)#0 .*?([\d.]+)$", z)
-            if m:
-                r[m.group(1)] = float(m.group(2))
+        with h5py.File(str(p), "r") as f:
+            for k, v in f.attrs.items():
+                m = re.match(r"^Cav-(\d+)-name$", k)
+                if m:
+                    name = re.sub(r"#\d+$", "", v.decode() if isinstance(v, bytes) else v)
+                    val_key = f"Cav-{m.group(1)}-value"
+                    if val_key in f.attrs:
+                        r[name] = float(f.attrs[val_key][0])
         return r
 
     def _update_elements(data, phi_by_name):
