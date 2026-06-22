@@ -11,7 +11,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
-import math
 import py.path
 import pykern.pkcli
 import re
@@ -66,9 +65,9 @@ def save_autophase_values(sim_id):
         if not p.exists():
             raise pykern.pkcli.CommandError("simulation must be run first")
         for z in p.read().splitlines():
-            m = re.search(r"Ippl\{0\}> (\w+)#\d+_phi = ([\d.]+) \[deg\]", z)
+            m = re.search(r"Saved phases.*?(\w+)#0 .*?([\d.]+)$", z)
             if m:
-                r[m.group(1)] = math.radians(float(m.group(2)))
+                r[m.group(1)] = float(m.group(2))
         return r
 
     def _update_elements(data, phi_by_name):
