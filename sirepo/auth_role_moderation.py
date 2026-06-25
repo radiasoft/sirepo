@@ -93,7 +93,16 @@ class API(sirepo.quest.API):
             if info.status == "approve":
                 m = self.auth_db.model("UserRole")
                 if info.role in sirepo.auth_role.PLAN_ROLES:
-                    m.add_plan(info.role, info.uid)
+                    r = m.unchecked_active_plan(info.uid)
+                    if r and r.role in sirepo.auth_role.PLAN_ROLES_PAID:
+                        pkdlog(
+                            "uid={} already has paid plan={}, not replacing with moderation role={}",
+                            info.uid,
+                            r.role,
+                            info.role,
+                        )
+                    else:
+                        m.add_plan(info.role, info.uid)
                 else:
                     # No expiration for non-plan roles
                     m.add_roles([info.role], info.uid)
