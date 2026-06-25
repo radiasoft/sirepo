@@ -3943,16 +3943,16 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             function calcYDomains(plots, xdom) {
                 // calculate left and right y axis domains for plots (assumed all visible)
                 const ydom = [null, null];
-                const xPoints = $scope.axes.x.points;
 
-                for (let i = 0; i < xPoints.length; i++) {
-                    const x = xPoints[i];
-                    if (xdom && (x > xdom[1] || x < xdom[0])) {
-                        continue;
-                    }
-                    for (const p of plots) {
+                for (const p of plots) {
+                    const pXPoints = p.x_points || $scope.axes.x.points;
+                    const ia = p._yaxis == 'left' ? 0 : 1;
+                    for (let i = 0; i < pXPoints.length; i++) {
+                        const x = pXPoints[i];
+                        if (xdom && (x > xdom[1] || x < xdom[0])) {
+                            continue;
+                        }
                         const y = p.points[i];
-                        const ia = p._yaxis == 'left' ? 0 : 1;
                         if (ydom[ia]) {
                             if (y < ydom[ia][0]) {
                                 ydom[ia][0] = y;
