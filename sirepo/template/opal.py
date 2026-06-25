@@ -530,7 +530,9 @@ def read_frame_count(run_dir):
             res[1] = h5file[key].attrs["SPOS"][0]
 
     try:
-        return _iterate_hdf5_steps(run_dir.join(OPAL_H5_FILE), _walk_file, [0, 0])[:2]
+        p = run_dir.join(OPAL_H5_FILE)
+        if p.exists():
+            return _iterate_hdf5_steps(p, _walk_file, [0, 0])[:2]
     except IOError:
         pass
     except RuntimeError:
