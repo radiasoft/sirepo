@@ -666,6 +666,8 @@ def simulation_dir(simulation_type, sid=None, qcall=None):
         with user_lock(uid=uid_from_dir_name(p), qcall=qcall):
             if not d.exists():
                 _create_lib_and_examples(p, d.basename, qcall=qcall)
+                for t in feature_config.dependent_codes(simulation_type):
+                    simulation_dir(t, qcall=qcall)
     if not sid:
         return d
     return d.join(assert_sid(sid))

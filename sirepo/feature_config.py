@@ -16,7 +16,7 @@ _DEPENDENT_CODES = dict(
     cortex=frozenset(("openmc",)),
     jspec=frozenset(("elegant",)),
     controls=frozenset(("madx",)),
-    omega=frozenset(("elegant", "omega", "genesis")),
+    omega=frozenset(("elegant", "opal", "genesis")),
 )
 
 FOSS_CODES = frozenset(
@@ -69,6 +69,18 @@ def cfg():
     """
     global _cfg
     return _cfg or _init()
+
+
+def dependent_codes(sim_type):
+    """Codes that `sim_type` depends on
+
+    Args:
+        sim_type (str): sim type to look up
+
+    Returns:
+        frozenset: dependency sim types, or empty frozenset
+    """
+    return _DEPENDENT_CODES.get(sim_type, frozenset())
 
 
 def for_sim_type(sim_type):
