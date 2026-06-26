@@ -23,14 +23,15 @@ def test_validate_path():
 
     with pkunit.pkexcept("empty uri"):
         util.validate_path("")
+    with pkunit.pkexcept("empty uri"):
+        util.validate_path("/")
+    with pkunit.pkexcept("empty uri"):
+        util.validate_path("//")
     with pkunit.pkexcept("illegal char"):
         util.validate_path("a*")
-    with pkunit.pkexcept("empty component"):
-        util.validate_path("a//b")
-    with pkunit.pkexcept("empty component"):
-        util.validate_path("/a")
-    with pkunit.pkexcept("empty component"):
-        util.validate_path("a/")
+    pkunit.pkeq("a/b", util.validate_path("a//b"))
+    pkunit.pkeq("a", util.validate_path("/a"))
+    pkunit.pkeq("a", util.validate_path("a/"))
     with pkunit.pkexcept("dot prefix"):
         util.validate_path("a/../b")
     with pkunit.pkexcept("dot prefix"):

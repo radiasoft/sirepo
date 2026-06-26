@@ -9,7 +9,7 @@ def setup_module(module):
     import os
 
     os.environ.update(
-        SIREPO_FEATURE_CONFIG_HOME_PAGE_SUBDIR="wp_en",
+        SIREPO_FEATURE_CONFIG_HOME_PAGE_SUBDIR="wp_en2",
     )
 
 
@@ -20,5 +20,5 @@ def test_home_page(fc):
     r = fc.sr_get("/", redirect=True)
     r.assert_http_status(200)
     pkunit.pkre("Sirepo by RadiaSoft", r.data)
-    for u in set(re.findall(r'(?:href|src)="(/wp_en/[^"?]+)', r.data)):
+    for u in set(re.findall(r'(?:href|src)="(/en/[^"?]+)', r.data)):
         fc.sr_get(u).assert_http_status(200)
