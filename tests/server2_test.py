@@ -9,7 +9,7 @@ def setup_module(module):
     import os
 
     os.environ.update(
-        SIREPO_FEATURE_CONFIG_HOME_PAGE_SUBDIR="wp_en2",
+        SIREPO_FEATURE_CONFIG_HOME_PAGE_SUBDIR="wp_en",
     )
 
 
