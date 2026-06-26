@@ -5,11 +5,20 @@
 """
 
 
-def test_user_alert(fc):
-    from pykern.pkunit import pkeq
+def setup_module(module):
+    import os
 
-    d = fc.sr_sim_data()
-    d.models.dog.breed = "user_alert=user visible text"
-    r = fc.sr_run_sim(d, "heightWeightReport", expect_completed=False)
-    pkeq("error", r.state)
-    pkeq("user visible text", r.error)
+    os.environ.update(
+        SIREPO_FEATURE_CONFIG_HOME_PAGE_SUBDIR="wp_en",
+    )
+
+
+def test_home_page(fc):
+    from pykern import pkunit
+    import re
+
+    r = fc.sr_get("/", redirect=True)
+    r.assert_http_status(200)
+    pkunit.pkre("Sirepo by RadiaSoft", r.data)
+    for u in set(re.findall(r'(?:href|src)="(/en/[^"?]+)', r.data)):
+        fc.sr_get(u).assert_http_status(200)

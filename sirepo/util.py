@@ -594,18 +594,18 @@ def validate_path(uri):
     Returns:
         str: validated path
     """
-    if uri == "" or uri is None:
-        raise AssertionError(f"empty uri")
     res = []
     for p in uri.split("/"):
         if _INVALID_PATH_CHARS.search(p):
             raise AssertionError(f"illegal char(s) in component={p} uri={uri}")
         if p == "":
-            # covers absolute path case
-            raise AssertionError(f"empty component in uri={uri}")
+            # covers absolute path case: join below won't put just "/"
+            continue
         if p.startswith("."):
             raise AssertionError(f"dot prefix in component={p} uri={uri}")
         res.append(p)
+    if not res:
+        raise AssertionError(f"empty uri")
     return "/".join(res)
 
 
