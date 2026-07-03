@@ -24,8 +24,7 @@ import shutil
 # =============================================================================
 # SIMULATION TYPE
 # =============================================================================
-#SIM_TYPE     = "tokamak"      # "tokamak"  |  "slab" | "fast_slab"
-SIM_TYPE = "slab"
+SIM_TYPE     = "slab"      # "tokamak"  |  "slab" | "fast_slab"
 
 # =============================================================================
 # BREEDER TYPE
@@ -40,8 +39,7 @@ BREEDER_TYPE = "{{ slabType }}"
 # TESTING -> will load from previous tokamak run/folder
 # CORTEX  -> will load from file saved in the same slab folder
 #            (if not available, it will copy from tokamak run/folder)
-#ENVIRONMENT  = "TESTING"      # "CORTEX"  |  "TESTING"
-ENVIRONMENT = "CORTEX"
+ENVIRONMENT  = "CORTEX"      # "CORTEX"  |  "TESTING"
 
 # =============================================================================
 # VALIDATION
@@ -70,12 +68,10 @@ SIM_DIR = BASE_DIR / SIM_TYPE / BREEDER_TYPE
 
 # Run / result directories — all nested under SIM_DIR
 NEUTRONICS_RUN_DIR     = SIM_DIR / "neutronics_run"
-#NEUTRONICS_RESULTS_DIR = SIM_DIR / "neutronics_results"
-NEUTRONICS_RESULTS_DIR = BASE_DIR
+NEUTRONICS_RESULTS_DIR = SIM_DIR / "neutronics_results"
 DEPLETION_RUN_DIR      = SIM_DIR / "depletion_run"
 DEPLETION_RESULTS_DIR  = SIM_DIR / "depletion_results"
-#SUMMARY_RESULTS_CSV = NEUTRONICS_RESULTS_DIR / "OB_1_b6" / "summary_results.csv"
-SUMMARY_RESULTS_CSV = BASE_DIR / "summary_results.csv"
+SUMMARY_RESULTS_CSV = NEUTRONICS_RESULTS_DIR / "OB_1_b6" / "summary_results.csv"
 
 # Important input files — all live in PROJECT_ROOT/dagmc_files/
 #DAGMC_DIR = PROJECT_ROOT / "dagmc_files"
@@ -257,9 +253,9 @@ CHUNK_START_CM = 0.0
 # OPENMC RUN SETTINGS
 # =============================================================================
 if SIM_TYPE == "tokamak":
-    TALLY_CONVERGENCE_THRESHOLD = 0.1 # 10%
-    BATCHES                     = 15
-    PARTICLES_PER_BATCH    = 1_000_000
+    TALLY_CONVERGENCE_THRESHOLD = 0.01 # 10%
+    BATCHES                     = 10
+    PARTICLES_PER_BATCH         = 1_000_000
 else:
     TALLY_CONVERGENCE_THRESHOLD = {{ simulationSettings_tallyConvergenceThreshold }}
     BATCHES                     = 10
@@ -289,7 +285,7 @@ SURFACE_SOURCE_MAX_PARTICLES = 1_000_000
 
 if SIM_TYPE == "tokamak":
     DO_ALBEDO       = True
-    DO_CHECK_SOURCE = True
+    DO_CHECK_SOURCE = False
     #TRACKS = True
 else:
     DO_ALBEDO       = False
@@ -1601,11 +1597,22 @@ for cid in _tally_cells:
 NEUTRONICS_MODEL_XML = cfg.NEUTRONICS_RUN_DIR / "model.xml"
 model.export_to_model_xml(path=NEUTRONICS_MODEL_XML)
 
-# Write neutron_ratio_source for neutronics_post.py
+_existing_batches_completed = None
+_existing_run_meta_path = cfg.NEUTRONICS_RESULTS_DIR / "run_meta.json"
+if _existing_run_meta_path.is_file():
+    try:
+        with open(_existing_run_meta_path, encoding="utf-8") as _f:
+            _existing = json.load(_f)
+        _existing_batches_completed = _existing.get("batches_completed")
+    except Exception:
+        pass
+
 _run_meta = {
     "neutron_ratio_source":  neutron_ratio_source,
     "sim_type":              cfg.SIM_TYPE,
     "breeder_type":          cfg.BREEDER_TYPE,
+    "particles_per_batch":   cfg.PARTICLES_PER_BATCH,
+    "batches_completed":     _existing_batches_completed,  # preserve if already set by neutronics_post.py
     "tally_ids": {
         "flux_spectrum":     flux_tally.id,
         "heating":           heating_tally.id,
@@ -2858,8 +2865,7 @@ def save_summary_neutronics_results(
         cfg.NEUTRONICS_RESULTS_DIR.
     """
     results_dir = Path(results_dir) if results_dir else cfg.NEUTRONICS_RESULTS_DIR
-    #chunk_dir = results_dir / chunk_key / "profiles"
-    chunk_dir = BASE_DIR
+    chunk_dir = results_dir / chunk_key / "profiles"
 
     # Label normalisation (just in case)
     LAYER_ALIASES = {
@@ -3188,20 +3194,14 @@ def process_chunk(
     xedges: np.ndarray,
     do_albedo: bool = False,
 ) -> None:
-    # outdir = RESULTS_DIR / chunk_key
-    # outdir.mkdir(parents=True, exist_ok=True)
-    outdir = BASE_DIR
+    outdir = RESULTS_DIR / chunk_key
+    outdir.mkdir(parents=True, exist_ok=True)
 
-    # profiles_dir  = outdir / "profiles"
-    # spectra_dir   = outdir / "spectra"
-    # plots_dir     = outdir / "plots"
-    # albedo_dir    = outdir / "albedo"
-    # breakdown_dir = outdir / "nuclide_breakdown"
-    profiles_dir  = BASE_DIR
-    spectra_dir   = BASE_DIR
-    plots_dir     = BASE_DIR
-    albedo_dir    = BASE_DIR
-    breakdown_dir = BASE_DIR
+    profiles_dir  = outdir / "profiles"
+    spectra_dir   = outdir / "spectra"
+    plots_dir     = outdir / "plots"
+    albedo_dir    = outdir / "albedo"
+    breakdown_dir = outdir / "nuclide_breakdown"
 
     for d in (profiles_dir, spectra_dir, plots_dir, albedo_dir, breakdown_dir):
         d.mkdir(parents=True, exist_ok=True)
@@ -3938,6 +3938,12 @@ def process_layer_region1_only(
 # MAIN RUN
 # ──────────────────────────────────────────────────────────────────────────────
 with openmc.StatePoint(str(STATEPOINT_FILE)) as sp:
+
+    # update the number of batches
+    _sp_match = re.search(r"statepoint\.(\d+)\.h5", STATEPOINT_FILE.name)
+    _run_meta["batches_completed"] = int(_sp_match.group(1)) if _sp_match else int(sp.n_batches)
+
+    # load gas map
     dpa_gas_map = build_dpa_gas_map(sp)
 
     if cfg.SIM_TYPE in ("slab", "fast_slab"):
@@ -3984,9 +3990,12 @@ with openmc.StatePoint(str(STATEPOINT_FILE)) as sp:
                 dpa_gas_map=dpa_gas_map,
             )
 
-# *****************************************************************************
-# depletion_model.py
+# Write batches_completed back to run_meta.json ← ADD THESE TWO LINES
+with open(_run_meta_path, "w", encoding="utf-8") as _f:
+    json.dump(_run_meta, _f, indent=2)
+print(f"[updated] batches_completed={_run_meta['batches_completed']} saved → {_run_meta_path}")
 
+# *****************************************************************************
 """
 depletion_model.py
 ==================
@@ -4031,7 +4040,8 @@ RUN_D1S       = True
 RUN_DEPLETION = True
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Import neutronics_model — fully synced model + all_cells
+# Import neutronics_model — gives us the fully synced model + all_cells
+# This step will be removed once running neutronics+depletion together
 # ──────────────────────────────────────────────────────────────────────────────
 #import neutronics_model as nm
 nm = PKDict(globals())
@@ -4039,8 +4049,40 @@ nm = PKDict(globals())
 model     = nm.model
 all_cells = nm.all_cells
 
-# Save the current tallies to restore later
-orig_tallies = list(model.tallies)
+# ──────────────────────────────────────────────────────────────────────────────
+# Read neutronics run metadata (batches, particles) for matching transport runs
+# ──────────────────────────────────────────────────────────────────────────────
+_run_meta_path = cfg.NEUTRONICS_RESULTS_DIR / "run_meta.json"
+with open(_run_meta_path) as _f:
+    _run_meta = json.load(_f)
+
+_neutronics_batches = _run_meta.get("batches_completed")
+if _neutronics_batches is None:
+    raise RuntimeError(
+        "[depletion] batches_completed is null in run_meta.json. "
+        "Run neutronics_post.py before depletion_model.py."
+    )
+_neutronics_batches = int(_neutronics_batches)
+
+_neutronics_ppb     = int(_run_meta.get("particles_per_batch") or cfg.PARTICLES_PER_BATCH)
+print(f"[Loading] Matching neutronics: {_neutronics_batches} batches × {_neutronics_ppb} particles")
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Transport overrides for D1S and depletion microXS runs
+# ──────────────────────────────────────────────────────────────────────────────
+# Set to None to inherit from the neutronics run metadata above.
+D1S_BATCHES          = None          # None → _neutronics_batches
+D1S_PARTICLES        = None    # None → _neutronics_ppb
+DEPLETION_BATCHES    = None          # None → _neutronics_batches
+DEPLETION_PARTICLES  = None    # None → _neutronics_ppb
+
+_d1s_batches    = D1S_BATCHES       if D1S_BATCHES       is not None else _neutronics_batches
+_d1s_particles  = D1S_PARTICLES     if D1S_PARTICLES     is not None else _neutronics_ppb
+_dep_batches    = DEPLETION_BATCHES  if DEPLETION_BATCHES  is not None else _neutronics_batches
+_dep_particles  = DEPLETION_PARTICLES if DEPLETION_PARTICLES is not None else _neutronics_ppb
+
+print(f"[D1S]       transport: {_d1s_batches} batches - {_d1s_particles} particles/batch")
+print(f"[depletion] transport: {_dep_batches} batches - {_dep_particles} particles/batch")
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Aliases from geometry
@@ -4166,7 +4208,7 @@ if cfg.SIM_TYPE in ("slab", "fast_slab"):
     )
     print(f"[source] SIM_TYPE={cfg.SIM_TYPE}: neutron_source_rate (surface-scaled) = {neutron_source_rate:.6e} n/s")
     print(f"  neutron_ratio_source = {_neutron_ratio_source:.6f}")
-    print(f"  J_in                 = {_J_in:.6e}")
+    print(f"  J_in (ratio of neutrons from full tokamak source) = {_J_in:.6e}")
 
 else:
     neutron_source_rate: float = geo.neutron_source_rate
@@ -4228,6 +4270,8 @@ def write_neutron_only_surface_source(src_path: Path, dst_path: Path) -> tuple[P
     OpenMC particle IDs in source_bank:
       0 = neutron
       1 = photon
+      2 = electron
+      3 = positron
 
     Returns
     -------
@@ -4271,6 +4315,8 @@ def write_neutron_only_surface_source(src_path: Path, dst_path: Path) -> tuple[P
                 dst.attrs[key] = val
 
             # Copy every dataset/group except source_bank.
+            # Most surface source files only need source_bank + attributes,
+            # but this keeps the copy safer if extra metadata exists.
             for key in src.keys():
                 if key == "source_bank":
                     continue
@@ -4294,7 +4340,7 @@ vol_by_cell = {
     for cid, cell in all_cells.items()
     if cell.volume is not None and cell.volume > 0.0
 }
-print(f"[info] vol_by_cell populated for {len(vol_by_cell)} cells")
+print(f"[Volume] vol_by_cell populated for {len(vol_by_cell)} cells")
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Identify plasma and VV port-fill cells (last two DAGMC volumes)
@@ -4303,7 +4349,7 @@ if cfg.SIM_TYPE == "tokamak":
     vols = list(pydagmc_model.volumes)
     plasma_vol_id     = vols[-2].id
     vvportfill_vol_id = vols[-1].id
-    print(f"[info] SDR cells: plasma={plasma_vol_id}, vv_port_fill={vvportfill_vol_id}")
+    #print(f"[info] SDR cells: plasma={plasma_vol_id}, vv_port_fill={vvportfill_vol_id}")
 
     for _cid in [plasma_vol_id, vvportfill_vol_id]:
         if _cid not in vol_by_cell:
@@ -4315,7 +4361,7 @@ if cfg.SIM_TYPE == "tokamak":
 else:
     plasma_vol_id     = None
     vvportfill_vol_id = None
-    print(f"[info] SIM_TYPE={cfg.SIM_TYPE}: plasma/vvportfill cells not present — skipping SDR time-series")
+    #print(f"[D1S] SIM_TYPE={cfg.SIM_TYPE}: plasma/vvportfill cells not present — skipping SDR time-series")
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Plot helpers
@@ -4398,6 +4444,9 @@ if RUN_D1S:
     )
     photon_filter = openmc.ParticleFilter("photon")
 
+    model.tallies = openmc.Tallies([])
+    print(f"[D1S] tallies after clearing: {len(model.tallies)}")
+
     dose_tally         = openmc.Tally(name="dose tally")
     dose_tally.filters = [dose_filter, photon_filter, cell_filter2]
     dose_tally.scores  = ["flux"]
@@ -4405,6 +4454,13 @@ if RUN_D1S:
     model.tallies                            = openmc.Tallies([dose_tally])
     model.settings.photon_transport          = True
     model.settings.use_decay_photons         = True
+
+    print(f"[D1S] tallies for D1S: {len(model.tallies)}")
+
+    # Set same number of batches to neutronics_model.py
+    model.settings.trigger_active = False
+    model.settings.batches        = _d1s_batches
+    model.settings.particles      = _d1s_particles
 
     openmc.config["chain_file"] = str(cfg.OPENMC_CHAIN_FILE)
     nuclides = d1s.prepare_tallies(model)
@@ -4574,41 +4630,8 @@ if RUN_D1S:
             plt.close(fig)
 
         # ------------------------------------------------------------------
-        # Plot 2: OB chunk spatial profiles
+        # Per-timestep CSV: one row per cell (tokamak only — slab below)
         # ------------------------------------------------------------------
-        if not profiles:
-            raise RuntimeError(
-                f"profiles is empty: {OB_KEY} rows were never captured."
-            )
-
-        ncurves = min(10, len(profiles))
-        idxs    = np.linspace(0, len(profiles) - 1, ncurves, dtype=int)
-
-        fig, ax = plt.subplots()
-        for i in idxs:
-            t_s_i = profiles[i]["t_s"]
-            dfp   = profiles[i]["df"]
-            ax.plot(
-                dfp["centers"].to_numpy(float),
-                dfp["μSv/h"].to_numpy(float),
-                label=f"{t_s_i:.1e} s",
-            )
-        ax.set_yscale("log")
-        ax.set_ylim(1e-6, 1e12)
-        ax.set_ylabel("Shutdown Dose [μSv/h]")
-        ax.set_xlabel("Radial Position [cm]")
-        ax.set_title(f"D1S spatial profile: {OB_KEY}")
-        ax.grid(True, which="both")
-        ax.legend()
-        fig.savefig(SDR_DIR / f"sdr_profile_{OB_KEY}.png",
-                    dpi=300, bbox_inches="tight")
-        plt.close(fig)
-
-        # ------------------------------------------------------------------
-        # Save SDR (D1S) results to CSV
-        # ------------------------------------------------------------------
-
-        # Per-timestep CSV: one row per cell
         for prof in profiles:
             t_s    = prof["t_s"]
             t_y    = t_s / y_to_s
@@ -4633,6 +4656,159 @@ if RUN_D1S:
                 list(dose_time_by_cell[int(vvportfill_vol_id)]),
         }).to_csv(SDR_DIR / "sdr_timeseries_plasma_vvpf.csv", index=False)
 
+    # ------------------------------------------------------------------
+    # Plot 2A: OB chunk spatial profiles (all sim types)
+    # ------------------------------------------------------------------
+    if not profiles:
+        raise RuntimeError(
+            f"profiles is empty: {OB_KEY} rows were never captured."
+        )
+
+    ncurves = min(10, len(profiles))
+    idxs    = np.linspace(0, len(profiles) - 1, ncurves, dtype=int)
+
+    fig, ax = plt.subplots()
+    for i in idxs:
+        t_s_i = profiles[i]["t_s"]
+        dfp   = profiles[i]["df"]
+        ax.plot(
+            dfp["centers"].to_numpy(float),
+            dfp["μSv/h"].to_numpy(float),
+            label=f"{t_s_i:.1e} s",
+        )
+    ax.set_yscale("log")
+    ax.set_ylim(1e-6, 1e12)
+    ax.set_ylabel("Shutdown Dose [μSv/h]")
+    ax.set_xlabel("Radial Position [cm]")
+    ax.set_title(f"D1S spatial profile: {OB_KEY}")
+    ax.grid(True, which="both")
+    ax.legend()
+    fig.savefig(SDR_DIR / f"sdr_profile_{OB_KEY}.png",
+                dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    # ------------------------------------------------------------------
+    # Plot 2B: Per-layer SDR time series for OB chunk (all sim types)
+    # ------------------------------------------------------------------
+    _n_breeder_layers = OB_CHUNK_SIZE - 3  # Armor + FW + VV = 3 fixed
+    _layer_tags = (
+        ["Armor", "First Wall"]
+        + [f"Breeder layer {i}" for i in range(1, _n_breeder_layers + 1)]
+        + ["VV"]
+    )
+
+    # Accumulate dose timeseries per cell, in cell order
+    _dose_by_layer: dict[int, list[float]] = {int(cid): [] for cid in ob_1_b6_cells}
+    for prof in profiles:
+        dfp = prof["df"].set_index(cell_col)
+        for cid in ob_1_b6_cells:
+            cid_i = int(cid)
+            val   = dfp.at[cid_i, "μSv/h"] if cid_i in dfp.index else float("nan")
+            _dose_by_layer[cid_i].append(float(val))
+
+    t_rel_plot_layers = [p["t_s"] / SECONDS_PER_YEAR for p in profiles]
+
+    _cmap = plt.get_cmap("tab20", OB_CHUNK_SIZE)
+
+    # 2B-i: Combined overview — all layers on one axes
+    fig, ax = plt.subplots(figsize=(9, 5))
+    _format_log_axes(ax)
+    _add_time_reference_lines(ax)
+
+    for idx, (cid, tag) in enumerate(zip(ob_1_b6_cells, _layer_tags)):
+        doses = _dose_by_layer[int(cid)]
+        if any(v > 0 and not np.isnan(v) for v in doses):
+            ax.plot(
+                t_rel_plot_layers,
+                doses,
+                label=tag,
+                color=_cmap(idx),
+                linewidth=1.4,
+            )
+
+    ax.axhline(0.1,   linestyle="--", color="k", linewidth=0.9, alpha=0.7)
+    ax.axhline(10,    linestyle="--", color="k", linewidth=0.9, alpha=0.7)
+    ax.axhline(10000, linestyle="--", color="k", linewidth=0.9, alpha=0.7)
+    ax.text(t_rel_plot_layers[-1], 0.1   * 1.5, "Natural background", ha="right", fontsize=8)
+    ax.text(t_rel_plot_layers[-1], 10    * 1.5, "Hands-on limit",      ha="right", fontsize=8)
+    ax.text(t_rel_plot_layers[-1], 10000 * 1.5, "Remote recycling",    ha="right", fontsize=8)
+    ax.set_ylim(0.01)
+    ax.set_ylabel("Shutdown Dose [μSv/h]")
+    ax.set_xlabel("Cooling Time [y]")
+    ax.set_title(f"D1S SDR per OB layer — {OB_KEY}")
+    ax.legend(fontsize=7, ncol=2, loc="upper right")
+    fig.tight_layout()
+    fig.savefig(SDR_DIR / f"sdr_time_layers_{OB_KEY}.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+    print(f"[info] Wrote combined per-layer SDR → {SDR_DIR / f'sdr_time_layers_{OB_KEY}.png'}")
+
+    # 2B-ii: Individual plot per layer
+    SDR_LAYERS_DIR = SDR_DIR / "layers"
+    SDR_LAYERS_DIR.mkdir(parents=True, exist_ok=True)
+
+    for idx, (cid, tag) in enumerate(zip(ob_1_b6_cells, _layer_tags)):
+        doses = _dose_by_layer[int(cid)]
+        has_positive = any(v > 0 and not np.isnan(v) for v in doses)
+
+        fig, ax = plt.subplots(figsize=(8, 4.5))
+        _format_log_axes(ax)
+        _add_time_reference_lines(ax)
+
+        if has_positive:
+            ax.plot(
+                t_rel_plot_layers,
+                doses,
+                color=_cmap(idx),
+                linewidth=1.6,
+            )
+        else:
+            ax.text(
+                0.5, 0.5, "No positive SDR values",
+                transform=ax.transAxes, ha="center", va="center",
+                fontsize=11, color="gray",
+            )
+
+        ax.axhline(0.1,   linestyle="--", color="k", linewidth=0.9, alpha=0.7)
+        ax.axhline(10,    linestyle="--", color="k", linewidth=0.9, alpha=0.7)
+        ax.axhline(10000, linestyle="--", color="k", linewidth=0.9, alpha=0.7)
+        ax.text(t_rel_plot_layers[-1], 0.1   * 1.5, "Natural background", ha="right", fontsize=8)
+        ax.text(t_rel_plot_layers[-1], 10    * 1.5, "Hands-on limit",      ha="right", fontsize=8)
+        ax.text(t_rel_plot_layers[-1], 10000 * 1.5, "Remote recycling",    ha="right", fontsize=8)
+        ax.set_ylim(0.01)
+        ax.set_ylabel("Shutdown Dose [μSv/h]")
+        ax.set_xlabel("Cooling Time [y]")
+        ax.set_title(f"D1S SDR — {tag}")
+        fig.tight_layout()
+
+        # filename: zero-padded layer index so files sort correctly
+        _safe_tag = tag.replace(" ", "_").replace("/", "_")
+        _fname    = f"sdr_layer_{idx:02d}_{_safe_tag}_{OB_KEY}.png"
+        fig.savefig(SDR_LAYERS_DIR / _fname, dpi=300, bbox_inches="tight")
+        plt.close(fig)
+
+    print(
+        f"[info] Wrote {OB_CHUNK_SIZE} individual layer SDR plots → {SDR_LAYERS_DIR}"
+    )
+
+    # ------------------------------------------------------------------
+    # Per-timestep CSV for slab
+    # ------------------------------------------------------------------
+    if cfg.SIM_TYPE in ("slab", "fast_slab"):
+        for prof in profiles:
+            t_s    = prof["t_s"]
+            t_y    = t_s / y_to_s
+            df_out = prof["df"][[cell_col, "centers", "μSv/h", "mSv/h"]].copy()
+            df_out = df_out.rename(columns={
+                cell_col:  "cell_id",
+                "centers": "radial_center_cm",
+            })
+            df_out["t_s"] = t_s
+            df_out["t_y"] = t_y
+            df_out.to_csv(
+                SDR_CSV_DIR / f"sdr_profile_t{t_s:.4e}s.csv", index=False
+            )
+
     # Summary CSV: one row per cooling time, columns = OB_1_b6 cells
     summary_rows = []
     for prof in profiles:
@@ -4650,14 +4826,15 @@ if RUN_D1S:
     )
 
     print(f"[info] Wrote {len(profiles)} per-timestep SDR CSVs to {SDR_CSV_DIR}")
-    print(f"[info] Wrote plasma/vvpf time series → "
-          f"{SDR_DIR / 'sdr_timeseries_plasma_vvpf.csv'}")
-    print(f"[info] Wrote OB summary → {SDR_DIR / f'sdr_summary_{OB_KEY}.csv'}")
+    if cfg.SIM_TYPE == "tokamak":
+        print(f"[info] Wrote plasma/vvpf time series → "
+              f"{SDR_DIR / 'sdr_timeseries_plasma_vvpf.csv'}")
+    print(f"[D1S] Wrote OB summary → {SDR_DIR / f'sdr_summary_{OB_KEY}.csv'}")
 
     timer.stop("D1S run")
 
 else:
-    print("\n[info] RUN_D1S=False — skipping D1S shutdown dose calculation")
+    print("\n[D1S] RUN_D1S=False — skipping D1S shutdown dose calculation")
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Depletion
@@ -4667,6 +4844,12 @@ if RUN_DEPLETION:
     print(f"Performing depletion ({cfg.SIM_TYPE})")
     print("--------------------------------")
     timer.start("Set up depletion model")
+
+    import warnings
+    try:
+        from openmc.exceptions import IDWarning
+    except ImportError:
+        IDWarning = UserWarning
 
     # Control depletion multiprocessing
     openmc.deplete.pool.NUM_PROCESSES = DEPLETION_PROCESSES
@@ -4679,29 +4862,30 @@ if RUN_DEPLETION:
     # Ensure no surface source is written during depletion transport
     model.settings.surf_source_write = {}
 
-    # Restore original neutronics tallies before microXS generation.
-    model.tallies = orig_tallies
+    # Apply neutronics batch count to model settings before microXS transport
+    # or other predefined number of batches and particles
+    model.settings.trigger_active = False
+    model.settings.batches   = _dep_batches
+    model.settings.particles = _dep_particles
+
+    # Clear tallies
+    model.tallies = openmc.Tallies([])
+    print(f"[depletion] tallies after clearing: {len(model.tallies)}")
 
     # -------------------------------------------------------------------------
-    # Slab/fast_slab: swap to neutron-only surface source for get_microxs_and_flux
+    # Slab/fast_slab: neutron-only surface source + clear plasma source
     # -------------------------------------------------------------------------
-    # For depletion, the source file should sample only neutrons.
-    # The physical source strength is handled separately through source_rates.
     if cfg.SIM_TYPE in ("slab", "fast_slab"):
         print("\n[depletion] Preparing neutron-only slab surface source")
 
-        mixed_surface_source        = Path(cfg.SURFACE_SOURCE_FILE)
         neutron_only_surface_source = DEPLETION_RUN_DIR / "surface_source_neutrons_only.h5"
-
-        neutron_only_surface_source = write_neutron_only_surface_source(
-            mixed_surface_source,
+        write_neutron_only_surface_source(
+            Path(cfg.SURFACE_SOURCE_FILE),
             neutron_only_surface_source,
         )
+        model.settings.surf_source_read = {"path": str(neutron_only_surface_source)}
+        model.settings.source           = []
 
-        model.settings.surf_source_read  = {"path": str(neutron_only_surface_source)}
-        #model.settings.surf_source_write = {}
-
-    # source_rates and timesteps are defined at module level — no recomputation needed
     print("\n[depletion] Source-rate normalization")
     print(f"  SIM_TYPE                 = {cfg.SIM_TYPE}")
     print(f"  neutron_source_rate      = {neutron_source_rate:.8e} n/s")
@@ -4709,20 +4893,8 @@ if RUN_DEPLETION:
     print(f"  depletion source rate    = {source_rates[0]:.8e} n/s")
 
     # -------------------------------------------------------------------------
-    # Sync materials and geometry paths before differentiate_mats
+    # Collect target cells: gather nuclides for chain + mark depletable
     # -------------------------------------------------------------------------
-    # Make sure the model's materials list matches the geometry
-    model.materials = openmc.Materials(
-        list(model.geometry.get_all_materials().values())
-    )
-    rsdownload(model.materials)
-    model.geometry.determine_paths()
-
-    # -------------------------------------------------------------------------
-    # Mark depletable materials before differentiate_mats
-    # -------------------------------------------------------------------------
-    # Set each cell in the working universe as depletable
-    # (all for tokamak, OB_1_b6 for slab and fast_slab)
     if cfg.SIM_TYPE == "tokamak":
         _pre_source_cells = all_cells
         _pre_target_ids   = sorted(_pre_source_cells.keys())
@@ -4732,28 +4904,32 @@ if RUN_DEPLETION:
         _present_ids      = set(int(c) for c in _pre_source_cells.keys())
         _pre_target_ids   = sorted(_all_json_ids & _present_ids)
 
+    initial_nuclides: set[str] = set()
     _n_marked = 0
 
     for _cid in _pre_target_ids:
         _cell = _pre_source_cells.get(int(_cid))
         if _cell is None:
             continue
-
         _mat = _cell.fill
         if not isinstance(_mat, openmc.Material):
             continue
 
+        # Collect nuclides for chain reduction
+        for nuc, _, _ in _mat.nuclides:
+            initial_nuclides.add(nuc)
+
+        # Mark depletable + assign volume
         _vol = vol_by_cell.get(int(_cid))
         if _vol is None or float(_vol) <= 0.0:
             continue
-
         if _mat.volume is None:
             _mat.volume = float(_vol)
-
         _mat.depletable = True
         _n_marked += 1
 
-    print(f"\n[depletion] Marked {_n_marked} materials as depletable")
+    print(f"[depletion] Marked {_n_marked} materials as depletable")
+    print(f"[chain] Initial nuclides from deplete_mats: {len(initial_nuclides)}")
 
     if _n_marked == 0:
         raise RuntimeError(
@@ -4762,84 +4938,54 @@ if RUN_DEPLETION:
         )
 
     # -------------------------------------------------------------------------
-    # Differentiate materials
+    # Build reduced depletion chain
     # -------------------------------------------------------------------------
-    # Place unique materials in each cell, to be activated individually
-    model.differentiate_mats("match cell", depletable_only=True)
 
-    # Sync again after differentiation.
-    model.materials = openmc.Materials(
-        list(model.geometry.get_all_materials().values())
-    )
-    rsdownload(model.materials)
-    model.geometry.determine_paths()
+    chain = openmc.deplete.Chain.from_xml(str(cfg.OPENMC_CHAIN_FILE))
+    print(f"[chain] Loaded {len(chain.nuclides)} nuclides from: {cfg.OPENMC_CHAIN_FILE}")
+
+    reduced_chain  = chain.reduce(initial_nuclides, level=cfg.REDUCED_CHAIN_LEVEL)
+    bluemira_chain = DEPLETION_RUN_DIR / "bluemira_chain.xml"
+    reduced_chain.export_to_xml(str(bluemira_chain))
+    print(f"[chain] Reduced to {len(reduced_chain.nuclides)} nuclides")
+
+    openmc.config["chain_file"] = str(bluemira_chain)
+    model.settings.depletion    = {"chain_file": str(bluemira_chain)}
 
     # -------------------------------------------------------------------------
-    # Step 3: collect unique cell/material pairs after differentiation
+    # Sync materials and geometry paths before differentiate_mats
+    # (tokamak only — for slab/fast_slab this collapses the universe hierarchy)
     # -------------------------------------------------------------------------
-    dagmc_cell_ids: list[int] = []
-    deplete_cells:  list[openmc.Cell] = []
-    deplete_mats:   list[openmc.Material] = []
 
     if cfg.SIM_TYPE == "tokamak":
-        _source_cells = all_cells
-        target_ids    = sorted(_source_cells.keys())
-
-        print(
-            f"\n[depletion] tokamak: scanning "
-            f"{len(target_ids)} cells for depletable materials"
+        model.materials = openmc.Materials(
+            list(model.geometry.get_all_materials().values())
         )
+        model.geometry.determine_paths()
 
-    else:
-        _source_cells = model.geometry.get_all_cells()
-        _all_json_ids = set(int(cid) for cid in ob_by_key.get(OB_KEY, []))
-        _present_ids  = set(int(c) for c in _source_cells.keys())
-        target_ids    = sorted(_all_json_ids & _present_ids)
+    # -------------------------------------------------------------------------
+    # Differentiate materials (tokamak only)
+    # For slab/fast_slab: each cell already has a (defined) unique material — skip.
+    # -------------------------------------------------------------------------
 
-        print(
-            f"\n[depletion] slab: {len(target_ids)} cells from "
-            f"{OB_KEY} present in wrapper geometry"
+    if cfg.SIM_TYPE == "tokamak":
+        model.differentiate_mats("match cell", depletable_only=True)
+        model.materials = openmc.Materials(
+            list(model.geometry.get_all_materials().values())
         )
+        model.geometry.determine_paths()
 
-    if not target_ids:
-        raise RuntimeError(
-            f"[depletion] No target cells found for SIM_TYPE={cfg.SIM_TYPE}. "
-            f"Check geometry and chunk key {OB_KEY}."
-        )
+    _microxs_model = model
 
-    for cid in target_ids:
-        cell = _source_cells.get(int(cid))
-        if cell is None:
-            continue
-
-        mat = cell.fill
-        if not isinstance(mat, openmc.Material):
-            continue
-
-        if not mat.depletable:
-            continue
-
-        # Make sure each depletable material has a positive volume.
-        if mat.volume is None or float(mat.volume) <= 0.0:
-            v = vol_by_cell.get(int(cid))
-            if v is not None and float(v) > 0.0:
-                mat.volume = float(v)
-
-        if mat.volume is None or float(mat.volume) <= 0.0:
-            print(
-                f"[warn] Skipping cell {cid}: depletable material "
-                f"{mat.id} has no positive volume"
-            )
-            continue
-
-        dagmc_cell_ids.append(int(cid))
-        deplete_cells.append(cell)
-        deplete_mats.append(mat)
-
-    print(
-        f"[depletion] Found {len(deplete_mats)} depletable materials "
-        f"across {len(dagmc_cell_ids)} cells"
+    # -------------------------------------------------------------------------
+    # Collect depletable materials
+    # -------------------------------------------------------------------------
+    deplete_mats = sorted(
+        [m for m in _microxs_model.materials if m.depletable],
+        key=lambda m: int(m.id),
     )
+
+    print(f"[depletion] {len(deplete_mats)} depletable materials")
 
     if not deplete_mats:
         raise RuntimeError(
@@ -4848,65 +4994,92 @@ if RUN_DEPLETION:
         )
 
     # -------------------------------------------------------------------------
+    # Collect cell/material pairs for post-processing mappings
+    # -------------------------------------------------------------------------
+    if cfg.SIM_TYPE == "tokamak":
+        _source_cells = all_cells
+        target_ids    = sorted(_source_cells.keys())
+        #print(f"[depletion] tokamak: scanning {len(target_ids)} cells")
+    else:
+        _source_cells = model.geometry.get_all_cells()
+        _all_json_ids = set(int(cid) for cid in ob_by_key.get(OB_KEY, []))
+        _present_ids  = set(int(c) for c in _source_cells.keys())
+        target_ids    = sorted(_all_json_ids & _present_ids)
+        #print(f"[depletion] slab: {len(target_ids)} cells from {OB_KEY}")
+
+    if not target_ids:
+        raise RuntimeError(
+            f"[depletion] No target cells found for SIM_TYPE={cfg.SIM_TYPE}."
+        )
+
+    dagmc_cell_ids:       list[int]         = []
+    deplete_cells:        list[openmc.Cell]  = []
+    _orig_mat_id_to_cell: dict[int, int]     = {}
+
+    if cfg.SIM_TYPE == "tokamak":
+        for _cid in target_ids:
+            _cell = _source_cells.get(int(_cid))
+            if _cell is None:
+                continue
+            _mat = _cell.fill
+            if not isinstance(_mat, openmc.Material) or not _mat.depletable:
+                continue
+            _orig_mat_id_to_cell[int(_mat.id)] = int(_cid)
+            dagmc_cell_ids.append(int(_cid))
+            deplete_cells.append(_cell)
+    else:
+        # slab/fast_slab: mat IDs unchanged
+        for _cid in target_ids:
+            _cell = _source_cells.get(int(_cid))
+            if _cell is None:
+                continue
+            _mat = _cell.fill
+            if not isinstance(_mat, openmc.Material) or not _mat.depletable:
+                continue
+            _orig_mat_id_to_cell[int(_mat.id)] = int(_cid)
+            dagmc_cell_ids.append(int(_cid))
+            deplete_cells.append(_cell)
+
+    #print(f"[depletion] Found {len(dagmc_cell_ids)} depletable cells")
+
+    if not dagmc_cell_ids:
+        raise RuntimeError(
+            "dagmc_cell_ids is empty. Check material assignments in "
+            "geometry.py / eudemo_materials.py."
+        )
+
+    # -------------------------------------------------------------------------
     # Mappings for post-processing
     # -------------------------------------------------------------------------
-    # Prepare list cells_ids/mat for post processing of depletion
     cell_to_mat = {
-        cid: str(mat.id)
-        for cid, mat in zip(dagmc_cell_ids, deplete_mats)
+        _orig_mat_id_to_cell[int(mat.id)]: str(mat.id)
+        for mat in deplete_mats if int(mat.id) in _orig_mat_id_to_cell
     }
-
     mat_to_cell = {
-        str(mat.id): cid
-        for cid, mat in zip(dagmc_cell_ids, deplete_mats)
+        str(mat.id): _orig_mat_id_to_cell[int(mat.id)]
+        for mat in deplete_mats if int(mat.id) in _orig_mat_id_to_cell
     }
-
     mat_id_to_name = {
         str(mat.id): (mat.name or f"material_{mat.id}")
         for mat in deplete_mats
     }
 
     # -------------------------------------------------------------------------
-    # Build reduced depletion chain
-    # -------------------------------------------------------------------------
-    initial_nuclides = model.geometry.get_all_nuclides()
-    chain = openmc.deplete.Chain.from_xml(str(cfg.OPENMC_CHAIN_FILE))
-
-    print(
-        f"\n[chain] Loaded {len(chain.nuclides)} nuclides "
-        f"from: {cfg.OPENMC_CHAIN_FILE}"
-    )
-
-    reduced_chain = chain.reduce(
-        initial_nuclides,
-        level=cfg.REDUCED_CHAIN_LEVEL,
-    )
-
-    bluemira_chain = DEPLETION_RUN_DIR / "bluemira_chain.xml"
-    reduced_chain.export_to_xml(str(bluemira_chain))
-    print(f"[chain] Reduced to {len(reduced_chain.nuclides)} nuclides")
-
-    openmc.config["chain_file"] = str(bluemira_chain)
-    model.settings.depletion = {
-        "chain_file": str(bluemira_chain)
-    }
-
-    # -------------------------------------------------------------------------
     # Generate fluxes and microscopic cross sections
     # -------------------------------------------------------------------------
     fluxes, micros = openmc.deplete.get_microxs_and_flux(
-        model,
+        _microxs_model,
         deplete_mats,
         chain_file=str(bluemira_chain),
         run_kwargs={
             "cwd":     str(DEPLETION_RUN_DIR),
-            "output":  True, # False
+            "output":  True,
             "threads": TRANSPORT_THREADS,
         },
     )
 
     # -------------------------------------------------------------------------
-    # Define independent depletion operator
+    # Independent depletion operator + predictor integrator
     # -------------------------------------------------------------------------
     operator = openmc.deplete.IndependentOperator(
         deplete_mats,
@@ -4915,12 +5088,8 @@ if RUN_DEPLETION:
         chain_file=str(bluemira_chain),
         normalization_mode="source-rate",
     )
-
     operator.output_dir = str(R2S_ACTIVATION_DIR)
 
-    # -------------------------------------------------------------------------
-    # Predictor integrator
-    # -------------------------------------------------------------------------
     integrator = openmc.deplete.PredictorIntegrator(
         operator,
         timesteps,
@@ -4943,25 +5112,40 @@ if RUN_DEPLETION:
     # -------------------------------------------------------------------------
     # Save cell/material map for depletion_post.py
     # -------------------------------------------------------------------------
+    def _strip_cell_suffix(name: str, cid: int) -> str:
+        suffix = f"_{cid}"
+        return name[:-len(suffix)] if name and name.endswith(suffix) else name
+
+    _cell_to_chunk: dict[int, str] = {}
+    for _key, _cids in ob_by_key.items():
+        for _cid in _cids:
+            _cell_to_chunk[int(_cid)] = _key
+    for _key, _cids in ib_by_key.items():
+        for _cid in _cids:
+            _cell_to_chunk[int(_cid)] = _key
+
     pd.DataFrame([
         {
-            "cell_id": cid,
-            "mat_id": int(mat.id),
-            "material_name": mat.name,
-            "volume_cm3": float(mat.volume) if mat.volume is not None else np.nan,
+            "cell_id":       _orig_mat_id_to_cell.get(int(mat.id), -1),
+            "mat_id":        int(mat.id),
+            "material_name": _strip_cell_suffix(
+                mat.name or f"material_{mat.id}",
+                _orig_mat_id_to_cell.get(int(mat.id), -1),
+            ),
+            "chunk_key":     _cell_to_chunk.get(
+                _orig_mat_id_to_cell.get(int(mat.id), -1), ""
+            ),
+            "volume_cm3":    float(mat.volume) if mat.volume is not None else np.nan,
         }
-        for cid, mat in zip(dagmc_cell_ids, deplete_mats)
-    ]).to_csv(
-        R2S_ACTIVATION_DIR / "cell_material_map.csv",
-        index=False,
-    )
+        for mat in deplete_mats
+    ]).sort_values("cell_id").to_csv(R2S_ACTIVATION_DIR / "cell_material_map.csv", index=False)
 
-    print(f"[info] Written cell_material_map.csv to {R2S_ACTIVATION_DIR}")
+    print(f"[depletion] Written cell_material_map.csv to {R2S_ACTIVATION_DIR}")
 
     timer.stop("Depletion run")
 
 else:
-    print("\n[info] RUN_DEPLETION=False — skipping R2S activation depletion")
+    print("\n[depletion] RUN_DEPLETION=False — skipping R2S activation depletion")
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Timing summary
@@ -5195,16 +5379,6 @@ def display_half_life(nuclide):
 
 def _overlay_ref_total(ax, chunk_key: str,
                        csv_name: str, cid: int) -> None:
-    """
-    Overlay the reference Total line for a single cell from a gold run CSV.
-
-    csv_name  : "activity_all_cells.csv" or "decayheat_all_cells.csv"
-    chunk_key : e.g. "OB_1_b6"
-
-    CSVs live at:
-        depletion_dir / chunk_key / "activity"   / "activity_all_cells.csv"
-        depletion_dir / chunk_key / "decay_heat" / "decayheat_all_cells.csv"
-    """
     if _ref_data is None or _ref_data.get("depletion_dir") is None:
         return
     subdir = "activity" if "activity" in csv_name else "decay_heat"
@@ -5222,8 +5396,12 @@ def _overlay_ref_total(ax, chunk_key: str,
         if mask.sum() < 2:
             return
         ax.loglog(t[mask], y[mask],
-                  color="black", ls="--", lw=1.5, alpha=0.7,
-                  label="Total (W Armor + Eurofer Structural)", zorder=0)
+                  color="0.35", ls=(0, (6, 2)), lw=1.8,
+                  alpha=0.85, zorder=2,
+                  label="Total (W Armor + Eurofer Structural)")
+        ax.plot(t[mask], y[mask],
+                marker="o", ms=4, ls="none",
+                color="0.35", alpha=0.75, zorder=3)
     except Exception as e:
         print(f"[reference] overlay failed for cell {cid} in {csv_name}: {e}")
 
@@ -5312,11 +5490,13 @@ def load_depletion_mapping(
     map_df = pd.read_csv(str(map_csv))
     map_df["mat_id"] = map_df["mat_id"].astype(str)
 
+    vol_by_mat = results[0].volume   # keys are mat IDs as strings
+
     return DepletionMapping(
         cell_to_mat   = dict(zip(map_df["cell_id"], map_df["mat_id"])),
         cells_by_mat  = map_df.groupby("mat_id")["cell_id"].apply(list).to_dict(),
         mat_id_to_name= map_df.groupby("mat_id")["material_name"].first().to_dict(),
-        vol_by_mat    = results[0].volume,
+        vol_by_mat    = vol_by_mat,
     )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -5402,10 +5582,8 @@ def update_summary_results_with_activity(
     chunk_dir  = cfg.DEPLETION_RESULTS_DIR / chunk_key
 
     # CSVs in activity/ and decay_heat/ subdirectories
-    # act_csv = chunk_dir / "activity"   / "activity_all_cells.csv"
-    # dh_csv  = chunk_dir / "decay_heat" / "decayheat_all_cells.csv"
-    act_csv = BASE_DIR / "activity_all_cells.csv"
-    dh_csv  = BASE_DIR / "decayheat_all_cells.csv"
+    act_csv = chunk_dir / "activity"   / "activity_all_cells.csv"
+    dh_csv  = chunk_dir / "decay_heat" / "decayheat_all_cells.csv"
 
     if not act_csv.is_file():
         raise FileNotFoundError(f"Activity CSV not found: {act_csv}")
@@ -5462,7 +5640,7 @@ def update_summary_results_with_activity(
     out_csv = Path(out_csv)
     out_csv.parent.mkdir(parents=True, exist_ok=True)
     df_summary.to_csv(out_csv, index=False)
-    print(f"[saved] peak results (with activity + decay heat) → {out_csv}")
+    print(f"[completed] summary results (with activity + decay heat) → {out_csv}")
     return df_summary
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -5972,12 +6150,9 @@ def run_chunk_postprocess(
         if not cell_ids:
             continue
 
-        # out_dir  = RESULTS_OUT_DIR / chunk_key
-        # act_dir  = out_dir / "activity"
-        # dh_dir   = out_dir / "decay_heat"
-        out_dir  = BASE_DIR
-        act_dir  = BASE_DIR
-        dh_dir   = BASE_DIR
+        out_dir  = RESULTS_OUT_DIR / chunk_key
+        act_dir  = out_dir / "activity"
+        dh_dir   = out_dir / "decay_heat"
 
         for d in (out_dir, act_dir, dh_dir):
             d.mkdir(parents=True, exist_ok=True)
@@ -6026,7 +6201,7 @@ def run_chunk_postprocess(
                               decayheat_units=decayheat_units,
                               global_min_topn_edge=dh_min, max_heat=max_h)
 
-        print(f"[DONE] {chunk_key} → {out_dir}")
+        print(f"[completed] {chunk_key} → {out_dir}")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -6068,13 +6243,9 @@ for key, override_cells in cfg.DEPLETION_CHUNKS.items():
 
 # For slab: restrict to cells present in the depletion results
 if cfg.SIM_TYPE in ("slab", "fast_slab"):
-    _present = set(
-        int(k) for k in load_depletion_mapping(results).cell_to_mat.keys()
-    )
-    CHUNKS = {
-        k: [c for c in v if c in _present]
-        for k, v in CHUNKS.items()
-    }
+    _map_df  = pd.read_csv(str(CELL_MATERIAL_MAP_CSV))
+    _present = set(int(x) for x in _map_df["cell_id"])
+    CHUNKS   = {k: list(_present) for k in CHUNKS}
 
 # Layer tags and centroids
 layer_tags_by_chunk:  Dict[str, Sequence[str]]   = {}
@@ -6110,6 +6281,18 @@ run_chunk_postprocess(
     idx_to_plot         = cfg.DEPLETION_IDX_TO_PLOT,
 )
 
+
+# Verify CSVs were actually written before proceeding — catches silent
+# failures in run_chunk_postprocess (e.g. mat ID mismatch, empty ta_all)
+for _key in CHUNKS:
+    _act_csv = cfg.DEPLETION_RESULTS_DIR / _key / "activity"   / "activity_all_cells.csv"
+    _dh_csv  = cfg.DEPLETION_RESULTS_DIR / _key / "decay_heat" / "decayheat_all_cells.csv"
+    if not _act_csv.is_file():
+        raise RuntimeError(f"[ERROR] activity CSV not written for {_key}: {_act_csv}")
+    if not _dh_csv.is_file():
+        raise RuntimeError(f"[ERROR] decay heat CSV not written for {_key}: {_dh_csv}")
+    print(f"[completed] {_key}: activity and decay heat CSVs verified")
+
 update_summary_results_with_activity(
     results,
     neutronics_csv  = cfg.SUMMARY_RESULTS_CSV,
@@ -6117,3 +6300,23 @@ update_summary_results_with_activity(
     activity_units  = "Bq/kg",
     decayheat_units = "W/cm3",
 )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# FLATTEN OUTPUT — move every png (and its companion .json) to the root of
+# the simulation run_dir so the frontend can find them by basename alone.
+# ──────────────────────────────────────────────────────────────────────────────
+import pykern.pkio
+
+_pngs = pykern.pkio.walk_tree(SIM_DIR, file_re=r"\.png$")
+for _png in _pngs:
+    for _f in (_png, _png.new(basename=_png.basename + ".json")):
+        if not _f.check(file=True):
+            continue
+        _dest = BASE_DIR / _f.basename
+        if _dest.exists() and Path(str(_f)) != _dest:
+            raise RuntimeError(
+                f"[ERROR] refusing to overwrite existing file at run_dir root: {_dest}"
+            )
+        shutil.move(str(_f), str(_dest))
+print(f"[completed] moved {len(_pngs)} png (+ json) files to {BASE_DIR}")

@@ -73,6 +73,8 @@ _REPORT_TITLE = PKDict(
         decayheat_VV="Decay heat - VV",
         radial_activity_profiles="Radial profile of Total activity per cooling time",
         radial_decayheat_profiles="Radial profile of decay heat per cooling time",
+        sdr_profile_OB_1_b6="D1S spatial profile: OB_1_b6",
+        sdr_time_layers_OB_1_b6="D1S SDR per OB layer - OB_1_b6",
     ),
 )
 
@@ -230,12 +232,8 @@ def plotdef_to_sim_frame(plotdef):
         ),
     )
     res.y_range = template_common.compute_plot_color_and_range(res.plots)
-    # if res.y_range[1] - res.y_range[0] < 10:
-    #     res.type = "linear"
     if plotdef.stat == "flux" or plotdef.stat == "sdr":
         res.alignLegend = "right"
-    if res.type == "loglog" or res.type == "semilog":
-        _adjust_log_ranges(res)
     return res
 
 
@@ -287,19 +285,6 @@ def write_parameters(data, run_dir, is_parallel):
         ),
     )
     return None
-
-
-def _adjust_log_ranges(plot):
-    min_value = None
-    for p in plot.plots:
-        v = numpy.array(p.points)
-        v[v <= 0] = 1e-24
-        p.points = v.tolist()
-        v = v[v > 1e-24]
-        m = numpy.min(v) if len(v) else 1e-24
-        if min_value is None or m < min_value:
-            min_value = m
-    plot.y_range[0] = min_value
 
 
 def _csv_from_plot(plot):
