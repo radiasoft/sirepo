@@ -16,6 +16,10 @@ import traitlets
 
 SIM_TYPE = "jupyterhublogin"
 
+#: POSIT: avoiding direct import of simulation_db.SCHEMA_COMMON
+_CHECK_AUTH_URI = "/check-auth-jupyterhub"
+_MISSING_COOKIES_URI_PART = "/missing-cookies"
+
 
 def template_dirs():
     return pykern.pkresource.filename("jupyterhub_templates")
@@ -35,6 +39,7 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
         return self._check_permissions(handler).get("username")
 
     def _check_permissions(self, handler, should_redirect=True):
+
         def _cookies(response):
             for k, v in response.cookies.get_dict().items():
                 handler.set_cookie(k, v)
@@ -45,23 +50,35 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
                 raise AssertionError("self._redirect should always raise")
             raise _UserIsUnauthenticated()
 
-        def _maybe_html(response):
+        def _redirect_uri(response):
             m = re.search(
                 r'window.location = "(.*)"', pkcompat.from_bytes(response.content)
             )
-            if m:
-                _handle_unauthenticated(m.group(1))
+            return m.group(1) if m else None
 
-        r = requests.get(
-            # POSIT: sirepo.simulation_db.SCHEMA_COMMON.route.checkAuthJupyterHub
-            self.sirepo_uri + "/check-auth-jupyterhub",
-            cookies={k: handler.get_cookie(k) for k in handler.cookies.keys()},
-        )
-        _cookies(r)
+        def _request(cookies):
+            r = requests.get(
+                self.sirepo_uri + _CHECK_AUTH_URI,
+                cookies=cookies,
+            )
+            _cookies(r)
+            return r
+
+        c = {k: handler.get_cookie(k) for k in handler.cookies.keys()}
+        r = _request(c)
+        u = _redirect_uri(r)
+        if u and _MISSING_COOKIES_URI_PART in u and r.cookies:
+            # First contact with Sirepo; retry once with the cookie
+            # sentinel it just set, rather than assume cookies are
+            # unsupported.
+            c.update(r.cookies.get_dict())
+            r = _request(c)
+            u = _redirect_uri(r)
         if r.status_code == requests.codes.forbidden:
             return PKDict()
         r.raise_for_status()
-        _maybe_html(r)
+        if u:
+            _handle_unauthenticated(u)
         res = PKDict(r.json())
         assert "username" in res, f"expected username in response={res}"
         return res
