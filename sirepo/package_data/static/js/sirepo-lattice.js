@@ -2896,6 +2896,9 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService, $timeout) {
                 if (ngModel.$isEmpty(value)) {
                     return value;
                 }
+                if (value > 10**8) {
+                    return value.toExponential();
+                }
                 return value.toString();
             });
 

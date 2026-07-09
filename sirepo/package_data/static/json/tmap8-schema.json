@@ -1,0 +1,58 @@
+{
+    "appInfo": {
+        "tmap8": {
+            "longName": "TMAP8",
+            "shortName": "TMAP8"
+        }
+    },
+    "appModes": {
+        "default": {
+            "localRoute": "viz"
+        }
+    },
+    "dynamicFiles": {
+        "sirepoLibs": {
+            "js": [
+                "tmap8.js",
+                "sirepo-lattice.js"
+            ]
+        }
+    },
+    "enum": {
+    },
+    "localRoutes": {
+        "viz": {
+            "route": "/visualization/:simulationId",
+            "config": {
+                "controller": "VizController as viz",
+                "templateUrl": "/static/html/tmap8-viz.html"
+            }
+        }
+    },
+    "model": {
+        "simulationSettings": {
+            "inputFile": ["TMAP8 Input File (.i)", "InputFile"],
+            "parameters": ["", "ParameterArray"]
+        },
+        "rpnVariable": {
+            "name": ["Name", "String"],
+            "value": ["Value", "RPNValue"],
+            "defaultValue": ["Default Value", "RPNValue"],
+            "unit": ["Unit", "String"]
+        }
+    },
+    "view": {
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "inputFile",
+                "parameters"
+            ],
+            "advanced": []
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        }
+    }
+}

@@ -37,6 +37,7 @@ FOSS_CODES = frozenset(
         "radia",
         "shadow",
         "srw",
+        "tmap8",
     )
 )
 

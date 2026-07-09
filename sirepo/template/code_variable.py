@@ -45,11 +45,12 @@ class CodeVar:
         if "models" not in data:
             return None
         it = CodeVarIterator(self, data, schema)
-        cache = lattice.LatticeUtil(data, schema).iterate_models(it).result
+        if "beamlines" in data.models:
+            lattice.LatticeUtil(data, schema).iterate_models(it)
         for name, value in self.variables.items():
             it.add_to_cache(name, value)
-        data.models.rpnCache = cache
-        return cache
+        data.models.rpnCache = it.result
+        return it.result
 
     def eval_var(self, expr):
         if not self.is_var_value(expr):
