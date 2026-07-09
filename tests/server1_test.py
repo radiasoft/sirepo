@@ -83,3 +83,13 @@ def test_srw_serial_stomp(fc):
         new_serial,
         curr_serial,
     )
+
+
+def test_user_alert(fc):
+    from pykern.pkunit import pkeq
+
+    d = fc.sr_sim_data()
+    d.models.dog.breed = "user_alert=user visible text"
+    r = fc.sr_run_sim(d, "heightWeightReport", expect_completed=False)
+    pkeq("error", r.state)
+    pkeq("user visible text", r.error)

@@ -38,6 +38,8 @@ _PROXY_VUE_URI_RE = None
 #: See `_proxy_vue`
 _VUE_SERVER_BUILD = "build"
 
+_INDEX_HTML = "index.html"
+
 
 class API(sirepo.quest.API):
     @sirepo.quest.Spec("require_plan", sid="SimId")
@@ -342,7 +344,7 @@ class API(sirepo.quest.API):
             kwargs=PKDict(
                 path_info=sirepo.feature_config.cfg().home_page_subdir
                 + "/"
-                + (path_info or "index.html")
+                + (path_info or _INDEX_HTML)
             ),
         )
 
@@ -537,12 +539,21 @@ class API(sirepo.quest.API):
         Returns:
             Reply: reply with file
         """
+
+        def _dir(path):
+            if not path.check(dir=True):
+                return path
+            rv = path.join(_INDEX_HTML)
+            if not rv.check(file=True):
+                raise sirepo.util.NotFound("{} not in dir={}", _INDEX_HTML, path)
+            return rv
+
         if not path_info:
             raise sirepo.util.NotFound("empty path info")
         self._proxy_vue(f"{sirepo.const.STATIC_D}/" + path_info)
-        p = sirepo.resource.static(sirepo.util.validate_path(path_info))
-        s = sirepo.feature_config.cfg().home_page_subdir
-        if re.match(rf"^(html|{re.escape(s)})/[^/]+html$", path_info):
+        p = _dir(sirepo.resource.static(sirepo.util.validate_path(path_info)))
+        s = re.escape(sirepo.feature_config.cfg().home_page_subdir)
+        if re.match(rf"^(html|{s})/[^/]+html$", path_info):
             return self.reply_html(p)
         return self.reply_file(p)
 
@@ -656,12 +667,12 @@ class API(sirepo.quest.API):
             p = path
             m = re.search(r"^(\w+)(?:$|/)", p)
             if m and m.group(1) in sirepo.feature_config.cfg().sim_types:
-                p = "index.html"
+                p = _INDEX_HTML
             # do not call api_staticFile due to recursion of _proxy_vue()
             r = self.reply_file(
                 sirepo.resource.static(sirepo.util.validate_path(f"vue/{p}")),
             )
-            if p == "index.html":
+            if p == _INDEX_HTML:
                 # Ensures latest vue is always returned, because index.html contains
                 # version-tagged values but index.html does not. It's likely that
                 # a check would be made on a refresh, this ensures no caching.
