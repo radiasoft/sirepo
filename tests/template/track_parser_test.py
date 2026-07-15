@@ -10,11 +10,11 @@ def test_parse():
     from sirepo.template import track_parser
 
     d = pkunit.data_dir()
-    m = track_parser.parse_fi_in_file(
+    m = track_parser._parse_fi_in_file(
         pkio.read_text(d.join("fi_in.dat")),
-        track_parser.parse_sclinac_file(
+        track_parser._parse_sclinac_file(
             pkio.read_text(d.join("sclinac.dat")),
-            track_parser.parse_track_file(pkio.read_text(d.join("track.dat"))),
+            track_parser._parse_track_file(pkio.read_text(d.join("track.dat"))),
         ),
     ).models
     m.simulation.pkdel("lastModified")

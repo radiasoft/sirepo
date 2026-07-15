@@ -19,6 +19,7 @@ import sirepo.mpi
 import sirepo.quest
 import sirepo.template.lattice
 import sirepo.template.opal as template
+import sirepo.template.track_parser as track_parser
 
 
 def run(cfg_dir):
@@ -33,8 +34,8 @@ def run_background(cfg_dir):
 
 
 def run_opal(with_mpi=False, compute_positions=False):
-    if pkio.py_path(template.TRACK_FIELDMAP_CONVERSION_FILE).exists():
-        template_common.exec_parameters(template.TRACK_FIELDMAP_CONVERSION_FILE)
+    if pkio.py_path(track_parser.TRACK_CONVERSION_FILE).exists():
+        template_common.exec_parameters(track_parser.TRACK_CONVERSION_FILE)
     if with_mpi:
         if (
             sirepo.mpi.cfg().cores < 2

@@ -28,7 +28,6 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 OPAL_INPUT_FILE = "opal.in"
 OPAL_OUTPUT_FILE = "opal.out"
 OPAL_POSITION_FILE = "opal-vtk.py"
-TRACK_FIELDMAP_CONVERSION_FILE = "track-fieldmap-conversion.py"
 
 _DIM_INDEX = PKDict(
     x=0,
@@ -261,18 +260,10 @@ class OpalMadxConverter(MadxConverter):
         super().__init__(SIM_TYPE, self._FIELD_MAP, qcall=qcall, **kwargs)
 
     def to_madx(self, data):
-        def _get_len_by_id(data, id):
+        def _get_element_by_id(data, id):
             for e in data.models.elements:
                 if e._id == id:
-                    return e.l
-            raise AssertionError(
-                f"id={id} not found in elements={data.models.elements}"
-            )
-
-        def _get_element_type(data, id):
-            for e in data.models.elements:
-                if e._id == id:
-                    return e.type
+                    return e
             raise AssertionError(
                 f"id={id} not found in elements={data.models.elements}"
             )
@@ -306,14 +297,15 @@ class OpalMadxConverter(MadxConverter):
             )
 
         def _get_distance_and_insert_drift(beamline, beam_idx):
+            cv = code_var(data.models.rpnVariables)
             for i, e in enumerate(beamline["items"]):
                 if i + 1 == len(beamline["items"]):
                     break
-                if _get_element_type(data, e) == "DRIFT":
+                if _get_element_by_id(data, e).type == "DRIFT":
                     continue
                 p = beamline.positions[i].elemedge
                 n = beamline.positions[i + 1].elemedge
-                l = code_var(data.models.rpnVariables).eval_var(_get_len_by_id(data, e))
+                l = cv.eval_var(_get_element_by_id(data, e).l)
                 d = round(float(n) - float(p) - l[0], 10)
                 if d > 0:
                     _insert_drift(d, beam_idx, i, p, l)
@@ -329,7 +321,6 @@ class OpalMadxConverter(MadxConverter):
                 mb[f] = ob[f]
                 if f in ("gamma", "energy", "pc") and mb[f]:
                     madx.models.bunch.beamDefinition = f
-        od = LatticeUtil.find_first_command(data, "distribution")
         # TODO(pjm): save dist in vars
         return madx
 
@@ -523,23 +514,6 @@ def new_simulation(data, new_simulation_data, qcall, **kwargs):
     data.models.simulation.elementPosition = new_simulation_data.elementPosition
 
 
-def read_frame_count(run_dir):
-    def _walk_file(h5file, key, step, res):
-        if key:
-            res[0] = step + 1
-            res[1] = h5file[key].attrs["SPOS"][0]
-
-    try:
-        p = run_dir.join(OPAL_H5_FILE)
-        if p.exists():
-            return _iterate_hdf5_steps(p, _walk_file, [0, 0])[:2]
-    except IOError:
-        pass
-    except RuntimeError:
-        pass
-    return 0, 0
-
-
 def parse_opal_log(run_dir):
     return _OpalLogParser(run_dir, log_filename=OPAL_OUTPUT_FILE).parse_for_errors()
 
@@ -574,6 +548,23 @@ def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data, qcall=qcall)
 
 
+def read_frame_count(run_dir):
+    def _walk_file(h5file, key, step, res):
+        if key:
+            res[0] = step + 1
+            res[1] = h5file[key].attrs["SPOS"][0]
+
+    try:
+        p = run_dir.join(OPAL_H5_FILE)
+        if p.exists():
+            return _iterate_hdf5_steps(p, _walk_file, [0, 0])[:2]
+    except IOError:
+        pass
+    except RuntimeError:
+        pass
+    return 0, 0
+
+
 def save_sequential_report_data(data, run_dir):
     report = data.models[data.report]
     res = None
@@ -601,6 +592,21 @@ def sim_frame(frame_args):
 
 
 def sim_frame_beamline3dAnimation(frame_args):
+    def _compute_3d_bounds(run_dir):
+        res = []
+        p = run_dir.join("data/opal_ElementPositions.txt")
+        with pkio.open_text(p) as f:
+            for line in f:
+                m = re.search(r'^".*?"\s+(\S*?)\s+(\S*?)\s+(\S*?)\s*$', line)
+                if m:
+                    res.append([float(v) for v in (m.group(1), m.group(2), m.group(3))])
+        res = numpy.array(res)
+        bounds = []
+        for n in range(3):
+            v = res[:, n]
+            bounds.append([min(v), max(v)])
+        return bounds
+
     res = PKDict(
         title=" ",
         points=[],
@@ -721,35 +727,16 @@ def stateful_compute_import_file(data, **kwargs):
     return PKDict(imported_data=res)
 
 
+def update_export(data, z, qcall):
+    track_parser.update_export(data, z, qcall)
+
+
 def validate_file(file_type, path, sim_id, qcall):
-
-    def _hashed_name(name):
-        return f"{name}-{path.computehash()[:8]}.txt"
-
-    n = None
-    if "beamOut" in file_type or "coordOut" in file_type:
-        n = _hashed_name(path.basename)
-    else:
-        # imported TRACK input files are always eh_EMS.\d+ or eh_MWS.\d+
-        if m := re.search(r"/eh_(\w+\.\d+)$", str(path)):
-            n = _hashed_name(m.group(1))
-            d = simulation_db.read_simulation_json(SIM_TYPE, sim_id, qcall)
-            for e in d.models.elements:
-                if e.get("fmapfn") and e.fmapfn.replace("#", "") == path.basename:
-                    e.fmapfn = n
-            simulation_db.save_simulation_json(d, False, qcall=qcall)
-    return PKDict(filename=n) if n else None
+    return track_parser.validate_file(file_type, path, sim_id, qcall)
 
 
 def write_parameters(data, run_dir, is_parallel):
-    def _has_track_fieldmap(elements):
-        return any(_using_track_fieldmap(e) for e in elements)
-
-    if _has_track_fieldmap(data.models.elements):
-        pkio.write_text(
-            run_dir.join(TRACK_FIELDMAP_CONVERSION_FILE),
-            _generate_track_fieldmap_conversion_file(data),
-        )
+    track_parser.write_parameters(data, run_dir, is_parallel)
     pkio.write_text(
         run_dir.join(OPAL_INPUT_FILE),
         _generate_parameters_file(data),
@@ -931,26 +918,6 @@ class _Generate(sirepo.lib.GenerateBase):
         return '"{}.{}.{}"'.format(model.name, field, ext)
 
 
-def _compute_3d_bounds(run_dir):
-    res = []
-    p = run_dir.join("data/opal_ElementPositions.txt")
-    with pkio.open_text(p) as f:
-        for line in f:
-            m = re.search(r'^".*?"\s+(\S*?)\s+(\S*?)\s+(\S*?)\s*$', line)
-            if m:
-                res.append([float(v) for v in (m.group(1), m.group(2), m.group(3))])
-    res = numpy.array(res)
-    bounds = []
-    for n in range(3):
-        v = res[:, n]
-        bounds.append([min(v), max(v)])
-    return bounds
-
-
-def _generate_parameters_file(data, qcall=None):
-    return _Generate(data, qcall=qcall).sim()
-
-
 def _compute_range_across_frames(run_dir, **kwargs):
     def _walk_file(h5file, key, step, res):
         if key:
@@ -969,15 +936,6 @@ def _compute_range_across_frames(run_dir, **kwargs):
     for v in SCHEMA.enum.PhaseSpaceCoordinate:
         res[v[0]] = None
     return _iterate_hdf5_steps(run_dir.join(OPAL_H5_FILE), _walk_file, res)
-
-
-def _column_data(col, col_names, rows):
-    idx = col_names.index(col)
-    assert idx >= 0, "invalid col: {}".format(col)
-    res = []
-    for row in rows:
-        res.append(float(row[idx]))
-    return res
 
 
 def _field_units(units, field):
@@ -1128,32 +1086,8 @@ def _generate_beamline(
     return res, edge, names, visited
 
 
-def _generate_track_fieldmap_conversion_file(data):
-    def _conversions():
-        cv = code_var(data.models.rpnVariables)
-        r = []
-        seen = set()
-        for e in data.models.elements:
-            m = _using_track_fieldmap(e)
-            if not m:
-                continue
-            lib_file = _SIM_DATA.lib_file_name_with_model_field(
-                e.type, "fmapfn", e.fmapfn
-            )
-            if lib_file in seen:
-                continue
-            seen.add(lib_file)
-            f = PKDict(type=m, lib_file=lib_file)
-            if m == "MWS":
-                f.pkupdate(frequency_mhz=cv.eval_var_with_assert(e.freq))
-            r.append(f)
-        return r
-
-    return template_common.render_jinja(
-        SIM_TYPE,
-        PKDict(conversions=_conversions()),
-        TRACK_FIELDMAP_CONVERSION_FILE,
-    )
+def _generate_parameters_file(data, qcall=None):
+    return _Generate(data, qcall=qcall).sim()
 
 
 def _iterate_hdf5_steps(path, callback, state):
@@ -1194,8 +1128,3 @@ def _units_from_hdf5(h5file, field):
     return _field_units(
         pkcompat.from_bytes(h5file.attrs["{}Unit".format(field.name)]), field
     )
-
-
-def _using_track_fieldmap(element):
-    m = re.match(r"(EMS|MWS)\.\d+-.+\.txt$", element.get("fmapfn", ""))
-    return m.group(1) if m else None

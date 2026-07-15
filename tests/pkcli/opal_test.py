@@ -23,18 +23,22 @@ def test_save_autophase_values():
     pkunit.data_dir().join("db").copy(srdb.root())
     opal.save_autophase_values(_SIM_ID)
     d = simulation_db.open_json_file("opal", path=_sim_data_path())
+    i = 0
     for e in d.models.elements:
-        if e.name == "FINSS_RGUN":
-            pkeq(5.1349907881578325, e.lag)
+        if e.name == "CAV002":
+            pkeq(6.213387814946257, e.lag)
+            i += 1
     for c in d.models.commands:
         if c._type == "option":
             pkeq(0, c.autophase)
+            i += 1
+    pkeq(i, 2)
 
 
 def _sim_data_path():
     from pykern import pkio
     from sirepo import simulation_db
 
-    return pkio.sorted_glob(
-        simulation_db.user_path_root().join("*", "opal", _SIM_ID)
-    )[0].join(simulation_db.SIMULATION_DATA_FILE)
+    return pkio.sorted_glob(simulation_db.user_path_root().join("*", "opal", _SIM_ID))[
+        0
+    ].join(simulation_db.SIMULATION_DATA_FILE)

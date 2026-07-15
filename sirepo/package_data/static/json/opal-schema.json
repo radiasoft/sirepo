@@ -31,7 +31,8 @@
     },
     "enum": {
         "ComparisonQuantity": [
-            ["rms", "Beam Size (RMS)"],
+            ["rms", "Beam XY (RMS)"],
+            ["z", "Beam Z (RMS)"],
             ["emittance", "Emittance"],
             ["energy", "Energy"]
         ],
