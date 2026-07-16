@@ -592,6 +592,15 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
             });
     };
 
+    self.valueAsString = (value) => {
+        if (! angular.isDefined(value)) {
+            return value;
+        }
+        return value > 10**8
+             ? value.toExponential()
+             : value.toString();
+    };
+
     $rootScope.$on('rpnVariables.changed', clearBooleanValues);
     appState.whenModelsLoaded($rootScope, clearBooleanValues);
 });
@@ -2806,7 +2815,7 @@ SIREPO.app.directive('rpnStatic', function(rpnService) {
                 }
                 return $scope.isError
                     ? ''
-                    : rpnService.getRpnValueForField($scope.model, $scope.field);
+                    : rpnService.valueAsString(rpnService.getRpnValueForField($scope.model, $scope.field));
             };
         },
     };
@@ -2896,10 +2905,7 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService, $timeout) {
                 if (ngModel.$isEmpty(value)) {
                     return value;
                 }
-                if (value > 10**8) {
-                    return value.toExponential();
-                }
-                return value.toString();
+                return rpnService.valueAsString(value);
             });
 
             // handle programmatic changes - don't step on current parsing

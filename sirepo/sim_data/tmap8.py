@@ -15,9 +15,5 @@ class SimData(sirepo.sim_data.SimDataBase):
         cls._init_models(data.models)
 
     @classmethod
-    def _compute_model(cls, analysis_model, *args, **kwargs):
-        return analysis_model
-
-    @classmethod
     def _lib_file_basenames(cls, data):
         return []

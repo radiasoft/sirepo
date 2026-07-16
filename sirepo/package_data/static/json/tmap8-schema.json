@@ -10,6 +10,9 @@
             "localRoute": "viz"
         }
     },
+    "constants": {
+        "simulationSourceExtension": "i"
+    },
     "dynamicFiles": {
         "sirepoLibs": {
             "js": [
@@ -19,6 +22,9 @@
         }
     },
     "enum": {
+    },
+    "frameIdFields": {
+        "plotAnimation": ["x", "y1", "y2", "y3", "y4", "y5"]
     },
     "localRoutes": {
         "viz": {
@@ -30,18 +36,68 @@
         }
     },
     "model": {
-        "simulationSettings": {
-            "inputFile": ["TMAP8 Input File (.i)", "InputFile"],
-            "parameters": ["", "ParameterArray"]
+        "columnUnit": {
+            "name": ["Name", "String"],
+            "unit": ["Unit", "String"]
+        },
+        "plotAnimation": {
+            "_super": ["_", "model", "_PARAMETER_PLOT_COMMON"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.5625"]
         },
         "rpnVariable": {
             "name": ["Name", "String"],
             "value": ["Value", "RPNValue"],
             "defaultValue": ["Default Value", "RPNValue"],
             "unit": ["Unit", "String"]
+        },
+        "simulationSettings": {
+            "inputFile": ["TMAP8 Input File (.i)", "InputFile"],
+            "parameters": ["", "ParameterArray"],
+            "units": ["", "ColumnUnitArray"]
         }
     },
+    "strings": {
+        "simulationSource": "TMAP8 Source (*.i)"
+    },
     "view": {
+        "plotAnimation": {
+            "title": "Output Parameters",
+            "advanced": [
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1",
+                            "y2",
+                            "y3",
+                            "y4",
+                            "y5"
+                        ]],
+                        ["Position", [
+                            "y1Position",
+                            "y2Position",
+                            "y3Position",
+                            "y4Position",
+                            "y5Position"
+                        ]]
+                    ],
+                    "aspectRatio",
+                    "notes"
+                ]],
+                ["Limits", [
+                    [
+                        ["Left", [
+                            "leftLimit"
+                        ]],
+                        ["Right", [
+                            "rightLimit"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
         "simulationSettings": {
             "title": "Simulation Settings",
             "basic": [

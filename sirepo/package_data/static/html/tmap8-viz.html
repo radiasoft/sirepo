@@ -8,5 +8,8 @@
         <div data-sim-status-panel="viz.simState" data-start-function="viz.startSimulation()"></div>
       </div>
     </div>
+    <div data-column-for-aspect-ratio="plotAnimation" data-ng-if="viz.simState.getFrameCount() > 0">
+      <div data-report-panel="parameter" data-model-name="plotAnimation"></div>
+    </div>
   </div>
 </div>

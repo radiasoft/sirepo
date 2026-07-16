@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(() => {
+    SIREPO.SINGLE_FRAME_ANIMATION = ['plotAnimation'];
     SIREPO.appFieldEditors += `
         <div data-ng-switch-when="ParameterArray">
           <div data-parameter-array="" data-model="model" data-field="field"></div>
@@ -56,12 +57,50 @@ SIREPO.app.directive('appHeader', function(tmap8Service) {
     };
 });
 
-SIREPO.app.controller('VizController', function(appState, frameCache, persistentSimulation, $scope) {
+SIREPO.app.controller('VizController', function(appState, frameCache, panelState, persistentSimulation, $scope) {
     const self = this;
     self.simScope = $scope;
+    self.errorMessage = '';
+
+    const valueListFields = (modelName) => {
+        const r = [];
+        for (const [f, d] of Object.entries(SIREPO.APP_SCHEMA.model[modelName])) {
+            if (d[1] === 'ValueList') {
+                r.push(f);
+            }
+        }
+        return r;
+    };
+
+    const initModel = (info) => {
+        panelState.setError(info.modelKey, null);
+        if (! appState.models[info.modelKey]) {
+            appState.models[info.modelKey] = {};
+        }
+        const m = appState.setModelDefaults(appState.models[info.modelKey], info.modelKey);
+        m.valueList = {};
+        for (const f of valueListFields(info.modelKey)) {
+            m.valueList[f] = info.columns;
+        }
+        const cols = info.columns.filter((c) => c !== 'None');
+        if (! m.x) {
+            m.x = cols[0] || 'None';
+        }
+        if (! m.y1) {
+            m.y1 = cols[1] || cols[0] || 'None';
+        }
+        appState.saveQuietly(info.modelKey);
+    };
 
     self.simHandleStatus = (resp) => {
-        console.log('status resp:', resp);
+        self.errorMessage = resp.error;
+        if (resp.reports && resp.reports.length) {
+            resp.reports.forEach((info) => {
+                initModel(info);
+                //frameCache.setFrameCount(info.frameCount, info.modelKey);
+            });
+        }
+        frameCache.setFrameCount(resp.frameCount || 0);
     };
 
     self.startSimulation = function() {
@@ -98,7 +137,12 @@ SIREPO.app.directive('parameterArray', function(appState, errorService, requestS
               </thead>
               <tbody>
                 <tr data-ng-repeat="v in appState.models.rpnVariables">
-                  <td>{{ v.name }} {{ v.unit ? '[' + v.unit + ']' : '' }}</td>
+                  <td>
+                    <strong>{{ v.name }}</strong>
+                    <span data-ng-if="v.unit" data-text-with-math="'$' + v.unit + '$'"></span>
+                    <br data-ng-if="v.comment" />
+                    <em data-ng-if="v.comment"># {{ v.comment }}</em>
+                  </td>
                   <td><div class="row" data-field-editor="\'value\'" data-field-size="12" data-label-size="0" data-model-name="\'rpnVariable\'" data-model="v"></div></td>
                   <td><div class="col-sm-12" data-rpn-static="" data-model="v" data-field="\'value\'"></div></td>
                 </tr>
@@ -123,7 +167,8 @@ SIREPO.app.directive('parameterArray', function(appState, errorService, requestS
                             }
                             if (resp.parameters) {
                                 appState.models.rpnVariables = resp.parameters;
-                                appState.saveChanges('rpnVariables')
+                                appState.models.rpnCache = resp.cache;
+                                appState.saveChanges(['rpnVariables', 'rpnCache'])
                             }
                         },
                         {
