@@ -729,7 +729,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                         if (threshold[0] === 0 && v === 0) {
                             a = 0;
                         }
-                        else {
+                        else if (threshold[1] !== undefined) {
                             a = v <= threshold[1] && v >= threshold[0] ? 255 : 0;
                         }
                     }

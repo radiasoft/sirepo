@@ -458,14 +458,18 @@ def bunch_plot(model, run_dir, frame_index, filename=OPAL_H5_FILE):
             )
         return t
 
-    return hdf5_util.HDF5Util(str(run_dir.join(filename))).heatmap(
-        PKDict(
-            format_plot=_units_from_hdf5,
-            frame_index=frame_index,
-            model=model,
-            points=_points,
-            title=_title,
+    return (
+        hdf5_util.HDF5Util(str(run_dir.join(filename)))
+        .heatmap(
+            PKDict(
+                format_plot=_units_from_hdf5,
+                frame_index=frame_index,
+                model=model,
+                points=_points,
+                title=_title,
+            )
         )
+        .pkupdate(threshold=[0])
     )
 
 

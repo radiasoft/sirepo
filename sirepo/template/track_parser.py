@@ -371,7 +371,7 @@ def bunch_comparison(frame_args, h5_file):
             x_label=labels.x,
             y_label=labels.y,
         ),
-    )
+    ).pkupdate(threshold=[0])
     if frame_args.frameReport == "bunchAnimation2":
         return b2.pkupdate(
             title="TRACK",
