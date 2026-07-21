@@ -8,6 +8,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo.template import code_variable
 from sirepo.template import template_common
+import numpy
 import pandas
 import pyhit
 import pykern.pkio
@@ -21,25 +22,55 @@ _NESTED_FPARSE_UNIT_RE = re.compile(
     r"^\$\{units\s+\$\{fparse\s+(?P<expr>.+?)\}\s+(?P<unit>\S+?)(?:\s*->\s*(?P<convertUnit>\S+))?\s*\}$"
 )
 _UNIT_RE = re.compile(r"\$\{units\s+([0-9eE.+-]+)\s+(\S+?)(?:\s*->\s*(\S+))?\s*\}")
+_MC_LOWER_PERCENTILE = 5
+_MC_UPPER_PERCENTILE = 95
+_MC_CI_LEVEL = _MC_UPPER_PERCENTILE - _MC_LOWER_PERCENTILE
+_MC_SAMPLE_CSV_GLOB = "main_out_sub*_csv.csv"
 _NONE = "None"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+MC_MAIN_FILE = "main.i"
+MC_SUB_FILE = "sub.i"
 TMAP8_INPUT_FILE = "tmap8.i"
 
 
 def background_percent_complete(report, run_dir, is_running):
+
+    def _gather_results(res):
+        r = _mc_report_info(_mc_sample_files(run_dir)) or _report_info(
+            _stat_report_file(run_dir)
+        )
+        if r:
+            res.pkupdate(
+                frameCount=1,
+                reports=[r],
+            )
+        return res
+
+    def _mc_report_info(csv_files):
+        if not csv_files:
+            return None
+        return _report_info(csv_files[0]).pkupdate(
+            name="TMAP8 Output (Monte Carlo, {} samples)".format(len(csv_files)),
+        )
+
+    def _report_info(csv_file):
+        if not csv_file:
+            return None
+        return PKDict(
+            columns=[_NONE] + list(pandas.read_csv(str(csv_file), nrows=0).columns),
+            name="TMAP8 Output",
+            modelKey="plotAnimation",
+            report="plotAnimation",
+        )
+
     res = PKDict(
         percentComplete=100,
         frameCount=0,
     )
     if is_running:
+        # TODO(pjm): percent complete or partial render of mc results
         return res
-    f = _stat_report_file(run_dir)
-    if not f:
-        return res
-    return res.pkupdate(
-        frameCount=1,
-        reports=[_report_info(f)],
-    )
+    return _gather_results(res)
 
 
 def code_var(variables):
@@ -56,39 +87,48 @@ def python_source_for_model(data, model, qcall, **kwargs):
 
 
 def sim_frame_plotAnimation(frame_args):
-    d = pandas.read_csv(str(_stat_report_file(frame_args.run_dir)))
+    m = _mc_sample_files(frame_args.run_dir)
+    d = (
+        _mc_aggregate(m)
+        if m
+        else pandas.read_csv(str(_stat_report_file(frame_args.run_dir)))
+    )
     if frame_args.x in ("", _NONE):
-        frame_args.x = d.columns[0]
+        frame_args.x = "time" if "time" in d.columns else d.columns[0]
     units = frame_args.sim_in.models.simulationSettings.get("units", [])
-    plots = PKDict()
-    for f in ("x", "y1", "y2", "y3", "y4", "y5"):
+    plots = []
+    colors = []
+    for f in ("y1", "y2", "y3", "y4", "y5"):
         if frame_args[f] in ("", _NONE):
             continue
-        plots[f] = PKDict(
-            label=_column_label(frame_args[f], units),
-            dim=f,
-            points=d[frame_args[f]].tolist(),
-        )
+        color = template_common.PLOT_LINE_COLOR[
+            len(colors) % len(template_common.PLOT_LINE_COLOR)
+        ]
+        p = _column_plots(frame_args[f], f, d, bool(m), units)
+        plots += p
+        colors += [color] * len(p)
     return template_common.parameter_plot(
-        x=plots.x.points,
-        plots=[p for p in plots.values() if p.dim != "x"],
+        x=d[frame_args.x].tolist(),
+        plots=plots,
         model=frame_args,
         plot_fields=PKDict(
             dynamicYLabel=True,
             title="",
             y_label="",
-            x_label=plots.x.label,
+            x_label=_column_label(frame_args.x, units),
         ),
+        plot_colors=colors,
     )
 
 
 def stateful_compute_parse_parameters(data, **kwargs):
-    p = _SIM_DATA.lib_file_abspath(
-        _SIM_DATA.lib_file_name_with_model_field(
-            "simulationSettings", "inputFile", data.args.inputFile
+    r = _extract_parameters(
+        _SIM_DATA.lib_file_abspath(
+            _SIM_DATA.lib_file_name_with_model_field(
+                "simulationSettings", "inputFile", data.args.inputFile
+            )
         )
     )
-    r = _extract_parameters(p)
     return PKDict(
         parameters=r, cache=code_var(r).compute_cache(PKDict(models=PKDict()), SCHEMA)
     )
@@ -110,8 +150,44 @@ def _column_label(name, units):
     return name
 
 
+def _column_plots(col, dim, d, is_mc, units):
+    """Return the plot dict(s) for one selected y-column.
+
+    In a Monte Carlo run, if *col* has aggregated stats, returns a shaded
+    confidence-band dict (dashed behind the mean) plus a mean-line dict --
+    both get the same color from the caller so they read as one legend
+    series. Otherwise returns a single line dict.
+    """
+    if is_mc and "{}_mean".format(col) in d.columns:
+        lo = d["{}_p{:02d}".format(col, _MC_LOWER_PERCENTILE)].tolist()
+        hi = d["{}_p{:02d}".format(col, _MC_UPPER_PERCENTILE)].tolist()
+        return [
+            PKDict(
+                label="{} ({}% CI)".format(_column_label(col, units), _MC_CI_LEVEL),
+                dim=dim,
+                style="band",
+                points=hi,
+                pointsLower=lo,
+                pointsUpper=hi,
+                opacity=0.25,
+            ),
+            PKDict(
+                label=_column_label(col, units),
+                dim=dim,
+                points=d["{}_mean".format(col)].tolist(),
+            ),
+        ]
+    return [
+        PKDict(
+            label=_column_label(col, units),
+            dim=dim,
+            points=d[col].tolist(),
+        )
+    ]
+
+
 def _extract_parameters(path):
-    """Return an ordered dict of top-level parameters in the input file at *path*.
+    """Return an ordered dict of top-level TMAP8 parameters in the input file.
 
     Each entry maps a parameter name to a dict with:
       - value: the numeric magnitude, or the bare `${fparse ...}` expression
@@ -174,6 +250,30 @@ def _format_parameter_value(value, unit, convert_unit=None):
     return "${{units {} {}}}".format(expr, u)
 
 
+def _generate_monty_carlo_file(data, uncertain_variables):
+    """Generate a MOOSE Stochastic Tools main.i driver for the parameters file"""
+    n = ["{}_dist".format(v.name) for v in uncertain_variables]
+    return template_common.render_jinja(
+        SIM_TYPE,
+        PKDict(
+            sub_file=MC_SUB_FILE,
+            distributions=[
+                PKDict(
+                    name=n,
+                    type=v.uncertaintyDistribution,
+                    fields=list((v.get("uncertainty") or {}).items()),
+                )
+                for n, v in zip(n, uncertain_variables)
+            ],
+            dist_names=" ".join(n),
+            num_rows=data.models.simulationSettings.numSamples,
+            param_names=" ".join(v.name for v in uncertain_variables),
+            seed=data.models.simulationSettings.seed,
+        ),
+        name=MC_MAIN_FILE,
+    )
+
+
 def _generate_parameters_file(data, qcall=None):
     root = pyhit.load(
         str(
@@ -195,13 +295,31 @@ def _generate_parameters_file(data, qcall=None):
     return root.render()
 
 
-def _report_info(csv_file):
-    return PKDict(
-        columns=[_NONE] + list(pandas.read_csv(str(csv_file), nrows=0).columns),
-        name="TMAP8 Output",
-        modelKey="plotAnimation",
-        report="plotAnimation",
-    )
+def _mc_aggregate(csv_files):
+    """Collect the per-sample CSVs from a Monte Carlo run into a single
+    DataFrame of summary statistics vs. time: for every column except
+    "time", adds "<column>_mean", "<column>_pNN", and "<column>_pNN"
+    (lower/upper percentile) columns computed across all samples at each
+    timestep, mirroring plot_uncertainty.py's aggregation approach.
+    """
+    frames = [pandas.read_csv(str(f)) for f in csv_files]
+    res = PKDict(time=frames[0]["time"])
+    for c in frames[0].columns:
+        if c == "time":
+            continue
+        stack = numpy.vstack([f[c].to_numpy() for f in frames])
+        res["{}_mean".format(c)] = stack.mean(axis=0)
+        res["{}_p{:02d}".format(c, _MC_LOWER_PERCENTILE)] = numpy.percentile(
+            stack, _MC_LOWER_PERCENTILE, axis=0
+        )
+        res["{}_p{:02d}".format(c, _MC_UPPER_PERCENTILE)] = numpy.percentile(
+            stack, _MC_UPPER_PERCENTILE, axis=0
+        )
+    return pandas.DataFrame(res)
+
+
+def _mc_sample_files(run_dir):
+    return pykern.pkio.sorted_glob(run_dir.join(_MC_SAMPLE_CSV_GLOB))
 
 
 def _stat_report_file(run_dir):
@@ -209,8 +327,27 @@ def _stat_report_file(run_dir):
     return f[0] if f else None
 
 
+def _uncertain_variables(data):
+    return [
+        v
+        for v in data.models.get("rpnVariables", [])
+        if v.get("uncertaintyDistribution")
+    ]
+
+
 def write_parameters(data, run_dir, is_parallel):
-    pykern.pkio.write_text(
-        run_dir.join(TMAP8_INPUT_FILE),
-        _generate_parameters_file(data),
-    )
+    u = _uncertain_variables(data)
+    if u:
+        pykern.pkio.write_text(
+            run_dir.join(MC_SUB_FILE),
+            _generate_parameters_file(data),
+        )
+        pykern.pkio.write_text(
+            run_dir.join(MC_MAIN_FILE),
+            _generate_monty_carlo_file(data, u),
+        )
+    else:
+        pykern.pkio.write_text(
+            run_dir.join(TMAP8_INPUT_FILE),
+            _generate_parameters_file(data),
+        )

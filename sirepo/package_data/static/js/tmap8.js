@@ -9,12 +9,19 @@ SIREPO.app.config(() => {
         <div data-ng-switch-when="ParameterArray">
           <div data-parameter-array="" data-model="model" data-field="field"></div>
         </div>
+        <div data-ng-switch-when="distribution">
+          <div data-rpn-uncertainty="" data-model="model" data-field="field"></div>
+        </div>
     `;
 });
 
 SIREPO.app.factory('tmap8Service', function(appState) {
     const self = {};
     self.computeModel = () => 'animation';
+    // ex. "Normal" -> "normalDistribution", matching the model names in tmap8-schema.json
+    self.distributionModelName = (distributionType) => {
+        return distributionType.charAt(0).toLowerCase() + distributionType.slice(1) + 'Distribution';
+    };
     appState.setAppService(self);
     return self;
 });
@@ -61,6 +68,7 @@ SIREPO.app.controller('VizController', function(appState, frameCache, panelState
     const self = this;
     self.simScope = $scope;
     self.errorMessage = '';
+    self.reportTitle = SIREPO.APP_SCHEMA.view.plotAnimation.title;
 
     const valueListFields = (modelName) => {
         const r = [];
@@ -90,6 +98,7 @@ SIREPO.app.controller('VizController', function(appState, frameCache, panelState
             m.y1 = cols[1] || cols[0] || 'None';
         }
         appState.saveQuietly(info.modelKey);
+        self.reportTitle = info.name;
     };
 
     self.simHandleStatus = (resp) => {
@@ -110,7 +119,66 @@ SIREPO.app.controller('VizController', function(appState, frameCache, panelState
     self.simState = persistentSimulation.initSimulationState(self);
 });
 
-SIREPO.app.directive('parameterArray', function(appState, errorService, requestSender) {
+SIREPO.app.directive('rpnUncertainty', function(appState, tmap8Service) {
+    return {
+        restrict: 'A',
+        scope: {
+            model: '=',
+            field: '=',
+        },
+        template: `
+            <div style="margin-left: -10em; margin-right: 3em">
+              <div class="form-group">
+                <div class="row" data-field-editor="'uncertaintyDistribution'" data-field-size="12"
+                  data-label-size="12" data-model-name="'rpnVariable'" data-model="model"></div>
+              </div>
+              <div data-ng-repeat="v in viewFields track by v.track">
+                <div class="form-group">
+                  <div class="row" data-field-editor="v.field" data-field-size="12" data-label-size="12"
+                    data-model-name="modelName" data-model="model[field]"></div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+
+            function setView() {
+                const t = $scope.model.uncertaintyDistribution;
+                if (t) {
+                    $scope.modelName = tmap8Service.distributionModelName(t);
+                    $scope.viewFields = SIREPO.APP_SCHEMA.view[$scope.modelName].advanced
+                        .map((f) => {
+                            return {
+                                field: f,
+                                track: $scope.modelName + f,
+                            };
+                        });
+                }
+                else {
+                    $scope.viewFields = null;
+                }
+            }
+
+            $scope.$watch('model.uncertaintyDistribution', (newValue, oldValue) => {
+                if (! $scope.model) {
+                    return;
+                }
+                if (newValue !== oldValue) {
+                    $scope.model[$scope.field] = {};
+                    if (newValue) {
+                        appState.setModelDefaults(
+                            $scope.model[$scope.field],
+                            tmap8Service.distributionModelName(newValue),
+                        );
+                    }
+                }
+                setView();
+            });
+        },
+    };
+});
+
+SIREPO.app.directive('parameterArray', function(appState, errorService, requestSender, tmap8Service) {
     return {
         restrict: 'A',
         scope: {
@@ -124,9 +192,10 @@ SIREPO.app.directive('parameterArray', function(appState, errorService, requestS
             </div>
             <table class="table table-striped table-condensed" data-ng-if="appState.models.rpnVariables">
               <colgroup>
-                <col style="width: 25%">
-                <col style="width: 50%">
-                <col style="width: 25%">
+                <col style="width: 30%">
+                <col style="width: 40%">
+                <col style="width: 20%">
+                <col style="width: 1%">
               </colgroup>
               <thead>
                 <tr>
@@ -144,7 +213,16 @@ SIREPO.app.directive('parameterArray', function(appState, errorService, requestS
                     <em data-ng-if="v.comment"># {{ v.comment }}</em>
                   </td>
                   <td><div class="row" data-field-editor="\'value\'" data-field-size="12" data-label-size="0" data-model-name="\'rpnVariable\'" data-model="v"></div></td>
-                  <td><div class="col-sm-12" data-rpn-static="" data-model="v" data-field="\'value\'"></div></td>
+                  <td>
+                    <div class="col-sm-12" data-rpn-static="" data-model="v" data-field="\'value\'"></div>
+                  </td>
+                  <td>
+                    <button class="btn btn-default btn-xs pull-right" type="button" data-ng-click="toggleUncertainty(v)" data-ng-attr-title="{{ v.uncertaintyDistribution ? 'Remove uncertainty' : 'Add uncertainty' }}">
+                      <span class="glyphicon" data-ng-class="v.uncertaintyDistribution ? 'glyphicon-minus' : 'glyphicon-plus'"></span>
+                    </button>
+                    <div class="row" data-ng-if="v.uncertaintyDistribution" data-field-editor="\'uncertainty\'" data-field-size="12" data-label-size="0" data-model-name="\'rpnVariable\'" data-model="v"></div>
+
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -153,6 +231,21 @@ SIREPO.app.directive('parameterArray', function(appState, errorService, requestS
         controller: function($scope) {
             $scope.appState = appState;
             $scope.isWaiting = false;
+
+            $scope.toggleUncertainty = (v) => {
+                if (v.uncertaintyDistribution) {
+                    delete v.uncertaintyDistribution;
+                    delete v.uncertainty;
+                }
+                else {
+                    v.uncertaintyDistribution = SIREPO.APP_SCHEMA.enum.Distribution[0][0];
+                    v.uncertainty = {};
+                    appState.setModelDefaults(
+                        v.uncertainty,
+                        tmap8Service.distributionModelName(v.uncertaintyDistribution),
+                    );
+                }
+            };
 
             $scope.$on('simulationSettings.changed', () => {
                 if (appState.models.simulationSettings.inputFile && ! appState.models.rpnVariables) {

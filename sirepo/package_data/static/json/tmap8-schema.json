@@ -22,6 +22,10 @@
         }
     },
     "enum": {
+        "Distribution": [
+            ["Normal", "Normal"],
+            ["Uniform", "Uniform"]
+        ]
     },
     "frameIdFields": {
         "plotAnimation": ["x", "y1", "y2", "y3", "y4", "y5"]
@@ -40,6 +44,10 @@
             "name": ["Name", "String"],
             "unit": ["Unit", "String"]
         },
+        "normalDistribution": {
+            "mean": ["Mean", "Float", 0],
+            "standard_deviation": ["Standard Deviation", "Float", 1]
+        },
         "plotAnimation": {
             "_super": ["_", "model", "_PARAMETER_PLOT_COMMON"],
             "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.5625"]
@@ -48,18 +56,32 @@
             "name": ["Name", "String"],
             "value": ["Value", "RPNValue"],
             "defaultValue": ["Default Value", "RPNValue"],
-            "unit": ["Unit", "String"]
+            "unit": ["Unit", "String"],
+            "uncertaintyDistribution": ["Uncertainty Distribution", "Distribution"],
+            "uncertainty": ["", "distribution"]
         },
         "simulationSettings": {
             "inputFile": ["TMAP8 Input File (.i)", "InputFile"],
             "parameters": ["", "ParameterArray"],
-            "units": ["", "ColumnUnitArray"]
+            "units": ["", "ColumnUnitArray"],
+            "numSamples": ["Number of Samples", "Integer", 100, "Used for Monte Carlo uncertainty studies"],
+            "seed": ["Random Seed", "Integer", 2026, "Used for Monte Carlo uncertainty studies"]
+        },
+        "uniformDistribution": {
+            "lower_bound": ["Lower Bound", "Float", 0],
+            "upper_bound": ["Upper Bound", "Float", 1]
         }
     },
     "strings": {
         "simulationSource": "TMAP8 Source (*.i)"
     },
     "view": {
+        "normalDistribution": {
+            "advanced": [
+                "mean",
+                "standard_deviation"
+            ]
+        },
         "plotAnimation": {
             "title": "Output Parameters",
             "advanced": [
@@ -104,11 +126,20 @@
                 "inputFile",
                 "parameters"
             ],
-            "advanced": []
+            "advanced": [
+                "numSamples",
+                "seed"
+            ]
         },
         "simulationStatus": {
             "title": "Simulation Status",
             "advanced": []
+        },
+        "uniformDistribution": {
+            "advanced": [
+                "lower_bound",
+                "upper_bound"
+            ]
         }
     }
 }
