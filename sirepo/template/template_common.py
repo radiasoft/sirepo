@@ -382,7 +382,7 @@ def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
     c = plot_colors if plot_colors else PLOT_LINE_COLOR
     for i in range(len(plots)):
         p = plots[i]
-        p.color = c[i % len(c)]
+        p["color"] = c[i % len(c)]
         if not fixed_y_range:
             res = _update_y_range(res, _points_for_plot_type(p))
     return res if res else [0, 0]

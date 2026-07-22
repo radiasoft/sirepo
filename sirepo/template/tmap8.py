@@ -14,6 +14,7 @@ import pyhit
 import pykern.pkio
 import re
 import sirepo.sim_data
+import sirepo.util
 
 _BARE_FPARSE_RE = re.compile(r"^\$\{fparse\s+(?P<expr>.+)\}$")
 _BARE_VAR_RE = re.compile(r"^\$\{(?P<var>[A-Za-z_]\w*)\}$")
@@ -21,6 +22,7 @@ _IDENTIFIER_RE = re.compile(r"^[A-Za-z_]\w*$")
 _NESTED_FPARSE_UNIT_RE = re.compile(
     r"^\$\{units\s+\$\{fparse\s+(?P<expr>.+?)\}\s+(?P<unit>\S+?)(?:\s*->\s*(?P<convertUnit>\S+))?\s*\}$"
 )
+_NESTED_VAR_REF_RE = re.compile(r"\$\{([A-Za-z_]\w*)\}")
 _UNIT_RE = re.compile(r"\$\{units\s+([0-9eE.+-]+)\s+(\S+?)(?:\s*->\s*(\S+))?\s*\}")
 _MC_LOWER_PERCENTILE = 5
 _MC_UPPER_PERCENTILE = 95
@@ -77,13 +79,32 @@ def code_var(variables):
     return code_variable.CodeVar(variables, code_variable.PurePythonEval())
 
 
+def get_data_file(run_dir, model, frame, options):
+    if model == "plotAnimation":
+        m = _mc_sample_files(run_dir)
+        if not m:
+            return _stat_report_file(run_dir)
+
+        def _write(n):
+            with sirepo.util.write_zip(str(n)) as z:
+                for f in m:
+                    z.write(str(f), f.basename)
+
+        p = run_dir.join("tmap8_csv.zip")
+        pykern.pkio.atomic_write(p, writer=_write)
+        return p
+    raise AssertionError(f"unknown model={model}")
+
+
 def prepare_for_client(data, qcall, **kwargs):
     code_var(data.models.get("rpnVariables", [])).compute_cache(data, SCHEMA)
     return data
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
-    return _generate_parameters_file(data, qcall)
+    return _generate_parameters_file(
+        data, qcall, for_mc=bool(_uncertain_variables(data))
+    )
 
 
 def sim_frame_plotAnimation(frame_args):
@@ -108,7 +129,7 @@ def sim_frame_plotAnimation(frame_args):
         plots += p
         colors += [color] * len(p)
     return template_common.parameter_plot(
-        x=d[frame_args.x].tolist(),
+        x=_x_points(d, frame_args.x, bool(m)),
         plots=plots,
         model=frame_args,
         plot_fields=PKDict(
@@ -191,8 +212,10 @@ def _extract_parameters(path):
 
     Each entry maps a parameter name to a dict with:
       - value: the numeric magnitude, or the bare `${fparse ...}` expression
-        text (with the `${fparse` prefix and trailing `}` stripped) for
-        derived parameters, or the referenced variable name for a bare
+        text (with the `${fparse` prefix and trailing `}` stripped, and any
+        nested `${varname}` references reduced to bare `varname`, since
+        `${...}` isn't valid syntax for the RPN/python expression evaluator)
+        for derived parameters, or the referenced variable name for a bare
         `${varname}` expression, or the raw value for non-unit string params
       - unit: the parameter's original (pre-conversion) unit, or None if unitless
       - convertUnit: the `-> unit` conversion target, or None if not converted
@@ -207,11 +230,11 @@ def _extract_parameters(path):
             bare = None if nested else _BARE_FPARSE_RE.match(raw_value)
             bare_var = None if (nested or bare) else _BARE_VAR_RE.match(raw_value)
             if nested:
-                value = nested.group("expr")
+                value = _NESTED_VAR_REF_RE.sub(r"\1", nested.group("expr"))
                 unit = nested.group("unit")
                 convert_unit = nested.group("convertUnit")
             elif bare:
-                value = bare.group("expr")
+                value = _NESTED_VAR_REF_RE.sub(r"\1", bare.group("expr"))
             elif bare_var:
                 value = bare_var.group("var")
             else:
@@ -274,7 +297,7 @@ def _generate_monty_carlo_file(data, uncertain_variables):
     )
 
 
-def _generate_parameters_file(data, qcall=None):
+def _generate_parameters_file(data, qcall=None, for_mc=False):
     root = pyhit.load(
         str(
             _SIM_DATA.lib_file_abspath(
@@ -292,6 +315,27 @@ def _generate_parameters_file(data, qcall=None):
             root[v.name] = _format_parameter_value(
                 v.value, v.unit, v.get("convertUnit")
             )
+    if for_mc:
+        for c in root.children:
+            if c.name == "Executioner":
+                # MultiApps/[sub]'s ignore_solve_not_converge (see
+                # _generate_monty_carlo_file) requires this, or MOOSE errors
+                # at startup: "Requesting to ignore failed solutions, but
+                # 'Executioner/error_on_dtmin' is true in sub-application."
+                c["error_on_dtmin"] = "false"
+            elif c.name == "Outputs":
+                # batch MC runs solve hundreds of times over -- disable
+                # expensive/noisy outputs, and use a named [csv] block
+                # (not the bare "csv = true" flag) so that
+                # SamplerFullSolveMultiApp names each sample's file
+                # main_out_sub<N>_csv.csv, matching _MC_SAMPLE_CSV_GLOB
+                if "exodus" in c:
+                    c["exodus"] = "false"
+                c["console"] = "false"
+                if "csv" in c:
+                    c.removeParam("csv")
+                if not any(cc.name == "csv" for cc in c.children):
+                    c.append("csv", type="CSV")
     return root.render()
 
 
@@ -335,12 +379,21 @@ def _uncertain_variables(data):
     ]
 
 
+def _x_points(d, x, is_mc):
+    # in a Monte Carlo run, only "time" survives _mc_aggregate() unsuffixed --
+    # every other column only exists as <x>_mean/_p05/_p95, so use the mean
+    # for the x-axis (a confidence band doesn't make sense for the x-axis)
+    if is_mc and "{}_mean".format(x) in d.columns:
+        return d["{}_mean".format(x)].tolist()
+    return d[x].tolist()
+
+
 def write_parameters(data, run_dir, is_parallel):
     u = _uncertain_variables(data)
     if u:
         pykern.pkio.write_text(
             run_dir.join(MC_SUB_FILE),
-            _generate_parameters_file(data),
+            _generate_parameters_file(data, for_mc=True),
         )
         pykern.pkio.write_text(
             run_dir.join(MC_MAIN_FILE),

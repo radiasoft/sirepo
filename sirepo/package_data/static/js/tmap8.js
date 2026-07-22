@@ -279,3 +279,16 @@ SIREPO.app.directive('parameterArray', function(appState, errorService, requestS
         },
     };
 });
+
+SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, $scope) {
+    function updateInputFileVisibility() {
+        panelState.showField(
+            'simulationSettings',
+            'inputFile',
+            ! appState.applicationState().simulationSettings.inputFile,
+        );
+    }
+
+    $scope.whenSelected = updateInputFileVisibility;
+    $scope.$on('simulationSettings.changed', updateInputFileVisibility);
+});
