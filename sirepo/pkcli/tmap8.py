@@ -14,10 +14,14 @@ import sirepo.template.tmap8
 def run_background(cfg_dir):
     cmd = [
         "tmap8",
+        # setting uncertainty on a value may leave unused vars
+        "--allow-unused",
         "-i",
-        sirepo.template.tmap8.MC_MAIN_FILE
-        if pkio.py_path(sirepo.template.tmap8.MC_MAIN_FILE).exists()
-        else sirepo.template.tmap8.TMAP8_INPUT_FILE,
+        (
+            sirepo.template.tmap8.MC_MAIN_FILE
+            if pkio.py_path(sirepo.template.tmap8.MC_MAIN_FILE).exists()
+            else sirepo.template.tmap8.TMAP8_INPUT_FILE
+        ),
     ]
     if sirepo.mpi.cfg().cores > 1:
         sirepo.mpi.run_program(cmd)
