@@ -1,5 +1,5 @@
 <template>
-    <div class="col-md-8 col-xl-6">
+    <div class="col-md-12 col-xxl-8">
         <VCard
             v-if="isReady"
             v-bind:viewName="isViewing() ? 'simulationStatus' : 'simulationSettings'"
@@ -15,7 +15,7 @@
                 </button>
             </div>
             <div class="row">
-                <div class="col-sm-7">
+                <div class="col-lg-4">
                     <div v-if="simSummary">
                         <div>
                             <b>Completed:</b> {{ util.formatDate(simSummary.completed) }}
@@ -28,16 +28,63 @@
                             This simulation was run with the most recent model.
                         </div>
                     </div>
+                    <div v-else-if="isLoadingPlots">
+                        <span class="bi bi-hourglass-split"></span>
+                        Loading plots...
+                    </div>
                     <div v-if="! isViewing()" class="mt-3">
                         <VNeutronicsSim
                             v-bind:materialId="materialId"
                             v-bind:neutronics="neutronics"
                             v-on:simCompleted="loadAndRebuild()"
+                            v-on:simStarted="onSimStarted()"
                         />
                     </div>
                 </div>
-                <div class="col-sm-5" v-if="neutronics.indexOf('SlabAnimation') > 0">
-                    <img class="img-fluid" v-bind:src="slabUrl" alt="Slab" style="max-height: 250px"/>
+                <div class="col-lg-8">
+                    <div
+                        v-if="simSummary && simSummary.results && simSummary.results.length"
+                        class="fw-bold mb-2"
+                    >
+                        Damage, gas production &amp; activation per layer
+                    </div>
+                    <table
+                        v-if="simSummary && simSummary.results && simSummary.results.length"
+                        class="table table-sm"
+                    >
+                        <thead>
+                            <tr>
+                                <th>Layer</th>
+                                <th
+                                    v-for="col in summaryCols"
+                                    v-bind:key="col.name"
+                                    class="text-end"
+                                >
+                                    {{ col.heading }}
+                                    <div class="sr-subheading">{{ col.subheading }}</div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr
+                                v-for="row in simSummary.results"
+                                v-bind:key="row.layer"
+                            >
+                                <td>{{ row.layer }}<span
+                                    v-if="layerMaterial(row)"
+                                    class="sr-subheading"
+                                >&nbsp;{{ layerMaterial(row) }}</span></td>
+                                <td
+                                    v-for="col in summaryCols"
+                                    v-bind:key="col.name"
+                                    class="text-end"
+                                >{{ formatValue(row, col) }}<span
+                                    v-if="col.std && row[`${col.name}_std`] !== undefined && row[`${col.name}_std`] !== null"
+                                    class="sr-subheading"
+                                >&nbsp;&plusmn;&nbsp;{{ formatStd(row, col) }}</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </VCard>
@@ -56,7 +103,7 @@
                     v-bind:downloadActions="report.downloadActions"
                 >
                     <div v-if="report.error">{{ report.error }}</div>
-                    <div v-if="report.image">
+                    <div v-if="report.image" v-bind:class="{ 'sr-slab-image': report.isStatic }">
                         <VReportImage
                             v-bind:image="report.image"
                             v-bind:alt="report.stat"
@@ -79,10 +126,12 @@
  import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
  import { useRoute } from 'vue-router';
  import { util } from '@/services/util.js';
+ import { SUMMARY_COLUMNS, useSummary } from '@/apps/cortex/useSummary.js';
 
  const props = defineProps({
      materialId: String,
      materialName: String,
+     isPlasmaFacing: Boolean,
      neutronics: String,
      title: String,
  });
@@ -92,9 +141,12 @@
      flux: 'ParticleFluxes',
      time_dependent: 'Time-Dependent Responses',
  };
+ const summaryCols = SUMMARY_COLUMNS;
+ const { formatValue, formatStd } = useSummary(3);
  let rebuildCounter = 0;
  let summary;
  const hasPlots = ref(false);
+ const isLoadingPlots = ref(false);
  const isReady = ref(false);
  const route = useRoute();
  const simSummary = ref(null);
@@ -113,6 +165,19 @@
      URL.revokeObjectURL(u);
  };
 
+ const layerMaterial = (row) => {
+     if (row.layer === 'First Wall' && props.isPlasmaFacing) {
+         return 'Eurofer';
+     }
+     if (row.layer === 'Armor' && ! props.isPlasmaFacing) {
+         return 'Tungsten';
+     }
+     if (row.layer === 'Vacuum Vessel') {
+         return 'SS316L(N)-IG';
+     }
+     return '';
+ };
+
  const isSimOutOfDate = () => {
      if (! (summary && summary.sim[props.neutronics])) {
          return true;
@@ -121,6 +186,14 @@
  };
 
  const isViewing = () => route.name === "view";
+
+ const onSimStarted = () => {
+     hasPlots.value = false;
+     simSummary.value = null;
+     for (const v in reportsBySection) {
+         delete reportsBySection[v];
+     }
+ };
 
  const rebuildReports = async () => {
      for (const v in sections) {
@@ -145,6 +218,16 @@
              downloadActions: util.reportDownloadActions(r),
          });
      }
+     if (props.neutronics.indexOf('SlabAnimation') > 0) {
+         reportsBySection.steady_state.unshift({
+             title: 'Geometry',
+             viewName: props.neutronics,
+             trackBy: 'geometry',
+             stat: 'Slab',
+             image: slabUrl,
+             isStatic: true,
+         });
+     }
      for (const v in sections) {
          if (! reportsBySection[v].length) {
              delete reportsBySection[v];
@@ -159,20 +242,29 @@
  };
 
  const loadAndRebuild = async () => {
-     const s = await db.loadSummary(props.materialId, isViewing());
-     if (summary && s
-         && summary?.sim[props.neutronics]?.completed === s?.sim[props.neutronics]?.completed) {
-         // same summary, no rebuild required
-         return;
+     isLoadingPlots.value = true;
+     try {
+         const s = await db.loadSummary(props.materialId, isViewing());
+         if (summary && s
+             && summary?.sim[props.neutronics]?.completed === s?.sim[props.neutronics]?.completed) {
+             // same summary, no rebuild required
+             return;
+         }
+         summary = s;
+         await rebuildReports();
      }
-     summary = s;
-     await rebuildReports();
+     finally {
+         isLoadingPlots.value = false;
+     }
  };
 
  const loadImages = async (counter) => {
      for (const s in sections) {
          if (reportsBySection[s]){
              for (const r of reportsBySection[s]) {
+                 if (r.isStatic) {
+                     continue;
+                 }
                  r.error = '';
                  // stop loading if unloaded or rebuilt
                  if (hasPlots.value && counter === rebuildCounter) {
@@ -207,3 +299,13 @@
  });
 
 </script>
+
+<style scoped>
+ /* match the plot report panels' image height (aspect ratio 1886 x 1410) */
+ .sr-slab-image :deep(img) {
+     width: 100%;
+     height: auto;
+     aspect-ratio: 1886 / 1410;
+     object-fit: contain;
+ }
+</style>

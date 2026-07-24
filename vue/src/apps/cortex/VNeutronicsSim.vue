@@ -1,6 +1,10 @@
 <template>
     <div v-if="isLoaded">
-        <VRunSim v-bind:sim="sim" v-bind:viewName="neutronics"></VRunSim>
+        <VRunSim
+            v-bind:sim="sim"
+            v-bind:viewName="neutronics"
+            v-on:simStarted="emit('simStarted')"
+        ></VRunSim>
     </div>
 </template>
 
@@ -14,7 +18,7 @@
      materialId: String,
      neutronics: String,
  });
- const emit = defineEmits(['simCompleted']);
+ const emit = defineEmits(['simCompleted', 'simStarted']);
  const isLoaded = appState.isLoadedRef;
  const sim = ref({});
 

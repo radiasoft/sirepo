@@ -6,7 +6,7 @@ export const DB_UPDATED = 'DbUpdated';
 
 class DB {
     async canSetMaterialPublic(material_id) {
-        return Object.keys((await this.loadSummary(material_id, false)).sim).length === 2;
+        return (await this.loadSummary(material_id, false)).sim['hcpbSlabAnimation'] ? true : false;
     }
 
     async deleteMaterial(material_id) {

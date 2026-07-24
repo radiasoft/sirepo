@@ -6,12 +6,14 @@
                     v-for="col in cols"
                     v-bind:key="col.name"
                     class="sr-table-heading"
+                    v-bind:class="{ 'text-end': col.std || col.numeric }"
                 >
                     <a href v-on:click.prevent="sortCol(col)">
                         {{ col.heading }}
                     </a>&nbsp;<a href v-on:click.prevent="sortCol(col)" class="sr-sort-icon">
                         {{ sortIcon(col) }}
                     </a>
+                    <div v-if="col.subheading" class="sr-subheading">{{ col.subheading }}</div>
                 </th>
                 <th></th>
             </tr>
@@ -24,9 +26,11 @@
                 <td
                     v-for="col in cols"
                     v-bind:key="col.name"
-                >
-                    {{ formatValue(mat, col) }}
-                </td>
+                    v-bind:class="{ 'text-end': col.std || col.numeric }"
+                >{{ formatValue(mat, col) }}<span
+                    v-if="col.std && mat[col.name]"
+                    class="sr-subheading"
+                >&nbsp;&plusmn;&nbsp;{{ formatStd(mat, col) }}</span></td>
                 <td class="sr-button-bar-td">
                     <div class="sr-button-bar-parent">
                         <div class="sr-button-bar">
@@ -69,10 +73,12 @@
  import { pubSub } from '@/services/pubsub.js';
  import { requestSender } from '@/services/requestsender.js';
  import { util } from '@/services/util.js';
+ import { SUMMARY_COLUMNS, useSummary } from '@/apps/cortex/useSummary.js';
 
  const emit = defineEmits(['materialCount']);
  const confirmDeleteModal = ref(null);
  const selectedMaterial = ref(null);
+ const { formatValue, formatStd } = useSummary();
 
  const cols = reactive([
      {
@@ -94,6 +100,7 @@
          heading: 'Material Type',
          format: (v) => v ? 'plasma-facing' : 'structural',
      },
+     ...SUMMARY_COLUMNS,
  ]);
  const state = reactive({
      sort: ['material_name', true],
@@ -110,11 +117,6 @@
          },
      });
      _loadMaterials();
- };
-
- const formatValue = (material, col) => {
-     const v = material[col.name];
-     return col.format ? col.format(v) : v;
  };
 
  const removeMaterial = (material) => {
@@ -147,14 +149,16 @@
      const c = cols.map((v) => v.name);
      for (const r of state.materials) {
          for (const k in r) {
-             if (k !== 'material_id' && ! c.includes(k)) {
-                 c.push(k);
-                 cols.push({
-                     name: k,
-                     heading: k,
-                     format: (v) => util.formatExponential(v),
-                 });
+             if (k === 'material_id' || k.endsWith('_std') || c.includes(k)) {
+                 continue;
              }
+             c.push(k);
+             cols.push({
+                 name: k,
+                 heading: k,
+                 format: (v) => util.formatExponential(v),
+                 numeric: true,
+             });
          }
      }
      emit('materialCount', state.materials.length);

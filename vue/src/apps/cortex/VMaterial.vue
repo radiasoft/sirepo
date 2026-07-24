@@ -53,6 +53,7 @@
             <VNeutronics
                 v-bind:materialId="materialId"
                 v-bind:materialName="material.name"
+                v-bind:isPlasmaFacing="material.is_plasma_facing"
                 v-bind:neutronics="neutronicsSim"
                 v-bind:title="neutronicsSims[neutronicsSim]"
             />
