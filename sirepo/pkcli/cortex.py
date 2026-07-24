@@ -22,14 +22,84 @@ import requests
 import sirepo.auth
 import sirepo.mpi
 import sirepo.quest
+import sirepo.resource
 import sirepo.sim_api.cortex
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.template.cortex
 import sirepo.template.template_common
 import sqlalchemy
+import subprocess
+import tempfile
 
 _CENTURY = 100.0 * 365 * 24 * 60 * 60
+
+
+def build_slab_jinja(src_dir):
+    """Rebuild cortex's slab.py.jinja from the full_model_bluemira sources
+
+    `src_dir` holds the standalone neutronics scripts (inputs.py,
+    eudemo_materials.py, geometry.py, neutronics_model.py, neutronics_post.py,
+    depletion_model.py, depletion_post.py). slab.py.jinja is those files
+    concatenated in a fixed order, each put through a stored patch
+    (`sirepo/package_data/template/cortex/slab_src_patches/<name>.patch`)
+    that captures the hand edits needed to turn a standalone script into a
+    chunk of the merged template (jinja variables such as
+    ``BREEDER_TYPE = "{{ slabType }}"``, commenting out each file's own
+    ``import inputs as cfg`` in favor of a shared globals() namespace, etc).
+
+    Run this whenever a full_model_bluemira source file changes. If a file
+    changed in a way that no longer matches its patch's context lines,
+    `patch` fails loudly (leaving a `.rej` file) rather than silently
+    producing a wrong merge -- reconcile by hand, then regenerate that one
+    patch from the resolved chunk, e.g.::
+
+        diff -u src_dir/inputs.py resolved_chunk.py \\
+            | sed '1s#.*#--- a/inputs.py#;2s#.*#+++ b/inputs.py#' \\
+            > slab_src_patches/inputs.py.patch
+
+    Args:
+        src_dir (str): path to the full_model_bluemira directory
+    """
+
+    def _slab_jinja_patch(src_dir, patch_dir, name):
+        d = pykern.pkio.py_path(tempfile.mkdtemp())
+        t = d.join(name)
+        src_dir.join(name).copy(t)
+        subprocess.check_call(
+            # -l: ignore whitespace-only drift (e.g. trailing space stripped
+            # by a formatter) so only real content conflicts fail the patch
+            ["patch", "-l", "-p1", "-i", str(patch_dir.join(name + ".patch"))],
+            cwd=str(d),
+        )
+        return pykern.pkio.read_text(t)
+
+    # order full_model_bluemira source files are merged into slab.py.jinja;
+    # `None` marks a literal chunk (`_glue`) that isn't derived from any
+    # source file
+    _sources = (
+        "inputs.py",
+        "eudemo_materials.py",
+        "geometry.py",
+        "neutronics_model.py",
+        None,
+        "neutronics_post.py",
+        "depletion_model.py",
+        "depletion_post.py",
+    )
+    _preamble = "\n{{ materialDefinition }}\n\n"
+    _banner = "# " + "*" * 77 + "\n"
+    _glue = "STATEPOINT_FILE = rsrun(model.run())\n\n\n"
+
+    s = pykern.pkio.py_path(src_dir)
+    p = sirepo.resource.file_path("template", "cortex", "slab_src_patches")
+    o = [_preamble]
+    for n in _sources:
+        o.append(_banner)
+        o.append(_glue if n is None else _slab_jinja_patch(s, p, n))
+    t = sirepo.resource.file_path("template", "cortex", "slab.py.jinja")
+    pykern.pkio.write_text(t, "".join(o))
+    return t
 
 
 def create_reference_xlsx(xlsx_template_filename, compendium_filename):
@@ -128,6 +198,16 @@ def create_reference_xlsx(xlsx_template_filename, compendium_filename):
         _create_xlsx(v)
 
 
+# TODO(robnagler) move to material_db and use pprint
+def export_tea(db_file):
+    """Returns a python-compatible representation of all materials in
+    the specified database."""
+    uri = pykern.sql_db.sqlite_uri(pykern.pkio.py_path(db_file))
+    m = _populate_materials(_dump_sqlalchemy(uri))
+    return f"""# Generated on {datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")}
+MATERIALS = {_json_to_python(pykern.pkjson.dump_pretty(m))}"""
+
+
 def gen_components():
 
     def _livechart_csv():
@@ -178,14 +258,27 @@ def gen_components():
     return _to_str(_parse())
 
 
-# TODO(robnagler) move to material_db and use pprint
-def export_tea(db_file):
-    """Returns a python-compatible representation of all materials in
-    the specified database."""
-    uri = pykern.sql_db.sqlite_uri(pykern.pkio.py_path(db_file))
-    m = _populate_materials(_dump_sqlalchemy(uri))
-    return f"""# Generated on {datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")}
-MATERIALS = {_json_to_python(pykern.pkjson.dump_pretty(m))}"""
+def import_xlsx(uid_or_email, *args):
+    sirepo.sim_api.cortex.material_db.init_module()
+
+    def _import_xlsx(filename):
+        pkdlog("import: {}", filename)
+        p = sirepo.sim_api.cortex.material_xlsx.Parser(filename)
+        if p.errors:
+            raise AssertionError(
+                f"XLSX import {filename} failed with errors: {p.errors}"
+            )
+        sirepo.sim_api.cortex.material_db.insert_material(parsed=p.result, uid=u)
+
+    if not len(args):
+        pykern.pkcli.command_error("missing xlsx file names")
+    with sirepo.quest.start() as qcall:
+        u = qcall.auth.unchecked_get_user(uid_or_email)
+        if not u:
+            pykern.pkcli.command_error(f"invalid uid_or_email: {uid_or_email}")
+        with qcall.auth.logged_in_user_set(u, method=sirepo.auth.METHOD_EMAIL):
+            for f in args:
+                _import_xlsx(f)
 
 
 def run_background(cfg_dir):
@@ -260,29 +353,6 @@ def set_material_featured(material_id, is_featured, uid):
 def set_material_public(material_id, is_public, uid):
     sirepo.sim_api.cortex.material_db.init_module()
     sirepo.sim_api.cortex.material_db.set_public(material_id, bool(int(is_public)), uid)
-
-
-def import_xlsx(uid_or_email, *args):
-    sirepo.sim_api.cortex.material_db.init_module()
-
-    def _import_xlsx(filename):
-        pkdlog("import: {}", filename)
-        p = sirepo.sim_api.cortex.material_xlsx.Parser(filename)
-        if p.errors:
-            raise AssertionError(
-                f"XLSX import {filename} failed with errors: {p.errors}"
-            )
-        sirepo.sim_api.cortex.material_db.insert_material(parsed=p.result, uid=u)
-
-    if not len(args):
-        pykern.pkcli.command_error("missing xlsx file names")
-    with sirepo.quest.start() as qcall:
-        u = qcall.auth.unchecked_get_user(uid_or_email)
-        if not u:
-            pykern.pkcli.command_error(f"invalid uid_or_email: {uid_or_email}")
-        with qcall.auth.logged_in_user_set(u, method=sirepo.auth.METHOD_EMAIL):
-            for f in args:
-                _import_xlsx(f)
 
 
 def _convert_ao_to_wo(materials):

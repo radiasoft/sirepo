@@ -1,0 +1,64 @@
+--- a/neutronics_model.py
++++ b/neutronics_model.py
+@@ -1,3 +1,5 @@
++# neutronics_model.py
++
+ #!/usr/bin/env python3
+ """
+ neutronics_model.py
+@@ -17,7 +19,7 @@
+ cell_total_atoms_struct, cell_struct_origin_frac, cell_volumes
+ """
+ 
+-from __future__ import annotations
++#from __future__ import annotations
+ 
+ import json
+ import random
+@@ -27,8 +29,10 @@
+ 
+ import openmc
+ 
+-import inputs as cfg
+-import geometry as geo
++#import inputs as cfg
++#import geometry as geo
++geo = PKDict(globals())
++
+ 
+ # ──────────────────────────────────────────────────────────────────────────────
+ # Aliases from geometry
+@@ -145,7 +149,7 @@
+ openmc.Cell.reset_ids()
+ openmc.Surface.reset_ids()
+ 
+-model.init_lib(output=False)
++model.init_lib(output=True)
+ model.sync_dagmc_universes()
+ model.finalize_lib()
+ 
+@@ -475,7 +479,6 @@
+         "dpa_gas":           {str(cid): t.id for cid, t in dpa_gas_tallies.items()},
+     },
+ }
+-
+ with open(cfg.NEUTRONICS_RESULTS_DIR / "run_meta.json", "w", encoding="utf-8") as _f:
+     json.dump(_run_meta, _f, indent=2)
+ print(f"[neutronics_model] run_meta.json written to: {cfg.NEUTRONICS_RESULTS_DIR}")
+@@ -494,7 +497,7 @@
+ # behaving as we expect
+ 
+ if cfg.DO_CHECK_SOURCE:
+-    openmc.lib.init(output=False, args=[str(NEUTRONICS_MODEL_XML)])
++    openmc.lib.init(output=True, args=[str(NEUTRONICS_MODEL_XML)])
+     n_samples  = 100_000
+     particles  = openmc.lib.sample_external_source(n_samples=n_samples)
+     in_cells:  Dict[int, int] = {}
+@@ -507,4 +510,5 @@
+         print(f"  Cell {k:6d}: {v / n_samples * 100:.2f} %")
+     openmc.lib.finalize()
+ 
+-print(f"\n[neutronics_model] model.xml written to: {NEUTRONICS_MODEL_XML}")
+\ No newline at end of file
++print(f"\n[neutronics_model] model.xml written to: {NEUTRONICS_MODEL_XML}")
++

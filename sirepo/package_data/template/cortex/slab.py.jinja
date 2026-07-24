@@ -24,12 +24,13 @@ import shutil
 # =============================================================================
 # SIMULATION TYPE
 # =============================================================================
+#SIM_TYPE     = "tokamak"      # "tokamak"  |  "slab" | "fast_slab"
 SIM_TYPE     = "slab"      # "tokamak"  |  "slab" | "fast_slab"
 
 # =============================================================================
 # BREEDER TYPE
 # =============================================================================
-#BREEDER_TYPE = "HCPB"         # "WCLL"  |  "HCLL"  |  "HCPB"
+#BREEDER_TYPE = "WCLL"         # "WCLL"  |  "HCLL"  |  "HCPB"
 BREEDER_TYPE = "{{ slabType }}"
 
 # =============================================================================
@@ -39,6 +40,7 @@ BREEDER_TYPE = "{{ slabType }}"
 # TESTING -> will load from previous tokamak run/folder
 # CORTEX  -> will load from file saved in the same slab folder
 #            (if not available, it will copy from tokamak run/folder)
+#ENVIRONMENT  = "TESTING"      # "CORTEX"  |  "TESTING"
 ENVIRONMENT  = "CORTEX"      # "CORTEX"  |  "TESTING"
 
 # =============================================================================
@@ -66,14 +68,14 @@ BASE_DIR = Path.cwd()
 SIM_DIR = BASE_DIR / SIM_TYPE / BREEDER_TYPE
 # e.g. BASE_DIR/tokamak/WCLL/  or  BASE_DIR/slab/HCPB/
 
-# Run / result directories — all nested under SIM_DIR
+# Run / result directories — all nested under SIM_DIR 
 NEUTRONICS_RUN_DIR     = SIM_DIR / "neutronics_run"
 NEUTRONICS_RESULTS_DIR = SIM_DIR / "neutronics_results"
 DEPLETION_RUN_DIR      = SIM_DIR / "depletion_run"
 DEPLETION_RESULTS_DIR  = SIM_DIR / "depletion_results"
 SUMMARY_RESULTS_CSV = NEUTRONICS_RESULTS_DIR / "OB_1_b6" / "summary_results.csv"
 
-# Important input files — all live in PROJECT_ROOT/dagmc_files/
+# Important input files — all live in PROJECT_ROOT/dagmc_files/ 
 #DAGMC_DIR = PROJECT_ROOT / "dagmc_files"
 DAGMC_DIR = Path("{{ dagmcPath }}")
 
@@ -176,7 +178,7 @@ if ENVIRONMENT == "CORTEX" and SIM_TYPE in ("slab", "fast_slab"):
                   f"         dst : {dst}")
 
 # =============================================================================
-# MATERIALS
+# MATERIALS 
 # (FOR CORTEX, UPDATE HERE WITH USER'S MATERIALS)
 # =============================================================================
 # if str(MATERIALS_MODULE_DIR) not in sys.path:
@@ -197,6 +199,25 @@ structural_material = t
 {% endif %}
 
 vv_material = materials.ss316Ln_ig(7.93)
+
+# ----------- The comments that follow here were used for the FS&T paper; please leave these
+#             as a reference for the future
+
+# for stochastic sampling of the tungsten armor composition, to be used in tandem with
+# either run_tungsten.py or run_tungsten_depletion.py
+#armor_material      = materials.W(19.3, os.getenv('OPENMC_MATERIAL_SEED'))
+
+# for stochastic sampling of the eurofer structural composition, to be used in tandem with
+# either run_eurofer.py or run_eurofer_depletion.py
+#structural_material = materials.eurofer97(7.87, os.getenv('OPENMC_MATERIAL_SEED'))
+
+# other structural materials explored in the FS&T paper
+#structural_material = materials.V4Cr4Ti(6.05)
+#structural_material = materials.SiC(2.5)
+#structural_material = materials.inconel718(8.19)
+#structural_material = materials.ht9(7.86)
+#structural_material = materials.ods_eurofer(7.87)
+
 
 # Breeder-specific materials
 if BREEDER_TYPE == "WCLL":
@@ -232,10 +253,10 @@ THETA0_DEG        = 0.0
 if SIM_TYPE == "fast_slab":      # (DO NOT CHANGE)
     SLAB_TARGET_VOL_ID = 13      # VV in equatorial chunk in stripped dagmc
 else:
-    SLAB_TARGET_VOL_ID = 78      # VV in full dagmc Model
+    SLAB_TARGET_VOL_ID = 78      # VV in full dagmc Model 
 
-SLAB_R_IN_CM       = 1130.0  # DO NOT CHANGE
-SLAB_R_OUT_CM      = 1380.0  # DO NOT CHANGE
+SLAB_R_IN_CM       = 1130.0  # DO NOT CHANGE 
+SLAB_R_OUT_CM      = 1380.0  # DO NOT CHANGE 
 
 # =============================================================================
 # REACTOR POWER & SOURCE SCALING
@@ -253,7 +274,7 @@ CHUNK_START_CM = 0.0
 # OPENMC RUN SETTINGS
 # =============================================================================
 if SIM_TYPE == "tokamak":
-    TALLY_CONVERGENCE_THRESHOLD = 0.01 # 10%
+    TALLY_CONVERGENCE_THRESHOLD = 0.01
     BATCHES                     = 10
     PARTICLES_PER_BATCH         = 1_000_000
 else:
@@ -262,30 +283,30 @@ else:
     PARTICLES_PER_BATCH    = {{ simulationSettings_particlesPerBatch }}
 
 
-USE_TRIGGER            = True   # False = fixed batches, no convergence check
-TRIGGER_BATCH_INTERVAL = 5
+USE_TRIGGER            = True  # False = fixed batches, no convergence check
+TRIGGER_BATCH_INTERVAL = 10
 TRIGGER_MAX_BATCHES    = 2000
 
 # if USE_TRIGGER = False
 FIXED_BATCHES          = 10    # only used when USE_TRIGGER = False
 
 # Depletion
-OPENMP_THREADS         = None    # None for max available
-DEPLETION_PROCESSES    = None    # None for max available
+OPENMP_THREADS         = {{ mpiCores }}    # None for max available
+DEPLETION_PROCESSES    = {{ mpiCores }}    # None for max available
 
 # =============================================================================
 # FEATURE TOGGLES
 # =============================================================================
 DO_PHOTON_TRANSPORT          = True
 DO_WRITE_SURFACE_SOURCE      = True # TBD: Add if statement to "False" if CORTEX?
-SURFACE_SOURCE_SURFACE_ID    = 287 # DO NOT CHANGE
-SURFACE_SOURCE_CELL_TO       = 66  # DO NOT CHANGE
+SURFACE_SOURCE_SURFACE_ID    = 287 # DO NOT CHANGE 
+SURFACE_SOURCE_CELL_TO       = 66  # DO NOT CHANGE 
 SURFACE_SOURCE_MAX_PARTICLES = 1_000_000
 
 
 if SIM_TYPE == "tokamak":
     DO_ALBEDO       = True
-    DO_CHECK_SOURCE = False
+    DO_CHECK_SOURCE = True
     #TRACKS = True
 else:
     DO_ALBEDO       = False
@@ -810,7 +831,7 @@ structure_material_list: List[openmc.Material] = [
 
 MIX_RECIPES_OBJ: dict = build_mix_recipes(cfg)
 
-# Normalise volume fractions
+# Normalise volume fractions 
 def _normalize_recipes(recipes: dict, tol: float = 1e-14) -> dict:
     out: dict = {}
     for name, comp in recipes.items():
@@ -823,7 +844,7 @@ def _normalize_recipes(recipes: dict, tol: float = 1e-14) -> dict:
 
 MIX_RECIPES_NORM = _normalize_recipes(MIX_RECIPES_OBJ)
 
-# Build mixed materials
+# Build mixed materials 
 def _build_mixed_materials(recipes: dict) -> dict:
     mixed: dict = {}
     for name, comp in recipes.items():
@@ -1232,7 +1253,7 @@ if cfg.SIM_TYPE == "tokamak":
             #end_angle=np.radians(22.5),
             #)
 
-    # Surface source write (optional)
+    # Surface source write (optional) 
     if cfg.DO_WRITE_SURFACE_SOURCE:
         model.settings.surf_source_write = {
             "surface_ids":  [cfg.SURFACE_SOURCE_SURFACE_ID],
@@ -1465,7 +1486,7 @@ def export_structural_maps_json(output_path: Path) -> None:
     print(f"[neutronics_model] Structural maps written to {output_path}")
 
 
-# Write structural maps JSON
+# Write structural maps JSON 
 STRUCTURAL_MAPS_JSON = cfg.NEUTRONICS_RESULTS_DIR / "structural_maps.json"
 export_structural_maps_json(STRUCTURAL_MAPS_JSON)
 
@@ -1474,7 +1495,7 @@ export_structural_maps_json(STRUCTURAL_MAPS_JSON)
 # ──────────────────────────────────────────────────────────────────────────────
 model.tallies = openmc.Tallies()
 
-# Albedo chunk cells
+# Albedo chunk cells 
 _albedo_cells: List[int] = (
     ob_by_key[cfg.ALBEDO_CHUNK_KEY]
     if cfg.ALBEDO_CHUNK_KEY in ob_by_key
@@ -1489,7 +1510,7 @@ e_filter = openmc.EnergyFilter(energies)
 particle_filter = openmc.ParticleFilter(["neutron", "photon"])
 n_filter        = openmc.ParticleFilter(["neutron"])
 
-# Cell filters
+# Cell filters 
 _slab_cells = (
     ob_by_key[cfg.SLAB_CHUNK_KEY]
     if cfg.SLAB_CHUNK_KEY in ob_by_key
@@ -1504,14 +1525,14 @@ cell_filter_trigger = openmc.CellFilter(
     ib_by_key.get(cfg.TRIGGER_CHUNK_KEY, [])
 )
 
-# 1. Flux spectrum tally (neutron and photon)
+# 1. Flux spectrum tally (neutron and photon) 
 flux_tally = openmc.Tally()
 flux_tally.filters = [cell_filter_all, particle_filter, e_filter]
 flux_tally.scores  = ["flux"]
 model.tallies.append(flux_tally)
 
 # 2. Trigger tally (convergence monitoring)
-if cfg.USE_TRIGGER:
+if cfg.USE_TRIGGER: 
     flux_tally_trigger = openmc.Tally()
     flux_tally_trigger.filters = [cell_filter_trigger, n_filter]
     flux_tally_trigger.scores  = ["flux"]
@@ -1523,15 +1544,15 @@ if cfg.USE_TRIGGER:
     ]
     model.tallies.append(flux_tally_trigger)
 
-# 3. Heating tally (all cells)
+# 3. Heating tally (all cells) 
 heating_tally = openmc.Tally()
 heating_tally.filters = [cell_filter_all]
 heating_tally.scores  = ["heating"]
 model.tallies.append(heating_tally)
 
-# 4 Total current tally
+# 4 Total current tally 
 # (tokamak only, for albedo and calculating
-#  _J_in in neutron_source_rate for slab models)
+#  _J_in in neutron_source_rate for slab models) 
 t_current_tally:   openmc.Tally | None        = None
 p_current_tallies: Dict[int, openmc.Tally]    = {}
 
@@ -1612,7 +1633,7 @@ _run_meta = {
     "sim_type":              cfg.SIM_TYPE,
     "breeder_type":          cfg.BREEDER_TYPE,
     "particles_per_batch":   cfg.PARTICLES_PER_BATCH,
-    "batches_completed":     _existing_batches_completed,  # preserve if already set by neutronics_post.py
+    "batches_completed":     _existing_batches_completed,  # preserve if already set
     "tally_ids": {
         "flux_spectrum":     flux_tally.id,
         "heating":           heating_tally.id,
@@ -3939,11 +3960,7 @@ def process_layer_region1_only(
 # ──────────────────────────────────────────────────────────────────────────────
 with openmc.StatePoint(str(STATEPOINT_FILE)) as sp:
 
-    # update the number of batches
-    _sp_match = re.search(r"statepoint\.(\d+)\.h5", STATEPOINT_FILE.name)
-    _run_meta["batches_completed"] = int(_sp_match.group(1)) if _sp_match else int(sp.n_batches)
-
-    # load gas map
+    _run_meta["batches_completed"] = int(sp.n_batches)
     dpa_gas_map = build_dpa_gas_map(sp)
 
     if cfg.SIM_TYPE in ("slab", "fast_slab"):
@@ -4029,9 +4046,14 @@ from openmc.deplete import d1s
 
 import json
 import h5py
+import os
 
 #import inputs as cfg
 #import geometry as geo
+
+# Changes the random number seed to initiate the depletion run; used in conjunction
+# with run_statistics_depletion.py
+#model.settings.seed = int(os.getenv('OPENMC_RNG_SEED'))
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Feature toggles
@@ -4056,14 +4078,7 @@ _run_meta_path = cfg.NEUTRONICS_RESULTS_DIR / "run_meta.json"
 with open(_run_meta_path) as _f:
     _run_meta = json.load(_f)
 
-_neutronics_batches = _run_meta.get("batches_completed")
-if _neutronics_batches is None:
-    raise RuntimeError(
-        "[depletion] batches_completed is null in run_meta.json. "
-        "Run neutronics_post.py before depletion_model.py."
-    )
-_neutronics_batches = int(_neutronics_batches)
-
+_neutronics_batches = int(_run_meta.get("batches_completed") or cfg.FIXED_BATCHES)
 _neutronics_ppb     = int(_run_meta.get("particles_per_batch") or cfg.PARTICLES_PER_BATCH)
 print(f"[Loading] Matching neutronics: {_neutronics_batches} batches × {_neutronics_ppb} particles")
 
@@ -4240,10 +4255,16 @@ _milestones_s = np.array([
     1_000 * y_to_s,     # 1000 years
 ], dtype=float)
 
-# 2 interior log-spaced points between each consecutive milestone pair
+# 3 interior log-spaced points between each consecutive milestone pair
+# except for the last three, where we add 8
 _between_s = []
+cnt = 0
 for _a, _b in zip(_milestones_s[:-1], _milestones_s[1:]):
-    _between_s.extend(np.logspace(np.log10(_a), np.log10(_b), 4)[1:-1].tolist())
+    if (cnt >= 6):
+      _between_s.extend(np.logspace(np.log10(_a), np.log10(_b), 10)[1:-1].tolist())
+    else:
+      _between_s.extend(np.logspace(np.log10(_a), np.log10(_b), 5)[1:-1].tolist())
+    cnt += 1
 
 cooling_times_abs_s = np.unique(
     np.concatenate([_milestones_s, _between_s])
@@ -4495,6 +4516,11 @@ if RUN_D1S:
         if cfg.SIM_TYPE == "tokamak"
         else {}
     )
+    dose_std_dev_time_by_cell = (
+        {plasma_vol_id: [], vvportfill_vol_id: []}
+        if cfg.SIM_TYPE == "tokamak"
+        else {}
+    )
     profiles          = []
     cell_col          = "cell"  # default; overwritten inside loop
 
@@ -4511,6 +4537,7 @@ if RUN_D1S:
 
         d1s_df[cell_col]      = pd.to_numeric(d1s_df[cell_col]).astype(int)
         d1s_df["mean"]        = pd.to_numeric(d1s_df["mean"])
+        d1s_df["std. dev."]   = pd.to_numeric(d1s_df["std. dev."])
 
         # Map volumes
         d1s_df["cell_volume"] = d1s_df[cell_col].map(vol_by_cell_all)
@@ -4526,6 +4553,9 @@ if RUN_D1S:
         )
         d1s_df["mSv/h"] = (
             d1s_df["mean"] * (s_to_h * to_mSv) / d1s_df["cell_volume"]
+        )
+        d1s_df["std. dev. μSv/h"] = (
+            d1s_df["std. dev."] * (s_to_h * to_μSv) / d1s_df["cell_volume"]
         )
 
         # --------------------------------------------------
@@ -4544,6 +4574,12 @@ if RUN_D1S:
                         f"Missing μSv/h row for cid={cid} at t={t_cool:.3e}s"
                     )
                 dose_time_by_cell[cid].append(float(sub.iloc[0]))
+                sub = df_time.loc[df_time[cell_col] == cid, "std. dev. μSv/h"]
+                if len(sub) == 0:
+                    raise RuntimeError(
+                        f"Missing std. dev. μSv/h row for cid={cid} at t={t_cool:.3e}s"
+                    )
+                dose_std_dev_time_by_cell[cid].append(float(sub.iloc[0]))
 
         # --------------------------------------------------
         # (B) Spatial profile: OB chunk
@@ -4576,6 +4612,8 @@ if RUN_D1S:
     if cfg.SIM_TYPE == "tokamak":
         t_rel_plot   = [t / SECONDS_PER_YEAR for t in time_s]
         plasma_doses = dose_time_by_cell[int(plasma_vol_id)]
+        hi = [plasma_doses[i] + dose_std_dev_time_by_cell[int(plasma_vol_id)][i] for i in range(len(plasma_doses))]
+        lo = [plasma_doses[i] - dose_std_dev_time_by_cell[int(plasma_vol_id)][i] for i in range(len(plasma_doses))]
 
         fig, ax = plt.subplots()
         ax.set_xscale("log")
@@ -4585,13 +4623,15 @@ if RUN_D1S:
         if has_positive:
             ax.set_yscale("log")
 
-        ax.plot(t_rel_plot, plasma_doses)
+        ax.plot(t_rel_plot, plasma_doses, marker='o', color='b', markersize=3)
+        ax.fill_between(t_rel_plot, hi, lo,
+                        alpha=0.25, lw=0, color='b')
         ax.axhline(0.1,   linestyle="--", color="k", linewidth=1.0)
         ax.axhline(10,    linestyle="--", color="k", linewidth=1.0)
         ax.axhline(10000, linestyle="--", color="k", linewidth=1.0)
-        ax.text(1e-9, 0.1   * 1.5, "Natural background")
-        ax.text(1e-9, 10    * 1.5, "Hands-on limit")
-        ax.text(1e-9, 10000 * 1.5, "Remote recycling limit")
+        ax.text(5e-8, 0.1   * 1.5, "Natural background")
+        ax.text(5e-8, 10    * 1.5, "Hands-on limit")
+        ax.text(5e-8, 10000 * 1.5, "Remote recycling limit")
         ax.set_ylabel("Shutdown Dose [μSv/h]")
         ax.set_xlabel("Cooling Time [y]")
 
@@ -4652,6 +4692,8 @@ if RUN_D1S:
             "t_y": [t / y_to_s for t in time_s],
             f"plasma_cell{int(plasma_vol_id)}_uSvh":
                 list(dose_time_by_cell[int(plasma_vol_id)]),
+            f"plasma_cell{int(plasma_vol_id)}_uSvh_std_dev":
+                list(dose_std_dev_time_by_cell[int(plasma_vol_id)]),
             f"vvpf_cell{int(vvportfill_vol_id)}_uSvh":
                 list(dose_time_by_cell[int(vvportfill_vol_id)]),
         }).to_csv(SDR_DIR / "sdr_timeseries_plasma_vvpf.csv", index=False)
@@ -4778,7 +4820,7 @@ if RUN_D1S:
         ax.set_ylim(0.01)
         ax.set_ylabel("Shutdown Dose [μSv/h]")
         ax.set_xlabel("Cooling Time [y]")
-        ax.set_title(f"D1S SDR — {tag}")
+        ax.set_title(f"D1S SDR — {tag} ({OB_KEY})")
         fig.tight_layout()
 
         # filename: zero-padded layer index so files sort correctly
@@ -5413,8 +5455,8 @@ def _select_topn(
     label: str = "",
 ) -> list[tuple[str, float]]:
     """
-    Add nuclides until the next incremental contribution drops below 5% of
-    total.  More robust than a fixed top-95% cut at short cooling times.
+    Add nuclides until the next incremental contribution drops below 15% of
+    total. More robust than a fixed top-95% cut at short cooling times.
     """
     total = 0.0
     for i in range(len(sorted_items)):
@@ -5434,7 +5476,7 @@ def _select_topn(
         if (i == 0 and running_total / total >= 0.99):
             index = i
             break
-        if ((running_total - prev_running_total) / total <= 0.05):
+        if ((running_total - prev_running_total) / total <= 0.15):
             index = i
             break
 

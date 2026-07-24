@@ -16,6 +16,7 @@ import pykern.pkcompat
 import pykern.pkio
 import pykern.pkjson
 import re
+import sirepo.mpi
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.template.openmc
@@ -73,8 +74,8 @@ _REPORT_TITLE = PKDict(
         decayheat_VV="Decay heat - VV",
         radial_activity_profiles="Radial profile of Total activity per cooling time",
         radial_decayheat_profiles="Radial profile of decay heat per cooling time",
-        sdr_profile_OB_1_b6="D1S spatial profile: OB_1_b6",
-        sdr_time_layers_OB_1_b6="D1S SDR per OB layer - OB_1_b6",
+        sdr_profile_OB_1_b6="D1S spatial profile",
+        sdr_time_layers_OB_1_b6="D1S SDR per OB layer",
     ),
 )
 
@@ -84,28 +85,15 @@ _SIM_JINJA = PKDict(
 )
 
 SIM_VERSION = PKDict(
-    hcllSlabAnimation="1.01",
-    hcpbSlabAnimation="1.01",
+    hcllSlabAnimation="1.02",
+    hcpbSlabAnimation="1.02",
     tileAnimation="1.05",
-    wcllSlabAnimation="1.01",
+    wcllSlabAnimation="1.02",
 )
 
 _SIM_OUTPUT = PKDict(
     slabAnimation=list(_REPORT_TITLE.slabAnimation.keys()),
     tileAnimation=list(_REPORT_TITLE.tileAnimation.keys()),
-)
-
-_SAVE_SIM_RESULTS = PKDict(
-    # TODO(pjm): choosing WCLL as the standard
-    wcllSlabAnimation=PKDict(
-        dpa_OB_1_b6=[[1, 45, "DPA at 45cm"]],
-        h1_OB_1_b6=[[1, 45, "H at 45cm"]],
-        he_OB_1_b6=[[1, 45, "He at 45cm"]],
-        activity_all_cells=[
-            [1, 100, "Armor activity at 100 years"],
-            [2, 100, "First wall activity at 100 years"],
-        ],
-    ),
 )
 
 _SIM_TIME = PKDict(
@@ -279,6 +267,7 @@ def write_parameters(data, run_dir, is_parallel):
                 materialDirectory=sirepo.sim_run.cache_dir(
                     sirepo.template.openmc.OPENMC_CACHE_DIR
                 ),
+                mpiCores=sirepo.mpi.cfg().cores,
             )
             .pkupdate(v),
             f"{_SIM_JINJA[_report_type(data.report)]}.py",
@@ -316,8 +305,6 @@ import openmc.deplete.pool
 import pykern.pkrunpy
 import shutil
 
-# RS: disable multiprocessing, there is no way to set process count
-openmc.deplete.pool.USE_MULTIPROCESSING = False
 # replaces matplotlib with stub which saves plot data
 plt = pykern.pkrunpy.run_path_as_module("cortex_plot.py").pyplot
 materials = pykern.pkrunpy.run_path_as_module("cortex_materials.py")
@@ -391,19 +378,28 @@ def _plot_from_file(run_dir, material_id, report, stat):
                 r.append(plot.x[i])
                 r.append(plot.x[i + 1])
             else:
-                r.append(plot.y[i])
-                r.append(plot.y[i])
+                r.append(plot[dim][i])
+                r.append(plot[dim][i])
         return r
 
     with open(str(run_dir.join(_json_filename(stat))), "r") as f:
         d = pykern.pkjson.load_any(f)
 
+    single = len(d.plots) == 1
     # TODO(pjm): assert x points match across plots
     points = [_process_points(d.plots[0], "x")]
     legend = [""]
     for p in d.plots:
         points.append(_process_points(p, "y"))
         legend.append(p.label or d.ylabel)
+    for p in d.plots:
+        if "lo" not in p:
+            continue
+        n = "" if single else f"{p.label or d.ylabel}_"
+        points.append(_process_points(p, "lo"))
+        legend.append(f"{n}low")
+        points.append(_process_points(p, "hi"))
+        legend.append(f"{n}high")
     return PKDict(
         material_id=material_id,
         title=_REPORT_TITLE[_report_type(report)][stat],
@@ -426,6 +422,31 @@ def _report_type(report):
 
 
 def _save_summary_to_database(run_dir, report, stats):
+    def _summary_from_csv():
+        def _value(v):
+            try:
+                return float(v)
+            except ValueError:
+                return v
+
+        m = re.search(r"(\w+)SlabAnimation", report)
+        if not m:
+            return []
+        p = run_dir.join(
+            "slab",
+            m.group(1).upper(),
+            "neutronics_results",
+            "OB_1_b6",
+            "summary_results.csv",
+        )
+        if not p.exists():
+            return []
+        with pykern.pkio.open_text(p) as f:
+            return [
+                PKDict({k: _value(v) for k, v in row.items()})
+                for row in csv.DictReader(f)
+            ]
+
     m = _material_id_from_run_dir(run_dir)
     summary = PKDict(
         material_id=m,
@@ -433,19 +454,12 @@ def _save_summary_to_database(run_dir, report, stats):
         version=SIM_VERSION[report],
         completed=pykern.pkcompat.utcnow(),
         plots=[],
-        values=PKDict(),
+        values=pkdp(_summary_from_csv()),
     )
     for s in stats:
         p = _plot_from_file(run_dir, m, report, s)
         p.csv = _csv_from_plot(p)
         summary.plots.append(p)
-        if report in _SAVE_SIM_RESULTS and s in _SAVE_SIM_RESULTS[report]:
-            for d in _SAVE_SIM_RESULTS[report][s]:
-                idx, pos, label = d
-                for i in range(len(p.points[0])):
-                    if pos < p.points[0][i]:
-                        summary["values"][label] = p.points[idx][i]
-                        break
         _SIM_DATA.lib_file_write(
             _SIM_DATA.lib_file_from_parts(report, m, s, "png"),
             run_dir.join(_png_filename(s)),

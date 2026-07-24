@@ -1,0 +1,167 @@
+--- a/neutronics_post.py
++++ b/neutronics_post.py
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env python3
++# neutronics_post.py
+ """
+ neutronics_post.py
+ ==================
+@@ -33,7 +33,7 @@
+     x J_in_mean from armor_current_neutron.json
+ """
+ 
+-from __future__ import annotations
++#from __future__ import annotations
+ 
+ import json
+ import math
+@@ -43,12 +43,12 @@
+ 
+ import numpy as np
+ import pandas as pd
+-import matplotlib.pyplot as plt
++#import matplotlib.pyplot as plt
+ import matplotlib.ticker as mticker
+ import openmc
+ 
+-import inputs as cfg
+-import geometry as geo
++#import inputs as cfg
++#import geometry as geo
+ 
+ # ──────────────────────────────────────────────────────────────────────────────
+ # Directories
+@@ -68,16 +68,16 @@
+     return latest
+ 
+ 
+-STATEPOINT_FILE = _find_latest_statepoint(cfg.NEUTRONICS_RUN_DIR)
++#STATEPOINT_FILE = _find_latest_statepoint(cfg.NEUTRONICS_RUN_DIR)
+ print(f"Using statepoint: {STATEPOINT_FILE.name}")
+ 
+ # ──────────────────────────────────────────────────────────────────────────────
+ # Load Reference Run (gold)
+ # ──────────────────────────────────────────────────────────────────────────────
+-from reference_manager import load_reference
+ 
+ _ref_data = None
+ if cfg.REFERENCE_LABEL:
++    from reference_manager import load_reference
+     try:
+         _ref_data = load_reference(cfg.REFERENCE_LABEL)
+         print(f"[reference] Loaded gold run: {cfg.REFERENCE_LABEL}")
+@@ -185,7 +185,7 @@
+         if int(tid) in _all_tallies
+     }
+ 
+-# DPA/gas tally IDs 
++# DPA/gas tally IDs
+ _dpa_gas_ids: Dict[int, int] = {
+     int(cid): int(tid)
+     for cid, tid in _tally_ids.get("dpa_gas", {}).items()
+@@ -560,7 +560,7 @@
+ # Overlay Gold Run
+ # ──────────────────────────────────────────────────────────────────────────────
+ 
+-def _overlay_ref(ax: plt.Axes, chunk_key: str, quantity: str,
++def _overlay_ref(ax, chunk_key: str, quantity: str,
+                  label: str = "W Armor + Eurofer Structural",
+                  color: str = "black",
+                  ls: str = "--") -> None:
+@@ -593,7 +593,7 @@
+     ax.fill_between(xp, np.append(lo, lo[-1]), np.append(hi, hi[-1]),
+                     step="post", color=color, alpha=0.08, zorder=0)
+ 
+-def _overlay_ref_poloidal(ax: plt.Axes, layer_tag: str, quantity: str,
++def _overlay_ref_poloidal(ax, layer_tag: str, quantity: str,
+                            label: str = "W Armor + Eurofer Structural",
+                            color: str = "black",
+                            ls: str = "--") -> None:
+@@ -1063,7 +1063,7 @@
+             index=False,
+         )
+ 
+-        # Save cell summary 
++        # Save cell summary
+         cell_rows: List[dict] = []
+         for cid, grp in df_external_rest.groupby("cell_id"):
+             cid    = int(cid)
+@@ -1244,7 +1244,7 @@
+             return float("nan"), float("nan")
+         return float(r.iloc[0][col_mean]), float(r.iloc[0][col_std])
+ 
+-    # Per-layer extraction 
++    # Per-layer extraction
+     rows: "List[dict]" = []
+ 
+     for layer_label in TARGET_LAYERS:
+@@ -1319,7 +1319,7 @@
+     outdir = Path(outdir)
+     outdir.mkdir(parents=True, exist_ok=True)
+ 
+-    # Determine percentage column 
++    # Determine percentage column
+     pct_col = next((c for c in df.columns if c.endswith("_pct") and "cumulative" not in c), None)
+ 
+     elem_summary = (
+@@ -1755,7 +1755,7 @@
+ 
+         cell_breakdown_dir = breakdown_dir / f"cell_{cid}"
+ 
+-        # Gas (He + H) 
++        # Gas (He + H)
+         gas_result = compute_gas_cell_detailed(
+             cid, t,
+             he3_score=he3_score, he4_score=he4_score,
+@@ -1769,7 +1769,7 @@
+         for gas, col in [("He", "he_appm_contrib"), ("H", "h_appm_contrib")]:
+             _save_nuclide_breakdown(gas_result[f"df_{gas}"], col, gas, cid, cell_breakdown_dir)
+ 
+-        # DPA 
++        # DPA
+         dpa_result   = compute_dpa_cell_detailed(cid, t)
+         dpa_y[i]     = dpa_result["dpa"]
+         dpa_y_std[i] = dpa_result["dpa_std"]
+@@ -1860,7 +1860,7 @@
+         fig.savefig(plots_dir / f"dpa_{chunk_key}_vs_ref.png",
+                     dpi=300, bbox_inches="tight")
+     plt.close(fig)
+- 
++
+     save_profile(base_df, profiles_dir, quantity="dpa_fpy_struct_origin",
+                  mean=dpa_y, std=dpa_y_std, units="DPA/fpy")
+ 
+@@ -2101,7 +2101,7 @@
+     ax.legend()
+     fig.savefig(plots_dir / f"flux_total_{layer_tag}.png",
+                 dpi=300, bbox_inches="tight")
+-                
++
+     if _ref_data:
+         _overlay_ref_poloidal(ax, layer_tag, "flux_total_neutron",
+                             label="neutron (W Armor + Eurofer Structural)", color="tab:blue", ls=(0, (3, 1)))
+@@ -2277,6 +2277,7 @@
+ # MAIN RUN
+ # ──────────────────────────────────────────────────────────────────────────────
+ with openmc.StatePoint(str(STATEPOINT_FILE)) as sp:
++
+     _run_meta["batches_completed"] = int(sp.n_batches)
+     dpa_gas_map = build_dpa_gas_map(sp)
+ 
+@@ -2315,7 +2316,7 @@
+         chunk_key   = cfg.TRIGGER_CHUNK_KEY,
+         out_csv     = cfg.SUMMARY_RESULTS_CSV,
+     )
+-      
++
+     if cfg.SIM_TYPE == "tokamak":
+         for layer_tag, layer_index in cfg.POLOIDAL_LAYERS:
+             layer_outdir = RESULTS_DIR / f"layer_{layer_tag}_region1_only"
+@@ -2327,4 +2328,5 @@
+ # Write batches_completed back to run_meta.json ← ADD THESE TWO LINES
+ with open(_run_meta_path, "w", encoding="utf-8") as _f:
+     json.dump(_run_meta, _f, indent=2)
+-print(f"[updated] batches_completed={_run_meta['batches_completed']} saved → {_run_meta_path}")
+\ No newline at end of file
++print(f"[updated] batches_completed={_run_meta['batches_completed']} saved → {_run_meta_path}")
++

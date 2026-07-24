@@ -30,6 +30,7 @@
      sim: Object,
      viewName: String,
  });
+ const emit = defineEmits(['simStarted']);
 
  const state = ref("unknown"); // unknown or sim state
  const statusDots = ref("");
@@ -95,6 +96,7 @@
      props.sim.reports = [];
      elapsedTime.value = 0
      state.value = "pending";
+     emit('simStarted');
      qItem = simQueue.addPersistentItem(
          props.viewName,
          appState.models,
