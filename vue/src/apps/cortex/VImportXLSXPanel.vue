@@ -118,7 +118,7 @@
      requestSender.sendRequest("cortexSim", {
          op_name: 'runSim',
          op_args: {
-             report: "tileAnimation",
+             report: "hcpbSlabAnimation",
              material_id: r.op_result.material_id,
          },
      });

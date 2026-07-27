@@ -82,9 +82,8 @@
  import { useRoute } from 'vue-router';
 
  const neutronicsSims = {
-     tileAnimation: 'Homogeneous Tile',
-     hcllSlabAnimation: 'HCLL Slab',
      hcpbSlabAnimation: 'HCPB Slab',
+     hcllSlabAnimation: 'HCLL Slab',
      wcllSlabAnimation: 'WCLL Slab',
  };
 
