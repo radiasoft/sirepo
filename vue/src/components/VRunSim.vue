@@ -30,6 +30,7 @@
      sim: Object,
      viewName: String,
  });
+ const emit = defineEmits(['simStarted']);
 
  const state = ref("unknown"); // unknown or sim state
  const statusDots = ref("");
@@ -49,6 +50,14 @@
      state.value = "canceled";
      statusDots.value = '';
      qItem = null;
+ };
+
+ const clearSimState = () => {
+     if (props.sim) {
+         for (const k in props.sim) {
+             delete props.sim[k];
+         }
+     }
  };
 
  const showState = () => ! ["missing", "unknown"].includes(state.value);
@@ -84,17 +93,19 @@
              props.sim[f] = data[f];
          }
      }
+     else {
+         clearSimState();
+     }
  };
 
  const startSim = () => {
      if (qItem) {
          return;
      }
-     //TODO(pjm): clear all sim state
-     props.sim.frameCount = 0;
-     props.sim.reports = [];
+     clearSimState();
      elapsedTime.value = 0
      state.value = "pending";
+     emit('simStarted');
      qItem = simQueue.addPersistentItem(
          props.viewName,
          appState.models,

@@ -109,12 +109,23 @@ class pyplot:
         _plt.errorbar(x, y, **kwargs)
 
     @classmethod
-    def fill_between(cls, *args, **kwargs):
-        _plt.fill_between(*args, **kwargs)
+    def fill_between(cls, x, lo, hi, **kwargs):
+        cls._figure.plots[-1].pkupdate(
+            lo=_to_list(lo),
+            hi=_to_list(hi),
+        )
+        _plt.fill_between(x, lo, hi, **kwargs)
 
     @classmethod
     def scatter(cls, x, y, **kwargs):
         _plt.scatter(x, y, **kwargs)
+
+    @classmethod
+    def axhline(cls, x, **kwargs):
+        if cls._ax is not None:
+            cls._ax.axhline(x, **kwargs)
+        else:
+            _plt.axhline(x, **kwargs)
 
     @classmethod
     def axvline(cls, x, **kwargs):
@@ -159,6 +170,15 @@ class pyplot:
             cls._ax.set_xlim(*args)
         else:
             _plt.xlim(*args)
+
+    @classmethod
+    def set_xscale(cls, scale):
+        if scale == "log":
+            cls._figure.type = "loglog"
+        if cls._ax is not None:
+            cls._ax.set_xscale(scale)
+        else:
+            _plt.xscale(scale)
 
     @classmethod
     def set_ylim(cls, limit1, limit2=None):

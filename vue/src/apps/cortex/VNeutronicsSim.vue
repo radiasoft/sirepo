@@ -1,6 +1,14 @@
 <template>
     <div v-if="isLoaded">
-        <VRunSim v-bind:sim="sim" v-bind:viewName="neutronics"></VRunSim>
+        <div v-if="sim.simulationSettings">
+            Particles per batch: {{ sim.simulationSettings.particlesPerBatch }} <br/>
+            Convergence threshold: {{ sim.simulationSettings.tallyConvergenceThreshold }}
+        </div>
+        <VRunSim
+            v-bind:sim="sim"
+            v-bind:viewName="neutronics"
+            v-on:simStarted="emit('simStarted')"
+        ></VRunSim>
     </div>
 </template>
 
@@ -14,7 +22,7 @@
      materialId: String,
      neutronics: String,
  });
- const emit = defineEmits(['simCompleted']);
+ const emit = defineEmits(['simCompleted', 'simStarted']);
  const isLoaded = appState.isLoadedRef;
  const sim = ref({});
 

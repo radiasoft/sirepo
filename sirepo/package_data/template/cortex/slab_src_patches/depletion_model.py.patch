@@ -1,0 +1,112 @@
+--- a/depletion_model.py
++++ b/depletion_model.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/env python3
+ """
+ depletion_model.py
+ ==================
+@@ -15,7 +14,7 @@
+   RUN_DEPLETION  : bool  : run R2S activation depletion
+ """
+ 
+-from __future__ import annotations
++#from __future__ import annotations
+ 
+ from collections import OrderedDict
+ from pathlib import Path
+@@ -23,7 +22,7 @@
+ 
+ import numpy as np
+ import pandas as pd
+-import matplotlib.pyplot as plt
++#import matplotlib.pyplot as plt
+ import matplotlib.ticker as mticker
+ import openmc
+ import openmc.data
+@@ -33,8 +32,8 @@
+ import json
+ import h5py
+ 
+-import inputs as cfg
+-import geometry as geo
++#import inputs as cfg
++#import geometry as geo
+ 
+ # ──────────────────────────────────────────────────────────────────────────────
+ # Feature toggles
+@@ -46,7 +45,8 @@
+ # Import neutronics_model — gives us the fully synced model + all_cells
+ # This step will be removed once running neutronics+depletion together
+ # ──────────────────────────────────────────────────────────────────────────────
+-import neutronics_model as nm
++#import neutronics_model as nm
++nm = PKDict(globals())
+ 
+ model     = nm.model
+ all_cells = nm.all_cells
+@@ -464,6 +464,7 @@
+     model.settings.batches        = _d1s_batches
+     model.settings.particles      = _d1s_particles
+ 
++    openmc.config["chain_file"] = str(cfg.OPENMC_CHAIN_FILE)
+     nuclides = d1s.prepare_tallies(model)
+     factors  = d1s.time_correction_factors(nuclides, timesteps, source_rates)
+ 
+@@ -474,11 +475,11 @@
+     print("---------------------------")
+     timer.start("D1S run")
+ 
+-    statepoint = model.run(
++    statepoint = rsrun(model.run(
+         cwd=str(D1S_DIR),
+         output=True,
+         threads=TRANSPORT_THREADS,
+-    )
++    ))
+ 
+     with openmc.StatePoint(statepoint) as sp:
+         tally = sp.get_tally(name="dose tally")
+@@ -733,7 +734,7 @@
+     ax.text(t_rel_plot_layers[-1], 0.1   * 1.5, "Natural background", ha="right", fontsize=8)
+     ax.text(t_rel_plot_layers[-1], 10    * 1.5, "Hands-on limit",      ha="right", fontsize=8)
+     ax.text(t_rel_plot_layers[-1], 10000 * 1.5, "Remote recycling",    ha="right", fontsize=8)
+-    ax.set_ylim(bottom=0.01)
++    ax.set_ylim(0.01)
+     ax.set_ylabel("Shutdown Dose [μSv/h]")
+     ax.set_xlabel("Cooling Time [y]")
+     ax.set_title(f"D1S SDR per OB layer — {OB_KEY}")
+@@ -776,7 +777,7 @@
+         ax.text(t_rel_plot_layers[-1], 0.1   * 1.5, "Natural background", ha="right", fontsize=8)
+         ax.text(t_rel_plot_layers[-1], 10    * 1.5, "Hands-on limit",      ha="right", fontsize=8)
+         ax.text(t_rel_plot_layers[-1], 10000 * 1.5, "Remote recycling",    ha="right", fontsize=8)
+-        ax.set_ylim(bottom=0.01)
++        ax.set_ylim(0.01)
+         ax.set_ylabel("Shutdown Dose [μSv/h]")
+         ax.set_xlabel("Cooling Time [y]")
+         ax.set_title(f"D1S SDR — {tag}")
+@@ -860,10 +861,9 @@
+     # -------------------------------------------------------------------------
+     model.settings.use_decay_photons = False
+     model.settings.photon_transport  = False
+-    
+     # Ensure no surface source is written during depletion transport
+     model.settings.surf_source_write = {}
+-    
++
+     # Apply neutronics batch count to model settings before microXS transport
+     # or other predefined number of batches and particles
+     model.settings.trigger_active = False
+@@ -958,7 +958,7 @@
+     # Sync materials and geometry paths before differentiate_mats
+     # (tokamak only — for slab/fast_slab this collapses the universe hierarchy)
+     # -------------------------------------------------------------------------
+-    
++
+     if cfg.SIM_TYPE == "tokamak":
+         model.materials = openmc.Materials(
+             list(model.geometry.get_all_materials().values())
+@@ -1157,3 +1157,4 @@
+ # ──────────────────────────────────────────────────────────────────────────────
+ # R2S decay-gamma run (placeholder)
+ # ──────────────────────────────────────────────────────────────────────────────
++
