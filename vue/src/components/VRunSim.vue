@@ -52,6 +52,15 @@
      qItem = null;
  };
 
+ const clearSimState = () => {
+     if (props.sim) {
+         for (const k in props.sim) {
+             console.log('del:', k);
+             delete props.sim[k];
+         }
+     }
+ };
+
  const showState = () => ! ["missing", "unknown"].includes(state.value);
 
  const simStatusHandler = (data) => {
@@ -85,15 +94,16 @@
              props.sim[f] = data[f];
          }
      }
+     else {
+         clearSimState();
+     }
  };
 
  const startSim = () => {
      if (qItem) {
          return;
      }
-     //TODO(pjm): clear all sim state
-     props.sim.frameCount = 0;
-     props.sim.reports = [];
+     clearSimState();
      elapsedTime.value = 0
      state.value = "pending";
      emit('simStarted');

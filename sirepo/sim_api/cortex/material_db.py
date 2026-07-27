@@ -491,7 +491,7 @@ def load_summary(material_id, is_public, uid):
         return [
             _load_plot(r)
             for r in s.select("plot", where=PKDict(material_id=material_id)).all()
-            if not re.search(r"(cell|decayheat)_(OB|Breeder)", r.stat)
+            if not _skip_plot(r.stat)
         ]
 
     def _load_summary(session):
@@ -510,6 +510,13 @@ def load_summary(material_id, is_public, uid):
                 results=_layer_summary_rows(session, summary["model"]),
             )
         return r
+
+    def _skip_plot(name):
+        return (
+            re.search(r"(cell|decayheat)_(OB|Breeder)", name)
+            or re.search(r"sdr_(profile|time)", name)
+            or re.search(r"radial_", name)
+        )
 
     with _session() as s:
         # ensure authorized to material

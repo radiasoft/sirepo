@@ -1,3 +1,4 @@
+import { saveAs } from 'file-saver';
 import { singleton } from '@/services/singleton.js';
 
 class Util {
@@ -54,6 +55,14 @@ class Util {
         saveAs(new Blob([res], {type: 'text/csv;charset=utf-8'}), `${n}.csv`);
     }
 
+    downloadPNG = (report) => {
+        if (! report || ! report.image) {
+            return;
+        }
+        const n = report.y_label.replace(/ \[.*/, '');
+        saveAs(report.image, `${n}.png`);
+    }
+
     downloadFilename(name, suffix) {
         return name.replace(/[^\w\s-]/g, '_').trim() + '.' + suffix;
     }
@@ -95,10 +104,16 @@ class Util {
     }
 
     reportDownloadActions(report) {
-        return [{
-            onClick: () => this.downloadCSV(report),
-            label: 'Download CSV',
-        }];
+        return [
+            {
+                onClick: () => this.downloadCSV(report),
+                label: 'Download CSV',
+            },
+            {
+                onClick: () => this.downloadPNG(report),
+                label: 'Download PNG',
+            },
+        ];
     }
 
     uniqueId() {

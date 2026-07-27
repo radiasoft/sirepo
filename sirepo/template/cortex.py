@@ -30,14 +30,6 @@ _EUDEMO_H5M_FILE = "eudemo_f_1_27a.h5m"
 _SLAB_CHAIN_ENDF_FILE = "chain_endfb80_sfr.xml"
 _TOKAMAK_INPUTS_FILE = "Tokamak_inputs.json"
 _REPORT_TITLE = PKDict(
-    tileAnimation=PKDict(
-        dpa="DPA",
-        flux="Flux",
-        he="Helium",
-        n_flux_spectrum="Neutron Flux",
-        p_flux_spectrum="Photon Flux",
-        sdr="Shutdown Dose",
-    ),
     slabAnimation=PKDict(
         dpa_OB_1_b6="DPA",
         h1_OB_1_b6="Hydrogen",
@@ -46,6 +38,9 @@ _REPORT_TITLE = PKDict(
         heating_OB_1_b6="Heating",
         p_flux_spectrum_OB_1_b6="Photon Flux",
         n_flux_spectrum_OB_1_b6="Neutron Flux",
+        sdr_layer_00_Armor_OB_1_b6="Armor SDR",
+        sdr_layer_01_First_Wall_OB_1_b6="First wall SDR",
+        sdr_layer_12_VV_OB_1_b6="Vacuum Vessel SDR",
         activity_all_cells="Total Activity over cooling time",
         activity_cell_Armor="Activity - Armor",
         activity_cell_First_wall="Activity - First Wall",
@@ -58,7 +53,7 @@ _REPORT_TITLE = PKDict(
         activity_cell_Breeder_layer_7="Activity - Breeder layer 7",
         activity_cell_Breeder_layer_8="Activity - Breeder layer 8",
         activity_cell_Breeder_layer_9="Activity - Breeder layer 9",
-        activity_cell_VV="Activity - VV",
+        activity_cell_VV="Activity - Vacuum Vessel",
         decayheat_all_cells="Total decay heat",
         decayheat_Armor="Decay heat - Armor",
         decayheat_First_wall="Decay heat - First Wall",
@@ -71,7 +66,7 @@ _REPORT_TITLE = PKDict(
         decayheat_Breeder_layer_7="Decay heat - Breeder layer 7",
         decayheat_Breeder_layer_8="Decay heat - Breeder layer 8",
         decayheat_Breeder_layer_9="Decay heat - Breeder layer 9",
-        decayheat_VV="Decay heat - VV",
+        decayheat_VV="Decay heat - Vacuum Vessel",
         radial_activity_profiles="Radial profile of Total activity per cooling time",
         radial_decayheat_profiles="Radial profile of decay heat per cooling time",
         sdr_profile_OB_1_b6="D1S spatial profile",
@@ -79,45 +74,20 @@ _REPORT_TITLE = PKDict(
     ),
 )
 
-_SIM_JINJA = PKDict(
-    slabAnimation="slab",
-    tileAnimation="tile",
-)
-
 SIM_VERSION = PKDict(
     hcllSlabAnimation="1.02",
     hcpbSlabAnimation="1.02",
-    tileAnimation="1.05",
     wcllSlabAnimation="1.02",
 )
 
 _SIM_OUTPUT = PKDict(
     slabAnimation=list(_REPORT_TITLE.slabAnimation.keys()),
-    tileAnimation=list(_REPORT_TITLE.tileAnimation.keys()),
 )
 
 _SIM_TIME = PKDict(
-    tileAnimation=104,
-    # TODO(pjm): measure this
     slabAnimation=679,
 )
 _LOG_TIME = PKDict(
-    tileAnimation=[
-        [v[0], v[1] / _SIM_TIME.tileAnimation]
-        for v in (
-            ["setting OPENMC_CROSS_SECTIONS", 10],
-            ["Creating state point", 20],
-            ["Performing D1S run", 30],
-            ["Performing R2S Activation run", 40],
-            ["Creating state point statepoint", 50],
-            ["Simulating batch 25", 60],
-            ["Simulating batch 25", 70],
-            ["Creating state point", 80],
-            ["OpenMP Threads", 90],
-            ["Simulating batch 1", 100],
-        )
-    ],
-    # TODO(pjm): measure this
     slabAnimation=[
         [v[0], v[1] / _SIM_TIME.slabAnimation]
         for v in (
@@ -183,6 +153,9 @@ def background_percent_complete(report, run_dir, is_running):
             frameCount=1,
             percentComplete=100,
             reports=[],
+            simulationSettings=sirepo.simulation_db.read_json(
+                run_dir.join(template_common.INPUT_BASE_NAME)
+            ).models.simulationSettings,
         )
     return PKDict(
         frameCount=0,
@@ -195,7 +168,7 @@ def plotdef_to_sim_frame(plotdef):
     def _section(stat):
         if "_flux" in stat:
             return "flux"
-        if "activity" in stat or "decayheat" in stat:
+        if "activity" in stat or "decayheat" in stat or "sdr_layer" in stat:
             return "time_dependent"
         return "steady_state"
 
@@ -234,55 +207,35 @@ def write_parameters(data, run_dir, is_parallel):
         "cortex_materials.py",
         template_common.render_jinja(SIM_TYPE, PKDict(), "cortex_materials.py"),
     )
-    v = PKDict()
-    if data.report == "tileAnimation":
-        v.pkupdate(
-            chainPath=sirepo.template.openmc.remote_datafile_path(_CHAIN_ENDF_FILE),
-        )
-    elif "SlabAnimation" in data.report:
-        t = re.search(r"(\w+)SlabAnimation", data.report).group(1).upper()
-        for n in (
-            f"EUDEMO_{t}_inputs.json",
-            f"{t}_surface_source.h5",
-            f"{t}_armor_current_neutron.json",
-        ):
-            sirepo.template.openmc.remote_datafile_path(n, compress=False)
-        v.pkupdate(
-            chainPath=sirepo.template.openmc.remote_datafile_path(
-                _SLAB_CHAIN_ENDF_FILE
-            ),
-            dagmcPath=sirepo.template.openmc.remote_datafile_path(
-                f"eudemo_{t.lower()}.h5m", compress=False
-            ).dirname,
-            slabType=t,
-        )
-
+    t = re.search(r"(\w+)SlabAnimation", data.report).group(1).upper()
+    for n in (
+        f"EUDEMO_{t}_inputs.json",
+        f"{t}_surface_source.h5",
+        f"{t}_armor_current_neutron.json",
+    ):
+        sirepo.template.openmc.remote_datafile_path(n, compress=False)
     pykern.pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         template_common.render_jinja(
             SIM_TYPE,
-            template_common.flatten_data(data.models, PKDict())
-            .pkupdate(
+            template_common.flatten_data(data.models, PKDict()).pkupdate(
                 materialDefinition=_generate_material_definition(data),
                 materialDirectory=sirepo.sim_run.cache_dir(
                     sirepo.template.openmc.OPENMC_CACHE_DIR
                 ),
                 mpiCores=sirepo.mpi.cfg().cores,
-            )
-            .pkupdate(v),
-            f"{_SIM_JINJA[_report_type(data.report)]}.py",
+                chainPath=sirepo.template.openmc.remote_datafile_path(
+                    _SLAB_CHAIN_ENDF_FILE
+                ),
+                dagmcPath=sirepo.template.openmc.remote_datafile_path(
+                    f"eudemo_{t.lower()}.h5m", compress=False
+                ).dirname,
+                slabType=t,
+            ),
+            "slab.py",
         ),
     )
     return None
-
-
-def _csv_from_plot(plot):
-    v = io.StringIO()
-    w = csv.writer(v)
-    w.writerow([plot.xlabel] + plot.legend[1:])
-    for i in range(len(plot.points[0])):
-        w.writerow([plot.points[j][i] for j in range(len(plot.points))])
-    return v.getvalue()
 
 
 def _generate_material_definition(data):
@@ -353,14 +306,6 @@ def _json_filename(stat):
     return f"{_png_filename(stat)}.json"
 
 
-def _material_id_from_run_dir(run_dir):
-    return int(
-        sirepo.simulation_db.read_json(
-            run_dir.join(template_common.INPUT_BASE_NAME)
-        ).models.material.material_id
-    )
-
-
 def _plot_from_file(run_dir, material_id, report, stat):
     def _label(value):
         return re.sub(r"\$\^2\$", "²", value)
@@ -422,6 +367,21 @@ def _report_type(report):
 
 
 def _save_summary_to_database(run_dir, report, stats):
+    def _csv_from_plot(plot):
+        v = io.StringIO()
+        w = csv.writer(v)
+        w.writerow([plot.xlabel] + plot.legend[1:])
+        for i in range(len(plot.points[0])):
+            w.writerow([plot.points[j][i] for j in range(len(plot.points))])
+        return v.getvalue()
+
+    def _material_id_from_run_dir():
+        return int(
+            sirepo.simulation_db.read_json(
+                run_dir.join(template_common.INPUT_BASE_NAME)
+            ).models.material.material_id
+        )
+
     def _summary_from_csv():
         def _value(v):
             try:
@@ -447,7 +407,7 @@ def _save_summary_to_database(run_dir, report, stats):
                 for row in csv.DictReader(f)
             ]
 
-    m = _material_id_from_run_dir(run_dir)
+    m = _material_id_from_run_dir()
     summary = PKDict(
         material_id=m,
         model=report,

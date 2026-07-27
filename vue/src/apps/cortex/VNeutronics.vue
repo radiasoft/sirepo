@@ -138,7 +138,7 @@
  const reportsBySection = reactive({});
  const sections = {
      steady_state: 'Steady State',
-     flux: 'ParticleFluxes',
+     flux: 'Particle Fluxes',
      time_dependent: 'Time-Dependent Responses',
  };
  const summaryCols = SUMMARY_COLUMNS;
@@ -209,16 +209,22 @@
              r.panelTitle = r.title;
              r.title = "";
          }
-         reportsBySection[r.meta.section].push({
+         const p = {
              title: r.panelTitle,
              modelName: r.meta.model,
              viewName: r.meta.model,
              trackBy: r.meta.model + r.meta.stat,
              stat: r.meta.stat,
-             downloadActions: util.reportDownloadActions(r),
-         });
+             // needed by util.downloadCSV(); .image is added later by loadImages()
+             x_label: r.x_label,
+             y_label: r.y_label,
+             x_points: r.x_points,
+             plots: r.plots,
+         };
+         p.downloadActions = util.reportDownloadActions(p);
+         reportsBySection[r.meta.section].push(p);
      }
-     if (props.neutronics.indexOf('SlabAnimation') > 0) {
+     if (reportsBySection.steady_state && reportsBySection.steady_state.length) {
          reportsBySection.steady_state.unshift({
              title: 'Geometry',
              viewName: props.neutronics,

@@ -1,5 +1,9 @@
 <template>
     <div v-if="isLoaded">
+        <div v-if="sim.simulationSettings">
+            Particles per batch: {{ sim.simulationSettings.particlesPerBatch }} <br/>
+            Convergence threshold: {{ sim.simulationSettings.tallyConvergenceThreshold }}
+        </div>
         <VRunSim
             v-bind:sim="sim"
             v-bind:viewName="neutronics"
