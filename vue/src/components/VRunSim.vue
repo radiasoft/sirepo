@@ -55,7 +55,6 @@
  const clearSimState = () => {
      if (props.sim) {
          for (const k in props.sim) {
-             console.log('del:', k);
              delete props.sim[k];
          }
      }

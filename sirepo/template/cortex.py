@@ -414,7 +414,7 @@ def _save_summary_to_database(run_dir, report, stats):
         version=SIM_VERSION[report],
         completed=pykern.pkcompat.utcnow(),
         plots=[],
-        values=pkdp(_summary_from_csv()),
+        values=_summary_from_csv(),
     )
     for s in stats:
         p = _plot_from_file(run_dir, m, report, s)
