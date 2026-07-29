@@ -48,6 +48,16 @@ class SimData(sirepo.sim_data.lattice.LatticeSimData):
         cls._remove_deprecated_items(dm)
 
     @classmethod
+    def _lib_file_basenames(cls, data):
+        return super()._lib_file_basenames(data) + [
+            cls.lib_file_name_with_model_field(
+                "trackComparison", n, data.models.trackComparison[n]
+            )
+            for n in ("beamOut", "coordOut")
+            if data.models.trackComparison[n]
+        ]
+
+    @classmethod
     def _remove_deprecated_items(cls, models):
         cmds = []
         deprecated_cmds = set(
