@@ -64,19 +64,14 @@ class SirepoAuthenticator(jupyterhub.auth.Authenticator):
             _cookies(r)
             return r
 
-        c = {k: handler.get_cookie(k) for k in handler.cookies.keys()}
-        r = _request(c)
+        r = _request({k: handler.get_cookie(k) for k in handler.cookies.keys()})
         u = _redirect_uri(r)
-        if u and _MISSING_COOKIES_URI_PART in u and r.cookies:
-            # First contact with Sirepo; retry once with the cookie
-            # sentinel it just set, rather than assume cookies are
-            # unsupported.
-            c.update(r.cookies.get_dict())
-            r = _request(c)
-            u = _redirect_uri(r)
         if r.status_code == requests.codes.forbidden:
             return PKDict()
         r.raise_for_status()
+        if u and _MISSING_COOKIES_URI_PART in u:
+            # redirect to /jupyterhublogin which handles missing cookies correctly
+            u = f"/{SIM_TYPE}"
         if u:
             _handle_unauthenticated(u)
         res = PKDict(r.json())

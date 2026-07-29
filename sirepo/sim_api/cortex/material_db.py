@@ -29,6 +29,19 @@ _SOURCE_DESC = PKDict(
     ML="maching learning",
     DFT="Density Functional Theory",
 )
+_SUMMARY_FIELDS = (
+    "dpa_fpy",
+    "H_appm_fpy",
+    "He_appm_fpy",
+    "activity_Bq_per_kg_at_100y",
+    "decayheat_W_per_cm3_at_100y",
+)
+_SUMMARY_LAYERS = (
+    ("armor", "Armor"),
+    ("first_wall", "First Wall"),
+    ("vacuum_vessel", "Vacuum Vessel"),
+)
+
 
 _meta = None
 
@@ -380,29 +393,47 @@ def insert_material(parsed, uid):
 
 
 def list_materials(uid):
+    # TODO(pjm): pass model
+    model = "hcpbSlabAnimation"
+
     def _sim_summary_values(session, material_id):
         return PKDict(
             [
                 (r["name"], r["value"])
                 for r in s.select(
-                    "sim_summary_value", where=PKDict(material_id=material_id)
+                    "sim_summary_value",
+                    where=PKDict(
+                        material_id=material_id,
+                        model=model,
+                    ),
                 ).all()
             ]
         )
 
+    def _update_summary(s, row):
+        p = "armor" if row.is_plasma_facing else "first_wall"
+        v = _sim_summary_values(s, row.material_id)
+        for f in _SUMMARY_FIELDS:
+            for n in (f"{f}", f"{f}_std"):
+                pn = f"{p}_{n}"
+                if pn in v:
+                    row[n.lower()] = v[pn]
+        return row
+
     with _session() as s:
         return [
-            _row_values(
-                r,
-                (
-                    "material_id",
-                    "created",
-                    "material_name",
-                    "is_public",
-                    "is_plasma_facing",
+            _update_summary(
+                s,
+                _row_values(
+                    r,
+                    (
+                        "material_id",
+                        "created",
+                        "material_name",
+                        "is_public",
+                        "is_plasma_facing",
+                    ),
                 ),
-            ).pkupdate(
-                _sim_summary_values(s, r["material_id"]),
             )
             for r in s.select("material", where=PKDict(uid=uid)).all()
         ]
@@ -411,6 +442,28 @@ def list_materials(uid):
 def load_summary(material_id, is_public, uid):
     def _format_plot(plot):
         return sirepo.template.cortex.plotdef_to_sim_frame(plot)
+
+    def _layer_summary_rows(session, model):
+        v = PKDict(
+            [
+                (r["name"], r["value"])
+                for r in session.select(
+                    "sim_summary_value",
+                    where=PKDict(material_id=material_id, model=model),
+                ).all()
+            ]
+        )
+        rows = []
+        for prefix, layer in _SUMMARY_LAYERS:
+            row = PKDict(layer=layer)
+            for f in _SUMMARY_FIELDS:
+                for n in (f, f"{f}_std"):
+                    k = f"{prefix}_{n}"
+                    if k in v:
+                        row[n.lower()] = v[k]
+            if len(row) > 1:
+                rows.append(row)
+        return rows
 
     def _load_plot(row):
         p = PKDict(row).pkupdate(
@@ -438,7 +491,7 @@ def load_summary(material_id, is_public, uid):
         return [
             _load_plot(r)
             for r in s.select("plot", where=PKDict(material_id=material_id)).all()
-            if not re.search(r"(cell|decayheat)_(OB|Breeder)", r.stat)
+            if not _skip_plot(r.stat)
         ]
 
     def _load_summary(session):
@@ -454,8 +507,16 @@ def load_summary(material_id, is_public, uid):
                 summary, ("completed", "version")
             ).pkupdate(
                 current_version=sirepo.template.cortex.SIM_VERSION[summary["model"]],
+                results=_layer_summary_rows(session, summary["model"]),
             )
         return r
+
+    def _skip_plot(name):
+        return (
+            re.search(r"(cell|decayheat)_(OB|Breeder)", name)
+            or re.search(r"sdr_(profile|time)", name)
+            or re.search(r"radial_", name)
+        )
 
     with _session() as s:
         # ensure authorized to material
@@ -521,6 +582,15 @@ def set_public(material_id, is_public, uid):
 
 
 def update_sim_summary(summary, uid):
+    def _summary_items(summary):
+        r = PKDict()
+        for s in summary:
+            n = s.pkdel("layer").lower().replace(" ", "_")
+            for k, v in s.items():
+                if isinstance(v, float):
+                    r[f"{n}_{k}"] = v
+        return r.items()
+
     with _session() as s:
         # ensure authorized to material
         _material_by_id(s, summary.material_id, uid)
@@ -542,7 +612,7 @@ def update_sim_summary(summary, uid):
                 }
             ),
         )
-        for k, v in summary["values"].items():
+        for k, v in _summary_items(summary["values"]):
             s.insert(
                 "sim_summary_value",
                 PKDict({n: summary[n] for n in ("material_id", "model")}).pkupdate(

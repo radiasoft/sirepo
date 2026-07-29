@@ -10,7 +10,7 @@
         <template v-for="r in Object.keys(doi.rows)">
             <tr v-if="doi.rows[r]">
                 <td class="col-form-label">{{ r }}</td>
-                <td>{{ doi.rows[r] }}</td>
+                <td class="text-break">{{ doi.rows[r] }}</td>
             </tr>
         </template>
     </tbody>

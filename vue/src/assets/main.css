@@ -2,6 +2,10 @@ table .sr-button-bar-td {
   width: 1%;
   padding: 1px;
 }
+.sr-subheading {
+  color: #9a9a9a;
+  white-space: nowrap;
+}
 .sr-button-bar-parent {
   display: none;
   position: relative;
