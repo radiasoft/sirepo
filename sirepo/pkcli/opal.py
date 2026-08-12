@@ -70,7 +70,9 @@ def save_autophase_values(sim_id):
             for k, v in f.attrs.items():
                 m = re.match(r"^Cav-(\d+)-name$", k)
                 if m:
-                    name = re.sub(r"#\d+$", "", v.decode() if isinstance(v, bytes) else v)
+                    name = re.sub(
+                        r"#\d+$", "", v.decode() if isinstance(v, bytes) else v
+                    )
                     val_key = f"Cav-{m.group(1)}-value"
                     if val_key in f.attrs:
                         r[name] = float(f.attrs[val_key][0])
