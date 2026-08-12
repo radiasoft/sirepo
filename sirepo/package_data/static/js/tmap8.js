@@ -256,12 +256,12 @@ SIREPO.app.directive('parameterArray', function(appState, errorService, requestS
                             $scope.isWaiting = false;
                             if (resp.error) {
                                 errorService.alertText(resp.error);
-                                return
+                                return;
                             }
                             if (resp.parameters) {
                                 appState.models.rpnVariables = resp.parameters;
                                 appState.models.rpnCache = resp.cache;
-                                appState.saveChanges(['rpnVariables', 'rpnCache'])
+                                appState.saveChanges(['rpnVariables', 'rpnCache']);
                             }
                         },
                         {
