@@ -43,6 +43,14 @@ def _write_solenoid_1d(filename):
         numpy.savetxt(f, bz)
 
 
+def _write_solenoid_3d(filename):
+    v, h = _read_3d_file(filename)
+    v = numpy.swapaxes(v.reshape(h.nx, h.ny, h.nz, 3), 0, 1)
+    with open(filename, "w") as f:
+        f.write(f"3DMagnetoStatic FALSE\n{h.x} {h.nx-1}\n{h.y} {h.ny - 1}\n{h.z} {h.nz - 1}\n")
+        numpy.savetxt(f, v.reshape((h.nx * h.ny * h.nz, -1)))
+
+
 def _read_fortran_records(data):
     # ini_dis.dat is a Fortran sequential-unformatted file: each record is
     # wrapped in a 4-byte little-endian length prefix and matching suffix.
@@ -115,7 +123,7 @@ def _write_track_distribution(filename, frequency_mhz):
 
 {% for c in conversions %}
 {% if c.type == "EMS" %}
-_write_solenoid_1d("{{ c.lib_file }}")
+_write_solenoid_3d("{{ c.lib_file }}")
 {% elif c.type == "MWS" %}
 _write_cavity_3d("{{ c.lib_file }}", {{ c.frequency_mhz }})
 {% else %}
