@@ -734,7 +734,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                         if (threshold[0] === 0 && v === 0) {
                             a = 0;
                         }
-                        else {
+                        else if (threshold[1] !== undefined) {
                             a = v <= threshold[1] && v >= threshold[0] ? 255 : 0;
                         }
                     }
@@ -3984,17 +3984,17 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             function calcYDomains(plots, xdom) {
                 // calculate left and right y axis domains for plots (assumed all visible)
                 const ydom = [null, null];
-                const xPoints = $scope.axes.x.points;
 
-                for (let i = 0; i < xPoints.length; i++) {
-                    const x = xPoints[i];
-                    if (xdom && (x > xdom[1] || x < xdom[0])) {
-                        continue;
-                    }
-                    for (const p of plots) {
+                for (const p of plots) {
+                    const pXPoints = p.x_points || $scope.axes.x.points;
+                    const ia = p._yaxis == 'left' ? 0 : 1;
+                    for (let i = 0; i < pXPoints.length; i++) {
+                        const x = pXPoints[i];
+                        if (xdom && (x > xdom[1] || x < xdom[0])) {
+                            continue;
+                        }
                         // a "band" plot has no single points[i] value -- use both edges
                         const ys = p.style === 'band' ? [p.pointsLower[i], p.pointsUpper[i]] : [p.points[i]];
-                        const ia = p._yaxis == 'left' ? 0 : 1;
                         for (const y of ys) {
                             if (ydom[ia]) {
                                 if (y < ydom[ia][0]) {

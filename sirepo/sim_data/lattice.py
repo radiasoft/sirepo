@@ -39,8 +39,10 @@ class LatticeSimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_file_basenames(cls, data):
-        return (
-            sirepo.template.lattice.LatticeUtil(data, cls.schema())
-            .iterate_models(sirepo.template.lattice.InputFileIterator(cls))
-            .result
+        return list(
+            set(
+                sirepo.template.lattice.LatticeUtil(data, cls.schema())
+                .iterate_models(sirepo.template.lattice.InputFileIterator(cls))
+                .result
+            )
         )

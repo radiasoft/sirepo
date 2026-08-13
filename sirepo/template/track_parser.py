@@ -1,11 +1,13 @@
-"""TRACK parser.
+"""TRACK parser and OPAL conversion.
 
 :copyright: Copyright (c) 2026 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
+from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+from sirepo.template.lattice import LatticeUtil
 from sirepo.template.line_parser import LineParser
 import h5py
 import math
@@ -16,7 +18,10 @@ import scipy.constants
 import sirepo.sim_data
 import sirepo.template.sdds_util
 import sirepo.template.template_common
+import struct
 
+
+TRACK_CONVERSION_FILE = "track-conversion.py"
 
 _COMPARISON_MAX_POINTS = 10000
 _COMPARISON_PLOTS = PKDict(
@@ -29,14 +34,19 @@ _COMPARISON_PLOTS = PKDict(
     ),
     rms_x=PKDict(track_col=3, track_scale=1e-2, opal_scale=1, label="x rms [m]"),
     rms_y=PKDict(track_col=4, track_scale=1e-2, opal_scale=1, label="y rms [m]"),
+    rms_s=PKDict(opal_scale=1, label="z rms [m]"),
     s=PKDict(track_col=0, track_scale=1, opal_scale=1, label="s [m]"),
 )
+# beam.out columns (after dropping n_el, name): phi_rms[deg], btgm (beta*gamma)
+_TRACK_PHI_RMS_COL = 7
+_TRACK_BTGM_COL = 23
 
 _BEAM_FREQUENCY_VAR = "beam_frequency_mhz"
 _CM_MRAD_TO_M_RAD = 1e-5
 _CM_TO_M = 1e-2
 _GAUSS_TO_T = 1e-4
-_SIM_DATA = sirepo.sim_data.get_class("opal")
+_SIM_TYPE_OPAL = "opal"
+_SIM_DATA = sirepo.sim_data.get_class(_SIM_TYPE_OPAL)
 _WATERBAG_FACTOR = 8.0
 _WATERBAG_CUTOFF = round(math.sqrt(_WATERBAG_FACTOR), 9)
 
@@ -95,7 +105,6 @@ class TRACKParser:
     def _cav_element(self, n, params):
         d_elem, harm, te00 = float(params[0]), float(params[1]), float(params[2])
         return _SIM_DATA.model_defaults("RFCAVITY").pkupdate(
-            aperture=f"circle(0.01)",
             fmapfn=f"eh_MWS.#{n:02d}",
             freq=f"{harm} * {_BEAM_FREQUENCY_VAR}",
             l=round(d_elem * _CM_TO_M, 6),
@@ -162,6 +171,93 @@ class TRACKParser:
             return self._sol3d_element(n, params)
         pkdlog("unhandled TRACK element type={}", ele_type)
         return None
+
+
+def beam_comparison(frame_args, sdds_filename):
+    def _columns():
+        if frame_args.quantity == "energy":
+            return ["energy"]
+        if frame_args.quantity == "emittance":
+            return ["emit_x", "emit_y"]
+        if frame_args.quantity == "rms":
+            return ["rms_x", "rms_y"]
+        if frame_args.quantity == "z":
+            return ["rms_s"]
+        raise AssertionError(f"unknown quantity={frame_args.quantity}")
+
+    def _opal_points(col):
+        v = sirepo.template.sdds_util.extract_sdds_column(sdds_filename, col, 0)[
+            "values"
+        ]
+        step = int(round(len(v) / _COMPARISON_MAX_POINTS))
+        if step > 0:
+            v = v[0 : len(v) : step]
+        return [p * _COMPARISON_PLOTS[col].opal_scale for p in v]
+
+    def _plots(opal_x):
+        d = _read_track_beam_out(frame_args)
+        return [
+            PKDict(
+                x_points=_track_points(d, "s"),
+                points=_track_points(d, s),
+                label=f"TRACK {_COMPARISON_PLOTS[s].label}",
+                style="scatter",
+                circleRadius=4,
+            )
+            for s in _columns()
+        ] + [
+            PKDict(
+                x_points=opal_x,
+                points=_opal_points(s),
+                label=f"OPAL {_COMPARISON_PLOTS[s].label}",
+                style="scatter",
+                circleRadius=1,
+            )
+            for s in _columns()
+        ]
+
+    def _track_points(beam_out, col):
+        if col == "rms_s":
+            return _track_z_rms(beam_out).tolist()
+        return (
+            beam_out[:, _COMPARISON_PLOTS[col].track_col]
+            * _COMPARISON_PLOTS[col].track_scale
+        ).tolist()
+
+    def _track_z_rms(beam_out):
+        # TRACKv37.pdf: phi_rms[deg] is the rms phase envelope of the beam
+        # relative to the reference particle, at the RF frequency currently
+        # in effect at that point in the lattice. Convert to an rms bunch
+        # length [m], comparable to OPAL's rms_s, via
+        # z = beta * lambda_rf * (phi_rms / 360).
+        dist = beam_out[:, 0]
+        phi_rms = beam_out[:, _TRACK_PHI_RMS_COL]
+        btgm = beam_out[:, _TRACK_BTGM_COL]
+        beta = btgm / numpy.sqrt(1 + btgm**2)
+        positions, freqs = _rf_frequency_by_position(frame_args.sim_in)
+        idx = numpy.clip(
+            numpy.searchsorted(positions, dist, side="right") - 1,
+            0,
+            len(freqs) - 1,
+        )
+        lambda_rf = scipy.constants.c / freqs[idx]
+        return beta * lambda_rf * (phi_rms / 360.0)
+
+    x = _opal_points("s")
+    r = sirepo.template.template_common.parameter_plot(
+        x,
+        _plots(x),
+        frame_args,
+        PKDict(
+            y_label="",
+            x_label="s [m]",
+            dynamicYLabel=True,
+        ),
+    )
+    n = int(len(r.plots) / 2)
+    for i in range(n):
+        r.plots[n + i].color = r.plots[i].color
+    return r
 
 
 def bunch_comparison(frame_args, h5_file):
@@ -245,13 +341,7 @@ def bunch_comparison(frame_args, h5_file):
 
     def _read_track():
         d = _read_coords(
-            _SIM_DATA.lib_file_abspath(
-                _SIM_DATA.lib_file_name_with_model_field(
-                    "trackComparison",
-                    "coordOut",
-                    frame_args.coordOut,
-                )
-            )
+            _lib_file_abspath("trackComparison", "coordOut", frame_args.coordOut)
         )
         x, xlabel = _coord(frame_args.x, d)
         y, ylabel = _coord(frame_args.y, d)
@@ -281,7 +371,7 @@ def bunch_comparison(frame_args, h5_file):
             x_label=labels.x,
             y_label=labels.y,
         ),
-    )
+    ).pkupdate(threshold=[0])
     if frame_args.frameReport == "bunchAnimation2":
         return b2.pkupdate(
             title="TRACK",
@@ -296,81 +386,17 @@ def bunch_comparison(frame_args, h5_file):
     raise AssertionError(f"unknown comparison plot {frame_args.frameReport}")
 
 
-def beam_comparison(frame_args, sdds_filename):
-    def _columns():
-        if frame_args.quantity == "energy":
-            return ["energy"]
-        if frame_args.quantity == "emittance":
-            return ["emit_x", "emit_y"]
-        if frame_args.quantity == "rms":
-            return ["rms_x", "rms_y"]
-        raise AssertionError(f"unknown quantity={frame_args.quantity}")
-
-    def _opal_points(col):
-        v = sirepo.template.sdds_util.extract_sdds_column(sdds_filename, col, 0)[
-            "values"
-        ]
-        step = int(round(len(v) / _COMPARISON_MAX_POINTS))
-        if step > 0:
-            v = v[0 : len(v) : step]
-        return [p * _COMPARISON_PLOTS[col].opal_scale for p in v]
-
-    def _plots(opal_x):
-        d = _read_track_beam_out(frame_args)
-        return [
-            PKDict(
-                x_points=_track_points(d, "s"),
-                points=_track_points(d, s),
-                label=f"TRACK {_COMPARISON_PLOTS[s].label}",
-                style="scatter",
-                circleRadius=4,
-            )
-            for s in _columns()
-        ] + [
-            PKDict(
-                x_points=opal_x,
-                points=_opal_points(s),
-                label=f"OPAL {_COMPARISON_PLOTS[s].label}",
-                style="scatter",
-                circleRadius=1,
-            )
-            for s in _columns()
-        ]
-
-    def _track_points(beam_out, col):
-        return (
-            beam_out[:, _COMPARISON_PLOTS[col].track_col]
-            * _COMPARISON_PLOTS[col].track_scale
-        ).tolist()
-
-    x = _opal_points("s")
-    r = sirepo.template.template_common.parameter_plot(
-        x,
-        _plots(x),
-        frame_args,
-        PKDict(
-            y_label="",
-            x_label="s [m]",
-            dynamicYLabel=True,
-        ),
-    )
-    n = int(len(r.plots) / 2)
-    for i in range(n):
-        r.plots[n + i].color = r.plots[i].color
-    return r
-
-
 def import_file(name, text, import_args):
     if name == "track.dat":
         return PKDict(
             importState="needLattice",
-            eleData=parse_track_file(text),
+            eleData=_parse_track_file(text),
             latticeFileName="sclinac.dat",
         )
     if name == "sclinac.dat":
         return PKDict(
             importState="needLattice",
-            eleData=parse_sclinac_file(
+            eleData=_parse_sclinac_file(
                 text,
                 # optional track.dat info
                 pykern.pkjson.load_any(import_args) if import_args else None,
@@ -381,11 +407,122 @@ def import_file(name, text, import_args):
         # must have already imported sclinac.dat
         if not import_args:
             raise IOError("Import a sclinac.dat first")
-        return parse_fi_in_file(text, pykern.pkjson.load_any(import_args))
+        return _parse_fi_in_file(text, pykern.pkjson.load_any(import_args))
     return None
 
 
-def parse_fi_in_file(fi_in_text, data):
+def update_export(data, z, qcall):
+    if _needs_track_conversion(data, qcall):
+        z.writestr(
+            TRACK_CONVERSION_FILE, _generate_track_conversion_file(data, qcall=qcall)
+        )
+
+
+def validate_file(file_type, path, sim_id, qcall):
+    from sirepo import simulation_db
+
+    def _hashed_name(name, ext="txt"):
+        return f"{name}-{path.computehash()[:8]}.{ext}"
+
+    n = None
+    if "beamOut" in file_type or "coordOut" in file_type:
+        n = _hashed_name(path.basename)
+    elif m := re.search(r"/eh_(\w+\.\d+)$", str(path)):
+        # imported TRACK input files are always eh_EMS.\d+ or eh_MWS.\d+
+        n = _hashed_name(m.group(1))
+        d = simulation_db.read_simulation_json(_SIM_TYPE_OPAL, sim_id, qcall)
+        for e in d.models.elements:
+            if e.get("fmapfn") and e.fmapfn.replace("#", "") == path.basename:
+                e.fmapfn = n
+        simulation_db.save_simulation_json(d, False, qcall=qcall)
+    elif path.basename.lower() == "ini_dis.dat" and _is_track_ini_dis_file(path):
+        n = _hashed_name("ini_dis", "dat")
+    return PKDict(filename=n) if n else None
+
+
+def write_parameters(data, run_dir, is_parallel):
+    if _needs_track_conversion(data):
+        pkio.write_text(
+            run_dir.join(TRACK_CONVERSION_FILE),
+            _generate_track_conversion_file(data),
+        )
+
+
+def _generate_track_conversion_file(data, qcall=None):
+    from sirepo.template import opal
+
+    def _conversions():
+        cv = opal.code_var(data.models.rpnVariables)
+        r = []
+        seen = set()
+        for e in data.models.elements:
+            m = _using_track_fieldmap(e)
+            if not m:
+                continue
+            lib_file = _SIM_DATA.lib_file_name_with_model_field(
+                e.type, "fmapfn", e.fmapfn
+            )
+            if lib_file in seen:
+                continue
+            seen.add(lib_file)
+            f = PKDict(type=m, lib_file=lib_file)
+            if m == "MWS":
+                f.pkupdate(frequency_mhz=cv.eval_var_with_assert(e.freq))
+            r.append(f)
+        d = LatticeUtil.find_first_command(data, "distribution")
+        if _using_track_distribution(d, qcall=qcall):
+            b = LatticeUtil.find_first_command(data, "beam")
+            r.append(
+                PKDict(
+                    type="INIDIS",
+                    lib_file=_SIM_DATA.lib_file_name_with_model_field(
+                        "command_distribution", "fname", d.fname
+                    ),
+                    frequency_mhz=cv.eval_var_with_assert(b.bfreq),
+                )
+            )
+        return r
+
+    return sirepo.template.template_common.render_jinja(
+        _SIM_TYPE_OPAL,
+        PKDict(conversions=_conversions()),
+        TRACK_CONVERSION_FILE,
+    )
+
+
+def _is_track_ini_dis_file(path):
+    """Detect a TRACK ``ini_dis.dat`` binary particle distribution file.
+
+    It's a Fortran sequential-unformatted file with a run-dependent header,
+    so only check the expected 60-byte final record for framing.
+    """
+    with open(str(path), "rb") as f:
+        f.seek(0, 2)
+        if f.tell() < 68:
+            return False
+        f.seek(-68, 2)
+        tail = f.read(68)
+    prefix = struct.unpack_from("<i", tail, 0)[0]
+    suffix = struct.unpack_from("<i", tail, 64)[0]
+    return prefix == 60 and suffix == 60
+
+
+def _lib_file_abspath(model_name, field, filename, qcall=None):
+    return _SIM_DATA.lib_file_abspath(
+        _SIM_DATA.lib_file_name_with_model_field(model_name, field, filename),
+        qcall=qcall,
+    )
+
+
+def _needs_track_conversion(data, qcall=None):
+    return any(
+        _using_track_fieldmap(e) for e in data.models.elements
+    ) or _using_track_distribution(
+        LatticeUtil.find_first_command(data, "distribution"), qcall=qcall
+    )
+
+
+def _parse_fi_in_file(fi_in_text, data):
     p = [float(v) for v in fi_in_text.split()]
     for e in data.models.elements:
         if e.type == "RFCAVITY":
@@ -393,11 +530,11 @@ def parse_fi_in_file(fi_in_text, data):
     return data
 
 
-def parse_sclinac_file(sclinac_text, data=None):
+def _parse_sclinac_file(sclinac_text, data=None):
     from sirepo import simulation_db
 
     if not data:
-        data = simulation_db.default_data("opal")
+        data = simulation_db.default_data(_SIM_TYPE_OPAL)
         data.models.rpnVariables = [
             PKDict(name=_BEAM_FREQUENCY_VAR, value=0),
         ]
@@ -407,15 +544,11 @@ def parse_sclinac_file(sclinac_text, data=None):
     return data
 
 
-def parse_track_file(track_text):
+def _parse_track_file(track_text):
     from sirepo import simulation_db
 
     # TODO(pjm): more sub methods, too many remaining conversion constants, common round()
-    def find_first_command(data, name):
-        return [c for c in d.models.commands if c._type == name][0]
-
     v = _parse_tran_namelist(track_text)
-    sd = sirepo.sim_data.get_class("opal")
     m = (
         v.get("atp", 1.0)
         * scipy.constants.physical_constants["proton mass energy equivalent in MeV"][0]
@@ -443,8 +576,8 @@ def parse_track_file(track_text):
     sy, spy, cy = _transverse_sigmas(
         v.get("epsny", 0.0), v.get("alfay", 0.0), v.get("betay", 1.0)
     )
-    d = simulation_db.default_data("opal")
-    find_first_command(d, "beam").pkupdate(
+    d = simulation_db.default_data(_SIM_TYPE_OPAL)
+    LatticeUtil.find_first_command(d, "beam").pkupdate(
         particle="PROTON",
         mass=round(m, 9),
         charge=v.get("qq", 1.0),
@@ -453,7 +586,9 @@ def parse_track_file(track_text):
         bfreq=_BEAM_FREQUENCY_VAR,
         npart=int(v.get("npat", 0)),
     )
-    find_first_command(d, "distribution").pkupdate(
+    if v.get("current", 0.0):
+        LatticeUtil.find_first_command(d, "fieldsolver").pkupdate(fstype="FFT")
+    LatticeUtil.find_first_command(d, "distribution").pkupdate(
         type="GAUSS",
         sigmax=sx,
         sigmay=sy,
@@ -480,12 +615,6 @@ def parse_track_file(track_text):
     return d
 
 
-def read_track_beam_out(filename):
-    with open(filename, "r") as f:
-        table = [line.strip().split() for line in f]
-        return numpy.asarray(table[1::])[:, 2::].astype(float)
-
-
 def _parse_tran_namelist(text):
     # strip table_dir (Windows path with backslashes that f90nml can't parse)
     text = re.sub(r"(?im)^\s*table_dir\s*=.*$", "", text)
@@ -496,12 +625,65 @@ def _parse_tran_namelist(text):
 
 
 def _read_track_beam_out(frame_args):
-    return read_track_beam_out(
-        _SIM_DATA.lib_file_abspath(
-            _SIM_DATA.lib_file_name_with_model_field(
-                "trackComparison",
-                "beamOut",
-                frame_args.beamOut,
-            )
+    def _track_beam_out(filename):
+        with open(filename, "r") as f:
+            table = [line.strip().split() for line in f]
+            return numpy.asarray(table[1::])[:, 2::].astype(float)
+
+    return _track_beam_out(
+        _lib_file_abspath("trackComparison", "beamOut", frame_args.beamOut)
+    )
+
+
+def _rf_frequency_by_position(sim_in):
+    # Cavities along the beamline may run at different harmonics of the
+    # fundamental (e.g. a multi-harmonic buncher, or later cavities running
+    # at 2x/4x for a shorter wavelength), so TRACK's phi_rms[deg] is at the
+    # RF frequency of whichever cavity the beam most recently passed through
+    # (the fundamental frequency before the first cavity). Build a position
+    # [m] -> frequency [Hz] step function from the beamline so beam.out rows
+    # can be converted with the frequency that was actually in effect there.
+    from sirepo.template import opal
+
+    def _beam_frequency_hz(sim_in, code_var):
+        # RFCAVITY elements may run at harmonics of the fundamental (freq = harm
+        # * beam_frequency_mhz), so read the fundamental from the "beam" command
+        # (bfreq) rather than an arbitrary cavity's freq expression.
+        for c in sim_in.models.commands:
+            if c._type == "beam":
+                return code_var.eval_var_with_assert(c.bfreq) * 1e6
+        raise AssertionError("no beam command found in sim_in")
+
+    cv = opal.code_var(sim_in.models.rpnVariables)
+    els_by_id = PKDict({e._id: e for e in sim_in.models.elements})
+    pos = 0.0
+    freq = _beam_frequency_hz(sim_in, cv)
+    positions = [pos]
+    freqs = [freq]
+    for item_id in sim_in.models.beamlines[0]["items"]:
+        e = els_by_id[item_id]
+        pos += cv.eval_var_with_assert(e.get("l", 0))
+        if e.type == "RFCAVITY":
+            freq = cv.eval_var_with_assert(e.freq) * 1e6
+        positions.append(pos)
+        freqs.append(freq)
+    return numpy.array(positions), numpy.array(freqs)
+
+
+def _using_track_fieldmap(element):
+    m = re.match(r"(EMS|MWS)\.\d+-.+\.txt$", element.get("fmapfn", ""))
+    return m.group(1) if m else None
+
+
+def _using_track_distribution(distribution, qcall=None):
+    if not (
+        distribution
+        and distribution.get("type") == "FROMFILE"
+        and distribution.get("fname")
+    ):
+        return False
+    return _is_track_ini_dis_file(
+        _lib_file_abspath(
+            "command_distribution", "fname", distribution.fname, qcall=qcall
         )
     )

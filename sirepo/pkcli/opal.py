@@ -12,9 +12,14 @@ from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo import simulation_db
 from sirepo.template import template_common
 import py.path
+import pykern.pkcli
+import h5py
 import re
 import sirepo.mpi
+import sirepo.quest
+import sirepo.template.lattice
 import sirepo.template.opal as template
+import sirepo.template.track_parser as track_parser
 
 
 def run(cfg_dir):
@@ -29,8 +34,8 @@ def run_background(cfg_dir):
 
 
 def run_opal(with_mpi=False, compute_positions=False):
-    if pkio.py_path(template.TRACK_FIELDMAP_CONVERSION_FILE).exists():
-        template_common.exec_parameters(template.TRACK_FIELDMAP_CONVERSION_FILE)
+    if pkio.py_path(track_parser.TRACK_CONVERSION_FILE).exists():
+        template_common.exec_parameters(track_parser.TRACK_CONVERSION_FILE)
     if with_mpi:
         if (
             sirepo.mpi.cfg().cores < 2
@@ -53,3 +58,49 @@ def run_opal(with_mpi=False, compute_positions=False):
         )
     if compute_positions:
         template_common.exec_parameters(template.OPAL_POSITION_FILE)
+
+
+def save_autophase_values(sim_id):
+    def _parse_phi(sim_dir):
+        r = PKDict()
+        p = sim_dir.join("animation", template.OPAL_H5_FILE)
+        if not p.exists():
+            raise pykern.pkcli.CommandError("simulation must be run first")
+        with h5py.File(str(p), "r") as f:
+            for k, v in f.attrs.items():
+                m = re.match(r"^Cav-(\d+)-name$", k)
+                if m:
+                    name = re.sub(
+                        r"#\d+$", "", v.decode() if isinstance(v, bytes) else v
+                    )
+                    val_key = f"Cav-{m.group(1)}-value"
+                    if val_key in f.attrs:
+                        r[name] = float(f.attrs[val_key][0])
+        return r
+
+    def _update_elements(data, phi_by_name):
+        c = 0
+        for e in data.models.elements:
+            if e.name in phi_by_name and "lag" in e:
+                e.lag = phi_by_name[e.name]
+                c += 1
+        if not c:
+            raise pykern.pkcli.CommandError("no lag values found to update")
+
+    def _update_option(data):
+        o = sirepo.template.lattice.LatticeUtil.find_first_command(data, "option")
+        if o is None:
+            raise AssertionError("no option command found in simulation")
+        o.autophase = 0
+
+    p = pkio.py_path(simulation_db.find_global_simulation("opal", sim_id, checked=True))
+    d = simulation_db.open_json_file(
+        "opal", path=p.join(simulation_db.SIMULATION_DATA_FILE)
+    )
+    _update_elements(d, _parse_phi(p))
+    _update_option(d)
+    with sirepo.quest.start(in_pkcli=True) as qcall:
+        with qcall.auth.logged_in_user_set(simulation_db.uid_from_dir_name(p)):
+            simulation_db.save_simulation_json(
+                d, fixup=False, do_validate=False, qcall=qcall
+            )
