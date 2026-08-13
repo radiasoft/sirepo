@@ -36,12 +36,8 @@ OUTPUT_BASE_NAME = "out"
 #: Python file (not all simulations)
 PARAMETERS_PYTHON_FILE = "parameters.py"
 
-#: stderr and stdout
-RUN_LOG = "run.log"
-
-_HISTOGRAM_BINS_MAX = 500
-
-_PLOT_LINE_COLOR = [
+#: default line colors for parameter_plot plots
+PLOT_LINE_COLOR = [
     "#1f77b4",
     "#ff7f0e",
     "#2ca02c",
@@ -53,6 +49,11 @@ _PLOT_LINE_COLOR = [
     "#bcbd22",
     "#17becf",
 ]
+
+#: stderr and stdout
+RUN_LOG = "run.log"
+
+_HISTOGRAM_BINS_MAX = 500
 
 
 #: for JobCmdFile replies
@@ -357,24 +358,34 @@ def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
     """For parameter plots, assign each plot a color and compute the full y_range.
     If a fixed range is provided, use that instead
     """
-    y_range = fixed_y_range
-    colors = plot_colors if plot_colors is not None else _PLOT_LINE_COLOR
+
+    def _points_for_plot_type(plot):
+        return (
+            plot["pointsLower"] + plot["pointsUpper"]
+            if plot.get("style") == "band"
+            else plot["points"]
+        )
+
+    def _update_y_range(y_range, points):
+        if points:
+            vmin = min(points)
+            vmax = max(points)
+            if not y_range:
+                return [vmin, vmax]
+            if vmin < y_range[0]:
+                y_range[0] = vmin
+            if vmax > y_range[1]:
+                y_range[1] = vmax
+        return y_range
+
+    res = fixed_y_range
+    c = plot_colors if plot_colors else PLOT_LINE_COLOR
     for i in range(len(plots)):
-        plot = plots[i]
-        plot["color"] = colors[i % len(colors)]
-        if not plot["points"]:
-            y_range = [0, 0]
-        elif fixed_y_range is None:
-            vmin = min(plot["points"])
-            vmax = max(plot["points"])
-            if y_range:
-                if vmin < y_range[0]:
-                    y_range[0] = vmin
-                if vmax > y_range[1]:
-                    y_range[1] = vmax
-            else:
-                y_range = [vmin, vmax]
-    return y_range
+        p = plots[i]
+        p["color"] = c[i % len(c)]
+        if not fixed_y_range:
+            res = _update_y_range(res, _points_for_plot_type(p))
+    return res if res else [0, 0]
 
 
 def write_dict_to_h5(d, file_path, h5_path=None):
