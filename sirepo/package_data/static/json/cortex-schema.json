@@ -27,7 +27,6 @@
     "frameIdFields": {
         "hcllSlabAnimation": ["stat"],
         "hcpbSlabAnimation": ["stat"],
-        "tileAnimation": ["stat"],
         "wcllSlabAnimation": ["stat"]
     },
     "model": {
@@ -52,9 +51,6 @@
             "particlesPerBatch": ["Particles per batch", "Integer", 100000, "Particle count, optimal value: 100,000", 1],
             "tallyConvergenceThreshold": ["Tally convergence threshold", "Float", 0.01, "Flux convergence threshold, optimal value: 0.01. A higher value will run faster but with less precision.", 0, 1]
         },
-        "tileAnimation": {
-            "stat": ["", "String"]
-        },
         "wcllSlabAnimation": {
             "stat": ["", "String"]
         }
@@ -78,10 +74,6 @@
                 "particlesPerBatch",
                 "tallyConvergenceThreshold"
             ]
-        },
-        "tileAnimation": {
-            "title": "Neutronics Plot",
-            "advanced": []
         },
         "wcllSlabAnimation": {
             "title": "Neutronics Plot",

@@ -1,0 +1,175 @@
+--- a/inputs.py
++++ b/inputs.py
+@@ -1,4 +1,5 @@
+-#!/usr/bin/env python3
++# inputs.py
++
+ """
+ inputs.py
+ =========
+@@ -19,12 +20,14 @@
+ # =============================================================================
+ # SIMULATION TYPE
+ # =============================================================================
+-SIM_TYPE     = "tokamak"      # "tokamak"  |  "slab" | "fast_slab"
++#SIM_TYPE     = "tokamak"      # "tokamak"  |  "slab" | "fast_slab"
++SIM_TYPE     = "slab"      # "tokamak"  |  "slab" | "fast_slab"
+ 
+ # =============================================================================
+ # BREEDER TYPE
+ # =============================================================================
+-BREEDER_TYPE = "WCLL"         # "WCLL"  |  "HCLL"  |  "HCPB"
++#BREEDER_TYPE = "WCLL"         # "WCLL"  |  "HCLL"  |  "HCPB"
++BREEDER_TYPE = "{{ slabType }}"
+ 
+ # =============================================================================
+ # ENVIRONMENT FLAG
+@@ -33,7 +36,8 @@
+ # TESTING -> will load from previous tokamak run/folder
+ # CORTEX  -> will load from file saved in the same slab folder
+ #            (if not available, it will copy from tokamak run/folder)
+-ENVIRONMENT  = "TESTING"      # "CORTEX"  |  "TESTING"
++#ENVIRONMENT  = "TESTING"      # "CORTEX"  |  "TESTING"
++ENVIRONMENT  = "CORTEX"      # "CORTEX"  |  "TESTING"
+ 
+ # =============================================================================
+ # VALIDATION
+@@ -54,7 +58,7 @@
+ # DIRECTORY LAYOUT
+ # =============================================================================
+ BASE_DIR = Path.cwd()
+-PROJECT_ROOT = BASE_DIR.parent             
++#PROJECT_ROOT = BASE_DIR.parent
+ 
+ # Simulation-type subdirectory (all run/result files go here)
+ SIM_DIR = BASE_DIR / SIM_TYPE / BREEDER_TYPE
+@@ -68,7 +72,8 @@
+ SUMMARY_RESULTS_CSV = NEUTRONICS_RESULTS_DIR / "OB_1_b6" / "summary_results.csv"
+ 
+ # Important input files — all live in PROJECT_ROOT/dagmc_files/ 
+-DAGMC_DIR = PROJECT_ROOT / "dagmc_files"
++#DAGMC_DIR = PROJECT_ROOT / "dagmc_files"
++DAGMC_DIR = Path("{{ dagmcPath }}")
+ 
+ _JSON_FILENAMES = {
+     "WCLL": "EUDEMO_WCLL_inputs.json",
+@@ -93,21 +98,21 @@
+ else:
+     DAGMC_MODEL_FILE = DAGMC_DIR / _DAGMC_FILENAMES[BREEDER_TYPE]
+ 
++
+ INPUT_JSON       = DAGMC_DIR / _JSON_FILENAMES[BREEDER_TYPE]
+ EQUILIBRIUM_FILE = DAGMC_DIR  / "equilibrium_eqdsk.json"
+-MATERIALS_MODULE_DIR = PROJECT_ROOT / "materials"  
+-
+-# read from bashrc as an environment variable
+-#CHAIN_FILE           = BASE_DIR / "depletion_chain" / "chain_endfb80_sfr.xml"
++#MATERIALS_MODULE_DIR = PROJECT_ROOT / "materials"
+ 
+ # Depletion chain — path set in ~/.bashrc as $CHAIN_FILE
+-_chain_env = os.environ.get("OPENMC_CHAIN_FILE")
+-if not _chain_env:
+-    sys.exit("[inputs] Environment variable OPENMC_CHAIN_FILE is not set. "
+-             "Add it to your ~/.bashrc: export OPENMC_CHAIN_FILE=/path/to/chain.xml")
+-OPENMC_CHAIN_FILE = Path(_chain_env)
+-if not OPENMC_CHAIN_FILE.is_file():
+-    sys.exit(f"[inputs] CHAIN_FILE does not exist: {OPENMC_CHAIN_FILE}")
++# _chain_env = os.environ.get("OPENMC_CHAIN_FILE")
++# if not _chain_env:
++#     sys.exit("[inputs] Environment variable OPENMC_CHAIN_FILE is not set. "
++#              "Add it to your ~/.bashrc: export OPENMC_CHAIN_FILE=/path/to/chain.xml")
++# OPENMC_CHAIN_FILE = Path(_chain_env)
++# if not OPENMC_CHAIN_FILE.is_file():
++#     sys.exit(f"[inputs] CHAIN_FILE does not exist: {OPENMC_CHAIN_FILE}")
++OPENMC_CHAIN_FILE = Path("{{ chainPath }}")
++
+ 
+ # =============================================================================
+ # TALLY SETTINGS
+@@ -122,8 +127,10 @@
+ if ENVIRONMENT == "CORTEX":
+     # Static files, one per breeder type, fixed location
+     # Pre-copied once into slab/BREEDER_TYPE/ and never change between runs.
+-    SURFACE_SOURCE_FILE = SIM_DIR / "surface_source.h5"
+-    ARMOR_CURRENT_JSON  = SIM_DIR / "armor_current_neutron.json"
++    # SURFACE_SOURCE_FILE = SIM_DIR / "surface_source.h5"
++    # ARMOR_CURRENT_JSON  = SIM_DIR / "armor_current_neutron.json"
++    SURFACE_SOURCE_FILE = DAGMC_DIR / f"{ BREEDER_TYPE }_surface_source.h5"
++    ARMOR_CURRENT_JSON  = DAGMC_DIR / f"{ BREEDER_TYPE }_armor_current_neutron.json"
+ 
+ else:  # TESTING
+     # Load directly from the tokamak simulation outputs
+@@ -170,17 +177,23 @@
+ # MATERIALS 
+ # (FOR CORTEX, UPDATE HERE WITH USER'S MATERIALS)
+ # =============================================================================
+-if str(MATERIALS_MODULE_DIR) not in sys.path:
+-    sys.path.insert(0, str(MATERIALS_MODULE_DIR))
+-import materials
++# if str(MATERIALS_MODULE_DIR) not in sys.path:
++#     sys.path.insert(0, str(MATERIALS_MODULE_DIR))
++# import materials
+ 
+-print("materials file:", materials.__file__)
++#print("materials file:", materials.__file__)
+ print("SIM_TYPE:", SIM_TYPE)
+ print("BREEDER_TYPE:", BREEDER_TYPE)
+ 
+ # Materials common to all breeder types
+-armor_material      = materials.W(19.3)
++{% if material_is_plasma_facing == '1' %}
++armor_material      = t
+ structural_material = materials.eurofer97(7.87)
++{% else %}
++armor_material      = materials.W(19.3)
++structural_material = t
++{% endif %}
++
+ vv_material = materials.ss316Ln_ig(7.93)
+ 
+ # ----------- The comments that follow here were used for the FS&T paper; please leave these
+@@ -259,24 +272,23 @@
+ if SIM_TYPE == "tokamak":
+     TALLY_CONVERGENCE_THRESHOLD = 0.01
+     BATCHES                     = 10
+-    TRIGGER_BATCH_INTERVAL      = 10
+     PARTICLES_PER_BATCH         = 1_000_000
+ else:
+-    TALLY_CONVERGENCE_THRESHOLD = 0.01
++    TALLY_CONVERGENCE_THRESHOLD = {{ simulationSettings_tallyConvergenceThreshold }}
+     BATCHES                     = 10
+-    TRIGGER_BATCH_INTERVAL      = 10
+-    PARTICLES_PER_BATCH         = 1_000_000
++    PARTICLES_PER_BATCH    = {{ simulationSettings_particlesPerBatch }}
+ 
+ 
+ USE_TRIGGER            = True  # False = fixed batches, no convergence check
++TRIGGER_BATCH_INTERVAL = 10
+ TRIGGER_MAX_BATCHES    = 2000
+ 
+ # if USE_TRIGGER = False
+ FIXED_BATCHES          = 10    # only used when USE_TRIGGER = False
+ 
+ # Depletion
+-OPENMP_THREADS         = None    # None for max available
+-DEPLETION_PROCESSES    = None    # None for max available
++OPENMP_THREADS         = {{ mpiCores }}    # None for max available
++DEPLETION_PROCESSES    = {{ mpiCores }}    # None for max available
+ 
+ # =============================================================================
+ # FEATURE TOGGLES
+@@ -337,7 +349,8 @@
+ # =============================================================================
+ # REFERENCE (GOLD) RUN COMPARISON
+ # =============================================================================
+-REFERENCE_LABEL       = "W_armor_eurofer_structural"   # None = disabled
++#REFERENCE_LABEL       = "W_armor_eurofer_structural"   # None = disabled
++REFERENCE_LABEL        = None
+ REFERENCE_PLOT_SUFFIX = "_vs_ref"                      # appended to overlay figs
+ 
+ 
+@@ -356,3 +369,4 @@
+ #   for OB_1_b6. To improve for any given breeder chunk we must first improve:
+ #      1 - _get_breeder_reflective_cuts
+ #      2 - TBD
++

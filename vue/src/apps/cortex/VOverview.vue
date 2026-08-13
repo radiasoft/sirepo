@@ -27,26 +27,26 @@
         </div>
         <div class="col-md-6" v-if="showPublic">
             <VCortexCard v-if="! material.is_public">
-                <span style="line-height: 40px; vertical-align: bottom">This material is private.</span>
                 <button
                     type="button"
-                    class="btn btn-outline-primary float-end"
+                    class="btn btn-outline-primary"
                     v-on:click="setPublic(true)"
                 >
                     Allow Public Access
                     <VTooltip tooltip="Publicly accessible materials can be viewed by any user" />
                 </button>
+                <span class="float-end" style="line-height: 40px; vertical-align: bottom">This material is private.</span>
             </VCortexCard>
             <VCortexCard v-if="material.is_public">
-                <span style="line-height: 40px; vertical-align: bottom">This material is public.</span>
                 <button
                     type="button"
-                    class="btn btn-outline-primary float-end"
+                    class="btn btn-outline-primary"
                     v-on:click="setPublic(false)"
                 >
                     Remove Public Access
                     <VTooltip tooltip="Remove this material from public access" />
                 </button>
+                <span class="float-end" style="line-height: 40px; vertical-align: bottom">This material is public.</span>
             </VCortexCard>
         </div>
         <div class="col-md-6">
@@ -109,7 +109,7 @@
         cancelText="Close"
         title="Error"
     >
-        Both neutronics simulations (Homogeneous Tile and Slab) need to be completed before
+        The HCPB slab neutronics simulation needs to be completed before
         a material can be made publicly available.
     </VConfirmationModal>
 </template>

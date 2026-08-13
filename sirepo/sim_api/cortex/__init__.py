@@ -61,6 +61,10 @@ def check_for_sim_summary(qcall, uid):
         for q in d.plots:
             r.join(f"{q.stat}.csv").write(q.csv)
         n.remove()
+
+        # TODO(pjm): processing can be slow and running too many can cause a tornado timeout
+        # so only process one in one call for now
+        break
     for suffix in ("png", "hdf5"):
         for p in pykern.pkio.sorted_glob(
             str(_SIM_DATA.lib_file_write_path(_SIM_DATA.lib_glob(suffix), qcall=qcall))
