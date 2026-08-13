@@ -307,8 +307,7 @@ def _extract_elegant_beam_plot(frame_args):
         )
         if res:
             for p in r.plots:
-                # TODO(pjm): reaches inside template_common to get colors
-                p.color = template_common._PLOT_LINE_COLOR[len(res.plots)]
+                p.color = template_common.PLOT_LINE_COLOR[len(res.plots)]
                 res.plots.append(p)
         else:
             res = r

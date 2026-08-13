@@ -15,3 +15,4 @@ Disallow: /openmc
 Disallow: /radia
 Disallow: /shadow
 Disallow: /srw
+Disallow: /tmap8

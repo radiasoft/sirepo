@@ -1,0 +1,130 @@
+{
+    "models": {
+        "plotAnimation": {
+            "aspectRatio": "0.75",
+            "x": "time",
+            "y1": "released_fraction_right",
+            "y1Position": "left",
+            "y2": "v",
+            "y2Position": "left",
+            "y3": "released_fraction_left",
+            "y3Position": "right"
+        },
+        "rpnVariables": [
+            {
+                "comment": "Boltzmann constant",
+                "defaultValue": 1.380649e-23,
+                "name": "kb",
+                "unit": "J/K",
+                "value": 1.380649e-23
+            },
+            {
+                "comment": "Gas constant",
+                "defaultValue": 8.31446261815324,
+                "name": "R",
+                "unit": "J/mol/K",
+                "value": 8.31446261815324
+            },
+            {
+                "comment": null,
+                "defaultValue": 2373,
+                "name": "temperature",
+                "unit": "K",
+                "value": 2373
+            },
+            {
+                "comment": null,
+                "defaultValue": 1000000,
+                "name": "initial_pressure",
+                "unit": "Pa",
+                "value": 1000000
+            },
+            {
+                "comment": null,
+                "defaultValue": 5.2e-11,
+                "name": "volume_enclosure",
+                "unit": "m^3",
+                "value": 5.2e-11
+            },
+            {
+                "comment": null,
+                "defaultValue": 2.16e-06,
+                "name": "surface_area",
+                "unit": "m^2",
+                "value": 2.16e-06
+            },
+            {
+                "comment": null,
+                "defaultValue": "1.58e-4*exp(-308000.0/(R*temperature))",
+                "name": "diffusivity_SiC",
+                "unit": "m^2/s",
+                "value": "1.58e-4*exp(-308000.0/(R*temperature))"
+            },
+            {
+                "comment": null,
+                "defaultValue": "7.244e22 / temperature",
+                "name": "solubility_constant",
+                "unit": "at/m^3/Pa",
+                "value": "7.244e22 / temperature"
+            },
+            {
+                "comment": null,
+                "defaultValue": 3.3e-05,
+                "name": "slab_thickness",
+                "unit": "m",
+                "value": 3.3e-05
+            },
+            {
+                "comment": null,
+                "defaultValue": "kb*temperature",
+                "name": "concentration_to_pressure_conversion_factor",
+                "unit": "Pa*m^3",
+                "value": "kb*temperature"
+            }
+        ],
+        "simulation": {
+            "folder": "/Examples",
+            "name": "ver-1a Depleting Source Problem"
+        },
+        "simulationSettings": {
+            "inputFile": "ver-1a.i",
+            "numSamples": 100,
+            "seed": 2026,
+            "units": [
+                {
+                    "name": "time",
+                    "unit": "s"
+                },
+                {
+                    "name": "flux_surface_left",
+                    "unit": "at/\u00b5m^2/s"
+                },
+                {
+                    "name": "flux_surface_right",
+                    "unit": "at/\u00b5m^2/s"
+                },
+                {
+                    "name": "released_fraction_left",
+                    "unit": ""
+                },
+                {
+                    "name": "released_fraction_right",
+                    "unit": ""
+                },
+                {
+                    "name": "scaled_flux_surface_left",
+                    "unit": "at/\u00b5m^2/s"
+                },
+                {
+                    "name": "v_value",
+                    "unit": "Pa"
+                },
+                {
+                    "name": "v",
+                    "unit": "Pa"
+                }
+            ]
+        }
+    },
+    "simulationType": "tmap8"
+}

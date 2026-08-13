@@ -1,0 +1,165 @@
+{
+    "models": {
+        "plotAnimation": {
+            "aspectRatio": "0.75",
+            "x": "time",
+            "y1": "cumulative_release_right",
+            "y1Position": "left",
+            "y2": "None",
+            "y2Position": "right",
+            "y3": "flux_surface_right",
+            "y3Position": "right",
+            "y4": "None",
+            "y4Position": "right",
+            "y5": "None",
+            "y5Position": "right"
+        },
+        "rpnCache": {
+            "R": 8.31446261815324,
+            "concentration_to_pressure_conversion_factor": 3.276280077e-20,
+            "diffusivity_activation_energy": 308000,
+            "diffusivity_prefactor": 0.000158,
+            "initial_pressure": 1000000,
+            "kb": 1.380649e-23,
+            "kb*temperature": 3.276280077e-20,
+            "slab_thickness": 3.3e-05,
+            "solubility_constant": 3.05267593763169e+19,
+            "solubility_prefactor": 7.244e+22,
+            "solubility_prefactor / temperature": 3.05267593763169e+19,
+            "surface_area": 2.16e-06,
+            "temperature": 2373,
+            "volume_enclosure": 5.2e-11
+        },
+        "rpnVariables": [
+            {
+                "comment": "Boltzmann constant",
+                "convertUnit": null,
+                "defaultValue": 1.380649e-23,
+                "name": "kb",
+                "unit": "J/K",
+                "value": 1.380649e-23
+            },
+            {
+                "comment": "Gas constant",
+                "convertUnit": null,
+                "defaultValue": 8.31446261815324,
+                "name": "R",
+                "unit": "J/mol/K",
+                "value": 8.31446261815324
+            },
+            {
+                "comment": null,
+                "convertUnit": null,
+                "defaultValue": 2373,
+                "name": "temperature",
+                "unit": "K",
+                "value": 2373
+            },
+            {
+                "comment": null,
+                "convertUnit": null,
+                "defaultValue": 1000000,
+                "name": "initial_pressure",
+                "unit": "Pa",
+                "value": 1000000
+            },
+            {
+                "comment": null,
+                "convertUnit": "mum^3",
+                "defaultValue": 5.2e-11,
+                "name": "volume_enclosure",
+                "unit": "m^3",
+                "value": 5.2e-11
+            },
+            {
+                "comment": null,
+                "convertUnit": "mum^2",
+                "defaultValue": 2.16e-06,
+                "name": "surface_area",
+                "unit": "m^2",
+                "value": 2.16e-06
+            },
+            {
+                "comment": "m^2/s",
+                "convertUnit": null,
+                "defaultValue": 0.000158,
+                "name": "diffusivity_prefactor",
+                "uncertainty": {
+                    "mean": 0.000158,
+                    "standard_deviation": 4.74e-06
+                },
+                "uncertaintyDistribution": "Normal",
+                "unit": null,
+                "value": 0.000158
+            },
+            {
+                "comment": "J/mol",
+                "convertUnit": null,
+                "defaultValue": 308000,
+                "name": "diffusivity_activation_energy",
+                "uncertainty": {
+                    "mean": 308000,
+                    "standard_deviation": 1540
+                },
+                "uncertaintyDistribution": "Normal",
+                "unit": null,
+                "value": 308000
+            },
+            {
+                "comment": "at/m^3/Pa (before dividing by temperature)",
+                "convertUnit": null,
+                "defaultValue": 7.244e+22,
+                "name": "solubility_prefactor",
+                "uncertainty": {
+                    "mean": 7.244e+22,
+                    "standard_deviation": 2.1732e+21
+                },
+                "uncertaintyDistribution": "Normal",
+                "unit": null,
+                "value": 7.244e+22
+            },
+            {
+                "comment": null,
+                "convertUnit": "mum^2/s",
+                "defaultValue": "diffusivity_prefactor*exp(-diffusivity_activation_energy/(R*temperature))",
+                "name": "diffusivity_SiC",
+                "unit": "m^2/s",
+                "value": "diffusivity_prefactor*exp(-diffusivity_activation_energy/(R*temperature))"
+            },
+            {
+                "comment": null,
+                "convertUnit": "at/mum^3/Pa",
+                "defaultValue": "solubility_prefactor / temperature",
+                "name": "solubility_constant",
+                "unit": "at/m^3/Pa",
+                "value": "solubility_prefactor / temperature"
+            },
+            {
+                "comment": null,
+                "convertUnit": "mum",
+                "defaultValue": 3.3e-05,
+                "name": "slab_thickness",
+                "unit": "m",
+                "value": 3.3e-05
+            },
+            {
+                "comment": null,
+                "convertUnit": "Pa*mum^3",
+                "defaultValue": "kb*temperature",
+                "name": "concentration_to_pressure_conversion_factor",
+                "unit": "Pa*m^3",
+                "value": "kb*temperature"
+            }
+        ],
+        "simulation": {
+            "folder": "/Examples",
+            "name": "ver-1a Depleting Source Problem with uncertainty"
+        },
+        "simulationSettings": {
+            "inputFile": "sub.i",
+            "numSamples": 100,
+            "seed": 2026
+        }
+    },
+    "simulationType": "tmap8"
+}
