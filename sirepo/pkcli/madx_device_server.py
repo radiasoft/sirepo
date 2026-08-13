@@ -43,6 +43,7 @@ _WRITE_CURRENT_PROP_NAME = "currentS"
 _ARRAY_PROP_NAMES = set([_READ_CURRENT_PROP_NAME, _POSITION_PROP_NAME])
 _SIM_OUTPUT_DIR = "DeviceServer"
 _SET_CONTEXT = PKDict()
+_SAFE_NAME_RE = re.compile(r"^[\w:\-\.]+$")
 
 app = flask.Flask(__name__)
 
@@ -129,7 +130,7 @@ def _format_prop_value(prop_name, value):
 
 
 def _http_response(content):
-    res = flask.make_response(content)
+    res = flask.Response(str(content), content_type="text/plain; charset=utf-8")
     res.headers["sirepo-dev"] = "1"
     return res
 
@@ -212,6 +213,14 @@ def _query_params(fields):
         res[f] = flask.request.args[f]
         if f in ("names", "props", "values"):
             res[f] = re.split(r"\s*,\s*", res[f])
+            for v in res[f]:
+                if f == "values":
+                    try:
+                        float(v)
+                    except ValueError:
+                        _abort(f"invalid numeric value for {f}: {v}")
+                elif not _SAFE_NAME_RE.match(v):
+                    _abort(f"invalid characters in {f}: {v}")
     return res
 
 
