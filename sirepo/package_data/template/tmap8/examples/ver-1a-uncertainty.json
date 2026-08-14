@@ -156,7 +156,7 @@
             "name": "ver-1a Depleting Source Problem with uncertainty"
         },
         "simulationSettings": {
-            "inputFile": "sub.i",
+            "inputFile": "ver-1a-sub.i",
             "numSamples": 100,
             "seed": 2026
         }
