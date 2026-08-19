@@ -101,6 +101,7 @@ def delete_material(material_id, uid):
             "plot",
             "sim_summary_value",
             "sim_summary",
+            "cost_input",
             "material",
         ):
             _delete(s, t, material_id=material_id)
@@ -326,6 +327,11 @@ def init_module(**imports):
                 name="str 100 primary_key",
                 value=f,
             ),
+            cost_input=PKDict(
+                material_id="primary_id primary_key index",
+                processes="str 500",
+                production_qty="int 32",
+            ),
         ),
     )
 
@@ -437,6 +443,30 @@ def list_materials(uid):
             )
             for r in s.select("material", where=PKDict(uid=uid)).all()
         ]
+
+
+def load_cost_input(material_id, uid):
+    with _session() as s:
+        _material_by_id(s, material_id, uid)
+        r = s.select_one_or_none("cost_input", where=PKDict(material_id=material_id))
+        if not r:
+            return None
+        return PKDict(
+            processes=r.processes.split(","),
+            production_qty=r.production_qty,
+        )
+
+
+def save_cost_input(material_id, uid, processes, production_qty):
+    with _session() as s:
+        _material_by_id(s, material_id, uid)
+        s.delete("cost_input", PKDict(material_id=material_id))
+        s.insert(
+            "cost_input",
+            material_id=material_id,
+            processes=",".join(processes),
+            production_qty=production_qty,
+        )
 
 
 def load_summary(material_id, is_public, uid):

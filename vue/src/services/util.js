@@ -67,6 +67,10 @@ class Util {
         return name.replace(/[^\w\s-]/g, '_').trim() + '.' + suffix;
     }
 
+    downloadText = (content, filename) => {
+        saveAs(new Blob([content], {type: 'text/plain;charset=utf-8'}), filename);
+    }
+
     formatDate(pythonTime) {
         return this._dateFormat.format(pythonTime * 1000);
     }
