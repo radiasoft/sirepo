@@ -17,6 +17,12 @@
                 label="Properties"
                 v-on:selected="selectSection"
             ></VNavButton>
+            <VNavButton
+                v-bind:active="selectedSection"
+                section="cost"
+                label="Cost"
+                v-on:selected="selectSection"
+            ></VNavButton>
             <div class="btn-group">
                 <VNavButton
                     v-bind:active="selectedSection"
@@ -68,11 +74,19 @@
             <div v-if="isSelected('properties')">
                 <VProperties v-bind:material="material" />
             </div>
+            <div v-if="isSelected('cost')">
+                <VCost
+                    v-bind:materialId="materialId"
+                    v-bind:materialName="material.name"
+                    v-bind:isPlasmaFacing="material.is_plasma_facing"
+                />
+            </div>
         </div>
     </div>
 </template>
 
 <script setup>
+ import VCost from '@/apps/cortex/VCost.vue';
  import VNavButton from '@/apps/cortex/VNavButton.vue';
  import VNeutronics from '@/apps/cortex/VNeutronics.vue';
  import VOverview from '@/apps/cortex/VOverview.vue';
@@ -91,7 +105,7 @@
  const material = ref(null);
  const materialId = ref(null);
  const route = useRoute();
- // overview, properties, neutronics
+ // overview, properties, cost, neutronics
  const selectedSection = ref('overview');
  const neutronicsSim = ref(Object.keys(neutronicsSims)[0]);
 

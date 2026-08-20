@@ -7,8 +7,10 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
 from sirepo.template import template_common
+import component_def
 import csv
 import io
+import material_def
 import math
 import numpy
 import os
@@ -20,6 +22,7 @@ import sirepo.mpi
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.template.openmc
+import tea_api
 
 CORTEX_RUN_LOG = "cortex.log"
 STATEPOINTS = ["neutronics", "depletion"]
@@ -128,6 +131,73 @@ _LOG_TIME = PKDict(
     ],
 )
 
+# ------------------------------------------------------------------
+# tea manufacturing cost model (stateless_compute_calculate_cost)
+#
+# categorical cost levels (tooling/equipment/time) for each process, from
+# tea's processes_database/*.py - transcribed here since the pip-installed
+# tea package doesn't ship its processes_database/geometries_database data
+# directories, only the core py-modules (tea_api resolves a Process/Geometry
+# straight from these values via build_process()/build_geometry(), no
+# on-disk database lookup needed).
+_COST_PROCESS_LEVELS = PKDict(
+    {
+        "CNC": PKDict(
+            tooling_level="Low", equipment_level="Low-Medium", time_level="Medium-High"
+        ),
+        "Cold Rolling": PKDict(
+            tooling_level="Medium", equipment_level="High-Very High", time_level="Low"
+        ),
+        "Diffusion Bonding": PKDict(
+            tooling_level="Low-Medium",
+            equipment_level="Low-Medium",
+            time_level="Medium",
+        ),
+        "Electron Beam": PKDict(
+            tooling_level="Medium", equipment_level="Medium", time_level="Medium"
+        ),
+        "HIP": PKDict(
+            tooling_level="Low-Medium", equipment_level="High", time_level="Medium"
+        ),
+        "Hot Rolling": PKDict(
+            tooling_level="Medium", equipment_level="High-Very High", time_level="Low"
+        ),
+        "Spray Deposition": PKDict(
+            tooling_level="Low-Medium", equipment_level="High", time_level="Medium"
+        ),
+    }
+)
+
+#: relative cost coefficients (Cc/Cs/Ct/Cf) for every process, given to both
+#: fixed geometries below - 1.0 (ideal/no penalty) for all of them, same
+#: placeholder convention tea's own "Plasma Facing Surface" geometry uses,
+#: since there's no DFM curve data for these processes at any thickness
+_COST_UNIT_COEFF_MAP = PKDict((n, 1.0) for n in _COST_PROCESS_LEVELS)
+
+# HCPB layer thicknesses (EUDEMO_HCPB_inputs.json: armor_cm=3.2, fw_cm=3.0),
+# so the plasma-facing (armor) layer is 3.2-3.0=0.2cm=2mm - exactly tea's
+# existing "Plasma Facing Surface" geometry - and the first wall layer is
+# 3.0cm=30mm. Volume scales with thickness at the same implied panel area
+# as "Plasma Facing Surface" (3,000,000mm^3 / 2mm = 1.5 m^2).
+_COST_GEOMETRY_ARMOR = PKDict(
+    name="Plasma Facing Surface",
+    volume_mm3=3_000_000,
+    section_thickness_mm=2,
+    shape_class="C1",
+    tolerance_mm=0.1,
+    surface_finish_um_ra=1,
+)
+_COST_GEOMETRY_FIRST_WALL = PKDict(
+    name="First Wall",
+    volume_mm3=45_000_000,
+    section_thickness_mm=30,
+    shape_class="C1",
+    tolerance_mm=0.1,
+    surface_finish_um_ra=1,
+)
+
+COST_PROCESS_NAMES = tuple(_COST_PROCESS_LEVELS.keys())
+
 
 def background_percent_complete(report, run_dir, is_running):
 
@@ -160,6 +230,50 @@ def background_percent_complete(report, run_dir, is_running):
     return PKDict(
         frameCount=0,
         percentComplete=_percent_complete(),
+    )
+
+
+def stateless_compute_calculate_cost(data, **kwargs):
+    """Run the tea manufacturing cost model for a cortex material.
+
+    The heavy part of the CORTEX Cost tab's calculation (building the tea
+    Material/Geometry, tea_api.evaluate(), matplotlib chart rendering) -
+    dispatched here via statelessCompute so it runs off the api server's
+    single-threaded cortexDb action loop. This function can't query the
+    cortex database itself (it may run on a different server than the api
+    server), so data.args carries a plain material spec built by
+    sirepo.sim_api.cortex.tea_cost.material_spec() instead.
+
+    Args:
+        data (PKDict): data.args has material (name/density/composition/
+            remainder_element), is_plasma_facing, processes (list of
+            COST_PROCESS_NAMES), production_qty
+    Returns:
+        PKDict: summary, material_composition, warnings, chart_png (list
+            of bytes), source_code
+    """
+    try:
+        m = _cost_material(data.args.material)
+    except tea_api.TeaError as e:
+        return PKDict(error=str(e))
+    g = _cost_geometry(data.args.is_plasma_facing)
+    p = [
+        PKDict(name=n, Cmp=1.0, **_COST_PROCESS_LEVELS[n]) for n in data.args.processes
+    ]
+    r = PKDict(
+        tea_api.evaluate(
+            material=m,
+            processes=p,
+            volume_mm3=g.volume_mm3,
+            production_qty=data.args.production_qty,
+            geometry=g,
+            component_name=m.name,
+        )
+    )
+    return r.pkupdate(
+        warnings=[_cost_humanize_warning(w) for w in r.warnings],
+        chart_png=list(_cost_render_chart(r.summary, r.material_composition)),
+        source_code=_cost_source_code(m, g, p, data.args.production_qty),
     )
 
 
@@ -432,4 +546,313 @@ def _save_summary_to_database(run_dir, report, stats):
     _SIM_DATA.lib_file_write(
         _SIM_DATA.summary_file_from_parts(report, m),
         pykern.pkjson.dump_str(summary),
+    )
+
+
+# ------------------------------------------------------------------
+# tea manufacturing cost model private helpers (stateless_compute_calculate_cost)
+
+
+def _cost_geometry(is_plasma_facing):
+    g = _COST_GEOMETRY_ARMOR if is_plasma_facing else _COST_GEOMETRY_FIRST_WALL
+    return component_def.build_geometry(
+        Cc_map=_COST_UNIT_COEFF_MAP,
+        Cs_map=_COST_UNIT_COEFF_MAP,
+        Ct_map=_COST_UNIT_COEFF_MAP,
+        Cf_map=_COST_UNIT_COEFF_MAP,
+        verbose=False,
+        **g,
+    )
+
+
+def _cost_humanize_warning(warning):
+    """tea_api.material_cost_breakdown() formats a missing-element warning
+    with a raw python list repr and a quoted material name, e.g.
+    "...elements ['H', 'Na'] in 'Zeolite'."; replace it with a plain
+    comma-separated list and an unquoted material name, e.g. "...elements
+    H, Na of Zeolite."."""
+
+    def _to_list(m):
+        return ", ".join(re.findall(r"'([^']*)'", m.group(0)))
+
+    warning = re.sub(r"\[(?:'[^']*'(?:, )?)+\]", _to_list, warning)
+    return re.sub(r"in '([^']*)'", r"of \1", warning)
+
+
+def _cost_material(material_spec):
+    """Build a tea Material from the plain material_spec dict (see
+    sirepo.sim_api.cortex.tea_cost.material_spec()) - build_material()
+    directly rather than tea_api.resolve_material(): a single-element
+    material (e.g. pure Tungsten) has nothing left in composition once the
+    remainder element is excluded, and resolve_material's dict-spec branch
+    rejects an empty composition even though build_material() itself
+    handles it fine (the remainder element alone balances to 100%)."""
+    material, captured = tea_api._captured_call(
+        material_def.build_material,
+        name=material_spec.name,
+        density=material_spec.density,
+        composition=material_spec.composition,
+        remainder_element=material_spec.remainder_element,
+        Cmp_map={},
+    )
+    if material is None:
+        raise tea_api.TeaError(
+            tea_api._extract_error(
+                captured, f"Failed to build material '{material_spec.name}'."
+            )
+        )
+    return material
+
+
+def _cost_render_chart(summary, material_fraction_rows):
+    """Stacked bar of Material + each process's cost, with a "zoom" panel
+    showing the Material segment's cost broken down by element.
+
+    Copied (not imported) from tea/webapp/server.py's render_cost_chart():
+    that function isn't reachable from the pip-installed `tea` package -
+    only tea's core py-modules (component_def, cost_variables,
+    material_def, process_def, tea1, tea_api) are packaged, tea/webapp/ is
+    not, and matplotlib is only in tea's optional [webapp] extra rather
+    than a core dependency. If tea ever packages this function, this copy
+    should be replaced with a direct call to it."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import matplotlib.ticker as mticker
+    from matplotlib.patches import ConnectionPatch
+
+    ink_primary = "#0b0b0b"
+    ink_secondary = "#52514e"
+    ink_muted = "#898781"
+    gridline = "#e1e0d9"
+    baseline = "#c3c2b7"
+    surface = "#fcfcfb"
+    categorical_palette = [
+        "#2a78d6",
+        "#eb6834",
+        "#1baf7a",
+        "#eda100",
+        "#e87ba4",
+        "#008300",
+        "#4a3aa7",
+        "#e34948",
+    ]
+    other_color = ink_muted
+    blue_ramp = [
+        "#2a78d6",
+        "#5598e7",
+        "#6da7ec",
+        "#86b6ef",
+        "#9ec5f4",
+        "#b7d3f6",
+        "#cde2fb",
+    ]
+
+    def _label_ink(hex_color):
+        r, g, b = (int(hex_color[i : i + 2], 16) for i in (1, 3, 5))
+        luminance = 0.299 * r + 0.587 * g + 0.114 * b
+        return "#ffffff" if luminance < 140 else ink_primary
+
+    def _draw_stacked_segments(ax, labels, values, colors, bar_width, value_fmt):
+        bottom = 0.0
+        texts, bottoms = [], []
+        for label, value, color in zip(labels, values, colors):
+            ax.bar(
+                0,
+                value,
+                width=bar_width,
+                bottom=bottom,
+                color=color,
+                edgecolor="none",
+                linewidth=0,
+                zorder=3,
+                label=label,
+            )
+            text = ax.text(
+                0,
+                bottom + value / 2,
+                value_fmt(label, value),
+                ha="center",
+                va="center",
+                fontsize=9,
+                color=_label_ink(color),
+                zorder=4,
+            )
+            texts.append(text)
+            bottoms.append(bottom)
+            bottom += value
+        return texts, bottoms
+
+    def _drop_oversized_labels(fig, ax, bar_width, texts, values):
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        bar_left_px = ax.transData.transform((-bar_width / 2, 0))[0]
+        bar_right_px = ax.transData.transform((bar_width / 2, 0))[0]
+        available_width_px = (bar_right_px - bar_left_px) - 8
+        for text, value in zip(texts, values):
+            segment_height_px = (
+                ax.transData.transform((0, value))[1]
+                - ax.transData.transform((0, 0))[1]
+            )
+            bbox = text.get_window_extent(renderer=renderer)
+            if bbox.width > available_width_px or bbox.height > segment_height_px - 4:
+                text.remove()
+
+    def _style_stacked_axis(ax, ylabel, value_fmt):
+        ax.set_ylabel(ylabel, color=ink_secondary, fontsize=10)
+        ax.set_xlim(-1.0, 1.0)
+        ax.set_xticks([])
+        ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: value_fmt(v)))
+        ax.tick_params(axis="y", colors=ink_muted, labelsize=9)
+        ax.yaxis.grid(True, color=gridline, linewidth=1, zorder=0)
+        ax.set_axisbelow(True)
+        for spine_name in ("top", "right", "left", "bottom"):
+            ax.spines[spine_name].set_visible(False)
+
+    labels = ["Material"] + [p["Process"] for p in summary["Processes"]]
+    values = [summary["Cost Breakdown"][label] for label in labels]
+    colors = [
+        categorical_palette[i] if i < len(categorical_palette) else other_color
+        for i in range(len(labels))
+    ]
+
+    visible = [r for r in material_fraction_rows if r["fraction"] > 0]
+    element_labels = [r["element"] for r in visible]
+    element_values = [r["fraction"] * 100 for r in visible]
+    element_colors = [
+        blue_ramp[i] if i < len(blue_ramp) else other_color
+        for i in range(len(element_labels))
+    ]
+
+    bar_width = 1.2
+    fig, (ax1, ax2) = plt.subplots(
+        1, 2, figsize=(8.6, 5.4), dpi=150, gridspec_kw={"width_ratios": [1.3, 1]}
+    )
+    fig.patch.set_facecolor(surface)
+    ax1.set_facecolor(surface)
+    ax2.set_facecolor(surface)
+
+    texts1, bottoms1 = _draw_stacked_segments(
+        ax1, labels, values, colors, bar_width, value_fmt=lambda label, v: f"${v:,.2f}"
+    )
+    material_bottom, material_top = bottoms1[0], bottoms1[0] + values[0]
+
+    texts2, bottoms2 = _draw_stacked_segments(
+        ax2,
+        element_labels,
+        element_values,
+        element_colors,
+        bar_width,
+        value_fmt=lambda label, v: f"{v:.1f}% {label}",
+    )
+    zoom_top = (bottoms2[-1] + element_values[-1]) if element_values else 0.0
+
+    _style_stacked_axis(ax1, "Cost ($)", lambda v: f"${v:,.0f}")
+    _style_stacked_axis(ax2, "Share of material cost (%)", lambda v: f"{v:.0f}%")
+
+    for y1, y2 in ((material_top, zoom_top), (material_bottom, 0.0)):
+        con = ConnectionPatch(
+            xyA=(bar_width / 2, y1),
+            coordsA=ax1.transData,
+            xyB=(-bar_width / 2, y2),
+            coordsB=ax2.transData,
+            color=baseline,
+            linewidth=1,
+            linestyle="--",
+            zorder=1,
+        )
+        fig.add_artist(con)
+
+    legend1 = ax1.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.07),
+        frameon=False,
+        ncol=2,
+        fontsize=8,
+        labelcolor=ink_secondary,
+        handlelength=1.2,
+        handleheight=1.2,
+    )
+    legend2 = ax2.legend(
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.07),
+        frameon=False,
+        ncol=2,
+        fontsize=8,
+        labelcolor=ink_secondary,
+        handlelength=1.2,
+        handleheight=1.2,
+    )
+
+    fig.tight_layout()
+
+    _drop_oversized_labels(fig, ax1, bar_width, texts1, values)
+    _drop_oversized_labels(fig, ax2, bar_width, texts2, element_values)
+
+    buf = io.BytesIO()
+    fig.savefig(
+        buf,
+        format="png",
+        facecolor=fig.get_facecolor(),
+        bbox_extra_artists=(legend1, legend2),
+        bbox_inches="tight",
+    )
+    plt.close(fig)
+
+    return buf.getvalue()
+
+
+def _cost_source_code(material, geometry, process_specs, production_qty):
+    """A standalone python script that reproduces this calculation with
+    only the pip-installed `tea` package (no sirepo) - same calls
+    stateless_compute_calculate_cost() itself makes, so running it gives
+    identical results. Rendered from cost_source.py.jinja.
+
+    String values are pre-formatted with repr() so the template gets a
+    correctly quoted/escaped python literal (jinja's default {{ }}
+    stringification would emit them unquoted, which isn't valid python);
+    numeric values are passed through as-is, since str() and repr() are
+    identical for int/float. composition/coefficient maps/process_specs
+    are pre-formatted with _cost_pretty() for consistent indentation."""
+
+    def _cost_pretty(value):
+        """Format value (a dict or list of dicts) as an indented, always
+        consistently-aligned python literal - pkjson.dump_pretty() nests
+        every level at a fixed indent regardless of content size or where
+        the result is embedded, unlike pprint's width-based line wrapping
+        (whose continuation lines don't line up with this f-string
+        template's own 4-space argument indentation). Double-quoted JSON
+        strings are valid python syntax, so the result can be pasted
+        directly into a script."""
+        return pykern.pkjson.dump_pretty(value).rstrip().replace("\n", "\n    ")
+
+    c = PKDict(
+        (e, PKDict(wt=v["wt"], type=v["type"]))
+        for e, v in material.composition.items()
+        if v["type"] != "rem"
+    )
+    r = next(e for e, v in material.composition.items() if v["type"] == "rem")
+    return template_common.render_jinja(
+        SIM_TYPE,
+        PKDict(
+            material_name_text=material.name,
+            material_name=repr(material.name),
+            material_density=material.density,
+            composition=_cost_pretty(c),
+            remainder_element=repr(r),
+            geometry_name=repr(geometry.name),
+            geometry_volume_mm3=geometry.volume_mm3,
+            geometry_section_thickness_mm=geometry.section_thickness_mm,
+            geometry_shape_class=repr(geometry.shape_class),
+            geometry_tolerance_mm=geometry.tolerance_mm,
+            geometry_surface_finish_um_ra=geometry.surface_finish_um_ra,
+            cc_map=_cost_pretty(geometry.Cc_map),
+            cs_map=_cost_pretty(geometry.Cs_map),
+            ct_map=_cost_pretty(geometry.Ct_map),
+            cf_map=_cost_pretty(geometry.Cf_map),
+            process_specs=_cost_pretty([PKDict(p) for p in process_specs]),
+            production_qty=production_qty,
+        ),
+        name="cost_source.py",
     )

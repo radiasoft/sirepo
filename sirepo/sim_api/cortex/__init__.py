@@ -18,6 +18,7 @@ import zipfile
 import sirepo.quest
 import sirepo.sim_api.cortex.material_db
 import sirepo.sim_api.cortex.material_xlsx
+import sirepo.sim_api.cortex.tea_cost
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.srdb
@@ -160,6 +161,38 @@ class API(sirepo.quest.API):
         d.models.simulation.name = str(material_id)
         return sirepo.simulation_db.save_new_simulation(d, qcall=self)
 
+    async def _sim_calculate_cost(self, args):
+        """Query the material (fast) then dispatch the CPU-heavy tea
+        evaluation/chart rendering to template.cortex via statelessCompute,
+        so it doesn't run on the single-threaded cortexDb action loop and
+        can execute off this server entirely."""
+        m = sirepo.sim_api.cortex.tea_cost.material_spec(
+            args.material_id, args.is_public, self.auth.logged_in_user()
+        )
+        r = (
+            await self.call_api(
+                "statelessCompute",
+                body=PKDict(
+                    method="calculate_cost",
+                    args=PKDict(
+                        material=m,
+                        is_plasma_facing=m.pkdel("is_plasma_facing"),
+                        processes=args.processes,
+                        production_qty=args.production_qty,
+                    ),
+                    simulationType=SIM_TYPE,
+                ),
+            )
+        ).content_as_object()
+        if not args.is_public and "error" not in r:
+            sirepo.sim_api.cortex.material_db.save_cost_input(
+                material_id=args.material_id,
+                uid=self.auth.logged_in_user(),
+                processes=args.processes,
+                production_qty=args.production_qty,
+            )
+        return r
+
     async def _sim_delete(self, args):
         s = await self._get_sim_data(args.material_id)
         if s:
@@ -283,6 +316,13 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         check_for_sim_summary(arg.qcall, uid)
         return PKDict(
             rows=sirepo.sim_api.cortex.material_db.list_materials(uid=uid),
+        )
+
+    def action_load_cost_input(self, arg, uid):
+        return PKDict(
+            input=sirepo.sim_api.cortex.material_db.load_cost_input(
+                arg.material_id, uid
+            ),
         )
 
     def action_load_output_zip(self, arg, uid):

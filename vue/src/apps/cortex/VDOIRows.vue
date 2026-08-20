@@ -5,7 +5,7 @@
         </tr>
         <tr>
             <td class="col-form-label">{{ doi.type }}</td>
-            <td><a v-bind:href="doi.url" target="_blank">{{ doi.linkText }}</a></td>
+            <td class="text-break"><a v-bind:href="doi.url" target="_blank">{{ doi.linkText }}</a></td>
         </tr>
         <template v-for="r in Object.keys(doi.rows)">
             <tr v-if="doi.rows[r]">

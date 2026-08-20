@@ -5,6 +5,16 @@ import { requestSender } from '@/services/requestsender.js';
 export const DB_UPDATED = 'DbUpdated';
 
 class DB {
+    async calculateCost(material_id, is_public, processes, production_qty) {
+        // goes through cortexSim (not cortexDb): the heavy computation runs
+        // via an async statelessCompute call in template.cortex rather than
+        // sirepo's single-threaded cortexDb action loop
+        return await requestSender.sendRequest("cortexSim", {
+            op_name: 'calculate_cost',
+            op_args: {material_id, is_public, processes, production_qty},
+        });
+    }
+
     async canSetMaterialPublic(material_id) {
         return (await this.loadSummary(material_id, false)).sim['hcpbSlabAnimation'] ? true : false;
     }
@@ -28,6 +38,11 @@ class DB {
         }
         //TODO(robnagler) should no op_result be logged?
         return [];
+    }
+
+    async loadCostInput(material_id) {
+        const r = await this.#send('load_cost_input', {material_id});
+        return r.op_result ? r.op_result.input : null;
     }
 
     async loadOutputZip(material_id, modelName) {
