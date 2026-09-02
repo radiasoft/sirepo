@@ -69,6 +69,7 @@ SIREPO.app.factory('opalService', function(appState, commandService, latticeServ
     var COMMAND_TYPES = ['BeamList', 'DistributionList', 'FieldsolverList', 'GeometryList', 'ParticlematterinteractionList', 'WakeList'];
     commandService.hideCommandName = true;
     rpnService.isCaseInsensitive = true;
+    self.BEAMLINE_POSITION_FIELDS = ['x', 'y', 'z', 'theta', 'phi', 'psi'];
 
     self.computeModel = function(analysisModel) {
         return 'animation';
@@ -743,11 +744,11 @@ SIREPO.app.directive('beamline3d', function(appState, geometry, panelState, plot
     };
 });
 
-SIREPO.viewLogic('beamlineView', function(latticeService, panelState, $scope) {
+SIREPO.viewLogic('beamlineView', function(latticeService, opalService, panelState, $scope) {
 
     function updateAbsolutePositionFields() {
         panelState.showFields('beamline', [
-            ['x', 'y', 'z', 'theta', 'phi', 'psi'], latticeService.isAbsolutePositioning(),
+            opalService.BEAMLINE_POSITION_FIELDS, latticeService.isAbsolutePositioning(),
         ]);
     }
 
@@ -764,9 +765,18 @@ SIREPO.viewLogic('simulationView', function(appState, panelState, $scope) {
 });
 
 ['plotAnimation', 'plot2Animation'].forEach((name) => {
-    SIREPO.viewLogic(name + 'View', function(latticeService, panelState, $scope) {
+    SIREPO.viewLogic(name + 'View', function(appState, latticeService, opalService, panelState, $scope) {
         $scope.whenSelected = () => {
-            panelState.showField(name, 'includeLattice', ! latticeService.isAbsolutePositioning());
+            if (latticeService.isAbsolutePositioning()) {
+                for (const b of appState.models.beamlines) {
+                    for (const f of opalService.BEAMLINE_POSITION_FIELDS) {
+                        if (b[f]) {
+                            panelState.showField(name, 'includeLattice', false);
+                            break;
+                        }
+                    }
+                }
+            }
         };
     });
 });

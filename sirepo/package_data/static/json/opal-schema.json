@@ -2,7 +2,7 @@
     "constants": {
         "clight": 299792458.0e-9,
         "hasMadxExport": true,
-        "helpUserManualURL": "https://opalx-project.github.io/Manual/",
+        "helpUserManualURL": "https://amas.pages.psi.ch/opal/",
         "latticeKeywords": [
             "pi", "twopi", "raddeg", "degrad", "e", "emass", "pmass", "hmmass",
             "cmass", "umass", "mmass", "dmass", "xemass", "clight", "opalversion",

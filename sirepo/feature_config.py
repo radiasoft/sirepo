@@ -178,6 +178,13 @@ def _init():
             str,
             "subdirectory under static for home page (en/) files",
         ),
+        impactt=dict(
+            data_storage_url=(
+                "https://github.com/radiasoft/sirepo-data-impactt/raw/main/",
+                str,
+                "url base to reach impactt example data files",
+            ),
+        ),
         is_registration_moderated=(
             False,
             bool,
