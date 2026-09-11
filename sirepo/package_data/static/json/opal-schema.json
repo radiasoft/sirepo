@@ -34,7 +34,8 @@
             ["rms", "Beam XY (RMS)"],
             ["z", "Beam Z (RMS)"],
             ["emittance", "Emittance"],
-            ["energy", "Energy"]
+            ["energy", "Energy"],
+            ["particleCount", "Particle Count"]
         ],
         "ElementPosition": [
             ["relative", "Relative to each other (using DRIFT)"],
