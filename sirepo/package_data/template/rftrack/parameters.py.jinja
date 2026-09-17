@@ -1,0 +1,141 @@
+import RF_Track as rft
+import numpy
+
+rft.rng_set('mt19937')
+{% if numThreads and numThreads > 1 %}
+rft.cvar.number_of_threads = {{ numThreads }}
+{% endif %}
+
+_particle = "{{ beam.particle }}"
+if _particle == "other":
+    mass, charge = {{ beam.mass }}, {{ beam.charge }}
+else:
+    mass, charge = {{ particleMassAndCharge }}
+Pc = {{ beam.pc }}
+
+{% if isCathode %}
+# Cathode emission: particles start essentially at rest and are generated
+# directly from the photocathode's laser/emission model, rather than from
+# an already-moving analytic (Twiss) distribution.
+_G = rft.Bunch6dT_Generator()
+_G.species = "{{ cathodeSpecies }}"
+_G.cathode = True
+_G.noise_reduc = {{ beam.noiseReduc == "1" }}
+_G.q_total = {{ beam.charge_nC }}
+_G.ref_ekin = 0
+_G.ref_zpos = 0
+_G.ref_clock = 0
+_G.phi_eff = {{ beam.phiEff }}
+_G.e_photon = {{ beam.ePhoton }}
+_G.dist_x = "r"
+_G.dist_y = "g"
+_G.sig_x = {{ beam.sigX }}
+_G.dist_z = "plateau"
+_G.rt = {{ beam.riseTime }}
+_G.lt = {{ beam.flatTopLength }}
+_G.c_sig_x = {{ beam.cutoffX }}
+_G.c_sig_y = {{ beam.cutoffY }}
+_G.c_sig_t = {{ beam.cutoffT }}
+_G.dist_pz = "fd_300"
+B0 = rft.Bunch6dT(_G, {{ beam.np }})
+{% else %}
+Twiss = rft.Bunch6d_twiss()
+Twiss.beta_x = {{ beam.beta_x }}
+Twiss.beta_y = {{ beam.beta_y }}
+Twiss.alpha_x = {{ beam.alpha_x }}
+Twiss.alpha_y = {{ beam.alpha_y }}
+Twiss.emitt_x = {{ beam.emit_x }}
+Twiss.emitt_y = {{ beam.emit_y }}
+Twiss.sigma_t = {{ beam.sigma_t }}
+Twiss.sigma_pt = {{ beam.sigma_pt }}
+B0 = rft.Bunch6d_QR(mass, {{ beam.charge_nC }} * rft.nC, charge, Pc, Twiss, {{ beam.np }})
+{% endif %}
+
+# RF_Track's native phase-space units are mm, mrad, and MeV/c; rescale to
+# base SI units (m, rad, eV/c, eV, s) to match impact-t's convention.
+_PS_SCALE = numpy.array({{ phaseSpaceScale }})
+
+def _phase_space(bunch):
+    return bunch.get_phase_space("{{ phaseSpaceFields }}") * _PS_SCALE
+
+# Volume.get_bunch_at_screens() always returns Bunch6d-typed bunches, even
+# when the tracked bunch is a Bunch6dT (cathode distribution), so the token
+# string for screen-captured bunches can differ from the one used above.
+def _phase_space_screen(bunch):
+    return bunch.get_phase_space("{{ screenPhaseSpaceFields }}") * _PS_SCALE
+
+numpy.save("initial_particles.npy", _phase_space(B0))
+
+{% if not isBunchReport %}
+# Volume (rather than Lattice) supports elements at explicit, possibly
+# overlapping absolute z positions -- e.g. a gun cavity's E field and a
+# bucking/focusing solenoid's B field genuinely occupy the same physical
+# space in a real photoinjector.
+V = rft.Volume()
+{% for el in elements %}
+{% for line in el.lines %}
+{{ line }}
+{% endfor %}
+V.add({{ el.var }}, {{ el.x }}, {{ el.y }}, {{ el.z }}, {{ el.roll }}, {{ el.pitch }}, {{ el.yaw }})
+{% endfor %}
+V.set_s0({{ volumeS0 }})
+V.set_s1({{ volumeS1 }})
+V.odeint_algorithm = "rkf45"
+V.dt_mm = 0.5
+V.tt_dt_mm = 10.0
+V.verbosity = 0
+
+{% if autophase and hasCavity %}
+# Autophase against a single on-axis reference particle, then track the
+# real bunch through this SAME (now-phased) volume; do not rebuild it.
+# Volume.autophase() sets each RF element's internal t0 directly and
+# .track() uses that state as-is -- get_phid() does not reflect it (it
+# always reads back the phid the element was constructed with, e.g. 0.0
+# or the user's phase-offset field), so reading it back to "convert" t0
+# into an equivalent phid for a rebuilt volume silently produces the
+# unphased 0.0-offset result instead of the true autophased state.
+{% if isCathode %}
+# A cathode reference particle starts at rest (X,Px,Y,Py,Z,Pz all 0), not
+# at the design momentum Pc, since real photoemission begins from rest.
+_P0 = rft.Bunch6dT(numpy.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, mass, charge, 1.0, 0.0]]))
+{% else %}
+_P0 = rft.Bunch6d(mass, 0.0, charge, numpy.array([0.0, 0.0, 0.0, 0.0, 0.0, Pc]))
+{% endif %}
+V.unset_t0()
+V.autophase(_P0)
+{% endif %}
+
+{% if spaceCharge == "p2p" %}
+rft.cvar.SC_engine = rft.SpaceCharge_P2P()
+{% elif spaceCharge == "pic" %}
+V.sc_dt_mm = {{ scDtMm }}
+_sc = rft.SpaceCharge_PIC_FreeSpace({{ scGridNx }}, {{ scGridNy }}, {{ scGridNz }})
+_sc.set_smooth({{ scSmooth }})
+_sc.set_mirror({{ scMirror }})
+# rft.cvar.SC_engine (a process-global) rather than Volume.set_sc_engine():
+# the latter, despite existing on Volume, does not apply space-charge
+# forces the same way for a multi-element Volume -- verified empirically
+# by comparing against zone_1.ipynb, which uses the global cvar and whose
+# results (including the exact aperture-loss particle count) only match
+# once this simulation does too.
+rft.cvar.SC_engine = _sc
+{% endif %}
+
+B1 = V.track(B0)
+numpy.save("final_particles.npy", _phase_space(B1))
+
+_T_raw = numpy.array(V.get_transport_table("{{ statTransportFields }}"))
+# On-axis Ez/Bz: a direct field query (independent of the tracked beam) at
+# x=y=0 and t=0, sampled at the same s positions as the transport table, so
+# it can be selected as another y-axis column alongside the beam statistics.
+V.set_t0(0)
+_E, _B = V.get_field(0.0, 0.0, _T_raw[:, 0], 0.0)
+V.unset_t0()
+_T_raw = numpy.hstack([_T_raw, numpy.array(_E)[:, 2:3], numpy.array(_B)[:, 2:3]])
+_STAT_SCALE = numpy.array({{ statScale }})
+T = _T_raw * _STAT_SCALE
+numpy.save("stats.npy", T)
+
+for _i, _sb in enumerate(V.get_bunch_at_screens()):
+    numpy.save(f"screen-{_i}.npy", _phase_space_screen(_sb))
+{% endif %}

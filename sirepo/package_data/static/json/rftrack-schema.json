@@ -1,0 +1,587 @@
+{
+    "appInfo": {
+        "rftrack": {
+            "longName": "RF-Track",
+            "shortName": "RF-Track"
+        }
+    },
+    "appModes": {
+        "default": {
+            "localRoute": "lattice"
+        }
+    },
+    "constants": {
+        "advancedElementNames": [],
+        "basicElementNames": [
+            "DRIFT",
+            "QUADRUPOLE",
+            "RBEND",
+            "SOLENOID",
+            "CORRECTOR",
+            "CAVITY",
+            "SCREEN"
+        ]
+    },
+    "dynamicFiles": {
+        "externalLibs": {
+            "js": [
+                "split-1.3.5.min.js"
+            ]
+        },
+        "sirepoLibs": {
+            "js": [
+                "rftrack.js",
+                "sirepo-lattice.js"
+            ],
+            "css": [
+                "lattice.css"
+            ]
+        }
+    },
+    "frameIdFields": {
+        "animation": [
+            "x",
+            "y",
+            "histogramBins",
+            "reportIndex"
+        ],
+        "statAnimation": ["x", "y1", "y2", "y3", "y4", "y5"],
+        "stat2Animation": ["x", "y1", "y2", "y3", "y4", "y5"]
+    },
+    "enum": {
+        "BeamParticle": [
+            ["electron", "Electron"],
+            ["positron", "Positron"],
+            ["proton", "Proton"],
+            ["other", "Other"]
+        ],
+        "BeamDistributionType": [
+            ["twiss", "Twiss Parameters"],
+            ["cathode", "Cathode Emission"]
+        ],
+        "SpaceChargeMethod": [
+            ["none", "None"],
+            ["p2p", "Point to Point"],
+            ["pic", "Particle in Cell"]
+        ],
+        "PhaseSpaceCoordinate": [
+            ["x", "x"],
+            ["xp", "x'"],
+            ["y", "y"],
+            ["yp", "y'"],
+            ["z", "z"],
+            ["t", "t"],
+            ["Px", "Px"],
+            ["Py", "Py"],
+            ["Pz", "Pz"],
+            ["P", "P"],
+            ["E", "E"],
+            ["K", "K"]
+        ],
+        "QuadStrengthType": [
+            ["gradient", "Field Gradient"],
+            ["k1", "Normalized Strength (k1)"]
+        ],
+        "FieldSource": [
+            ["analytic", "Analytic"],
+            ["fieldMap", "1D Field Map"]
+        ],
+        "RescaleMode": [
+            ["peak", "Rescale to Peak Field"],
+            ["factor", "Multiply by Scale Factor"]
+        ]
+    },
+    "localRoutes": {
+        "source": {
+            "config": {
+                "controller": "SourceController as source",
+                "templateUrl": "/static/html/rftrack-source.html"
+            }
+        },
+        "lattice": {
+            "route": "/lattice/:simulationId",
+            "config": {
+                "controller": "LatticeController as lattice",
+                "template": "<div data-lattice-tab=\"\" data-controller=\"lattice\"></div>"
+            }
+        },
+        "visualization": {
+            "route": "/visualization/:simulationId",
+            "config": {
+              "controller": "VisualizationController as visualization",
+              "templateUrl": "/static/html/rftrack-visualization.html"
+            }
+        }
+    },
+    "model": {
+        "beamline": {
+            "name": ["Name", "ValidatedString"]
+        },
+        "beamlineReport": {},
+        "beam": {
+            "particle": ["Particle", "BeamParticle", "electron", "Particle species"],
+            "mass": ["Mass [MeV/c^2]", "Float", 0.51099895, "Rest mass, used when particle is Other"],
+            "charge": ["Charge [e]", "Float", -1.0, "Charge in units of the elementary charge, used when particle is Other"],
+            "pc": ["Reference Momentum [MeV/c]", "Float", 100.0, "Reference (design) momentum of the bunch"],
+            "charge_nC": ["Bunch Charge [nC]", "Float", 1.0, "Total bunch charge"],
+            "np": ["Macroparticle Count", "Integer", 10000, "Number of macroparticles to generate for tracking"],
+            "emit_x": ["Horizontal Normalized Emittance [mm-mrad]", "Float", 1.0],
+            "emit_y": ["Vertical Normalized Emittance [mm-mrad]", "Float", 1.0],
+            "beta_x": ["Horizontal Beta [m]", "Float", 1.0],
+            "beta_y": ["Vertical Beta [m]", "Float", 1.0],
+            "alpha_x": ["Horizontal Alpha", "Float", 0.0],
+            "alpha_y": ["Vertical Alpha", "Float", 0.0],
+            "sigma_t": ["Bunch Length [mm/c]", "Float", 1.0],
+            "sigma_pt": ["Relative Energy Spread [permille]", "Float", 1.0],
+            "distributionType": ["Distribution", "BeamDistributionType", "twiss", "Twiss parameters generate a bunch analytically. Cathode Emission models photoemission from a cathode with RF_Track's Bunch6dT_Generator, tracked from rest."],
+            "sigX": ["Laser Spot Size [mm]", "Float", 1.67, "Transverse RMS size of the drive laser on the cathode (radial in x-y)"],
+            "riseTime": ["Laser Rise Time, rt", "Float", 0.0003, "Laser pulse rise/fall time, in Bunch6dT_Generator.rt units"],
+            "flatTopLength": ["Laser Flat-top Length, lt", "Float", 0.006, "Laser pulse flat-top length, in Bunch6dT_Generator.lt units"],
+            "cutoffX": ["Cutoff X [sigma]", "Float", 3, "Truncate the horizontal distribution at this many sigma"],
+            "cutoffY": ["Cutoff Y [sigma]", "Float", 3, "Truncate the vertical distribution at this many sigma"],
+            "cutoffT": ["Cutoff T [sigma]", "Float", 3, "Truncate the longitudinal distribution at this many sigma"],
+            "ePhoton": ["Photon Energy [eV]", "Float", 4.73, "Drive laser photon energy"],
+            "phiEff": ["Effective Work Function [eV]", "Float", 3.5, "Cathode effective work function"],
+            "noiseReduc": ["Noise Reduction", "Boolean", "1", "Bunch6dT_Generator.noise_reduc"]
+        },
+        "bunchReport": {
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "xp"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "notes": ["Notes", "Text", ""]
+        },
+        "elementAnimation": {
+            "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
+            "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "xp"],
+            "plotType": ["Plot Type", "PlotType", "3d"],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
+            "notes": ["Notes", "Text", ""],
+            "reportIndex": ["", "Integer"]
+        },
+        "simulation": {
+            "elementPosition": ["Element Positioning", "ElementPosition", "absolute"],
+            "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
+        },
+        "simulationSettings": {
+            "spaceCharge": ["Space Charge", "SpaceChargeMethod", "none", "Method used to compute space-charge forces during tracking"],
+            "scGridNx": ["Grid Points X", "Integer", 8, "SpaceCharge_PIC_FreeSpace grid size in x"],
+            "scGridNy": ["Grid Points Y", "Integer", 8, "SpaceCharge_PIC_FreeSpace grid size in y"],
+            "scGridNz": ["Grid Points Z", "Integer", 16, "SpaceCharge_PIC_FreeSpace grid size in z"],
+            "scDtMm": ["Time Step [mm/c]", "Float", 3.0, "Volume.sc_dt_mm: time step used for space-charge force updates"],
+            "scSmooth": ["Smoothing Factor", "Float", 0.5, "SpaceCharge_PIC_FreeSpace.set_smooth: grid smoothing factor"],
+            "scMirror": ["Mirror Position [m]", "Float", 0.0, "SpaceCharge_PIC_FreeSpace.set_mirror: z position of a conducting boundary (e.g. the cathode plane) used for image-charge effects"],
+            "autophase": ["Autophase RF Elements", "Boolean", "0", "Automatically set each RF cavity's phase relative to the beam before tracking. The Phase field on each cavity is then interpreted as an offset from the on-crest phase."],
+            "autoTrackingRange": ["Automatically Compute Tracking Range", "Boolean", "1", "Volume.set_s0()/set_s1() define which portion of every element's field is active during tracking, not just where particles are reported -- an element positioned so it starts before the beam (e.g. a solenoid whose field map is centered on a point upstream of the cathode) will have that leading portion silently excluded unless the tracking range is extended to cover it. When enabled, the range spans every element's full extent; disable to set it explicitly, e.g. to start tracking exactly at the beam origin even when an upstream element's field extends earlier."],
+            "trackingS0": ["Tracking Start [m]", "Float", 0.0, "Volume.set_s0(): start of the active tracking range"],
+            "trackingS1": ["Tracking End [m]", "Float", 10.0, "Volume.set_s1(): end of the active tracking range"]
+        },
+        "simulationStatus": {},
+        "statAnimation": {
+            "_super": ["_", "model", "_PARAMETER_PLOT_COMMON"],
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"]
+        },
+        "stat2Animation": {
+            "_super": ["_", "model", "statAnimation"]
+        },
+        "_ELEMENT": {
+            "name": ["NAME", "ValidatedString", "", ""],
+            "l": ["L [m]", "Float", 0, "The element length"],
+            "aperture_x": ["Aperture X [m]", "Float", 0.015, "Horizontal aperture half-width. Particles beyond this are lost."],
+            "aperture_y": ["Aperture Y [m]", "Float", 0.015, "Vertical aperture half-height. Particles beyond this are lost."],
+            "dx": ["Misalignment dx [mm]", "Float", 0],
+            "dy": ["Misalignment dy [mm]", "Float", 0],
+            "dz": ["Misalignment dz [mm]", "Float", 0],
+            "rx": ["Misalignment Pitch [mrad]", "Float", 0, "Rotation about the x axis"],
+            "ry": ["Misalignment Yaw [mrad]", "Float", 0, "Rotation about the y axis"],
+            "rz": ["Misalignment Roll [mrad]", "Float", 0, "Rotation about the z (beam) axis"]
+        },
+        "DRIFT": {
+            "_super": ["_", "model", "_ELEMENT"]
+        },
+        "QUADRUPOLE": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "strengthType": ["Strength Type", "QuadStrengthType", "gradient"],
+            "gradient": ["Gradient [T/m]", "Float", 0, "Quadrupole field gradient. Positive is horizontally focusing. Used when Strength Type is Field Gradient."],
+            "k1": ["k1 [1/m^2]", "Float", 0, "Normalized focusing strength. Used when Strength Type is Normalized Strength."]
+        },
+        "RBEND": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "angle": ["Bend Angle [rad]", "Float", 0, "Total bending angle. The field is computed from the reference momentum."]
+        },
+        "SOLENOID": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "fieldSource": ["Field Source", "FieldSource", "analytic"],
+            "b_field": ["B Field [T]", "Float", 0, "Used when Field Source is Analytic"],
+            "fieldMapFile": ["Field Map File", "InputFile", "", "1D on-axis Bz field map (two columns: s [m], Bz [T]). Used when Field Source is 1D Field Map."],
+            "rescaleMode": ["Rescale Mode", "RescaleMode", "peak"],
+            "maxField": ["Peak B Field [T]", "Float", 0, "Rescale the field map so its peak magnitude equals this value"],
+            "scaleFactor": ["Scale Factor", "Float", 1, "Multiply the field map values directly by this factor"]
+        },
+        "CORRECTOR": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "h_kick": ["Horizontal Kick [mrad]", "Float", 0],
+            "v_kick": ["Vertical Kick [mrad]", "Float", 0]
+        },
+        "CAVITY": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "fieldSource": ["Field Source", "FieldSource", "analytic"],
+            "gradient": ["Gradient [MV/m]", "Float", 0, "Peak on-axis accelerating gradient. Used when Field Source is Analytic."],
+            "frequency": ["RF Frequency [Hz]", "Float", 2.998e9],
+            "phase": ["Phase [deg]", "Float", 0, "RF phase seen by the reference particle (or offset from on-crest phase, when Autophase RF Elements is enabled)"],
+            "fieldMapFile": ["Field Map File", "InputFile", "", "1D on-axis Ez field map (two columns: s [m], Ez [V/m or normalized]). Used when Field Source is 1D Field Map."],
+            "rescaleMode": ["Rescale Mode", "RescaleMode", "peak"],
+            "maxField": ["Peak E Field [MV/m]", "Float", 0, "Rescale the field map so its peak magnitude equals this value"],
+            "scaleFactor": ["Scale Factor", "Float", 1, "Multiply the field map values directly by this factor"]
+        },
+        "SCREEN": {
+            "_super": ["_", "model", "_ELEMENT"]
+        }
+    },
+    "strings": {
+        "completionState": ""
+    },
+    "view": {
+        "beamline": {
+            "title": "Beamline",
+            "advanced": [
+                "name"
+            ]
+        },
+        "beamlineReport": {
+            "title": "Lattice",
+            "hasDataFile": false,
+            "advanced": []
+        },
+        "beam": {
+            "title": "Beam",
+            "basic": [
+                "particle",
+                "mass",
+                "charge",
+                "pc",
+                "charge_nC",
+                "np",
+                "distributionType",
+                [
+                    ["Horizontal", [
+                        "beta_x",
+                        "alpha_x",
+                        "emit_x"
+                    ]],
+                    ["Vertical", [
+                        "beta_y",
+                        "alpha_y",
+                        "emit_y"
+                    ]]
+                ],
+                "*Longitudinal",
+                "sigma_t",
+                "sigma_pt",
+                "*Cathode Emission",
+                "sigX",
+                "riseTime",
+                "flatTopLength",
+                "cutoffX",
+                "cutoffY",
+                "cutoffT",
+                "ePhoton",
+                "phiEff",
+                "noiseReduc"
+            ],
+            "advanced": []
+        },
+        "bunchReport": {
+            "title": "Beam Phase Space",
+            "advanced": [
+                "plotType",
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "aspectRatio",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "elementAnimation": {
+            "title": "Particle Plot",
+            "advanced": [
+                "plotType",
+                [
+                    ["Horizontal", [
+                        "x"
+                    ]],
+                    ["Vertical", [
+                        "y"
+                    ]]
+                ],
+                "histogramBins",
+                "aspectRatio",
+                "colorMap",
+                "notes"
+            ]
+        },
+        "simulationSettings": {
+            "title": "Simulation Settings",
+            "basic": [
+                "simulation.visualizationBeamlineId",
+                "autophase",
+                "spaceCharge",
+                "scGridNx",
+                "scGridNy",
+                "scGridNz",
+                "scDtMm",
+                "scSmooth",
+                "scMirror",
+                "autoTrackingRange",
+                "trackingS0",
+                "trackingS1"
+            ],
+            "advanced": [
+                "autophase",
+                "spaceCharge",
+                "scGridNx",
+                "scGridNy",
+                "scGridNz",
+                "scDtMm",
+                "scSmooth",
+                "scMirror",
+                "autoTrackingRange",
+                "trackingS0",
+                "trackingS1"
+            ]
+        },
+        "simulationStatus": {
+            "title": "Simulation Status",
+            "advanced": []
+        },
+        "statAnimation": {
+            "title": "Beam Variables",
+            "hasDataFile": false,
+            "advanced": [
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1",
+                            "y2",
+                            "y3",
+                            "y4",
+                            "y5"
+                        ]],
+                        ["Position", [
+                            "y1Position",
+                            "y2Position",
+                            "y3Position",
+                            "y4Position",
+                            "y5Position"
+                        ]]
+                    ],
+                    "includeLattice",
+                    "aspectRatio",
+                    "notes"
+                ]],
+                ["Limits", [
+                    [
+                        ["Left", [
+                            "leftLimit"
+                        ]],
+                        ["Right", [
+                            "rightLimit"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
+        "stat2Animation": {
+            "title": "Beam Variables 2",
+            "hasDataFile": false,
+            "advanced": [
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1",
+                            "y2",
+                            "y3",
+                            "y4",
+                            "y5"
+                        ]],
+                        ["Position", [
+                            "y1Position",
+                            "y2Position",
+                            "y3Position",
+                            "y4Position",
+                            "y5Position"
+                        ]]
+                    ],
+                    "includeLattice",
+                    "aspectRatio",
+                    "notes"
+                ]],
+                ["Limits", [
+                    [
+                        ["Left", [
+                            "leftLimit"
+                        ]],
+                        ["Right", [
+                            "rightLimit"
+                        ]]
+                    ]
+                ]]
+            ]
+        },
+        "DRIFT": {
+            "title": "DRIFT",
+            "advanced": [
+                "name",
+                "l",
+                "*Aperture",
+                "aperture_x",
+                "aperture_y",
+                "*Misalignment",
+                "dx",
+                "dy",
+                "dz",
+                "rx",
+                "ry",
+                "rz"
+            ]
+        },
+        "QUADRUPOLE": {
+            "title": "QUADRUPOLE",
+            "advanced": [
+                "name",
+                "l",
+                "strengthType",
+                "gradient",
+                "k1",
+                "*Aperture",
+                "aperture_x",
+                "aperture_y",
+                "*Misalignment",
+                "dx",
+                "dy",
+                "dz",
+                "rx",
+                "ry",
+                "rz"
+            ]
+        },
+        "RBEND": {
+            "title": "RBEND",
+            "advanced": [
+                "name",
+                "l",
+                "angle",
+                "*Aperture",
+                "aperture_x",
+                "aperture_y",
+                "*Misalignment",
+                "dx",
+                "dy",
+                "dz",
+                "rx",
+                "ry",
+                "rz"
+            ]
+        },
+        "SOLENOID": {
+            "title": "SOLENOID",
+            "advanced": [
+                "name",
+                "l",
+                "fieldSource",
+                "b_field",
+                "fieldMapFile",
+                "rescaleMode",
+                "maxField",
+                "scaleFactor",
+                "*Aperture",
+                "aperture_x",
+                "aperture_y",
+                "*Misalignment",
+                "dx",
+                "dy",
+                "dz",
+                "rx",
+                "ry",
+                "rz"
+            ]
+        },
+        "CORRECTOR": {
+            "title": "CORRECTOR",
+            "advanced": [
+                "name",
+                "l",
+                "h_kick",
+                "v_kick",
+                "*Aperture",
+                "aperture_x",
+                "aperture_y",
+                "*Misalignment",
+                "dx",
+                "dy",
+                "dz",
+                "rx",
+                "ry",
+                "rz"
+            ]
+        },
+        "CAVITY": {
+            "title": "CAVITY",
+            "advanced": [
+                "name",
+                "l",
+                "fieldSource",
+                "gradient",
+                "frequency",
+                "phase",
+                "fieldMapFile",
+                "rescaleMode",
+                "maxField",
+                "scaleFactor",
+                "*Aperture",
+                "aperture_x",
+                "aperture_y",
+                "*Misalignment",
+                "dx",
+                "dy",
+                "dz",
+                "rx",
+                "ry",
+                "rz"
+            ]
+        },
+        "SCREEN": {
+            "title": "SCREEN",
+            "advanced": [
+                "name",
+                "*Aperture",
+                "aperture_x",
+                "aperture_y",
+                "*Misalignment",
+                "dx",
+                "dy",
+                "dz",
+                "rx",
+                "ry",
+                "rz"
+            ]
+        }
+    }
+}

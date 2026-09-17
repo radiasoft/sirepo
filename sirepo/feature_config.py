@@ -35,6 +35,7 @@ FOSS_CODES = frozenset(
         "opal",
         "openmc",
         "radia",
+        "rftrack",
         "shadow",
         "srw",
         "tmap8",
