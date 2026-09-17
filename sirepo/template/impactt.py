@@ -39,7 +39,6 @@ _BUNCH_COLUMNS = [
 
 _CACHED_STAT_COLUMNS = "stat-columns.json"
 _INITIAL_PARTICLES_OUTFILE = "initial_particles.h5"
-_PARSE_IMPACT_PARTICLES = None
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _MAX_OUTPUT_ID = 100
 _NONE = "None"
@@ -331,18 +330,6 @@ def stateful_compute_import_file(data, **kwargs):
     )
 
 
-def update_lume_impact_parser_for_older_datafiles(I):
-
-    def _patched_parse_impact_particles(filePath):
-        return _PARSE_IMPACT_PARTICLES(filePath, ("x", "GBx", "y", "GBy", "z", "GBz"))
-
-    global _PARSE_IMPACT_PARTICLES
-    if not _PARSE_IMPACT_PARTICLES:
-        _PARSE_IMPACT_PARTICLES = impact.parsers.parse_impact_particles
-    impact.parsers.parse_impact_particles = _patched_parse_impact_particles
-    impact.impact.parse_impact_particles = _patched_parse_impact_particles
-
-
 def validate_file(file_type, path, sim_id, qcall):
     # imported impact input files are always rfdata\d+ or 1T\d+.T7
     # so use the element name + md5sum to identify files
@@ -610,7 +597,6 @@ def _patch_stat_parser(run_dir):
         use_temp_dir=False,
         workdir=str(run_dir),
     )
-    update_lume_impact_parser_for_older_datafiles(I)
     I.load_input(I._workdir + "/ImpactT.in")
     I.load_output()
     return I

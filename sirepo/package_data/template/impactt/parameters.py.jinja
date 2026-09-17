@@ -63,9 +63,6 @@ with pykern.pkio.open_text("{{distributionFilename}}") as f:
     I.header["Np"] = int(f.readline())
 {% endif %}
 
-import sirepo.template.impactt
-sirepo.template.impactt.update_lume_impact_parser_for_older_datafiles(I)
-
 try:
     I.run()
 
