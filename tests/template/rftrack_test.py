@@ -41,16 +41,16 @@ def test_track_drift_and_screen():
             pkio.py_path("final_particles.npy").exists(),
             "missing final_particles.npy",
         )
-        pkunit.pkok(
-            pkio.py_path("screen-0.npy").exists(), "missing screen-0.npy"
-        )
+        pkunit.pkok(pkio.py_path("screen-0.npy").exists(), "missing screen-0.npy")
         t = numpy.load("stats.npy")
         pkunit.pkeq(True, len(t) > 0)
         p = numpy.load("final_particles.npy")
         pkunit.pkeq(100, len(p))
 
 
-def _example_data(elements=None, beamline_items=None, beam=None, simulation_settings=None):
+def _example_data(
+    elements=None, beamline_items=None, beam=None, simulation_settings=None
+):
     import sirepo.sim_data
     from pykern.pkcollections import PKDict
 

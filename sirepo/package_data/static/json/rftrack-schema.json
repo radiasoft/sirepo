@@ -20,7 +20,11 @@
             "CORRECTOR",
             "CAVITY",
             "SCREEN"
-        ]
+        ],
+        "dataDownloads": {
+            "bunchReport": [{"title": "OpenPMD HDF5", "suffix": "openpmd"}],
+            "elementAnimation": [{"title": "OpenPMD HDF5", "suffix": "openpmd"}]
+        }
     },
     "dynamicFiles": {
         "externalLibs": {
@@ -57,12 +61,17 @@
         ],
         "BeamDistributionType": [
             ["twiss", "Twiss Parameters"],
-            ["cathode", "Cathode Emission"]
+            ["cathode", "Cathode Emission"],
+            ["fromFile", "From File"]
         ],
         "SpaceChargeMethod": [
             ["none", "None"],
             ["p2p", "Point to Point"],
             ["pic", "Particle in Cell"]
+        ],
+        "ElementPosition": [
+            ["absolute", "Absolute (Volume)"],
+            ["relative", "Sequential (Lattice)"]
         ],
         "PhaseSpaceCoordinate": [
             ["x", "x"],
@@ -89,6 +98,16 @@
         "RescaleMode": [
             ["peak", "Rescale to Peak Field"],
             ["factor", "Multiply by Scale Factor"]
+        ],
+        "StatPlotPreset": [
+            ["", "Select a Preset…"],
+            ["twiss", "Twiss Parameters"],
+            ["emittanceSigma", "Emittance & Sigma"],
+            ["onAxisFields", "On-axis Fields (Ez, Bz)"],
+            ["energyGain", "Energy Gain"],
+            ["transverseSize", "Transverse Size & Emittance"],
+            ["bunchLength", "Bunch Length & Energy"],
+            ["centroidMotion", "Centroid Motion"]
         ]
     },
     "localRoutes": {
@@ -122,9 +141,10 @@
             "particle": ["Particle", "BeamParticle", "electron", "Particle species"],
             "mass": ["Mass [MeV/c^2]", "Float", 0.51099895, "Rest mass, used when particle is Other"],
             "charge": ["Charge [e]", "Float", -1.0, "Charge in units of the elementary charge, used when particle is Other"],
-            "pc": ["Reference Momentum [MeV/c]", "Float", 100.0, "Reference (design) momentum of the bunch"],
+            "pc": ["Reference Momentum [MeV/c]", "Float", 100.0, "Reference (design) momentum of the bunch. When Distribution is From File, this is only used as the autophase reference particle's momentum -- the loaded file's own momenta are used for tracking."],
             "charge_nC": ["Bunch Charge [nC]", "Float", 1.0, "Total bunch charge"],
             "np": ["Macroparticle Count", "Integer", 10000, "Number of macroparticles to generate for tracking"],
+            "randomSeed": ["Random Number Seed", "Integer", 5489, "rng_set_seed(): seed for RF_Track's mt19937 random number generator (its own built-in default). Runs with the same seed and inputs are reproducible; change it to intentionally get a different bunch realization."],
             "emit_x": ["Horizontal Normalized Emittance [mm-mrad]", "Float", 1.0],
             "emit_y": ["Vertical Normalized Emittance [mm-mrad]", "Float", 1.0],
             "beta_x": ["Horizontal Beta [m]", "Float", 1.0],
@@ -133,7 +153,9 @@
             "alpha_y": ["Vertical Alpha", "Float", 0.0],
             "sigma_t": ["Bunch Length [mm/c]", "Float", 1.0],
             "sigma_pt": ["Relative Energy Spread [permille]", "Float", 1.0],
-            "distributionType": ["Distribution", "BeamDistributionType", "twiss", "Twiss parameters generate a bunch analytically. Cathode Emission models photoemission from a cathode with RF_Track's Bunch6dT_Generator, tracked from rest."],
+            "distributionType": ["Distribution", "BeamDistributionType", "twiss", "Twiss parameters generate a bunch analytically. Cathode Emission models photoemission from a cathode with RF_Track's Bunch6dT_Generator, tracked from rest. From File loads a previously-saved particle bunch from an OpenPMD HDF5 file."],
+            "distributionFile": ["Distribution File", "InputFile", "", "OpenPMD HDF5 file (iteration 0) containing a saved particle bunch: per-particle position (m), momentum (kg*m/s), and optionally time (s), for the species selected above. Accepts files from this app's own OpenPMD download (any report) or from the AWA rftrack_utils posproc.save_bunch_to_openpmd() helper."],
+            "fromFileNearRest": ["Near-Rest Bunch", "Boolean", "1", "Checked (e.g. a Cathode Emission snapshot, where Pz can be comparable to the transverse momentum): builds a Bunch6dT preserving the full 3D momentum, avoiding the small-angle approximation an at-rest bunch would otherwise need. Unchecked (an already-accelerated bunch, e.g. re-injecting a previous sim's own tracked output downstream, where Pz dominates): builds a Bunch6d using the standard small-angle x'/y' -- required for Sequential (Lattice) positioning, since RF_Track's Lattice.track() has no Bunch6dT support at all."],
             "sigX": ["Laser Spot Size [mm]", "Float", 1.67, "Transverse RMS size of the drive laser on the cathode (radial in x-y)"],
             "riseTime": ["Laser Rise Time, rt", "Float", 0.0003, "Laser pulse rise/fall time, in Bunch6dT_Generator.rt units"],
             "flatTopLength": ["Laser Flat-top Length, lt", "Float", 0.006, "Laser pulse flat-top length, in Bunch6dT_Generator.lt units"],
@@ -164,7 +186,7 @@
             "reportIndex": ["", "Integer"]
         },
         "simulation": {
-            "elementPosition": ["Element Positioning", "ElementPosition", "absolute"],
+            "elementPosition": ["Element Positioning", "ElementPosition", "absolute", "Absolute uses RF_Track's Volume, which places every element at its own explicit (possibly overlapping) position -- required when elements physically share space, e.g. a gun cavity and a bucking solenoid, and the only option that supports the Cathode Emission or From File distributions (RF_Track's Lattice has no tracking support for those). Relative uses RF_Track's Lattice, which appends elements sequentially (gaps become Drifts; overlapping elements are rejected); this cannot be changed once the simulation is created since Volume- and Lattice-only settings (e.g. the tracking range, or the ODE step size) are not interchangeable."],
             "visualizationBeamlineId": ["Beamline", "LatticeBeamlineList", ""]
         },
         "simulationSettings": {
@@ -183,7 +205,8 @@
         "simulationStatus": {},
         "statAnimation": {
             "_super": ["_", "model", "_PARAMETER_PLOT_COMMON"],
-            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"]
+            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
+            "plotPreset": ["Plot Presets", "StatPlotPreset", "", "Selecting a preset sets this plot's Value to Plot fields to a common combination of values."]
         },
         "stat2Animation": {
             "_super": ["_", "model", "statAnimation"]
@@ -257,6 +280,13 @@
             "hasDataFile": false,
             "advanced": []
         },
+        "simulation": {
+            "title": "Simulation",
+            "advanced": [
+                "name",
+                "elementPosition"
+            ]
+        },
         "beam": {
             "title": "Beam",
             "basic": [
@@ -266,7 +296,10 @@
                 "pc",
                 "charge_nC",
                 "np",
+                "randomSeed",
                 "distributionType",
+                "distributionFile",
+                "fromFileNearRest",
                 [
                     ["Horizontal", [
                         "beta_x",
