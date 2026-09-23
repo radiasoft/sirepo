@@ -289,9 +289,7 @@ SIREPO.viewLogic('beamView', function(appState, panelState, $scope) {
     const showSectionLabel = (firstField, isShown) => {
         const toggle = () => {
             const label = $('.model-beam-' + firstField)
-                .closest('.form-group')
-                .prev('.lead.text-center');
-            console.log('label:', label);
+                .closest('.form-group').parent().prev();
             if (isShown) {
                 label.show();
             }
@@ -317,8 +315,8 @@ SIREPO.viewLogic('beamView', function(appState, panelState, $scope) {
             ['sigX', 'riseTime', 'flatTopLength', 'cutoffX', 'cutoffY', 'cutoffT', 'ePhoton', 'phiEff', 'noiseReduc'], isCathode,
         ]);
         panelState.showRow('beam', 'beta_x', isTwiss);
-        //showSectionLabel('sigma_t', isTwiss);
-        //showSectionLabel('sigX', isCathode);
+        showSectionLabel('sigma_t', isTwiss);
+        showSectionLabel('sigX', isCathode);
     };
 
     $scope.whenSelected = updateFields;

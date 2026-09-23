@@ -216,12 +216,12 @@
             "l": ["L [m]", "Float", 0, "The element length"],
             "aperture_x": ["Aperture X [m]", "Float", 0.015, "Horizontal aperture half-width. Particles beyond this are lost."],
             "aperture_y": ["Aperture Y [m]", "Float", 0.015, "Vertical aperture half-height. Particles beyond this are lost."],
-            "dx": ["Misalignment dx [mm]", "Float", 0],
-            "dy": ["Misalignment dy [mm]", "Float", 0],
-            "dz": ["Misalignment dz [mm]", "Float", 0],
-            "rx": ["Misalignment Pitch [mrad]", "Float", 0, "Rotation about the x axis"],
-            "ry": ["Misalignment Yaw [mrad]", "Float", 0, "Rotation about the y axis"],
-            "rz": ["Misalignment Roll [mrad]", "Float", 0, "Rotation about the z (beam) axis"]
+            "dx": ["Misalignment dx [m]", "Float", 0],
+            "dy": ["Misalignment dy [m]", "Float", 0],
+            "dz": ["Misalignment dz [m]", "Float", 0],
+            "rx": ["Misalignment Pitch [rad]", "Float", 0, "Rotation about the x axis"],
+            "ry": ["Misalignment Yaw [rad]", "Float", 0, "Rotation about the y axis"],
+            "rz": ["Misalignment Roll [rad]", "Float", 0, "Rotation about the z (beam) axis"]
         },
         "DRIFT": {
             "_super": ["_", "model", "_ELEMENT"]

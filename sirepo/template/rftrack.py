@@ -147,6 +147,12 @@ _STAT_SCALE = [
     1,  # Ez: V/m
     1,  # Bz: T
 ]
+# %S (Lattice's position token) is already in meters -- verified empirically
+# against Volume's %mean_Z (raw millimeters) for the same physical length --
+# unlike every other position/size quantity (%mean_x, %sigma_x, %sigma_t,
+# rmax*, ...), which stays in the same raw millimeters in both Lattice and
+# Volume. So only the first ("s") entry differs from _STAT_SCALE.
+_STAT_SCALE_LATTICE = [1] + _STAT_SCALE[1:]
 _STAT_LABELS = PKDict(
     s="s [m]",
     beta_x="beta_x [m]",
@@ -439,19 +445,20 @@ def _element_code(el, index):
         is_cavity=is_cavity,
         # Volume.add()'s x/y/z/roll/pitch/yaw args (and, equivalently, an
         # appended Lattice element's own set_offsets()) are in
-        # meters/radians; our schema misalignment fields are in mm/mrad.
-        # The nominal transverse position is always 0 (only misalignment
-        # moves x/y); z is the beamline's absolute elemedge position for
-        # this element plus its own dz misalignment -- meaningful only for
-        # Volume, since a Lattice-appended element has no absolute
-        # position, just its own dz misalignment (dzOffset).
-        x=el.dx / 1000.0,
-        y=el.dy / 1000.0,
-        z=el.elemedge + el.dz / 1000.0,
-        dzOffset=el.dz / 1000.0,
-        roll=el.rz / 1000.0,
-        pitch=el.rx / 1000.0,
-        yaw=el.ry / 1000.0,
+        # meters/radians, matching our schema's misalignment fields
+        # directly -- no unit conversion needed. The nominal transverse
+        # position is always 0 (only misalignment moves x/y); z is the
+        # beamline's absolute elemedge position for this element plus its
+        # own dz misalignment -- meaningful only for Volume, since a
+        # Lattice-appended element has no absolute position, just its own
+        # dz misalignment (dzOffset).
+        x=el.dx,
+        y=el.dy,
+        z=el.elemedge + el.dz,
+        dzOffset=el.dz,
+        roll=el.rz,
+        pitch=el.rx,
+        yaw=el.ry,
     )
 
 
@@ -664,7 +671,7 @@ def _generate_parameters_file(data):
     )
     v.statSigmaPtColumn = _STAT_SIGMA_PT_COLUMN
     v.statMeanPColumn = _STAT_MEAN_P_COLUMN
-    v.statScale = _STAT_SCALE
+    v.statScale = _STAT_SCALE_LATTICE if v.isLattice else _STAT_SCALE
     v.isBunchReport = "bunchReport" in data.get("report", "")
     # A From File bunch's Z is rebased to (Z - mean(Z)) + fromFileZOffset;
     # 0.0 is the only sensible choice when previewing the bunch alone (no
