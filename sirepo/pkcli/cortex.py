@@ -359,6 +359,7 @@ def _convert_ao_to_wo(materials):
 
     def _ao_to_wo(ao):
         weight_sum = 0
+        mass = PKDict()
         weight = PKDict()
         for e in ao:
             if re.search(r"\d", e):
@@ -373,13 +374,16 @@ def _convert_ao_to_wo(materials):
                     raise ValueError(f"Unknown element: {e}")
                 # may raise ValueError: No naturally-occuring isotopes for element
                 w = openmc.data.atomic_weight(e)
-            weight[e] = ao[e].target_pct * w / openmc.data.AVOGADRO
+            mass[e] = w / openmc.data.AVOGADRO
+            weight[e] = ao[e].target_pct * mass[e]
             weight_sum += weight[e]
 
         wo = PKDict()
         for e in ao:
+            # ao to wo scale factor, independent of target_pct which may be 0
+            f = 100.0 * mass[e] / weight_sum
             wo[e] = PKDict(
-                target_pct=100.0 * weight[e] / weight_sum,
+                target_pct=ao[e].target_pct * f,
                 min_pct=None,
                 max_pct=None,
             )
@@ -387,8 +391,8 @@ def _convert_ao_to_wo(materials):
                 if ao[e].min_pct is None:
                     wo[e].max_pct = wo[e].target_pct
                 else:
-                    wo[e].min_pct = ao[e].min_pct * wo[e].target_pct / ao[e].target_pct
-                    wo[e].max_pct = ao[e].max_pct * wo[e].target_pct / ao[e].target_pct
+                    wo[e].min_pct = ao[e].min_pct * f
+                    wo[e].max_pct = ao[e].max_pct * f
         return wo
 
     for m in materials.values():
