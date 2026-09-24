@@ -6,8 +6,8 @@
 
 
 def test_convert_ao_to_wo():
+    from pykern import pkio, pkunit
     from pykern.pkcollections import PKDict
-    from pykern.pkunit import pkeq
     from sirepo.pkcli import cortex
 
     c = cortex._convert_ao_to_wo(
@@ -25,17 +25,10 @@ def test_convert_ao_to_wo():
             ),
         ),
     ).m.components
-    for e, v in PKDict(
-        Fe=(71.302354858, 66.209329511, 76.395380205),
-        Cr=(18.967995584, 17.071196026, 20.864795142),
-        Ni58=(9.510569044, 8.453839150, 10.567298937),
-        C=(0.219080514, None, 0.219080514),
-        Mn=(0.0, 0.0, 1.002059723),
-    ).items():
-        pkeq(
-            v,
-            tuple(
-                None if x is None else round(x, 9)
-                for x in (c[e].target_pct, c[e].min_pct, c[e].max_pct)
-            ),
-        )
+    pkio.write_text(
+        pkunit.work_dir().join("convert_ao_to_wo.ndiff"),
+        "".join(
+            f"{e} {v.target_pct!r} {v.min_pct!r} {v.max_pct!r}\n" for e, v in c.items()
+        ),
+    )
+    pkunit.file_eq(pkunit.data_dir().join("convert_ao_to_wo.ndiff"))
