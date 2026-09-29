@@ -5,13 +5,13 @@ import { requestSender } from '@/services/requestsender.js';
 export const DB_UPDATED = 'DbUpdated';
 
 class DB {
-    async calculateCost(material_id, is_public, processes, production_qty) {
+    async calculateCost(material_id, is_public, processes, cmp, production_qty) {
         // goes through cortexSim (not cortexDb): the heavy computation runs
         // via an async statelessCompute call in template.cortex rather than
         // sirepo's single-threaded cortexDb action loop
         return await requestSender.sendRequest("cortexSim", {
             op_name: 'calculate_cost',
-            op_args: {material_id, is_public, processes, production_qty},
+            op_args: {material_id, is_public, processes, cmp, production_qty},
         });
     }
 

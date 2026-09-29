@@ -60,6 +60,10 @@
             "title": "Cost Breakdown",
             "advanced": []
         },
+        "costCurveChart": {
+            "title": "Fabrication Cost vs. Production Quantity",
+            "advanced": []
+        },
         "hcllSlabAnimation": {
             "title": "Neutronics Plot",
             "advanced": []

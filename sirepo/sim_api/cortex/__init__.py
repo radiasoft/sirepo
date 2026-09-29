@@ -178,6 +178,7 @@ class API(sirepo.quest.API):
                         material=m,
                         is_plasma_facing=m.pkdel("is_plasma_facing"),
                         processes=args.processes,
+                        cmp=args.cmp,
                         production_qty=args.production_qty,
                     ),
                     simulationType=SIM_TYPE,
@@ -189,6 +190,7 @@ class API(sirepo.quest.API):
                 material_id=args.material_id,
                 uid=self.auth.logged_in_user(),
                 processes=args.processes,
+                cmp=args.cmp,
                 production_qty=args.production_qty,
             )
         return r
