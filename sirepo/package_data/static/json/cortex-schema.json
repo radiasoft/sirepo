@@ -49,7 +49,7 @@
         },
         "simulationSettings": {
             "particlesPerBatch": ["Particles per batch", "Integer", 100000, "Particle count, optimal value: 100,000", 1],
-            "tallyConvergenceThreshold": ["Tally convergence threshold", "Float", 0.01, "Flux convergence threshold, optimal value: 0.01. A higher value will run faster but with less precision.", 0, 1]
+            "tallyConvergenceThreshold": ["Tally convergence threshold", "Float", 0.05, "Flux convergence threshold, optimal value: 0.01. A higher value will run faster but with less precision.", 0, 1]
         },
         "wcllSlabAnimation": {
             "stat": ["", "String"]
