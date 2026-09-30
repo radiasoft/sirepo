@@ -164,7 +164,7 @@
                     </div>
                 </div>
                 <div v-else>
-                    <div class="lead mb-2">{{ defaultProcess.name }}</div>
+                    <div class="lead mb-2">Default Manufacturing Process: {{ defaultProcess.name }}</div>
                     <p>{{ defaultProcess.intro }}</p>
                     <ul>
                         <li v-for="s in defaultProcess.steps" v-bind:key="s.name">
@@ -193,6 +193,10 @@
                 v-bind:downloadActions="chartDownloadActions"
             >
                 <VReportImage v-bind:image="chartImage" alt="Cost breakdown chart" />
+                <div class="form-text">
+                    Total cost by category (left), with the Material segment zoomed in
+                    to show its cost broken down by element (right).
+                </div>
             </VCard>
             <VCard
                 v-if="curveImage && ! isCalculating"
@@ -201,6 +205,12 @@
                 v-bind:downloadActions="curveDownloadActions"
             >
                 <VReportImage v-bind:image="curveImage" alt="Fabrication cost vs. production quantity chart" />
+                <div class="form-text">
+                    Fabrication cost vs. production quantity for each process. Solid lines
+                    use this material and this geometry; dashed lines use an ideal material
+                    with an ideal geometry (Compatibility Factor = 1). The dotted vertical
+                    line marks the entered production quantity.
+                </div>
             </VCard>
         </div>
     </div>
@@ -223,9 +233,9 @@
 
  // fixed set of tea fabrication processes (sirepo/sim_api/cortex/tea_cost.py PROCESS_NAMES)
  const processNames = [
-     'CNC',
-     'Hot Rolling',
      'Cold Rolling',
+     'Hot Rolling',
+     'CNC',
      'HIP',
      'Electron Beam',
      'Diffusion Bonding',
@@ -280,7 +290,7 @@
  };
  const defaultProcess = computed(() => props.isPlasmaFacing ? defaultProcessPlasmaFacing : defaultProcessFirstWall);
 
- const tabs = ['Manufacturing Cost Summary', 'Default Manufacturing Process'];
+ const tabs = ['Manufacturing Cost Summary', 'Fabrication Process Documentation'];
  const selectedTab = ref(tabs[0]);
 
  const chartImage = ref(null);
@@ -292,6 +302,9 @@
  const productionQty = ref(10);
  const result = ref(null);
  const route = useRoute();
+ // a public (featured) material: starts from the owner's saved cost inputs,
+ // which may be changed here but aren't saved
+ const isPublic = route.name === 'view';
  // default reference routes, in fabrication order: vacuum plasma sprayed
  // W/steel coating for plasma-facing (Grammes et al. 2023), rolled,
  // machined, EB welded and HIP'd plates for first wall (Commin et al. 2013)
@@ -375,7 +388,7 @@
      try {
          const r = await db.calculateCost(
              props.materialId,
-             route.name === 'view',
+             isPublic,
              selectedProcesses.value,
              Object.fromEntries(selectedProcesses.value.map((p) => [p, cmpValue(p)])),
              qtyValue(),
@@ -396,13 +409,11 @@
  };
 
  onMounted(async () => {
-     if (route.name !== 'view') {
-         const i = await db.loadCostInput(props.materialId);
-         if (i) {
-             selectedProcesses.value = i.processes;
-             Object.assign(cmp, i.cmp);
-             productionQty.value = i.production_qty;
-         }
+     const i = await db.loadCostInput(props.materialId, isPublic);
+     if (i) {
+         selectedProcesses.value = i.processes;
+         Object.assign(cmp, i.cmp);
+         productionQty.value = i.production_qty;
      }
      await calculate();
  });

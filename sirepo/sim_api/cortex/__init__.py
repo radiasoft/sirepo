@@ -323,7 +323,7 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
     def action_load_cost_input(self, arg, uid):
         return PKDict(
             input=sirepo.sim_api.cortex.material_db.load_cost_input(
-                arg.material_id, uid
+                arg.material_id, arg.is_public, uid
             ),
         )
 

@@ -40,8 +40,8 @@ class DB {
         return [];
     }
 
-    async loadCostInput(material_id) {
-        const r = await this.#send('load_cost_input', {material_id});
+    async loadCostInput(material_id, is_public) {
+        const r = await this.#send('load_cost_input', {material_id, is_public});
         return r.op_result ? r.op_result.input : null;
     }
 

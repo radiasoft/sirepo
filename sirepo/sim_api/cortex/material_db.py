@@ -445,9 +445,13 @@ def list_materials(uid):
         ]
 
 
-def load_cost_input(material_id, uid):
+def load_cost_input(material_id, is_public, uid):
     with _session() as s:
-        _material_by_id(s, material_id, uid)
+        # ensure authorized to material
+        if is_public:
+            _public_material_by_id(s, material_id)
+        else:
+            _material_by_id(s, material_id, uid)
         r = s.select_one_or_none("cost_input", where=PKDict(material_id=material_id))
         if not r:
             return None
