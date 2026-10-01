@@ -14,11 +14,13 @@ from sirepo.template import template_common
 import array
 import copy
 import glob
+import itertools
 import math
 import numpy as np
 import os
 import pickle
 import re
+import shutil
 import sirepo.mpi
 import sirepo.sim_data
 import sirepo.sim_run
@@ -38,6 +40,7 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 PARSED_DATA_ATTR = "srwParsedData"
 
 _CANVAS_MAX_SIZE = 65535
+_COHERENCE_REPORTS = ("coherenceXAnimation", "coherenceYAnimation")
 _LOG_DIR = "__srwl_logs__"
 _MAX_REPORT_POINTS = 20000000
 _MIN_CORES = 3
@@ -331,11 +334,11 @@ def extract_report_data(sim_in):
         return _extract_trajectory_report(dm.trajectoryReport, out.filename)
     if r == _SIM_DATA.EXPORT_RSOPT:
         return out
-    if r in ("coherenceXAnimation", "coherenceYAnimation", "multiElectronAnimation"):
-        out.filename = _best_data_file(out.filename)
-    # TODO(pjm): remove fixup after dcx/dcy files can be read by srwpy.uti_plot_com
-    if r in ("coherenceXAnimation", "coherenceYAnimation"):
-        _fix_file_header(out.filename)
+    is_snapshot = False
+    if r in _COHERENCE_REPORTS or r == "multiElectronAnimation":
+        out.filename, is_snapshot = _snapshot_data_file(
+            out.filename, fix_header=r in _COHERENCE_REPORTS
+        )
     if r == "coherentModesAnimation":
         out.filename = _extract_coherent_modes(dm[r], out)
     wid = dm[r].get("id", 0)
@@ -357,7 +360,11 @@ def extract_report_data(sim_in):
             plotModesEnd=dm[r].get("plotModesEnd", ""),
         ),
     )
-    points, _, allrange, labels, units = srwpy.uti_plot_com.file_load(out.filename)
+    try:
+        points, _, allrange, labels, units = srwpy.uti_plot_com.file_load(out.filename)
+    finally:
+        if is_snapshot:
+            pkio.unchecked_remove(out.filename)
     if (
         r == "multiElectronAnimation"
         and dm.multiElectronAnimation.photonEnergyBandWidth > 0
@@ -1197,7 +1204,8 @@ def _beamline_animation_percent_complete(run_dir, res):
 
 def _best_data_file(primary):
     def _lines(path):
-        return len(pkio.open_text(path).readlines())
+        with pkio.open_text(path) as f:
+            return sum(1 for _ in f)
 
     p = pkio.py_path(primary)
     s = p.new(ext="dat.bkp")
@@ -1550,6 +1558,13 @@ def _copy_frame_args_into_model(frame_args, name):
     return m
 
 
+def _copy_with_fixed_header(src, dst):
+    with pkio.open_text(src) as i, pkio.open_text(dst, mode="wt") as o:
+        h = list(itertools.islice(i, 11))
+        o.writelines(_fixed_header(h) if len(h) == 11 else h)
+        shutil.copyfileobj(i, o)
+
+
 def _core_error(cores):
     raise sirepo.util.UserAlert(f"cores={cores} when cores must be >= {_MIN_CORES}")
 
@@ -1792,68 +1807,44 @@ def _extract_trajectory_report(model, filename):
     )
 
 
-def _fix_file_header(filename):
-    # fixes file header for coherenceXAnimation and coherenceYAnimation reports
-    rows = []
-    pkdc("fix header filename: {}", filename)
-    with pkio.open_text(filename) as f:
-        for line in f:
-            rows.append(line)
-            if len(rows) == 11:
-                pkdc("before header changed rows4: {}", rows[4])
-                pkdc("before header changed rows5: {}", rows[5])
-                pkdc("before header changed rows6: {}", rows[6])
-                pkdc("before header changed rows7: {}", rows[7])
-                pkdc("before header changed rows8: {}", rows[8])
-                pkdc("before header changed rows9: {}", rows[9])
-                # if rows[4] == rows[7]:
-                if rows[6].split()[0] == rows[9].split()[0] and rows[6].split()[0] != 1:
-                    # already fixed up
-                    return
-                col4 = rows[4].split()
-                col5 = rows[5].split()
-                col6 = rows[6].split()
-                col7 = rows[7].split()
-                col8 = rows[8].split()
-                col9 = rows[9].split()
-                # if re.search(r'^\#0 ', rows[4]):
-                if re.search(r"^\#1 ", rows[6]):
-                    col4[0] = col7[0]
-                    rows[4] = " ".join(col4) + "\n"
-                    col5[0] = col8[0]
-                    rows[5] = " ".join(col5) + "\n"
-                    col6[0] = col9[0]
-                    rows[6] = " ".join(col6) + "\n"
-                else:
-                    col7[0] = col4[0]
-                    rows[7] = " ".join(col7) + "\n"
-                    col8[0] = col5[0]
-                    rows[8] = " ".join(col8) + "\n"
-                    col9[0] = col6[0]
-                    rows[9] = " ".join(col9) + "\n"
-                Vmin = float(rows[7].split()[0][1:])
-                Vmax = float(rows[8].split()[0][1:])
-                rows[7] = (
-                    "#"
-                    + str((Vmin - Vmax) / 2)
-                    + " "
-                    + " ".join(rows[7].split()[1:])
-                    + "\n"
-                )
-                rows[8] = (
-                    "#"
-                    + str((Vmax - Vmin) / 2)
-                    + " "
-                    + " ".join(rows[8].split()[1:])
-                    + "\n"
-                )
-                pkdc("after header changed rows4:{}", rows[4])
-                pkdc("after header changed rows5:{}", rows[5])
-                pkdc("after header changed rows6:{}", rows[6])
-                pkdc("after header changed rows7:{}", rows[7])
-                pkdc("after header changed rows8:{}", rows[8])
-                pkdc("after header changed rows9:{}", rows[9])
-    pkio.write_text(filename, "".join(rows))
+def _fixed_header(rows):
+    """Fixes the file header for coherenceXAnimation and coherenceYAnimation reports
+
+    TODO(pjm): remove fixup after dcx/dcy files can be read by srwpy.uti_plot_com
+
+    Args:
+        rows (list): first 11 lines of the file
+    Returns:
+        list: rows with the header fixed (unchanged if already fixed)
+    """
+    if rows[6].split()[0] == rows[9].split()[0] and rows[6].split()[0] != 1:
+        # already fixed up
+        return rows
+    col4 = rows[4].split()
+    col5 = rows[5].split()
+    col6 = rows[6].split()
+    col7 = rows[7].split()
+    col8 = rows[8].split()
+    col9 = rows[9].split()
+    if re.search(r"^\#1 ", rows[6]):
+        col4[0] = col7[0]
+        rows[4] = " ".join(col4) + "\n"
+        col5[0] = col8[0]
+        rows[5] = " ".join(col5) + "\n"
+        col6[0] = col9[0]
+        rows[6] = " ".join(col6) + "\n"
+    else:
+        col7[0] = col4[0]
+        rows[7] = " ".join(col7) + "\n"
+        col8[0] = col5[0]
+        rows[8] = " ".join(col8) + "\n"
+        col9[0] = col6[0]
+        rows[9] = " ".join(col9) + "\n"
+    Vmin = float(rows[7].split()[0][1:])
+    Vmax = float(rows[8].split()[0][1:])
+    rows[7] = "#" + str((Vmin - Vmax) / 2) + " " + " ".join(rows[7].split()[1:]) + "\n"
+    rows[8] = "#" + str((Vmax - Vmin) / 2) + " " + " ".join(rows[8].split()[1:]) + "\n"
+    return rows
 
 
 def _format_amount(value):
@@ -2248,6 +2239,26 @@ def _intensity_units(sim_in):
     return "ph/s/.1%bw/mm^2"
 
 
+def _is_complete_data_file(path):
+    """Does the file contain as many values as its header declares?"""
+    try:
+        with pkio.open_text(path) as f:
+            h = [f.readline() for _ in range(11)]
+            n = sum(1 for _ in f)
+        c = [int(h[i].replace("#", "").split()[0]) for i in (3, 6, 9)]
+        # 11th header line is optional (number of Stokes components)
+        if h[10].startswith("#"):
+            c.append(int(h[10].replace("#", "").split()[0]))
+        else:
+            n += 1
+        if n == math.prod(c):
+            return True
+        pkdlog("incomplete data file={} lines={} header={}", path, n, c)
+    except Exception as e:
+        pkdlog("invalid data file={} error={}", path, repr(e))
+    return False
+
+
 def _is_item_disabled(item):
     return item.get("isDisabled", False)
 
@@ -2603,6 +2614,53 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
             v.mpiGroupCount = dm.coherentModesAnimation.mpiGroupCount
             v.multiElectronFileFormat = "h5"
             v.multiElectronAnimationFilename = _OUTPUT_FOR_MODEL[report].basename
+
+
+def _snapshot_data_file(primary, fix_header=False):
+    """Copy a complete animation output file so it can be read safely
+
+    SRW rewrites the output file (alternating with dat.bkp) in place. For large
+    images this takes many seconds so a reader sees a truncated file or
+    has the file rewritten underneath it. A copy which is validated
+    against its own header can't change while being read.
+
+    Args:
+        primary (str): name of the file SRW writes
+        fix_header (bool): fix the header of the copy (see _fixed_header)
+    Returns:
+        tuple: (filename, is_snapshot). is_snapshot is True if filename is a
+            copy which the caller must remove. If no file is complete, returns
+            what the caller would have read before snapshots (the file
+            _best_data_file picks, with the header fixed in a copy if
+            fix_header) so reading fails (and is retried) as before.
+    """
+    p = pkio.py_path(primary)
+    d = p.new(basename=f"{pkio.random_base62(8)}-snapshot.dat")
+    for c in sorted(
+        (x for x in (p, p.new(ext="dat.bkp")) if x.check()),
+        key=lambda x: x.mtime(),
+        reverse=True,
+    ):
+        try:
+            if fix_header:
+                _copy_with_fixed_header(c, d)
+            else:
+                c.copy(d)
+        except Exception as e:
+            pkdlog("snapshot copy failed: {} error={}", c, e)
+            continue
+        if _is_complete_data_file(d):
+            return d.basename, True
+    pkio.unchecked_remove(d)
+    b = _best_data_file(primary)
+    if not fix_header:
+        return b, False
+    try:
+        _copy_with_fixed_header(pkio.py_path(b), d)
+    except Exception:
+        pkio.unchecked_remove(d)
+        raise
+    return d.basename, True
 
 
 def _superscript(val):
