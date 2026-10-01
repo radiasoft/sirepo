@@ -1,250 +1,357 @@
+from pykern.pkcollections import PKDict
 import RF_Track as rft
 import numpy
-
-rft.rng_set_seed({{ beam.randomSeed }})
-{% if numThreads and numThreads > 1 %}
-rft.cvar.number_of_threads = {{ numThreads }}
-{% endif %}
-
-_particle = "{{ beam.particle }}"
-if _particle == "other":
-    mass, charge = {{ beam.mass }}, {{ beam.charge }}
-else:
-    mass, charge = {{ particleMassAndCharge }}
-Pc = {{ beam.pc }}
-
-{% if isCathode %}
-# Cathode emission: particles start essentially at rest and are generated
-# directly from the photocathode's laser/emission model, rather than from
-# an already-moving analytic (Twiss) distribution.
-_G = rft.Bunch6dT_Generator()
-_G.species = "{{ cathodeSpecies }}"
-_G.cathode = True
-_G.noise_reduc = {{ beam.noiseReduc == "1" }}
-_G.q_total = {{ beam.charge_nC }}
-_G.ref_ekin = 0
-_G.ref_zpos = 0
-_G.ref_clock = 0
-_G.phi_eff = {{ beam.phiEff }}
-_G.e_photon = {{ beam.ePhoton }}
-_G.dist_x = "r"
-_G.dist_y = "g"
-_G.sig_x = {{ beam.sigX }}
-_G.dist_z = "plateau"
-_G.rt = {{ beam.riseTime }}
-_G.lt = {{ beam.flatTopLength }}
-_G.c_sig_x = {{ beam.cutoffX }}
-_G.c_sig_y = {{ beam.cutoffY }}
-_G.c_sig_t = {{ beam.cutoffT }}
-_G.dist_pz = "fd_300"
-B0 = rft.Bunch6dT(_G, {{ beam.np }})
-{% elif isFromFile %}
+{% if isFromFile %}
 import beamphysics
-_pg = beamphysics.ParticleGroup(h5="{{ distributionFileName }}")
-{% if isBunch6dT %}
-# Near-rest bunch (e.g. a Cathode Emission snapshot): built as a Bunch6dT
-# (true 3D momentum, like Cathode) rather than a Bunch6d (angles derived
-# from Px/Pz, Py/Pz via a small-angle approximation) -- that approximation
-# is invalid for a bunch that hasn't been accelerated yet and has
-# near-zero Pz, producing radian-scale garbage angles instead of the true
-# angle. Preserving t0 (rather than collapsing it to 0, as RF_Track's
-# 6-column Bunch6dT form would) also matters here: a freshly-emitted
-# bunch's Z is uniformly 0 and its longitudinal structure lives entirely
-# in t0. RF_Track's native units are mm, mrad, MeV/c, mm/c; ParticleGroup's
-# are already SI (m, eV/c, s, C), so only a unit conversion is needed. Z
-# is rebased to (Z - mean(Z)) + fromFileZOffset since the file's own
-# absolute z coordinate is only meaningful relative to whatever volume
-# originally produced it; fromFileZOffset re-centers it on this
-# destination lattice's own start (0 when only previewing the bunch, with
-# no volume built yet).
-_n = len(_pg.x)
-_X = _pg.x * 1e3
-_Y = _pg.y * 1e3
-_Z = (_pg.z - numpy.mean(_pg.z)) * 1e3 + {{ fromFileZOffset }} * 1e3
-_Px = _pg.px / 1e6
-_Py = _pg.py / 1e6
-_Pz = _pg.pz / 1e6
-_T0 = _pg.t * rft.clight * 1e3
-_MASS = numpy.full(_n, mass)
-_Q = numpy.full(_n, charge)
-# Bunch6dT's raw-matrix "population" column is a PER-PARTICLE weight (the
-# number of real particles that single macroparticle represents), not the
-# bunch's total population repeated on every row -- get_total_charge()
-# sums Q*population across all rows, so repeating the total would inflate
-# the effective charge (and space charge force) by a factor of n.
-# ParticleGroup's per-particle weight is already in Coulombs; rft.C
-# converts to elementary-charge units to match RF_Track's convention.
-_N = _pg.weight * rft.C
-B0 = rft.Bunch6dT(
-    numpy.column_stack([_X, _Px, _Y, _Py, _Z, _Pz, _MASS, _Q, _N, _T0])
-)
-{% else %}
-# Already-accelerated bunch (e.g. re-injecting a previous sim's own
-# tracked output downstream, matching how zone_2.ipynb loads zone_1's own
-# saved output via preproc.load_bunch_from_openpmd(bunch_type="Bunch6d")):
-# Pz dominates here, so the small-angle approximation Bunch6d's x'/y' rely
-# on is valid -- and Bunch6d is the only bunch type Lattice.track()
-# accepts at all, so Sequential (Lattice) positioning requires this
-# branch. RF_Track's native units are mm, mrad, MeV/c, mm/c;
-# ParticleGroup's are already SI (m, eV/c, s, C).
-_X = _pg.x * 1e3
-_Y = _pg.y * 1e3
-_Px = _pg.px / 1e6
-_Py = _pg.py / 1e6
-_Pz = _pg.pz / 1e6
-_T = _pg.t * rft.clight * 1e3
-_population = _pg.charge * rft.C
-_Xp = numpy.divide(_Px, _Pz, out=numpy.zeros_like(_Px), where=(_Pz != 0)) * 1e3
-_Yp = numpy.divide(_Py, _Pz, out=numpy.zeros_like(_Py), where=(_Pz != 0)) * 1e3
-_P = numpy.sqrt(_Px**2 + _Py**2 + _Pz**2)
-B0 = rft.Bunch6d(
-    mass, _population, charge, numpy.column_stack([_X, _Xp, _Y, _Yp, _T, _P])
-)
-{% endif %}
-{% else %}
-Twiss = rft.Bunch6d_twiss()
-Twiss.beta_x = {{ beam.beta_x }}
-Twiss.beta_y = {{ beam.beta_y }}
-Twiss.alpha_x = {{ beam.alpha_x }}
-Twiss.alpha_y = {{ beam.alpha_y }}
-Twiss.emitt_x = {{ beam.emit_x }}
-Twiss.emitt_y = {{ beam.emit_y }}
-Twiss.sigma_t = {{ beam.sigma_t }}
-Twiss.sigma_pt = {{ beam.sigma_pt }}
-B0 = rft.Bunch6d_QR(mass, {{ beam.charge_nC }} * rft.nC, charge, Pc, Twiss, {{ beam.np }})
 {% endif %}
 
-# RF_Track's native phase-space units are mm, mrad, and MeV/c; rescale to
-# base SI units (m, rad, eV/c, eV, s) to match impact-t's convention.
-_PS_SCALE = numpy.array({{ phaseSpaceScale }})
+ELEMENTS = {% if isBunchReport %}[]{% else %}{{ elementsCode }}{% endif %}
 
-def _phase_space(bunch):
-    return bunch.get_phase_space("{{ phaseSpaceFields }}") * _PS_SCALE
-
+PHASE_SPACE_FIELDS = "{{ phaseSpaceFields }}"
 # Volume.get_bunch_at_screens() always returns Bunch6d-typed bunches, even
 # when the tracked bunch is a Bunch6dT (cathode distribution), so the token
-# string for screen-captured bunches can differ from the one used above.
-def _phase_space_screen(bunch):
-    return bunch.get_phase_space("{{ screenPhaseSpaceFields }}") * _PS_SCALE
+# string for screen-captured bunches can differ from the one above.
+PHASE_SPACE_FIELDS_SCREEN = "{{ screenPhaseSpaceFields }}"
+# RF_Track's native phase-space units are mm, mrad, and MeV/c; rescale to
+# base SI units (m, rad, eV/c, eV, s) to match impact-t's convention.
+PHASE_SPACE_SCALE = numpy.array({{ phaseSpaceScale }})
 
-numpy.save("initial_particles.npy", _phase_space(B0))
+BUNCH = {{ bunchCode }}
+{% if not isBunchReport %}
+SETTINGS = {{ settingsCode }}
+
+STAT_FIELDS = "{{ statTransportFields }}"
+STAT_SCALE = numpy.array({{ statScale }})
+{% endif %}
+
+
+{% if not isBunchReport and spaceCharge != "none" %}
+def apply_space_charge(volume):
+    {% if spaceCharge == "p2p" %}
+    rft.cvar.SC_engine = rft.SpaceCharge_P2P()
+    {% elif spaceCharge == "pic" %}
+    sc_settings = SETTINGS.space_charge
+    {% if not isLattice %}
+    volume.sc_dt_mm = sc_settings.dt_mm
+    {% endif %}
+    sc = rft.SpaceCharge_PIC_FreeSpace(*sc_settings.grid)
+    sc.set_smooth(sc_settings.smooth)
+    sc.set_mirror(sc_settings.mirror_m)
+    # rft.cvar.SC_engine (a process-global) rather than
+    # Volume.set_sc_engine(): the latter does not apply space-charge
+    # forces the same way for a multi-element Volume.
+    rft.cvar.SC_engine = sc
+    {% endif %}
+
+
+{% endif %}
+{% if not isBunchReport and autophase and hasCavity %}
+def autophase(volume):
+    # Autophase against a single on-axis reference particle, then track
+    # the real bunch through this SAME (now-phased) volume; do not
+    # rebuild it. Volume.autophase() sets each RF element's internal t0
+    # directly and .track() uses that state as-is -- get_phid() does not
+    # reflect it (it always reads back the phid the element was
+    # constructed with), so reading it back to "convert" t0 into an
+    # equivalent phid for a rebuilt volume silently produces the unphased
+    # result instead of the true autophased state.
+    {% if isBunch6dT %}
+    # A Cathode or From File reference particle starts at rest
+    # (X,Px,Y,Py,Z,Pz all 0), not at the design momentum, since both are
+    # snapshots of a bunch that begins from (near) rest, not an
+    # already-accelerated analytic (Twiss) distribution.
+    p0 = rft.Bunch6dT(
+        numpy.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, BUNCH.mass_mev, BUNCH.charge, 1.0, 0.0]])
+    )
+    {% else %}
+    p0 = rft.Bunch6d(
+        BUNCH.mass_mev, 0.0, BUNCH.charge, numpy.array([0.0, 0.0, 0.0, 0.0, 0.0, BUNCH.pc_mev])
+    )
+    {% endif %}
+    volume.unset_t0()
+    volume.autophase(p0)
+
+
+{% endif %}
+{% if not isBunchReport %}
+def build_beamline():
+    {% if isLattice %}
+    # Lattice appends elements sequentially with no absolute-position
+    # concept at all -- gaps were already filled with synthetic Drifts
+    # and overlaps rejected when ELEMENTS was generated, so every element
+    # here simply begins where the previous one ended. There is no
+    # Volume-style tracking range to set (a Lattice is inherently bounded
+    # by its own appended elements), and no continuous-ODE step size to
+    # tune (dt_mm/odeint_algorithm/tt_dt_mm are Volume-only) -- each
+    # element instead has its own default step count.
+    v = rft.Lattice()
+    elements = [_build_element(spec) for spec in ELEMENTS]
+    for e in elements:
+        # set_tt_nsteps() controls how finely get_transport_table()
+        # samples within this element (the Lattice-only equivalent of
+        # Volume's tt_dt_mm) -- without it, the transport table (and so
+        # the Beam Variables/Lattice Overlay plots) only reports one
+        # point per element.
+        e.set_tt_nsteps(20)
+        v.append(e)
+    # Element.set_offsets(), called on an already-appended element,
+    # silently has no effect (verified empirically) --
+    # Lattice.set_elements_offsets() is the reliable, bulk equivalent of
+    # Volume.add()'s per-element x/y/z/roll/pitch/yaw args (its extra 4th
+    # column, always 1.0 here, is unrelated to any misalignment field).
+    v.set_elements_offsets(numpy.array(
+        [[s.dx, s.dy, s.dz, 1.0, s.rz, s.rx, s.ry] for s in ELEMENTS]
+    ))
+    {% else %}
+    # Volume (rather than Lattice) supports elements at explicit, possibly
+    # overlapping absolute z positions -- e.g. a gun cavity's E field and
+    # a bucking/focusing solenoid's B field genuinely occupy the same
+    # physical space in a real photoinjector.
+    v = rft.Volume()
+    for spec in ELEMENTS:
+        v.add(
+            _build_element(spec),
+            spec.dx,
+            spec.dy,
+            spec.elemedge + spec.dz,
+            spec.rz,
+            spec.rx,
+            spec.ry,
+        )
+    v.set_s0(SETTINGS.tracking_range_m[0])
+    v.set_s1(SETTINGS.tracking_range_m[1])
+    v.odeint_algorithm = "rkf45"
+    v.dt_mm = SETTINGS.volume_dt_mm
+    v.tt_dt_mm = SETTINGS.volume_tt_dt_mm
+    {% endif %}
+    v.verbosity = 0
+    return v
+
+
+{% endif %}
+def build_bunch():
+    {% if isCathode %}
+    # Cathode emission: particles start essentially at rest and are
+    # generated directly from the photocathode's laser/emission model,
+    # rather than from an already-moving analytic (Twiss) distribution.
+    g = rft.Bunch6dT_Generator()
+    g.species = BUNCH.species
+    g.cathode = BUNCH.cathode
+    g.noise_reduc = BUNCH.noise_reduc
+    g.q_total = BUNCH.q_total_nc
+    g.ref_ekin = BUNCH.ref_ekin
+    g.ref_zpos = BUNCH.ref_zpos
+    g.ref_clock = BUNCH.ref_clock
+    g.phi_eff = BUNCH.phi_eff
+    g.e_photon = BUNCH.e_photon
+    g.dist_x = BUNCH.dist_x
+    g.dist_y = BUNCH.dist_y
+    g.sig_x = BUNCH.sig_x
+    g.dist_z = BUNCH.dist_z
+    g.rt = BUNCH.rt
+    g.lt = BUNCH.lt
+    g.c_sig_x = BUNCH.c_sig_x
+    g.c_sig_y = BUNCH.c_sig_y
+    g.c_sig_t = BUNCH.c_sig_t
+    g.dist_pz = BUNCH.dist_pz
+    return rft.Bunch6dT(g, BUNCH.np)
+    {% elif isFromFile %}
+    pg = beamphysics.ParticleGroup(h5=BUNCH.distribution_file)
+    {% if isBunch6dT %}
+    # Near-rest bunch (e.g. a Cathode Emission snapshot): built as a
+    # Bunch6dT (true 3D momentum, like Cathode) rather than a Bunch6d
+    # (angles derived from Px/Pz, Py/Pz via a small-angle approximation)
+    # -- that approximation is invalid for a bunch that hasn't been
+    # accelerated yet and has near-zero Pz, producing radian-scale
+    # garbage angles instead of the true angle. Preserving t0 (rather
+    # than collapsing it to 0, as RF_Track's 6-column Bunch6dT form
+    # would) also matters here: a freshly-emitted bunch's Z is uniformly
+    # 0 and its longitudinal structure lives entirely in t0. RF_Track's
+    # native units are mm, mrad, MeV/c, mm/c; ParticleGroup's are already
+    # SI (m, eV/c, s, C), so only a unit conversion is needed. Z is
+    # rebased to (Z - mean(Z)) + from_file_z_offset since the file's own
+    # absolute z coordinate is only meaningful relative to whatever
+    # volume originally produced it; from_file_z_offset re-centers it on
+    # this destination lattice's own start.
+    n = len(pg.x)
+    x = pg.x * 1e3
+    y = pg.y * 1e3
+    z = (pg.z - numpy.mean(pg.z)) * 1e3 + BUNCH.from_file_z_offset * 1e3
+    px = pg.px / 1e6
+    py = pg.py / 1e6
+    pz = pg.pz / 1e6
+    t0 = pg.t * rft.clight * 1e3
+    mass = numpy.full(n, BUNCH.mass_mev)
+    charge = numpy.full(n, BUNCH.charge)
+    # Bunch6dT's raw-matrix "population" column is a PER-PARTICLE weight
+    # (the number of real particles that single macroparticle
+    # represents), not the bunch's total population repeated on every
+    # row -- get_total_charge() sums charge*population across all rows,
+    # so repeating the total would inflate the effective charge (and
+    # space charge force) by a factor of n. ParticleGroup's per-particle
+    # weight is already in Coulombs; rft.C converts to elementary-charge
+    # units to match RF_Track's convention.
+    population = pg.weight * rft.C
+    return rft.Bunch6dT(
+        numpy.column_stack([x, px, y, py, z, pz, mass, charge, population, t0])
+    )
+    {% else %}
+    # Already-accelerated bunch (e.g. re-injecting a previous sim's own
+    # tracked output downstream, matching how zone_2.ipynb loads zone_1's
+    # own saved output via
+    # preproc.load_bunch_from_openpmd(bunch_type="Bunch6d")): Pz dominates
+    # here, so the small-angle approximation Bunch6d's x'/y' rely on is
+    # valid -- and Bunch6d is the only bunch type Lattice.track() accepts
+    # at all, so Sequential (Lattice) positioning requires this branch.
+    # RF_Track's native units are mm, mrad, MeV/c, mm/c; ParticleGroup's
+    # are already SI (m, eV/c, s, C).
+    x = pg.x * 1e3
+    y = pg.y * 1e3
+    px = pg.px / 1e6
+    py = pg.py / 1e6
+    pz = pg.pz / 1e6
+    t = pg.t * rft.clight * 1e3
+    population = pg.charge * rft.C
+    xp = numpy.divide(px, pz, out=numpy.zeros_like(px), where=(pz != 0)) * 1e3
+    yp = numpy.divide(py, pz, out=numpy.zeros_like(py), where=(pz != 0)) * 1e3
+    p = numpy.sqrt(px**2 + py**2 + pz**2)
+    return rft.Bunch6d(
+        BUNCH.mass_mev, population, BUNCH.charge, numpy.column_stack([x, xp, y, yp, t, p])
+    )
+    {% endif %}
+    {% else %}
+    twiss = rft.Bunch6d_twiss()
+    twiss.beta_x = BUNCH.beta_x
+    twiss.beta_y = BUNCH.beta_y
+    twiss.alpha_x = BUNCH.alpha_x
+    twiss.alpha_y = BUNCH.alpha_y
+    twiss.emitt_x = BUNCH.emit_x
+    twiss.emitt_y = BUNCH.emit_y
+    twiss.sigma_t = BUNCH.sigma_t
+    twiss.sigma_pt = BUNCH.sigma_pt
+    return rft.Bunch6d_QR(
+        BUNCH.mass_mev, BUNCH.charge_nc * rft.nC, BUNCH.charge, BUNCH.pc_mev, twiss, BUNCH.np
+    )
+    {% endif %}
+
+
+def main():
+    rft.rng_set_seed(BUNCH.random_seed)
+    {% if not isBunchReport %}
+    rft.cvar.number_of_threads = SETTINGS.num_threads
+    {% endif %}
+
+    bunch = build_bunch()
+    save_particles("initial_particles.npy", bunch, PHASE_SPACE_FIELDS)
+    {% if not isBunchReport %}
+
+    volume = build_beamline()
+    {% if autophase and hasCavity %}
+    autophase(volume)
+    {% endif %}
+    {% if spaceCharge != "none" %}
+    apply_space_charge(volume)
+    {% endif %}
+
+    tracked = volume.track(bunch)
+    save_particles("final_particles.npy", tracked, PHASE_SPACE_FIELDS)
+    save_stats(volume)
+    save_screens(volume)
+    {% endif %}
+
+
+def save_particles(filename, bunch, fields):
+    numpy.save(filename, bunch.get_phase_space(fields) * PHASE_SPACE_SCALE)
+
 
 {% if not isBunchReport %}
-{% if isLattice %}
-# Lattice appends elements sequentially with no absolute-position concept
-# at all -- gaps were already filled with synthetic Drifts and overlaps
-# rejected in _sequential_elements(), so every element here simply begins
-# where the previous one ended. There is no Volume-style tracking range to
-# set (a Lattice is inherently bounded by its own appended elements), and
-# no continuous-ODE step size to tune (dt_mm/odeint_algorithm/tt_dt_mm are
-# Volume-only) -- each element instead has its own default step count.
-V = rft.Lattice()
-{% for el in elements %}
-{% for line in el.lines %}
-{{ line }}
-{% endfor %}
-# set_tt_nsteps() controls how finely get_transport_table() samples
-# within this element (the Lattice-only equivalent of Volume's
-# tt_dt_mm) -- without it, the transport table (and so the Beam
-# Variables/Lattice Overlay plots) only reports one point per element.
-{{ el.var }}.set_tt_nsteps(20)
-V.append({{ el.var }})
-{% endfor %}
-# Element.set_offsets(), called on an already-appended element, silently
-# has no effect (verified empirically) -- Lattice.set_elements_offsets()
-# is the reliable, bulk equivalent of Volume.add()'s per-element x/y/z/
-# roll/pitch/yaw args (its extra 4th column, always 1.0 here, is unrelated
-# to any of our misalignment fields).
-V.set_elements_offsets(numpy.array([
-{% for el in elements %}
-    [{{ el.x }}, {{ el.y }}, {{ el.dzOffset }}, 1.0, {{ el.roll }}, {{ el.pitch }}, {{ el.yaw }}],
-{% endfor %}
-]))
-{% else %}
-# Volume (rather than Lattice) supports elements at explicit, possibly
-# overlapping absolute z positions -- e.g. a gun cavity's E field and a
-# bucking/focusing solenoid's B field genuinely occupy the same physical
-# space in a real photoinjector.
-V = rft.Volume()
-{% for el in elements %}
-{% for line in el.lines %}
-{{ line }}
-{% endfor %}
-V.add({{ el.var }}, {{ el.x }}, {{ el.y }}, {{ el.z }}, {{ el.roll }}, {{ el.pitch }}, {{ el.yaw }})
-{% endfor %}
-V.set_s0({{ volumeS0 }})
-V.set_s1({{ volumeS1 }})
-V.odeint_algorithm = "rkf45"
-V.dt_mm = 0.5
-V.tt_dt_mm = 10.0
-{% endif %}
-V.verbosity = 0
+def save_screens(volume):
+    for i, bunch in enumerate(volume.get_bunch_at_screens()):
+        save_particles(f"screen-{i}.npy", bunch, PHASE_SPACE_FIELDS_SCREEN)
 
-{% if autophase and hasCavity %}
-# Autophase against a single on-axis reference particle, then track the
-# real bunch through this SAME (now-phased) volume; do not rebuild it.
-# Volume.autophase() sets each RF element's internal t0 directly and
-# .track() uses that state as-is -- get_phid() does not reflect it (it
-# always reads back the phid the element was constructed with, e.g. 0.0
-# or the user's phase-offset field), so reading it back to "convert" t0
-# into an equivalent phid for a rebuilt volume silently produces the
-# unphased 0.0-offset result instead of the true autophased state.
-{% if isBunch6dT %}
-# A Cathode or From File reference particle starts at rest
-# (X,Px,Y,Py,Z,Pz all 0), not at the design momentum Pc, since both are
-# snapshots of a bunch that begins from (near) rest, not an
-# already-accelerated analytic (Twiss) distribution.
-_P0 = rft.Bunch6dT(numpy.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, mass, charge, 1.0, 0.0]]))
-{% else %}
-_P0 = rft.Bunch6d(mass, 0.0, charge, numpy.array([0.0, 0.0, 0.0, 0.0, 0.0, Pc]))
-{% endif %}
-V.unset_t0()
-V.autophase(_P0)
-{% endif %}
 
-{% if spaceCharge == "p2p" %}
-rft.cvar.SC_engine = rft.SpaceCharge_P2P()
-{% elif spaceCharge == "pic" %}
-{% if not isLattice %}
-V.sc_dt_mm = {{ scDtMm }}
-{% endif %}
-_sc = rft.SpaceCharge_PIC_FreeSpace({{ scGridNx }}, {{ scGridNy }}, {{ scGridNz }})
-_sc.set_smooth({{ scSmooth }})
-_sc.set_mirror({{ scMirror }})
-# rft.cvar.SC_engine (a process-global) rather than Volume.set_sc_engine():
-# the latter, despite existing on Volume, does not apply space-charge
-# forces the same way for a multi-element Volume -- verified empirically
-# by comparing against zone_1.ipynb, which uses the global cvar and whose
-# results (including the exact aperture-loss particle count) only match
-# once this simulation does too.
-rft.cvar.SC_engine = _sc
-{% endif %}
+def save_stats(volume):
+    t = numpy.array(volume.get_transport_table(STAT_FIELDS))
+    {% if isLattice %}
+    # %sigma_pt (Lattice) is a RELATIVE momentum spread in permille
+    # (matching this app's own beam.sigma_pt field), unlike %sigma_Pz
+    # (Volume, an absolute momentum spread in MeV/c); dividing by 1000
+    # and multiplying by %mean_P approximates that same absolute
+    # quantity, verified empirically against Volume's own %sigma_Pz for
+    # an equivalent beamline.
+    t[:, {{ statSigmaPtColumn }}] = (
+        t[:, {{ statSigmaPtColumn }}] / 1000.0 * t[:, {{ statMeanPColumn }}]
+    )
+    {% endif %}
+    # On-axis Ez/Bz: a direct field query (independent of the tracked
+    # beam) at x=y=0 and t=0, sampled at the same s positions as the
+    # transport table, so it can be selected as another y-axis column
+    # alongside the beam statistics.
+    volume.set_t0(0)
+    e, b = volume.get_field(0.0, 0.0, t[:, 0], 0.0)
+    volume.unset_t0()
+    t = numpy.hstack([t, numpy.array(e)[:, 2:3], numpy.array(b)[:, 2:3]])
+    numpy.save("stats.npy", t * STAT_SCALE)
 
-B1 = V.track(B0)
-numpy.save("final_particles.npy", _phase_space(B1))
 
-_T_raw = numpy.array(V.get_transport_table("{{ statTransportFields }}"))
-{% if isLattice %}
-# %sigma_pt (Lattice) is a RELATIVE momentum spread in permille (matching
-# this app's own beam.sigma_pt field), unlike %sigma_Pz (Volume, an
-# absolute momentum spread in MeV/c); dividing by 1000 and multiplying by
-# %mean_P approximates that same absolute quantity, verified empirically
-# against Volume's own %sigma_Pz for an equivalent beamline.
-_T_raw[:, {{ statSigmaPtColumn }}] = (
-    _T_raw[:, {{ statSigmaPtColumn }}] / 1000.0 * _T_raw[:, {{ statMeanPColumn }}]
-)
 {% endif %}
-# On-axis Ez/Bz: a direct field query (independent of the tracked beam) at
-# x=y=0 and t=0, sampled at the same s positions as the transport table, so
-# it can be selected as another y-axis column alongside the beam statistics.
-V.set_t0(0)
-_E, _B = V.get_field(0.0, 0.0, _T_raw[:, 0], 0.0)
-V.unset_t0()
-_T_raw = numpy.hstack([_T_raw, numpy.array(_E)[:, 2:3], numpy.array(_B)[:, 2:3]])
-_STAT_SCALE = numpy.array({{ statScale }})
-T = _T_raw * _STAT_SCALE
-numpy.save("stats.npy", T)
+{% if not isBunchReport %}
+def _build_element(spec):
+    if spec.kind == "drift":
+        e = rft.Drift(spec.l)
+    elif spec.kind == "quadrupole_k1":
+        e = rft.Quadrupole(spec.l, spec.k1)
+    elif spec.kind == "quadrupole_gradient":
+        e = rft.Quadrupole(spec.l, float("nan"), 0.0)
+        e.set_gradient(spec.gradient)
+    elif spec.kind == "rbend":
+        e = rft.RBend(spec.l, spec.angle, BUNCH.pc_mev / BUNCH.charge)
+    elif spec.kind == "solenoid_analytic":
+        e = rft.Solenoid(spec.l, spec.b_field, spec.radius)
+    elif spec.kind == "solenoid_fieldmap":
+        field, step, _ = _load_field_map(spec)
+        e = rft.Static_Magnetic_FieldMap_1d(field, step)
+    elif spec.kind == "corrector":
+        e = rft.Corrector(spec.l, spec.h_kick, spec.v_kick)
+    elif spec.kind == "cavity_analytic":
+        l_cell = rft.clight / (2.0 * spec.frequency_hz)
+        n_cells = max(1, round(spec.l / l_cell))
+        a = numpy.zeros(1)
+        a[-1] = spec.gradient_v_per_m
+        e = rft.Pillbox_Cavity(a, spec.frequency_hz, l_cell, n_cells)
+        e.set_phid(spec.phase_deg)
+    elif spec.kind == "cavity_fieldmap":
+        field, step, length = _load_field_map(spec)
+        e = rft.RF_FieldMap_1d(field, step, length, spec.frequency_hz, +1)
+        e.set_phid(spec.phase_deg)
+    elif spec.kind == "screen":
+        e = rft.Screen()
+    else:
+        raise AssertionError(f"unsupported element kind={spec.kind}")
+    e.set_name(spec.name)
+    e.set_aperture(spec.aperture_x, spec.aperture_y, spec.aperture_type)
+    return e
 
-for _i, _sb in enumerate(V.get_bunch_at_screens()):
-    numpy.save(f"screen-{_i}.npy", _phase_space_screen(_sb))
+
+def _load_field_map(spec):
+    t = numpy.loadtxt(spec.file)
+    s = t[:, 0]
+    step = (s.max() - s.min()) / (len(s) - 1)
+    length = s.max() - s.min()
+    field = t[:, 1]
+    if spec.rescale_mode == "factor":
+        field = field * spec.scale_factor
+    else:
+        field = field / numpy.max(numpy.abs(field)) * spec.target_field
+    return field, step, length
+
+
 {% endif %}
+# Not "if __name__ == '__main__'": Sirepo runs this file via
+# pykern.pkrunpy.run_path_as_module(), which execs it with __name__ set to
+# a name derived from the filename, never "__main__" -- that guard would
+# silently skip main() entirely under Sirepo's own execution path (no
+# error, just none of the actual work happening) while still appearing to
+# work when run standalone via `python3 parameters.py`, which is how this
+# bug was first missed.
+main()

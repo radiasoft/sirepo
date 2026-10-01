@@ -269,6 +269,22 @@
         "completionState": ""
     },
     "view": {
+        "_MISALIGNED_ELEMENT_VIEW": {
+            "advanced": [
+                ["Aperture", [
+                    "aperture_x",
+                    "aperture_y"
+                ]],
+                ["Misalignment", [
+                    "dx",
+                    "dy",
+                    "dz",
+                    "rx",
+                    "ry",
+                    "rz"
+                ]]
+            ]
+        },
         "beamline": {
             "title": "Beamline",
             "advanced": [
@@ -479,141 +495,92 @@
             ]
         },
         "DRIFT": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
             "title": "DRIFT",
             "advanced": [
-                "name",
-                "l",
-                "*Aperture",
-                "aperture_x",
-                "aperture_y",
-                "*Misalignment",
-                "dx",
-                "dy",
-                "dz",
-                "rx",
-                "ry",
-                "rz"
+                ["Main", [
+                     "name",
+                     "l"
+                ]]
             ]
         },
         "QUADRUPOLE": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
             "title": "QUADRUPOLE",
             "advanced": [
-                "name",
-                "l",
-                "strengthType",
-                "gradient",
-                "k1",
-                "*Aperture",
-                "aperture_x",
-                "aperture_y",
-                "*Misalignment",
-                "dx",
-                "dy",
-                "dz",
-                "rx",
-                "ry",
-                "rz"
+                ["Main", [
+                     "name",
+                     "l",
+                     "strengthType",
+                     "gradient",
+                     "k1"
+                ]]
             ]
         },
         "RBEND": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
             "title": "RBEND",
             "advanced": [
-                "name",
-                "l",
-                "angle",
-                "*Aperture",
-                "aperture_x",
-                "aperture_y",
-                "*Misalignment",
-                "dx",
-                "dy",
-                "dz",
-                "rx",
-                "ry",
-                "rz"
+                ["Main", [
+                     "name",
+                     "l",
+                     "angle"
+                ]]
             ]
         },
         "SOLENOID": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
             "title": "SOLENOID",
             "advanced": [
-                "name",
-                "l",
-                "fieldSource",
-                "b_field",
-                "fieldMapFile",
-                "rescaleMode",
-                "maxField",
-                "scaleFactor",
-                "*Aperture",
-                "aperture_x",
-                "aperture_y",
-                "*Misalignment",
-                "dx",
-                "dy",
-                "dz",
-                "rx",
-                "ry",
-                "rz"
+                ["Main", [
+                     "name",
+                     "l",
+                     "fieldSource",
+                     "b_field",
+                     "fieldMapFile",
+                     "rescaleMode",
+                     "maxField",
+                     "scaleFactor"
+                ]]
             ]
         },
         "CORRECTOR": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
             "title": "CORRECTOR",
             "advanced": [
-                "name",
-                "l",
-                "h_kick",
-                "v_kick",
-                "*Aperture",
-                "aperture_x",
-                "aperture_y",
-                "*Misalignment",
-                "dx",
-                "dy",
-                "dz",
-                "rx",
-                "ry",
-                "rz"
+                ["Main", [
+                     "name",
+                     "l",
+                     "h_kick",
+                     "v_kick"
+                ]]
             ]
         },
         "CAVITY": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
             "title": "CAVITY",
             "advanced": [
-                "name",
-                "l",
-                "fieldSource",
-                "gradient",
-                "frequency",
-                "phase",
-                "fieldMapFile",
-                "rescaleMode",
-                "maxField",
-                "scaleFactor",
-                "*Aperture",
-                "aperture_x",
-                "aperture_y",
-                "*Misalignment",
-                "dx",
-                "dy",
-                "dz",
-                "rx",
-                "ry",
-                "rz"
+                ["Main", [
+                     "name",
+                     "l",
+                     "fieldSource",
+                     "gradient",
+                     "frequency",
+                     "phase",
+                     "fieldMapFile",
+                     "rescaleMode",
+                     "maxField",
+                     "scaleFactor"
+                ]]
             ]
         },
         "SCREEN": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
             "title": "SCREEN",
             "advanced": [
-                "name",
-                "*Aperture",
-                "aperture_x",
-                "aperture_y",
-                "*Misalignment",
-                "dx",
-                "dy",
-                "dz",
-                "rx",
-                "ry",
-                "rz"
+                ["Main", [
+                     "name"
+                ]]
             ]
         }
     }

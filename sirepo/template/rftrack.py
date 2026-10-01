@@ -381,108 +381,153 @@ def _axis_label(name):
     return _AXIS_LABELS[name]
 
 
-def _element_code(el, index):
-    """Build the Python source lines that construct one RF_Track element.
-
-    Returns a PKDict with:
-        var: the local variable name the element is bound to
-        lines: list of top-level python statements; the first line always
-            assigns `var`
-        is_cavity: whether this is an RF element (participates in autophase)
-        x, y, z, roll, pitch, yaw: already-converted values (meters,
-            radians) for the Volume.add() call. x/y are always the
-            element's misalignment offset (dx/dy) since the nominal
-            transverse position is always 0; z is the beamline's absolute
-            elemedge position for this element plus its dz misalignment.
+def _bunch_spec(dm, v, from_file_z_offset):
+    """Build the BUNCH data record: every value build_bunch()/autophase()/
+    _build_element() (for RBEND's rigidity) need, keyed by the field names
+    those generated-script functions reference.
     """
-    var = f"_e{index}"
-    lines = []
-    is_cavity = False
-    phase = None
+    beam = dm.beam
+    mass, charge = _PARTICLE_MASS_AND_CHARGE.get(beam.particle) or (
+        beam.mass,
+        beam.charge,
+    )
+    res = PKDict(
+        charge=charge,
+        mass_mev=mass,
+        pc_mev=beam.pc,
+        random_seed=beam.randomSeed,
+    )
+    if v.isCathode:
+        res.update(
+            c_sig_t=beam.cutoffT,
+            c_sig_x=beam.cutoffX,
+            c_sig_y=beam.cutoffY,
+            cathode=True,
+            dist_pz="fd_300",
+            dist_x="r",
+            dist_y="g",
+            dist_z="plateau",
+            e_photon=beam.ePhoton,
+            lt=beam.flatTopLength,
+            noise_reduc=beam.noiseReduc == "1",
+            np=beam.np,
+            phi_eff=beam.phiEff,
+            q_total_nc=beam.charge_nC,
+            ref_clock=0,
+            ref_ekin=0,
+            ref_zpos=0,
+            rt=beam.riseTime,
+            sig_x=beam.sigX,
+            species=_CATHODE_SPECIES.get(beam.particle, "electrons"),
+        )
+    elif v.isFromFile:
+        res.update(
+            distribution_file=_SIM_DATA.lib_file_name_with_model_field(
+                "beam", "distributionFile", beam.distributionFile
+            ),
+            from_file_z_offset=from_file_z_offset,
+        )
+    else:
+        res.update(
+            alpha_x=beam.alpha_x,
+            alpha_y=beam.alpha_y,
+            beta_x=beam.beta_x,
+            beta_y=beam.beta_y,
+            charge_nc=beam.charge_nC,
+            emit_x=beam.emit_x,
+            emit_y=beam.emit_y,
+            np=beam.np,
+            sigma_pt=beam.sigma_pt,
+            sigma_t=beam.sigma_t,
+        )
+    return res
 
+
+def _element_spec(el):
+    """Build the ELEMENTS data record for one lattice element: a "kind"
+    discriminator plus whatever fields the generated script's
+    _build_element()/_load_field_map() need for that kind, and the
+    aperture/misalignment fields every kind has.
+
+    Returns (spec, is_cavity).
+    """
+    res = PKDict(
+        name=el.name,
+        elemedge=el.elemedge,
+        aperture_x=el.aperture_x,
+        aperture_y=el.aperture_y,
+        aperture_type="circular",
+        dx=el.dx,
+        dy=el.dy,
+        dz=el.dz,
+        rx=el.rx,
+        ry=el.ry,
+        rz=el.rz,
+    )
+    is_cavity = False
     if el.type == "DRIFT":
-        lines.append(f"{var} = rft.Drift({el.l})")
+        res.kind = "drift"
+        res.l = el.l
     elif el.type == "QUADRUPOLE":
         if el.get("strengthType") == "k1":
-            lines.append(f"{var} = rft.Quadrupole({el.l}, {el.k1})")
+            res.kind = "quadrupole_k1"
+            res.l = el.l
+            res.k1 = el.k1
         else:
-            lines.append(f'{var} = rft.Quadrupole({el.l}, float("nan"), 0.0)')
-            lines.append(f"{var}.set_gradient({el.gradient})")
+            res.kind = "quadrupole_gradient"
+            res.l = el.l
+            res.gradient = el.gradient
     elif el.type == "RBEND":
-        lines.append(f"{var} = rft.RBend({el.l}, {el.angle}, Pc / charge)")
+        res.kind = "rbend"
+        res.l = el.l
+        res.angle = el.angle
     elif el.type == "SOLENOID":
         if el.get("fieldSource") == "fieldMap":
-            lines += _field_map_load_lines(var, el, is_cavity=False)
+            res.kind = "solenoid_fieldmap"
+            res.update(_field_map_spec(el, is_cavity=False))
         else:
-            r = el.aperture_x or el.aperture_y or 0.05
-            lines.append(f"{var} = rft.Solenoid({el.l}, {el.b_field}, {r})")
+            res.kind = "solenoid_analytic"
+            res.l = el.l
+            res.b_field = el.b_field
+            res.radius = el.aperture_x or el.aperture_y or 0.05
     elif el.type == "CORRECTOR":
-        lines.append(f"{var} = rft.Corrector({el.l}, {el.h_kick}, {el.v_kick})")
+        res.kind = "corrector"
+        res.l = el.l
+        res.h_kick = el.h_kick
+        res.v_kick = el.v_kick
     elif el.type == "CAVITY":
         is_cavity = True
-        phase = float(el.phase)
         if el.get("fieldSource") == "fieldMap":
-            lines += _field_map_load_lines(var, el, is_cavity=True)
+            res.kind = "cavity_fieldmap"
+            res.update(_field_map_spec(el, is_cavity=True))
         else:
-            lines.append(f"_l_cell = {_CLIGHT} / (2.0 * {el.frequency})")
-            lines.append(f"_n_cells = max(1, round({el.l} / _l_cell))")
-            lines.append("_a = numpy.zeros(1)")
-            lines.append(f"_a[-1] = {el.gradient} * 1e6")
-            lines.append(
-                f"{var} = rft.Pillbox_Cavity(_a, {el.frequency}, _l_cell, _n_cells)"
-            )
-        lines.append(f"{var}.set_phid({phase})")
+            res.kind = "cavity_analytic"
+            res.l = el.l
+            res.frequency_hz = el.frequency
+            res.gradient_v_per_m = el.gradient * 1e6
+        res.phase_deg = float(el.phase)
     elif el.type == "SCREEN":
-        lines.append(f"{var} = rft.Screen()")
+        res.kind = "screen"
     else:
         raise AssertionError(f"unsupported element type={el.type}")
+    return res, is_cavity
 
-    lines.append(f'{var}.set_name("{el.name}")')
-    lines.append(f'{var}.set_aperture({el.aperture_x}, {el.aperture_y}, "circular")')
-    return PKDict(
-        var=var,
-        lines=lines,
-        is_cavity=is_cavity,
-        # Volume.add()'s x/y/z/roll/pitch/yaw args (and, equivalently, an
-        # appended Lattice element's own set_offsets()) are in
-        # meters/radians, matching our schema's misalignment fields
-        # directly -- no unit conversion needed. The nominal transverse
-        # position is always 0 (only misalignment moves x/y); z is the
-        # beamline's absolute elemedge position for this element plus its
-        # own dz misalignment -- meaningful only for Volume, since a
-        # Lattice-appended element has no absolute position, just its own
-        # dz misalignment (dzOffset).
-        x=el.dx,
-        y=el.dy,
-        z=el.elemedge + el.dz,
-        dzOffset=el.dz,
-        roll=el.rz,
-        pitch=el.rx,
-        yaw=el.ry,
+
+def _field_map_spec(el, is_cavity):
+    res = PKDict(
+        file=_SIM_DATA.lib_file_name_with_model_field(
+            el.type, "fieldMapFile", el.fieldMapFile
+        ),
     )
-
-
-def _field_map_load_lines(var, el, is_cavity):
-    lib_name = _SIM_DATA.lib_file_name_with_model_field(
-        el.type, "fieldMapFile", el.fieldMapFile
-    )
-    lines = [
-        f'_T = numpy.loadtxt("{lib_name}")',
-        "_S = _T[:, 0]",
-        "_dS = (_S.max() - _S.min()) / (len(_S) - 1)",
-        "_L = _S.max() - _S.min()",
-        "_field = _T[:, 1]",
-    ]
     if el.get("rescaleMode") == "factor":
-        lines.append(f"_field = _field * {el.scaleFactor}")
+        res.rescale_mode = "factor"
+        res.scale_factor = el.scaleFactor
     else:
-        target = el.maxField * 1e6 if is_cavity else el.maxField
-        lines.append(f"_field = _field / numpy.max(numpy.abs(_field)) * {target}")
+        res.rescale_mode = "peak"
+        res.target_field = el.maxField * 1e6 if is_cavity else el.maxField
     if is_cavity:
-        lines.append(f"{var} = rft.RF_FieldMap_1d(_field, _dS, _L, {el.frequency}, +1)")
-    else:
-        lines.append(f"{var} = rft.Static_Magnetic_FieldMap_1d(_field, _dS)")
-    return lines
+        res.frequency_hz = el.frequency
+    return res
 
 
 def _file_name_for_element_animation(run_dir, report, data):
@@ -490,6 +535,36 @@ def _file_name_for_element_animation(run_dir, report, data):
         if info.modelKey == report:
             return info.filename
     raise AssertionError(f"no output for frame={report}")
+
+
+def _format_value(value, indent):
+    """Render `value` as Python source: a dict becomes a multi-line
+    PKDict(key=value, ...) call (recursively, for nested dicts/lists/
+    tuples), matching the hand-written style of test-sim.py, so every
+    value the generated script's functions use is visible in one of
+    ELEMENTS/BUNCH/SETTINGS rather than injected as a bare literal.
+    """
+    if isinstance(value, dict):
+        pad = " " * (indent + 4)
+        return (
+            "PKDict(\n"
+            + "".join(
+                f"{pad}{k}={_format_value(v, indent + 4)},\n" for k, v in value.items()
+            )
+            + " " * indent
+            + ")"
+        )
+    if isinstance(value, (list, tuple)):
+        pad = " " * (indent + 4)
+        o, c = ("[", "]") if isinstance(value, list) else ("(", ")")
+        return (
+            o
+            + "\n"
+            + "".join(f"{pad}{_format_value(v, indent + 4)},\n" for v in value)
+            + " " * indent
+            + c
+        )
+    return repr(value)
 
 
 _OPENPMD_SPECIES = frozenset(("electron", "positron", "proton"))
@@ -604,17 +679,9 @@ def _generate_parameters_file(data):
     util = sirepo.template.lattice.LatticeUtil(data, SCHEMA)
     res, v = template_common.generate_parameters_file(data)
     dm = data.models
-    v.beam = dm.beam
-    v.particleMassAndCharge = _PARTICLE_MASS_AND_CHARGE.get(dm.beam.particle)
     v.spaceCharge = dm.simulationSettings.spaceCharge
-    v.scGridNx = dm.simulationSettings.scGridNx
-    v.scGridNy = dm.simulationSettings.scGridNy
-    v.scGridNz = dm.simulationSettings.scGridNz
-    v.scDtMm = dm.simulationSettings.scDtMm
-    v.scSmooth = dm.simulationSettings.scSmooth
-    v.scMirror = dm.simulationSettings.scMirror
     v.autophase = dm.simulationSettings.autophase == "1"
-    v.numThreads = sirepo.mpi.cfg().cores
+    v.hasCavity = False
     # Volume and Lattice are both valid RF_Track tracking objects -- Volume
     # places every element at its own explicit (possibly overlapping)
     # position; Lattice appends elements sequentially (see
@@ -651,7 +718,6 @@ def _generate_parameters_file(data):
             " positioning.",
             "Lattice mode incompatible with Bunch6dT distribution",
         )
-    v.cathodeSpecies = _CATHODE_SPECIES.get(dm.beam.particle, "electrons")
     if v.isBunch6dT:
         v.phaseSpaceFields = _PHASE_SPACE_FIELDS_CATHODE
         v.screenPhaseSpaceFields = _PHASE_SPACE_FIELDS_CATHODE_SCREEN
@@ -661,30 +727,20 @@ def _generate_parameters_file(data):
     else:
         v.phaseSpaceFields = _PHASE_SPACE_FIELDS
         v.screenPhaseSpaceFields = _PHASE_SPACE_FIELDS
-    if v.isFromFile:
-        v.distributionFileName = _SIM_DATA.lib_file_name_with_model_field(
-            "beam", "distributionFile", dm.beam.distributionFile
-        )
     v.phaseSpaceScale = _PHASE_SPACE_SCALE
-    v.statTransportFields = (
-        _STAT_TRANSPORT_FIELDS_LATTICE if v.isLattice else _STAT_TRANSPORT_FIELDS
-    )
-    v.statSigmaPtColumn = _STAT_SIGMA_PT_COLUMN
-    v.statMeanPColumn = _STAT_MEAN_P_COLUMN
-    v.statScale = _STAT_SCALE_LATTICE if v.isLattice else _STAT_SCALE
     v.isBunchReport = "bunchReport" in data.get("report", "")
-    # A From File bunch's Z is rebased to (Z - mean(Z)) + fromFileZOffset;
+
+    # A From File bunch's Z is rebased to (Z - mean(Z)) + from_file_z_offset;
     # 0.0 is the only sensible choice when previewing the bunch alone (no
-    # volume exists yet to place it relative to).
-    v.fromFileZOffset = 0.0
+    # volume exists yet to place it relative to), or when the destination
+    # is a Lattice (which has no absolute position -- it always begins at
+    # its own local s=0, so there's no elemedge value to rebase onto).
+    from_file_z_offset = 0.0
+    volume_s0, volume_s1 = 0.0, 1.0
     if not v.isBunchReport:
         elements = _generate_lattice(util, util.select_beamline().id, [])
         if v.isLattice:
             elements = _sequential_elements(elements)
-            # A Lattice has no absolute position -- it always begins at its
-            # own local s=0 -- so a From File bunch's Z (see above) rebases
-            # to that same local origin, not to any elemedge value.
-            v.fromFileZOffset = 0.0
         elif dm.simulationSettings.autoTrackingRange == "1":
             # Volume.set_s0()/set_s1() gate which portion of every element's
             # field is active during tracking (not merely where particles
@@ -693,20 +749,57 @@ def _generate_parameters_file(data):
             # reference sits upstream of the cathode -- needs the range
             # widened to its full extent or that leading portion is
             # silently excluded from the field the beam feels.
-            v.volumeS0 = min((e.elemedge for e in elements), default=0.0)
-            v.volumeS1 = max((e.elemedge + e.l for e in elements), default=1.0)
-            v.fromFileZOffset = v.volumeS0
+            volume_s0 = min((e.elemedge for e in elements), default=0.0)
+            volume_s1 = max((e.elemedge + e.l for e in elements), default=1.0)
+            from_file_z_offset = volume_s0
         else:
-            v.volumeS0 = dm.simulationSettings.trackingS0
-            v.volumeS1 = dm.simulationSettings.trackingS1
-            v.fromFileZOffset = v.volumeS0
-        v.elements = [_element_code(e, i) for i, e in enumerate(elements)]
-        v.hasCavity = any(e.is_cavity for e in v.elements)
+            volume_s0 = dm.simulationSettings.trackingS0
+            volume_s1 = dm.simulationSettings.trackingS1
+            from_file_z_offset = volume_s0
+
+        specs = []
+        for e in elements:
+            s, is_cavity = _element_spec(e)
+            specs.append(s)
+            v.hasCavity = v.hasCavity or is_cavity
+        v.elementsCode = _format_value(specs, 0)
+        v.statTransportFields = (
+            _STAT_TRANSPORT_FIELDS_LATTICE if v.isLattice else _STAT_TRANSPORT_FIELDS
+        )
+        v.statSigmaPtColumn = _STAT_SIGMA_PT_COLUMN
+        v.statMeanPColumn = _STAT_MEAN_P_COLUMN
+        v.statScale = _STAT_SCALE_LATTICE if v.isLattice else _STAT_SCALE
+        settings = PKDict(
+            num_threads=sirepo.mpi.cfg().cores,
+            space_charge=_space_charge_spec(dm.simulationSettings),
+        )
+        if not v.isLattice:
+            settings.tracking_range_m = (volume_s0, volume_s1)
+            settings.volume_dt_mm = 0.5
+            settings.volume_tt_dt_mm = 10.0
+        v.settingsCode = _format_value(settings, 0)
+
+    v.bunchCode = _format_value(_bunch_spec(dm, v, from_file_z_offset), 0)
     return res + template_common.render_jinja(
         SIM_TYPE,
         v,
         template_common.PARAMETERS_PYTHON_FILE,
     )
+
+
+def _space_charge_spec(simulation_settings):
+    if simulation_settings.spaceCharge == "pic":
+        return PKDict(
+            dt_mm=simulation_settings.scDtMm,
+            grid=(
+                simulation_settings.scGridNx,
+                simulation_settings.scGridNy,
+                simulation_settings.scGridNz,
+            ),
+            mirror_m=simulation_settings.scMirror,
+            smooth=simulation_settings.scSmooth,
+        )
+    return PKDict()
 
 
 def _output_info(data, run_dir):
