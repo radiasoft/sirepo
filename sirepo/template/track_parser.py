@@ -35,6 +35,9 @@ _COMPARISON_PLOTS = PKDict(
     rms_x=PKDict(track_col=3, track_scale=1e-2, opal_scale=1, label="x rms [m]"),
     rms_y=PKDict(track_col=4, track_scale=1e-2, opal_scale=1, label="y rms [m]"),
     rms_s=PKDict(opal_scale=1, label="z rms [m]"),
+    numParticles=PKDict(
+        track_col=32, track_scale=1, opal_scale=1, label="particle count"
+    ),
     s=PKDict(track_col=0, track_scale=1, opal_scale=1, label="s [m]"),
 )
 # beam.out columns (after dropping n_el, name): phi_rms[deg], btgm (beta*gamma)
@@ -183,6 +186,8 @@ def beam_comparison(frame_args, sdds_filename):
             return ["rms_x", "rms_y"]
         if frame_args.quantity == "z":
             return ["rms_s"]
+        if frame_args.quantity == "particleCount":
+            return ["numParticles"]
         raise AssertionError(f"unknown quantity={frame_args.quantity}")
 
     def _opal_points(col):
