@@ -445,26 +445,33 @@ def list_materials(uid):
         ]
 
 
-def load_cost_input(material_id, uid):
+def load_cost_input(material_id, is_public, uid):
     with _session() as s:
-        _material_by_id(s, material_id, uid)
+        # ensure authorized to material
+        if is_public:
+            _public_material_by_id(s, material_id)
+        else:
+            _material_by_id(s, material_id, uid)
         r = s.select_one_or_none("cost_input", where=PKDict(material_id=material_id))
         if not r:
             return None
+        # processes is "name=Cmp,..."; older rows have only "name,..."
+        p = [x.split("=") for x in r.processes.split(",")]
         return PKDict(
-            processes=r.processes.split(","),
+            processes=[x[0] for x in p],
+            cmp=PKDict((x[0], float(x[1])) for x in p if len(x) > 1),
             production_qty=r.production_qty,
         )
 
 
-def save_cost_input(material_id, uid, processes, production_qty):
+def save_cost_input(material_id, uid, processes, cmp, production_qty):
     with _session() as s:
         _material_by_id(s, material_id, uid)
         s.delete("cost_input", PKDict(material_id=material_id))
         s.insert(
             "cost_input",
             material_id=material_id,
-            processes=",".join(processes),
+            processes=",".join(f"{p}={cmp[p]}" for p in processes),
             production_qty=production_qty,
         )
 
