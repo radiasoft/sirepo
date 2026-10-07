@@ -124,7 +124,10 @@ def build_beamline():
     v.dt_mm = SETTINGS.volume_dt_mm
     v.tt_dt_mm = SETTINGS.volume_tt_dt_mm
     {% endif %}
-    v.verbosity = 0
+    # nonzero: RF_Track prints tracking progress (e.g. "t = ... mm/c")
+    # straight to stdout as track() advances, which is run.log's own
+    # content with no further plumbing needed
+    v.verbosity = 1
     return v
 
 

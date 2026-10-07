@@ -5,7 +5,7 @@
 """
 
 from pykern.pkcollections import PKDict
-from pykern.pkdebug import pkdc, pkdp
+from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import template_common
 import beamphysics
@@ -257,11 +257,18 @@ _FINAL_PARTICLES_FILE = "final_particles.npy"
 _SCREEN_FILE_PREFIX = "screen-"
 _NONE = "None"
 
+#: RF_Track's own verbosity=1 tracking-progress line (see
+#: parameters.py.jinja's `v.verbosity`), e.g.
+#: "info: tracking in progress, t = 500000.0 mm/c" -- written to run.log
+#: with ANSI "clear line" escapes between updates, not plain newlines,
+#: but those don't interfere with finding this substring anywhere in it
+_VERBOSITY_T_RE = re.compile(r"t = ([0-9.eE+-]+) mm/c")
+
 
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
         return PKDict(
-            percentComplete=0,
+            percentComplete=_rough_percent_complete(run_dir),
             frameCount=0,
         )
     r = _output_info(_read_data(run_dir), run_dir)
@@ -270,6 +277,40 @@ def background_percent_complete(report, run_dir, is_running):
         frameCount=1 if len(r) else 0,
         reports=r,
     )
+
+
+def _rough_percent_complete(run_dir):
+    """A rough running estimate from RF_Track's own verbosity progress
+    output, not an exact one: `t` (mm/c) is `c * t_phys`, the distance
+    light would travel in the elapsed time, and a particle moving at
+    close to c covers very nearly that same physical distance -- true
+    for all but a brief low-energy stretch near a cathode, negligible
+    against a typical multi-meter tracking range -- so the last `t`
+    printed so far, divided by the tracking range's own end position
+    (both in mm), stands in for actual progress through it.
+
+    Returns:
+        float: 0 whenever that's not yet knowable -- run.log doesn't
+            exist yet, has no progress line in it yet, or this report
+            has no Volume tracking range at all (e.g. a bunchReport)
+    """
+    log = run_dir.join(template_common.RUN_LOG)
+    if not log.exists():
+        return 0
+    s1_mm = (
+        _read_data(run_dir).models.get("simulationSettings", PKDict()).get("trackingS1")
+        or 0
+    ) * 1e3
+    if not s1_mm:
+        return 0
+    m = _VERBOSITY_T_RE.findall(pykern.pkio.read_text(log))
+    if not m:
+        return 0
+    # not 100: is_running is still True, and the true final t can run a
+    # little past this rough estimate's own denominator (see the
+    # docstring's "brief low-energy stretch" caveat) -- 100 is reserved
+    # for the one time this is actually known, once the job is done
+    return min(99, float(m[-1]) * 100.0 / s1_mm)
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -368,6 +409,150 @@ def _stat_animation_plot(frame_args):
 
 def stat_columns():
     return [_NONE] + sorted(_STAT_COLUMNS, key=str.lower)
+
+
+def stateful_compute_import_file(data, **kwargs):
+    """Import a self-contained RF-Track Python script.
+
+    The exact inverse of `_generate_parameters_file()`: runs the script
+    under `rftrack_import_recorder` (in a subprocess, via
+    `rftrack_import_runner`, since it's arbitrary code) and maps whatever
+    it recorded back onto a fresh simulation (`rftrack_import_mapper`).
+    See rftrack-import-plan.md for the design and its current limits.
+    """
+    if data.args.ext_lower != ".py":
+        raise IOError(f"invalid file={data.args.basename} extension, expecting .py")
+    from sirepo.template import rftrack_import_mapper
+    from sirepo.template import rftrack_import_runner
+
+    r = rftrack_import_runner.run(data.args.file_as_str)
+    elements, element_position, warnings = rftrack_import_mapper.map_elements(r.calls)
+    # a field-map file already in this sim type's lib store (e.g. a
+    # previous import or sim already uploaded it) is never "missing" to
+    # the generic lattice import dialog's upload prompt -- it only
+    # prompts for a file not already in the lib list, so without this,
+    # `l` would stay fabricated/zeroed forever for that case, unlike a
+    # genuinely new file (see validate_file(), which handles that one
+    # once the user actually uploads it)
+    lib_files = _lib_file_data(elements, qcall=None)
+    if lib_files:
+        r = rftrack_import_runner.run(data.args.file_as_str, data_files=lib_files)
+        elements, element_position, warnings = rftrack_import_mapper.map_elements(
+            r.calls
+        )
+    res = simulation_db.default_data(SIM_TYPE)
+    res.models.simulation.name = data.args.purebasename
+    res.models.simulation.elementPosition = element_position
+    item_ids = []
+    positions = []
+    for spec in elements:
+        el = _SIM_DATA.model_defaults(spec.type)
+        el.update(spec)
+        el._id = len(res.models.elements) + 1
+        positions.append(PKDict(elemedge=el.pkdel("elemedge")))
+        res.models.elements.append(el)
+        item_ids.append(el._id)
+    beamline_id = len(res.models.elements) + 1
+    res.models.beamlines = [
+        PKDict(id=beamline_id, name="Beamline1", items=item_ids, positions=positions)
+    ]
+    # sirepo-lattice.js's loadTree() groups the elements list into type
+    # categories by looking only at *consecutive* elements (a new
+    # category starts whenever the type differs from the previous
+    # element's) -- it assumes same-typed elements are already
+    # contiguous, not merely present, so the physical/beamline order
+    # built above (where types are naturally interleaved, e.g. two
+    # different cavities with a solenoid between them) produces more
+    # than one same-named category and an Angular ngRepeat dupes error.
+    # sort_elements_and_beamlines() is what every other lattice-code
+    # importer already calls for this same reason; items/positions
+    # above reference elements by _id, so this doesn't affect them.
+    sirepo.template.lattice.LatticeUtil(res, SCHEMA).sort_elements_and_beamlines()
+    res.models.simulation.activeBeamlineId = beamline_id
+    res.models.simulation.visualizationBeamlineId = beamline_id
+    beam = rftrack_import_mapper.map_bunch(r.calls)
+    if beam:
+        res.models.beam.update(beam)
+        res.models.beam.distributionType = "cathode"
+    else:
+        warnings.append(
+            "no recognized bunch (only Cathode Emission is mapped so far);"
+            " check the Beam tab"
+        )
+    if r.get("pc_mev") is not None:
+        # unobservable any other way for a Cathode bunch (see
+        # rftrack_import_driver._resolve_pc_mev()) -- recovered directly
+        # from the script's own globals only when it's one Sirepo itself
+        # generated; otherwise stays the schema default, same as before
+        res.models.beam.pc = r.pc_mev
+    settings = rftrack_import_mapper.map_settings(r.calls)
+    if settings:
+        res.models.simulationSettings.update(settings)
+    if r.get("partial_error"):
+        # track()/btrack()/autophase() are no-ops now, not an abort (see
+        # rftrack_import_recorder._NOOP_METHODS), specifically so a
+        # script keeps running past them -- the lattice/bunch/settings
+        # above already reflect everything up to wherever it then
+        # actually stopped, so this is a caveat on the result, not a
+        # reason to discard it
+        warnings.append(
+            f"script did not finish running ({r.partial_error}); import"
+            " reflects whatever it built before that point"
+        )
+    if warnings:
+        res.importWarnings = warnings
+    # not a bare `return res`: sirepo.server's api_importFile unwraps
+    # this call's result as resp.content_as_object().imported_data --
+    # without that key, it never finds one, treats that as a hard
+    # failure, and short-circuits past the save that normally assigns
+    # models.simulation.simulationId, which is what broke the browser's
+    # own post-import redirect (it had no simulationId to redirect to)
+    return PKDict(imported_data=res)
+
+
+def validate_file(file_type, path, sim_id, qcall):
+    """Recompute `l` for every element referencing a field-map file that
+    was just uploaded because stateful_compute_import_file() found it
+    missing at import time (see `_lib_file_data()` for the other case --
+    the file already being in the lib store, which never reaches here
+    at all since the generic lattice import dialog only uploads a file
+    it doesn't already have).
+
+    `l` is the one field-map value genuinely derivable from the file's
+    own content; `rescaleMode`/`scaleFactor`/`maxField` are not, and
+    stay at the import's placeholder defaults regardless (see
+    rftrack-import-plan.md).
+    """
+    m = re.match(r"^(CAVITY|SOLENOID)-fieldMapFile$", file_type)
+    if not m:
+        return None
+    try:
+        s = numpy.loadtxt(str(path))[:, 0]
+        length = s.max() - s.min()
+    except Exception:
+        return (
+            f"{path.basename} is not a valid field map file"
+            " (expecting two numeric columns: s [m], field)"
+        )
+    try:
+        data = simulation_db.open_json_file(SIM_TYPE, sid=sim_id, qcall=qcall)
+    except Exception as e:
+        # best-effort: sim_id isn't always a real, already-saved
+        # simulation (e.g. a lib file uploaded ahead of any sim, as a
+        # shared library entry) -- nothing to update in that case, not
+        # an error worth failing the upload itself over
+        pkdlog("validate_file sim_id={} error={}", sim_id, e)
+        return None
+    changed = False
+    for el in data.models.elements:
+        if el.get("type") == m.group(1) and el.get("fieldMapFile") == path.basename:
+            el.l = length
+            changed = True
+    if changed:
+        simulation_db.save_simulation_json(
+            data, fixup=False, qcall=qcall, modified=True
+        )
+    return None
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -527,6 +712,38 @@ def _field_map_spec(el, is_cavity):
         res.target_field = el.maxField * 1e6 if is_cavity else el.maxField
     if is_cavity:
         res.frequency_hz = el.frequency
+    return res
+
+
+def _lib_file_data(elements, qcall):
+    """Field-map elements (from `rftrack_import_mapper.map_elements()`)
+    whose referenced file is already in this sim type's lib store,
+    read now (lib-prefixed basename -> content) so a second import pass
+    can resolve `l` from the real file -- not `rescaleMode`/
+    `scaleFactor`/`maxField`, which are never recoverable from the
+    file's own content regardless (see rftrack-import-plan.md).
+    """
+    res = PKDict()
+    for el in elements:
+        if el.get("fieldSource") != "fieldMap" or not el.get("fieldMapFile"):
+            continue
+        n = _SIM_DATA.lib_file_name_with_model_field(
+            el.type, "fieldMapFile", el.fieldMapFile
+        )
+        if n in res:
+            continue
+        try:
+            if not _SIM_DATA.lib_file_exists(n, qcall=qcall):
+                continue
+            res[n] = pykern.pkio.read_text(_SIM_DATA.lib_file_abspath(n, qcall=qcall))
+        except Exception as e:
+            # best-effort: a field-map file genuinely missing from the
+            # lib store is the normal, common case here, not an error --
+            # and any other failure (e.g. no uid/qcall context to resolve
+            # a lib directory against, outside the real agent-side
+            # import flow) must not crash the whole import over this
+            # one optional enhancement
+            pkdlog("lib_file_data name={} error={}", n, e)
     return res
 
 

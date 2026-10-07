@@ -6,6 +6,45 @@
 """
 
 
+def test_background_percent_complete():
+    """A real run, with the generated script's own `v.verbosity = 1`
+    actually printing RF_Track's native progress lines to a real
+    run.log -- background_percent_complete()'s rough estimate (see
+    rftrack._rough_percent_complete()) should read that back and land
+    close to (but, since is_running=True here, strictly under) 100 once
+    the drift is fully tracked, since a 100 MeV/c electron is
+    ultrarelativistic (beta very close to 1), the one case that
+    estimate's own "t [mm/c] / trackingS1 [mm]" math is accurate for.
+    """
+    import pykern.pkio
+    import subprocess
+    import sys
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
+
+    with pkunit.save_chdir_work():
+        from sirepo import simulation_db
+        from sirepo.template import rftrack, template_common
+
+        run_dir = pykern.pkio.py_path(".")
+        data = _example_data(
+            simulation_settings=PKDict(trackingS1=1.0, spaceCharge="none"),
+        )
+        simulation_db.write_json(run_dir.join(template_common.INPUT_BASE_NAME), data)
+        pykern.pkio.write_text(
+            "parameters.py",
+            rftrack.python_source_for_model(data, model=None, qcall=None),
+        )
+        with open(str(run_dir.join(template_common.RUN_LOG)), "w") as f:
+            subprocess.check_call(
+                [sys.executable, "parameters.py"], stdout=f, stderr=subprocess.STDOUT
+            )
+        res = rftrack.background_percent_complete("animation", run_dir, True)
+        pkunit.pkok(
+            res.percentComplete > 90, "percentComplete={} too low", res.percentComplete
+        )
+
+
 def test_generate_python():
     from pykern import pkio, pkunit
 

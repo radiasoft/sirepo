@@ -35,9 +35,11 @@
         "sirepoLibs": {
             "js": [
                 "rftrack.js",
+                "sirepo-command.js",
                 "sirepo-lattice.js"
             ],
             "css": [
+                "command.css",
                 "lattice.css"
             ]
         }
@@ -241,7 +243,7 @@
             "fieldSource": ["Field Source", "FieldSource", "analytic"],
             "b_field": ["B Field [T]", "Float", 0, "Used when Field Source is Analytic"],
             "fieldMapFile": ["Field Map File", "InputFile", "", "1D on-axis Bz field map (two columns: s [m], Bz [T]). Used when Field Source is 1D Field Map."],
-            "rescaleMode": ["Rescale Mode", "RescaleMode", "peak"],
+            "rescaleMode": ["Rescale Mode", "RescaleMode", "factor"],
             "maxField": ["Peak B Field [T]", "Float", 0, "Rescale the field map so its peak magnitude equals this value"],
             "scaleFactor": ["Scale Factor", "Float", 1, "Multiply the field map values directly by this factor"]
         },
