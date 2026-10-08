@@ -93,7 +93,6 @@ SIREPO.app.config(function() {
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.appFieldEditors += ``;
     SIREPO.lattice = {
-        latticeImport: '.py',
         elementColor: {
         },
         elementPic: {
