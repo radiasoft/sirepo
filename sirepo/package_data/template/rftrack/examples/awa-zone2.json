@@ -236,7 +236,8 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "CORRECTOR",
-                "v_kick": 0.0
+                "v_kick": 0.0,
+                "setAperture": "1"
             },
             {
                 "_id": 22,
@@ -253,7 +254,8 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "CORRECTOR",
-                "v_kick": 0.0
+                "v_kick": 0.0,
+                "setAperture": "1"
             },
             {
                 "_id": 2,
@@ -270,7 +272,8 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "CORRECTOR",
-                "v_kick": 0.0
+                "v_kick": 0.0,
+                "setAperture": "1"
             },
             {
                 "_id": 10,
@@ -287,7 +290,8 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "CORRECTOR",
-                "v_kick": 0.0
+                "v_kick": 0.0,
+                "setAperture": "1"
             },
             {
                 "_id": 30,
@@ -304,7 +308,8 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "CORRECTOR",
-                "v_kick": 0.0
+                "v_kick": 0.0,
+                "setAperture": "1"
             },
             {
                 "_id": 33,
@@ -319,7 +324,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 5,
@@ -334,7 +340,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 7,
@@ -349,7 +356,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 9,
@@ -364,7 +372,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 15,
@@ -379,7 +388,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 17,
@@ -394,7 +404,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 19,
@@ -409,7 +420,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 21,
@@ -424,7 +436,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 27,
@@ -439,7 +452,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 29,
@@ -454,7 +468,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 13,
@@ -469,7 +484,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 23,
@@ -484,7 +500,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 3,
@@ -499,7 +516,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 11,
@@ -514,7 +532,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 31,
@@ -529,7 +548,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 1,
@@ -544,7 +564,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 25,
@@ -559,7 +580,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 4,
@@ -577,7 +599,8 @@
                 "ry": 0,
                 "rz": 0,
                 "strengthType": "k1",
-                "type": "QUADRUPOLE"
+                "type": "QUADRUPOLE",
+                "setAperture": "1"
             },
             {
                 "_id": 32,
@@ -595,7 +618,8 @@
                 "ry": 0,
                 "rz": 0,
                 "strengthType": "k1",
-                "type": "QUADRUPOLE"
+                "type": "QUADRUPOLE",
+                "setAperture": "1"
             },
             {
                 "_id": 6,
@@ -613,7 +637,8 @@
                 "ry": 0,
                 "rz": 0,
                 "strengthType": "k1",
-                "type": "QUADRUPOLE"
+                "type": "QUADRUPOLE",
+                "setAperture": "1"
             },
             {
                 "_id": 8,
@@ -631,7 +656,8 @@
                 "ry": 0,
                 "rz": 0,
                 "strengthType": "k1",
-                "type": "QUADRUPOLE"
+                "type": "QUADRUPOLE",
+                "setAperture": "1"
             },
             {
                 "_id": 14,
@@ -649,7 +675,8 @@
                 "ry": 0,
                 "rz": 0,
                 "strengthType": "k1",
-                "type": "QUADRUPOLE"
+                "type": "QUADRUPOLE",
+                "setAperture": "1"
             },
             {
                 "_id": 16,
@@ -667,7 +694,8 @@
                 "ry": 0,
                 "rz": 0,
                 "strengthType": "k1",
-                "type": "QUADRUPOLE"
+                "type": "QUADRUPOLE",
+                "setAperture": "1"
             },
             {
                 "_id": 18,
@@ -685,7 +713,8 @@
                 "ry": 0,
                 "rz": 0,
                 "strengthType": "k1",
-                "type": "QUADRUPOLE"
+                "type": "QUADRUPOLE",
+                "setAperture": "1"
             },
             {
                 "_id": 20,
@@ -703,7 +732,8 @@
                 "ry": 0,
                 "rz": 0,
                 "strengthType": "k1",
-                "type": "QUADRUPOLE"
+                "type": "QUADRUPOLE",
+                "setAperture": "1"
             },
             {
                 "_id": 26,
@@ -721,7 +751,8 @@
                 "ry": 0,
                 "rz": 0,
                 "strengthType": "k1",
-                "type": "QUADRUPOLE"
+                "type": "QUADRUPOLE",
+                "setAperture": "1"
             },
             {
                 "_id": 28,
@@ -739,7 +770,8 @@
                 "ry": 0,
                 "rz": 0,
                 "strengthType": "k1",
-                "type": "QUADRUPOLE"
+                "type": "QUADRUPOLE",
+                "setAperture": "1"
             },
             {
                 "_id": 24,
@@ -754,7 +786,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "SCREEN"
+                "type": "SCREEN",
+                "setAperture": "1"
             },
             {
                 "_id": 34,
@@ -769,7 +802,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "SCREEN"
+                "type": "SCREEN",
+                "setAperture": "1"
             }
         ],
         "rpnVariables": [],

@@ -252,6 +252,7 @@ _AXIS_LABELS = PKDict(
 )
 
 _STATS_FILE = "stats.npy"
+_BPMS_FILE = "bpms.npy"
 _INITIAL_PARTICLES_FILE = "initial_particles.npy"
 _FINAL_PARTICLES_FILE = "final_particles.npy"
 _SCREEN_FILE_PREFIX = "screen-"
@@ -372,6 +373,15 @@ def sim_frame(frame_args):
     )
 
 
+def sim_frame_bpmAnimation(frame_args):
+    v = numpy.load(str(frame_args.run_dir.join(_BPMS_FILE)))
+    return PKDict(
+        rows=[
+            [f"{s:.3f}", f"{q:.3e}", f"{x:.4f}", f"{y:.4f}"] for s, x, y, q in v
+        ],
+    )
+
+
 def sim_frame_statAnimation(frame_args):
     return _stat_animation_plot(frame_args)
 
@@ -414,19 +424,32 @@ def stat_columns():
 def validate_file(file_type, path, sim_id, qcall):
     """Recompute `l` for every CAVITY/SOLENOID element referencing a
     field-map file that was just uploaded, since that's the one
-    field-map value genuinely derivable from the file's own content
-    (two numeric columns: s [m], field).
+    field-map value genuinely derivable from the file's own content:
+    two numeric columns (s [m], field) for a 1D map, or (for a CAVITY's
+    2D map) a SUPERFISH-style file whose first column is Z [cm].
     """
-    m = re.match(r"^(CAVITY|SOLENOID)-fieldMapFile$", file_type)
+    m = re.match(r"^(CAVITY|SOLENOID)-(fieldMapFile|fieldMapFile2d)$", file_type)
     if not m:
         return None
+    el_type, field = m.group(1), m.group(2)
     try:
+        # numpy.loadtxt() already skips `#`-commented header lines on
+        # its own, same as a SUPERFISH 2D map's two header lines
         s = numpy.loadtxt(str(path))[:, 0]
         length = s.max() - s.min()
+        if field == "fieldMapFile2d":
+            length /= 100  # Z is in cm, not m
     except Exception:
         return (
             f"{path.basename} is not a valid field map file"
             " (expecting two numeric columns: s [m], field)"
+            if field == "fieldMapFile"
+            else (
+                f"{path.basename} is not a valid 2D field map file"
+                " (expecting a SUPERFISH-style file: two commented header"
+                " lines, then rows of Z [cm], R [cm], Ez [MV/m], Er [MV/m],"
+                " |E| [MV/m], H [A/m])"
+            )
         )
     try:
         data = simulation_db.open_json_file(SIM_TYPE, sid=sim_id, qcall=qcall)
@@ -439,7 +462,7 @@ def validate_file(file_type, path, sim_id, qcall):
         return None
     changed = False
     for el in data.models.elements:
-        if el.get("type") == m.group(1) and el.get("fieldMapFile") == path.basename:
+        if el.get("type") == el_type and el.get(field) == path.basename:
             el.l = length
             changed = True
     if changed:
@@ -533,6 +556,7 @@ def _element_spec(el):
     res = PKDict(
         name=el.name,
         elemedge=el.elemedge,
+        set_aperture=el.setAperture == "1",
         aperture_x=el.aperture_x,
         aperture_y=el.aperture_y,
         aperture_type="circular",
@@ -579,6 +603,9 @@ def _element_spec(el):
         if el.get("fieldSource") == "fieldMap":
             res.kind = "cavity_fieldmap"
             res.update(_field_map_spec(el, is_cavity=True))
+        elif el.get("fieldSource") == "2dFieldMap":
+            res.kind = "cavity_fieldmap_2d"
+            res.update(_field_map_2d_spec(el))
         else:
             res.kind = "cavity_analytic"
             res.l = el.l
@@ -587,6 +614,9 @@ def _element_spec(el):
         res.phase_deg = float(el.phase)
     elif el.type == "SCREEN":
         res.kind = "screen"
+    elif el.type == "BPM":
+        res.kind = "bpm"
+        res.l = el.l
     else:
         raise AssertionError(f"unsupported element type={el.type}")
     return res, is_cavity
@@ -607,6 +637,18 @@ def _field_map_spec(el, is_cavity):
     if is_cavity:
         res.frequency_hz = el.frequency
     return res
+
+
+def _field_map_2d_spec(el):
+    # no rescale_mode/scale_factor/target_field, unlike _field_map_spec():
+    # a 2D (r, z) SUPERFISH-style map is already in absolute physical
+    # units (MV/m), with no peak-normalize-or-multiply step applied to it
+    return PKDict(
+        file=_SIM_DATA.lib_file_name_with_model_field(
+            "CAVITY", "fieldMapFile2d", el.fieldMapFile2d
+        ),
+        frequency_hz=el.frequency,
+    )
 
 
 def _file_name_for_element_animation(run_dir, report, data):
@@ -719,6 +761,7 @@ def _sequential_elements(elements):
                         name=f"_gap{i}",
                         l=gap,
                         elemedge=prev_end,
+                        setAperture=el.setAperture,
                         aperture_x=el.aperture_x,
                         aperture_y=el.aperture_y,
                         dx=0,
@@ -894,6 +937,15 @@ def _output_info(data, run_dir):
                     frameCount=1,
                 )
             )
+    if run_dir.join(_BPMS_FILE).exists():
+        res.append(
+            PKDict(
+                name="Beam Position at Monitors",
+                modelKey="bpmAnimation",
+                report="bpmAnimation",
+                frameCount=1,
+            )
+        )
     names = _screen_names(data)
     for idx, name in enumerate(names):
         fn = f"{_SCREEN_FILE_PREFIX}{idx}.npy"

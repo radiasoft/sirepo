@@ -133,7 +133,8 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "CORRECTOR",
-                "v_kick": -0.3
+                "v_kick": -0.3,
+                "setAperture": "1"
             },
             {
                 "_id": 3,
@@ -148,7 +149,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 5,
@@ -163,7 +165,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             }
         ],
         "rpnVariables": [],

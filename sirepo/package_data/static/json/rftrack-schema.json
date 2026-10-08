@@ -19,7 +19,8 @@
             "SOLENOID",
             "CORRECTOR",
             "CAVITY",
-            "SCREEN"
+            "SCREEN",
+            "BPM"
         ],
         "dataDownloads": {
             "bunchReport": [{"title": "OpenPMD HDF5", "suffix": "openpmd"}],
@@ -52,7 +53,8 @@
             "reportIndex"
         ],
         "statAnimation": ["x", "y1", "y2", "y3", "y4", "y5"],
-        "stat2Animation": ["x", "y1", "y2", "y3", "y4", "y5"]
+        "stat2Animation": ["x", "y1", "y2", "y3", "y4", "y5"],
+        "bpmAnimation": []
     },
     "enum": {
         "BeamParticle": [
@@ -95,7 +97,8 @@
         ],
         "FieldSource": [
             ["analytic", "Analytic"],
-            ["fieldMap", "1D Field Map"]
+            ["fieldMap", "1D Field Map"],
+            ["2dFieldMap", "2D Field Map"]
         ],
         "RescaleMode": [
             ["peak", "Rescale to Peak Field"],
@@ -205,6 +208,7 @@
             "trackingS1": ["Tracking End [m]", "Float", 10.0, "Volume.set_s1(): end of the active tracking range"]
         },
         "simulationStatus": {},
+        "bpmAnimation": {},
         "statAnimation": {
             "_super": ["_", "model", "_PARAMETER_PLOT_COMMON"],
             "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
@@ -216,6 +220,7 @@
         "_ELEMENT": {
             "name": ["NAME", "ValidatedString", "", ""],
             "l": ["L [m]", "Float", 0, "The element length"],
+            "setAperture": ["Set Aperture", "Boolean", "0", "When enabled, RF_Track's set_aperture() is called with the X/Y values below, and particles beyond them are lost. Left disabled, the element has no aperture at all (RF_Track's own default)."],
             "aperture_x": ["Aperture X [m]", "Float", 0.015, "Horizontal aperture half-width. Particles beyond this are lost."],
             "aperture_y": ["Aperture Y [m]", "Float", 0.015, "Vertical aperture half-height. Particles beyond this are lost."],
             "dx": ["Misalignment dx [m]", "Float", 0],
@@ -261,9 +266,13 @@
             "fieldMapFile": ["Field Map File", "InputFile", "", "1D on-axis Ez field map (two columns: s [m], Ez [V/m or normalized]). Used when Field Source is 1D Field Map."],
             "rescaleMode": ["Rescale Mode", "RescaleMode", "peak"],
             "maxField": ["Peak E Field [MV/m]", "Float", 0, "Rescale the field map so its peak magnitude equals this value"],
-            "scaleFactor": ["Scale Factor", "Float", 1, "Multiply the field map values directly by this factor"]
+            "scaleFactor": ["Scale Factor", "Float", 1, "Multiply the field map values directly by this factor"],
+            "fieldMapFile2d": ["2D Field Map File", "InputFile", "", "2D (r, z) on-axis-and-off-axis Ez/Er field map, SUPERFISH-style: two commented header lines, then rows of Z [cm], R [cm], Ez [MV/m], Er [MV/m], |E| [MV/m], H [A/m]. Used when Field Source is 2D Field Map; not rescaled."]
         },
         "SCREEN": {
+            "_super": ["_", "model", "_ELEMENT"]
+        },
+        "BPM": {
             "_super": ["_", "model", "_ELEMENT"]
         }
     },
@@ -274,6 +283,7 @@
         "_MISALIGNED_ELEMENT_VIEW": {
             "advanced": [
                 ["Aperture", [
+                    "setAperture",
                     "aperture_x",
                     "aperture_y"
                 ]],
@@ -414,6 +424,11 @@
         },
         "simulationStatus": {
             "title": "Simulation Status",
+            "advanced": []
+        },
+        "bpmAnimation": {
+            "title": "Beam Position at Monitors",
+            "hasDataFile": false,
             "advanced": []
         },
         "statAnimation": {
@@ -572,13 +587,23 @@
                      "fieldMapFile",
                      "rescaleMode",
                      "maxField",
-                     "scaleFactor"
+                     "scaleFactor",
+                     "fieldMapFile2d"
                 ]]
             ]
         },
         "SCREEN": {
             "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
             "title": "SCREEN",
+            "advanced": [
+                ["Main", [
+                     "name"
+                ]]
+            ]
+        },
+        "BPM": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "BPM",
             "advanced": [
                 ["Main", [
                      "name"

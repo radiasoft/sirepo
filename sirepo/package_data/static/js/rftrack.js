@@ -92,6 +92,9 @@ SIREPO.app.config(function() {
     SIREPO.appDefaultSimulationValues.simulation.elementPosition = 'absolute';
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
     SIREPO.appFieldEditors += ``;
+    SIREPO.appReportTypes = `
+        <div data-ng-switch-when="bpmTable" data-bpm-table-panel="" class="sr-plot sr-screenshot"></div>
+    `;
     SIREPO.lattice = {
         elementColor: {
         },
@@ -101,7 +104,44 @@ SIREPO.app.config(function() {
             magnet: ['QUADRUPOLE', 'CORRECTOR'],
             rf: ['CAVITY'],
             solenoid: ['SOLENOID'],
-            watch: ['SCREEN'],
+            watch: ['SCREEN', 'BPM'],
+        },
+    };
+});
+
+SIREPO.app.directive('bpmTablePanel', function(plotting) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div data-ng-if="! rows">
+              <div class="lead">&nbsp;</div>
+            </div>
+            <div data-ng-if="rows">
+              <div class="col-sm-12" style="margin-top: 1ex;">
+                <table class="table">
+                  <thead>
+                  <tr>
+                    <th class="text-right" data-ng-repeat="h in headers">{{ h }}</th>
+                  </tr>
+                  </thead>
+                  <tr data-ng-repeat="row in rows">
+                    <td data-ng-repeat="value in row track by $index" class="text-right">{{ value }}</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            plotting.setTextOnlyReport($scope);
+            $scope.headers = ['S [m]', 'Charge [e]', 'X [mm]', 'Y [mm]'];
+            $scope.load = function(json) {
+                $scope.rows = json.rows;
+            };
+        },
+        link: function link(scope, element) {
+            scope.modelName = 'bpmAnimation';
+            plotting.linkPlot(scope, element);
         },
     };
 });
@@ -176,6 +216,11 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
                 initModel(info, info.modelKey);
                 return;
             }
+            if (info.modelKey == 'bpmAnimation') {
+                initModel(info, info.modelKey);
+                self.hasBpmReport = true;
+                return;
+            }
             initModel(info, 'elementAnimation');
             self.outputFiles.push({
                 info: info,
@@ -193,6 +238,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     self.simHandleStatus = (data) => {
         self.errorMessage = data.error;
         self.outputFiles = [];
+        self.hasBpmReport = false;
         if (data.reports && data.reports.length) {
             loadReports(data.reports);
         }
@@ -280,6 +326,16 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
+function updateApertureFields(appState, panelState, type) {
+    const m = appState.models[type];
+    if (! m) {
+        return;
+    }
+    panelState.showFields(type, [
+        ['aperture_x', 'aperture_y'], m.setAperture == '1',
+    ]);
+}
+
 SIREPO.viewLogic('beamView', function(appState, panelState, $scope) {
 
     // The "*Longitudinal" and "*Cathode Emission" section headers are
@@ -329,6 +385,16 @@ SIREPO.viewLogic('beamView', function(appState, panelState, $scope) {
     ];
 });
 
+SIREPO.viewLogic('driftView', function(appState, panelState, $scope) {
+
+    const updateFields = () => updateApertureFields(appState, panelState, 'DRIFT');
+
+    $scope.whenSelected = updateFields;
+    $scope.watchFields = [
+        ['DRIFT.setAperture'], updateFields,
+    ];
+});
+
 SIREPO.viewLogic('quadrupoleView', function(appState, panelState, $scope) {
 
     const updateFields = () => {
@@ -340,11 +406,22 @@ SIREPO.viewLogic('quadrupoleView', function(appState, panelState, $scope) {
             ['gradient'], m.strengthType === 'gradient',
             ['k1'], m.strengthType === 'k1',
         ]);
+        updateApertureFields(appState, panelState, 'QUADRUPOLE');
     };
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
-        ['QUADRUPOLE.strengthType'], updateFields,
+        ['QUADRUPOLE.strengthType', 'QUADRUPOLE.setAperture'], updateFields,
+    ];
+});
+
+SIREPO.viewLogic('rbendView', function(appState, panelState, $scope) {
+
+    const updateFields = () => updateApertureFields(appState, panelState, 'RBEND');
+
+    $scope.whenSelected = updateFields;
+    $scope.watchFields = [
+        ['RBEND.setAperture'], updateFields,
     ];
 });
 
@@ -362,11 +439,22 @@ SIREPO.viewLogic('solenoidView', function(appState, panelState, $scope) {
             ['maxField'], isMap && m.rescaleMode === 'peak',
             ['scaleFactor'], isMap && m.rescaleMode === 'factor',
         ]);
+        updateApertureFields(appState, panelState, 'SOLENOID');
     };
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
-        ['SOLENOID.fieldSource', 'SOLENOID.rescaleMode'], updateFields,
+        ['SOLENOID.fieldSource', 'SOLENOID.rescaleMode', 'SOLENOID.setAperture'], updateFields,
+    ];
+});
+
+SIREPO.viewLogic('correctorView', function(appState, panelState, $scope) {
+
+    const updateFields = () => updateApertureFields(appState, panelState, 'CORRECTOR');
+
+    $scope.whenSelected = updateFields;
+    $scope.watchFields = [
+        ['CORRECTOR.setAperture'], updateFields,
     ];
 });
 
@@ -378,17 +466,40 @@ SIREPO.viewLogic('cavityView', function(appState, panelState, $scope) {
             return;
         }
         const isMap = m.fieldSource === 'fieldMap';
+        const is2dMap = m.fieldSource === '2dFieldMap';
         panelState.showFields('CAVITY', [
-            ['gradient'], ! isMap,
+            ['gradient'], m.fieldSource === 'analytic',
             ['fieldMapFile', 'rescaleMode'], isMap,
             ['maxField'], isMap && m.rescaleMode === 'peak',
             ['scaleFactor'], isMap && m.rescaleMode === 'factor',
+            ['fieldMapFile2d'], is2dMap,
         ]);
+        updateApertureFields(appState, panelState, 'CAVITY');
     };
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
-        ['CAVITY.fieldSource', 'CAVITY.rescaleMode'], updateFields,
+        ['CAVITY.fieldSource', 'CAVITY.rescaleMode', 'CAVITY.setAperture'], updateFields,
+    ];
+});
+
+SIREPO.viewLogic('screenView', function(appState, panelState, $scope) {
+
+    const updateFields = () => updateApertureFields(appState, panelState, 'SCREEN');
+
+    $scope.whenSelected = updateFields;
+    $scope.watchFields = [
+        ['SCREEN.setAperture'], updateFields,
+    ];
+});
+
+SIREPO.viewLogic('bpmView', function(appState, panelState, $scope) {
+
+    const updateFields = () => updateApertureFields(appState, panelState, 'BPM');
+
+    $scope.whenSelected = updateFields;
+    $scope.watchFields = [
+        ['BPM.setAperture'], updateFields,
     ];
 });
 

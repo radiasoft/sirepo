@@ -260,6 +260,7 @@ def main():
     save_particles("final_particles.npy", tracked, PHASE_SPACE_FIELDS)
     save_stats(volume)
     save_screens(volume)
+    save_bpms(volume)
     {% endif %}
 
 
@@ -268,6 +269,19 @@ def save_particles(filename, bunch, fields):
 
 
 {% if not isBunchReport %}
+def save_bpms(volume):
+    # get_bpms()/get_nbpms() only exist on Lattice, not Volume -- BPM
+    # readings aren't supported in Volume mode at all, so this is a
+    # no-op there, same as it would be for a lattice with no BPMs
+    if not hasattr(volume, "get_bpms") or volume.get_nbpms() == 0:
+        return
+    rows = []
+    for bpm in volume.get_bpms():
+        x, y, _ = bpm.get_reading()  # mm, mm, mm (z unused)
+        rows.append([bpm.get_S(), x, y, bpm.get_total_charge()])
+    numpy.save("bpms.npy", numpy.array(rows))
+
+
 def save_screens(volume):
     for i, bunch in enumerate(volume.get_bunch_at_screens()):
         save_particles(f"screen-{i}.npy", bunch, PHASE_SPACE_FIELDS_SCREEN)
@@ -327,12 +341,19 @@ def _build_element(spec):
         field, step, length = _load_field_map(spec)
         e = rft.RF_FieldMap_1d(field, step, length, spec.frequency_hz, +1)
         e.set_phid(spec.phase_deg)
+    elif spec.kind == "cavity_fieldmap_2d":
+        Er, Ez, hr, hz = _load_field_map_2d(spec)
+        e = rft.RF_FieldMap_2d(Er, Ez, 0, 0, hr, hz, -1, spec.frequency_hz, +1)
+        e.set_phid(spec.phase_deg)
     elif spec.kind == "screen":
         e = rft.Screen()
+    elif spec.kind == "bpm":
+        e = rft.Bpm(spec.l)
     else:
         raise AssertionError(f"unsupported element kind={spec.kind}")
     e.set_name(spec.name)
-    e.set_aperture(spec.aperture_x, spec.aperture_y, spec.aperture_type)
+    if spec.set_aperture:
+        e.set_aperture(spec.aperture_x, spec.aperture_y, spec.aperture_type)
     return e
 
 
@@ -347,6 +368,21 @@ def _load_field_map(spec):
     else:
         field = field / numpy.max(numpy.abs(field)) * spec.target_field
     return field, step, length
+
+
+def _load_field_map_2d(spec):
+    # SUPERFISH-style: two `#`-commented header lines (numpy.loadtxt()
+    # skips these on its own), then rows of Z [cm], R [cm], Ez [MV/m],
+    # Er [MV/m], |E| [MV/m], H [A/m] -- not rescaled, unlike a 1D map
+    t = numpy.loadtxt(spec.file)
+    z = numpy.sort(numpy.unique(t[:, 0]))
+    r = numpy.sort(numpy.unique(t[:, 1]))
+    nz, nr = len(z), len(r)
+    hz = (z[-1] - z[0]) / (nz - 1) / 100
+    hr = (r[-1] - r[0]) / (nr - 1) / 100
+    Ez = t[:, 2].reshape((nz, nr), order="F") * 1e6
+    Er = t[:, 3].reshape((nz, nr), order="F") * 1e6
+    return Er, Ez, hr, hz
 
 
 {% endif %}

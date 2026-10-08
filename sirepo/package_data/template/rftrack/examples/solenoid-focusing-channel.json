@@ -135,7 +135,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 6,
@@ -150,7 +151,8 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "type": "DRIFT"
+                "type": "DRIFT",
+                "setAperture": "1"
             },
             {
                 "_id": 3,
@@ -172,7 +174,8 @@
                 "ry": 0,
                 "rz": 0,
                 "scaleFactor": 1,
-                "type": "SOLENOID"
+                "type": "SOLENOID",
+                "setAperture": "1"
             },
             {
                 "_id": 5,
@@ -194,7 +197,8 @@
                 "ry": 0,
                 "rz": 0,
                 "scaleFactor": 1,
-                "type": "SOLENOID"
+                "type": "SOLENOID",
+                "setAperture": "1"
             }
         ],
         "rpnVariables": [],
