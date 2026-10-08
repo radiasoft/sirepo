@@ -244,6 +244,13 @@ def _init():
                 "url to reach scan monitor daemon",
             ),
         ),
+        rftrack=dict(
+            data_storage_url=(
+                "https://github.com/radiasoft/sirepo-data-rftrack/raw/main/",
+                str,
+                "url base to reach rftrack example data files",
+            ),
+        ),
         sbatch_sim_types=(
             set(("openmc", "radia", "srw")),
             set,
