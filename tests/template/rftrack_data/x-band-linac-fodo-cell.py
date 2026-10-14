@@ -8,8 +8,8 @@ import rslume.rftrack_utils
 
 ELEMENTS = [
     PKDict(
-        name='D1',
-        elemedge=0.0,
+        name='D0',
+        elemedge=0,
         set_aperture=False,
         aperture_x=0.015,
         aperture_y=0.015,
@@ -21,11 +21,11 @@ ELEMENTS = [
         ry=0,
         rz=0,
         kind='drift',
-        l=1.0,
+        l=0.05,
     ),
     PKDict(
-        name='S1',
-        elemedge=1.0,
+        name='C1',
+        elemedge=0.05,
         set_aperture=False,
         aperture_x=0.015,
         aperture_y=0.015,
@@ -36,59 +36,154 @@ ELEMENTS = [
         rx=0,
         ry=0,
         rz=0,
-        kind='screen',
+        kind='cavity_analytic',
+        l=0.15,
+        frequency_hz=11994200000,
+        gradient_v_per_m=80000000.0,
+        phase_deg=0.0,
+    ),
+    PKDict(
+        name='C2',
+        elemedge=0.2,
+        set_aperture=False,
+        aperture_x=0.015,
+        aperture_y=0.015,
+        aperture_type='circular',
+        dx=0,
+        dy=0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='cavity_analytic',
+        l=0.15,
+        frequency_hz=11994200000,
+        gradient_v_per_m=80000000.0,
+        phase_deg=0.0,
+    ),
+    PKDict(
+        name='QF',
+        elemedge=0.35,
+        set_aperture=False,
+        aperture_x=0.015,
+        aperture_y=0.015,
+        aperture_type='circular',
+        dx=0,
+        dy=0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='quadrupole_gradient',
+        l=0.1,
+        gradient=5,
+    ),
+    PKDict(
+        name='C3',
+        elemedge=0.45,
+        set_aperture=False,
+        aperture_x=0.015,
+        aperture_y=0.015,
+        aperture_type='circular',
+        dx=0,
+        dy=0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='cavity_analytic',
+        l=0.15,
+        frequency_hz=11994200000,
+        gradient_v_per_m=80000000.0,
+        phase_deg=0.0,
+    ),
+    PKDict(
+        name='C4',
+        elemedge=0.6,
+        set_aperture=False,
+        aperture_x=0.015,
+        aperture_y=0.015,
+        aperture_type='circular',
+        dx=0,
+        dy=0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='cavity_analytic',
+        l=0.15,
+        frequency_hz=11994200000,
+        gradient_v_per_m=80000000.0,
+        phase_deg=0.0,
+    ),
+    PKDict(
+        name='QD',
+        elemedge=0.75,
+        set_aperture=False,
+        aperture_x=0.015,
+        aperture_y=0.015,
+        aperture_type='circular',
+        dx=0,
+        dy=0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='quadrupole_gradient',
+        l=0.1,
+        gradient=-5,
     ),
 ]
 BUNCH = PKDict(
     charge=-1.0,
     mass_mev=0.51099895069,
-    pc_mev=100.0,
+    pc_mev=100,
     random_seed=5489,
-    alpha_x=0.0,
-    alpha_y=0.0,
-    beta_x=1.0,
-    beta_y=1.0,
-    charge_nc=1.0,
-    emit_x=1.0,
-    emit_y=1.0,
-    np=100,
-    sigma_pt=1.0,
-    sigma_t=1.0,
+    alpha_x=0,
+    alpha_y=0,
+    beta_x=1,
+    beta_y=1,
+    charge_nc=0.05,
+    emit_x=5,
+    emit_y=5,
+    np=10000,
+    sigma_pt=1,
+    sigma_t=1,
 )
 SETTINGS = PKDict(
     num_threads=1,
     space_charge=PKDict(
     ),
-    tracking_range_m=(
-        0.0,
-        1.0,
-    ),
-    volume_dt_mm=0.5,
-    volume_tt_dt_mm=10.0,
 )
 
 
 def build_beamline():
-    # Volume (rather than Lattice) supports elements at explicit, possibly
-    # overlapping absolute z positions -- e.g. a gun cavity's E field and
-    # a bucking/focusing solenoid's B field genuinely occupy the same
-    # physical space in a real photoinjector.
-    v = rft.Volume()
-    for spec in ELEMENTS:
-        v.add(
-            _build_element(spec),
-            spec.dx,
-            spec.dy,
-            spec.elemedge + spec.dz,
-            spec.rz,
-            spec.rx,
-            spec.ry,
-        )
-    v.set_s0(SETTINGS.tracking_range_m[0])
-    v.set_s1(SETTINGS.tracking_range_m[1])
-    v.odeint_algorithm = "rkf45"
-    v.dt_mm = SETTINGS.volume_dt_mm
-    v.tt_dt_mm = SETTINGS.volume_tt_dt_mm
+    # Lattice appends elements sequentially with no absolute-position
+    # concept at all -- gaps were already filled with synthetic Drifts
+    # and overlaps rejected when ELEMENTS was generated, so every element
+    # here simply begins where the previous one ended. There is no
+    # Volume-style tracking range to set (a Lattice is inherently bounded
+    # by its own appended elements), and no continuous-ODE step size to
+    # tune (dt_mm/odeint_algorithm/tt_dt_mm are Volume-only) -- each
+    # element instead has its own default step count.
+    v = rft.Lattice()
+    elements = [_build_element(spec) for spec in ELEMENTS]
+    for e in elements:
+        # set_tt_nsteps() controls how finely get_transport_table()
+        # samples within this element (the Lattice-only equivalent of
+        # Volume's tt_dt_mm) -- without it, the transport table (and so
+        # the Beam Variables/Lattice Overlay plots) only reports one
+        # point per element.
+        e.set_tt_nsteps(20)
+        v.append(e)
+    # Element.set_offsets(), called on an already-appended element,
+    # silently has no effect (verified empirically) --
+    # Lattice.set_elements_offsets() is the reliable, bulk equivalent of
+    # Volume.add()'s per-element x/y/z/roll/pitch/yaw args (its extra 4th
+    # column, always 1.0 here, is unrelated to any misalignment field).
+    v.set_elements_offsets(numpy.array(
+        [[s.dx, s.dy, s.dz, 1.0, s.rz, s.rx, s.ry] for s in ELEMENTS]
+    ))
     # nonzero: RF_Track prints tracking progress (e.g. "t = ... mm/c")
     # straight to stdout as track() advances, which is run.log's own
     # content with no further plumbing needed
@@ -125,9 +220,11 @@ def main():
     rslume.rftrack_utils.save_particles(
         "final_particles.npy", model.simulator.tracked_bunch
     )
-    rslume.rftrack_utils.save_stats(model.simulator.beamline)
-    rslume.rftrack_utils.save_screens(model.simulator.beamline, bunch)
-    rslume.rftrack_utils.save_bpms(model.simulator.beamline)
+    rslume.rftrack_utils.save_stats(model.simulator.beamline, "stats.npy")
+    rslume.rftrack_utils.save_screens(
+        model.simulator.beamline, bunch, "screen-{}.npy"
+    )
+    rslume.rftrack_utils.save_bpms(model.simulator.beamline, "bpms.npy")
 
 
 def _build_element(spec):

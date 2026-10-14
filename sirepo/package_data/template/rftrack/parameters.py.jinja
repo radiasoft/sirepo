@@ -133,64 +133,19 @@ def build_bunch():
     {% elif isFromFile %}
     pg = beamphysics.ParticleGroup(h5=BUNCH.distribution_file)
     {% if isBunch6dT %}
-    # Near-rest bunch (e.g. a Cathode Emission snapshot): built as a
-    # Bunch6dT (true 3D momentum, like Cathode) rather than a Bunch6d
-    # (angles derived from Px/Pz, Py/Pz via a small-angle approximation)
-    # -- that approximation is invalid for a bunch that hasn't been
-    # accelerated yet and has near-zero Pz, producing radian-scale
-    # garbage angles instead of the true angle. Preserving t0 (rather
-    # than collapsing it to 0, as RF_Track's 6-column Bunch6dT form
-    # would) also matters here: a freshly-emitted bunch's Z is uniformly
-    # 0 and its longitudinal structure lives entirely in t0. RF_Track's
-    # native units are mm, mrad, MeV/c, mm/c; ParticleGroup's are already
-    # SI (m, eV/c, s, C), so only a unit conversion is needed. Z is
-    # rebased to (Z - mean(Z)) + from_file_z_offset since the file's own
-    # absolute z coordinate is only meaningful relative to whatever
-    # volume originally produced it; from_file_z_offset re-centers it on
-    # this destination lattice's own start.
-    n = len(pg.x)
-    x = pg.x * 1e3
-    y = pg.y * 1e3
-    z = (pg.z - numpy.mean(pg.z)) * 1e3 + BUNCH.from_file_z_offset * 1e3
-    px = pg.px / 1e6
-    py = pg.py / 1e6
-    pz = pg.pz / 1e6
-    t0 = pg.t * rft.clight * 1e3
-    mass = numpy.full(n, BUNCH.mass_mev)
-    charge = numpy.full(n, BUNCH.charge)
-    # Bunch6dT's raw-matrix "population" column is a PER-PARTICLE weight
-    # (the number of real particles that single macroparticle
-    # represents), not the bunch's total population repeated on every
-    # row -- get_total_charge() sums charge*population across all rows,
-    # so repeating the total would inflate the effective charge (and
-    # space charge force) by a factor of n. ParticleGroup's per-particle
-    # weight is already in Coulombs; rft.C converts to elementary-charge
-    # units to match RF_Track's convention.
-    population = pg.weight * rft.C
-    return rft.Bunch6dT(
-        numpy.column_stack([x, px, y, py, z, pz, mass, charge, population, t0])
-    )
+    # Near-rest bunch (e.g. a Cathode Emission snapshot): a Bunch6dT keeps
+    # the true 3D momentum, where a Bunch6d's x'/y' small-angle
+    # approximation is invalid for near-zero Pz, and keeps each particle's
+    # creation time t0. Z is centred on 0: the file's own absolute z only
+    # means something relative to the volume that produced it.
+    pg.z = pg.z - numpy.mean(pg.z)
+    return rslume.rftrack_utils.particlegroup_to_bunch6dt(pg)
     {% else %}
-    # Already-accelerated bunch (e.g. re-injecting a previous sim's own
-    # tracked output downstream): Pz dominates
-    # here, so the small-angle approximation Bunch6d's x'/y' rely on is
-    # valid -- and Bunch6d is the only bunch type Lattice.track() accepts
-    # at all, so Sequential (Lattice) positioning requires this branch.
-    # RF_Track's native units are mm, mrad, MeV/c, mm/c; ParticleGroup's
-    # are already SI (m, eV/c, s, C).
-    x = pg.x * 1e3
-    y = pg.y * 1e3
-    px = pg.px / 1e6
-    py = pg.py / 1e6
-    pz = pg.pz / 1e6
-    t = pg.t * rft.clight * 1e3
-    population = pg.charge * rft.C
-    xp = numpy.divide(px, pz, out=numpy.zeros_like(px), where=(pz != 0)) * 1e3
-    yp = numpy.divide(py, pz, out=numpy.zeros_like(py), where=(pz != 0)) * 1e3
-    p = numpy.sqrt(px**2 + py**2 + pz**2)
-    return rft.Bunch6d(
-        BUNCH.mass_mev, population, BUNCH.charge, numpy.column_stack([x, xp, y, yp, t, p])
-    )
+    # Already-accelerated bunch (e.g. re-injecting a previous sim's tracked
+    # output): Bunch6d is the only bunch type Lattice.track() accepts, so
+    # Sequential (Lattice) positioning requires this branch. The group is
+    # drifted to a single z plane first, which keeps the bunch length.
+    return rslume.rftrack_utils.particlegroup_to_bunch6d(pg)
     {% endif %}
     {% else %}
     twiss = rft.Bunch6d_twiss()
@@ -215,7 +170,7 @@ def main():
     {% endif %}
 
     bunch = build_bunch()
-    rslume.rftrack_utils.save_particles("initial_particles.npy", bunch)
+    rslume.rftrack_utils.save_particles("{{ initialParticlesFile }}", bunch)
     {% if not isBunchReport %}
 
     volume = build_beamline()
@@ -229,11 +184,13 @@ def main():
     model = rslume.rftrack.build_model(ELEMENTS, volume, bunch)
     model.reset()
     rslume.rftrack_utils.save_particles(
-        "final_particles.npy", model.simulator.tracked_bunch
+        "{{ finalParticlesFile }}", model.simulator.tracked_bunch
     )
-    rslume.rftrack_utils.save_stats(model.simulator.beamline)
-    rslume.rftrack_utils.save_screens(model.simulator.beamline, bunch)
-    rslume.rftrack_utils.save_bpms(model.simulator.beamline)
+    rslume.rftrack_utils.save_stats(model.simulator.beamline, "{{ statsFile }}")
+    rslume.rftrack_utils.save_screens(
+        model.simulator.beamline, bunch, "{{ screenFile }}"
+    )
+    rslume.rftrack_utils.save_bpms(model.simulator.beamline, "{{ bpmsFile }}")
     {% endif %}
 
 

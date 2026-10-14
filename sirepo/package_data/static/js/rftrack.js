@@ -1,66 +1,10 @@
 'use strict';
 
 // Field values to apply to a statAnimation/stat2Animation model when the
-// user picks a "Plot Presets" entry -- a shortcut for common combinations
-// of x/y1-y5 fields, rather than picking each Value to Plot by hand.
-const STAT_PLOT_PRESETS = {
-    twiss: {
-        x: 's',
-        y1: 'beta_x', y1Position: 'left',
-        y2: 'beta_y', y2Position: 'left',
-        y3: 'alpha_x', y3Position: 'right',
-        y4: 'alpha_y', y4Position: 'right',
-        y5: 'None',
-    },
-    emittanceSigma: {
-        x: 's',
-        y1: 'emitt_x', y1Position: 'left',
-        y2: 'emitt_y', y2Position: 'left',
-        y3: 'sigma_x', y3Position: 'right',
-        y4: 'sigma_y', y4Position: 'right',
-        y5: 'None',
-    },
-    onAxisFields: {
-        x: 's',
-        y1: 'Ez', y1Position: 'left',
-        y2: 'Bz', y2Position: 'right',
-        y3: 'None',
-        y4: 'None',
-        y5: 'None',
-    },
-    energyGain: {
-        x: 's',
-        y1: 'mean_K', y1Position: 'left',
-        y2: 'None',
-        y3: 'None',
-        y4: 'None',
-        y5: 'None',
-    },
-    transverseSize: {
-        x: 's',
-        y1: 'sigma_x', y1Position: 'left',
-        y2: 'sigma_y', y2Position: 'left',
-        y3: 'emitt_4d', y3Position: 'right',
-        y4: 'None',
-        y5: 'None',
-    },
-    bunchLength: {
-        x: 's',
-        y1: 'sigma_z', y1Position: 'left',
-        y2: 'mean_K', y2Position: 'right',
-        y3: 'None',
-        y4: 'None',
-        y5: 'None',
-    },
-    centroidMotion: {
-        x: 's',
-        y1: 'mean_x', y1Position: 'left',
-        y2: 'mean_y', y2Position: 'left',
-        y3: 'None',
-        y4: 'None',
-        y5: 'None',
-    },
-};
+// user picks a "Plot Presets" entry (schema constants.statPlotPresets) -- a
+// shortcut for common combinations of x/y1-y5 fields, rather than picking
+// each Value to Plot by hand.
+const statPlotPresets = () => SIREPO.APP_SCHEMA.constants.statPlotPresets;
 
 const STAT_PLOT_PRESET_FIELDS = [
     'x', 'y1', 'y2', 'y3', 'y4', 'y5',
@@ -72,13 +16,13 @@ const STAT_PLOT_PRESET_FIELDS = [
 // user picked plot fields by hand instead of selecting a preset).
 function presetKeyForModel(m) {
     const matches = (preset) => Object.keys(preset).every((f) => m[f] === preset[f]);
-    const found = Object.entries(STAT_PLOT_PRESETS).find(([, preset]) => matches(preset));
+    const found = Object.entries(statPlotPresets()).find(([, preset]) => matches(preset));
     return found ? found[0] : '';
 }
 
 function applyStatPlotPreset(appState, modelName) {
     const m = appState.models[modelName];
-    const preset = STAT_PLOT_PRESETS[m.plotPreset];
+    const preset = statPlotPresets()[m.plotPreset];
     if (! preset) {
         return;
     }
@@ -91,13 +35,11 @@ SIREPO.app.config(function() {
     SIREPO.SINGLE_FRAME_ANIMATION = ['statAnimation', 'stat2Animation'];
     SIREPO.appDefaultSimulationValues.simulation.elementPosition = 'absolute';
     SIREPO.PLOTTING_HEATPLOT_FULL_PIXEL = true;
-    SIREPO.appFieldEditors += ``;
     SIREPO.appReportTypes = `
         <div data-ng-switch-when="bpmTable" data-bpm-table-panel="" class="sr-plot sr-screenshot"></div>
     `;
     SIREPO.lattice = {
-        elementColor: {
-        },
+        elementColor: {},
         elementPic: {
             bend: ['RBEND'],
             drift: ['DRIFT'],
@@ -156,7 +98,7 @@ SIREPO.app.factory('rftrackService', function(appState) {
     return self;
 });
 
-SIREPO.app.controller('SourceController', function(appState, latticeService, $scope) {
+SIREPO.app.controller('SourceController', function(latticeService) {
     const self = this;
     latticeService.initSourceController(self);
 });
@@ -276,7 +218,7 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     self.simState = initSimState();
 });
 
-SIREPO.app.controller('LatticeController', function(latticeService, appState) {
+SIREPO.app.controller('LatticeController', function(latticeService) {
     const self = this;
     self.advancedNames = SIREPO.APP_SCHEMA.constants.advancedElementNames;
     self.basicNames = SIREPO.APP_SCHEMA.constants.basicElementNames;
@@ -327,6 +269,16 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
+// showFields() arguments for a CAVITY's or SOLENOID's 1D field-map fields
+function fieldMapFields(m) {
+    const isMap = m.fieldSource === 'fieldMap';
+    return [
+        ['fieldMapFile', 'rescaleMode'], isMap,
+        ['maxField'], isMap && m.rescaleMode === 'peak',
+        ['scaleFactor'], isMap && m.rescaleMode === 'factor',
+    ];
+}
+
 function updateApertureFields(appState, panelState, type) {
     const m = appState.models[type];
     if (! m) {
@@ -337,30 +289,18 @@ function updateApertureFields(appState, panelState, type) {
     ]);
 }
 
-SIREPO.viewLogic('beamView', function(appState, panelState, $scope) {
+// element views whose only dynamic fields are the aperture
+['BPM', 'CORRECTOR', 'DRIFT', 'RBEND', 'SCREEN'].forEach((type) => {
+    SIREPO.viewLogic(type.toLowerCase() + 'View', function(appState, panelState, $scope) {
+        const updateFields = () => updateApertureFields(appState, panelState, type);
+        $scope.whenSelected = updateFields;
+        $scope.watchFields = [
+            [type + '.setAperture'], updateFields,
+        ];
+    });
+});
 
-    // The "*Longitudinal" and "*Cathode Emission" section headers are
-    // plain labels, not fields -- panelState.showField()/showRow() has
-    // nothing to select for them directly (showRow() only hides a
-    // data-column-editor row, e.g. the Horizontal/Vertical Twiss columns
-    // below). Each label is rendered as the sibling immediately before
-    // the first field in its own section, so hiding/showing that first
-    // field's preceding ".lead.text-center" sibling keeps the header in
-    // sync with its fields without a new framework mechanism.
-    const showSectionLabel = (firstField, isShown) => {
-        const toggle = () => {
-            const label = $('.model-beam-' + firstField)
-                .closest('.form-group').parent().prev();
-            if (isShown) {
-                label.show();
-            }
-            else {
-                label.hide();
-            }
-        };
-        toggle();
-        panelState.waitForUI(toggle);
-    };
+SIREPO.viewLogic('beamView', function(appState, panelState, $scope) {
 
     const updateFields = () => {
         const m = appState.models.beam;
@@ -376,23 +316,11 @@ SIREPO.viewLogic('beamView', function(appState, panelState, $scope) {
             ['sigX', 'riseTime', 'flatTopLength', 'cutoffX', 'cutoffY', 'cutoffT', 'ePhoton', 'phiEff', 'noiseReduc'], isCathode,
         ]);
         panelState.showRow('beam', 'beta_x', isTwiss);
-        showSectionLabel('sigma_t', isTwiss);
-        showSectionLabel('sigX', isCathode);
     };
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
         ['beam.particle', 'beam.distributionType'], updateFields,
-    ];
-});
-
-SIREPO.viewLogic('driftView', function(appState, panelState, $scope) {
-
-    const updateFields = () => updateApertureFields(appState, panelState, 'DRIFT');
-
-    $scope.whenSelected = updateFields;
-    $scope.watchFields = [
-        ['DRIFT.setAperture'], updateFields,
     ];
 });
 
@@ -416,16 +344,6 @@ SIREPO.viewLogic('quadrupoleView', function(appState, panelState, $scope) {
     ];
 });
 
-SIREPO.viewLogic('rbendView', function(appState, panelState, $scope) {
-
-    const updateFields = () => updateApertureFields(appState, panelState, 'RBEND');
-
-    $scope.whenSelected = updateFields;
-    $scope.watchFields = [
-        ['RBEND.setAperture'], updateFields,
-    ];
-});
-
 SIREPO.viewLogic('solenoidView', function(appState, panelState, $scope) {
 
     const updateFields = () => {
@@ -433,12 +351,9 @@ SIREPO.viewLogic('solenoidView', function(appState, panelState, $scope) {
         if (! m) {
             return;
         }
-        const isMap = m.fieldSource === 'fieldMap';
         panelState.showFields('SOLENOID', [
-            ['b_field'], ! isMap,
-            ['fieldMapFile', 'rescaleMode'], isMap,
-            ['maxField'], isMap && m.rescaleMode === 'peak',
-            ['scaleFactor'], isMap && m.rescaleMode === 'factor',
+            ['b_field'], m.fieldSource !== 'fieldMap',
+            ...fieldMapFields(m),
         ]);
         updateApertureFields(appState, panelState, 'SOLENOID');
     };
@@ -449,16 +364,6 @@ SIREPO.viewLogic('solenoidView', function(appState, panelState, $scope) {
     ];
 });
 
-SIREPO.viewLogic('correctorView', function(appState, panelState, $scope) {
-
-    const updateFields = () => updateApertureFields(appState, panelState, 'CORRECTOR');
-
-    $scope.whenSelected = updateFields;
-    $scope.watchFields = [
-        ['CORRECTOR.setAperture'], updateFields,
-    ];
-});
-
 SIREPO.viewLogic('cavityView', function(appState, panelState, $scope) {
 
     const updateFields = () => {
@@ -466,14 +371,10 @@ SIREPO.viewLogic('cavityView', function(appState, panelState, $scope) {
         if (! m) {
             return;
         }
-        const isMap = m.fieldSource === 'fieldMap';
-        const is2dMap = m.fieldSource === '2dFieldMap';
         panelState.showFields('CAVITY', [
             ['gradient'], m.fieldSource === 'analytic',
-            ['fieldMapFile', 'rescaleMode'], isMap,
-            ['maxField'], isMap && m.rescaleMode === 'peak',
-            ['scaleFactor'], isMap && m.rescaleMode === 'factor',
-            ['fieldMapFile2d'], is2dMap,
+            ['fieldMapFile2d'], m.fieldSource === '2dFieldMap',
+            ...fieldMapFields(m),
         ]);
         updateApertureFields(appState, panelState, 'CAVITY');
     };
@@ -481,26 +382,6 @@ SIREPO.viewLogic('cavityView', function(appState, panelState, $scope) {
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
         ['CAVITY.fieldSource', 'CAVITY.rescaleMode', 'CAVITY.setAperture'], updateFields,
-    ];
-});
-
-SIREPO.viewLogic('screenView', function(appState, panelState, $scope) {
-
-    const updateFields = () => updateApertureFields(appState, panelState, 'SCREEN');
-
-    $scope.whenSelected = updateFields;
-    $scope.watchFields = [
-        ['SCREEN.setAperture'], updateFields,
-    ];
-});
-
-SIREPO.viewLogic('bpmView', function(appState, panelState, $scope) {
-
-    const updateFields = () => updateApertureFields(appState, panelState, 'BPM');
-
-    $scope.whenSelected = updateFields;
-    $scope.watchFields = [
-        ['BPM.setAperture'], updateFields,
     ];
 });
 
@@ -547,11 +428,17 @@ SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, lattic
         if (! m) {
             return;
         }
+        // Lattice (relative positioning) has no tracking range or
+        // integrator time step: those are Volume-only
+        const isVolume = appState.models.simulation.elementPosition === 'absolute';
         panelState.showFields('simulationSettings', [
             ['scGridNx', 'scGridNy', 'scGridNz', 'scDtMm', 'scSmooth', 'scMirror'], m.spaceCharge === 'pic',
             ['autophase'], beamlineHasCavity(latticeService.getSimulationBeamline()),
-            ['trackingS0', 'trackingS1'], m.autoTrackingRange === '0',
+            ['autoTrackingRange', 'volumeDtMm', 'volumeTtDtMm'], isVolume,
+            ['trackingS0', 'trackingS1'], isVolume && m.autoTrackingRange === '0',
         ]);
+        // the advanced editor's "Tracking" tab has only Volume settings
+        panelState.showTab('simulationSettings', 2, isVolume);
     };
 
     $scope.whenSelected = updateFields;

@@ -3,6 +3,7 @@
 from pykern.pkcollections import PKDict
 import RF_Track as rft
 import numpy
+import beamphysics
 import rslume.rftrack
 import rslume.rftrack_utils
 
@@ -14,8 +15,8 @@ ELEMENTS = [
         aperture_x=0.015,
         aperture_y=0.015,
         aperture_type='circular',
-        dx=0,
-        dy=0,
+        dx=0.0,
+        dy=0.0,
         dz=0,
         rx=0,
         ry=0,
@@ -30,8 +31,8 @@ ELEMENTS = [
         aperture_x=0.015,
         aperture_y=0.015,
         aperture_type='circular',
-        dx=0,
-        dy=0,
+        dx=0.0,
+        dy=0.0,
         dz=0,
         rx=0,
         ry=0,
@@ -50,8 +51,8 @@ ELEMENTS = [
         aperture_x=0.015,
         aperture_y=0.015,
         aperture_type='circular',
-        dx=0,
-        dy=0,
+        dx=0.0,
+        dy=0.0,
         dz=0,
         rx=0,
         ry=0,
@@ -68,8 +69,8 @@ ELEMENTS = [
         aperture_x=0.015,
         aperture_y=0.015,
         aperture_type='circular',
-        dx=0,
-        dy=0,
+        dx=0.0,
+        dy=0.0,
         dz=0,
         rx=0,
         ry=0,
@@ -79,22 +80,80 @@ ELEMENTS = [
         h_kick=0.0009999999999999998,
         v_kick=0.0019999999999999996,
     ),
+    PKDict(
+        name='Q1',
+        elemedge=0.18999999999999997,
+        set_aperture=True,
+        aperture_x=0.01,
+        aperture_y=0.02,
+        aperture_type='circular',
+        dx=0.0,
+        dy=0.0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='quadrupole_gradient',
+        l=0.1,
+        gradient=2.5,
+    ),
+    PKDict(
+        name='P1',
+        elemedge=0.29,
+        set_aperture=False,
+        aperture_x=0.015,
+        aperture_y=0.015,
+        aperture_type='circular',
+        dx=0.0,
+        dy=0.0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='cavity_analytic',
+        l=0.1,
+        frequency_hz=3000000000.0,
+        gradient_v_per_m=1000000.0,
+        phase_deg=14.999999999999998,
+    ),
+    PKDict(
+        name='B1',
+        elemedge=0.39,
+        set_aperture=False,
+        aperture_x=0.015,
+        aperture_y=0.015,
+        aperture_type='circular',
+        dx=0.0,
+        dy=0.0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='bpm',
+        l=0.05,
+    ),
+    PKDict(
+        name='S1',
+        elemedge=0.44,
+        set_aperture=False,
+        aperture_x=0.015,
+        aperture_y=0.015,
+        aperture_type='circular',
+        dx=0.0,
+        dy=0.0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='screen',
+    ),
 ]
 BUNCH = PKDict(
     charge=-1.0,
-    mass_mev=0.5110000000013376,
-    pc_mev=100.00737292919126,
+    mass_mev=0.51099895069,
+    pc_mev=100.0,
     random_seed=5489,
-    alpha_x=-0.046841910520625224,
-    alpha_y=0.011609722276105475,
-    beta_x=0.9967295844183021,
-    beta_y=1.0182962275540774,
-    charge_nc=0.04999999999999994,
-    emit_x=1.0000000000000002,
-    emit_y=1.0000000000000002,
-    np=100,
-    sigma_pt=1.024089486813958,
-    sigma_t=1.0037000055963763,
+    distribution_file='beam-distributionFile.archive-804d2c83.h5',
 )
 SETTINGS = PKDict(
     num_threads=1,
@@ -138,18 +197,12 @@ def build_beamline():
 
 
 def build_bunch():
-    twiss = rft.Bunch6d_twiss()
-    twiss.beta_x = BUNCH.beta_x
-    twiss.beta_y = BUNCH.beta_y
-    twiss.alpha_x = BUNCH.alpha_x
-    twiss.alpha_y = BUNCH.alpha_y
-    twiss.emitt_x = BUNCH.emit_x
-    twiss.emitt_y = BUNCH.emit_y
-    twiss.sigma_t = BUNCH.sigma_t
-    twiss.sigma_pt = BUNCH.sigma_pt
-    return rft.Bunch6d_QR(
-        BUNCH.mass_mev, BUNCH.charge_nc * rft.nC, BUNCH.charge, BUNCH.pc_mev, twiss, BUNCH.np
-    )
+    pg = beamphysics.ParticleGroup(h5=BUNCH.distribution_file)
+    # Already-accelerated bunch (e.g. re-injecting a previous sim's tracked
+    # output): Bunch6d is the only bunch type Lattice.track() accepts, so
+    # Sequential (Lattice) positioning requires this branch. The group is
+    # drifted to a single z plane first, which keeps the bunch length.
+    return rslume.rftrack_utils.particlegroup_to_bunch6d(pg)
 
 
 def main():
@@ -166,9 +219,11 @@ def main():
     rslume.rftrack_utils.save_particles(
         "final_particles.npy", model.simulator.tracked_bunch
     )
-    rslume.rftrack_utils.save_stats(model.simulator.beamline)
-    rslume.rftrack_utils.save_screens(model.simulator.beamline, bunch)
-    rslume.rftrack_utils.save_bpms(model.simulator.beamline)
+    rslume.rftrack_utils.save_stats(model.simulator.beamline, "stats.npy")
+    rslume.rftrack_utils.save_screens(
+        model.simulator.beamline, bunch, "screen-{}.npy"
+    )
+    rslume.rftrack_utils.save_bpms(model.simulator.beamline, "bpms.npy")
 
 
 def _build_element(spec):
@@ -209,6 +264,23 @@ def _build_element(spec):
         e = rft.Bpm(spec.l)
     else:
         raise AssertionError(f"unsupported element kind={spec.kind}")
+    # Explicitly pin t0 to 0.0 on every cavity/screen: confirmed
+    # empirically that Volume.track() internally re-autophases every RF
+    # element (and every Screen) from scratch if ANY of them has
+    # t0_is_set() False, regardless of phid, silently overriding an
+    # explicitly-set phase with Autophase off.
+    #
+    # Only emitted when the autophase() function below WON'T run:
+    # confirmed empirically that Volume.unset_t0() -- the first thing
+    # that function does -- does NOT clear an element's t0 once set()
+    # was ever called on it directly, even to 0.0. Pinning t0 here
+    # unconditionally would silently defeat the real autophase() search
+    # that follows, leaving every cavity stuck at 0.0 instead of a
+    # freshly-derived value (confirmed: the whole beamline ends up
+    # unphased, same failure mode as never phasing at all, just
+    # disguised since t0_is_set() now reads True).
+    if spec.kind in ("cavity_analytic", "cavity_fieldmap", "cavity_fieldmap_2d", "screen"):
+        e.set_t0(0.0)
     e.set_name(spec.name)
     if spec.set_aperture:
         e.set_aperture(spec.aperture_x, spec.aperture_y, spec.aperture_type)

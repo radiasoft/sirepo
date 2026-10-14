@@ -8,16 +8,39 @@
 
 def test_generate_python():
     from pykern import pkunit
+    from sirepo.template import rftrack
 
     with pkunit.save_chdir_work():
-        from sirepo.template import rftrack
+        for name in ("AWA Zone 1", "X-band Linac FODO Cell"):
+            data = _shipped_example(name)
+            data.report = "animation"
+            pkunit.file_eq(
+                name.lower().replace(" ", "-") + ".py",
+                actual=rftrack.python_source_for_model(data, model=None, qcall=None),
+            )
 
-        pkunit.file_eq(
-            "generate_python.py",
-            actual=rftrack.python_source_for_model(
-                _example_data(), model=None, qcall=None
-            ),
-        )
+
+def test_stat_plot_presets():
+    """Every Plot Presets entry (schema `statPlotPresets`) is in the
+    `StatPlotPreset` menu and plots only real stat columns."""
+    from pykern import pkunit
+    from sirepo.template import rftrack
+
+    presets = rftrack.SCHEMA.constants.statPlotPresets
+    pkunit.pkeq(
+        sorted(k for k, _ in rftrack.SCHEMA.enum.StatPlotPreset if k),
+        sorted(presets.keys()),
+    )
+    columns = set(rftrack.stat_columns())
+    for name, preset in presets.items():
+        for f in ("x", "y1", "y2", "y3", "y4", "y5"):
+            pkunit.pkok(
+                preset[f] in columns,
+                "preset={} {}={} is not a stat column",
+                name,
+                f,
+                preset[f],
+            )
 
 
 def test_track_drift_and_screen():
@@ -26,22 +49,21 @@ def test_track_drift_and_screen():
     `background_percent_complete()` reads back: since `is_running=True`,
     the estimate stays strictly under 100, but a fully tracked drift of a
     100 MeV/c electron (ultrarelativistic, beta very close to 1, the one
-    case that estimate's "t [mm/c] / trackingS1 [mm]" math is accurate
+    case that estimate's "t [mm/c] / tracking end [mm]" math is accurate
     for) should land close to it.
     """
     import subprocess
     import sys
     from pykern import pkio, pkunit
-    from pykern.pkcollections import PKDict
 
     with pkunit.save_chdir_work():
         from sirepo import simulation_db
         from sirepo.template import rftrack, template_common
         import numpy
+        import rslume.rftrack_utils
 
-        # track exactly the 1 m drift, so the percent-complete estimate
-        # (relative to trackingS1) can reach its maximum
-        data = _example_data(simulation_settings=PKDict(trackingS1=1.0))
+        # the default automatic tracking range is exactly the 1 m drift
+        data = _example_data()
         simulation_db.write_json(template_common.INPUT_BASE_NAME, data)
         pkio.write_text(
             "parameters.py",
@@ -51,20 +73,22 @@ def test_track_drift_and_screen():
             subprocess.check_call(
                 [sys.executable, "parameters.py"], stdout=f, stderr=subprocess.STDOUT
             )
-        pkunit.pkok(
-            pkio.py_path("initial_particles.npy").exists(),
-            "missing initial_particles.npy",
+        for f in (
+            rftrack._INITIAL_PARTICLES_FILE,
+            rftrack._STATS_FILE,
+            rftrack._FINAL_PARTICLES_FILE,
+            rftrack._SCREEN_FILE.format(0),
+        ):
+            pkunit.pkok(pkio.py_path(f).exists(), "missing {}", f)
+        pkunit.pkok(len(numpy.load(rftrack._STATS_FILE)) > 0, "empty stats")
+        p = numpy.load(rftrack._FINAL_PARTICLES_FILE)
+        pkunit.pkeq(data.models.beam.np, len(p))
+        # a drift loses no particles, so their charges add up to the beam's
+        numpy.testing.assert_allclose(
+            p[:, rslume.rftrack_utils.PHASE_SPACE_COLUMNS.index("weight")].sum(),
+            data.models.beam.charge_nC * 1e-9,
+            rtol=1e-6,
         )
-        pkunit.pkok(pkio.py_path("stats.npy").exists(), "missing stats.npy")
-        pkunit.pkok(
-            pkio.py_path("final_particles.npy").exists(),
-            "missing final_particles.npy",
-        )
-        pkunit.pkok(pkio.py_path("screen-0.npy").exists(), "missing screen-0.npy")
-        t = numpy.load("stats.npy")
-        pkunit.pkeq(True, len(t) > 0)
-        p = numpy.load("final_particles.npy")
-        pkunit.pkeq(100, len(p))
         res = rftrack.background_percent_complete("animation", pkio.py_path("."), True)
         pkunit.pkok(
             res.percentComplete > 90, "percentComplete={} too low", res.percentComplete
@@ -98,9 +122,8 @@ def _example_data(
         simulationType="rftrack",
         models=PKDict(
             beam=PKDict(
+                # mass and charge come from the particle type
                 particle="electron",
-                mass=0.51099895,
-                charge=-1,
                 pc=100.0,
                 charge_nC=1.0,
                 np=100,
@@ -129,3 +152,13 @@ def _example_data(
     )
     sirepo.sim_data.get_class("rftrack").fixup_old_data(data, qcall=None)
     return data
+
+
+def _shipped_example(name):
+    from sirepo import simulation_db
+    from sirepo.template import rftrack
+
+    for d in simulation_db.examples(rftrack.SIM_TYPE):
+        if d.models.simulation.name == name:
+            return simulation_db.fixup_old_data(d)[0]
+    raise AssertionError(f"no example named {name!r}")
