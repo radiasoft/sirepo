@@ -21,7 +21,6 @@ import sirepo.util
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
-_CLIGHT = scipy.constants.c
 
 # (mass-energy equivalent in MeV, charge in units of e)
 _PARTICLE_MASS_AND_CHARGE = PKDict(
@@ -39,11 +38,8 @@ _PARTICLE_MASS_AND_CHARGE = PKDict(
     ),
 )
 
-# RF_Track Volume.get_transport_table() column selector and the matching
-# column order saved to _STATS_FILE. Volume uses different token names/case
-# than Lattice for several quantities (e.g. %mean_Z instead of %S,
-# %sigma_X/%sigma_Y instead of %sigma_x/%sigma_y, %sigma_Z and %sigma_Pz
-# instead of the Lattice-only %sigma_t/%sigma_pt).
+# Column order of the stats file `rslume.rftrack_utils.save_stats()` writes
+# (Volume and Lattice transport tables map onto the same columns).
 _STAT_COLUMNS = [
     "s",
     "beta_x",
@@ -80,79 +76,6 @@ _STAT_COLUMNS = [
     "Ez",
     "Bz",
 ]
-_STAT_TRANSPORT_FIELDS = (
-    "%mean_Z %beta_x %beta_y %alpha_x %alpha_y %emitt_x %emitt_y %emitt_4d"
-    " %beta_z %alpha_z %emitt_z %sigma_X %sigma_Y %sigma_Z %sigma_Pz %sigma_E"
-    " %disp_x %disp_y %disp_px %disp_py %mean_X %mean_Y %mean_Px %mean_Py"
-    " %mean_K %mean_E %mean_P %rmax %rmax90 %rmax99 %rmax99.9 %N"
-)
-# Lattice.get_transport_table() lacks %mean_Z/%sigma_X/%sigma_Y/%mean_X/
-# %mean_Y (Volume-only tokens; "unknown identifier" otherwise) -- %S and
-# the lowercase %mean_x/%mean_y/%sigma_x/%sigma_y are its equivalents.
-# %sigma_Z (a length) has no Lattice equivalent at all; %sigma_t (a
-# light-time, i.e. already a length in the same mm units once scaled) is
-# the closest analog. %sigma_Pz (an absolute momentum spread) likewise has
-# no equivalent -- %sigma_pt is a RELATIVE spread (dp/p), so it's
-# multiplied by %mean_P (see below) to approximate the same absolute
-# quantity %sigma_Pz would give, at the same %mean_Z(->%S) index (14) and
-# %mean_P index (26) in this field list.
-_STAT_TRANSPORT_FIELDS_LATTICE = (
-    "%S %beta_x %beta_y %alpha_x %alpha_y %emitt_x %emitt_y %emitt_4d"
-    " %beta_z %alpha_z %emitt_z %sigma_x %sigma_y %sigma_t %sigma_pt %sigma_E"
-    " %disp_x %disp_y %disp_px %disp_py %mean_x %mean_y %mean_Px %mean_Py"
-    " %mean_K %mean_E %mean_P %rmax %rmax90 %rmax99 %rmax99.9 %N"
-)
-_STAT_SIGMA_PT_COLUMN = 14
-_STAT_MEAN_P_COLUMN = 26
-# RF_Track's native units: beta/disp_x/disp_y in m already; emitt_* in
-# mm.mrad; mean_Z, sigma_X/Y/Z, mean_X/Y, rmax* in mm; sigma_Pz in MeV/c;
-# mean_Px/Py/mean_K/mean_E/mean_P/sigma_E in MeV or MeV/c; alpha_*, disp_p*,
-# and N are dimensionless. Rescaled to base SI (m, rad, eV, eV/c) to match
-# impact-t's convention; dimensionless/already-SI columns get a scale of 1.
-# Ez/Bz (from Volume.get_field(), not get_transport_table()) are already in
-# base SI (V/m, T).
-_STAT_SCALE = [
-    1e-3,  # s (mean_Z): mm -> m
-    1,  # beta_x: m
-    1,  # beta_y: m
-    1,  # alpha_x
-    1,  # alpha_y
-    1e-6,  # emitt_x: mm.mrad -> m.rad
-    1e-6,  # emitt_y: mm.mrad -> m.rad
-    1e-6,  # emitt_4d: mm.mrad -> m.rad (sqrt(emitt_x * emitt_y)-like scale)
-    1,  # beta_z: m
-    1,  # alpha_z
-    1e-6,  # emitt_z: mm.mrad -> m.rad
-    1e-3,  # sigma_x (sigma_X): mm -> m
-    1e-3,  # sigma_y (sigma_Y): mm -> m
-    1e-3,  # sigma_z (sigma_Z): mm -> m
-    1e6,  # sigma_Pz: MeV/c -> eV/c
-    1e6,  # sigma_E: MeV -> eV
-    1,  # disp_x: m
-    1,  # disp_y: m
-    1,  # disp_px: rad
-    1,  # disp_py: rad
-    1e-3,  # mean_x (mean_X): mm -> m
-    1e-3,  # mean_y (mean_Y): mm -> m
-    1e6,  # mean_Px: MeV/c -> eV/c
-    1e6,  # mean_Py: MeV/c -> eV/c
-    1e6,  # mean_K: MeV -> eV
-    1e6,  # mean_E: MeV -> eV
-    1e6,  # mean_P: MeV/c -> eV/c
-    1e-3,  # rmax: mm -> m
-    1e-3,  # rmax90: mm -> m
-    1e-3,  # rmax99: mm -> m
-    1e-3,  # rmax99.9: mm -> m
-    1,  # N
-    1,  # Ez: V/m
-    1,  # Bz: T
-]
-# %S (Lattice's position token) is already in meters -- verified empirically
-# against Volume's %mean_Z (raw millimeters) for the same physical length --
-# unlike every other position/size quantity (%mean_x, %sigma_x, %sigma_t,
-# rmax*, ...), which stays in the same raw millimeters in both Lattice and
-# Volume. So only the first ("s") entry differs from _STAT_SCALE.
-_STAT_SCALE_LATTICE = [1] + _STAT_SCALE[1:]
 _STAT_LABELS = PKDict(
     s="s [m]",
     beta_x="beta_x [m]",
@@ -190,31 +113,9 @@ _STAT_LABELS = PKDict(
     Bz="Bz [T]",
 )
 
-# RF_Track Bunch*.get_phase_space() column selector and the matching column
-# order saved to the particle files. RF_Track's own native units are mm,
-# mrad, and MeV/c; the values are rescaled to base SI units (m, rad, eV/c,
-# eV, s) at save time to match impact-t's unit convention. %Z (uppercase) is
-# the one token that behaves identically across Bunch6d and Bunch6dT, tracked
-# or freshly-generated, initial or screen-captured: lowercase %z is defined
-# only for Bunch6d and is always exactly 0 there (not the same quantity).
+# Column order of the particle files `rslume.rftrack_utils.save_particles()`
+# writes, in the base SI units `rslume.rftrack_utils.PHASE_SPACE_SCALE` gives.
 _PHASE_SPACE_COLUMNS = ["x", "xp", "y", "yp", "z", "t", "Px", "Py", "Pz", "P", "E", "K"]
-_PHASE_SPACE_FIELDS = "%x %xp %y %yp %Z %dt %Px %Py %Pz %P %E %K"
-# Bunch6dT (used for the "cathode" distribution) uses different token names
-# for the same quantities: uppercase %X/%Y for position (lowercase %x/%y
-# are not defined), and %t0 rather than %dt for the per-particle time. The
-# resulting columns line up with _PHASE_SPACE_COLUMNS/_PHASE_SPACE_SCALE
-# above; only the RF_Track-side token string differs.
-_PHASE_SPACE_FIELDS_CATHODE = "%X %xp %Y %yp %Z %t0 %Px %Py %Pz %P %E %K"
-# Volume.get_bunch_at_screens() always returns Bunch6d-typed bunches (even
-# when the tracked bunch was a Bunch6dT), so %t0 is not defined there; only
-# %dt works, same as the non-cathode case.
-_PHASE_SPACE_FIELDS_CATHODE_SCREEN = "%X %xp %Y %yp %Z %dt %Px %Py %Pz %P %E %K"
-# %dt for a raw-matrix-constructed Bunch6d (not one built by its own
-# generator, e.g. Bunch6d_QR) is relative to whichever particle happens to
-# be first in the array, not the mean -- verified empirically. From File's
-# already-accelerated case (Bunch6d, not Bunch6dT) is built from a raw
-# matrix, so it uses %t (absolute) instead to avoid that arbitrary offset.
-_PHASE_SPACE_FIELDS_FROM_FILE = "%x %xp %y %yp %Z %t %Px %Py %Pz %P %E %K"
 
 # RF_Track Bunch6dT_Generator.species values, keyed by our BeamParticle enum
 _CATHODE_SPECIES = PKDict(
@@ -222,20 +123,6 @@ _CATHODE_SPECIES = PKDict(
     positron="positrons",
     proton="protons",
 )
-_PHASE_SPACE_SCALE = [
-    1e-3,  # x: mm -> m
-    1e-3,  # xp: mrad -> rad
-    1e-3,  # y: mm -> m
-    1e-3,  # yp: mrad -> rad
-    1e-3,  # z: mm -> m
-    1e-3 / _CLIGHT,  # t: mm/c -> s
-    1e6,  # Px: MeV/c -> eV/c
-    1e6,  # Py: MeV/c -> eV/c
-    1e6,  # Pz: MeV/c -> eV/c
-    1e6,  # P: MeV/c -> eV/c
-    1e6,  # E: MeV -> eV
-    1e6,  # K: MeV -> eV
-]
 _AXIS_LABELS = PKDict(
     x="x [m]",
     xp="x' [rad]",
@@ -421,6 +308,116 @@ def stat_columns():
     return [_NONE] + sorted(_STAT_COLUMNS, key=str.lower)
 
 
+def build_imported_data(
+    elements,
+    beamline_class,
+    bunch_type,
+    particle_group,
+    distribution_file,
+    name,
+    autophase,
+    space_charge,
+    qcall,
+):
+    """Build the full imported sirepo data from an rslume.rftrack HDF5
+    archive's already-parsed `elements` (a list of flat attrs dicts,
+    the same shape `RFTrackSimulator.archive()` writes), the archive's
+    own `beamline_class`/`bunch_type` attrs, the bunch's already
+    -written-to-a-lib-file `particle_group`/`distribution_file` (see
+    `write_distribution_lib_file`), `autophase` (bool, inferred by
+    `archive()` itself from whether any cavity had a nonzero `t0` --
+    see `rslume.rftrack_archive._infer_autophase`), and `space_charge` (a dict
+    shaped like `RFTrackSimulator.archive()`'s own `space_charge`
+    argument, or `None` if the archive didn't carry one).
+
+    Each cavity's `phase` is simply its archived `phid`, nothing folded
+    in -- wiring `autophase` through to `simulationSettings.autophase`
+    is what makes the generated script's own, already-existing
+    `autophase(volume)` function re-derive each cavity's (and Screen's)
+    real `t0` itself before tracking, the same deterministic search
+    that produced the original archived result in the first place, so
+    there's no need to carry `t0` through this import at all. Space
+    charge has no such per-element signal to derive from, so it can
+    only be restored from this archived setting.
+
+    Called from `sirepo.sim_data.rftrack.SimData.prepare_import_file_args`
+    -- on the server, not from `stateful_compute_import_file` below (the
+    job agent), since a CAVITY/SOLENOID element with a baked field array
+    (not a file reference) needs `qcall` to write a new lib file (see
+    `_write_field_map_lib_file`), and only the server has one. See that
+    method's own docstring for the full reasoning.
+    """
+    res = simulation_db.default_data(SIM_TYPE)
+    res.models.simulation.name = name
+    # elementPosition controls Lattice ("relative") vs. Volume
+    # ("absolute") -- the archive's own beamline_class says which the
+    # original beamline was (RF_Track's Lattice.track() has no Bunch6dT
+    # support at all, so a Bunch6dT-bunch archive is always a Volume,
+    # but a Bunch6d-bunch archive could legitimately be either).
+    res.models.simulation.elementPosition = (
+        "relative" if beamline_class == "Lattice" else "absolute"
+    )
+    els = []
+    items = []
+    positions = []
+    elemedge = 0.0
+    # shared across every element below: see _write_field_map_lib_file()
+    field_map_cache = {}
+    for i, e in enumerate(elements):
+        el = _rslume_element_to_sirepo(e, _id=i + 1, qcall=qcall, field_map_cache=field_map_cache)
+        els.append(el)
+        items.append(el._id)
+        if "z" in e:
+            # Volume mode: each element's own absolute position was
+            # archived directly (_position_to_attrs(), only written
+            # for a Volume beamline) -- using that instead of a
+            # cumulative length sum is required here, not just more
+            # accurate: Volume elements can be at arbitrary, even
+            # overlapping z (e.g. a gun cavity and a bucking solenoid
+            # occupying the same physical space), so a sequential
+            # pack-end-to-end placement is simply wrong for this mode.
+            positions.append(PKDict(elemedge=float(e["z"])))
+        else:
+            positions.append(PKDict(elemedge=elemedge))
+            elemedge += el.l
+    res.models.elements = els
+    res.models.beamlines = [
+        PKDict(id=len(els) + 1, name="Beamline1", items=items, positions=positions)
+    ]
+    # only one beamline is ever built here, so it's both the active
+    # (Lattice editor selection) and visualization (report) beamline --
+    # same pairing LatticeParser._set_default_beamline() uses for
+    # command-based (Elegant/MAD-X) imports, which this HDF5 import
+    # doesn't go through.
+    res.models.simulation.activeBeamlineId = res.models.simulation.visualizationBeamlineId = (
+        len(els) + 1
+    )
+    res.models.beam = _rslume_bunch_to_sirepo(bunch_type, particle_group, distribution_file)
+    res.models.simulationSettings.autophase = "1" if autophase else "0"
+    if space_charge:
+        s = res.models.simulationSettings
+        s.spaceCharge = space_charge["kind"]
+        if space_charge["kind"] == "pic":
+            s.scDtMm = float(space_charge["dt_mm"])
+            s.scGridNx, s.scGridNy, s.scGridNz = (int(n) for n in space_charge["grid"])
+            s.scMirror = float(space_charge["mirror_m"])
+            s.scSmooth = float(space_charge["smooth"])
+    sirepo.template.lattice.LatticeUtil(res, SCHEMA).sort_elements_and_beamlines()
+    return res
+
+
+def stateful_compute_import_file(data, **kwargs):
+    """Trivial passthrough: `sirepo.sim_data.rftrack.SimData.
+    prepare_import_file_args` already built the full imported data (via
+    `build_imported_data` above), on the server, before this was ever
+    called -- see that method's docstring for why. This hook still has
+    to exist (api_importFile's own dispatch in sirepo/server.py requires
+    it for any non-.json/.zip import), even though there's nothing left
+    for it to do here, in the job agent.
+    """
+    return PKDict(imported_data=data.args.imported_data)
+
+
 def validate_file(file_type, path, sim_id, qcall):
     """Recompute `l` for every CAVITY/SOLENOID element referencing a
     field-map file that was just uploaded, since that's the one
@@ -470,6 +467,68 @@ def validate_file(file_type, path, sim_id, qcall):
             data, fixup=False, qcall=qcall, modified=True
         )
     return None
+
+
+def write_distribution_lib_file(f, name, qcall):
+    """Extract the archive's own particle data from `f` (the still-open
+    archive file -- itself a valid standalone openPMD file, see
+    `RFTrackSimulator.archive()`'s docstring) and write it out as a
+    brand new lib file for `beam.distributionFile`. Reuses the same
+    write-a-new-lib-file-during-import mechanism as
+    `_write_field_map_lib_file`, just for the beam model instead of a
+    CAVITY/SOLENOID element.
+
+    Only callable with a real `qcall` -- see
+    `sirepo.sim_data.rftrack.SimData.prepare_import_file_args`'s own
+    docstring for why this has to happen on the server, not in
+    `stateful_compute_import_file` (the job agent).
+
+    Returns:
+        (str, beamphysics.ParticleGroup): the plain basename to store in
+            `beam.distributionFile`, and the particle data itself, so
+            the caller doesn't have to re-read it to get mass/charge/
+            particle species for the rest of the `beam` model (see
+            `_rslume_bunch_to_sirepo`).
+
+    Raises:
+        sirepo.util.UserAlert: a lib file of the same name already
+            exists with *different* content -- same reason
+            `_write_field_map_lib_file` guards against this: the lib
+            directory is shared across every simulation this user has
+            of this sim type, so re-importing the very same archive (a
+            normal thing to do while iterating) would otherwise
+            collide with itself on every single retry.
+    """
+    import beamphysics
+    import tempfile
+
+    particle_group = beamphysics.ParticleGroup(h5=f)
+    with tempfile.NamedTemporaryFile(suffix=".h5") as t:
+        particle_group.write(t.name)
+        t.flush()
+        # a portion of the file's own md5 in the basename, same
+        # convention as track_parser.validate_file()'s _hashed_name()
+        # -- this lib file is shared across every simulation this user
+        # has of this sim type (not per-simulation), so without this,
+        # re-importing a different archive that happens to reuse the
+        # same `name` (e.g. two sims both imported from a file called
+        # "archive.h5") would silently overwrite an unrelated sim's
+        # distribution file.
+        basename = f"{name}-{pykern.pkio.py_path(t.name).computehash()[:8]}.h5"
+        with open(t.name, "rb") as bf:
+            content = bf.read()
+    full_name = _SIM_DATA.lib_file_name_with_model_field(
+        "beam", "distributionFile", basename
+    )
+    if _SIM_DATA.lib_file_exists(full_name, qcall=qcall):
+        if _SIM_DATA.lib_file_read_binary(full_name, qcall=qcall) == content:
+            return basename, particle_group
+        raise sirepo.util.UserAlert(
+            f"distribution file='{basename}' already exists with "
+            "different content; rename and import again"
+        )
+    _SIM_DATA.lib_file_write(full_name, content, qcall=qcall)
+    return basename, particle_group
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -548,8 +607,8 @@ def _bunch_spec(dm, v, from_file_z_offset):
 def _element_spec(el):
     """Build the ELEMENTS data record for one lattice element: a "kind"
     discriminator plus whatever fields the generated script's
-    _build_element()/_load_field_map() need for that kind, and the
-    aperture/misalignment fields every kind has.
+    _build_element() and `rslume.rftrack_utils.load_field_map()` need for
+    that kind, and the aperture/misalignment fields every kind has.
 
     Returns (spec, is_cavity).
     """
@@ -822,8 +881,7 @@ def _generate_parameters_file(data):
     # approximation a Bunch6d's x'/y' would otherwise need (invalid when
     # Pz is comparable to the transverse momentum). For an
     # already-accelerated bunch (e.g. re-injecting a previous sim's own
-    # tracked output downstream, where Pz dominates -- matching how
-    # zone_2.ipynb loads zone_1's own saved output), that approximation is
+    # tracked output downstream, where Pz dominates), that approximation is
     # fine, and Bunch6d is used instead since it's the only bunch type
     # Lattice.track() supports at all (see the isLattice/isBunch6dT check
     # below). fromFileNearRest is user-controlled, not auto-detected from
@@ -840,23 +898,21 @@ def _generate_parameters_file(data):
             " positioning.",
             "Lattice mode incompatible with Bunch6dT distribution",
         )
-    if v.isBunch6dT:
-        v.phaseSpaceFields = _PHASE_SPACE_FIELDS_CATHODE
-        v.screenPhaseSpaceFields = _PHASE_SPACE_FIELDS_CATHODE_SCREEN
-    elif v.isFromFile:
-        v.phaseSpaceFields = _PHASE_SPACE_FIELDS_FROM_FILE
-        v.screenPhaseSpaceFields = _PHASE_SPACE_FIELDS_FROM_FILE
-    else:
-        v.phaseSpaceFields = _PHASE_SPACE_FIELDS
-        v.screenPhaseSpaceFields = _PHASE_SPACE_FIELDS
-    v.phaseSpaceScale = _PHASE_SPACE_SCALE
     v.isBunchReport = "bunchReport" in data.get("report", "")
 
     # A From File bunch's Z is rebased to (Z - mean(Z)) + from_file_z_offset;
     # 0.0 is the only sensible choice when previewing the bunch alone (no
-    # volume exists yet to place it relative to), or when the destination
-    # is a Lattice (which has no absolute position -- it always begins at
-    # its own local s=0, so there's no elemedge value to rebase onto).
+    # volume exists yet to place it relative to), when the destination is
+    # a Lattice (which has no absolute position -- it always begins at
+    # its own local s=0, so there's no elemedge value to rebase onto), or
+    # for a Bunch6dT (cathode/near-rest) bunch: its Z is a fixed emission
+    # convention RF-Track's own emission tracking expects (confirmed
+    # empirically -- a freshly-built cathode bunch's Z is always 0
+    # regardless of volume_s0, and shifting a reconstructed Bunch6dT's Z
+    # away from that, e.g. to volume_s0, causes RF-Track to lose the
+    # first particle during emission tracking and corrupts the whole
+    # run), unlike an already-moving Bunch6d, where Z genuinely is a
+    # physical position meaningful to rebase onto the new destination.
     from_file_z_offset = 0.0
     volume_s0, volume_s1 = 0.0, 1.0
     if not v.isBunchReport:
@@ -873,11 +929,13 @@ def _generate_parameters_file(data):
             # silently excluded from the field the beam feels.
             volume_s0 = min((e.elemedge for e in elements), default=0.0)
             volume_s1 = max((e.elemedge + e.l for e in elements), default=1.0)
-            from_file_z_offset = volume_s0
+            if not v.isBunch6dT:
+                from_file_z_offset = volume_s0
         else:
             volume_s0 = dm.simulationSettings.trackingS0
             volume_s1 = dm.simulationSettings.trackingS1
-            from_file_z_offset = volume_s0
+            if not v.isBunch6dT:
+                from_file_z_offset = volume_s0
 
         specs = []
         for e in elements:
@@ -885,12 +943,6 @@ def _generate_parameters_file(data):
             specs.append(s)
             v.hasCavity = v.hasCavity or is_cavity
         v.elementsCode = _format_value(specs, 0)
-        v.statTransportFields = (
-            _STAT_TRANSPORT_FIELDS_LATTICE if v.isLattice else _STAT_TRANSPORT_FIELDS
-        )
-        v.statSigmaPtColumn = _STAT_SIGMA_PT_COLUMN
-        v.statMeanPColumn = _STAT_MEAN_P_COLUMN
-        v.statScale = _STAT_SCALE_LATTICE if v.isLattice else _STAT_SCALE
         settings = PKDict(
             num_threads=sirepo.mpi.cfg().cores,
             space_charge=_space_charge_spec(dm.simulationSettings),
@@ -910,8 +962,11 @@ def _generate_parameters_file(data):
 
 
 def _space_charge_spec(simulation_settings):
+    if simulation_settings.spaceCharge == "p2p":
+        return PKDict(kind="p2p")
     if simulation_settings.spaceCharge == "pic":
         return PKDict(
+            kind="pic",
             dt_mm=simulation_settings.scDtMm,
             grid=(
                 simulation_settings.scGridNx,
@@ -996,6 +1051,282 @@ def _phase_space_plot(model, values):
 
 def _read_data(run_dir):
     return simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME))
+
+
+def _infer_particle(mass_mev, charge):
+    """Match (`mass_mev`, `charge`) against `_PARTICLE_MASS_AND_CHARGE`'s
+    known species, returning the matching `beam.particle` value, or
+    "other" if nothing matches. `mass`/`charge` are archived exactly (not
+    a statistical fit, unlike the Twiss values this doesn't touch), so an
+    exact-ish match is a reliable identification, not a guess.
+    """
+    for name, (mass, charge_e) in _PARTICLE_MASS_AND_CHARGE.items():
+        if numpy.isclose(mass_mev, mass, rtol=1e-6) and charge == charge_e:
+            return name
+    return "other"
+
+
+def _rslume_bunch_to_sirepo(bunch_type, particle_group, distribution_file):
+    """Build the `beam` model for an rslume.rftrack archive's bunch --
+    always "fromFile": it already handles both Bunch6d and Bunch6dT (via
+    fromFileNearRest), so no separate distributionType/field set is
+    needed for either, unlike a Twiss-style statistical-moment summary
+    (which Bunch6dT has no schema fields for at all).
+
+    `particle`/`mass`/`charge` are still set explicitly here, not left
+    to the file alone: every "fromFile" branch in build_bunch() (the
+    generated script) builds the tracked bunch's mass/charge from
+    BUNCH.mass_mev/BUNCH.charge (the beam model's own fields), not from
+    the file's embedded species, same as every other distributionType.
+    `randomSeed` isn't in the archive at all (RF-Track's own API has no
+    getter for it), so it's left for fixup_old_data()'s own
+    schema-default backfill, same as every other `beam` field this
+    doesn't set explicitly.
+    """
+    mass_mev = particle_group.mass / 1e6
+    charge = particle_group.species_charge / scipy.constants.e
+    return PKDict(
+        particle=_infer_particle(mass_mev, charge),
+        mass=mass_mev,
+        charge=charge,
+        distributionType="fromFile",
+        distributionFile=distribution_file,
+        fromFileNearRest="1" if bunch_type == "Bunch6dT" else "0",
+    )
+
+
+def _write_field_map_lib_file(el_type, element_name, field, hz, qcall, field_map_cache):
+    """Write `field` (a 1D RF-Track field-map array, sampled every `hz`
+    meters) as a brand new lib file -- two columns (s [m], field value),
+    the same two-column text format `rslume.rftrack_utils.load_field_map()` already reads
+    for a normal uploaded field map. Named after the archived element
+    (`element_name`) so it's recognizable in the lattice editor
+    afterward.
+
+    `field_map_cache` ({(el_type, md5): basename}) is shared across
+    every element in one import (see `build_imported_data()`) --
+    several elements built from the same uploaded field-map file (e.g.
+    a linac's identical accelerating cavities) are archived with one
+    shared copy, not a byte-for-byte duplicate per element
+    (`rslume.rftrack_archive._dedupe_field_maps()`); reusing the one lib file
+    already written for that same content here, instead of writing a
+    new one per element, keeps that true on import too.
+
+    Only callable with a real `qcall`: this writes to the lib directory,
+    which needs one (`sirepo.sim_data.SimDataBase.lib_file_write`) --
+    `stateful_compute_import_file` (the job agent) doesn't have one,
+    which is why the whole import is built server-side instead, in
+    `sirepo.sim_data.rftrack.SimData.prepare_import_file_args` (see its
+    own docstring).
+
+    Returns:
+        str: the plain basename to store in the model's `fieldMapFile`.
+
+    Raises:
+        sirepo.util.UserAlert: a lib file of the same name already
+            exists with *different* content -- the lib directory is
+            shared across every simulation this user has of this sim
+            type (not per-simulation), so re-importing the very same
+            archive (a normal thing to do while iterating) would
+            otherwise collide with itself on every single retry.
+    """
+    import hashlib
+    import io
+
+    field = numpy.asarray(field)
+    cache_key = (el_type, hashlib.md5(field.tobytes()).hexdigest())
+    if cache_key in field_map_cache:
+        return field_map_cache[cache_key]
+
+    basename = f"{element_name}.dat"
+    full_name = _SIM_DATA.lib_file_name_with_model_field(
+        el_type, "fieldMapFile", basename
+    )
+    s = numpy.arange(len(field)) * hz
+    buf = io.StringIO()
+    numpy.savetxt(buf, numpy.column_stack([s, field]))
+    content = buf.getvalue()
+    if _SIM_DATA.lib_file_exists(full_name, qcall=qcall):
+        if _SIM_DATA.lib_file_read_text(full_name, qcall=qcall) == content:
+            field_map_cache[cache_key] = basename
+            return basename
+        raise sirepo.util.UserAlert(
+            f"field map file='{basename}' already exists with different "
+            f"content; rename element '{element_name}' and import again"
+        )
+    _SIM_DATA.lib_file_write(full_name, content, qcall=qcall)
+    field_map_cache[cache_key] = basename
+    return basename
+
+
+def _rslume_element_to_sirepo(e, _id, qcall, field_map_cache):
+    """Invert rslume.rftrack_archive._element_to_attrs()'s dict into a sirepo
+    element model -- the exact reverse of _element_spec()'s analytic
+    DRIFT/QUADRUPOLE/CAVITY/CORRECTOR/SCREEN/BPM construction, plus
+    RF_FieldMap_1d/Static_Magnetic_FieldMap_1d (a CAVITY/SOLENOID with a
+    baked field array instead of a file reference) -- `qcall` and
+    `field_map_cache` are only used by those two, to write the array
+    out as a (possibly shared) lib file (see `_write_field_map_lib_file`).
+
+    Raises:
+        sirepo.util.UserAlert: `e["class"]` isn't one of the element
+            classes rslume.rftrack can archive yet (RF_FieldMap_2d or
+            analytic Solenoid), or a field-map file of the same name
+            already exists.
+    """
+    cls = str(e["class"])
+    aperture_x = float(e["aperture_x"])
+    aperture_y = float(e["aperture_y"])
+    if cls == "Pillbox_Cavity":
+        # Unlike every other element class, Pillbox_Cavity has no
+        # universal "set_aperture() was never called" sentinel -- its
+        # own un-set default is instead a function of its own geometry
+        # (confirmed empirically: linear in cell_length). Detecting
+        # "never explicitly set" here means asking a freshly-built,
+        # aperture-untouched cavity with the same geometry what ITS
+        # default is, rather than guessing a fixed constant that could
+        # drift across RF_Track versions. Safe to import here: this
+        # function runs inside job_cmd's stateful_compute_import_file
+        # dispatch, the same job-agent process that already needs
+        # RF_Track installed to run the generated parameters.py.
+        import RF_Track as rft
+
+        ref = rft.Pillbox_Cavity(
+            numpy.zeros(1),
+            float(e["frequency"]),
+            float(e["cell_length"]),
+            int(e["n_cells"]),
+        )
+        is_unset = (
+            aperture_x == ref.get_aperture_x() and aperture_y == ref.get_aperture_y()
+        )
+    else:
+        # RF-Track's own sentinel for "set_aperture() was never called" --
+        # same convention already used for the CCDTL example this session.
+        is_unset = aperture_x == -0.001 and aperture_y == -0.001
+    res = PKDict(
+        _id=_id,
+        _super="_ELEMENT",
+        name=str(e["name"]),
+        setAperture="0" if is_unset else "1",
+        aperture_x=0.015 if is_unset else aperture_x,
+        aperture_y=0.015 if is_unset else aperture_y,
+        # "x"/"y" are only present for a Volume-archived element
+        # (_position_to_attrs()) -- its absolute transverse position,
+        # which build_beamline()'s own v.add() takes as dx/dy directly
+        # (no separate "nominal" x/y baseline to offset from). Not
+        # present at all for a Lattice-archived element, which has no
+        # per-element absolute position concept, so 0 is correct there.
+        dx=float(e.get("x", 0.0)),
+        dy=float(e.get("y", 0.0)),
+        dz=0,
+        # rx/ry/rz stay 0 unconditionally: a non-identity rotation makes
+        # _position_to_attrs() -- and so archive() itself -- raise
+        # NotImplementedError, so nothing with a real rotation ever
+        # reaches this function in the first place.
+        rx=0,
+        ry=0,
+        rz=0,
+    )
+    if cls == "Drift":
+        res.type = "DRIFT"
+        res.l = float(e["length"])
+    elif cls == "Quadrupole":
+        res.type = "QUADRUPOLE"
+        res.l = float(e["length"])
+        res.strengthType = "gradient"
+        res.gradient = float(e["gradient"])
+        res.k1 = 0
+    elif cls == "Pillbox_Cavity":
+        res.type = "CAVITY"
+        res.l = float(e["n_cells"]) * float(e["cell_length"])
+        res.fieldSource = "analytic"
+        res.frequency = float(e["frequency"])
+        # the exact inverse of _element_spec()'s gradient_v_per_m = el.gradient * 1e6
+        res.gradient = float(e["coefficients"][-1][-1]) / 1e6
+        res.phase = float(e["phid"])
+        res.fieldMapFile = ""
+        res.fieldMapFile2d = ""
+        res.rescaleMode = "peak"
+        res.maxField = 0
+        res.scaleFactor = 1
+    elif cls == "Corrector":
+        res.type = "CORRECTOR"
+        res.l = float(e["length"])
+        # the exact inverse of _element_spec()'s
+        # e = rft.Corrector(spec.l, spec.h_kick, spec.v_kick) -- so this
+        # recovers whatever h_kick/v_kick produce the same Kx/Ky again,
+        # not a true kick angle in mrad despite the schema's label (the
+        # forward direction already passes h_kick/v_kick straight through
+        # as RF-Track's Kx/Ky, which the reference manual documents as an
+        # integrated strength in T.mm, not a kick angle).
+        res.h_kick = float(e["kx"])
+        res.v_kick = float(e["ky"])
+    elif cls == "Screen":
+        res.type = "SCREEN"
+        # rft.Screen() takes no length -- the exact inverse of
+        # _element_spec()'s own SCREEN branch, which never sets res.l
+        # either; width/height aren't archivable to a sirepo field (the
+        # SCREEN model has none), so they're dropped here same as the
+        # forward direction already drops them building a bare Screen().
+        res.l = 0
+    elif cls == "Bpm":
+        res.type = "BPM"
+        res.l = float(e["length"])
+        # resolution/resolution_t aren't archivable to a sirepo field
+        # (the BPM model has none, and the forward direction's
+        # rft.Bpm(spec.l) never sets them either) -- dropped, same as
+        # Screen's width/height above.
+    elif cls == "RF_FieldMap_1d":
+        res.type = "CAVITY"
+        res.fieldSource = "fieldMap"
+        res.frequency = float(e["frequency"])
+        res.phase = float(e["phid"])
+        # get_Ez() (_serialize_rf_fieldmap_1d) is RF-Track's own complex
+        # phasor representation, confirmed empirically here to always
+        # have an exactly-zero imaginary part for a field built from a
+        # real-valued uploaded file (_build_element()'s own
+        # rft.RF_FieldMap_1d(field, ...) construction never passes a
+        # complex field in the first place) -- load_field_map() expects
+        # a plain two-column real-valued text file, so this keeps only
+        # the real part the new lib file is written from.
+        field = numpy.asarray(e["ez"]).real
+        hz = float(e["hz"])
+        # the exact inverse of load_field_map()'s own
+        # length = s.max() - s.min() == (len(s) - 1) * step
+        res.l = (len(field) - 1) * hz
+        res.fieldMapFile = _write_field_map_lib_file(
+            "CAVITY", res.name, field, hz, qcall, field_map_cache
+        )
+        res.fieldMapFile2d = ""
+        # the archived array is already the exact final field (any
+        # P_actual/P_map scale is already baked in) -- "factor"/1
+        # applies it unchanged, the same role as Pillbox_Cavity's own
+        # rescaleMode/scaleFactor defaults above, just meaning something
+        # different for a field map (no further rescale) than for an
+        # analytic cavity (no field amplitude to even rescale).
+        res.rescaleMode = "factor"
+        res.scaleFactor = 1
+        res.maxField = 0
+        res.gradient = 0
+    elif cls == "Static_Magnetic_FieldMap_1d":
+        res.type = "SOLENOID"
+        res.fieldSource = "fieldMap"
+        field = numpy.asarray(e["bz"])
+        hz = float(e["hz"])
+        res.l = (len(field) - 1) * hz
+        res.fieldMapFile = _write_field_map_lib_file(
+            "SOLENOID", res.name, field, hz, qcall, field_map_cache
+        )
+        res.rescaleMode = "factor"
+        res.scaleFactor = 1
+        res.maxField = 0
+        res.b_field = 0
+    else:
+        raise sirepo.util.UserAlert(
+            f"the uploaded file contains an unsupported element type={cls}"
+        )
+    return res
 
 
 def _screen_names(data):

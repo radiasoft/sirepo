@@ -106,6 +106,7 @@ SIREPO.app.config(function() {
             solenoid: ['SOLENOID'],
             watch: ['SCREEN', 'BPM'],
         },
+        latticeImport: '.h5',
     };
 });
 

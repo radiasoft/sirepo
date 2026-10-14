@@ -4,47 +4,19 @@ import numpy
 {% if isFromFile %}
 import beamphysics
 {% endif %}
+{% if not isBunchReport %}
+import rslume.rftrack
+{% endif %}
+import rslume.rftrack_utils
 
 ELEMENTS = {% if isBunchReport %}[]{% else %}{{ elementsCode }}{% endif %}
-
-PHASE_SPACE_FIELDS = "{{ phaseSpaceFields }}"
-# Volume.get_bunch_at_screens() always returns Bunch6d-typed bunches, even
-# when the tracked bunch is a Bunch6dT (cathode distribution), so the token
-# string for screen-captured bunches can differ from the one above.
-PHASE_SPACE_FIELDS_SCREEN = "{{ screenPhaseSpaceFields }}"
-# RF_Track's native phase-space units are mm, mrad, and MeV/c; rescale to
-# base SI units (m, rad, eV/c, eV, s) to match impact-t's convention.
-PHASE_SPACE_SCALE = numpy.array({{ phaseSpaceScale }})
 
 BUNCH = {{ bunchCode }}
 {% if not isBunchReport %}
 SETTINGS = {{ settingsCode }}
-
-STAT_FIELDS = "{{ statTransportFields }}"
-STAT_SCALE = numpy.array({{ statScale }})
 {% endif %}
 
 
-{% if not isBunchReport and spaceCharge != "none" %}
-def apply_space_charge(volume):
-    {% if spaceCharge == "p2p" %}
-    rft.cvar.SC_engine = rft.SpaceCharge_P2P()
-    {% elif spaceCharge == "pic" %}
-    sc_settings = SETTINGS.space_charge
-    {% if not isLattice %}
-    volume.sc_dt_mm = sc_settings.dt_mm
-    {% endif %}
-    sc = rft.SpaceCharge_PIC_FreeSpace(*sc_settings.grid)
-    sc.set_smooth(sc_settings.smooth)
-    sc.set_mirror(sc_settings.mirror_m)
-    # rft.cvar.SC_engine (a process-global) rather than
-    # Volume.set_sc_engine(): the latter does not apply space-charge
-    # forces the same way for a multi-element Volume.
-    rft.cvar.SC_engine = sc
-    {% endif %}
-
-
-{% endif %}
 {% if not isBunchReport and autophase and hasCavity %}
 def autophase(volume):
     # Autophase against a single on-axis reference particle, then track
@@ -200,9 +172,7 @@ def build_bunch():
     )
     {% else %}
     # Already-accelerated bunch (e.g. re-injecting a previous sim's own
-    # tracked output downstream, matching how zone_2.ipynb loads zone_1's
-    # own saved output via
-    # preproc.load_bunch_from_openpmd(bunch_type="Bunch6d")): Pz dominates
+    # tracked output downstream): Pz dominates
     # here, so the small-angle approximation Bunch6d's x'/y' rely on is
     # valid -- and Bunch6d is the only bunch type Lattice.track() accepts
     # at all, so Sequential (Lattice) positioning requires this branch.
@@ -245,7 +215,7 @@ def main():
     {% endif %}
 
     bunch = build_bunch()
-    save_particles("initial_particles.npy", bunch, PHASE_SPACE_FIELDS)
+    rslume.rftrack_utils.save_particles("initial_particles.npy", bunch)
     {% if not isBunchReport %}
 
     volume = build_beamline()
@@ -253,65 +223,20 @@ def main():
     autophase(volume)
     {% endif %}
     {% if spaceCharge != "none" %}
-    apply_space_charge(volume)
+    rslume.rftrack_utils.apply_space_charge(volume, SETTINGS.space_charge)
     {% endif %}
 
-    tracked = volume.track(bunch)
-    save_particles("final_particles.npy", tracked, PHASE_SPACE_FIELDS)
-    save_stats(volume)
-    save_screens(volume)
-    save_bpms(volume)
-    {% endif %}
-
-
-def save_particles(filename, bunch, fields):
-    numpy.save(filename, bunch.get_phase_space(fields) * PHASE_SPACE_SCALE)
-
-
-{% if not isBunchReport %}
-def save_bpms(volume):
-    # get_bpms()/get_nbpms() only exist on Lattice, not Volume -- BPM
-    # readings aren't supported in Volume mode at all, so this is a
-    # no-op there, same as it would be for a lattice with no BPMs
-    if not hasattr(volume, "get_bpms") or volume.get_nbpms() == 0:
-        return
-    rows = []
-    for bpm in volume.get_bpms():
-        x, y, _ = bpm.get_reading()  # mm, mm, mm (z unused)
-        rows.append([bpm.get_S(), x, y, bpm.get_total_charge()])
-    numpy.save("bpms.npy", numpy.array(rows))
-
-
-def save_screens(volume):
-    for i, bunch in enumerate(volume.get_bunch_at_screens()):
-        save_particles(f"screen-{i}.npy", bunch, PHASE_SPACE_FIELDS_SCREEN)
-
-
-def save_stats(volume):
-    t = numpy.array(volume.get_transport_table(STAT_FIELDS))
-    {% if isLattice %}
-    # %sigma_pt (Lattice) is a RELATIVE momentum spread in permille
-    # (matching this app's own beam.sigma_pt field), unlike %sigma_Pz
-    # (Volume, an absolute momentum spread in MeV/c); dividing by 1000
-    # and multiplying by %mean_P approximates that same absolute
-    # quantity, verified empirically against Volume's own %sigma_Pz for
-    # an equivalent beamline.
-    t[:, {{ statSigmaPtColumn }}] = (
-        t[:, {{ statSigmaPtColumn }}] / 1000.0 * t[:, {{ statMeanPColumn }}]
+    model = rslume.rftrack.build_model(ELEMENTS, volume, bunch)
+    model.reset()
+    rslume.rftrack_utils.save_particles(
+        "final_particles.npy", model.simulator.tracked_bunch
     )
+    rslume.rftrack_utils.save_stats(model.simulator.beamline)
+    rslume.rftrack_utils.save_screens(model.simulator.beamline, bunch)
+    rslume.rftrack_utils.save_bpms(model.simulator.beamline)
     {% endif %}
-    # On-axis Ez/Bz: a direct field query (independent of the tracked
-    # beam) at x=y=0 and t=0, sampled at the same s positions as the
-    # transport table, so it can be selected as another y-axis column
-    # alongside the beam statistics.
-    volume.set_t0(0)
-    e, b = volume.get_field(0.0, 0.0, t[:, 0], 0.0)
-    volume.unset_t0()
-    t = numpy.hstack([t, numpy.array(e)[:, 2:3], numpy.array(b)[:, 2:3]])
-    numpy.save("stats.npy", t * STAT_SCALE)
 
 
-{% endif %}
 {% if not isBunchReport %}
 def _build_element(spec):
     if spec.kind == "drift":
@@ -326,7 +251,7 @@ def _build_element(spec):
     elif spec.kind == "solenoid_analytic":
         e = rft.Solenoid(spec.l, spec.b_field, spec.radius)
     elif spec.kind == "solenoid_fieldmap":
-        field, step, _ = _load_field_map(spec)
+        field, step, _ = rslume.rftrack_utils.load_field_map(spec)
         e = rft.Static_Magnetic_FieldMap_1d(field, step)
     elif spec.kind == "corrector":
         e = rft.Corrector(spec.l, spec.h_kick, spec.v_kick)
@@ -338,11 +263,11 @@ def _build_element(spec):
         e = rft.Pillbox_Cavity(a, spec.frequency_hz, l_cell, n_cells)
         e.set_phid(spec.phase_deg)
     elif spec.kind == "cavity_fieldmap":
-        field, step, length = _load_field_map(spec)
+        field, step, length = rslume.rftrack_utils.load_field_map(spec)
         e = rft.RF_FieldMap_1d(field, step, length, spec.frequency_hz, +1)
         e.set_phid(spec.phase_deg)
     elif spec.kind == "cavity_fieldmap_2d":
-        Er, Ez, hr, hz = _load_field_map_2d(spec)
+        Er, Ez, hr, hz = rslume.rftrack_utils.load_field_map_2d(spec)
         e = rft.RF_FieldMap_2d(Er, Ez, 0, 0, hr, hz, -1, spec.frequency_hz, +1)
         e.set_phid(spec.phase_deg)
     elif spec.kind == "screen":
@@ -351,38 +276,29 @@ def _build_element(spec):
         e = rft.Bpm(spec.l)
     else:
         raise AssertionError(f"unsupported element kind={spec.kind}")
+    {% if not (autophase and hasCavity) %}
+    # Explicitly pin t0 to 0.0 on every cavity/screen: confirmed
+    # empirically that Volume.track() internally re-autophases every RF
+    # element (and every Screen) from scratch if ANY of them has
+    # t0_is_set() False, regardless of phid, silently overriding an
+    # explicitly-set phase with Autophase off.
+    #
+    # Only emitted when the autophase() function below WON'T run:
+    # confirmed empirically that Volume.unset_t0() -- the first thing
+    # that function does -- does NOT clear an element's t0 once set()
+    # was ever called on it directly, even to 0.0. Pinning t0 here
+    # unconditionally would silently defeat the real autophase() search
+    # that follows, leaving every cavity stuck at 0.0 instead of a
+    # freshly-derived value (confirmed: the whole beamline ends up
+    # unphased, same failure mode as never phasing at all, just
+    # disguised since t0_is_set() now reads True).
+    if spec.kind in ("cavity_analytic", "cavity_fieldmap", "cavity_fieldmap_2d", "screen"):
+        e.set_t0(0.0)
+    {% endif %}
     e.set_name(spec.name)
     if spec.set_aperture:
         e.set_aperture(spec.aperture_x, spec.aperture_y, spec.aperture_type)
     return e
-
-
-def _load_field_map(spec):
-    t = numpy.loadtxt(spec.file)
-    s = t[:, 0]
-    step = (s.max() - s.min()) / (len(s) - 1)
-    length = s.max() - s.min()
-    field = t[:, 1]
-    if spec.rescale_mode == "factor":
-        field = field * spec.scale_factor
-    else:
-        field = field / numpy.max(numpy.abs(field)) * spec.target_field
-    return field, step, length
-
-
-def _load_field_map_2d(spec):
-    # SUPERFISH-style: two `#`-commented header lines (numpy.loadtxt()
-    # skips these on its own), then rows of Z [cm], R [cm], Ez [MV/m],
-    # Er [MV/m], |E| [MV/m], H [A/m] -- not rescaled, unlike a 1D map
-    t = numpy.loadtxt(spec.file)
-    z = numpy.sort(numpy.unique(t[:, 0]))
-    r = numpy.sort(numpy.unique(t[:, 1]))
-    nz, nr = len(z), len(r)
-    hz = (z[-1] - z[0]) / (nz - 1) / 100
-    hr = (r[-1] - r[0]) / (nr - 1) / 100
-    Ez = t[:, 2].reshape((nz, nr), order="F") * 1e6
-    Er = t[:, 3].reshape((nz, nr), order="F") * 1e6
-    return Er, Ez, hr, hz
 
 
 {% endif %}
