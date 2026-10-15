@@ -35,6 +35,7 @@ FOSS_CODES = frozenset(
         "opal",
         "openmc",
         "radia",
+        "rftrack",
         "shadow",
         "srw",
         "tmap8",
@@ -241,6 +242,13 @@ def _init():
                 "http://127.0.0.1:9001/scan-monitor",
                 str,
                 "url to reach scan monitor daemon",
+            ),
+        ),
+        rftrack=dict(
+            data_storage_url=(
+                "https://github.com/radiasoft/sirepo-data-rftrack/raw/main/",
+                str,
+                "url base to reach rftrack example data files",
             ),
         ),
         sbatch_sim_types=(

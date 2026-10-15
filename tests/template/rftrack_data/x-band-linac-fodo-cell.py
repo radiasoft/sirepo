@@ -1,0 +1,319 @@
+#!/usr/bin/env python
+
+from pykern.pkcollections import PKDict
+import RF_Track as rft
+import numpy
+import rslume.rftrack
+import rslume.rftrack_utils
+
+ELEMENTS = [
+    PKDict(
+        name='D0',
+        elemedge=0,
+        set_aperture=False,
+        aperture_x=0.015,
+        aperture_y=0.015,
+        aperture_type='circular',
+        dx=0,
+        dy=0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='drift',
+        l=0.05,
+    ),
+    PKDict(
+        name='C1',
+        elemedge=0.05,
+        set_aperture=False,
+        aperture_x=0.015,
+        aperture_y=0.015,
+        aperture_type='circular',
+        dx=0,
+        dy=0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='cavity_analytic',
+        l=0.15,
+        frequency_hz=11994200000,
+        gradient_v_per_m=80000000.0,
+        phase_deg=0.0,
+    ),
+    PKDict(
+        name='C2',
+        elemedge=0.2,
+        set_aperture=False,
+        aperture_x=0.015,
+        aperture_y=0.015,
+        aperture_type='circular',
+        dx=0,
+        dy=0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='cavity_analytic',
+        l=0.15,
+        frequency_hz=11994200000,
+        gradient_v_per_m=80000000.0,
+        phase_deg=0.0,
+    ),
+    PKDict(
+        name='QF',
+        elemedge=0.35,
+        set_aperture=False,
+        aperture_x=0.015,
+        aperture_y=0.015,
+        aperture_type='circular',
+        dx=0,
+        dy=0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='quadrupole_gradient',
+        l=0.1,
+        gradient=5,
+    ),
+    PKDict(
+        name='C3',
+        elemedge=0.45,
+        set_aperture=False,
+        aperture_x=0.015,
+        aperture_y=0.015,
+        aperture_type='circular',
+        dx=0,
+        dy=0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='cavity_analytic',
+        l=0.15,
+        frequency_hz=11994200000,
+        gradient_v_per_m=80000000.0,
+        phase_deg=0.0,
+    ),
+    PKDict(
+        name='C4',
+        elemedge=0.6,
+        set_aperture=False,
+        aperture_x=0.015,
+        aperture_y=0.015,
+        aperture_type='circular',
+        dx=0,
+        dy=0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='cavity_analytic',
+        l=0.15,
+        frequency_hz=11994200000,
+        gradient_v_per_m=80000000.0,
+        phase_deg=0.0,
+    ),
+    PKDict(
+        name='QD',
+        elemedge=0.75,
+        set_aperture=False,
+        aperture_x=0.015,
+        aperture_y=0.015,
+        aperture_type='circular',
+        dx=0,
+        dy=0,
+        dz=0,
+        rx=0,
+        ry=0,
+        rz=0,
+        kind='quadrupole_gradient',
+        l=0.1,
+        gradient=-5,
+    ),
+]
+BUNCH = PKDict(
+    charge=-1.0,
+    mass_mev=0.51099895069,
+    pc_mev=100,
+    random_seed=5489,
+    alpha_x=0,
+    alpha_y=0,
+    beta_x=1,
+    beta_y=1,
+    charge_nc=0.05,
+    emit_x=5,
+    emit_y=5,
+    np=10000,
+    sigma_pt=1,
+    sigma_t=1,
+)
+SETTINGS = PKDict(
+    num_threads=1,
+    space_charge=PKDict(
+    ),
+)
+
+
+def autophase(volume, bunch):
+    # Autophase against a single on-axis reference particle, then track
+    # the real bunch through this SAME (now-phased) volume; do not
+    # rebuild it. Volume.autophase() sets each RF element's internal t0
+    # directly and .track() uses that state as-is -- get_phid() does not
+    # reflect it (it always reads back the phid the element was
+    # constructed with), so reading it back to "convert" t0 into an
+    # equivalent phid for a rebuilt volume silently produces the unphased
+    # result instead of the true autophased state.
+    p0 = rft.Bunch6d(
+        BUNCH.mass_mev, 0.0, BUNCH.charge, numpy.array([0.0, 0.0, 0.0, 0.0, 0.0, BUNCH.pc_mev])
+    )
+    volume.unset_t0()
+    volume.autophase(p0)
+
+
+def build_beamline():
+    # Lattice appends elements sequentially with no absolute-position
+    # concept at all -- gaps were already filled with synthetic Drifts
+    # and overlaps rejected when ELEMENTS was generated, so every element
+    # here simply begins where the previous one ended. There is no
+    # Volume-style tracking range to set (a Lattice is inherently bounded
+    # by its own appended elements), and no continuous-ODE step size to
+    # tune (dt_mm/odeint_algorithm/tt_dt_mm are Volume-only) -- each
+    # element instead has its own default step count.
+    v = rft.Lattice()
+    elements = [_build_element(spec) for spec in ELEMENTS]
+    for e in elements:
+        # set_tt_nsteps() controls how finely get_transport_table()
+        # samples within this element (the Lattice-only equivalent of
+        # Volume's tt_dt_mm) -- without it, the transport table (and so
+        # the Beam Variables/Lattice Overlay plots) only reports one
+        # point per element.
+        e.set_tt_nsteps(20)
+        v.append(e)
+    # Element.set_offsets(), called on an already-appended element,
+    # silently has no effect (verified empirically) --
+    # Lattice.set_elements_offsets() is the reliable, bulk equivalent of
+    # Volume.add()'s per-element x/y/z/roll/pitch/yaw args (its extra 4th
+    # column, always 1.0 here, is unrelated to any misalignment field).
+    v.set_elements_offsets(numpy.array(
+        [[s.dx, s.dy, s.dz, 1.0, s.rz, s.rx, s.ry] for s in ELEMENTS]
+    ))
+    # nonzero: RF_Track prints tracking progress (e.g. "t = ... mm/c")
+    # straight to stdout as track() advances, which is run.log's own
+    # content with no further plumbing needed
+    v.verbosity = 1
+    return v
+
+
+def build_bunch():
+    twiss = rft.Bunch6d_twiss()
+    twiss.beta_x = BUNCH.beta_x
+    twiss.beta_y = BUNCH.beta_y
+    twiss.alpha_x = BUNCH.alpha_x
+    twiss.alpha_y = BUNCH.alpha_y
+    twiss.emitt_x = BUNCH.emit_x
+    twiss.emitt_y = BUNCH.emit_y
+    twiss.sigma_t = BUNCH.sigma_t
+    twiss.sigma_pt = BUNCH.sigma_pt
+    return rft.Bunch6d_QR(
+        BUNCH.mass_mev, BUNCH.charge_nc * rft.nC, BUNCH.charge, BUNCH.pc_mev, twiss, BUNCH.np
+    )
+
+
+def main():
+    rft.rng_set_seed(BUNCH.random_seed)
+    rft.cvar.number_of_threads = SETTINGS.num_threads
+
+    bunch = build_bunch()
+    rslume.rftrack_utils.save_particles("initial_particles.npy", bunch)
+
+    volume = build_beamline()
+    autophase(volume, bunch)
+
+    model = rslume.rftrack.build_model(ELEMENTS, volume, bunch)
+    model.reset()
+    rslume.rftrack_utils.save_particles(
+        "final_particles.npy", model.simulator.tracked_bunch
+    )
+    rslume.rftrack_utils.save_stats(model.simulator.beamline, "stats.npy")
+    rslume.rftrack_utils.save_screens(
+        model.simulator.beamline, bunch, "screen-{}.npy"
+    )
+    rslume.rftrack_utils.save_bpms(model.simulator.beamline, "bpms.npy")
+
+
+def _build_element(spec):
+    if spec.kind == "drift":
+        e = rft.Drift(spec.l)
+    elif spec.kind == "quadrupole_k1":
+        e = rft.Quadrupole(spec.l, spec.k1)
+    elif spec.kind == "quadrupole_gradient":
+        e = rft.Quadrupole(spec.l, float("nan"), 0.0)
+        e.set_gradient(spec.gradient)
+    elif spec.kind == "rbend":
+        e = rft.RBend(spec.l, spec.angle, BUNCH.pc_mev / BUNCH.charge)
+    elif spec.kind == "solenoid_analytic":
+        e = rft.Solenoid(spec.l, spec.b_field, spec.radius)
+    elif spec.kind == "solenoid_fieldmap":
+        field, step, _ = rslume.rftrack_utils.load_field_map(spec)
+        # the _CINT classes interpolate the map cubically, the others linearly
+        e = (
+            rft.Static_Magnetic_FieldMap_1d_CINT
+            if spec.cubic
+            else rft.Static_Magnetic_FieldMap_1d
+        )(field, step)
+    elif spec.kind == "corrector":
+        e = rft.Corrector(spec.l, spec.h_kick, spec.v_kick)
+    elif spec.kind == "cavity_analytic":
+        # A standing-wave pi-mode structure of half-wavelength cells,
+        # Ez = gradient * cos(n_cells * pi * z / l) on axis, as a field map
+        # so RF-Track derives the off-axis fields from it. Pillbox_Cavity
+        # can't model it: its field repeats unchanged in every cell, and
+        # its off-axis fields for any mode but the first are inconsistent
+        # with Maxwell's equations (B in phase with E). 40 points per cell
+        # gives the energy gain to 0.05%.
+        n_cells = max(1, round(2.0 * spec.l * spec.frequency_hz / rft.clight))
+        l = n_cells * rft.clight / (2.0 * spec.frequency_hz)
+        z = numpy.linspace(0.0, l, 40 * n_cells + 1)
+        e = rft.RF_FieldMap_1d(
+            (spec.gradient_v_per_m * numpy.cos(n_cells * numpy.pi * z / l)).astype(complex),
+            z[1] - z[0],
+            l,
+            spec.frequency_hz,
+            +1,
+        )
+        e.set_phid(spec.phase_deg)
+    elif spec.kind == "cavity_fieldmap":
+        field, step, length = rslume.rftrack_utils.load_field_map(spec)
+        e = (rft.RF_FieldMap_1d_CINT if spec.cubic else rft.RF_FieldMap_1d)(
+            field, step, length, spec.frequency_hz, +1
+        )
+        e.set_phid(spec.phase_deg)
+    elif spec.kind == "cavity_fieldmap_2d":
+        Er, Ez, hr, hz = rslume.rftrack_utils.load_field_map_2d(spec)
+        e = (rft.RF_FieldMap_2d_CINT if spec.cubic else rft.RF_FieldMap_2d)(
+            Er, Ez, 0, 0, hr, hz, -1, spec.frequency_hz, +1
+        )
+        e.set_phid(spec.phase_deg)
+    elif spec.kind == "screen":
+        e = rft.Screen()
+    elif spec.kind == "bpm":
+        e = rft.Bpm(spec.l)
+    else:
+        raise AssertionError(f"unsupported element kind={spec.kind}")
+    e.set_name(spec.name)
+    if spec.set_aperture:
+        e.set_aperture(spec.aperture_x, spec.aperture_y, spec.aperture_type)
+    return e
+
+
+# Not "if __name__ == '__main__'": Sirepo runs this file via
+# pykern.pkrunpy.run_path_as_module(), which execs it with __name__ set to
+# a name derived from the filename, never "__main__" -- that guard would
+# silently skip main() entirely under Sirepo's own execution path (no
+# error, just none of the actual work happening) while still appearing to
+# work when run standalone via `python3 parameters.py`, which is how this
+# bug was first missed.
+main()
