@@ -157,6 +157,22 @@ SETTINGS = PKDict(
 )
 
 
+def autophase(volume):
+    # Autophase against a single on-axis reference particle, then track
+    # the real bunch through this SAME (now-phased) volume; do not
+    # rebuild it. Volume.autophase() sets each RF element's internal t0
+    # directly and .track() uses that state as-is -- get_phid() does not
+    # reflect it (it always reads back the phid the element was
+    # constructed with), so reading it back to "convert" t0 into an
+    # equivalent phid for a rebuilt volume silently produces the unphased
+    # result instead of the true autophased state.
+    p0 = rft.Bunch6d(
+        BUNCH.mass_mev, 0.0, BUNCH.charge, numpy.array([0.0, 0.0, 0.0, 0.0, 0.0, BUNCH.pc_mev])
+    )
+    volume.unset_t0()
+    volume.autophase(p0)
+
+
 def build_beamline():
     # Lattice appends elements sequentially with no absolute-position
     # concept at all -- gaps were already filled with synthetic Drifts
@@ -214,6 +230,7 @@ def main():
     rslume.rftrack_utils.save_particles("initial_particles.npy", bunch)
 
     volume = build_beamline()
+    autophase(volume)
 
     model = rslume.rftrack.build_model(ELEMENTS, volume, bunch)
     model.reset()
@@ -245,11 +262,23 @@ def _build_element(spec):
     elif spec.kind == "corrector":
         e = rft.Corrector(spec.l, spec.h_kick, spec.v_kick)
     elif spec.kind == "cavity_analytic":
-        l_cell = rft.clight / (2.0 * spec.frequency_hz)
-        n_cells = max(1, round(spec.l / l_cell))
-        a = numpy.zeros(1)
-        a[-1] = spec.gradient_v_per_m
-        e = rft.Pillbox_Cavity(a, spec.frequency_hz, l_cell, n_cells)
+        # A standing-wave pi-mode structure of half-wavelength cells,
+        # Ez = gradient * cos(n_cells * pi * z / l) on axis, as a field map
+        # so RF-Track derives the off-axis fields from it. Pillbox_Cavity
+        # can't model it: its field repeats unchanged in every cell, and
+        # its off-axis fields for any mode but the first are inconsistent
+        # with Maxwell's equations (B in phase with E). 40 points per cell
+        # gives the energy gain to 0.05%.
+        n_cells = max(1, round(2.0 * spec.l * spec.frequency_hz / rft.clight))
+        l = n_cells * rft.clight / (2.0 * spec.frequency_hz)
+        z = numpy.linspace(0.0, l, 40 * n_cells + 1)
+        e = rft.RF_FieldMap_1d(
+            (spec.gradient_v_per_m * numpy.cos(n_cells * numpy.pi * z / l)).astype(complex),
+            z[1] - z[0],
+            l,
+            spec.frequency_hz,
+            +1,
+        )
         e.set_phid(spec.phase_deg)
     elif spec.kind == "cavity_fieldmap":
         field, step, length = rslume.rftrack_utils.load_field_map(spec)
@@ -265,23 +294,6 @@ def _build_element(spec):
         e = rft.Bpm(spec.l)
     else:
         raise AssertionError(f"unsupported element kind={spec.kind}")
-    # Explicitly pin t0 to 0.0 on every cavity/screen: confirmed
-    # empirically that Volume.track() internally re-autophases every RF
-    # element (and every Screen) from scratch if ANY of them has
-    # t0_is_set() False, regardless of phid, silently overriding an
-    # explicitly-set phase with Autophase off.
-    #
-    # Only emitted when the autophase() function below WON'T run:
-    # confirmed empirically that Volume.unset_t0() -- the first thing
-    # that function does -- does NOT clear an element's t0 once set()
-    # was ever called on it directly, even to 0.0. Pinning t0 here
-    # unconditionally would silently defeat the real autophase() search
-    # that follows, leaving every cavity stuck at 0.0 instead of a
-    # freshly-derived value (confirmed: the whole beamline ends up
-    # unphased, same failure mode as never phasing at all, just
-    # disguised since t0_is_set() now reads True).
-    if spec.kind in ("cavity_analytic", "cavity_fieldmap", "cavity_fieldmap_2d", "screen"):
-        e.set_t0(0.0)
     e.set_name(spec.name)
     if spec.set_aperture:
         e.set_aperture(spec.aperture_x, spec.aperture_y, spec.aperture_type)

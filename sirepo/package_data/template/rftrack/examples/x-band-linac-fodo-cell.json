@@ -290,7 +290,7 @@
         },
         "simulationSettings": {
             "autoTrackingRange": "1",
-            "autophase": "0",
+            "autophase": "1",
             "scDtMm": 3,
             "scGridNx": 8,
             "scGridNy": 8,

@@ -73,12 +73,13 @@ _PIC_SPACE_CHARGE_FIELDS = PKDict(
     smooth="scSmooth",
 )
 
-# rslume.rftrack archive element class -> this app's element type
+# rslume.rftrack archive element class -> this app's element type. Not
+# Pillbox_Cavity: an analytic CAVITY is built as an RF_FieldMap_1d, and
+# can't reproduce a Pillbox_Cavity's fields.
 _RSLUME_CLASS_TO_TYPE = PKDict(
     Bpm="BPM",
     Corrector="CORRECTOR",
     Drift="DRIFT",
-    Pillbox_Cavity="CAVITY",
     Quadrupole="QUADRUPOLE",
     RF_FieldMap_1d="CAVITY",
     Screen="SCREEN",
@@ -190,6 +191,12 @@ def build_imported_data(archive, name, qcall):
         el = _rslume_element_to_sirepo(
             e, _id=i + 1, qcall=qcall, field_map_cache=field_map_cache
         )
+        if archive.elements_offsets is not None:
+            # a Lattice's offsets, in the column order the generated
+            # script's set_elements_offsets() takes them
+            el.dx, el.dy, el.dz, _, el.rz, el.rx, el.ry = (
+                float(x) for x in archive.elements_offsets[i]
+            )
         els.append(el)
         items.append(el._id)
         if "z" in e:
@@ -690,9 +697,7 @@ def _generate_parameters_file(data):
             space_charge=_space_charge_spec(dm.simulationSettings),
         )
         if not v.isLattice:
-            settings.tracking_range_m = _tracking_range(
-                dm.simulationSettings, elements
-            )
+            settings.tracking_range_m = _tracking_range(dm.simulationSettings, elements)
             settings.volume_dt_mm = dm.simulationSettings.volumeDtMm
             settings.volume_tt_dt_mm = dm.simulationSettings.volumeTtDtMm
         v.settingsCode = _format_value(settings, 0)
@@ -916,18 +921,20 @@ def _rslume_bunch_to_sirepo(bunch_type, particle_group, distribution_file):
 
 def _rslume_element_to_sirepo(e, _id, qcall, field_map_cache):
     """Invert rslume.rftrack_archive._element_to_attrs()'s dict into a sirepo
-    element model -- the exact reverse of _element_spec()'s analytic
-    DRIFT/QUADRUPOLE/CAVITY/CORRECTOR/SCREEN/BPM construction, plus
+    element model -- the exact reverse of _element_spec()'s
+    DRIFT/QUADRUPOLE/CORRECTOR/SCREEN/BPM construction, plus
     RF_FieldMap_1d/Static_Magnetic_FieldMap_1d (a CAVITY/SOLENOID with a
     baked field array instead of a file reference) -- `qcall` and
     `field_map_cache` are only used by those two, to write the array
     out as a (possibly shared) lib file (see `_write_field_map_lib_file`).
+    An analytic CAVITY is archived as an RF_FieldMap_1d, so it comes back
+    as a field-map CAVITY.
 
     Raises:
         sirepo.util.UserAlert: `e["class"]` isn't one of the element
-            classes rslume.rftrack can archive yet (RF_FieldMap_2d or
-            analytic Solenoid), or a field-map file of the same name
-            already exists.
+            classes in `_RSLUME_CLASS_TO_TYPE` (e.g. Pillbox_Cavity,
+            RF_FieldMap_2d or analytic Solenoid), or a field-map file of
+            the same name already exists.
     """
     cls = str(e["class"])
     t = _RSLUME_CLASS_TO_TYPE.get(cls)
@@ -955,13 +962,6 @@ def _rslume_element_to_sirepo(e, _id, qcall, field_map_cache):
     if cls == "Quadrupole":
         res.strengthType = "gradient"
         res.gradient = float(e["gradient"])
-    elif cls == "Pillbox_Cavity":
-        res.l = float(e["n_cells"]) * float(e["cell_length"])
-        res.fieldSource = "analytic"
-        res.frequency = float(e["frequency"])
-        # the exact inverse of _element_spec()'s gradient_v_per_m = el.gradient * 1e6
-        res.gradient = float(e["coefficients"][-1][-1]) / 1e6
-        res.phase = float(e["phid"])
     elif cls == "Corrector":
         # the exact inverse of _element_spec()'s
         # e = rft.Corrector(spec.l, spec.h_kick, spec.v_kick): h_kick/v_kick

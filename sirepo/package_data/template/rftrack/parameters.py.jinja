@@ -213,11 +213,23 @@ def _build_element(spec):
     elif spec.kind == "corrector":
         e = rft.Corrector(spec.l, spec.h_kick, spec.v_kick)
     elif spec.kind == "cavity_analytic":
-        l_cell = rft.clight / (2.0 * spec.frequency_hz)
-        n_cells = max(1, round(spec.l / l_cell))
-        a = numpy.zeros(1)
-        a[-1] = spec.gradient_v_per_m
-        e = rft.Pillbox_Cavity(a, spec.frequency_hz, l_cell, n_cells)
+        # A standing-wave pi-mode structure of half-wavelength cells,
+        # Ez = gradient * cos(n_cells * pi * z / l) on axis, as a field map
+        # so RF-Track derives the off-axis fields from it. Pillbox_Cavity
+        # can't model it: its field repeats unchanged in every cell, and
+        # its off-axis fields for any mode but the first are inconsistent
+        # with Maxwell's equations (B in phase with E). 40 points per cell
+        # gives the energy gain to 0.05%.
+        n_cells = max(1, round(2.0 * spec.l * spec.frequency_hz / rft.clight))
+        l = n_cells * rft.clight / (2.0 * spec.frequency_hz)
+        z = numpy.linspace(0.0, l, 40 * n_cells + 1)
+        e = rft.RF_FieldMap_1d(
+            (spec.gradient_v_per_m * numpy.cos(n_cells * numpy.pi * z / l)).astype(complex),
+            z[1] - z[0],
+            l,
+            spec.frequency_hz,
+            +1,
+        )
         e.set_phid(spec.phase_deg)
     elif spec.kind == "cavity_fieldmap":
         field, step, length = rslume.rftrack_utils.load_field_map(spec)

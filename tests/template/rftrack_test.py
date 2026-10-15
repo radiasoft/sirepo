@@ -6,6 +6,46 @@
 """
 
 
+def test_analytic_cavity_gain():
+    """An analytic CAVITY is a standing wave of half-wavelength cells: on
+    crest, an ultrarelativistic particle gains gradient * l / 2, however
+    many cells it has."""
+    import numpy
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
+    from sirepo.template import rftrack
+
+    data = _shipped_example("X-band Linac FODO Cell")
+    data.report = "animation"
+    s = rftrack.python_source_for_model(data, model=None, qcall=None)
+    # without the last line, main(), which would run the simulation
+    pkunit.pkok(s.endswith("\nmain()\n"), "generated source does not end with main()")
+    m = PKDict()
+    exec(s[: -len("main()\n")], m)
+    rft = m.rft
+    rft.cvar.number_of_threads = 1
+    spec = next(e for e in m.ELEMENTS if e.kind == "cavity_analytic")
+    half_wavelength = rft.clight / (2.0 * spec.frequency_hz)
+    for n_cells in (1, round(spec.l / half_wavelength)):
+        spec.l = n_cells * half_wavelength
+        lattice = rft.Lattice()
+        lattice.append(m._build_element(spec))
+        b = rft.Bunch6d(
+            m.BUNCH.mass_mev,
+            0.0,
+            m.BUNCH.charge,
+            numpy.array([0.0, 0.0, 0.0, 0.0, 0.0, m.BUNCH.pc_mev]),
+        )
+        lattice.autophase(b)
+        # measured within 5e-4 for 1 and 12 cells: the field map's sampling
+        numpy.testing.assert_allclose(
+            lattice.track(b).get_phase_space("%Pc")[0, 0] - m.BUNCH.pc_mev,
+            spec.gradient_v_per_m * spec.l / 2e6,
+            rtol=1e-3,
+            err_msg=f"n_cells={n_cells}",
+        )
+
+
 def test_generate_python():
     from pykern import pkunit
     from sirepo.template import rftrack
