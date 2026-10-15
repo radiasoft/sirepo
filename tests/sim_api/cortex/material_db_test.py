@@ -36,10 +36,10 @@ def test_all():
             _sqlite3("data", uid)
             pkunit.file_eq("out.json", material_db.list_materials(uid=uid))
             pkio.write_text(
-                "tea.py",
+                "tea.ndiff",
                 re.sub(r"# Generated on .*\n", "", cortex.export_tea(db_path)),
             )
-            pkunit.file_eq(_data("tea.py"), actual_path="tea.py")
+            pkunit.file_eq("tea.ndiff")
             pkunit.file_eq(
                 "detail.json",
                 material_db.material_detail(material_id=1001, is_public=False, uid=uid),

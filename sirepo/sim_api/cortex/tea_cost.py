@@ -52,7 +52,8 @@ def material_spec(material_id, is_public, uid):
             PKDict(wt=v.target_pct, type=v.type),
         )
         for e, v in elements.items()
-        if e != remainder_element
+        # tea rejects a non-positive wt, and a 0% element has no cost anyway
+        if e != remainder_element and v.target_pct > 0
     )
     return PKDict(
         name=d.material_name,

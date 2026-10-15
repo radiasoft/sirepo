@@ -178,6 +178,7 @@ class API(sirepo.quest.API):
                         material=m,
                         is_plasma_facing=m.pkdel("is_plasma_facing"),
                         processes=args.processes,
+                        cmp=args.cmp,
                         production_qty=args.production_qty,
                     ),
                     simulationType=SIM_TYPE,
@@ -189,6 +190,7 @@ class API(sirepo.quest.API):
                 material_id=args.material_id,
                 uid=self.auth.logged_in_user(),
                 processes=args.processes,
+                cmp=args.cmp,
                 production_qty=args.production_qty,
             )
         return r
@@ -321,7 +323,7 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
     def action_load_cost_input(self, arg, uid):
         return PKDict(
             input=sirepo.sim_api.cortex.material_db.load_cost_input(
-                arg.material_id, uid
+                arg.material_id, arg.is_public, uid
             ),
         )
 
