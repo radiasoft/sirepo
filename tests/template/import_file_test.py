@@ -42,11 +42,17 @@ def test_importer(fc):
         )
         pkio.write_text(
             "pythonSource.txt",
-            fc.sr_get(
-                "pythonSource",
-                PKDict(
-                    simulation_id=res.models.simulation.simulationId,
-                    simulation_type=sim_type,
-                ),
-            ).data,
+            # rftrack's script sets its thread count from SIREPO_MPI_CORES, which
+            # differs between machines (test.sh sets 2)
+            re.sub(
+                r"(num_threads=)\d+",
+                r"\g<1>1",
+                fc.sr_get(
+                    "pythonSource",
+                    PKDict(
+                        simulation_id=res.models.simulation.simulationId,
+                        simulation_type=sim_type,
+                    ),
+                ).data,
+            ),
         )

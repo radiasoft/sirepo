@@ -38,6 +38,7 @@ ELEMENTS = [
         ry=0.0,
         rz=0.0,
         kind='cavity_fieldmap',
+        cubic=False,
         file='CAVITY-fieldMapFile.C1.dat',
         rescale_mode='factor',
         scale_factor=1,
@@ -58,6 +59,7 @@ ELEMENTS = [
         ry=0.0,
         rz=0.0,
         kind='solenoid_fieldmap',
+        cubic=False,
         file='SOLENOID-fieldMapFile.SOL1.dat',
         rescale_mode='factor',
         scale_factor=1,
@@ -221,7 +223,12 @@ def _build_element(spec):
         e = rft.Solenoid(spec.l, spec.b_field, spec.radius)
     elif spec.kind == "solenoid_fieldmap":
         field, step, _ = rslume.rftrack_utils.load_field_map(spec)
-        e = rft.Static_Magnetic_FieldMap_1d(field, step)
+        # the _CINT classes interpolate the map cubically, the others linearly
+        e = (
+            rft.Static_Magnetic_FieldMap_1d_CINT
+            if spec.cubic
+            else rft.Static_Magnetic_FieldMap_1d
+        )(field, step)
     elif spec.kind == "corrector":
         e = rft.Corrector(spec.l, spec.h_kick, spec.v_kick)
     elif spec.kind == "cavity_analytic":
@@ -245,11 +252,15 @@ def _build_element(spec):
         e.set_phid(spec.phase_deg)
     elif spec.kind == "cavity_fieldmap":
         field, step, length = rslume.rftrack_utils.load_field_map(spec)
-        e = rft.RF_FieldMap_1d(field, step, length, spec.frequency_hz, +1)
+        e = (rft.RF_FieldMap_1d_CINT if spec.cubic else rft.RF_FieldMap_1d)(
+            field, step, length, spec.frequency_hz, +1
+        )
         e.set_phid(spec.phase_deg)
     elif spec.kind == "cavity_fieldmap_2d":
         Er, Ez, hr, hz = rslume.rftrack_utils.load_field_map_2d(spec)
-        e = rft.RF_FieldMap_2d(Er, Ez, 0, 0, hr, hz, -1, spec.frequency_hz, +1)
+        e = (rft.RF_FieldMap_2d_CINT if spec.cubic else rft.RF_FieldMap_2d)(
+            Er, Ez, 0, 0, hr, hz, -1, spec.frequency_hz, +1
+        )
         e.set_phid(spec.phase_deg)
     elif spec.kind == "screen":
         e = rft.Screen()
