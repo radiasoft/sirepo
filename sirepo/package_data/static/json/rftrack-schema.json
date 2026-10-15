@@ -82,6 +82,14 @@
             ["cathode", "Cathode Emission"],
             ["fromFile", "From File"]
         ],
+        "CathodeTemporalProfile": [
+            ["plateau", "Flat-top"],
+            ["gaussian", "Gaussian"]
+        ],
+        "CathodeTransverseProfile": [
+            ["r", "Radially Uniform"],
+            ["gaussian", "Gaussian"]
+        ],
         "SpaceChargeMethod": [
             ["none", "None"],
             ["p2p", "Point to Point"],
@@ -117,6 +125,21 @@
         "RescaleMode": [
             ["peak", "Rescale to Peak Field"],
             ["factor", "Multiply by Scale Factor"]
+        ],
+        "AutophaseReference": [
+            ["design", "Design Particle"],
+            ["bunch", "Tracked Bunch"],
+            ["recorded", "Recorded t0"]
+        ],
+        "FieldMapInterpolation": [
+            ["linear", "Linear"],
+            ["cubic", "Cubic"]
+        ],
+        "OdeintAlgorithm": [
+            ["rk2", "Runge-Kutta 2nd order (rk2)"],
+            ["rkf45", "Runge-Kutta-Fehlberg 4(5) (rkf45)"],
+            ["leapfrog", "Leapfrog"],
+            ["analytic", "Analytic"]
         ],
         "StatPlotPreset": [
             ["", "Select a Preset…"],
@@ -160,7 +183,7 @@
             "particle": ["Particle", "BeamParticle", "electron", "Particle species"],
             "mass": ["Mass [MeV/c^2]", "Float", 0.51099895, "Rest mass, used when particle is Other"],
             "charge": ["Charge [e]", "Float", -1.0, "Charge in units of the elementary charge, used when particle is Other"],
-            "pc": ["Reference Momentum [MeV/c]", "Float", 100.0, "Reference (design) momentum of the bunch. When Distribution is From File, this is only used as the autophase reference particle's momentum -- the loaded file's own momenta are used for tracking."],
+            "pc": ["Reference Momentum [MeV/c]", "Float", 100.0, "Reference (design) momentum: the Twiss Parameters bunch's mean momentum and its autophase design particle's, and the dipoles' design rigidity. A From File bunch is tracked with the file's own momenta, and its design particle takes the bunch's mean momentum."],
             "charge_nC": ["Bunch Charge [nC]", "Float", 1.0, "Total bunch charge"],
             "np": ["Macroparticle Count", "Integer", 10000, "Number of macroparticles to generate for tracking"],
             "randomSeed": ["Random Number Seed", "Integer", 5489, "rng_set_seed(): seed for RF_Track's mt19937 random number generator (its own built-in default). Runs with the same seed and inputs are reproducible; change it to intentionally get a different bunch realization."],
@@ -175,9 +198,12 @@
             "distributionType": ["Distribution", "BeamDistributionType", "twiss", "Twiss parameters generate a bunch analytically. Cathode Emission models photoemission from a cathode with RF_Track's Bunch6dT_Generator, tracked from rest. From File loads a previously-saved particle bunch from an OpenPMD HDF5 file."],
             "distributionFile": ["Distribution File", "InputFile", "", "OpenPMD HDF5 file (iteration 0) containing a saved particle bunch: per-particle position (m), momentum (kg*m/s), and optionally time (s), for the species selected above. Accepts files from this app's own OpenPMD download (any report) or from the AWA rftrack_utils posproc.save_bunch_to_openpmd() helper."],
             "fromFileNearRest": ["Near-Rest Bunch", "Boolean", "1", "Checked (e.g. a Cathode Emission snapshot, where Pz can be comparable to the transverse momentum): builds a Bunch6dT preserving the full 3D momentum, avoiding the small-angle approximation an at-rest bunch would otherwise need. Unchecked (an already-accelerated bunch, e.g. re-injecting a previous sim's own tracked output downstream, where Pz dominates): builds a Bunch6d using the standard small-angle x'/y' -- required for Sequential (Lattice) positioning, since RF_Track's Lattice.track() has no Bunch6dT support at all."],
-            "sigX": ["Laser Spot Size [mm]", "Float", 1.67, "Transverse RMS size of the drive laser on the cathode (radial in x-y)"],
+            "laserTransverseProfile": ["Laser Transverse Profile", "CathodeTransverseProfile", "r", "Bunch6dT_Generator.dist_x and dist_y: a radially uniform spot, or a round Gaussian spot"],
+            "sigX": ["Laser Spot Size [mm]", "Float", 1.67, "Transverse RMS size of the drive laser on the cathode, the same in x and y"],
+            "laserTemporalProfile": ["Laser Temporal Profile", "CathodeTemporalProfile", "plateau", "Bunch6dT_Generator.dist_z: a flat-top pulse (rise time and flat-top length), or a Gaussian pulse (RMS pulse length)"],
             "riseTime": ["Laser Rise Time, rt", "Float", 0.0003, "Laser pulse rise/fall time, in Bunch6dT_Generator.rt units"],
             "flatTopLength": ["Laser Flat-top Length, lt", "Float", 0.006, "Laser pulse flat-top length, in Bunch6dT_Generator.lt units"],
+            "sigT": ["Laser Pulse Length, sig_t", "Float", 0.0012, "RMS laser pulse length of a Gaussian pulse, in Bunch6dT_Generator.sig_t units"],
             "cutoffX": ["Cutoff X [sigma]", "Float", 3, "Truncate the horizontal distribution at this many sigma"],
             "cutoffY": ["Cutoff Y [sigma]", "Float", 3, "Truncate the vertical distribution at this many sigma"],
             "cutoffT": ["Cutoff T [sigma]", "Float", 3, "Truncate the longitudinal distribution at this many sigma"],
@@ -217,11 +243,13 @@
             "scSmooth": ["Smoothing Factor", "Float", 0.5, "SpaceCharge_PIC_FreeSpace.set_smooth: grid smoothing factor"],
             "scMirror": ["Mirror Position [m]", "Float", 0.0, "SpaceCharge_PIC_FreeSpace.set_mirror: z position of a conducting boundary (e.g. the cathode plane) used for image-charge effects"],
             "autophase": ["Autophase RF Elements", "Boolean", "0", "Automatically set each RF cavity's phase relative to the beam before tracking. The Phase field on each cavity is then interpreted as an offset from the on-crest phase."],
+            "autophaseReference": ["Autophase Reference", "AutophaseReference", "design", "Design Particle: phase every element before tracking with a particle on axis -- for Twiss Parameters, at t = 0 with the Reference Momentum; for From File, at the bunch's mean arrival time with its mean momentum; for Cathode Emission, at rest at the cathode. Tracked Bunch: RF-Track phases each element itself from the tracked bunch as it reaches it. Recorded t0: each element keeps the t0 an imported archive recorded, reproducing the archived run."],
             "autoTrackingRange": ["Automatically Compute Tracking Range", "Boolean", "1", "Volume.set_s0()/set_s1() define which portion of every element's field is active during tracking, not just where particles are reported -- an element positioned so it starts before the beam (e.g. a solenoid whose field map is centered on a point upstream of the cathode) will have that leading portion silently excluded unless the tracking range is extended to cover it. When enabled, the range spans every element's full extent; disable to set it explicitly, e.g. to start tracking exactly at the beam origin even when an upstream element's field extends earlier."],
             "trackingS0": ["Tracking Start [m]", "Float", 0.0, "Volume.set_s0(): start of the active tracking range"],
             "trackingS1": ["Tracking End [m]", "Float", 10.0, "Volume.set_s1(): end of the active tracking range"],
             "volumeDtMm": ["Integration Time Step [mm/c]", "Float", 0.5, "Volume.dt_mm: time step of the tracking integrator. Smaller is more accurate and slower."],
-            "volumeTtDtMm": ["Beam Variables Time Step [mm/c]", "Float", 10.0, "Volume.tt_dt_mm: how often the beam statistics (Beam Variables plots) are recorded during tracking."]
+            "volumeTtDtMm": ["Beam Variables Time Step [mm/c]", "Float", 10.0, "Volume.tt_dt_mm: how often the beam statistics (Beam Variables plots) are recorded during tracking."],
+            "odeintAlgorithm": ["Integration Algorithm", "OdeintAlgorithm", "rkf45", "Volume.odeint_algorithm: the integrator that tracks the particles through the fields"]
         },
         "simulationStatus": {},
         "bpmAnimation": {},
@@ -266,7 +294,8 @@
             "fieldMapFile": ["Field Map File", "InputFile", "", "1D on-axis Bz field map (two columns: s [m], Bz [T]). Used when Field Source is 1D Field Map."],
             "rescaleMode": ["Rescale Mode", "RescaleMode", "factor"],
             "maxField": ["Peak B Field [T]", "Float", 0, "Rescale the field map so its peak magnitude equals this value"],
-            "scaleFactor": ["Scale Factor", "Float", 1, "Multiply the field map values directly by this factor"]
+            "scaleFactor": ["Scale Factor", "Float", 1, "Multiply the field map values directly by this factor"],
+            "fieldMapInterpolation": ["Field Map Interpolation", "FieldMapInterpolation", "linear", "How RF-Track interpolates the field map between its points: linear, or cubic (its _CINT element classes)"]
         },
         "CORRECTOR": {
             "_super": ["_", "model", "_ELEMENT"],
@@ -283,10 +312,13 @@
             "rescaleMode": ["Rescale Mode", "RescaleMode", "peak"],
             "maxField": ["Peak E Field [MV/m]", "Float", 0, "Rescale the field map so its peak magnitude equals this value"],
             "scaleFactor": ["Scale Factor", "Float", 1, "Multiply the field map values directly by this factor"],
-            "fieldMapFile2d": ["2D Field Map File", "InputFile", "", "2D (r, z) on-axis-and-off-axis Ez/Er field map, SUPERFISH-style: two commented header lines, then rows of Z [cm], R [cm], Ez [MV/m], Er [MV/m], |E| [MV/m], H [A/m]. Used when Field Source is 2D Field Map; not rescaled."]
+            "fieldMapFile2d": ["2D Field Map File", "InputFile", "", "2D (r, z) on-axis-and-off-axis Ez/Er field map, SUPERFISH-style: two commented header lines, then rows of Z [cm], R [cm], Ez [MV/m], Er [MV/m], |E| [MV/m], H [A/m]. Used when Field Source is 2D Field Map; not rescaled."],
+            "t0": ["Recorded t0 [mm/c]", "Float", 0, "The element's RF-Track t0 (its phase reference time), as an imported archive recorded it. Used when Autophase Reference is Recorded t0."],
+            "fieldMapInterpolation": ["Field Map Interpolation", "FieldMapInterpolation", "linear", "How RF-Track interpolates the field map between its points: linear, or cubic (its _CINT element classes)"]
         },
         "SCREEN": {
-            "_super": ["_", "model", "_ELEMENT"]
+            "_super": ["_", "model", "_ELEMENT"],
+            "t0": ["Recorded t0 [mm/c]", "Float", 0, "The element's RF-Track t0 (its phase reference time), as an imported archive recorded it. Used when Autophase Reference is Recorded t0."]
         },
         "BPM": {
             "_super": ["_", "model", "_ELEMENT"]
@@ -350,9 +382,12 @@
                 ],
                 "sigma_t",
                 "sigma_pt",
+                "laserTransverseProfile",
                 "sigX",
+                "laserTemporalProfile",
                 "riseTime",
                 "flatTopLength",
+                "sigT",
                 "cutoffX",
                 "cutoffY",
                 "cutoffT",
@@ -403,6 +438,7 @@
             "basic": [
                 "simulation.visualizationBeamlineId",
                 "autophase",
+                "autophaseReference",
                 "spaceCharge"
             ],
             "advanced": [
@@ -420,7 +456,8 @@
                     "trackingS0",
                     "trackingS1",
                     "volumeDtMm",
-                    "volumeTtDtMm"
+                    "volumeTtDtMm",
+                    "odeintAlgorithm"
                 ]]
             ]
         },
@@ -559,7 +596,8 @@
                      "fieldMapFile",
                      "rescaleMode",
                      "maxField",
-                     "scaleFactor"
+                     "scaleFactor",
+                     "fieldMapInterpolation"
                 ]]
             ]
         },
@@ -590,7 +628,9 @@
                      "rescaleMode",
                      "maxField",
                      "scaleFactor",
-                     "fieldMapFile2d"
+                     "fieldMapFile2d",
+                     "fieldMapInterpolation",
+                     "t0"
                 ]]
             ]
         },
@@ -599,7 +639,8 @@
             "title": "SCREEN",
             "advanced": [
                 ["Main", [
-                     "name"
+                     "name",
+                     "t0"
                 ]]
             ]
         },

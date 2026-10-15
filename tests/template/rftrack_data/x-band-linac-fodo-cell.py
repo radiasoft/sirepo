@@ -157,7 +157,7 @@ SETTINGS = PKDict(
 )
 
 
-def autophase(volume):
+def autophase(volume, bunch):
     # Autophase against a single on-axis reference particle, then track
     # the real bunch through this SAME (now-phased) volume; do not
     # rebuild it. Volume.autophase() sets each RF element's internal t0
@@ -230,7 +230,7 @@ def main():
     rslume.rftrack_utils.save_particles("initial_particles.npy", bunch)
 
     volume = build_beamline()
-    autophase(volume)
+    autophase(volume, bunch)
 
     model = rslume.rftrack.build_model(ELEMENTS, volume, bunch)
     model.reset()
@@ -258,7 +258,12 @@ def _build_element(spec):
         e = rft.Solenoid(spec.l, spec.b_field, spec.radius)
     elif spec.kind == "solenoid_fieldmap":
         field, step, _ = rslume.rftrack_utils.load_field_map(spec)
-        e = rft.Static_Magnetic_FieldMap_1d(field, step)
+        # the _CINT classes interpolate the map cubically, the others linearly
+        e = (
+            rft.Static_Magnetic_FieldMap_1d_CINT
+            if spec.cubic
+            else rft.Static_Magnetic_FieldMap_1d
+        )(field, step)
     elif spec.kind == "corrector":
         e = rft.Corrector(spec.l, spec.h_kick, spec.v_kick)
     elif spec.kind == "cavity_analytic":
@@ -282,11 +287,15 @@ def _build_element(spec):
         e.set_phid(spec.phase_deg)
     elif spec.kind == "cavity_fieldmap":
         field, step, length = rslume.rftrack_utils.load_field_map(spec)
-        e = rft.RF_FieldMap_1d(field, step, length, spec.frequency_hz, +1)
+        e = (rft.RF_FieldMap_1d_CINT if spec.cubic else rft.RF_FieldMap_1d)(
+            field, step, length, spec.frequency_hz, +1
+        )
         e.set_phid(spec.phase_deg)
     elif spec.kind == "cavity_fieldmap_2d":
         Er, Ez, hr, hz = rslume.rftrack_utils.load_field_map_2d(spec)
-        e = rft.RF_FieldMap_2d(Er, Ez, 0, 0, hr, hz, -1, spec.frequency_hz, +1)
+        e = (rft.RF_FieldMap_2d_CINT if spec.cubic else rft.RF_FieldMap_2d)(
+            Er, Ez, 0, 0, hr, hz, -1, spec.frequency_hz, +1
+        )
         e.set_phid(spec.phase_deg)
     elif spec.kind == "screen":
         e = rft.Screen()

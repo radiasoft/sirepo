@@ -51,11 +51,16 @@ def test_generate_python():
     from sirepo.template import rftrack
 
     with pkunit.save_chdir_work():
-        for name in ("AWA Zone 1", "X-band Linac FODO Cell"):
+        for name, expect in (
+            ("AWA Zone #1", "awa-zone-1.py"),
+            ("CERN Linac4 CCDTL", "cern-linac4-ccdtl.py"),
+            ("CLEAR Photoinjector", "clear-photoinjector.py"),
+            ("X-band Linac FODO Cell", "x-band-linac-fodo-cell.py"),
+        ):
             data = _shipped_example(name)
             data.report = "animation"
             pkunit.file_eq(
-                name.lower().replace(" ", "-") + ".py",
+                expect,
                 actual=rftrack.python_source_for_model(data, model=None, qcall=None),
             )
 

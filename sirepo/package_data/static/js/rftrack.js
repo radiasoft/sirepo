@@ -269,10 +269,11 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
     };
 });
 
-// showFields() arguments for a CAVITY's or SOLENOID's 1D field-map fields
+// showFields() arguments for a CAVITY's or SOLENOID's field-map fields
 function fieldMapFields(m) {
     const isMap = m.fieldSource === 'fieldMap';
     return [
+        ['fieldMapInterpolation'], isMap || m.fieldSource === '2dFieldMap',
         ['fieldMapFile', 'rescaleMode'], isMap,
         ['maxField'], isMap && m.rescaleMode === 'peak',
         ['scaleFactor'], isMap && m.rescaleMode === 'factor',
@@ -289,8 +290,17 @@ function updateApertureFields(appState, panelState, type) {
     ]);
 }
 
+// showFields() arguments for a CAVITY's or SCREEN's recorded t0, which is
+// only used when autophasing restores the t0 an imported archive recorded
+function recordedT0Fields(appState) {
+    const s = appState.models.simulationSettings;
+    return [
+        ['t0'], s.autophase === '1' && s.autophaseReference === 'recorded',
+    ];
+}
+
 // element views whose only dynamic fields are the aperture
-['BPM', 'CORRECTOR', 'DRIFT', 'RBEND', 'SCREEN'].forEach((type) => {
+['BPM', 'CORRECTOR', 'DRIFT', 'RBEND'].forEach((type) => {
     SIREPO.viewLogic(type.toLowerCase() + 'View', function(appState, panelState, $scope) {
         const updateFields = () => updateApertureFields(appState, panelState, type);
         $scope.whenSelected = updateFields;
@@ -313,14 +323,16 @@ SIREPO.viewLogic('beamView', function(appState, panelState, $scope) {
             ['charge_nC', 'np'], ! isFromFile,
             ['distributionFile', 'fromFileNearRest'], isFromFile,
             ['beta_x', 'alpha_x', 'emit_x', 'beta_y', 'alpha_y', 'emit_y', 'sigma_t', 'sigma_pt'], isTwiss,
-            ['sigX', 'riseTime', 'flatTopLength', 'cutoffX', 'cutoffY', 'cutoffT', 'ePhoton', 'phiEff', 'noiseReduc'], isCathode,
+            ['laserTransverseProfile', 'sigX', 'laserTemporalProfile', 'cutoffX', 'cutoffY', 'cutoffT', 'ePhoton', 'phiEff', 'noiseReduc'], isCathode,
+            ['riseTime', 'flatTopLength'], isCathode && m.laserTemporalProfile === 'plateau',
+            ['sigT'], isCathode && m.laserTemporalProfile === 'gaussian',
         ]);
         panelState.showRow('beam', 'beta_x', isTwiss);
     };
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
-        ['beam.particle', 'beam.distributionType'], updateFields,
+        ['beam.particle', 'beam.distributionType', 'beam.laserTemporalProfile'], updateFields,
     ];
 });
 
@@ -375,6 +387,7 @@ SIREPO.viewLogic('cavityView', function(appState, panelState, $scope) {
             ['gradient'], m.fieldSource === 'analytic',
             ['fieldMapFile2d'], m.fieldSource === '2dFieldMap',
             ...fieldMapFields(m),
+            ...recordedT0Fields(appState),
         ]);
         updateApertureFields(appState, panelState, 'CAVITY');
     };
@@ -382,6 +395,22 @@ SIREPO.viewLogic('cavityView', function(appState, panelState, $scope) {
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
         ['CAVITY.fieldSource', 'CAVITY.rescaleMode', 'CAVITY.setAperture'], updateFields,
+    ];
+});
+
+SIREPO.viewLogic('screenView', function(appState, panelState, $scope) {
+
+    const updateFields = () => {
+        if (! appState.models.SCREEN) {
+            return;
+        }
+        panelState.showFields('SCREEN', recordedT0Fields(appState));
+        updateApertureFields(appState, panelState, 'SCREEN');
+    };
+
+    $scope.whenSelected = updateFields;
+    $scope.watchFields = [
+        ['SCREEN.setAperture'], updateFields,
     ];
 });
 
@@ -431,10 +460,12 @@ SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, lattic
         // Lattice (relative positioning) has no tracking range or
         // integrator time step: those are Volume-only
         const isVolume = appState.models.simulation.elementPosition === 'absolute';
+        const hasCavity = beamlineHasCavity(latticeService.getSimulationBeamline());
         panelState.showFields('simulationSettings', [
             ['scGridNx', 'scGridNy', 'scGridNz', 'scDtMm', 'scSmooth', 'scMirror'], m.spaceCharge === 'pic',
-            ['autophase'], beamlineHasCavity(latticeService.getSimulationBeamline()),
-            ['autoTrackingRange', 'volumeDtMm', 'volumeTtDtMm'], isVolume,
+            ['autophase'], hasCavity,
+            ['autophaseReference'], hasCavity && m.autophase === '1',
+            ['autoTrackingRange', 'volumeDtMm', 'volumeTtDtMm', 'odeintAlgorithm'], isVolume,
             ['trackingS0', 'trackingS1'], isVolume && m.autoTrackingRange === '0',
         ]);
         // the advanced editor's "Tracking" tab has only Volume settings
@@ -443,6 +474,6 @@ SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, lattic
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
-        ['simulationSettings.spaceCharge', 'simulationSettings.autoTrackingRange', 'simulation.visualizationBeamlineId'], updateFields,
+        ['simulationSettings.spaceCharge', 'simulationSettings.autoTrackingRange', 'simulationSettings.autophase', 'simulation.visualizationBeamlineId'], updateFields,
     ];
 });

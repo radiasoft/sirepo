@@ -39,15 +39,15 @@ _AXIS_LABELS = PKDict(
 
 _BPMS_FILE = "bpms.npy"
 
-# RF_Track Bunch6dT_Generator distribution shapes for a Cathode Emission
-# beam, which are not user settings: a Fermi-Dirac ("fd_300") momentum
-# spread, a radially uniform ("r") transverse profile and a flat-top
-# ("plateau") emission time
-_CATHODE_DISTRIBUTION = PKDict(
-    dist_pz="fd_300",
-    dist_x="r",
-    dist_y="g",
-    dist_z="plateau",
+# RF_Track Bunch6dT_Generator momentum distribution for a Cathode Emission
+# beam, which is not a user setting: a Fermi-Dirac ("fd_300") spread
+_CATHODE_DIST_PZ = "fd_300"
+
+# beam.laserTransverseProfile -> Bunch6dT_Generator (dist_x, dist_y). A
+# radially uniform spot ("r") ignores dist_y.
+_CATHODE_TRANSVERSE_DIST = PKDict(
+    gaussian=("g", "g"),
+    r=("r", "g"),
 )
 
 # RF_Track Bunch6dT_Generator.species values, keyed by our BeamParticle enum
@@ -157,14 +157,13 @@ def build_imported_data(archive, name, qcall):
     array to a new field-map lib file (`_write_field_map_lib_file`).
 
     Each cavity's `phase` is simply its archived `phid`, nothing folded
-    in -- wiring `autophase` through to `simulationSettings.autophase`
-    is what makes the generated script's own, already-existing
-    `autophase(volume)` function re-derive each cavity's (and Screen's)
-    real `t0` itself before tracking, the same deterministic search
-    that produced the original archived result in the first place, so
-    there's no need to carry `t0` through this import at all. Space
-    charge has no such per-element signal to derive from, so it can
-    only be restored from this archived setting.
+    in. An autophased archive also recorded each cavity's and screen's
+    `t0`, the correction autophasing made: the import keeps it and sets
+    `autophaseReference` to "recorded", so the generated script sets
+    those `t0` instead of phasing again, and reproduces the archived run
+    whatever reference phased it. Space charge has no per-element signal
+    to derive from, so it can only be restored from this archived
+    setting.
 
     Called from `sirepo.sim_data.rftrack.SimData.prepare_import_file_args`
     -- on the server, not from `stateful_compute_import_file` below (the
@@ -229,7 +228,9 @@ def build_imported_data(archive, name, qcall):
         archive.particle_group,
         _write_distribution_lib_file(archive.particle_group, name, qcall),
     )
-    res.models.simulationSettings.autophase = "1" if archive.autophase else "0"
+    if archive.autophase:
+        res.models.simulationSettings.autophase = "1"
+        res.models.simulationSettings.autophaseReference = "recorded"
     c = archive.space_charge
     if c:
         s = res.models.simulationSettings
@@ -427,7 +428,10 @@ def _bunch_spec(dm, v):
             c_sig_x=beam.cutoffX,
             c_sig_y=beam.cutoffY,
             cathode=True,
-            **_CATHODE_DISTRIBUTION,
+            dist_pz=_CATHODE_DIST_PZ,
+            dist_x=_CATHODE_TRANSVERSE_DIST[beam.laserTransverseProfile][0],
+            dist_y=_CATHODE_TRANSVERSE_DIST[beam.laserTransverseProfile][1],
+            dist_z=beam.laserTemporalProfile,
             e_photon=beam.ePhoton,
             lt=beam.flatTopLength,
             noise_reduc=beam.noiseReduc == "1",
@@ -438,7 +442,11 @@ def _bunch_spec(dm, v):
             ref_ekin=0,
             ref_zpos=0,
             rt=beam.riseTime,
+            # the generator ignores whichever of rt/lt and sig_t the
+            # temporal profile doesn't use, and sig_y for a radial spot
+            sig_t=beam.sigT,
             sig_x=beam.sigX,
+            sig_y=beam.sigX,
             species=_CATHODE_SPECIES.get(beam.particle, "electrons"),
         )
     elif v.isFromFile:
@@ -547,6 +555,7 @@ def _field_map_2d_spec(el):
     # a 2D (r, z) SUPERFISH-style map is already in absolute physical
     # units (MV/m), with no peak-normalize-or-multiply step applied to it
     return PKDict(
+        cubic=el.fieldMapInterpolation == "cubic",
         file=_SIM_DATA.lib_file_name_with_model_field(
             "CAVITY", "fieldMapFile2d", el.fieldMapFile2d
         ),
@@ -556,6 +565,7 @@ def _field_map_2d_spec(el):
 
 def _field_map_spec(el, is_cavity):
     res = PKDict(
+        cubic=el.fieldMapInterpolation == "cubic",
         file=_SIM_DATA.lib_file_name_with_model_field(
             el.type, "fieldMapFile", el.fieldMapFile
         ),
@@ -638,6 +648,8 @@ def _generate_parameters_file(data):
     dm = data.models
     v.spaceCharge = dm.simulationSettings.spaceCharge
     v.autophase = dm.simulationSettings.autophase == "1"
+    v.autophaseFromBunch = dm.simulationSettings.autophaseReference == "bunch"
+    v.autophaseRecorded = dm.simulationSettings.autophaseReference == "recorded"
     v.hasCavity = False
     # Volume and Lattice are both valid RF_Track tracking objects -- Volume
     # places every element at its own explicit (possibly overlapping)
@@ -663,6 +675,9 @@ def _generate_parameters_file(data):
     # below). fromFileNearRest is user-controlled, not auto-detected from
     # the file, so this choice is explicit rather than a heuristic guess.
     v.isBunch6dT = v.isCathode or (v.isFromFile and dm.beam.fromFileNearRest == "1")
+    # an openPMD file can only name a species beamphysics knows, with its
+    # mass (e.g. H- at 939.294 MeV/c^2); "other" uses the beam's own
+    v.isOtherParticle = dm.beam.particle == "other"
     if v.isLattice and v.isBunch6dT:
         # Lattice.track() only accepts a Bunch6d (or the generic Beam
         # supertype) -- verified empirically, it has no Bunch6dT overload
@@ -689,6 +704,8 @@ def _generate_parameters_file(data):
         specs = []
         for e in elements:
             s, is_cavity = _element_spec(e)
+            if v.autophaseRecorded and e.type in ("CAVITY", "SCREEN"):
+                s.t0 = e.t0
             specs.append(s)
             v.hasCavity = v.hasCavity or is_cavity
         v.elementsCode = _format_value(specs, 0)
@@ -698,6 +715,7 @@ def _generate_parameters_file(data):
         )
         if not v.isLattice:
             settings.tracking_range_m = _tracking_range(dm.simulationSettings, elements)
+            settings.odeint_algorithm = dm.simulationSettings.odeintAlgorithm
             settings.volume_dt_mm = dm.simulationSettings.volumeDtMm
             settings.volume_tt_dt_mm = dm.simulationSettings.volumeTtDtMm
         v.settingsCode = _format_value(settings, 0)
@@ -898,10 +916,10 @@ def _rslume_bunch_to_sirepo(bunch_type, particle_group, distribution_file):
     (which Bunch6dT has no schema fields for at all).
 
     `particle`/`mass`/`charge` are still set explicitly here, not left
-    to the file alone: every "fromFile" branch in build_bunch() (the
-    generated script) builds the tracked bunch's mass/charge from
-    BUNCH.mass_mev/BUNCH.charge (the beam model's own fields), not from
-    the file's embedded species, same as every other distributionType.
+    to the file alone: the autophase reference particle is built from
+    them, and for particle "other" build_bunch() (the generated script)
+    also gives the tracked bunch this mass and charge instead of the
+    file's embedded species'.
     `randomSeed` isn't in the archive at all (RF-Track's own API has no
     getter for it), so it's left for fixup_old_data()'s own
     schema-default backfill, same as every other `beam` field this
@@ -959,6 +977,8 @@ def _rslume_element_to_sirepo(e, _id, qcall, field_map_cache):
         res.aperture_y = float(e["aperture_y"])
     if cls in ("Bpm", "Corrector", "Drift", "Quadrupole"):
         res.l = float(e["length"])
+    if "t0" in e and t in ("CAVITY", "SCREEN"):
+        res.t0 = float(e["t0"])
     if cls == "Quadrupole":
         res.strengthType = "gradient"
         res.gradient = float(e["gradient"])

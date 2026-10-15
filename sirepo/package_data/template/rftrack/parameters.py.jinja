@@ -17,8 +17,13 @@ SETTINGS = {{ settingsCode }}
 {% endif %}
 
 
-{% if not isBunchReport and autophase and hasCavity %}
-def autophase(volume):
+{% if not isBunchReport and autophase and hasCavity and not autophaseRecorded %}
+def autophase(volume, bunch):
+    {% if autophaseFromBunch %}
+    # With every element's t0 unset, track() phases each element itself
+    # from the tracked bunch as it reaches it.
+    volume.unset_t0()
+    {% else %}
     # Autophase against a single on-axis reference particle, then track
     # the real bunch through this SAME (now-phased) volume; do not
     # rebuild it. Volume.autophase() sets each RF element's internal t0
@@ -35,6 +40,17 @@ def autophase(volume):
     p0 = rft.Bunch6dT(
         numpy.array([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, BUNCH.mass_mev, BUNCH.charge, 1.0, 0.0]])
     )
+    {% elif isFromFile %}
+    # A From File bunch's times and momenta are the file's own (e.g. a
+    # previous run's arrival times), so the design particle is on axis
+    # at the bunch's mean arrival time, with its mean momentum.
+    t, p, n = bunch.get_phase_space("%t %P %N").T
+    p0 = rft.Bunch6d(
+        BUNCH.mass_mev,
+        0.0,
+        BUNCH.charge,
+        numpy.array([0.0, 0.0, 0.0, 0.0, numpy.average(t, weights=n), numpy.average(p, weights=n)]),
+    )
     {% else %}
     p0 = rft.Bunch6d(
         BUNCH.mass_mev, 0.0, BUNCH.charge, numpy.array([0.0, 0.0, 0.0, 0.0, 0.0, BUNCH.pc_mev])
@@ -42,6 +58,7 @@ def autophase(volume):
     {% endif %}
     volume.unset_t0()
     volume.autophase(p0)
+    {% endif %}
 
 
 {% endif %}
@@ -92,7 +109,7 @@ def build_beamline():
         )
     v.set_s0(SETTINGS.tracking_range_m[0])
     v.set_s1(SETTINGS.tracking_range_m[1])
-    v.odeint_algorithm = "rkf45"
+    v.odeint_algorithm = SETTINGS.odeint_algorithm
     v.dt_mm = SETTINGS.volume_dt_mm
     v.tt_dt_mm = SETTINGS.volume_tt_dt_mm
     {% endif %}
@@ -122,9 +139,11 @@ def build_bunch():
     g.dist_x = BUNCH.dist_x
     g.dist_y = BUNCH.dist_y
     g.sig_x = BUNCH.sig_x
+    g.sig_y = BUNCH.sig_y
     g.dist_z = BUNCH.dist_z
     g.rt = BUNCH.rt
     g.lt = BUNCH.lt
+    g.sig_t = BUNCH.sig_t
     g.c_sig_x = BUNCH.c_sig_x
     g.c_sig_y = BUNCH.c_sig_y
     g.c_sig_t = BUNCH.c_sig_t
@@ -139,13 +158,27 @@ def build_bunch():
     # creation time t0. Z is centred on 0: the file's own absolute z only
     # means something relative to the volume that produced it.
     pg.z = pg.z - numpy.mean(pg.z)
+    {% if isOtherParticle %}
+    return _with_beam_particle(
+        rslume.rftrack_utils.particlegroup_to_bunch6dt(pg),
+        "%X %Px %Y %Py %Z %Pz %m %Q %N %t0",
+    )
+    {% else %}
     return rslume.rftrack_utils.particlegroup_to_bunch6dt(pg)
+    {% endif %}
     {% else %}
     # Already-accelerated bunch (e.g. re-injecting a previous sim's tracked
     # output): Bunch6d is the only bunch type Lattice.track() accepts, so
     # Sequential (Lattice) positioning requires this branch. The group is
     # drifted to a single z plane first, which keeps the bunch length.
+    {% if isOtherParticle %}
+    return _with_beam_particle(
+        rslume.rftrack_utils.particlegroup_to_bunch6d(pg),
+        "%x %xp %y %yp %t %P %m %Q %N %id",
+    )
+    {% else %}
     return rslume.rftrack_utils.particlegroup_to_bunch6d(pg)
+    {% endif %}
     {% endif %}
     {% else %}
     twiss = rft.Bunch6d_twiss()
@@ -174,8 +207,8 @@ def main():
     {% if not isBunchReport %}
 
     volume = build_beamline()
-    {% if autophase and hasCavity %}
-    autophase(volume)
+    {% if autophase and hasCavity and not autophaseRecorded %}
+    autophase(volume, bunch)
     {% endif %}
     {% if spaceCharge != "none" %}
     rslume.rftrack_utils.apply_space_charge(volume, SETTINGS.space_charge)
@@ -209,7 +242,12 @@ def _build_element(spec):
         e = rft.Solenoid(spec.l, spec.b_field, spec.radius)
     elif spec.kind == "solenoid_fieldmap":
         field, step, _ = rslume.rftrack_utils.load_field_map(spec)
-        e = rft.Static_Magnetic_FieldMap_1d(field, step)
+        # the _CINT classes interpolate the map cubically, the others linearly
+        e = (
+            rft.Static_Magnetic_FieldMap_1d_CINT
+            if spec.cubic
+            else rft.Static_Magnetic_FieldMap_1d
+        )(field, step)
     elif spec.kind == "corrector":
         e = rft.Corrector(spec.l, spec.h_kick, spec.v_kick)
     elif spec.kind == "cavity_analytic":
@@ -233,11 +271,15 @@ def _build_element(spec):
         e.set_phid(spec.phase_deg)
     elif spec.kind == "cavity_fieldmap":
         field, step, length = rslume.rftrack_utils.load_field_map(spec)
-        e = rft.RF_FieldMap_1d(field, step, length, spec.frequency_hz, +1)
+        e = (rft.RF_FieldMap_1d_CINT if spec.cubic else rft.RF_FieldMap_1d)(
+            field, step, length, spec.frequency_hz, +1
+        )
         e.set_phid(spec.phase_deg)
     elif spec.kind == "cavity_fieldmap_2d":
         Er, Ez, hr, hz = rslume.rftrack_utils.load_field_map_2d(spec)
-        e = rft.RF_FieldMap_2d(Er, Ez, 0, 0, hr, hz, -1, spec.frequency_hz, +1)
+        e = (rft.RF_FieldMap_2d_CINT if spec.cubic else rft.RF_FieldMap_2d)(
+            Er, Ez, 0, 0, hr, hz, -1, spec.frequency_hz, +1
+        )
         e.set_phid(spec.phase_deg)
     elif spec.kind == "screen":
         e = rft.Screen()
@@ -245,7 +287,11 @@ def _build_element(spec):
         e = rft.Bpm(spec.l)
     else:
         raise AssertionError(f"unsupported element kind={spec.kind}")
-    {% if not (autophase and hasCavity) %}
+    {% if autophase and autophaseRecorded %}
+    # the t0 an imported archive recorded for each cavity and screen
+    if "t0" in spec:
+        e.set_t0(spec.t0)
+    {% elif not (autophase and hasCavity) %}
     # Explicitly pin t0 to 0.0 on every cavity/screen: confirmed
     # empirically that Volume.track() internally re-autophases every RF
     # element (and every Screen) from scratch if ANY of them has
@@ -268,6 +314,18 @@ def _build_element(spec):
     if spec.set_aperture:
         e.set_aperture(spec.aperture_x, spec.aperture_y, spec.aperture_type)
     return e
+
+
+{% endif %}
+{% if isFromFile and isOtherParticle %}
+def _with_beam_particle(bunch, columns):
+    # Particle "Other": the beam's own mass and charge, not those of the
+    # species the file names. `columns` is the bunch type's constructor
+    # order, with mass and charge 7th and 8th.
+    m = bunch.get_phase_space(columns)
+    m[:, 6] = BUNCH.mass_mev
+    m[:, 7] = BUNCH.charge
+    return type(bunch)(m)
 
 
 {% endif %}
