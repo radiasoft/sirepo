@@ -7,12 +7,13 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
-from sirepo.template import template_common
+from sirepo.template import code_variable, template_common
 import beamphysics
+import copy
+import lume_rftrack.utils
 import numpy
 import pykern.pkio
 import re
-import rslume.rftrack_utils
 import scipy.constants
 import sirepo.mpi
 import sirepo.sim_data
@@ -36,6 +37,10 @@ _AXIS_LABELS = PKDict(
     E="E [eV]",
     K="K [eV]",
 )
+
+# a Volume places every element on one straight z axis, which a bend turns
+# the beam away from, so these need a Lattice
+_BEND_TYPES = frozenset(("RBEND", "SBEND"))
 
 _BPMS_FILE = "bpms.npy"
 
@@ -63,7 +68,7 @@ _INITIAL_PARTICLES_FILE = "initial_particles.npy"
 
 _NONE = "None"
 
-# rslume "pic" space-charge setting -> its simulationSettings field (a tuple
+# lume_rftrack "pic" space-charge setting -> its simulationSettings field (a tuple
 # of fields for the grid), in the order the generated SETTINGS lists them;
 # used both to generate the script and to import an archive
 _PIC_SPACE_CHARGE_FIELDS = PKDict(
@@ -73,16 +78,23 @@ _PIC_SPACE_CHARGE_FIELDS = PKDict(
     smooth="scSmooth",
 )
 
-# rslume.rftrack archive element class -> this app's element type. Not
-# Pillbox_Cavity: an analytic CAVITY is built as an RF_FieldMap_1d, and
-# can't reproduce a Pillbox_Cavity's fields.
-_RSLUME_CLASS_TO_TYPE = PKDict(
+# lume_rftrack archive element class, as
+# `lume_rftrack.archive.constructor_class()` names it (a _CINT field map is
+# its base class, interpolated cubically) -> this app's element type.
+# Others, e.g. Pillbox_Cavity (an analytic CAVITY is an RF_FieldMap_1d),
+# Multipole or TW_Structure, can't be imported.
+_LUME_RFTRACK_CLASS_TO_TYPE = PKDict(
     Bpm="BPM",
+    Coil="COIL",
     Corrector="CORRECTOR",
     Drift="DRIFT",
     Quadrupole="QUADRUPOLE",
     RF_FieldMap_1d="CAVITY",
+    RF_FieldMap_2d="CAVITY",
+    SBend="SBEND",
     Screen="SCREEN",
+    Sextupole="SEXTUPOLE",
+    Solenoid="SOLENOID",
     Static_Magnetic_FieldMap_1d="SOLENOID",
 )
 
@@ -150,64 +162,92 @@ def background_percent_complete(report, run_dir, is_running):
 
 
 def build_imported_data(archive, name, qcall):
-    """Build the full imported sirepo data from `archive`, an rslume.rftrack
-    HDF5 archive as returned by `rslume.rftrack_archive.read_archive()`.
+    """Build the full imported sirepo data from `archive`, a lume_rftrack
+    HDF5 archive as returned by `lume_rftrack.archive.read_archive()`.
     The bunch is written to a new lib file for a "fromFile" beam
-    (`_write_distribution_lib_file`), and each element with a baked field
-    array to a new field-map lib file (`_write_field_map_lib_file`).
+    (`_write_distribution_lib_file`), and each field map to a new lib
+    file (`_write_field_map_lib_file`).
+
+    Every element is checked first (`_lume_rftrack_import_errors`), so
+    an archive that can't be imported writes no lib files. Identical
+    elements (same name and fields, e.g. a FODO cell's repeated
+    quadrupoles) become one element, used once per position; a name
+    used by different elements, or none, gets a unique one, since the
+    lattice editor requires them. A Lattice's element offsets become
+    each element's misalignment, a Volume's positions its dx, dy and
+    beamline position, and a Volume's tracking range and integrator its
+    simulationSettings (a non-finite step keeps the default).
 
     Each cavity's `phase` is simply its archived `phid`, nothing folded
-    in. An autophased archive also recorded each cavity's and screen's
-    `t0`, the correction autophasing made: the import keeps it and sets
-    `autophaseReference` to "recorded", so the generated script sets
-    those `t0` instead of phasing again, and reproduces the archived run
-    whatever reference phased it. Space charge has no per-element signal
-    to derive from, so it can only be restored from this archived
-    setting.
+    in. An autophased archive turns on Autophase, so the generated script
+    phases the cavities again. Space charge has no per-element signal to
+    derive from, so it can only be restored from this archived setting.
+    An SBEND is built with the beam's rigidity, so `beam.pc` is the
+    bends' archived rigidity.
 
     Called from `sirepo.sim_data.rftrack.SimData.prepare_import_file_args`
     -- on the server, not from `stateful_compute_import_file` below (the
     job agent), since writing lib files needs `qcall`, and only the server
     has one.
+
+    Raises:
+        sirepo.util.UserAlert: every reason `archive` can't be imported
     """
+    import json
+
+    err = _lume_rftrack_import_errors(archive)
+    if err:
+        raise sirepo.util.UserAlert(
+            "The archive can't be imported: " + "; ".join(err) + ".",
+            "import errors={}",
+            err,
+        )
     res = simulation_db.default_data(SIM_TYPE)
     res.models.simulation.name = name
-    # elementPosition controls Lattice ("relative") vs. Volume
-    # ("absolute") -- the archive's own beamline_class says which the
-    # original beamline was (RF_Track's Lattice.track() has no Bunch6dT
-    # support at all, so a Bunch6dT-bunch archive is always a Volume,
-    # but a Bunch6d-bunch archive could legitimately be either).
-    res.models.simulation.elementPosition = (
-        "relative" if archive.beamline_class == "Lattice" else "absolute"
-    )
+    # RF_Track's Lattice.track() has no Bunch6dT support at all, so a
+    # Bunch6dT-bunch archive is always a Volume, but a Bunch6d-bunch
+    # archive could be either
+    is_volume = archive.beamline_class == "Volume"
+    res.models.simulation.elementPosition = "absolute" if is_volume else "relative"
     els = []
+    # an element's fields as json, before naming -> its element
+    by_fields = {}
+    names = set()
     items = []
     positions = []
     elemedge = 0.0
     # shared across every element below: see _write_field_map_lib_file()
     field_map_cache = {}
     for i, e in enumerate(archive.elements):
-        el = _rslume_element_to_sirepo(
-            e, _id=i + 1, qcall=qcall, field_map_cache=field_map_cache
-        )
-        if archive.elements_offsets is not None:
-            # a Lattice's offsets, in the column order the generated
-            # script's set_elements_offsets() takes them
-            el.dx, el.dy, el.dz, _, el.rz, el.rx, el.ry = (
-                float(x) for x in archive.elements_offsets[i]
-            )
-        els.append(el)
+        el = _lume_rftrack_element_to_sirepo(e, qcall, field_map_cache)
+        if is_volume:
+            el.dx = float(e.x)
+            el.dy = float(e.y)
+        else:
+            # as the generated script's set_elements_offsets() takes
+            # them: offsets in mm, then 1, then rotations about x, y, z
+            o = archive.elements_offsets[i]
+            el.dx, el.dy, el.dz = (float(x) / 1000.0 for x in o[:3])
+            el.rx, el.ry, el.rz = (float(x) for x in o[4:7])
+        k = json.dumps(el, sort_keys=True)
+        if k in by_fields:
+            el = by_fields[k]
+        else:
+            if not el.name:
+                el.name = _unique_name(el.type[0], names)
+            elif el.name in names:
+                el.name = _unique_name(el.name + "-", names)
+            names.add(el.name)
+            el._id = len(els) + 1
+            els.append(el)
+            by_fields[k] = el
         items.append(el._id)
-        if "z" in e:
-            # Volume mode: each element's own absolute position was
-            # archived directly (_position_to_attrs(), only written
-            # for a Volume beamline) -- using that instead of a
-            # cumulative length sum is required here, not just more
-            # accurate: Volume elements can be at arbitrary, even
-            # overlapping z (e.g. a gun cavity and a bucking solenoid
-            # occupying the same physical space), so a sequential
-            # pack-end-to-end placement is simply wrong for this mode.
-            positions.append(PKDict(elemedge=float(e["z"])))
+        if is_volume:
+            # a Volume element's own absolute position: Volume elements
+            # can be at arbitrary, even overlapping z (e.g. a gun cavity
+            # and a bucking solenoid), so packing them end to end would
+            # be wrong
+            positions.append(PKDict(elemedge=float(e.z)))
         else:
             positions.append(PKDict(elemedge=elemedge))
             elemedge += el.l
@@ -223,17 +263,36 @@ def build_imported_data(archive, name, qcall):
     res.models.simulation.activeBeamlineId = (
         res.models.simulation.visualizationBeamlineId
     ) = (len(els) + 1)
-    res.models.beam = _rslume_bunch_to_sirepo(
+    res.models.beam = _lume_rftrack_bunch_to_sirepo(
         archive.bunch_type,
         archive.particle_group,
         _write_distribution_lib_file(archive.particle_group, name, qcall),
     )
+    b = [e for e in archive.elements if e["class"] == "SBend"]
+    if b:
+        res.models.beam.pc = abs(
+            float(b[0].attributes.P_over_Q) * res.models.beam.charge
+        )
+    s = res.models.simulationSettings
     if archive.autophase:
-        res.models.simulationSettings.autophase = "1"
-        res.models.simulationSettings.autophaseReference = "recorded"
+        s.autophase = "1"
+    if not is_volume:
+        # the archived elements' own space-charge kicks
+        s.scLatticeNsteps = 0
+    if is_volume:
+        s.autoTrackingRange = "0"
+        s.trackingS0 = float(archive.s0)
+        s.trackingS1 = float(archive.s1)
+        s.odeintAlgorithm = str(archive.integrator.odeint_algorithm)
+        s.odeintEpsabs = float(archive.integrator.odeint_epsabs)
+        s.odeintEpsrel = float(archive.integrator.odeint_epsrel)
+        for f, k in (("volumeDtMm", "dt_mm"), ("volumeTtDtMm", "tt_dt_mm")):
+            if numpy.isfinite(archive.integrator[k]):
+                s[f] = float(archive.integrator[k])
+        if numpy.isfinite(archive.integrator.t_max_mm):
+            s.volumeTMaxMm = float(archive.integrator.t_max_mm)
     c = archive.space_charge
     if c:
-        s = res.models.simulationSettings
         s.spaceCharge = c.kind
         if c.kind == "pic":
             for k, f in _PIC_SPACE_CHARGE_FIELDS.items():
@@ -244,6 +303,10 @@ def build_imported_data(archive, name, qcall):
                     s[f] = float(c[k])
     sirepo.template.lattice.LatticeUtil(res, SCHEMA).sort_elements_and_beamlines()
     return res
+
+
+def code_var(variables):
+    return code_variable.CodeVar(variables, code_variable.PurePythonEval())
 
 
 def get_data_file(run_dir, model, frame, options):
@@ -260,6 +323,11 @@ def get_data_file(run_dir, model, frame, options):
     if options and options.get("suffix") == "openpmd":
         return _openpmd_job_cmd_file(run_dir, fn)
     return fn
+
+
+def prepare_for_client(data, qcall, **kwargs):
+    code_var(data.models.rpnVariables).compute_cache(data, SCHEMA)
+    return data
 
 
 def prepare_sequential_output_file(run_dir, data):
@@ -306,7 +374,7 @@ def sim_frame(frame_args):
 
 
 def sim_frame_bpmAnimation(frame_args):
-    c = rslume.rftrack_utils.BPM_COLUMNS.index
+    c = lume_rftrack.utils.BPM_COLUMNS.index
     return PKDict(
         rows=[
             [
@@ -329,7 +397,7 @@ def sim_frame_statAnimation(frame_args):
 
 
 def stat_columns():
-    return [_NONE] + sorted(rslume.rftrack_utils.STAT_COLUMNS, key=str.lower)
+    return [_NONE] + sorted(lume_rftrack.utils.STAT_COLUMNS, key=str.lower)
 
 
 def stateful_compute_import_file(data, **kwargs):
@@ -408,8 +476,9 @@ def _axis_label(name):
 
 def _bunch_spec(dm, v):
     """Build the BUNCH data record: every value build_bunch()/autophase()/
-    _build_element() (for RBEND's rigidity) need, keyed by the field names
-    those generated-script functions reference.
+    _build_element() (for the rigidity of RBEND, SBEND and k1/k2
+    strengths) need, keyed by the field names those generated-script
+    functions reference.
     """
     beam = dm.beam
     mass, charge = _particle_mass_and_charge().get(beam.particle) or (
@@ -474,7 +543,7 @@ def _bunch_spec(dm, v):
 def _element_spec(el):
     """Build the ELEMENTS data record for one lattice element: a "kind"
     discriminator plus whatever fields the generated script's
-    _build_element() and `rslume.rftrack_utils.load_field_map()` need for
+    _build_element() and `lume_rftrack.utils.load_field_map()` need for
     that kind, and the aperture/misalignment fields every kind has.
 
     Returns (spec, is_cavity).
@@ -482,10 +551,9 @@ def _element_spec(el):
     res = PKDict(
         name=el.name,
         elemedge=el.elemedge,
-        set_aperture=el.setAperture == "1",
+        aperture_shape=el.apertureShape,
         aperture_x=el.aperture_x,
         aperture_y=el.aperture_y,
-        aperture_type="circular",
         dx=el.dx,
         dy=el.dy,
         dz=el.dz,
@@ -506,10 +574,27 @@ def _element_spec(el):
             res.kind = "quadrupole_gradient"
             res.l = el.l
             res.gradient = el.gradient
+    elif el.type == "SEXTUPOLE":
+        res.l = el.l
+        if el.strengthType == "k2":
+            res.kind = "sextupole_k2"
+            res.k2 = el.k2
+        else:
+            res.kind = "sextupole_gradient"
+            res.gradient = el.gradient
     elif el.type == "RBEND":
         res.kind = "rbend"
         res.l = el.l
         res.angle = el.angle
+    elif el.type == "SBEND":
+        res.kind = "sbend"
+        res.l = el.l
+        res.angle = el.angle
+        res.e1 = el.e1
+        res.e2 = el.e2
+        res.k1 = el.k1
+        res.hgap = el.hgap
+        res.fint = el.fint
     elif el.type == "SOLENOID":
         if el.get("fieldSource") == "fieldMap":
             res.kind = "solenoid_fieldmap"
@@ -518,9 +603,12 @@ def _element_spec(el):
             res.kind = "solenoid_analytic"
             res.l = el.l
             res.b_field = el.b_field
-            # RF-Track's Solenoid takes its bore radius; this uses the
-            # element's horizontal aperture
-            res.radius = el.aperture_x
+            res.radius = el.radius
+    elif el.type == "COIL":
+        res.kind = "coil"
+        res.l = el.l
+        res.b_field = el.b_field
+        res.radius = el.radius
     elif el.type == "CORRECTOR":
         res.kind = "corrector"
         res.l = el.l
@@ -542,12 +630,51 @@ def _element_spec(el):
         res.phase_deg = float(el.phase)
     elif el.type == "SCREEN":
         res.kind = "screen"
+        res.width = el.width
+        res.height = el.height
     elif el.type == "BPM":
         res.kind = "bpm"
         res.l = el.l
+        res.resolution = el.resolution
     else:
         raise AssertionError(f"unsupported element type={el.type}")
     return res, is_cavity
+
+
+def _evaluated_data(data):
+    """A copy of `data` with every RPNValue field of the elements, the beam
+    and the beamline positions replaced by its evaluated float, so nothing
+    else in this module sees a variable expression.
+    """
+    res = copy.deepcopy(data)
+    cv = code_var(res.models.rpnVariables)
+
+    def _eval(value, label):
+        v, e = cv.eval_var(value)
+        if e:
+            raise sirepo.util.UserAlert(
+                f"{label}: {e}",
+                "label={} value={} err={}",
+                label,
+                value,
+                e,
+            )
+        return float(v)
+
+    def _model(m, name):
+        for f, s in SCHEMA.model[name].items():
+            if s[1] == "RPNValue" and m.get(f) not in (None, ""):
+                m[f] = _eval(m[f], f"{m.get('name') or name} {f}")
+
+    _model(res.models.beam, "beam")
+    for e in res.models.elements:
+        _model(e, e.type)
+    for b in res.models.beamlines:
+        for p in b.get("positions", []):
+            for f in p:
+                if p[f] not in (None, ""):
+                    p[f] = _eval(p[f], f"{b.name} position {f}")
+    return res
 
 
 def _field_map_2d_spec(el):
@@ -643,13 +770,13 @@ def _generate_lattice(util, beamline_id, result):
 
 
 def _generate_parameters_file(data):
+    data = _evaluated_data(data)
     util = sirepo.template.lattice.LatticeUtil(data, SCHEMA)
     res, v = template_common.generate_parameters_file(data)
     dm = data.models
     v.spaceCharge = dm.simulationSettings.spaceCharge
     v.autophase = dm.simulationSettings.autophase == "1"
     v.autophaseFromBunch = dm.simulationSettings.autophaseReference == "bunch"
-    v.autophaseRecorded = dm.simulationSettings.autophaseReference == "recorded"
     v.hasCavity = False
     # Volume and Lattice are both valid RF_Track tracking objects -- Volume
     # places every element at its own explicit (possibly overlapping)
@@ -700,12 +827,23 @@ def _generate_parameters_file(data):
         elements = _generate_lattice(util, util.select_beamline().id, [])
         if v.isLattice:
             elements = _sequential_elements(elements)
+        else:
+            b = sorted({e.name for e in elements if e.type in _BEND_TYPES})
+            if b:
+                raise sirepo.util.UserAlert(
+                    f"Bends ({', '.join(b)}) need Relative (Lattice)"
+                    " positioning: Absolute (Volume) positioning places every"
+                    " element on one straight axis, which a bend turns the"
+                    " beam away from.",
+                    "bends={} in Volume",
+                    b,
+                )
 
         specs = []
         for e in elements:
             s, is_cavity = _element_spec(e)
-            if v.autophaseRecorded and e.type in ("CAVITY", "SCREEN"):
-                s.t0 = e.t0
+            if v.isLattice:
+                s.update(_integration_spec(e))
             specs.append(s)
             v.hasCavity = v.hasCavity or is_cavity
         v.elementsCode = _format_value(specs, 0)
@@ -713,11 +851,19 @@ def _generate_parameters_file(data):
             num_threads=sirepo.mpi.cfg().cores,
             space_charge=_space_charge_spec(dm.simulationSettings),
         )
-        if not v.isLattice:
+        if v.isLattice:
+            if dm.simulationSettings.spaceCharge != "none":
+                settings.sc_lattice_nsteps = dm.simulationSettings.scLatticeNsteps
+        else:
             settings.tracking_range_m = _tracking_range(dm.simulationSettings, elements)
             settings.odeint_algorithm = dm.simulationSettings.odeintAlgorithm
+            settings.odeint_epsabs = dm.simulationSettings.odeintEpsabs
+            settings.odeint_epsrel = dm.simulationSettings.odeintEpsrel
             settings.volume_dt_mm = dm.simulationSettings.volumeDtMm
             settings.volume_tt_dt_mm = dm.simulationSettings.volumeTtDtMm
+            # 0 is RF-Track's default, no limit (infinity)
+            if dm.simulationSettings.volumeTMaxMm > 0:
+                settings.t_max_mm = dm.simulationSettings.volumeTMaxMm
         v.settingsCode = _format_value(settings, 0)
 
     v.bunchCode = _format_value(_bunch_spec(dm, v), 0)
@@ -741,10 +887,230 @@ def _infer_particle(mass_mev, charge):
     return "other"
 
 
+def _integration_spec(el):
+    """How a Lattice tracks through `el`: its step counts and, for an
+    element whose field it integrates, the integrator. A Volume uses its
+    own settings instead."""
+    return PKDict(
+        nsteps=el.nsteps,
+        tt_nsteps=el.ttNsteps,
+        sc_nsteps=el.scNsteps,
+        odeint_algorithm=el.odeintAlgorithm,
+        odeint_epsabs=el.odeintEpsabs,
+        odeint_epsrel=el.odeintEpsrel,
+    )
+
+
+def _lume_rftrack_bunch_to_sirepo(bunch_type, particle_group, distribution_file):
+    """Build the `beam` model for a lume_rftrack archive's bunch --
+    always "fromFile": it already handles both Bunch6d and Bunch6dT (via
+    fromFileNearRest), so no separate distributionType/field set is
+    needed for either, unlike a Twiss-style statistical-moment summary
+    (which Bunch6dT has no schema fields for at all).
+
+    `particle`/`mass`/`charge` are still set explicitly here, not left
+    to the file alone: the autophase reference particle is built from
+    them, and for particle "other" build_bunch() (the generated script)
+    also gives the tracked bunch this mass and charge instead of the
+    file's embedded species'.
+    `randomSeed` isn't in the archive at all (RF-Track's own API has no
+    getter for it), so it's left for fixup_old_data()'s own
+    schema-default backfill, same as every other `beam` field this
+    doesn't set explicitly.
+    """
+    mass_mev = particle_group.mass / 1e6
+    charge = particle_group.species_charge / scipy.constants.e
+    return PKDict(
+        particle=_infer_particle(mass_mev, charge),
+        mass=mass_mev,
+        charge=charge,
+        distributionType="fromFile",
+        distributionFile=distribution_file,
+        fromFileNearRest="1" if bunch_type == "Bunch6dT" else "0",
+    )
+
+
+def _lume_rftrack_element_to_sirepo(e, qcall, field_map_cache):
+    """The sirepo element model, without `_id`, for `e`, an element of a
+    lume_rftrack archive (`read_archive()`) that
+    `_lume_rftrack_import_errors()` accepted, with RF-Track's own names:
+    its settable `attributes` and, for a class that needs them, its
+    `constructor` arguments. A field map is written to a lib file, shared
+    by every element with the same map (see `_write_field_map_lib_file`).
+
+    archive() samples a field map without its scaling, which it restores
+    with the setters: the power scaling sqrt(P_actual / P_map) and
+    `scaling_factor` are a 1D map's scaleFactor, and are applied to a 2D
+    map's field, which this app doesn't rescale.
+    """
+    import io
+    import lume_rftrack.archive
+    import lume_rftrack.utils
+
+    cls = lume_rftrack.archive.constructor_class(e["class"])
+    a = e.attributes
+    c = e.get("constructor", PKDict())
+    t = _LUME_RFTRACK_CLASS_TO_TYPE[cls]
+    # schema defaults for everything the archive doesn't carry; rotations
+    # and offsets are set by build_imported_data()
+    res = _SIM_DATA.model_defaults(t).pkupdate(type=t, name=str(e.name))
+    if e.aperture_set:
+        res.apertureShape = str(e.aperture_shape)
+        res.aperture_x = float(e.aperture_x)
+        res.aperture_y = float(e.aperture_y)
+    if "length" in a:
+        res.l = float(a.length)
+    for f, k in (
+        ("nsteps", "nsteps"),
+        ("ttNsteps", "tt_nsteps"),
+        ("scNsteps", "sc_nsteps"),
+    ):
+        if k in a:
+            res[f] = int(a[k])
+    if "odeint_algorithm" in a:
+        res.odeintAlgorithm = str(a.odeint_algorithm)
+        res.odeintEpsabs = float(a.odeint_epsabs)
+        res.odeintEpsrel = float(a.odeint_epsrel)
+    if cls != e["class"]:
+        res.fieldMapInterpolation = "cubic"
+
+    def _field_map(model_field, text):
+        res[model_field] = _write_field_map_lib_file(
+            t, model_field, res.name, text, qcall, field_map_cache
+        )
+
+    def _field_map_1d(field, hz, scale):
+        res.fieldSource = "fieldMap"
+        res.l = (len(field) - 1) * float(hz)
+        res.rescaleMode = "factor"
+        res.scaleFactor = scale
+        b = io.StringIO()
+        numpy.savetxt(b, numpy.column_stack([numpy.arange(len(field)) * hz, field]))
+        _field_map("fieldMapFile", b.getvalue())
+
+    def _rf_scale():
+        return float(numpy.sqrt(a.P_actual / a.P_map) * a.scaling_factor)
+
+    # multiplies the field of an element this app has no scaling for
+    sf = float(a.get("scaling_factor", 1.0))
+    if cls == "Bpm":
+        res.resolution = float(a.resolution)
+    elif cls == "Coil":
+        res.l = float(c.length)
+        res.b_field = float(c.B0) * sf
+        res.radius = float(c.R)
+    elif cls == "Corrector":
+        res.h_kick, res.v_kick = (float(x) * sf for x in numpy.ravel(a.strength))
+    elif cls == "Quadrupole":
+        res.strengthType = "gradient"
+        res.gradient = float(a.gradient)
+    elif cls == "Sextupole":
+        res.strengthType = "gradient"
+        res.gradient = float(a.gradient) * sf
+    elif cls == "RF_FieldMap_1d":
+        res.frequency = float(c.frequency)
+        res.phase = float(a.phid)
+        _field_map_1d(numpy.real(c.Ez), c.hz, _rf_scale())
+    elif cls == "RF_FieldMap_2d":
+        res.fieldSource = "2dFieldMap"
+        res.frequency = float(c.frequency)
+        res.phase = float(a.phid)
+        res.l = (c.Ez.shape[0] - 1) * float(c.hz)
+        b = io.StringIO()
+        lume_rftrack.utils.write_field_map_2d(
+            b,
+            numpy.real(c.Er) * _rf_scale(),
+            numpy.real(c.Ez) * _rf_scale(),
+            c.hr,
+            c.hz,
+        )
+        _field_map("fieldMapFile2d", b.getvalue())
+    elif cls == "SBend":
+        res.angle = float(a.angle)
+        res.e1 = float(a.E1)
+        res.e2 = float(a.E2)
+        res.k1 = float(a.K1)
+        res.hgap = float(a.hgap)
+        # an archive written before fint was measured has none
+        res.fint = float(a.get("fint", 0.0))
+    elif cls == "Screen":
+        # RF-Track's unlimited size is infinite, this app's 0
+        for f in ("width", "height"):
+            res[f] = float(a[f]) if numpy.isfinite(a[f]) else 0.0
+    elif cls == "Solenoid":
+        res.fieldSource = "analytic"
+        res.l = float(c.length)
+        res.b_field = float(c.B0)
+        res.radius = float(c.R)
+    elif cls == "Static_Magnetic_FieldMap_1d":
+        _field_map_1d(numpy.asarray(c.Bz), c.hz, float(a.scaling_factor))
+    return res
+
+
+def _lume_rftrack_import_errors(archive):
+    """Why `archive` (`read_archive()`'s) can't be imported, one message
+    per problem, or none."""
+    import lume_rftrack.archive
+
+    res = []
+    rigidity = []
+    a = [x[0] for x in SCHEMA.enum.OdeintAlgorithm]
+    for i, e in enumerate(archive.elements):
+        n = f"element {i} {str(e.name)!r} ({e['class']})"
+        cls = lume_rftrack.archive.constructor_class(e["class"])
+        if cls not in _LUME_RFTRACK_CLASS_TO_TYPE:
+            res.append(f"{n} has no element type in this app")
+            continue
+        c = e.get("constructor", PKDict())
+        if str(e.attributes.get("odeint_algorithm", "rk2")) not in a:
+            res.append(
+                f"{n} has odeint_algorithm={e.attributes.odeint_algorithm}, which"
+                + " isn't supported"
+            )
+        for k in ("static_Bfield", "static_Efield"):
+            if numpy.any(e.attributes.get(k, 0.0)):
+                res.append(f"{n} has a {k}, which this app doesn't support")
+        if "z1" in e.attributes:
+            f = c.Ez if "Ez" in c else c.Bz
+            if not numpy.allclose(
+                [e.attributes.z0, e.attributes.z1],
+                [0.0, (numpy.shape(f)[0] - 1) * c.hz],
+            ):
+                res.append(
+                    f"{n} uses only z0={e.attributes.z0} to z1={e.attributes.z1}"
+                    + " of its field map"
+                )
+        if cls == "SBend":
+            if archive.beamline_class == "Volume":
+                res.append(f"{n} is a bend in a Volume; bends need a Lattice")
+            rigidity.append(abs(float(e.attributes.P_over_Q)))
+        elif cls in ("RF_FieldMap_1d", "RF_FieldMap_2d"):
+            if c.direction != 1:
+                res.append(f"{n} has direction={c.direction}; only 1 is supported")
+            if any(numpy.any(numpy.imag(c[k])) for k in ("Er", "Ez") if k in c):
+                res.append(f"{n} has a complex field map")
+        if (
+            cls == "RF_FieldMap_1d"
+            and c.length != -1
+            and not numpy.isclose(c.length, (len(c.Ez) - 1) * c.hz)
+        ):
+            res.append(f"{n} is {c.length} m long, not its field map's length")
+    if rigidity and not numpy.allclose(rigidity, rigidity[0], rtol=1e-9):
+        res.append(
+            f"its bends have different rigidities P_over_Q={sorted(set(rigidity))}"
+        )
+    if archive.integrator and str(archive.integrator.odeint_algorithm) not in a:
+        # e.g. msadams, which this RF-Track can't integrate with
+        res.append(
+            f"its odeint_algorithm={archive.integrator.odeint_algorithm} isn't supported"
+        )
+    return res
+
+
 def _openpmd_job_cmd_file(run_dir, npy_filename):
     """Convert a saved phase-space file to an OpenPMD-BeamPhysics HDF5 file.
 
-    `rslume.rftrack_utils.PHASE_SPACE_COLUMNS` are already in the units
+    `lume_rftrack.utils.PHASE_SPACE_COLUMNS` are already in the units
     ParticleGroup expects (x/y/z in m, Px/Py/Pz in eV/c, t in s, weight in
     C), so no unit
     conversion is needed here -- only a column selection and reshuffle.
@@ -761,7 +1127,7 @@ def _openpmd_job_cmd_file(run_dir, npy_filename):
         )
     ps = numpy.load(str(run_dir.join(npy_filename)))
     n = len(ps)
-    c = rslume.rftrack_utils.PHASE_SPACE_COLUMNS.index
+    c = lume_rftrack.utils.PHASE_SPACE_COLUMNS.index
     pg = beamphysics.ParticleGroup(
         data=PKDict(
             x=ps[:, c("x")],
@@ -847,8 +1213,8 @@ def _particle_mass_and_charge():
 def _phase_space_plot(model, values):
     return template_common.heatmap(
         values=[
-            values[:, rslume.rftrack_utils.PHASE_SPACE_COLUMNS.index(model.x)],
-            values[:, rslume.rftrack_utils.PHASE_SPACE_COLUMNS.index(model.y)],
+            values[:, lume_rftrack.utils.PHASE_SPACE_COLUMNS.index(model.x)],
+            values[:, lume_rftrack.utils.PHASE_SPACE_COLUMNS.index(model.y)],
         ],
         model=model,
         plot_fields=PKDict(
@@ -890,6 +1256,7 @@ def _rough_percent_complete(run_dir):
     data = _read_data(run_dir)
     if "bunchReport" in data.get("report", ""):
         return 0
+    data = _evaluated_data(data)
     util = sirepo.template.lattice.LatticeUtil(data, SCHEMA)
     elements = _generate_lattice(util, util.select_beamline().id, [])
     if data.models.simulation.elementPosition == "relative":
@@ -906,123 +1273,6 @@ def _rough_percent_complete(run_dir):
     # docstring's "brief low-energy stretch" caveat) -- 100 is reserved
     # for the one time this is actually known, once the job is done
     return min(99, float(m[-1]) * 100.0 / s1_mm)
-
-
-def _rslume_bunch_to_sirepo(bunch_type, particle_group, distribution_file):
-    """Build the `beam` model for an rslume.rftrack archive's bunch --
-    always "fromFile": it already handles both Bunch6d and Bunch6dT (via
-    fromFileNearRest), so no separate distributionType/field set is
-    needed for either, unlike a Twiss-style statistical-moment summary
-    (which Bunch6dT has no schema fields for at all).
-
-    `particle`/`mass`/`charge` are still set explicitly here, not left
-    to the file alone: the autophase reference particle is built from
-    them, and for particle "other" build_bunch() (the generated script)
-    also gives the tracked bunch this mass and charge instead of the
-    file's embedded species'.
-    `randomSeed` isn't in the archive at all (RF-Track's own API has no
-    getter for it), so it's left for fixup_old_data()'s own
-    schema-default backfill, same as every other `beam` field this
-    doesn't set explicitly.
-    """
-    mass_mev = particle_group.mass / 1e6
-    charge = particle_group.species_charge / scipy.constants.e
-    return PKDict(
-        particle=_infer_particle(mass_mev, charge),
-        mass=mass_mev,
-        charge=charge,
-        distributionType="fromFile",
-        distributionFile=distribution_file,
-        fromFileNearRest="1" if bunch_type == "Bunch6dT" else "0",
-    )
-
-
-def _rslume_element_to_sirepo(e, _id, qcall, field_map_cache):
-    """Invert rslume.rftrack_archive._element_to_attrs()'s dict into a sirepo
-    element model -- the exact reverse of _element_spec()'s
-    DRIFT/QUADRUPOLE/CORRECTOR/SCREEN/BPM construction, plus
-    RF_FieldMap_1d/Static_Magnetic_FieldMap_1d (a CAVITY/SOLENOID with a
-    baked field array instead of a file reference) -- `qcall` and
-    `field_map_cache` are only used by those two, to write the array
-    out as a (possibly shared) lib file (see `_write_field_map_lib_file`).
-    An analytic CAVITY is archived as an RF_FieldMap_1d, so it comes back
-    as a field-map CAVITY.
-
-    Raises:
-        sirepo.util.UserAlert: `e["class"]` isn't one of the element
-            classes in `_RSLUME_CLASS_TO_TYPE` (e.g. Pillbox_Cavity,
-            RF_FieldMap_2d or analytic Solenoid), or a field-map file of
-            the same name already exists.
-    """
-    cls = str(e["class"])
-    t = _RSLUME_CLASS_TO_TYPE.get(cls)
-    if t is None:
-        raise sirepo.util.UserAlert(
-            f"the uploaded file contains an unsupported element type={cls}"
-        )
-    # schema defaults for everything the archive doesn't carry: rotations
-    # are always 0 (archive() refuses a rotated element), and "x"/"y" are
-    # only present for a Volume-archived element, whose absolute transverse
-    # position build_beamline()'s v.add() takes as dx/dy directly
-    res = _SIM_DATA.model_defaults(t).pkupdate(
-        _id=_id,
-        type=t,
-        name=str(e["name"]),
-        dx=float(e.get("x", 0.0)),
-        dy=float(e.get("y", 0.0)),
-    )
-    if e["aperture_set"]:
-        res.setAperture = "1"
-        res.aperture_x = float(e["aperture_x"])
-        res.aperture_y = float(e["aperture_y"])
-    if cls in ("Bpm", "Corrector", "Drift", "Quadrupole"):
-        res.l = float(e["length"])
-    if "t0" in e and t in ("CAVITY", "SCREEN"):
-        res.t0 = float(e["t0"])
-    if cls == "Quadrupole":
-        res.strengthType = "gradient"
-        res.gradient = float(e["gradient"])
-    elif cls == "Corrector":
-        # the exact inverse of _element_spec()'s
-        # e = rft.Corrector(spec.l, spec.h_kick, spec.v_kick): h_kick/v_kick
-        # are RF-Track's Kx/Ky, an integrated strength in T*mm
-        res.h_kick = float(e["kx"])
-        res.v_kick = float(e["ky"])
-    elif cls == "RF_FieldMap_1d":
-        res.fieldSource = "fieldMap"
-        res.frequency = float(e["frequency"])
-        res.phase = float(e["phid"])
-        # get_Ez() (_serialize_rf_fieldmap_1d) is RF-Track's own complex
-        # phasor representation, confirmed empirically here to always
-        # have an exactly-zero imaginary part for a field built from a
-        # real-valued uploaded file (_build_element()'s own
-        # rft.RF_FieldMap_1d(field, ...) construction never passes a
-        # complex field in the first place) -- load_field_map() expects
-        # a plain two-column real-valued text file, so this keeps only
-        # the real part the new lib file is written from.
-        field = numpy.asarray(e["ez"]).real
-        hz = float(e["hz"])
-        # the exact inverse of load_field_map()'s own
-        # length = s.max() - s.min() == (len(s) - 1) * step
-        res.l = (len(field) - 1) * hz
-        res.fieldMapFile = _write_field_map_lib_file(
-            "CAVITY", res.name, field, hz, qcall, field_map_cache
-        )
-        # the archived array is already the exact final field (any
-        # P_actual/P_map scale is already baked in), so "factor" with the
-        # default scaleFactor of 1 applies it unchanged
-        res.rescaleMode = "factor"
-    elif cls == "Static_Magnetic_FieldMap_1d":
-        res.fieldSource = "fieldMap"
-        field = numpy.asarray(e["bz"])
-        hz = float(e["hz"])
-        res.l = (len(field) - 1) * hz
-        res.fieldMapFile = _write_field_map_lib_file(
-            "SOLENOID", res.name, field, hz, qcall, field_map_cache
-        )
-        # the schema default rescaleMode is already "factor", with
-        # scaleFactor 1, which applies the archived field unchanged
-    return res
 
 
 def _screen_names(data):
@@ -1067,20 +1317,14 @@ def _sequential_elements(elements):
                 )
             if gap > 1e-9:
                 res.append(
-                    PKDict(
+                    _SIM_DATA.model_defaults("DRIFT").pkupdate(
                         type="DRIFT",
                         name=f"_gap{i}",
                         l=gap,
                         elemedge=prev_end,
-                        setAperture=el.setAperture,
+                        apertureShape=el.apertureShape,
                         aperture_x=el.aperture_x,
                         aperture_y=el.aperture_y,
-                        dx=0,
-                        dy=0,
-                        dz=0,
-                        rx=0,
-                        ry=0,
-                        rz=0,
                     )
                 )
         res.append(el)
@@ -1090,7 +1334,7 @@ def _sequential_elements(elements):
 
 
 def _space_charge_spec(simulation_settings):
-    """`simulationSettings` as rslume space-charge settings (see
+    """`simulationSettings` as lume_rftrack space-charge settings (see
     `_PIC_SPACE_CHARGE_FIELDS`), empty for no space charge.
     """
     if simulation_settings.spaceCharge == "none":
@@ -1117,13 +1361,13 @@ def _stat_animation_plot(frame_args):
                 label=_STAT_LABELS[frame_args[f]],
                 dim=f,
                 points=v[
-                    :, rslume.rftrack_utils.STAT_COLUMNS.index(frame_args[f])
+                    :, lume_rftrack.utils.STAT_COLUMNS.index(frame_args[f])
                 ].tolist(),
             )
         )
     x_name = frame_args.x if frame_args.x != _NONE else "s"
     return template_common.parameter_plot(
-        x=v[:, rslume.rftrack_utils.STAT_COLUMNS.index(x_name)].tolist(),
+        x=v[:, lume_rftrack.utils.STAT_COLUMNS.index(x_name)].tolist(),
         plots=plots,
         model=frame_args,
         plot_fields=PKDict(
@@ -1153,6 +1397,15 @@ def _tracking_range(simulation_settings, elements):
             max((e.elemedge + e.l for e in elements), default=1.0),
         )
     return simulation_settings.trackingS0, simulation_settings.trackingS1
+
+
+def _unique_name(prefix, names):
+    """`prefix` and the first index from 1 that isn't in `names`, as the
+    lattice editor's uniqueNameForType() names a new element"""
+    i = 1
+    while f"{prefix}{i}" in names:
+        i += 1
+    return f"{prefix}{i}"
 
 
 def _write_distribution_lib_file(particle_group, name, qcall):
@@ -1205,64 +1458,44 @@ def _write_distribution_lib_file(particle_group, name, qcall):
     return basename
 
 
-def _write_field_map_lib_file(el_type, element_name, field, hz, qcall, field_map_cache):
-    """Write `field` (a 1D RF-Track field-map array, sampled every `hz`
-    meters) as a brand new lib file -- two columns (s [m], field value),
-    the same two-column text format `rslume.rftrack_utils.load_field_map()`
-    already reads for a normal uploaded field map. Named after the archived element
-    (`element_name`) so it's recognizable in the lattice editor
-    afterward.
+def _write_field_map_lib_file(
+    el_type, model_field, element_name, text, qcall, field_map_cache
+):
+    """Write `text`, a field map in the format `lume_rftrack.utils`
+    reads (`load_field_map()`'s two columns, or
+    `load_field_map_2d()`'s), as a lib file for `el_type`'s
+    `model_field`, named after the archived element plus a portion of its
+    md5, so it's recognizable in the lattice editor and can't collide
+    with another archive's map of the same element name.
 
-    `field_map_cache` ({(el_type, md5): basename}) is shared across
-    every element in one import (see `build_imported_data()`) --
-    several elements built from the same uploaded field-map file (e.g.
-    a linac's identical accelerating cavities) are archived with one
-    shared copy, not a byte-for-byte duplicate per element
-    (`rslume.rftrack_archive._dedupe_field_maps()`); reusing the one lib file
-    already written for that same content here, instead of writing a
-    new one per element, keeps that true on import too.
+    `field_map_cache` ({(el_type, model_field, md5): basename}) is shared
+    across every element in one import (see `build_imported_data()`):
+    several elements built from the same field-map file (e.g. a linac's
+    identical accelerating cavities) are archived with one shared copy
+    (`lume_rftrack.archive._dedupe_field_maps()`), and reusing the one
+    lib file written for that content keeps that true on import too.
 
-    Only callable with a real `qcall`: this writes to the lib directory,
-    which needs one (`sirepo.sim_data.SimDataBase.lib_file_write`) --
-    `stateful_compute_import_file` (the job agent) doesn't have one,
-    which is why the whole import is built server-side instead, in
-    `sirepo.sim_data.rftrack.SimData.prepare_import_file_args` (see its
-    own docstring).
+    Only callable with a real `qcall`: see
+    `sirepo.sim_data.rftrack.SimData.prepare_import_file_args`.
 
     Returns:
-        str: the plain basename to store in the model's `fieldMapFile`.
-
-    Raises:
-        sirepo.util.UserAlert: a lib file of the same name already
-            exists with *different* content -- the lib directory is
-            shared across every simulation this user has of this sim
-            type (not per-simulation), so re-importing the very same
-            archive (a normal thing to do while iterating) would
-            otherwise collide with itself on every single retry.
+        str: the plain basename to store in `model_field`
     """
     import hashlib
-    import io
 
-    field = numpy.asarray(field)
-    cache_key = (el_type, hashlib.md5(field.tobytes()).hexdigest())
-    if cache_key in field_map_cache:
-        return field_map_cache[cache_key]
-
-    basename = f"{element_name}.dat"
-    full_name = _SIM_DATA.lib_file_name_with_model_field(
-        el_type, "fieldMapFile", basename
-    )
-    s = numpy.arange(len(field)) * hz
-    buf = io.StringIO()
-    numpy.savetxt(buf, numpy.column_stack([s, field]))
+    h = hashlib.md5(text.encode()).hexdigest()
+    k = (el_type, model_field, h)
+    if k in field_map_cache:
+        return field_map_cache[k]
+    basename = f"{element_name}-{h[:8]}.dat"
     _write_lib_file_once(
-        full_name,
-        buf.getvalue(),
+        _SIM_DATA.lib_file_name_with_model_field(el_type, model_field, basename),
+        text,
         f"field map file='{basename}' already exists with different content;"
         + f" rename element '{element_name}' and import again",
         qcall,
     )
-    field_map_cache[cache_key] = basename
+    field_map_cache[k] = basename
     return basename
 
 

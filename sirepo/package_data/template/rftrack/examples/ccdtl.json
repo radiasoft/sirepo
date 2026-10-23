@@ -826,7 +826,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "BPM"
             },
             {
@@ -841,7 +841,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "BPM"
             },
             {
@@ -856,7 +856,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "BPM"
             },
             {
@@ -871,7 +871,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "BPM"
             },
             {
@@ -886,7 +886,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "BPM"
             },
             {
@@ -901,7 +901,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "BPM"
             },
             {
@@ -916,7 +916,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "BPM"
             },
             {
@@ -935,7 +935,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -954,7 +954,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -973,7 +973,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -992,7 +992,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1011,7 +1011,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1030,7 +1030,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1049,7 +1049,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1068,7 +1068,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1087,7 +1087,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1106,7 +1106,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1125,7 +1125,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1144,7 +1144,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1163,7 +1163,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1182,7 +1182,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1201,7 +1201,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1220,7 +1220,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1239,7 +1239,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1258,7 +1258,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1277,7 +1277,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1296,7 +1296,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1315,7 +1315,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CAVITY"
             },
             {
@@ -1331,7 +1331,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CORRECTOR",
                 "v_kick": 0
             },
@@ -1348,7 +1348,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CORRECTOR",
                 "v_kick": 0
             },
@@ -1365,7 +1365,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CORRECTOR",
                 "v_kick": 0
             },
@@ -1382,7 +1382,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "CORRECTOR",
                 "v_kick": 0
             },
@@ -1398,7 +1398,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1413,7 +1413,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1428,7 +1428,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1443,7 +1443,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -1458,7 +1458,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -1473,7 +1473,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1488,7 +1488,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1503,7 +1503,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1518,7 +1518,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1533,7 +1533,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -1548,7 +1548,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -1563,7 +1563,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -1578,7 +1578,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -1593,7 +1593,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1608,7 +1608,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1623,7 +1623,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1638,7 +1638,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1653,7 +1653,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -1668,7 +1668,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -1683,7 +1683,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1698,7 +1698,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1713,7 +1713,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1728,7 +1728,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1743,7 +1743,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1758,7 +1758,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -1773,7 +1773,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -1788,7 +1788,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1803,7 +1803,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1818,7 +1818,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -1833,7 +1833,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -1848,7 +1848,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1863,7 +1863,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1878,7 +1878,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1893,7 +1893,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -1908,7 +1908,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -1923,7 +1923,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1938,7 +1938,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1953,7 +1953,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1968,7 +1968,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -1983,7 +1983,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -1998,7 +1998,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2013,7 +2013,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2028,7 +2028,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2043,7 +2043,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2058,7 +2058,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2073,7 +2073,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2088,7 +2088,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2103,7 +2103,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2118,7 +2118,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2133,7 +2133,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2148,7 +2148,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2163,7 +2163,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2178,7 +2178,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2193,7 +2193,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2208,7 +2208,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2223,7 +2223,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2238,7 +2238,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2253,7 +2253,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2268,7 +2268,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2283,7 +2283,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2298,7 +2298,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2313,7 +2313,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2328,7 +2328,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2343,7 +2343,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2358,7 +2358,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2373,7 +2373,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2388,7 +2388,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2403,7 +2403,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2418,7 +2418,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2433,7 +2433,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2448,7 +2448,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2463,7 +2463,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2478,7 +2478,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2493,7 +2493,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2508,7 +2508,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2523,7 +2523,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2538,7 +2538,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2553,7 +2553,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2568,7 +2568,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2583,7 +2583,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2598,7 +2598,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2613,7 +2613,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2628,7 +2628,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2643,7 +2643,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2658,7 +2658,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2673,7 +2673,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2688,7 +2688,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2703,7 +2703,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2718,7 +2718,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2733,7 +2733,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2748,7 +2748,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2763,7 +2763,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2778,7 +2778,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2793,7 +2793,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2808,7 +2808,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2823,7 +2823,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2838,7 +2838,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2853,7 +2853,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2868,7 +2868,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2883,7 +2883,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2898,7 +2898,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2913,7 +2913,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2928,7 +2928,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2943,7 +2943,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2958,7 +2958,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -2973,7 +2973,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -2988,7 +2988,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "0",
+                "apertureShape": "none",
                 "type": "DRIFT"
             },
             {
@@ -3003,7 +3003,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "type": "DRIFT"
             },
             {
@@ -3019,7 +3019,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3036,7 +3036,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3053,7 +3053,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3070,7 +3070,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3087,7 +3087,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3104,7 +3104,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3121,7 +3121,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3138,7 +3138,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3155,7 +3155,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3172,7 +3172,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3189,7 +3189,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3206,7 +3206,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3223,7 +3223,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3240,7 +3240,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3257,7 +3257,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3274,7 +3274,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3291,7 +3291,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3308,7 +3308,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3325,7 +3325,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3342,7 +3342,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             },
@@ -3359,7 +3359,7 @@
                 "rx": 0,
                 "ry": 0,
                 "rz": 0,
-                "setAperture": "1",
+                "apertureShape": "circular",
                 "strengthType": "gradient",
                 "type": "QUADRUPOLE"
             }

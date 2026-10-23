@@ -30,6 +30,17 @@ function applyStatPlotPreset(appState, modelName) {
     appState.saveChanges(modelName);
 }
 
+// element types only Relative (Lattice) positioning offers: a Volume places
+// every element on one straight axis, which a bend turns the beam away from
+const BEND_TYPES = ['RBEND', 'SBEND'];
+
+// element types a Lattice tracks through by integrating their field (a
+// field-map SOLENOID is one too), which have an integration algorithm
+const FIELD_INTEGRATED_TYPES = ['CAVITY', 'COIL', 'CORRECTOR', 'SEXTUPOLE'];
+
+// element types with an RF field, which autophasing phases
+const RF_ELEMENT_TYPES = ['CAVITY'];
+
 SIREPO.app.config(function() {
     SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
     SIREPO.SINGLE_FRAME_ANIMATION = ['statAnimation', 'stat2Animation'];
@@ -41,11 +52,11 @@ SIREPO.app.config(function() {
     SIREPO.lattice = {
         elementColor: {},
         elementPic: {
-            bend: ['RBEND'],
+            bend: BEND_TYPES,
             drift: ['DRIFT'],
-            magnet: ['QUADRUPOLE', 'CORRECTOR'],
-            rf: ['CAVITY'],
-            solenoid: ['SOLENOID'],
+            magnet: ['QUADRUPOLE', 'SEXTUPOLE', 'CORRECTOR'],
+            rf: RF_ELEMENT_TYPES,
+            solenoid: ['SOLENOID', 'COIL'],
             watch: ['SCREEN', 'BPM'],
         },
         latticeImport: '.h5',
@@ -218,10 +229,18 @@ SIREPO.app.controller('VisualizationController', function(appState, frameCache, 
     self.simState = initSimState();
 });
 
-SIREPO.app.controller('LatticeController', function(latticeService) {
+SIREPO.app.controller('LatticeController', function(appState, latticeService) {
     const self = this;
     self.advancedNames = SIREPO.APP_SCHEMA.constants.advancedElementNames;
-    self.basicNames = SIREPO.APP_SCHEMA.constants.basicElementNames;
+    Object.defineProperty(self, 'basicNames', {
+        get: () => {
+            const n = SIREPO.APP_SCHEMA.constants.basicElementNames;
+            const s = appState.models.simulation;
+            return s && s.elementPosition === 'absolute'
+                ? n.filter((t) => ! BEND_TYPES.includes(t))
+                : n;
+        },
+    });
     self.latticeService = latticeService;
 
     self.titleForName = (name) => SIREPO.APP_SCHEMA.view[name].title;
@@ -280,32 +299,36 @@ function fieldMapFields(m) {
     ];
 }
 
-function updateApertureFields(appState, panelState, type) {
+// the fields and tabs every element view shares: the aperture, and the
+// Integration tab, which only a Lattice uses
+function updateElementFields(appState, panelState, type) {
     const m = appState.models[type];
     if (! m) {
         return;
     }
-    panelState.showFields(type, [
-        ['aperture_x', 'aperture_y'], m.setAperture == '1',
-    ]);
-}
-
-// showFields() arguments for a CAVITY's or SCREEN's recorded t0, which is
-// only used when autophasing restores the t0 an imported archive recorded
-function recordedT0Fields(appState) {
+    const isLattice = appState.models.simulation.elementPosition === 'relative';
     const s = appState.models.simulationSettings;
-    return [
-        ['t0'], s.autophase === '1' && s.autophaseReference === 'recorded',
-    ];
+    // an element a Lattice integrates through its field, rather than
+    // a transfer matrix
+    const isIntegrated = FIELD_INTEGRATED_TYPES.includes(type)
+        || (type === 'SOLENOID' && m.fieldSource === 'fieldMap');
+    panelState.showFields(type, [
+        ['aperture_x', 'aperture_y'], m.apertureShape !== 'none',
+        ['scNsteps'], s.spaceCharge !== 'none' && s.scLatticeNsteps === 0,
+        ['odeintAlgorithm'], isIntegrated,
+        ['odeintEpsabs', 'odeintEpsrel'], isIntegrated && m.odeintAlgorithm.startsWith('rk'),
+    ]);
+    // after Main, Aperture and Misalignment
+    panelState.showTab(type, 4, isLattice && type !== 'SCREEN');
 }
 
-// element views whose only dynamic fields are the aperture
-['BPM', 'CORRECTOR', 'DRIFT', 'RBEND'].forEach((type) => {
+// element views with no dynamic fields of their own
+['BPM', 'COIL', 'CORRECTOR', 'DRIFT', 'RBEND'].forEach((type) => {
     SIREPO.viewLogic(type.toLowerCase() + 'View', function(appState, panelState, $scope) {
-        const updateFields = () => updateApertureFields(appState, panelState, type);
+        const updateFields = () => updateElementFields(appState, panelState, type);
         $scope.whenSelected = updateFields;
         $scope.watchFields = [
-            [type + '.setAperture'], updateFields,
+            [type + '.apertureShape', type + '.odeintAlgorithm'], updateFields,
         ];
     });
 });
@@ -347,12 +370,12 @@ SIREPO.viewLogic('quadrupoleView', function(appState, panelState, $scope) {
             ['gradient'], m.strengthType === 'gradient',
             ['k1'], m.strengthType === 'k1',
         ]);
-        updateApertureFields(appState, panelState, 'QUADRUPOLE');
+        updateElementFields(appState, panelState, 'QUADRUPOLE');
     };
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
-        ['QUADRUPOLE.strengthType', 'QUADRUPOLE.setAperture'], updateFields,
+        ['QUADRUPOLE.strengthType', 'QUADRUPOLE.apertureShape', 'QUADRUPOLE.odeintAlgorithm'], updateFields,
     ];
 });
 
@@ -364,15 +387,15 @@ SIREPO.viewLogic('solenoidView', function(appState, panelState, $scope) {
             return;
         }
         panelState.showFields('SOLENOID', [
-            ['b_field'], m.fieldSource !== 'fieldMap',
+            ['b_field', 'radius'], m.fieldSource !== 'fieldMap',
             ...fieldMapFields(m),
         ]);
-        updateApertureFields(appState, panelState, 'SOLENOID');
+        updateElementFields(appState, panelState, 'SOLENOID');
     };
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
-        ['SOLENOID.fieldSource', 'SOLENOID.rescaleMode', 'SOLENOID.setAperture'], updateFields,
+        ['SOLENOID.fieldSource', 'SOLENOID.rescaleMode', 'SOLENOID.apertureShape', 'SOLENOID.odeintAlgorithm'], updateFields,
     ];
 });
 
@@ -387,14 +410,32 @@ SIREPO.viewLogic('cavityView', function(appState, panelState, $scope) {
             ['gradient'], m.fieldSource === 'analytic',
             ['fieldMapFile2d'], m.fieldSource === '2dFieldMap',
             ...fieldMapFields(m),
-            ...recordedT0Fields(appState),
         ]);
-        updateApertureFields(appState, panelState, 'CAVITY');
+        updateElementFields(appState, panelState, 'CAVITY');
     };
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
-        ['CAVITY.fieldSource', 'CAVITY.rescaleMode', 'CAVITY.setAperture'], updateFields,
+        ['CAVITY.fieldSource', 'CAVITY.rescaleMode', 'CAVITY.apertureShape', 'CAVITY.odeintAlgorithm'], updateFields,
+    ];
+});
+
+SIREPO.viewLogic('sbendView', function(appState, panelState, $scope) {
+
+    const updateFields = () => {
+        if (! appState.models.SBEND) {
+            return;
+        }
+        // a Volume's 3D fringe field depends on hgap alone
+        panelState.showFields('SBEND', [
+            ['fint'], appState.models.simulation.elementPosition === 'relative',
+        ]);
+        updateElementFields(appState, panelState, 'SBEND');
+    };
+
+    $scope.whenSelected = updateFields;
+    $scope.watchFields = [
+        ['SBEND.apertureShape', 'SBEND.odeintAlgorithm'], updateFields,
     ];
 });
 
@@ -404,13 +445,32 @@ SIREPO.viewLogic('screenView', function(appState, panelState, $scope) {
         if (! appState.models.SCREEN) {
             return;
         }
-        panelState.showFields('SCREEN', recordedT0Fields(appState));
-        updateApertureFields(appState, panelState, 'SCREEN');
+        updateElementFields(appState, panelState, 'SCREEN');
     };
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
-        ['SCREEN.setAperture'], updateFields,
+        ['SCREEN.apertureShape', 'SCREEN.odeintAlgorithm'], updateFields,
+    ];
+});
+
+SIREPO.viewLogic('sextupoleView', function(appState, panelState, $scope) {
+
+    const updateFields = () => {
+        const m = appState.models.SEXTUPOLE;
+        if (! m) {
+            return;
+        }
+        panelState.showFields('SEXTUPOLE', [
+            ['gradient'], m.strengthType === 'gradient',
+            ['k2'], m.strengthType === 'k2',
+        ]);
+        updateElementFields(appState, panelState, 'SEXTUPOLE');
+    };
+
+    $scope.whenSelected = updateFields;
+    $scope.watchFields = [
+        ['SEXTUPOLE.strengthType', 'SEXTUPOLE.apertureShape', 'SEXTUPOLE.odeintAlgorithm'], updateFields,
     ];
 });
 
@@ -440,7 +500,7 @@ SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, lattic
             }
             if (item._id !== undefined) {
                 // element
-                if (item.type === 'CAVITY') {
+                if (RF_ELEMENT_TYPES.includes(item.type)) {
                     return true;
                 }
             }
@@ -462,10 +522,14 @@ SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, lattic
         const isVolume = appState.models.simulation.elementPosition === 'absolute';
         const hasCavity = beamlineHasCavity(latticeService.getSimulationBeamline());
         panelState.showFields('simulationSettings', [
-            ['scGridNx', 'scGridNy', 'scGridNz', 'scDtMm', 'scSmooth', 'scMirror'], m.spaceCharge === 'pic',
+            ['scGridNx', 'scGridNy', 'scGridNz', 'scSmooth', 'scMirror'], m.spaceCharge === 'pic',
+            ['scDtMm'], m.spaceCharge === 'pic' && isVolume,
+            ['scLatticeNsteps'], m.spaceCharge !== 'none' && ! isVolume,
             ['autophase'], hasCavity,
             ['autophaseReference'], hasCavity && m.autophase === '1',
-            ['autoTrackingRange', 'volumeDtMm', 'volumeTtDtMm', 'odeintAlgorithm'], isVolume,
+            ['autoTrackingRange', 'volumeDtMm', 'volumeTtDtMm', 'odeintAlgorithm', 'volumeTMaxMm'], isVolume,
+            // the error tolerances only change a Runge-Kutta algorithm's steps
+            ['odeintEpsabs', 'odeintEpsrel'], isVolume && m.odeintAlgorithm.startsWith('rk'),
             ['trackingS0', 'trackingS1'], isVolume && m.autoTrackingRange === '0',
         ]);
         // the advanced editor's "Tracking" tab has only Volume settings
@@ -474,6 +538,6 @@ SIREPO.viewLogic('simulationSettingsView', function(appState, panelState, lattic
 
     $scope.whenSelected = updateFields;
     $scope.watchFields = [
-        ['simulationSettings.spaceCharge', 'simulationSettings.autoTrackingRange', 'simulationSettings.autophase', 'simulation.visualizationBeamlineId'], updateFields,
+        ['simulationSettings.spaceCharge', 'simulationSettings.autoTrackingRange', 'simulationSettings.autophase', 'simulationSettings.odeintAlgorithm', 'simulation.visualizationBeamlineId'], updateFields,
     ];
 });

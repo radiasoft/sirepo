@@ -24,7 +24,7 @@
         </div>
       </div>
     </div>
-    <div class="col-sm-6" data-ng-if="visualization.hasBpmReport">
+    <div class="col-sm-6" data-ng-if="visualization.hasBpmReport && visualization.simState.getFrameCount() >= 1">
       <div data-report-panel="bpmTable" data-model-name="bpmAnimation"></div>
     </div>
     <div data-ng-repeat="item in visualization.outputFiles track by $index" data-ng-if="visualization.simState.hasFrames()">

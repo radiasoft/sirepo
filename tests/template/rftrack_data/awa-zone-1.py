@@ -7,21 +7,21 @@ Simulation notes:
 
 from pykern.pkcollections import PKDict
 import RF_Track as rft
+import math
 import numpy
-import rslume.rftrack
-import rslume.rftrack_utils
+import lume_rftrack.simulator
+import lume_rftrack.utils
 
 ELEMENTS = [
     PKDict(
         name='Gun',
         elemedge=0.0,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -36,13 +36,12 @@ ELEMENTS = [
     PKDict(
         name='SolBF',
         elemedge=-0.5,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -55,13 +54,12 @@ ELEMENTS = [
     PKDict(
         name='SolM',
         elemedge=0.0,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -74,13 +72,12 @@ ELEMENTS = [
     PKDict(
         name='DT1',
         elemedge=0.701802,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -92,13 +89,12 @@ ELEMENTS = [
     PKDict(
         name='L1',
         elemedge=0.576433,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -113,13 +109,12 @@ ELEMENTS = [
     PKDict(
         name='DT2',
         elemedge=1.63525,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -131,13 +126,12 @@ ELEMENTS = [
     PKDict(
         name='SolL1',
         elemedge=1.544,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -150,28 +144,28 @@ ELEMENTS = [
     PKDict(
         name='YAG1',
         elemedge=2.9,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
         kind='screen',
+        width=0.0,
+        height=0.0,
     ),
     PKDict(
         name='L2',
         elemedge=3.306433,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -186,13 +180,12 @@ ELEMENTS = [
     PKDict(
         name='DT3',
         elemedge=4.3053,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -204,13 +197,12 @@ ELEMENTS = [
     PKDict(
         name='SolL2',
         elemedge=4.12,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -223,13 +215,12 @@ ELEMENTS = [
     PKDict(
         name='L3',
         elemedge=4.856433,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -244,28 +235,28 @@ ELEMENTS = [
     PKDict(
         name='YAG2',
         elemedge=6.292,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
         kind='screen',
+        width=0.0,
+        height=0.0,
     ),
     PKDict(
         name='SolL4',
         elemedge=5.881,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -278,13 +269,12 @@ ELEMENTS = [
     PKDict(
         name='DT4',
         elemedge=5.84835,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -296,13 +286,12 @@ ELEMENTS = [
     PKDict(
         name='DT5',
         elemedge=7.0358,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -314,13 +303,12 @@ ELEMENTS = [
     PKDict(
         name='L4',
         elemedge=6.986433,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -335,13 +323,12 @@ ELEMENTS = [
     PKDict(
         name='L5',
         elemedge=8.326433,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -356,28 +343,28 @@ ELEMENTS = [
     PKDict(
         name='YAG3',
         elemedge=9.525,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
         kind='screen',
+        width=0.0,
+        height=0.0,
     ),
     PKDict(
         name='DT6',
         elemedge=9.7917,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -389,13 +376,12 @@ ELEMENTS = [
     PKDict(
         name='L6',
         elemedge=9.736433,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -410,13 +396,12 @@ ELEMENTS = [
     PKDict(
         name='DT7',
         elemedge=11.120374,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
@@ -428,17 +413,18 @@ ELEMENTS = [
     PKDict(
         name='YAG4',
         elemedge=11.372,
-        set_aperture=True,
+        aperture_shape='circular',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
-        dz=0,
+        dz=0.0,
         rx=0.0,
         ry=0.0,
         rz=0.0,
         kind='screen',
+        width=0.0,
+        height=0.0,
     ),
 ]
 BUNCH = PKDict(
@@ -487,20 +473,14 @@ SETTINGS = PKDict(
         11.372,
     ),
     odeint_algorithm='rkf45',
+    odeint_epsabs=0.001,
+    odeint_epsrel=0.0,
     volume_dt_mm=0.5,
     volume_tt_dt_mm=10.0,
 )
 
 
 def autophase(volume, bunch):
-    # Autophase against a single on-axis reference particle, then track
-    # the real bunch through this SAME (now-phased) volume; do not
-    # rebuild it. Volume.autophase() sets each RF element's internal t0
-    # directly and .track() uses that state as-is -- get_phid() does not
-    # reflect it (it always reads back the phid the element was
-    # constructed with), so reading it back to "convert" t0 into an
-    # equivalent phid for a rebuilt volume silently produces the unphased
-    # result instead of the true autophased state.
     # A Cathode or From File reference particle starts at rest
     # (X,Px,Y,Py,Z,Pz all 0), not at the design momentum, since both are
     # snapshots of a bunch that begins from (near) rest, not an
@@ -531,8 +511,12 @@ def build_beamline():
     v.set_s0(SETTINGS.tracking_range_m[0])
     v.set_s1(SETTINGS.tracking_range_m[1])
     v.odeint_algorithm = SETTINGS.odeint_algorithm
+    v.odeint_epsabs = SETTINGS.odeint_epsabs
+    v.odeint_epsrel = SETTINGS.odeint_epsrel
     v.dt_mm = SETTINGS.volume_dt_mm
     v.tt_dt_mm = SETTINGS.volume_tt_dt_mm
+    if "t_max_mm" in SETTINGS:
+        v.t_max_mm = SETTINGS.t_max_mm
     # nonzero: RF_Track prints tracking progress (e.g. "t = ... mm/c")
     # straight to stdout as track() advances, which is run.log's own
     # content with no further plumbing needed
@@ -574,44 +558,60 @@ def main():
     rft.cvar.number_of_threads = SETTINGS.num_threads
 
     bunch = build_bunch()
-    rslume.rftrack_utils.save_particles("initial_particles.npy", bunch)
+    lume_rftrack.utils.save_particles("initial_particles.npy", bunch)
 
     volume = build_beamline()
     autophase(volume, bunch)
-    rslume.rftrack_utils.apply_space_charge(volume, SETTINGS.space_charge)
+    lume_rftrack.utils.apply_space_charge(volume, SETTINGS.space_charge)
 
-    model = rslume.rftrack.build_model(ELEMENTS, volume, bunch)
-    model.reset()
-    rslume.rftrack_utils.save_particles(
-        "final_particles.npy", model.simulator.tracked_bunch
+    simulator = lume_rftrack.simulator.RFTrackSimulator(volume, bunch)
+    simulator.track()
+    lume_rftrack.utils.save_particles(
+        "final_particles.npy", simulator.tracked_bunch
     )
-    rslume.rftrack_utils.save_stats(model.simulator.beamline, "stats.npy")
-    rslume.rftrack_utils.save_screens(
-        model.simulator.beamline, bunch, "screen-{}.npy"
-    )
-    rslume.rftrack_utils.save_bpms(model.simulator.beamline, "bpms.npy")
+    lume_rftrack.utils.save_stats(simulator.beamline, "stats.npy")
+    lume_rftrack.utils.save_screens(simulator.beamline, bunch, "screen-{}.npy")
+    lume_rftrack.utils.save_bpms(simulator.beamline, "bpms.npy")
 
 
 def _build_element(spec):
     if spec.kind == "drift":
         e = rft.Drift(spec.l)
     elif spec.kind == "quadrupole_k1":
-        e = rft.Quadrupole(spec.l, spec.k1)
+        # K1 [1/m^2] against the bunch's P/Q, as Elegant defines it; the
+        # constructor's own strength argument is K1 * L * P/Q [MeV/m]
+        e = rft.Quadrupole(spec.l, math.nan, 0.0)
+        e.set_K1(spec.k1, BUNCH.pc_mev / BUNCH.charge)
     elif spec.kind == "quadrupole_gradient":
-        e = rft.Quadrupole(spec.l, float("nan"), 0.0)
+        e = rft.Quadrupole(spec.l, math.nan, 0.0)
+        e.set_gradient(spec.gradient)
+    elif spec.kind == "sextupole_k2":
+        # k2 [1/m^3] against the bunch's P/Q, as MAD-X defines it
+        e = rft.Sextupole(spec.l)
+        e.set_K2(BUNCH.pc_mev / BUNCH.charge, spec.k2)
+    elif spec.kind == "sextupole_gradient":
+        e = rft.Sextupole(spec.l)
         e.set_gradient(spec.gradient)
     elif spec.kind == "rbend":
         e = rft.RBend(spec.l, spec.angle, BUNCH.pc_mev / BUNCH.charge)
+    elif spec.kind == "sbend":
+        e = rft.SBend(
+            spec.l, spec.angle, BUNCH.pc_mev / BUNCH.charge, spec.e1, spec.e2, spec.k1
+        )
+        e.set_hgap(spec.hgap)
+        e.set_fint(spec.fint)
     elif spec.kind == "solenoid_analytic":
         e = rft.Solenoid(spec.l, spec.b_field, spec.radius)
     elif spec.kind == "solenoid_fieldmap":
-        field, step, _ = rslume.rftrack_utils.load_field_map(spec)
+        field, step, _ = lume_rftrack.utils.load_field_map(spec)
         # the _CINT classes interpolate the map cubically, the others linearly
         e = (
             rft.Static_Magnetic_FieldMap_1d_CINT
             if spec.cubic
             else rft.Static_Magnetic_FieldMap_1d
         )(field, step)
+    elif spec.kind == "coil":
+        e = rft.Coil(spec.l, spec.b_field, spec.radius)
     elif spec.kind == "corrector":
         e = rft.Corrector(spec.l, spec.h_kick, spec.v_kick)
     elif spec.kind == "cavity_analytic":
@@ -634,34 +634,33 @@ def _build_element(spec):
         )
         e.set_phid(spec.phase_deg)
     elif spec.kind == "cavity_fieldmap":
-        field, step, length = rslume.rftrack_utils.load_field_map(spec)
+        field, step, length = lume_rftrack.utils.load_field_map(spec)
         e = (rft.RF_FieldMap_1d_CINT if spec.cubic else rft.RF_FieldMap_1d)(
             field, step, length, spec.frequency_hz, +1
         )
         e.set_phid(spec.phase_deg)
     elif spec.kind == "cavity_fieldmap_2d":
-        Er, Ez, hr, hz = rslume.rftrack_utils.load_field_map_2d(spec)
+        Er, Ez, hr, hz = lume_rftrack.utils.load_field_map_2d(spec)
         e = (rft.RF_FieldMap_2d_CINT if spec.cubic else rft.RF_FieldMap_2d)(
             Er, Ez, 0, 0, hr, hz, -1, spec.frequency_hz, +1
         )
         e.set_phid(spec.phase_deg)
     elif spec.kind == "screen":
         e = rft.Screen()
+        # 0 is unlimited, RF-Track's default
+        if spec.width > 0:
+            e.set_width(spec.width)
+        if spec.height > 0:
+            e.set_height(spec.height)
     elif spec.kind == "bpm":
         e = rft.Bpm(spec.l)
+        e.set_resolution(spec.resolution)
     else:
         raise AssertionError(f"unsupported element kind={spec.kind}")
     e.set_name(spec.name)
-    if spec.set_aperture:
-        e.set_aperture(spec.aperture_x, spec.aperture_y, spec.aperture_type)
+    if spec.aperture_shape != "none":
+        e.set_aperture(spec.aperture_x, spec.aperture_y, spec.aperture_shape)
     return e
 
 
-# Not "if __name__ == '__main__'": Sirepo runs this file via
-# pykern.pkrunpy.run_path_as_module(), which execs it with __name__ set to
-# a name derived from the filename, never "__main__" -- that guard would
-# silently skip main() entirely under Sirepo's own execution path (no
-# error, just none of the actual work happening) while still appearing to
-# work when run standalone via `python3 parameters.py`, which is how this
-# bug was first missed.
 main()

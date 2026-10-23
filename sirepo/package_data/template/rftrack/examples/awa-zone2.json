@@ -237,7 +237,7 @@
                 "rz": 0,
                 "type": "CORRECTOR",
                 "v_kick": 0.0,
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 22,
@@ -255,7 +255,7 @@
                 "rz": 0,
                 "type": "CORRECTOR",
                 "v_kick": 0.0,
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 2,
@@ -273,7 +273,7 @@
                 "rz": 0,
                 "type": "CORRECTOR",
                 "v_kick": 0.0,
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 10,
@@ -291,7 +291,7 @@
                 "rz": 0,
                 "type": "CORRECTOR",
                 "v_kick": 0.0,
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 30,
@@ -309,7 +309,7 @@
                 "rz": 0,
                 "type": "CORRECTOR",
                 "v_kick": 0.0,
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 33,
@@ -325,7 +325,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 5,
@@ -341,7 +341,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 7,
@@ -357,7 +357,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 9,
@@ -373,7 +373,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 15,
@@ -389,7 +389,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 17,
@@ -405,7 +405,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 19,
@@ -421,7 +421,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 21,
@@ -437,7 +437,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 27,
@@ -453,7 +453,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 29,
@@ -469,7 +469,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 13,
@@ -485,7 +485,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 23,
@@ -501,7 +501,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 3,
@@ -517,7 +517,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 11,
@@ -533,7 +533,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 31,
@@ -549,7 +549,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 1,
@@ -565,7 +565,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 25,
@@ -581,7 +581,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 4,
@@ -600,7 +600,7 @@
                 "rz": 0,
                 "strengthType": "k1",
                 "type": "QUADRUPOLE",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 32,
@@ -619,7 +619,7 @@
                 "rz": 0,
                 "strengthType": "k1",
                 "type": "QUADRUPOLE",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 6,
@@ -638,7 +638,7 @@
                 "rz": 0,
                 "strengthType": "k1",
                 "type": "QUADRUPOLE",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 8,
@@ -657,7 +657,7 @@
                 "rz": 0,
                 "strengthType": "k1",
                 "type": "QUADRUPOLE",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 14,
@@ -676,7 +676,7 @@
                 "rz": 0,
                 "strengthType": "k1",
                 "type": "QUADRUPOLE",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 16,
@@ -695,7 +695,7 @@
                 "rz": 0,
                 "strengthType": "k1",
                 "type": "QUADRUPOLE",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 18,
@@ -714,7 +714,7 @@
                 "rz": 0,
                 "strengthType": "k1",
                 "type": "QUADRUPOLE",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 20,
@@ -733,7 +733,7 @@
                 "rz": 0,
                 "strengthType": "k1",
                 "type": "QUADRUPOLE",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 26,
@@ -752,7 +752,7 @@
                 "rz": 0,
                 "strengthType": "k1",
                 "type": "QUADRUPOLE",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 28,
@@ -771,7 +771,7 @@
                 "rz": 0,
                 "strengthType": "k1",
                 "type": "QUADRUPOLE",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 24,
@@ -787,7 +787,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "SCREEN",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 34,
@@ -803,7 +803,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "SCREEN",
-                "setAperture": "1"
+                "apertureShape": "circular"
             }
         ],
         "rpnVariables": [],

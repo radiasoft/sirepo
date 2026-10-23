@@ -2,19 +2,19 @@
 
 from pykern.pkcollections import PKDict
 import RF_Track as rft
+import math
 import numpy
 import beamphysics
-import rslume.rftrack
-import rslume.rftrack_utils
+import lume_rftrack.simulator
+import lume_rftrack.utils
 
 ELEMENTS = [
     PKDict(
         name='D0',
         elemedge=0.0,
-        set_aperture=False,
+        aperture_shape='none',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
         dz=0.0,
@@ -23,72 +23,19 @@ ELEMENTS = [
         rz=0.0,
         kind='drift',
         l=0.05,
-    ),
-    PKDict(
-        name='C1',
-        elemedge=0.05,
-        set_aperture=False,
-        aperture_x=0.015,
-        aperture_y=0.015,
-        aperture_type='circular',
-        dx=0.0,
-        dy=0.0,
-        dz=0.0,
-        rx=0.0,
-        ry=0.0,
-        rz=0.0,
-        kind='cavity_fieldmap',
-        cubic=False,
-        file='CAVITY-fieldMapFile.C1.dat',
-        rescale_mode='factor',
-        scale_factor=1,
-        frequency_hz=1300000000.0,
-        phase_deg=10.0,
-    ),
-    PKDict(
-        name='SOL1',
-        elemedge=0.09,
-        set_aperture=False,
-        aperture_x=0.015,
-        aperture_y=0.015,
-        aperture_type='circular',
-        dx=0.0,
-        dy=0.0,
-        dz=0.0,
-        rx=0.0,
-        ry=0.0,
-        rz=0.0,
-        kind='solenoid_fieldmap',
-        cubic=False,
-        file='SOLENOID-fieldMapFile.SOL1.dat',
-        rescale_mode='factor',
-        scale_factor=1,
-    ),
-    PKDict(
-        name='COR1',
-        elemedge=0.16999999999999998,
-        set_aperture=False,
-        aperture_x=0.015,
-        aperture_y=0.015,
-        aperture_type='circular',
-        dx=0.001,
-        dy=0.002,
-        dz=0.0,
-        rx=0.0,
-        ry=0.0,
-        rz=0.01,
-        kind='corrector',
-        l=0.02,
-        h_kick=0.0009999999999999998,
-        v_kick=0.0019999999999999996,
+        nsteps=1,
+        tt_nsteps=0,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
     ),
     PKDict(
         name='Q1',
-        elemedge=0.18999999999999997,
-        set_aperture=True,
+        elemedge=0.05,
+        aperture_shape='circular',
         aperture_x=0.01,
         aperture_y=0.02,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
         dz=0.0,
@@ -98,14 +45,302 @@ ELEMENTS = [
         kind='quadrupole_gradient',
         l=0.1,
         gradient=2.5,
+        nsteps=1,
+        tt_nsteps=0,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='Q1',
+        elemedge=0.15000000000000002,
+        aperture_shape='circular',
+        aperture_x=0.01,
+        aperture_y=0.02,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='quadrupole_gradient',
+        l=0.1,
+        gradient=2.5,
+        nsteps=1,
+        tt_nsteps=0,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='Q1-1',
+        elemedge=0.25,
+        aperture_shape='circular',
+        aperture_x=0.01,
+        aperture_y=0.02,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='quadrupole_gradient',
+        l=0.1,
+        gradient=-2.5,
+        nsteps=1,
+        tt_nsteps=0,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D1',
+        elemedge=0.35,
+        aperture_shape='none',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.1,
+        nsteps=1,
+        tt_nsteps=0,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='SX1',
+        elemedge=0.44999999999999996,
+        aperture_shape='none',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0005,
+        dy=-0.0003,
+        dz=0.0,
+        rx=0.001,
+        ry=0.002,
+        rz=0.003,
+        l=0.1,
+        kind='sextupole_gradient',
+        gradient=48.0,
+        nsteps=7,
+        tt_nsteps=5,
+        sc_nsteps=2,
+        odeint_algorithm='rk4',
+        odeint_epsabs=1e-06,
+        odeint_epsrel=1e-05,
     ),
     PKDict(
         name='B1',
-        elemedge=0.29,
-        set_aperture=False,
+        elemedge=0.5499999999999999,
+        aperture_shape='none',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='sbend',
+        l=0.3,
+        angle=0.05,
+        e1=0.01,
+        e2=0.02,
+        k1=0.0,
+        hgap=0.02,
+        fint=0.5000000000000002,
+        nsteps=1,
+        tt_nsteps=0,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='COR1',
+        elemedge=0.8499999999999999,
+        aperture_shape='none',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='corrector',
+        l=0.02,
+        h_kick=0.0019999999999999996,
+        v_kick=0.003999999999999999,
+        nsteps=10,
+        tt_nsteps=0,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='C1',
+        elemedge=0.8699999999999999,
+        aperture_shape='none',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='cavity_fieldmap',
+        cubic=False,
+        file='CAVITY-fieldMapFile.C1-de6ef955.dat',
+        rescale_mode='factor',
+        scale_factor=2.0,
+        frequency_hz=1300000000.0,
+        phase_deg=10.0,
+        nsteps=40,
+        tt_nsteps=0,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='C2',
+        elemedge=0.9699999999999999,
+        aperture_shape='none',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='cavity_fieldmap',
+        cubic=True,
+        file='CAVITY-fieldMapFile.C1-de6ef955.dat',
+        rescale_mode='factor',
+        scale_factor=1.0,
+        frequency_hz=1300000000.0,
+        phase_deg=0.0,
+        nsteps=40,
+        tt_nsteps=0,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='C3',
+        elemedge=1.0699999999999998,
+        aperture_shape='none',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='cavity_fieldmap_2d',
+        cubic=False,
+        file='CAVITY-fieldMapFile2d.C3-2cf9572b.dat',
+        frequency_hz=3000000000.0,
+        phase_deg=0.0,
+        nsteps=20,
+        tt_nsteps=0,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='SOL1',
+        elemedge=1.17,
+        aperture_shape='none',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='solenoid_fieldmap',
+        cubic=False,
+        file='SOLENOID-fieldMapFile.SOL1-f4e7f631.dat',
+        rescale_mode='factor',
+        scale_factor=1.5,
+        nsteps=40,
+        tt_nsteps=0,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='SOL2',
+        elemedge=1.27,
+        aperture_shape='circular',
+        aperture_x=0.02,
+        aperture_y=0.02,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='solenoid_analytic',
+        l=0.2,
+        b_field=0.10000000000000002,
+        radius=0.03,
+        nsteps=1,
+        tt_nsteps=0,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='COIL1',
+        elemedge=1.47,
+        aperture_shape='none',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='coil',
+        l=0.2,
+        b_field=0.15000000000000002,
+        radius=0.05,
+        nsteps=1,
+        tt_nsteps=0,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='BPM1',
+        elemedge=1.67,
+        aperture_shape='rectangular',
+        aperture_x=0.02,
+        aperture_y=0.01,
         dx=0.0,
         dy=0.0,
         dz=0.0,
@@ -114,14 +349,20 @@ ELEMENTS = [
         rz=0.0,
         kind='bpm',
         l=0.05,
+        resolution=0.1,
+        nsteps=1,
+        tt_nsteps=0,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
     ),
     PKDict(
         name='S1',
-        elemedge=0.33999999999999997,
-        set_aperture=False,
+        elemedge=1.72,
+        aperture_shape='none',
         aperture_x=0.015,
         aperture_y=0.015,
-        aperture_type='circular',
         dx=0.0,
         dy=0.0,
         dz=0.0,
@@ -129,6 +370,14 @@ ELEMENTS = [
         ry=0.0,
         rz=0.0,
         kind='screen',
+        width=0.05,
+        height=0.04,
+        nsteps=1,
+        tt_nsteps=0,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
     ),
 ]
 BUNCH = PKDict(
@@ -136,13 +385,28 @@ BUNCH = PKDict(
     mass_mev=0.51099895069,
     pc_mev=100.0,
     random_seed=5489,
-    distribution_file='beam-distributionFile.archive-804d2c83.h5',
+    distribution_file='beam-distributionFile.archive-24a19b0b.h5',
 )
 SETTINGS = PKDict(
     num_threads=1,
     space_charge=PKDict(
     ),
 )
+
+
+def autophase(volume, bunch):
+    # A From File bunch's times and momenta are the file's own (e.g. a
+    # previous run's arrival times), so the design particle is on axis
+    # at the bunch's mean arrival time, with its mean momentum.
+    t, p, n = bunch.get_phase_space("%t %P %N").T
+    p0 = rft.Bunch6d(
+        BUNCH.mass_mev,
+        0.0,
+        BUNCH.charge,
+        numpy.array([0.0, 0.0, 0.0, 0.0, numpy.average(t, weights=n), numpy.average(p, weights=n)]),
+    )
+    volume.unset_t0()
+    volume.autophase(p0)
 
 
 def build_beamline():
@@ -153,24 +417,33 @@ def build_beamline():
     # Volume-style tracking range to set (a Lattice is inherently bounded
     # by its own appended elements), and no continuous-ODE step size to
     # tune (dt_mm/odeint_algorithm/tt_dt_mm are Volume-only) -- each
-    # element instead has its own default step count.
+    # element instead has its own step counts and integrator.
     v = rft.Lattice()
-    elements = [_build_element(spec) for spec in ELEMENTS]
-    for e in elements:
-        # set_tt_nsteps() controls how finely get_transport_table()
-        # samples within this element (the Lattice-only equivalent of
-        # Volume's tt_dt_mm) -- without it, the transport table (and so
-        # the Beam Variables/Lattice Overlay plots) only reports one
-        # point per element.
-        e.set_tt_nsteps(20)
+    for spec in ELEMENTS:
+        e = _build_element(spec)
+        # 0 keeps RF-Track's default for the element
+        if spec.nsteps > 0:
+            e.set_nsteps(spec.nsteps)
+        # how finely get_transport_table() (the Beam Variables/Lattice
+        # Overlay plots) samples within this element, the Lattice-only
+        # equivalent of Volume's tt_dt_mm
+        e.set_tt_nsteps(spec.tt_nsteps)
+        e.set_sc_nsteps(spec.sc_nsteps)
+        # only an element whose field is integrated, not a transfer matrix
+        if hasattr(e, "set_odeint_algorithm"):
+            e.set_odeint_algorithm(spec.odeint_algorithm)
+            e.set_odeint_epsabs(spec.odeint_epsabs)
+            e.set_odeint_epsrel(spec.odeint_epsrel)
         v.append(e)
     # Element.set_offsets(), called on an already-appended element,
     # silently has no effect (verified empirically) --
     # Lattice.set_elements_offsets() is the reliable, bulk equivalent of
-    # Volume.add()'s per-element x/y/z/roll/pitch/yaw args (its extra 4th
-    # column, always 1.0 here, is unrelated to any misalignment field).
+    # Volume.add()'s per-element x/y/z/roll/pitch/yaw args, but it takes
+    # offsets in mm (not m) and rotations about x, y, z in that order (not
+    # roll, pitch, yaw). Its extra 4th column, always 1.0 here, is
+    # unrelated to any misalignment field.
     v.set_elements_offsets(numpy.array(
-        [[s.dx, s.dy, s.dz, 1.0, s.rz, s.rx, s.ry] for s in ELEMENTS]
+        [[1000 * s.dx, 1000 * s.dy, 1000 * s.dz, 1.0, s.rx, s.ry, s.rz] for s in ELEMENTS]
     ))
     # nonzero: RF_Track prints tracking progress (e.g. "t = ... mm/c")
     # straight to stdout as track() advances, which is run.log's own
@@ -185,7 +458,7 @@ def build_bunch():
     # output): Bunch6d is the only bunch type Lattice.track() accepts, so
     # Sequential (Lattice) positioning requires this branch. The group is
     # drifted to a single z plane first, which keeps the bunch length.
-    return rslume.rftrack_utils.particlegroup_to_bunch6d(pg)
+    return lume_rftrack.utils.particlegroup_to_bunch6d(pg)
 
 
 def main():
@@ -193,42 +466,59 @@ def main():
     rft.cvar.number_of_threads = SETTINGS.num_threads
 
     bunch = build_bunch()
-    rslume.rftrack_utils.save_particles("initial_particles.npy", bunch)
+    lume_rftrack.utils.save_particles("initial_particles.npy", bunch)
 
     volume = build_beamline()
+    autophase(volume, bunch)
 
-    model = rslume.rftrack.build_model(ELEMENTS, volume, bunch)
-    model.reset()
-    rslume.rftrack_utils.save_particles(
-        "final_particles.npy", model.simulator.tracked_bunch
+    simulator = lume_rftrack.simulator.RFTrackSimulator(volume, bunch)
+    simulator.track()
+    lume_rftrack.utils.save_particles(
+        "final_particles.npy", simulator.tracked_bunch
     )
-    rslume.rftrack_utils.save_stats(model.simulator.beamline, "stats.npy")
-    rslume.rftrack_utils.save_screens(
-        model.simulator.beamline, bunch, "screen-{}.npy"
-    )
-    rslume.rftrack_utils.save_bpms(model.simulator.beamline, "bpms.npy")
+    lume_rftrack.utils.save_stats(simulator.beamline, "stats.npy")
+    lume_rftrack.utils.save_screens(simulator.beamline, bunch, "screen-{}.npy")
+    lume_rftrack.utils.save_bpms(simulator.beamline, "bpms.npy")
 
 
 def _build_element(spec):
     if spec.kind == "drift":
         e = rft.Drift(spec.l)
     elif spec.kind == "quadrupole_k1":
-        e = rft.Quadrupole(spec.l, spec.k1)
+        # K1 [1/m^2] against the bunch's P/Q, as Elegant defines it; the
+        # constructor's own strength argument is K1 * L * P/Q [MeV/m]
+        e = rft.Quadrupole(spec.l, math.nan, 0.0)
+        e.set_K1(spec.k1, BUNCH.pc_mev / BUNCH.charge)
     elif spec.kind == "quadrupole_gradient":
-        e = rft.Quadrupole(spec.l, float("nan"), 0.0)
+        e = rft.Quadrupole(spec.l, math.nan, 0.0)
+        e.set_gradient(spec.gradient)
+    elif spec.kind == "sextupole_k2":
+        # k2 [1/m^3] against the bunch's P/Q, as MAD-X defines it
+        e = rft.Sextupole(spec.l)
+        e.set_K2(BUNCH.pc_mev / BUNCH.charge, spec.k2)
+    elif spec.kind == "sextupole_gradient":
+        e = rft.Sextupole(spec.l)
         e.set_gradient(spec.gradient)
     elif spec.kind == "rbend":
         e = rft.RBend(spec.l, spec.angle, BUNCH.pc_mev / BUNCH.charge)
+    elif spec.kind == "sbend":
+        e = rft.SBend(
+            spec.l, spec.angle, BUNCH.pc_mev / BUNCH.charge, spec.e1, spec.e2, spec.k1
+        )
+        e.set_hgap(spec.hgap)
+        e.set_fint(spec.fint)
     elif spec.kind == "solenoid_analytic":
         e = rft.Solenoid(spec.l, spec.b_field, spec.radius)
     elif spec.kind == "solenoid_fieldmap":
-        field, step, _ = rslume.rftrack_utils.load_field_map(spec)
+        field, step, _ = lume_rftrack.utils.load_field_map(spec)
         # the _CINT classes interpolate the map cubically, the others linearly
         e = (
             rft.Static_Magnetic_FieldMap_1d_CINT
             if spec.cubic
             else rft.Static_Magnetic_FieldMap_1d
         )(field, step)
+    elif spec.kind == "coil":
+        e = rft.Coil(spec.l, spec.b_field, spec.radius)
     elif spec.kind == "corrector":
         e = rft.Corrector(spec.l, spec.h_kick, spec.v_kick)
     elif spec.kind == "cavity_analytic":
@@ -251,51 +541,33 @@ def _build_element(spec):
         )
         e.set_phid(spec.phase_deg)
     elif spec.kind == "cavity_fieldmap":
-        field, step, length = rslume.rftrack_utils.load_field_map(spec)
+        field, step, length = lume_rftrack.utils.load_field_map(spec)
         e = (rft.RF_FieldMap_1d_CINT if spec.cubic else rft.RF_FieldMap_1d)(
             field, step, length, spec.frequency_hz, +1
         )
         e.set_phid(spec.phase_deg)
     elif spec.kind == "cavity_fieldmap_2d":
-        Er, Ez, hr, hz = rslume.rftrack_utils.load_field_map_2d(spec)
+        Er, Ez, hr, hz = lume_rftrack.utils.load_field_map_2d(spec)
         e = (rft.RF_FieldMap_2d_CINT if spec.cubic else rft.RF_FieldMap_2d)(
             Er, Ez, 0, 0, hr, hz, -1, spec.frequency_hz, +1
         )
         e.set_phid(spec.phase_deg)
     elif spec.kind == "screen":
         e = rft.Screen()
+        # 0 is unlimited, RF-Track's default
+        if spec.width > 0:
+            e.set_width(spec.width)
+        if spec.height > 0:
+            e.set_height(spec.height)
     elif spec.kind == "bpm":
         e = rft.Bpm(spec.l)
+        e.set_resolution(spec.resolution)
     else:
         raise AssertionError(f"unsupported element kind={spec.kind}")
-    # Explicitly pin t0 to 0.0 on every cavity/screen: confirmed
-    # empirically that Volume.track() internally re-autophases every RF
-    # element (and every Screen) from scratch if ANY of them has
-    # t0_is_set() False, regardless of phid, silently overriding an
-    # explicitly-set phase with Autophase off.
-    #
-    # Only emitted when the autophase() function below WON'T run:
-    # confirmed empirically that Volume.unset_t0() -- the first thing
-    # that function does -- does NOT clear an element's t0 once set()
-    # was ever called on it directly, even to 0.0. Pinning t0 here
-    # unconditionally would silently defeat the real autophase() search
-    # that follows, leaving every cavity stuck at 0.0 instead of a
-    # freshly-derived value (confirmed: the whole beamline ends up
-    # unphased, same failure mode as never phasing at all, just
-    # disguised since t0_is_set() now reads True).
-    if spec.kind in ("cavity_analytic", "cavity_fieldmap", "cavity_fieldmap_2d", "screen"):
-        e.set_t0(0.0)
     e.set_name(spec.name)
-    if spec.set_aperture:
-        e.set_aperture(spec.aperture_x, spec.aperture_y, spec.aperture_type)
+    if spec.aperture_shape != "none":
+        e.set_aperture(spec.aperture_x, spec.aperture_y, spec.aperture_shape)
     return e
 
 
-# Not "if __name__ == '__main__'": Sirepo runs this file via
-# pykern.pkrunpy.run_path_as_module(), which execs it with __name__ set to
-# a name derived from the filename, never "__main__" -- that guard would
-# silently skip main() entirely under Sirepo's own execution path (no
-# error, just none of the actual work happening) while still appearing to
-# work when run standalone via `python3 parameters.py`, which is how this
-# bug was first missed.
 main()

@@ -1,0 +1,938 @@
+#!/usr/bin/env python
+"""
+Simulation notes:
+    https://git.cels.anl.gov/awa/awa-rftrack-lattices
+
+"""
+
+from pykern.pkcollections import PKDict
+import RF_Track as rft
+import math
+import numpy
+import beamphysics
+import lume_rftrack.simulator
+import lume_rftrack.utils
+
+ELEMENTS = [
+    PKDict(
+        name='D_YAG4_DT8',
+        elemedge=0.0,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.555448,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='DT8',
+        elemedge=0.555448,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='corrector',
+        l=0.085852,
+        h_kick=0.0,
+        v_kick=0.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_DT8_DQ1',
+        elemedge=0.6413000000000001,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.147574,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='DQ1',
+        elemedge=0.7888740000000001,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='quadrupole_k1',
+        l=0.1016,
+        k1=0.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_DQ1_DQ2',
+        elemedge=0.8904740000000001,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.143,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='DQ2',
+        elemedge=1.033474,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='quadrupole_k1',
+        l=0.1016,
+        k1=0.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_DQ2_DQ3',
+        elemedge=1.135074,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.2824,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='DQ3',
+        elemedge=1.417474,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='quadrupole_k1',
+        l=0.1016,
+        k1=0.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_DQ3_DT9',
+        elemedge=1.5190739999999998,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.134974,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='DT9',
+        elemedge=1.6540479999999997,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='corrector',
+        l=0.085852,
+        h_kick=0.0,
+        v_kick=0.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_DT9_DT10',
+        elemedge=1.7398999999999998,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.142748,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='DT10',
+        elemedge=1.8826479999999999,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='corrector',
+        l=0.085852,
+        h_kick=0.0,
+        v_kick=0.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_DT10_DQ4',
+        elemedge=1.9685,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.123773,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='DQ4',
+        elemedge=2.092273,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='quadrupole_k1',
+        l=0.168402,
+        k1=3.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_DQ4_DQ5',
+        elemedge=2.260675,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.094998,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='DQ5',
+        elemedge=2.355673,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='quadrupole_k1',
+        l=0.168402,
+        k1=0.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_DQ5_DQ6',
+        elemedge=2.524075,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.085598,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='DQ6',
+        elemedge=2.609673,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='quadrupole_k1',
+        l=0.168402,
+        k1=0.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_DQ6_DQ7',
+        elemedge=2.778075,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.104698,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='DQ7',
+        elemedge=2.882773,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='quadrupole_k1',
+        l=0.168402,
+        k1=-4.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_DQ7_DT12',
+        elemedge=3.0511749999999997,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=1.638073,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='DT12',
+        elemedge=4.689247999999999,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='corrector',
+        l=0.085852,
+        h_kick=0.0,
+        v_kick=0.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_DT12_YAG5',
+        elemedge=4.775099999999999,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.293674,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='YAG5',
+        elemedge=5.0687739999999994,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='screen',
+        width=0.0,
+        height=0.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_YAG5_DQ8',
+        elemedge=5.0687739999999994,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.1841,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='DQ8',
+        elemedge=5.252873999999999,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='quadrupole_k1',
+        l=0.0762,
+        k1=7.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_DQ8_DQ9',
+        elemedge=5.329073999999999,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.2731,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='DQ9',
+        elemedge=5.602174,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='quadrupole_k1',
+        l=0.0762,
+        k1=3.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_DQ9_ET2',
+        elemedge=5.678374,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.071374,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='ET2',
+        elemedge=5.749747999999999,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='corrector',
+        l=0.085852,
+        h_kick=0.0,
+        v_kick=0.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_ET2_DQ10',
+        elemedge=5.8355999999999995,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.074674,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='DQ10',
+        elemedge=5.910273999999999,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='quadrupole_k1',
+        l=0.0762,
+        k1=-8.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='D_DQ10_YAG7',
+        elemedge=5.986473999999999,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='drift',
+        l=0.3904,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+    PKDict(
+        name='YAG7',
+        elemedge=6.376873999999999,
+        aperture_shape='circular',
+        aperture_x=0.015,
+        aperture_y=0.015,
+        dx=0.0,
+        dy=0.0,
+        dz=0.0,
+        rx=0.0,
+        ry=0.0,
+        rz=0.0,
+        kind='screen',
+        width=0.0,
+        height=0.0,
+        nsteps=0,
+        tt_nsteps=20,
+        sc_nsteps=0,
+        odeint_algorithm='rk2',
+        odeint_epsabs=0.001,
+        odeint_epsrel=0.0,
+    ),
+]
+BUNCH = PKDict(
+    charge=-1.0,
+    mass_mev=0.51099895069,
+    pc_mev=60.0,
+    random_seed=5489,
+    distribution_file='beam-distributionFile.awa_zone1_output.h5',
+)
+SETTINGS = PKDict(
+    num_threads=1,
+    space_charge=PKDict(
+    ),
+)
+
+
+def build_beamline():
+    # Lattice appends elements sequentially with no absolute-position
+    # concept at all -- gaps were already filled with synthetic Drifts
+    # and overlaps rejected when ELEMENTS was generated, so every element
+    # here simply begins where the previous one ended. There is no
+    # Volume-style tracking range to set (a Lattice is inherently bounded
+    # by its own appended elements), and no continuous-ODE step size to
+    # tune (dt_mm/odeint_algorithm/tt_dt_mm are Volume-only) -- each
+    # element instead has its own step counts and integrator.
+    v = rft.Lattice()
+    for spec in ELEMENTS:
+        e = _build_element(spec)
+        # 0 keeps RF-Track's default for the element
+        if spec.nsteps > 0:
+            e.set_nsteps(spec.nsteps)
+        # how finely get_transport_table() (the Beam Variables/Lattice
+        # Overlay plots) samples within this element, the Lattice-only
+        # equivalent of Volume's tt_dt_mm
+        e.set_tt_nsteps(spec.tt_nsteps)
+        e.set_sc_nsteps(spec.sc_nsteps)
+        # only an element whose field is integrated, not a transfer matrix
+        if hasattr(e, "set_odeint_algorithm"):
+            e.set_odeint_algorithm(spec.odeint_algorithm)
+            e.set_odeint_epsabs(spec.odeint_epsabs)
+            e.set_odeint_epsrel(spec.odeint_epsrel)
+        v.append(e)
+    # Element.set_offsets(), called on an already-appended element,
+    # silently has no effect (verified empirically) --
+    # Lattice.set_elements_offsets() is the reliable, bulk equivalent of
+    # Volume.add()'s per-element x/y/z/roll/pitch/yaw args, but it takes
+    # offsets in mm (not m) and rotations about x, y, z in that order (not
+    # roll, pitch, yaw). Its extra 4th column, always 1.0 here, is
+    # unrelated to any misalignment field.
+    v.set_elements_offsets(numpy.array(
+        [[1000 * s.dx, 1000 * s.dy, 1000 * s.dz, 1.0, s.rx, s.ry, s.rz] for s in ELEMENTS]
+    ))
+    # nonzero: RF_Track prints tracking progress (e.g. "t = ... mm/c")
+    # straight to stdout as track() advances, which is run.log's own
+    # content with no further plumbing needed
+    v.verbosity = 1
+    return v
+
+
+def build_bunch():
+    pg = beamphysics.ParticleGroup(h5=BUNCH.distribution_file)
+    # Already-accelerated bunch (e.g. re-injecting a previous sim's tracked
+    # output): Bunch6d is the only bunch type Lattice.track() accepts, so
+    # Sequential (Lattice) positioning requires this branch. The group is
+    # drifted to a single z plane first, which keeps the bunch length.
+    return lume_rftrack.utils.particlegroup_to_bunch6d(pg)
+
+
+def main():
+    rft.rng_set_seed(BUNCH.random_seed)
+    rft.cvar.number_of_threads = SETTINGS.num_threads
+
+    bunch = build_bunch()
+    lume_rftrack.utils.save_particles("initial_particles.npy", bunch)
+
+    volume = build_beamline()
+
+    simulator = lume_rftrack.simulator.RFTrackSimulator(volume, bunch)
+    simulator.track()
+    lume_rftrack.utils.save_particles(
+        "final_particles.npy", simulator.tracked_bunch
+    )
+    lume_rftrack.utils.save_stats(simulator.beamline, "stats.npy")
+    lume_rftrack.utils.save_screens(simulator.beamline, bunch, "screen-{}.npy")
+    lume_rftrack.utils.save_bpms(simulator.beamline, "bpms.npy")
+
+
+def _build_element(spec):
+    if spec.kind == "drift":
+        e = rft.Drift(spec.l)
+    elif spec.kind == "quadrupole_k1":
+        # K1 [1/m^2] against the bunch's P/Q, as Elegant defines it; the
+        # constructor's own strength argument is K1 * L * P/Q [MeV/m]
+        e = rft.Quadrupole(spec.l, math.nan, 0.0)
+        e.set_K1(spec.k1, BUNCH.pc_mev / BUNCH.charge)
+    elif spec.kind == "quadrupole_gradient":
+        e = rft.Quadrupole(spec.l, math.nan, 0.0)
+        e.set_gradient(spec.gradient)
+    elif spec.kind == "sextupole_k2":
+        # k2 [1/m^3] against the bunch's P/Q, as MAD-X defines it
+        e = rft.Sextupole(spec.l)
+        e.set_K2(BUNCH.pc_mev / BUNCH.charge, spec.k2)
+    elif spec.kind == "sextupole_gradient":
+        e = rft.Sextupole(spec.l)
+        e.set_gradient(spec.gradient)
+    elif spec.kind == "rbend":
+        e = rft.RBend(spec.l, spec.angle, BUNCH.pc_mev / BUNCH.charge)
+    elif spec.kind == "sbend":
+        e = rft.SBend(
+            spec.l, spec.angle, BUNCH.pc_mev / BUNCH.charge, spec.e1, spec.e2, spec.k1
+        )
+        e.set_hgap(spec.hgap)
+        e.set_fint(spec.fint)
+    elif spec.kind == "solenoid_analytic":
+        e = rft.Solenoid(spec.l, spec.b_field, spec.radius)
+    elif spec.kind == "solenoid_fieldmap":
+        field, step, _ = lume_rftrack.utils.load_field_map(spec)
+        # the _CINT classes interpolate the map cubically, the others linearly
+        e = (
+            rft.Static_Magnetic_FieldMap_1d_CINT
+            if spec.cubic
+            else rft.Static_Magnetic_FieldMap_1d
+        )(field, step)
+    elif spec.kind == "coil":
+        e = rft.Coil(spec.l, spec.b_field, spec.radius)
+    elif spec.kind == "corrector":
+        e = rft.Corrector(spec.l, spec.h_kick, spec.v_kick)
+    elif spec.kind == "cavity_analytic":
+        # A standing-wave pi-mode structure of half-wavelength cells,
+        # Ez = gradient * cos(n_cells * pi * z / l) on axis, as a field map
+        # so RF-Track derives the off-axis fields from it. Pillbox_Cavity
+        # can't model it: its field repeats unchanged in every cell, and
+        # its off-axis fields for any mode but the first are inconsistent
+        # with Maxwell's equations (B in phase with E). 40 points per cell
+        # gives the energy gain to 0.05%.
+        n_cells = max(1, round(2.0 * spec.l * spec.frequency_hz / rft.clight))
+        l = n_cells * rft.clight / (2.0 * spec.frequency_hz)
+        z = numpy.linspace(0.0, l, 40 * n_cells + 1)
+        e = rft.RF_FieldMap_1d(
+            (spec.gradient_v_per_m * numpy.cos(n_cells * numpy.pi * z / l)).astype(complex),
+            z[1] - z[0],
+            l,
+            spec.frequency_hz,
+            +1,
+        )
+        e.set_phid(spec.phase_deg)
+    elif spec.kind == "cavity_fieldmap":
+        field, step, length = lume_rftrack.utils.load_field_map(spec)
+        e = (rft.RF_FieldMap_1d_CINT if spec.cubic else rft.RF_FieldMap_1d)(
+            field, step, length, spec.frequency_hz, +1
+        )
+        e.set_phid(spec.phase_deg)
+    elif spec.kind == "cavity_fieldmap_2d":
+        Er, Ez, hr, hz = lume_rftrack.utils.load_field_map_2d(spec)
+        e = (rft.RF_FieldMap_2d_CINT if spec.cubic else rft.RF_FieldMap_2d)(
+            Er, Ez, 0, 0, hr, hz, -1, spec.frequency_hz, +1
+        )
+        e.set_phid(spec.phase_deg)
+    elif spec.kind == "screen":
+        e = rft.Screen()
+        # 0 is unlimited, RF-Track's default
+        if spec.width > 0:
+            e.set_width(spec.width)
+        if spec.height > 0:
+            e.set_height(spec.height)
+    elif spec.kind == "bpm":
+        e = rft.Bpm(spec.l)
+        e.set_resolution(spec.resolution)
+    else:
+        raise AssertionError(f"unsupported element kind={spec.kind}")
+    # Autophase is off: explicitly pin t0 to 0.0 on every cavity/screen.
+    # Confirmed empirically that Volume.track() autophases each RF element
+    # (and each Screen) whose t0 is unset (t0_is_set() False), regardless
+    # of phid, and leaves an element with t0 set alone, so an element left
+    # unpinned would be silently autophased.
+    #
+    # Not emitted when the autophase() function below runs: it phases
+    # every element itself, after Volume.unset_t0().
+    if isinstance(e, (rft.RF_Field, rft.Screen)):
+        e.set_t0(0.0)
+    e.set_name(spec.name)
+    if spec.aperture_shape != "none":
+        e.set_aperture(spec.aperture_x, spec.aperture_y, spec.aperture_shape)
+    return e
+
+
+main()
