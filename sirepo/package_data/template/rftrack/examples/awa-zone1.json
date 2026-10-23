@@ -684,6 +684,7 @@
         "simulationSettings": {
             "autoTrackingRange": "0",
             "autophase": "1",
+            "odeintEpsabs": 1e-06,
             "scDtMm": 3,
             "scGridNx": 8,
             "scGridNy": 8,
