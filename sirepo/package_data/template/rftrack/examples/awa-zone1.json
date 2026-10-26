@@ -224,7 +224,7 @@
                 "rz": 0.0,
                 "scaleFactor": 1,
                 "type": "CAVITY",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 5,
@@ -248,7 +248,7 @@
                 "rz": 0.0,
                 "scaleFactor": 1,
                 "type": "CAVITY",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 9,
@@ -272,7 +272,7 @@
                 "rz": 0.0,
                 "scaleFactor": 1,
                 "type": "CAVITY",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 12,
@@ -296,7 +296,7 @@
                 "rz": 0.0,
                 "scaleFactor": 1,
                 "type": "CAVITY",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 17,
@@ -320,7 +320,7 @@
                 "rz": 0.0,
                 "scaleFactor": 1,
                 "type": "CAVITY",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 18,
@@ -344,7 +344,7 @@
                 "rz": 0.0,
                 "scaleFactor": 1,
                 "type": "CAVITY",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 21,
@@ -368,7 +368,7 @@
                 "rz": 0.0,
                 "scaleFactor": 1,
                 "type": "CAVITY",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 4,
@@ -386,7 +386,7 @@
                 "rz": 0.0,
                 "type": "CORRECTOR",
                 "v_kick": 0.0,
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 6,
@@ -404,7 +404,7 @@
                 "rz": 0.0,
                 "type": "CORRECTOR",
                 "v_kick": 0.0,
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 10,
@@ -422,7 +422,7 @@
                 "rz": 0.0,
                 "type": "CORRECTOR",
                 "v_kick": 0.0,
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 15,
@@ -440,7 +440,7 @@
                 "rz": 0.0,
                 "type": "CORRECTOR",
                 "v_kick": 0.0,
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 16,
@@ -458,7 +458,7 @@
                 "rz": 0.0,
                 "type": "CORRECTOR",
                 "v_kick": 0.0,
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 20,
@@ -476,7 +476,7 @@
                 "rz": 0.0,
                 "type": "CORRECTOR",
                 "v_kick": 0.0,
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 22,
@@ -494,7 +494,7 @@
                 "rz": 0.0,
                 "type": "CORRECTOR",
                 "v_kick": 0.0,
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 8,
@@ -510,7 +510,7 @@
                 "ry": 0.0,
                 "rz": 0.0,
                 "type": "SCREEN",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 13,
@@ -526,7 +526,7 @@
                 "ry": 0.0,
                 "rz": 0.0,
                 "type": "SCREEN",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 19,
@@ -542,7 +542,7 @@
                 "ry": 0.0,
                 "rz": 0.0,
                 "type": "SCREEN",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 23,
@@ -558,7 +558,7 @@
                 "ry": 0.0,
                 "rz": 0.0,
                 "type": "SCREEN",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 2,
@@ -580,7 +580,7 @@
                 "rz": 0.0,
                 "scaleFactor": 0.0001,
                 "type": "SOLENOID",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 7,
@@ -602,7 +602,7 @@
                 "rz": 0.0,
                 "scaleFactor": 2.0000000000000002e-07,
                 "type": "SOLENOID",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 11,
@@ -624,7 +624,7 @@
                 "rz": 0.0,
                 "scaleFactor": 2e-07,
                 "type": "SOLENOID",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 14,
@@ -646,7 +646,7 @@
                 "rz": 0.0,
                 "scaleFactor": 2e-07,
                 "type": "SOLENOID",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 3,
@@ -668,7 +668,7 @@
                 "rz": 0.0,
                 "scaleFactor": 0.0001,
                 "type": "SOLENOID",
-                "setAperture": "1"
+                "apertureShape": "circular"
             }
         ],
         "rpnVariables": [],
@@ -684,6 +684,7 @@
         "simulationSettings": {
             "autoTrackingRange": "0",
             "autophase": "1",
+            "odeintEpsabs": 1e-06,
             "scDtMm": 3,
             "scGridNx": 8,
             "scGridNy": 8,

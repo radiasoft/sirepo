@@ -134,7 +134,7 @@
                 "rz": 0,
                 "type": "CORRECTOR",
                 "v_kick": -0.3,
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 3,
@@ -150,7 +150,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             },
             {
                 "_id": 5,
@@ -166,7 +166,7 @@
                 "ry": 0,
                 "rz": 0,
                 "type": "DRIFT",
-                "setAperture": "1"
+                "apertureShape": "circular"
             }
         ],
         "rpnVariables": [],

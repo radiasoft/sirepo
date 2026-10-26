@@ -15,8 +15,11 @@
         "basicElementNames": [
             "DRIFT",
             "QUADRUPOLE",
+            "SEXTUPOLE",
             "RBEND",
+            "SBEND",
             "SOLENOID",
+            "COIL",
             "CORRECTOR",
             "CAVITY",
             "SCREEN",
@@ -113,9 +116,18 @@
             ["E", "E"],
             ["K", "K"]
         ],
+        "ApertureShape": [
+            ["none", "None"],
+            ["circular", "Circular"],
+            ["rectangular", "Rectangular"]
+        ],
         "QuadStrengthType": [
             ["gradient", "Field Gradient"],
             ["k1", "Normalized Strength (k1)"]
+        ],
+        "SextupoleStrengthType": [
+            ["gradient", "Field Gradient"],
+            ["k2", "Normalized Strength (k2)"]
         ],
         "FieldSource": [
             ["analytic", "Analytic"],
@@ -128,8 +140,7 @@
         ],
         "AutophaseReference": [
             ["design", "Design Particle"],
-            ["bunch", "Tracked Bunch"],
-            ["recorded", "Recorded t0"]
+            ["bunch", "Tracked Bunch"]
         ],
         "FieldMapInterpolation": [
             ["linear", "Linear"],
@@ -137,7 +148,10 @@
         ],
         "OdeintAlgorithm": [
             ["rk2", "Runge-Kutta 2nd order (rk2)"],
+            ["rk4", "Runge-Kutta 4th order (rk4)"],
             ["rkf45", "Runge-Kutta-Fehlberg 4(5) (rkf45)"],
+            ["rkck", "Runge-Kutta Cash-Karp 4(5) (rkck)"],
+            ["rk8pd", "Runge-Kutta Prince-Dormand 8(9) (rk8pd)"],
             ["leapfrog", "Leapfrog"],
             ["analytic", "Analytic"]
         ],
@@ -181,35 +195,39 @@
         "beamlineReport": {},
         "beam": {
             "particle": ["Particle", "BeamParticle", "electron", "Particle species"],
-            "mass": ["Mass [MeV/c^2]", "Float", 0.51099895, "Rest mass, used when particle is Other"],
-            "charge": ["Charge [e]", "Float", -1.0, "Charge in units of the elementary charge, used when particle is Other"],
-            "pc": ["Reference Momentum [MeV/c]", "Float", 100.0, "Reference (design) momentum: the Twiss Parameters bunch's mean momentum and its autophase design particle's, and the dipoles' design rigidity. A From File bunch is tracked with the file's own momenta, and its design particle takes the bunch's mean momentum."],
-            "charge_nC": ["Bunch Charge [nC]", "Float", 1.0, "Total bunch charge"],
+            "mass": ["Mass [MeV/c^2]", "RPNValue", 0.51099895, "Rest mass, used when particle is Other"],
+            "charge": ["Charge [e]", "RPNValue", -1.0, "Charge in units of the elementary charge, used when particle is Other"],
+            "pc": ["Reference Momentum [MeV/c]", "RPNValue", 100.0, "Reference (design) momentum: the Twiss Parameters bunch's mean momentum and its autophase design particle's, and the dipoles' design rigidity. A From File bunch is tracked with the file's own momenta, and its design particle takes the bunch's mean momentum."],
+            "charge_nC": ["Bunch Charge [nC]", "RPNValue", 1.0, "Total bunch charge"],
             "np": ["Macroparticle Count", "Integer", 10000, "Number of macroparticles to generate for tracking"],
             "randomSeed": ["Random Number Seed", "Integer", 5489, "rng_set_seed(): seed for RF_Track's mt19937 random number generator (its own built-in default). Runs with the same seed and inputs are reproducible; change it to intentionally get a different bunch realization."],
-            "emit_x": ["Horizontal Normalized Emittance [mm-mrad]", "Float", 1.0],
-            "emit_y": ["Vertical Normalized Emittance [mm-mrad]", "Float", 1.0],
-            "beta_x": ["Horizontal Beta [m]", "Float", 1.0],
-            "beta_y": ["Vertical Beta [m]", "Float", 1.0],
-            "alpha_x": ["Horizontal Alpha", "Float", 0.0],
-            "alpha_y": ["Vertical Alpha", "Float", 0.0],
-            "sigma_t": ["Bunch Length [mm/c]", "Float", 1.0],
-            "sigma_pt": ["Relative Energy Spread [permille]", "Float", 1.0],
+            "emit_x": ["Horizontal Normalized Emittance [mm-mrad]", "RPNValue", 1.0],
+            "emit_y": ["Vertical Normalized Emittance [mm-mrad]", "RPNValue", 1.0],
+            "beta_x": ["Horizontal Beta [m]", "RPNValue", 1.0],
+            "beta_y": ["Vertical Beta [m]", "RPNValue", 1.0],
+            "alpha_x": ["Horizontal Alpha", "RPNValue", 0.0],
+            "alpha_y": ["Vertical Alpha", "RPNValue", 0.0],
+            "sigma_t": ["Bunch Length [mm/c]", "RPNValue", 1.0],
+            "sigma_pt": ["Relative Energy Spread [permille]", "RPNValue", 1.0],
             "distributionType": ["Distribution", "BeamDistributionType", "twiss", "Twiss parameters generate a bunch analytically. Cathode Emission models photoemission from a cathode with RF_Track's Bunch6dT_Generator, tracked from rest. From File loads a previously-saved particle bunch from an OpenPMD HDF5 file."],
             "distributionFile": ["Distribution File", "InputFile", "", "OpenPMD HDF5 file (iteration 0) containing a saved particle bunch: per-particle position (m), momentum (kg*m/s), and optionally time (s), for the species selected above. Accepts files from this app's own OpenPMD download (any report) or from the AWA rftrack_utils posproc.save_bunch_to_openpmd() helper."],
             "fromFileNearRest": ["Near-Rest Bunch", "Boolean", "1", "Checked (e.g. a Cathode Emission snapshot, where Pz can be comparable to the transverse momentum): builds a Bunch6dT preserving the full 3D momentum, avoiding the small-angle approximation an at-rest bunch would otherwise need. Unchecked (an already-accelerated bunch, e.g. re-injecting a previous sim's own tracked output downstream, where Pz dominates): builds a Bunch6d using the standard small-angle x'/y' -- required for Sequential (Lattice) positioning, since RF_Track's Lattice.track() has no Bunch6dT support at all."],
             "laserTransverseProfile": ["Laser Transverse Profile", "CathodeTransverseProfile", "r", "Bunch6dT_Generator.dist_x and dist_y: a radially uniform spot, or a round Gaussian spot"],
-            "sigX": ["Laser Spot Size [mm]", "Float", 1.67, "Transverse RMS size of the drive laser on the cathode, the same in x and y"],
+            "sigX": ["Laser Spot Size [mm]", "RPNValue", 1.67, "Transverse RMS size of the drive laser on the cathode, the same in x and y"],
             "laserTemporalProfile": ["Laser Temporal Profile", "CathodeTemporalProfile", "plateau", "Bunch6dT_Generator.dist_z: a flat-top pulse (rise time and flat-top length), or a Gaussian pulse (RMS pulse length)"],
-            "riseTime": ["Laser Rise Time, rt", "Float", 0.0003, "Laser pulse rise/fall time, in Bunch6dT_Generator.rt units"],
-            "flatTopLength": ["Laser Flat-top Length, lt", "Float", 0.006, "Laser pulse flat-top length, in Bunch6dT_Generator.lt units"],
-            "sigT": ["Laser Pulse Length, sig_t", "Float", 0.0012, "RMS laser pulse length of a Gaussian pulse, in Bunch6dT_Generator.sig_t units"],
-            "cutoffX": ["Cutoff X [sigma]", "Float", 3, "Truncate the horizontal distribution at this many sigma"],
-            "cutoffY": ["Cutoff Y [sigma]", "Float", 3, "Truncate the vertical distribution at this many sigma"],
-            "cutoffT": ["Cutoff T [sigma]", "Float", 3, "Truncate the longitudinal distribution at this many sigma"],
-            "ePhoton": ["Photon Energy [eV]", "Float", 4.73, "Drive laser photon energy"],
-            "phiEff": ["Effective Work Function [eV]", "Float", 3.5, "Cathode effective work function"],
+            "riseTime": ["Laser Rise Time, rt", "RPNValue", 0.0003, "Laser pulse rise/fall time, in Bunch6dT_Generator.rt units"],
+            "flatTopLength": ["Laser Flat-top Length, lt", "RPNValue", 0.006, "Laser pulse flat-top length, in Bunch6dT_Generator.lt units"],
+            "sigT": ["Laser Pulse Length, sig_t", "RPNValue", 0.0012, "RMS laser pulse length of a Gaussian pulse, in Bunch6dT_Generator.sig_t units"],
+            "cutoffX": ["Cutoff X [sigma]", "RPNValue", 3, "Truncate the horizontal distribution at this many sigma"],
+            "cutoffY": ["Cutoff Y [sigma]", "RPNValue", 3, "Truncate the vertical distribution at this many sigma"],
+            "cutoffT": ["Cutoff T [sigma]", "RPNValue", 3, "Truncate the longitudinal distribution at this many sigma"],
+            "ePhoton": ["Photon Energy [eV]", "RPNValue", 4.73, "Drive laser photon energy"],
+            "phiEff": ["Effective Work Function [eV]", "RPNValue", 3.5, "Cathode effective work function"],
             "noiseReduc": ["Noise Reduction", "Boolean", "1", "Bunch6dT_Generator.noise_reduc"]
+        },
+        "rpnVariable": {
+            "name": ["Name", "String"],
+            "value": ["Value", "RPNValue"]
         },
         "bunchReport": {
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
@@ -236,6 +254,7 @@
         },
         "simulationSettings": {
             "spaceCharge": ["Space Charge", "SpaceChargeMethod", "none", "Method used to compute space-charge forces during tracking"],
+            "scLatticeNsteps": ["Total Space-Charge Kicks", "Integer", 100, "Relative (Lattice) positioning: space-charge kicks spread over the elements in proportion to their length. 0 uses each element's own Space-Charge Kicks."],
             "scGridNx": ["Grid Points X", "Integer", 8, "SpaceCharge_PIC_FreeSpace grid size in x"],
             "scGridNy": ["Grid Points Y", "Integer", 8, "SpaceCharge_PIC_FreeSpace grid size in y"],
             "scGridNz": ["Grid Points Z", "Integer", 16, "SpaceCharge_PIC_FreeSpace grid size in z"],
@@ -243,13 +262,16 @@
             "scSmooth": ["Smoothing Factor", "Float", 0.5, "SpaceCharge_PIC_FreeSpace.set_smooth: grid smoothing factor"],
             "scMirror": ["Mirror Position [m]", "Float", 0.0, "SpaceCharge_PIC_FreeSpace.set_mirror: z position of a conducting boundary (e.g. the cathode plane) used for image-charge effects"],
             "autophase": ["Autophase RF Elements", "Boolean", "0", "Automatically set each RF cavity's phase relative to the beam before tracking. The Phase field on each cavity is then interpreted as an offset from the on-crest phase."],
-            "autophaseReference": ["Autophase Reference", "AutophaseReference", "design", "Design Particle: phase every element before tracking with a particle on axis -- for Twiss Parameters, at t = 0 with the Reference Momentum; for From File, at the bunch's mean arrival time with its mean momentum; for Cathode Emission, at rest at the cathode. Tracked Bunch: RF-Track phases each element itself from the tracked bunch as it reaches it. Recorded t0: each element keeps the t0 an imported archive recorded, reproducing the archived run."],
+            "autophaseReference": ["Autophase Reference", "AutophaseReference", "design", "Design Particle: phase every element before tracking with a particle on axis -- for Twiss Parameters, at t = 0 with the Reference Momentum; for From File, at the bunch's mean arrival time with its mean momentum; for Cathode Emission, at rest at the cathode. Tracked Bunch: RF-Track phases each element itself from the tracked bunch as it reaches it."],
             "autoTrackingRange": ["Automatically Compute Tracking Range", "Boolean", "1", "Volume.set_s0()/set_s1() define which portion of every element's field is active during tracking, not just where particles are reported -- an element positioned so it starts before the beam (e.g. a solenoid whose field map is centered on a point upstream of the cathode) will have that leading portion silently excluded unless the tracking range is extended to cover it. When enabled, the range spans every element's full extent; disable to set it explicitly, e.g. to start tracking exactly at the beam origin even when an upstream element's field extends earlier."],
             "trackingS0": ["Tracking Start [m]", "Float", 0.0, "Volume.set_s0(): start of the active tracking range"],
             "trackingS1": ["Tracking End [m]", "Float", 10.0, "Volume.set_s1(): end of the active tracking range"],
             "volumeDtMm": ["Integration Time Step [mm/c]", "Float", 0.5, "Volume.dt_mm: time step of the tracking integrator. Smaller is more accurate and slower."],
             "volumeTtDtMm": ["Beam Variables Time Step [mm/c]", "Float", 10.0, "Volume.tt_dt_mm: how often the beam statistics (Beam Variables plots) are recorded during tracking."],
-            "odeintAlgorithm": ["Integration Algorithm", "OdeintAlgorithm", "rkf45", "Volume.odeint_algorithm: the integrator that tracks the particles through the fields"]
+            "odeintAlgorithm": ["Integration Algorithm", "OdeintAlgorithm", "rkf45", "Volume.odeint_algorithm: the integrator that tracks the particles through the fields"],
+            "odeintEpsabs": ["Absolute Error Tolerance", "Float", 0.001, "Volume.odeint_epsabs: each integration step's absolute error tolerance, for the Runge-Kutta algorithms"],
+            "odeintEpsrel": ["Relative Error Tolerance", "Float", 0.0, "Volume.odeint_epsrel: each integration step's relative error tolerance, for the Runge-Kutta algorithms"],
+            "volumeTMaxMm": ["Maximum Tracking Time [mm/c]", "Float", 0.0, "Volume.t_max_mm: tracking stops at this time even if particles remain within the tracking range, e.g. trapped in a field. 0 is no limit."]
         },
         "simulationStatus": {},
         "bpmAnimation": {},
@@ -263,16 +285,22 @@
         },
         "_ELEMENT": {
             "name": ["NAME", "ValidatedString", "", ""],
-            "l": ["L [m]", "Float", 0, "The element length"],
-            "setAperture": ["Set Aperture", "Boolean", "0", "When enabled, RF_Track's set_aperture() is called with the X/Y values below, and particles beyond them are lost. Left disabled, the element has no aperture at all (RF_Track's own default)."],
-            "aperture_x": ["Aperture X [m]", "Float", 0.015, "Horizontal aperture half-width. Particles beyond this are lost."],
-            "aperture_y": ["Aperture Y [m]", "Float", 0.015, "Vertical aperture half-height. Particles beyond this are lost."],
-            "dx": ["Misalignment dx [m]", "Float", 0],
-            "dy": ["Misalignment dy [m]", "Float", 0],
-            "dz": ["Misalignment dz [m]", "Float", 0],
-            "rx": ["Misalignment Pitch [rad]", "Float", 0, "Rotation about the x axis"],
-            "ry": ["Misalignment Yaw [rad]", "Float", 0, "Rotation about the y axis"],
-            "rz": ["Misalignment Roll [rad]", "Float", 0, "Rotation about the z (beam) axis"]
+            "l": ["L [m]", "RPNValue", 0, "The element length"],
+            "apertureShape": ["Aperture", "ApertureShape", "none", "Particles beyond the aperture are lost. Circular is elliptical when X and Y differ. None leaves the element's own (RF-Track's default) aperture, which is none for most elements."],
+            "aperture_x": ["Aperture X [m]", "RPNValue", 0.015, "Horizontal aperture half-width. Particles beyond this are lost."],
+            "aperture_y": ["Aperture Y [m]", "RPNValue", 0.015, "Vertical aperture half-height. Particles beyond this are lost."],
+            "dx": ["Misalignment dx [m]", "RPNValue", 0],
+            "dy": ["Misalignment dy [m]", "RPNValue", 0],
+            "dz": ["Misalignment dz [m]", "RPNValue", 0],
+            "rx": ["Misalignment Pitch [rad]", "RPNValue", 0, "Rotation about the x axis"],
+            "ry": ["Misalignment Yaw [rad]", "RPNValue", 0, "Rotation about the y axis"],
+            "rz": ["Misalignment Roll [rad]", "RPNValue", 0, "Rotation about the z (beam) axis"],
+            "nsteps": ["Integration Steps", "Integer", 0, "How many steps a Lattice tracks through the element in. 0 is RF-Track's default for the element, e.g. 40 for a 1D field map, 10 for a corrector and 1 for most others."],
+            "ttNsteps": ["Beam Variables Steps", "Integer", 20, "How many points within the element the Beam Variables plots sample"],
+            "scNsteps": ["Space-Charge Kicks", "Integer", 0, "Space-charge kicks within the element, used when Total Space-Charge Kicks is 0"],
+            "odeintAlgorithm": ["Integration Algorithm", "OdeintAlgorithm", "rk2", "The integrator that tracks the particles through the element's field"],
+            "odeintEpsabs": ["Absolute Error Tolerance", "Float", 0.001, "Each integration step's absolute error tolerance, for the Runge-Kutta algorithms"],
+            "odeintEpsrel": ["Relative Error Tolerance", "Float", 0.0, "Each integration step's relative error tolerance, for the Runge-Kutta algorithms"]
         },
         "DRIFT": {
             "_super": ["_", "model", "_ELEMENT"]
@@ -280,48 +308,70 @@
         "QUADRUPOLE": {
             "_super": ["_", "model", "_ELEMENT"],
             "strengthType": ["Strength Type", "QuadStrengthType", "gradient"],
-            "gradient": ["Gradient [T/m]", "Float", 0, "Quadrupole field gradient. Positive is horizontally focusing. Used when Strength Type is Field Gradient."],
-            "k1": ["k1 [1/m^2]", "Float", 0, "Normalized focusing strength. Used when Strength Type is Normalized Strength."]
+            "gradient": ["Gradient [T/m]", "RPNValue", 0, "Quadrupole field gradient. Positive is horizontally focusing. Used when Strength Type is Field Gradient."],
+            "k1": ["k1 [1/m^2]", "RPNValue", 0, "Normalized focusing strength. Used when Strength Type is Normalized Strength."]
+        },
+        "SEXTUPOLE": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "strengthType": ["Strength Type", "SextupoleStrengthType", "gradient"],
+            "gradient": ["Gradient [T/m^2]", "RPNValue", 0, "Sextupole field gradient, d^2By/dx^2. Used when Strength Type is Field Gradient."],
+            "k2": ["k2 [1/m^3]", "RPNValue", 0, "Normalized strength, as MAD-X defines it: a particle at x is kicked by -k2 L x^2 / 2. Used when Strength Type is Normalized Strength."]
         },
         "RBEND": {
             "_super": ["_", "model", "_ELEMENT"],
-            "angle": ["Bend Angle [rad]", "Float", 0, "Total bending angle. The field is computed from the reference momentum."]
+            "angle": ["Bend Angle [rad]", "RPNValue", 0, "Total bending angle. The field is computed from the reference momentum. Bends need Relative (Lattice) positioning."]
+        },
+        "SBEND": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "angle": ["Bend Angle [rad]", "RPNValue", 0, "Total bending angle. The field is computed from the reference momentum. Bends need Relative (Lattice) positioning."],
+            "e1": ["Entrance Edge Angle [rad]", "RPNValue", 0, "Pole-face rotation at the entrance. A sector bend has 0; a rectangular bend has half the bend angle."],
+            "e2": ["Exit Edge Angle [rad]", "RPNValue", 0, "Pole-face rotation at the exit. A sector bend has 0; a rectangular bend has half the bend angle."],
+            "k1": ["k1 [1/m^2]", "RPNValue", 0, "Normalized quadrupole focusing strength of a combined-function bend. Positive is horizontally focusing."],
+            "hgap": ["Half Gap [m]", "RPNValue", 0, "Half the magnet gap. 0 is a hard-edge field. In Absolute (Volume) positioning it sets the extent of the 3D fringe field; in Relative (Lattice) positioning it scales the edge focusing with the Fringe Field Integral."],
+            "fint": ["Fringe Field Integral", "RPNValue", 0, "MAD-X FINT, used with the Half Gap in Relative (Lattice) positioning only: 0 is a hard edge; typical values are 1/6 (linear drop-off), 0.4 (clamped Rogowski), 0.45 (square-edged non-saturating) and 0.7 (unclamped Rogowski)."]
         },
         "SOLENOID": {
             "_super": ["_", "model", "_ELEMENT"],
             "fieldSource": ["Field Source", "FieldSource", "analytic"],
-            "b_field": ["B Field [T]", "Float", 0, "Used when Field Source is Analytic"],
+            "b_field": ["B Field [T]", "RPNValue", 0, "Used when Field Source is Analytic"],
+            "radius": ["Bore Radius [m]", "RPNValue", 0.015, "Radius of the winding: the on-axis field at the centre is B Field * L / sqrt(L^2 + 4 Bore Radius^2). Used when Field Source is Analytic."],
             "fieldMapFile": ["Field Map File", "InputFile", "", "1D on-axis Bz field map (two columns: s [m], Bz [T]). Used when Field Source is 1D Field Map."],
             "rescaleMode": ["Rescale Mode", "RescaleMode", "factor"],
-            "maxField": ["Peak B Field [T]", "Float", 0, "Rescale the field map so its peak magnitude equals this value"],
-            "scaleFactor": ["Scale Factor", "Float", 1, "Multiply the field map values directly by this factor"],
+            "maxField": ["Peak B Field [T]", "RPNValue", 0, "Rescale the field map so its peak magnitude equals this value"],
+            "scaleFactor": ["Scale Factor", "RPNValue", 1, "Multiply the field map values directly by this factor"],
             "fieldMapInterpolation": ["Field Map Interpolation", "FieldMapInterpolation", "linear", "How RF-Track interpolates the field map between its points: linear, or cubic (its _CINT element classes)"]
+        },
+        "COIL": {
+            "_super": ["_", "model", "_ELEMENT"],
+            "b_field": ["Peak B Field [T]", "RPNValue", 0, "On-axis field at the coil, which is a single circular current loop in the middle of L"],
+            "radius": ["Coil Radius [m]", "RPNValue", 0.05, "The on-axis field falls to half its peak 0.77 radii from the coil. In Absolute (Volume) positioning the field extends beyond L, over the tracking range; in Relative (Lattice) positioning it is cut off outside L."]
         },
         "CORRECTOR": {
             "_super": ["_", "model", "_ELEMENT"],
-            "h_kick": ["Horizontal Strength [T*mm]", "Float", 0, "RF-Track Corrector Kx: integrated field strength. The kick angle it gives depends on the beam momentum."],
-            "v_kick": ["Vertical Strength [T*mm]", "Float", 0, "RF-Track Corrector Ky: integrated field strength. The kick angle it gives depends on the beam momentum."]
+            "h_kick": ["Horizontal Strength [T*mm]", "RPNValue", 0, "RF-Track Corrector Kx: integrated field strength. The kick angle it gives depends on the beam momentum."],
+            "v_kick": ["Vertical Strength [T*mm]", "RPNValue", 0, "RF-Track Corrector Ky: integrated field strength. The kick angle it gives depends on the beam momentum."]
         },
         "CAVITY": {
             "_super": ["_", "model", "_ELEMENT"],
             "fieldSource": ["Field Source", "FieldSource", "analytic"],
-            "gradient": ["Gradient [MV/m]", "Float", 0, "Peak on-axis accelerating gradient. Used when Field Source is Analytic."],
-            "frequency": ["RF Frequency [Hz]", "Float", 2.998e9],
-            "phase": ["Phase [deg]", "Float", 0, "RF phase seen by the reference particle (or offset from on-crest phase, when Autophase RF Elements is enabled)"],
+            "gradient": ["Gradient [MV/m]", "RPNValue", 0, "Peak on-axis accelerating gradient. Used when Field Source is Analytic."],
+            "frequency": ["RF Frequency [Hz]", "RPNValue", 2.998e9],
+            "phase": ["Phase [deg]", "RPNValue", 0, "RF phase seen by the reference particle (or offset from on-crest phase, when Autophase RF Elements is enabled)"],
             "fieldMapFile": ["Field Map File", "InputFile", "", "1D on-axis Ez field map (two columns: s [m], Ez [V/m or normalized]). Used when Field Source is 1D Field Map."],
             "rescaleMode": ["Rescale Mode", "RescaleMode", "peak"],
-            "maxField": ["Peak E Field [MV/m]", "Float", 0, "Rescale the field map so its peak magnitude equals this value"],
-            "scaleFactor": ["Scale Factor", "Float", 1, "Multiply the field map values directly by this factor"],
+            "maxField": ["Peak E Field [MV/m]", "RPNValue", 0, "Rescale the field map so its peak magnitude equals this value"],
+            "scaleFactor": ["Scale Factor", "RPNValue", 1, "Multiply the field map values directly by this factor"],
             "fieldMapFile2d": ["2D Field Map File", "InputFile", "", "2D (r, z) on-axis-and-off-axis Ez/Er field map, SUPERFISH-style: two commented header lines, then rows of Z [cm], R [cm], Ez [MV/m], Er [MV/m], |E| [MV/m], H [A/m]. Used when Field Source is 2D Field Map; not rescaled."],
-            "t0": ["Recorded t0 [mm/c]", "Float", 0, "The element's RF-Track t0 (its phase reference time), as an imported archive recorded it. Used when Autophase Reference is Recorded t0."],
             "fieldMapInterpolation": ["Field Map Interpolation", "FieldMapInterpolation", "linear", "How RF-Track interpolates the field map between its points: linear, or cubic (its _CINT element classes)"]
         },
         "SCREEN": {
             "_super": ["_", "model", "_ELEMENT"],
-            "t0": ["Recorded t0 [mm/c]", "Float", 0, "The element's RF-Track t0 (its phase reference time), as an imported archive recorded it. Used when Autophase Reference is Recorded t0."]
+            "width": ["Width [m]", "RPNValue", 0, "The screen records only particles within this width, centred on it. 0 is unlimited."],
+            "height": ["Height [m]", "RPNValue", 0, "The screen records only particles within this height, centred on it. 0 is unlimited."]
         },
         "BPM": {
-            "_super": ["_", "model", "_ELEMENT"]
+            "_super": ["_", "model", "_ELEMENT"],
+            "resolution": ["Resolution [mm]", "RPNValue", 0, "Random error of each position reading, from the beam's Random Seed"]
         }
     },
     "strings": {
@@ -331,7 +381,7 @@
         "_MISALIGNED_ELEMENT_VIEW": {
             "advanced": [
                 ["Aperture", [
-                    "setAperture",
+                    "apertureShape",
                     "aperture_x",
                     "aperture_y"
                 ]],
@@ -342,6 +392,14 @@
                     "rx",
                     "ry",
                     "rz"
+                ]],
+                ["Integration", [
+                    "nsteps",
+                    "ttNsteps",
+                    "scNsteps",
+                    "odeintAlgorithm",
+                    "odeintEpsabs",
+                    "odeintEpsrel"
                 ]]
             ]
         },
@@ -444,6 +502,7 @@
             "advanced": [
                 ["Space Charge", [
                     "spaceCharge",
+                    "scLatticeNsteps",
                     "scGridNx",
                     "scGridNy",
                     "scGridNz",
@@ -457,7 +516,10 @@
                     "trackingS1",
                     "volumeDtMm",
                     "volumeTtDtMm",
-                    "odeintAlgorithm"
+                    "odeintAlgorithm",
+                    "odeintEpsabs",
+                    "odeintEpsrel",
+                    "volumeTMaxMm"
                 ]]
             ]
         },
@@ -573,6 +635,19 @@
                 ]]
             ]
         },
+        "SEXTUPOLE": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "SEXTUPOLE",
+            "advanced": [
+                ["Main", [
+                     "name",
+                     "l",
+                     "strengthType",
+                     "gradient",
+                     "k2"
+                ]]
+            ]
+        },
         "RBEND": {
             "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
             "title": "RBEND",
@@ -581,6 +656,22 @@
                      "name",
                      "l",
                      "angle"
+                ]]
+            ]
+        },
+        "SBEND": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "SBEND",
+            "advanced": [
+                ["Main", [
+                     "name",
+                     "l",
+                     "angle",
+                     "e1",
+                     "e2",
+                     "k1",
+                     "hgap",
+                     "fint"
                 ]]
             ]
         },
@@ -593,11 +684,24 @@
                      "l",
                      "fieldSource",
                      "b_field",
+                     "radius",
                      "fieldMapFile",
                      "rescaleMode",
                      "maxField",
                      "scaleFactor",
                      "fieldMapInterpolation"
+                ]]
+            ]
+        },
+        "COIL": {
+            "_super": ["_", "view", "_MISALIGNED_ELEMENT_VIEW"],
+            "title": "COIL",
+            "advanced": [
+                ["Main", [
+                     "name",
+                     "l",
+                     "b_field",
+                     "radius"
                 ]]
             ]
         },
@@ -629,8 +733,7 @@
                      "maxField",
                      "scaleFactor",
                      "fieldMapFile2d",
-                     "fieldMapInterpolation",
-                     "t0"
+                     "fieldMapInterpolation"
                 ]]
             ]
         },
@@ -640,7 +743,8 @@
             "advanced": [
                 ["Main", [
                      "name",
-                     "t0"
+                     "width",
+                     "height"
                 ]]
             ]
         },
@@ -649,7 +753,9 @@
             "title": "BPM",
             "advanced": [
                 ["Main", [
-                     "name"
+                     "name",
+                     "l",
+                     "resolution"
                 ]]
             ]
         }

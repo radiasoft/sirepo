@@ -12,7 +12,8 @@ def test_importer(fc):
     import re
 
     # set group_prefix when debugging a specific code, e.g. radia
-    for d in pkunit.case_dirs():
+    # TODO(pjm): remove after container beamsim is built with new rftrack location
+    for d in pkunit.case_dirs(group_prefix="elegant-s"):
         m = re.search("^(.+?)-", d.basename)
         sim_type = m.group(1)
         fc.sr_get_root(sim_type)
