@@ -282,6 +282,23 @@ class ParticleEnergy:
         return cls.__particle_info(sim_type, particle, beam)[0]
 
     @classmethod
+    def __ion_info(cls, sim_type, default, beam):
+        """MAD-X's ion: the beam's mass and charge when given (the mass
+        differs from the schema's default), else 1 amu and +1"""
+        m = (
+            sirepo.sim_data.get_class(sim_type)
+            .schema()
+            .model.get("command_beam", PKDict())
+            .get("mass")
+        )
+        res = list(default)
+        if beam.get("mass") and (not m or float(beam.mass) != float(m[2])):
+            res[0] = float(beam.mass)
+        if beam.get("charge"):
+            res[1] = float(beam.charge)
+        return res
+
+    @classmethod
     def __particle_info(cls, sim_type, particle, beam):
         mass_and_charge = (
             sirepo.sim_data.get_class(sim_type)
@@ -291,6 +308,8 @@ class ParticleEnergy:
                 cls.PARTICLE_MASS_AND_CHARGE,
             )
         )
+        if particle == "ion" and particle in mass_and_charge:
+            return cls.__ion_info(sim_type, mass_and_charge[particle], beam)
         if particle in mass_and_charge:
             return mass_and_charge[particle]
         return [beam.mass, beam.charge]

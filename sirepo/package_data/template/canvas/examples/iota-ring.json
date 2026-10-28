@@ -1995,28 +1995,28 @@
         },
         "bunchReport1": {
             "colorMap": "viridis",
-            "histogramBins": 80,
+            "histogramBins": 35,
             "notes": "",
             "x": "x",
             "y": "px"
         },
         "bunchReport2": {
             "colorMap": "viridis",
-            "histogramBins": 80,
+            "histogramBins": 35,
             "notes": "",
             "x": "y",
             "y": "py"
         },
         "bunchReport3": {
             "colorMap": "viridis",
-            "histogramBins": 80,
+            "histogramBins": 35,
             "notes": "",
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
             "colorMap": "viridis",
-            "histogramBins": 80,
+            "histogramBins": 35,
             "notes": "",
             "x": "t",
             "y": "pt"

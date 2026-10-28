@@ -41,29 +41,29 @@
             "randomSeed": 123456789
         },
         "bunchReport1": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 16,
             "notes": "",
             "x": "x",
             "y": "px"
         },
         "bunchReport2": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 16,
             "notes": "",
             "x": "y",
             "y": "py"
         },
         "bunchReport3": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 16,
             "notes": "",
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 16,
             "notes": "",
             "x": "t",
             "y": "pt"
@@ -312,9 +312,9 @@
             }
         ],
         "elementAnimation121-20": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 16,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -1440,9 +1440,9 @@
             }
         ],
         "matchSummaryAnimation": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 16,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "0",

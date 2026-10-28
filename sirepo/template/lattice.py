@@ -385,9 +385,28 @@ class LatticeParser(object):
         self.data.models.elements.append(res)
 
     def __parse_fields(self, cmd, values, res):
+        def _is_string_array(field):
+            return bool(
+                model_schema
+                and field in model_schema
+                and model_schema[field][1].endswith("StringArray")
+            )
+
         model_schema = self.schema.model.get(cmd)
         prev_field = None
+        # a StringArray field's values without braces, ex. "maxaper=1,1,1,1,5,1",
+        # are split across values
+        open_array = None
         for value in values[1:]:
+            if (
+                open_array
+                and not re.match(r"^\s*[\w.]+\s*:?=", value)
+                # not a flag, ex. element_by_element
+                and value.strip().lstrip("!-").strip().lower() not in model_schema
+            ):
+                res[open_array] += f", {value.strip()}"
+                continue
+            open_array = None
             m = re.match(r"^\s*([\w.]+)\s*:?=\s*(.+?)\s*$", value)
             if m:
                 f, v = m.group(1, 2)
@@ -408,6 +427,13 @@ class LatticeParser(object):
                         f, values
                     )
                 res[f] = self.__remove_quotes(v)
+                if _is_string_array(f):
+                    # stored as "a, b, ..." without MAD-X's braces
+                    m = re.match(r"^\{(.*)\}$", res[f].strip())
+                    if m:
+                        res[f] = ", ".join(x.strip() for x in m.group(1).split(","))
+                    else:
+                        open_array = f
                 prev_field = f
                 continue
             # no assignment, maybe a boolean value

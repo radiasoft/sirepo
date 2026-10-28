@@ -2574,7 +2574,7 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                   </div>
                 </div>
                 <div class="col-sm-6 pull-right" data-ng-show="! isFluxWithApproximateMethod()">
-                  <button data-ng-show="! isLoading()" class="btn btn-default" data-ng-click="cancelPersistentSimulation()">{{ stopButtonLabel() }}</button>
+                  <button class="btn btn-default" data-ng-click="cancelPersistentSimulation()">{{ stopButtonLabel() }}</button>
                 </div>
               </div>
               <div data-ng-show="simState.isStopped() && ! isFluxWithApproximateMethod()">
@@ -2709,8 +2709,6 @@ SIREPO.app.directive('simulationStatusPanel', function(appState, beamlineService
                 return $scope.model === 'fluxAnimation'
                     && appState.isLoaded() && appState.models.fluxAnimation.method == -1;
             };
-
-            $scope.isLoading = () => panelState.isLoading($scope.simState.model);
 
             $scope.showFrameCount = () => {
                 if (isCoherentModes()) {

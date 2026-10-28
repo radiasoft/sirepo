@@ -53,7 +53,7 @@ SIREPO.app.config(function() {
 SIREPO.app.factory('madxService', function(appState, commandService, requestSender, rpnService) {
     var self = {};
     rpnService.isCaseInsensitive = true;
-    self.twissFields = ['betx', 'bety', 'alfx', 'alfy', 'x', 'px', 'y', 'py'];
+    self.twissFields = ['betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx', 'dy', 'dpy', 'x', 'px', 'y', 'py'];
 
     self.computeModel = function(analysisModel) {
         return 'animation';
@@ -282,6 +282,7 @@ SIREPO.app.directive('appFooter', function() {
         template: `
             <div data-common-footer="nav"></div>
             <div data-lattice-import-dialog=""></div>
+            <div data-lattice-conversion-modals=""></div>
         `,
     };
 });
@@ -306,6 +307,7 @@ SIREPO.app.directive('appHeader', function(appState, madxService, latticeService
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
+                <div data-lattice-conversion-menu=""></div>
               </app-settings>
               <app-header-right-sim-list>
                 <ul class="nav navbar-nav sr-navbar-right">
@@ -433,6 +435,8 @@ SIREPO.app.directive('commandConfirmation', function(appState, commandService, l
                             commandTemplate: t,
                             nextId: latticeService.nextId(),
                             beamlineId: appState.models.simulation.activeBeamlineId,
+                            // a line's initial twiss for ptc_twiss
+                            twiss: appState.models.commands.find(c => c._type === 'twiss'),
                         }
                     }
                 );

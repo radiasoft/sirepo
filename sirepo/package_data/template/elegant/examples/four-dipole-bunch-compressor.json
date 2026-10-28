@@ -308,22 +308,22 @@
             "sourceFile": null
         },
         "bunchReport1": {
-            "histogramBins": 200,
+            "histogramBins": 112,
             "x": "x",
             "y": "xp"
         },
         "bunchReport2": {
-            "histogramBins": 200,
+            "histogramBins": 112,
             "x": "y",
             "y": "yp"
         },
         "bunchReport3": {
-            "histogramBins": 200,
+            "histogramBins": 112,
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
-            "histogramBins": 200,
+            "histogramBins": 112,
             "x": "t",
             "y": "p"
         },
@@ -467,9 +467,9 @@
             }
         ],
         "elementAnimation10-5": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 112,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "0",
@@ -533,9 +533,9 @@
             "y3": "None"
         },
         "elementAnimation11-5": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 112,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "0",
@@ -599,9 +599,9 @@
             "y3": "None"
         },
         "elementAnimation12-5": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 112,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "0",
@@ -665,9 +665,9 @@
             "y3": "None"
         },
         "elementAnimation13-5": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 112,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "0",
@@ -731,9 +731,9 @@
             "y3": "None"
         },
         "elementAnimation21-18": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 112,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "0",
@@ -793,9 +793,9 @@
             "y3": "None"
         },
         "elementAnimation21-25": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 112,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -1110,9 +1110,9 @@
             "y3Position": "right"
         },
         "elementAnimation21-3": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 112,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "0",
@@ -1188,9 +1188,9 @@
             "y3": "None"
         },
         "elementAnimation23-13": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 112,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -1282,9 +1282,9 @@
             "y3": "etax"
         },
         "elementAnimation5-54": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 112,
             "horizontalOffset": 0,
             "horizontalSize": 0.0050421450268796665,
             "includeLattice": "0",
@@ -1344,9 +1344,9 @@
             "y3": "DeltaGammaT2"
         },
         "elementAnimation6-54": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 112,
             "horizontalOffset": 0,
             "horizontalSize": 0.005057240222574151,
             "includeLattice": "0",
@@ -1406,9 +1406,9 @@
             "y3": "None"
         },
         "elementAnimation7-54": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 112,
             "horizontalOffset": 0,
             "horizontalSize": 0.002745228247837261,
             "includeLattice": "0",
@@ -1468,9 +1468,9 @@
             "y3": "None"
         },
         "elementAnimation8-54": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 112,
             "horizontalOffset": 0,
             "horizontalSize": 0.001261423282671551,
             "includeLattice": "0",
@@ -1530,9 +1530,9 @@
             "y3": "DeltaGammaT2"
         },
         "elementAnimation9-5": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 112,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "0",

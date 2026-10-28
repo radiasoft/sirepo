@@ -240,7 +240,7 @@
             "y": 0
         },
         "bunchReport1": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "x": "x",
             "y": "px"
         },
@@ -533,9 +533,9 @@
             }
         ],
         "elementAnimation294-20": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 16,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -787,9 +787,9 @@
             "y3Position": "right"
         },
         "elementAnimation295-15": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 16,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -3372,9 +3372,9 @@
             "visualizationBeamlineId": 287
         },
         "twissFromParticlesAnimation": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 16,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",

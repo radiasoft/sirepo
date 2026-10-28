@@ -121,7 +121,7 @@
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
             "plotType": ["Plot Type", "PlotType", "heatmap"],
-            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "selectedFrame": ["", "FrameSlider", 0],
             "notes": ["Notes", "Text", ""]
@@ -131,7 +131,7 @@
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
             "plotType": ["Plot Type", "PlotType", "heatmap"],
-            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
@@ -140,7 +140,7 @@
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
             "plotType": ["Plot Type", "PlotType", "heatmap"],
-            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
@@ -149,7 +149,7 @@
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
             "plotType": ["Plot Type", "PlotType", "heatmap"],
-            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
@@ -157,7 +157,7 @@
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "x"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "px"],
             "plotType": ["Plot Type", "PlotType", "heatmap"],
-            "histogramBins": ["Histogram Bins", "Integer", 80],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },

@@ -1,0 +1,12 @@
+beam, particle=electron, pc=0.1;
+de1: dipedge, e1=0.05, fint=0.5, hgap=0.01, h=0.1, tilt=0.02;
+de2: dipedge, e1=0.06, fint=0.4, hgap=0.01, h=0.1;
+b1: sbend, l=1, angle=0.1;
+r1: rbend, l=1, angle=0.1;
+d1: drift, l=0.5;
+q1: quadrupole, l=0.2, k1=1;
+c1: collimator, l=0.1, apertype=ellipse, aperture={0.01,0.02};
+c2: collimator, l=0.1, apertype=rectangle, aperture={0.03,0.04};
+c3: collimator, l=0.1, apertype=circle, aperture={0.05};
+c4: collimator, l=0.1;
+bl: line=(c1,de1,b1,de2,d1,q1,d1,de1,r1,de2,c2,c3,c4);

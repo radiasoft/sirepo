@@ -266,22 +266,22 @@
             "sourceFile": "lcls_end_L0a_nominal.sdds"
         },
         "bunchReport1": {
-            "histogramBins": 200,
+            "histogramBins": 50,
             "x": "x",
             "y": "xp"
         },
         "bunchReport2": {
-            "histogramBins": 200,
+            "histogramBins": 50,
             "x": "y",
             "y": "yp"
         },
         "bunchReport3": {
-            "histogramBins": 200,
+            "histogramBins": 50,
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
-            "histogramBins": 200,
+            "histogramBins": 50,
             "x": "t",
             "y": "p"
         },
@@ -425,14 +425,14 @@
             }
         ],
         "elementAnimation": {
-            "histogramBins": 200,
+            "histogramBins": 50,
             "x": "x",
             "y": "xp"
         },
         "elementAnimation62-18": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 50,
             "notes": "",
             "panelTitle": "run_setup.output",
             "valueList": {
@@ -486,9 +486,9 @@
             "y3": " "
         },
         "elementAnimation62-25": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 50,
             "notes": "",
             "panelTitle": "run_setup.sigma",
             "valueList": {
@@ -795,9 +795,9 @@
             "y3Position": "right"
         },
         "elementAnimation62-3": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 50,
             "notes": "",
             "panelTitle": "run_setup.centroid",
             "valueList": {
@@ -867,9 +867,9 @@
             "y3": " "
         },
         "elementAnimation67-13": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 50,
             "includeLattice": "1",
             "notes": "",
             "panelTitle": "twiss_output",

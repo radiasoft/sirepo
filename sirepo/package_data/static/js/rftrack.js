@@ -59,7 +59,7 @@ SIREPO.app.config(function() {
             solenoid: ['SOLENOID', 'COIL'],
             watch: ['SCREEN', 'BPM'],
         },
-        latticeImport: '.h5',
+        latticeImport: '.h5, .madx, .seq',
     };
 });
 
@@ -100,10 +100,17 @@ SIREPO.app.directive('bpmTablePanel', function(plotting) {
     };
 });
 
-SIREPO.app.factory('rftrackService', function(appState) {
+SIREPO.app.factory('rftrackService', function(appDataService, appState) {
     const self = {};
 
+    // the settings menu's "Export as MAD-X lattice"
+    appDataService.canExportMadx = () => self.isLattice();
+
     self.computeModel = () => 'animation';
+
+    // only a Sequential (Lattice) simulation converts to MAD-X
+    self.isLattice = () => appState.isLoaded()
+        && appState.models.simulation.elementPosition === 'relative';
 
     appState.setAppService(self);
     return self;
@@ -255,11 +262,12 @@ SIREPO.app.directive('appFooter', function(rftrackService) {
         template: `
             <div data-common-footer="nav"></div>
             <div data-lattice-import-dialog=""></div>
+            <div data-lattice-conversion-modals=""></div>
         `,
     };
 });
 
-SIREPO.app.directive('appHeader', function(appState, panelState) {
+SIREPO.app.directive('appHeader', function(rftrackService) {
     return {
         restrict: 'A',
         scope: {
@@ -277,6 +285,7 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
+                <div data-ng-if="isLattice()" data-lattice-conversion-menu=""></div>
               </app-settings>
               <app-header-right-sim-list>
                 <ul class="nav navbar-nav sr-navbar-right">
@@ -285,6 +294,9 @@ SIREPO.app.directive('appHeader', function(appState, panelState) {
               </app-header-right-sim-list>
             </div>
         `,
+        controller: function($scope) {
+            $scope.isLattice = rftrackService.isLattice;
+        },
     };
 });
 
@@ -345,7 +357,7 @@ SIREPO.viewLogic('beamView', function(appState, panelState, $scope) {
             ['mass', 'charge'], isOther,
             ['charge_nC', 'np'], ! isFromFile,
             ['distributionFile', 'fromFileNearRest'], isFromFile,
-            ['beta_x', 'alpha_x', 'emit_x', 'beta_y', 'alpha_y', 'emit_y', 'sigma_t', 'sigma_pt'], isTwiss,
+            ['beta_x', 'alpha_x', 'emit_x', 'beta_y', 'alpha_y', 'emit_y', 'disp_x', 'disp_px', 'disp_y', 'disp_py', 'sigma_t', 'sigma_pt'], isTwiss,
             ['laserTransverseProfile', 'sigX', 'laserTemporalProfile', 'cutoffX', 'cutoffY', 'cutoffT', 'ePhoton', 'phiEff', 'noiseReduc'], isCathode,
             ['riseTime', 'flatTopLength'], isCathode && m.laserTemporalProfile === 'plateau',
             ['sigT'], isCathode && m.laserTemporalProfile === 'gaussian',

@@ -18,41 +18,43 @@
             }
         ],
         "bunch": {
-            "alfx": "-0.7979878684",
-            "alfy": "-0.7979878684",
+            "alfx": -3.237,
+            "alfy": 0.986,
             "beamDefinition": "gamma",
-            "betx": "4.230257875",
-            "bety": "4.230257875",
+            "betx": 29.528,
+            "bety": 7.347,
+            "dpx": -0.281,
+            "dx": -2.57,
             "ex": 1e-06,
             "ey": 1e-06,
-            "matchTwissParameters": "1",
+            "matchTwissParameters": "0",
             "numberOfParticles": 1000,
             "randomSeed": 123456789
         },
         "bunchReport1": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 16,
             "notes": "",
             "x": "x",
             "y": "px"
         },
         "bunchReport2": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 16,
             "notes": "",
             "x": "y",
             "y": "py"
         },
         "bunchReport3": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 16,
             "notes": "",
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 16,
             "notes": "",
             "x": "t",
             "y": "pt"
@@ -256,6 +258,18 @@
                 "xbend": -1
             },
             {
+                "_id": 118,
+                "_type": "ptc_twiss",
+                "alfx": -3.237,
+                "alfy": 0.986,
+                "betx": 29.528,
+                "bety": 7.347,
+                "dpx": -0.281,
+                "dx": -2.57,
+                "file": "1",
+                "icase": "5"
+            },
+            {
                 "_id": 114,
                 "_type": "ptc_track",
                 "beam_envelope": "0",
@@ -292,9 +306,9 @@
             }
         ],
         "elementAnimation109-20": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 16,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -1330,9 +1344,9 @@
             "y3Position": "right"
         },
         "elementAnimation114-6": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 16,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "0",
@@ -1389,6 +1403,24 @@
             "y1": "px",
             "y2": "None",
             "y3": "None"
+        },
+        "elementAnimation118-15": {
+            "colorMap": "viridis",
+            "framesPerSecond": "2",
+            "histogramBins": 16,
+            "horizontalOffset": 0,
+            "horizontalSize": 0,
+            "includeLattice": "1",
+            "notes": "",
+            "panelTitle": "ptc_twiss.file",
+            "plotRangeType": "none",
+            "verticalOffset": 0,
+            "verticalSize": 0,
+            "x": "s",
+            "y1": "betx",
+            "y2": "bety",
+            "y3": "disp1",
+            "y3Position": "right"
         },
         "elements": [
             {

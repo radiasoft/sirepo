@@ -984,6 +984,7 @@ SIREPO.app.factory('appDataService', function() {
     self.canCopy = function() {
 	return SIREPO.APP_SCHEMA.constants.canCreateNewSimulation;
     };
+    self.canExportMadx = () => SIREPO.APP_SCHEMA.constants.hasMadxExport;
     return self;
 });
 

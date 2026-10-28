@@ -127,22 +127,22 @@
             "sourceFile": null
         },
         "bunchReport1": {
-            "histogramBins": 200,
+            "histogramBins": 16,
             "x": "x",
             "y": "xp"
         },
         "bunchReport2": {
-            "histogramBins": 200,
+            "histogramBins": 16,
             "x": "y",
             "y": "yp"
         },
         "bunchReport3": {
-            "histogramBins": 200,
+            "histogramBins": 16,
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
-            "histogramBins": 200,
+            "histogramBins": 16,
             "x": "t",
             "y": "p"
         },
@@ -303,14 +303,14 @@
             }
         ],
         "elementAnimation": {
-            "histogramBins": 200,
+            "histogramBins": 16,
             "x": "x",
             "y": "xp"
         },
         "elementAnimation2-18": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 16,
             "includeLattice": "0",
             "notes": "",
             "panelTitle": "run_setup.output",
@@ -366,9 +366,9 @@
             "y3": "None"
         },
         "elementAnimation2-25": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 16,
             "includeLattice": "0",
             "notes": "",
             "panelTitle": "run_setup.sigma",
@@ -679,9 +679,9 @@
             "y3Position": "right"
         },
         "elementAnimation2-3": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 16,
             "includeLattice": "0",
             "notes": "",
             "panelTitle": "run_setup.centroid",
@@ -753,9 +753,9 @@
             "y3": "None"
         },
         "elementAnimation4-13": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 16,
             "includeLattice": "1",
             "notes": "",
             "panelTitle": "twiss_output",

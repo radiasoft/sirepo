@@ -44,6 +44,9 @@ FOSS_CODES = frozenset(
 
 _ALL_CODES = "DEFAULT"
 
+#: Codes which can be converted to each other through MAD-X
+LATTICE_CONVERSION_CODES = frozenset(("elegant", "madx", "opal", "rftrack"))
+
 #: Configuration
 _cfg = None
 
@@ -97,9 +100,15 @@ def for_sim_type(sim_type):
     import pykern.pkcollections
 
     c = cfg()
-    return pykern.pkcollections.PKDict(c[sim_type] if sim_type in c else {}).pkupdate(
+    res = pykern.pkcollections.PKDict(c[sim_type] if sim_type in c else {}).pkupdate(
         c.schema_common
     )
+    if sim_type in LATTICE_CONVERSION_CODES:
+        # "Open as a New ... Simulation" targets
+        res.lattice_conversion_targets = sorted(
+            (LATTICE_CONVERSION_CODES & c.sim_types) - {sim_type}
+        )
+    return res
 
 
 def have_payments():

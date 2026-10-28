@@ -8,13 +8,20 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import code_variable, template_common
+from sirepo.template.madx_converter import (
+    MadxConverter,
+    convert_lattice,
+    initial_twiss,
+)
 import beamphysics
 import copy
 import lume_rftrack.utils
+import math
 import numpy
 import pykern.pkio
 import re
 import scipy.constants
+import scipy.spatial.transform
 import sirepo.mpi
 import sirepo.sim_data
 import sirepo.template.lattice
@@ -147,6 +154,358 @@ _STAT_LABELS = PKDict(
 _VERBOSITY_T_RE = re.compile(r"t = ([0-9.eE+-]+) mm/c")
 
 
+class RftrackMadxConverter(MadxConverter):
+    """MAD-X to RF-Track: the lattice becomes a single flattened,
+    sequential (Lattice) beamline. RF-Track to MAD-X: a Sequential
+    (Lattice) simulation only, field maps become drifts.
+    """
+
+    _DIPEDGE_FIELDS = PKDict(
+        entrance=PKDict(e1="e1", fint="fint"), exit=PKDict(e1="e2")
+    )
+    # MAD-X's dispersion, with respect to PT as RF-Track's
+    _DISP_FIELDS = PKDict(dpx="disp_px", dpy="disp_py", dx="disp_x", dy="disp_y")
+    # RF-Track's named particles, the same in MAD-X
+    _PARTICLE_MAP = PKDict({p: p for p in SCHEMA.constants.particleMassAndCharge})
+    _FIELD_MAP = [
+        ["DRIFT", ["DRIFT", "l"]],
+        ["COLLIMATOR", ["DRIFT", "l"]],
+        # merged into the SBEND beside it, see _merge_dipedge()
+        ["DIPEDGE", ["DRIFT"]],
+        ["ECOLLIMATOR", ["DRIFT", "l", "aperture_x=xsize", "aperture_y=ysize"]],
+        ["HKICKER", ["CORRECTOR", "l"]],
+        ["HMONITOR", ["BPM", "l"]],
+        ["INSTRUMENT", ["DRIFT", "l"]],
+        ["KICKER", ["CORRECTOR", "l"]],
+        # zero length drifts without an aperture are removed
+        ["MARKER", ["DRIFT"], ["SCREEN"]],
+        ["MONITOR", ["BPM", "l"]],
+        ["PLACEHOLDER", ["DRIFT", "l"]],
+        ["QUADRUPOLE", ["QUADRUPOLE", "l", "k1", "rz=tilt"]],
+        ["RBEND", ["RBEND", "l", "angle", "rz=tilt"]],
+        ["RCOLLIMATOR", ["DRIFT", "l", "aperture_x=xsize", "aperture_y=ysize"]],
+        ["RFCAVITY", ["CAVITY", "l"]],
+        [
+            "SBEND",
+            ["SBEND", "l", "angle", "e1", "e2", "k1", "hgap", "fint", "rz=tilt"],
+        ],
+        ["SEXTUPOLE", ["SEXTUPOLE", "l", "k2", "rz=tilt"]],
+        ["SOLENOID", ["SOLENOID", "l"]],
+        ["VKICKER", ["CORRECTOR", "l"]],
+        ["VMONITOR", ["BPM", "l"]],
+    ]
+
+    def __init__(self, qcall=None, **kwargs):
+        super().__init__(
+            SIM_TYPE,
+            self._FIELD_MAP,
+            downcase_variables=True,
+            qcall=qcall,
+            **kwargs,
+        )
+
+    def from_madx(self, madx):
+        self.__inserts = PKDict()
+        self._thicken_thin_cavities(madx)
+        data = self.fill_in_missing_constants(super().from_madx(madx), PKDict())
+        data.models.simulation.elementPosition = "relative"
+        self._insert_elements(data, self.__inserts)
+        self._merge_dipedges(madx, data, ("SBEND",))
+        self.__flatten_beamline(madx, data)
+        self.__copy_beam(madx, data)
+        if any(e.type == "CAVITY" for e in data.models.elements):
+            data.models.simulationSettings.autophase = "1"
+        sirepo.template.lattice.LatticeUtil(data, SCHEMA).sort_elements_and_beamlines()
+        return data
+
+    def to_madx(self, data):
+        if data.models.simulation.elementPosition != "relative":
+            raise sirepo.util.UserAlert(
+                "Only a Sequential (Lattice) simulation can be converted",
+                "rftrack elementPosition={} to MAD-X",
+                data.models.simulation.elementPosition,
+            )
+        self.vars = code_var(data.models.rpnVariables)
+        b = data.models.beam
+        self.__autophase = data.models.simulationSettings.autophase == "1"
+        self.__charge = 1 if self._val(b.charge) > 0 else -1
+        # MeV/c to T*m
+        self.__brho = (
+            self._val(b.pc) * 1e6 / scipy.constants.c / abs(self._val(b.charge))
+        )
+        # for _rf_gap_gain()
+        self.particle_energy = PKDict(
+            beta=self._val(b.pc) / math.hypot(self._val(b.pc), self._val(b.mass))
+        )
+        res = super().to_madx(data)
+        self.__madx_beam(data, res)
+        return res
+
+    def _fixup_element(self, element_in, element_out):
+        super()._fixup_element(element_in, element_out)
+        if self.from_class.sim_type() == SIM_TYPE:
+            self.__fixup_to_madx(element_in, element_out)
+            return
+        t = element_in.type
+        # RF-Track's strengths are relative to the signed P/Q
+        q = 1 if self.beam.charge > 0 else -1
+        brho = self.particle_energy.brho
+        if t in ("ECOLLIMATOR", "RCOLLIMATOR"):
+            if self._val(element_out.aperture_x):
+                element_out.apertureShape = (
+                    "rectangular" if t == "RCOLLIMATOR" else "circular"
+                )
+        else:
+            a = self._aperture(element_in)
+            if a:
+                element_out.apertureShape = (
+                    "rectangular" if a.apertype == "rectangle" else "circular"
+                )
+                element_out.aperture_x = a.x
+                element_out.aperture_y = a.y
+        if t == "QUADRUPOLE":
+            element_out.strengthType = "k1"
+        elif t == "SEXTUPOLE":
+            element_out.strengthType = "k2"
+        elif t in ("HKICKER", "KICKER", "VKICKER"):
+            # kick [rad] to integrated field [T*mm], signs found by tracking
+            if t != "VKICKER":
+                element_out.h_kick = (
+                    self._val(element_in.kick if t == "HKICKER" else element_in.hkick)
+                    * 1e3
+                    * brho
+                    * q
+                )
+            if t != "HKICKER":
+                element_out.v_kick = (
+                    -self._val(element_in.kick if t == "VKICKER" else element_in.vkick)
+                    * 1e3
+                    * brho
+                    * q
+                )
+        elif t == "SOLENOID":
+            element_out.b_field = self._val(element_in.ks) * brho * q
+        elif t == "RFCAVITY":
+            self.__fixup_cavity(element_in, element_out)
+
+    def __copy_beam(self, madx, data):
+        b = data.models.beam
+        e = self.particle_energy
+        b.particle = self._particle_from_madx(self.beam.particle) or "other"
+        b.mass = self.beam.mass * 1e3
+        b.charge = self.beam.charge
+        b.pc = e.pc * 1e3
+        for dim in ("x", "y"):
+            if self._is_beam_value_set(f"e{dim}"):
+                # geometric [m] to normalized [mm-mrad]
+                b[f"emit_{dim}"] = (
+                    self._val(self.beam[f"e{dim}"]) * e.beta * e.gamma * 1e6
+                )
+        b.update(self._beam_twiss(madx))
+        for f, v in self._beam_dispersion(madx).items():
+            b[self._DISP_FIELDS[f]] = v
+        if self._is_beam_value_set("sigt"):
+            # m to mm/c
+            b.sigma_t = self._val(self.beam.sigt) * 1e3
+        if self._is_beam_value_set("sige"):
+            # sigma E / E to RF-Track's sigma dE / (P c) [permille]
+            b.sigma_pt = self._val(self.beam.sige) / e.beta * 1e3
+        n = self._val(self.beam.npart)
+        if n > 1:
+            b.charge_nC = n * abs(b.charge) * scipy.constants.e * 1e9
+        n = self._particle_count(madx)
+        if n:
+            b.np = n
+        b.distributionType = "twiss"
+
+    def __fixup_cavity(self, element_in, element_out):
+        l = self._val(element_in.l)
+        f = self._val(element_in.freq) * 1e6
+        if not l or not f:
+            pkdlog("dropping zero length or frequency RFCAVITY: {}", element_in.name)
+            element_out.type = "DRIFT"
+            element_out.l = l
+            return
+        element_out.fieldSource = "analytic"
+        element_out.frequency = f
+        # autophased RF-Track's phase is the offset from crest
+        element_out.phase = 360 * self._crest_offset(element_in.lag)
+        w = scipy.constants.c / (2 * f)
+        if l < w / 2:
+            # the generated script's single gap, sin^2(pi z / l)
+            element_out.gradient = self._val(element_in.volt) / self._rf_gap_gain(l, f)
+            return
+        # the generated script's pi-mode structure is a whole number of
+        # half wavelength cells, gaining gradient * length / 2 on crest
+        n = round(l / w)
+        if abs(l / w - n) > 1e-3:
+            n = int(l / w)
+            if n:
+                # the rest of the length as drifts on either side
+                element_out.l = n * w
+                d = PKDict(
+                    name=f"{element_in.name}_D", type="DRIFT", l=(l - element_out.l) / 2
+                )
+                self.__inserts[element_out._id] = PKDict(before=[d], after=[d])
+        if not n:
+            n = 1
+            pkdlog(
+                "RFCAVITY={} l={} is shorter than one cell, lengthened to {}",
+                element_in.name,
+                l,
+                w,
+            )
+        element_out.gradient = 2 * self._val(element_in.volt) / (n * w)
+
+    def __fixup_to_madx(self, element_in, element_out):
+        t = element_in.type
+        q = self.__charge
+        if t in ("CAVITY", "SOLENOID") and element_in.fieldSource != "analytic":
+            pkdlog(
+                "{}={} field map has no MAD-X equivalent, replaced by a DRIFT",
+                t,
+                element_in.name,
+            )
+            element_out.type = "DRIFT"
+            element_out.l = element_in.l
+            return
+        if t == "BPM":
+            element_out.type = "MONITOR"
+        elif t == "CAVITY":
+            f = self._val(element_in.frequency)
+            l = self._val(element_in.l)
+            w = scipy.constants.c / (2 * f)
+            if l < w / 2:
+                # the generated script's single gap
+                element_out.volt = self._val(element_in.gradient) * self._rf_gap_gain(
+                    l, f
+                )
+            else:
+                # the generated script's pi-mode structure of whole half
+                # wavelength cells gains gradient * length / 2 on crest
+                element_out.volt = self._val(element_in.gradient) * round(l / w) * w / 2
+            element_out.freq = f * 1e-6
+            element_out.lag = self._lag_from_crest_offset(
+                self._val(element_in.phase) / 360
+            )
+            if not self.__autophase:
+                pkdlog(
+                    "CAVITY={} phase is absolute without autophase, lag assumes it's from crest",
+                    element_in.name,
+                )
+        elif t == "CORRECTOR":
+            # integrated field [T*mm] to kick [rad], see _fixup_element()
+            element_out.type = "KICKER"
+            element_out.hkick = self._val(element_in.h_kick) / (1e3 * self.__brho * q)
+            element_out.vkick = -self._val(element_in.v_kick) / (1e3 * self.__brho * q)
+        elif t == "QUADRUPOLE" and element_in.strengthType != "k1":
+            element_out.k1 = self._val(element_in.gradient) / (self.__brho * q)
+        elif t == "SEXTUPOLE" and element_in.strengthType != "k2":
+            element_out.k2 = self._val(element_in.gradient) / (self.__brho * q)
+        elif t == "SOLENOID":
+            element_out.ks = self._val(element_in.b_field) / (self.__brho * q)
+        if any(
+            self._val(element_in.get(f, 0)) for f in ("dx", "dy", "dz", "rx", "ry")
+        ) or (self._val(element_in.get("rz", 0)) and "tilt" not in element_out):
+            pkdlog("{}={} misalignment has no MAD-X equivalent", t, element_in.name)
+        if element_in.get(
+            "apertureShape", "none"
+        ) != "none" and "_APERTURE_ELEMENT" in (
+            self.to_class.schema().model[element_out.type].get("_super", [])
+        ):
+            if element_in.apertureShape == "circular":
+                element_out.apertype = "circle"
+                element_out.aperture = self._array_text(
+                    [self._val(element_in.aperture_x)]
+                )
+            else:
+                element_out.apertype = "rectangle"
+                element_out.aperture = self._array_text(
+                    [
+                        self._val(element_in.aperture_x),
+                        self._val(element_in.aperture_y),
+                    ]
+                )
+
+    def __flatten_beamline(self, madx, data):
+        els = PKDict({e._id: e for e in data.models.elements})
+        bls = PKDict({b.id: b for b in data.models.beamlines})
+
+        def _items(beamline_id, is_reversed):
+            # a reversed beamline's items in reverse, each sub-beamline
+            # reversed again when it is itself reversed
+            res = []
+            items = bls[beamline_id]["items"]
+            for i in reversed(items) if is_reversed else items:
+                if abs(i) in bls:
+                    res.extend(_items(abs(i), (i < 0) != is_reversed))
+                else:
+                    res.append(abs(i))
+            return res
+
+        bl = bls.get(data.models.simulation.get("visualizationBeamlineId"))
+        if not any(c._type == "use" for c in madx.models.commands):
+            # without "use", the last beamline no other beamline contains
+            u = set(abs(i) for b in bls.values() for i in b["items"])
+            bl = [b for b in data.models.beamlines if b.id not in u][-1]
+        cv = code_var(data.models.rpnVariables)
+        items = []
+        positions = []
+        s = 0
+        for i in _items(bl.id, False):
+            l = cv.eval_var_with_assert(els[i].l)
+            # a zero length aperture (ex. a COLLIMATOR) stays
+            if (
+                els[i].type == "DRIFT"
+                and l == 0
+                and els[i].get("apertureShape", "none") == "none"
+            ):
+                continue
+            items.append(i)
+            positions.append(PKDict(elemedge=s))
+            s += l
+        data.models.beamlines = [
+            PKDict(id=bl.id, name=bl.name, items=items, positions=positions)
+        ]
+        data.models.elements = [e for e in data.models.elements if e._id in items]
+        data.models.simulation.activeBeamlineId = (
+            data.models.simulation.visualizationBeamlineId
+        ) = bl.id
+
+    def __madx_beam(self, data, madx):
+        b = data.models.beam
+        # MeV to GeV
+        a = [
+            self._particle_to_madx(b.particle),
+            self._val(b.mass) * 1e-3,
+            self._val(b.charge),
+            self._val(b.pc) * 1e-3,
+        ]
+        if b.distributionType != "twiss":
+            self._madx_beam(madx, *a)
+            return
+        bg = self._val(b.pc) / self._val(b.mass)
+        self._madx_beam(
+            madx,
+            *a,
+            PKDict(
+                # normalized [mm-mrad] to geometric [m]
+                ex=self._val(b.emit_x) * 1e-6 / bg,
+                ey=self._val(b.emit_y) * 1e-6 / bg,
+                # mm/c to m, sigma dE / (P c) [permille] to sigma E / E
+                sigt=self._val(b.sigma_t) * 1e-3,
+                sige=self._val(b.sigma_pt) * self.particle_energy.beta * 1e-3,
+                **{f: self._val(b[f]) for f in self._BEAM_TWISS_VARS},
+                **{f: b[d] for f, d in self._DISP_FIELDS.items() if self._val(b[d])},
+            ),
+        ).npart = (
+            self._val(b.charge_nC) * 1e-9 / scipy.constants.e / abs(self._val(b.charge))
+        )
+        self._set_particle_count(madx, self._val(b.np))
+        # a Lattice is a line, its twiss starts with the beam's
+        initial_twiss(madx)
+
+
 def background_percent_complete(report, run_dir, is_running):
     if is_running:
         return PKDict(
@@ -224,11 +583,18 @@ def build_imported_data(archive, name, qcall):
             el.dx = float(e.x)
             el.dy = float(e.y)
         else:
-            # as the generated script's set_elements_offsets() takes
-            # them: offsets in mm, then 1, then rotations about x, y, z
+            # Lattice.get_elements_offsets(): the entrance's offset [mm] and
+            # rotation as a quaternion (w, x, y, z), which is extrinsic
+            # rotations about x (pitch), y (yaw), z (roll) in that order,
+            # as the generated script's Lattice.append() takes them
             o = archive.elements_offsets[i]
             el.dx, el.dy, el.dz = (float(x) / 1000.0 for x in o[:3])
-            el.rx, el.ry, el.rz = (float(x) for x in o[4:7])
+            el.rx, el.ry, el.rz = (
+                float(x)
+                for x in scipy.spatial.transform.Rotation.from_quat(
+                    [o[4], o[5], o[6], o[3]]
+                ).as_euler("xyz")
+            )
         k = json.dumps(el, sort_keys=True)
         if k in by_fields:
             el = by_fields[k]
@@ -344,6 +710,8 @@ def prepare_sequential_output_file(run_dir, data):
 
 
 def python_source_for_model(data, model, qcall, **kwargs):
+    if model == "madx":
+        return RftrackMadxConverter(qcall=qcall).to_madx_text(data)
     return _generate_parameters_file(data)
 
 
@@ -400,16 +768,28 @@ def stat_columns():
     return [_NONE] + sorted(lume_rftrack.utils.STAT_COLUMNS, key=str.lower)
 
 
+def stateful_compute_convert_lattice(data, **kwargs):
+    return PKDict(imported_data=convert_lattice(data, data.args.toSimType))
+
+
 def stateful_compute_import_file(data, **kwargs):
-    """Trivial passthrough: `sirepo.sim_data.rftrack.SimData.
-    prepare_import_file_args` already built the full imported data (via
-    `build_imported_data` above), on the server, before this was ever
-    called -- see that method's docstring for why. This hook still has
-    to exist (api_importFile's own dispatch in sirepo/server.py requires
-    it for any non-.json/.zip import), even though there's nothing left
-    for it to do here, in the job agent.
+    """Convert a MAD-X file. An HDF5 archive is a passthrough:
+    `sirepo.sim_data.rftrack.SimData.prepare_import_file_args` already
+    built the full imported data (via `build_imported_data` above), on
+    the server, before this was ever called -- see that method's
+    docstring for why.
     """
-    return PKDict(imported_data=data.args.imported_data)
+    if "imported_data" in data.args:
+        return PKDict(imported_data=data.args.imported_data)
+    if data.args.ext_lower not in (".madx", ".seq"):
+        raise sirepo.util.UserAlert(
+            f"invalid file={data.args.basename}, expecting .h5, .madx or .seq",
+            "invalid import file extension={}",
+            data.args.ext_lower,
+        )
+    res = RftrackMadxConverter().from_madx_text(data.args.file_as_str)
+    res.models.simulation.name = data.args.purebasename
+    return PKDict(imported_data=res)
 
 
 def validate_file(file_type, path, sim_id, qcall):
@@ -531,6 +911,10 @@ def _bunch_spec(dm, v):
             beta_x=beam.beta_x,
             beta_y=beam.beta_y,
             charge_nc=beam.charge_nC,
+            disp_px=beam.disp_px,
+            disp_py=beam.disp_py,
+            disp_x=beam.disp_x,
+            disp_y=beam.disp_y,
             emit_x=beam.emit_x,
             emit_y=beam.emit_y,
             np=beam.np,

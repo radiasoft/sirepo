@@ -14,7 +14,6 @@ from sirepo.template import template_common
 from sirepo.template.madx_converter import MadxConverter
 import numpy
 import pandas
-import re
 import sirepo.lib
 import sirepo.sim_data
 import sirepo.template.lattice
@@ -132,8 +131,8 @@ class ImpactxMadxConverter(MadxConverter):
             if "nslice" in SCHEMA.model[element_out.type]:
                 element_out.nslice = self.nslice
             if element_in.type == "SBEND":
-                if self.__val(element_in.angle) != 0:
-                    element_out.rc = self.__val(element_out.l) / self.__val(
+                if self._val(element_in.angle) != 0:
+                    element_out.rc = self._val(element_out.l) / self._val(
                         element_in.angle
                     )
                 else:
@@ -141,41 +140,39 @@ class ImpactxMadxConverter(MadxConverter):
                 if element_out.rc == 0:
                     element_out.type = "DRIFT"
             elif element_in.type == "COLLIMATOR":
-                m = re.search(r"^\{?\s*(.*?),\s*(.*?)\s*\}?$", element_in.aperture)
-                if m:
-                    element_out.aperture_x = self.__val(m.group(1))
-                    element_out.aperture_y = self.__val(m.group(2))
-                element_out.shape = (
-                    "rectangular"
-                    if element_in.apertype == "rectangle"
-                    else "elliptical"
-                )
+                a = self._aperture(element_in)
+                if a:
+                    element_out.aperture_x = a.x
+                    element_out.aperture_y = a.y
+                    element_out.shape = (
+                        "rectangular" if a.apertype == "rectangle" else "elliptical"
+                    )
             elif element_in.type == "DIPEDGE":
-                if self.__val(element_in.h) != 0:
-                    element_out.rc = 1.0 / self.__val(element_in.h)
+                if self._val(element_in.h) != 0:
+                    element_out.rc = 1.0 / self._val(element_in.h)
                 else:
                     element_out.rc = 0
-                element_out.g = 2 * self.__val(element_in.hgap)
+                element_out.g = 2 * self._val(element_in.hgap)
                 element_out.psi = element_in.e1
                 if element_out.rc == 0:
                     element_out.type = "DRIFT"
-            elif element_out.type == "QUAD" and self.__val(element_out.k) == 0:
+            elif element_out.type == "QUAD" and self._val(element_out.k) == 0:
                 element_out.type = "DRIFT"
-            elif element_out.type == "SOL" and self.__val(element_out.ks) == 0:
+            elif element_out.type == "SOL" and self._val(element_out.ks) == 0:
                 element_out.type = "DRIFT"
-            elif "KICKER" in element_in.type and self.__val(element_in.l) > 0:
+            elif "KICKER" in element_in.type and self._val(element_in.l) > 0:
                 # TODO(pjm): add l/2 drift around kicker in beamline
                 pass
-            elif element_in.type == "MONITOR" and self.__val(element_in.l) > 0:
+            elif element_in.type == "MONITOR" and self._val(element_in.l) > 0:
                 # TODO(pjm) add drift
                 pass
-            elif element_in.type == "RFCAVITY" and self.__val(element_in.freq) == 0:
-                if self.__val(element_in.l) > 0:
+            elif element_in.type == "RFCAVITY" and self._val(element_in.freq) == 0:
+                if self._val(element_in.l) > 0:
                     element_out.l = element_in.l
                     element_out.type = "DRIFT"
             elif element_in.type == "RFCAVITY":
-                element_out.phase = -(self.__val(element_out.phase) * 360 + 90)
-                element_out.freq = self.__val(element_out.freq) * 1e6
+                element_out.phase = -(self._val(element_out.phase) * 360 + 90)
+                element_out.freq = self._val(element_out.freq) * 1e6
                 p = "electron"
                 if (
                     self.beam
@@ -183,10 +180,7 @@ class ImpactxMadxConverter(MadxConverter):
                 ):
                     p = self.beam.particle
                 mc = SCHEMA.constants.particleMassAndCharge.get(p)
-                element_out.V = self.__val(element_out.V) / (mc[0] * 1e3)
-
-    def __val(self, var_value):
-        return self.vars.eval_var_with_assert(var_value)
+                element_out.V = self._val(element_out.V) / (mc[0] * 1e3)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -319,13 +313,20 @@ def _bunch_plot(run_dir, model):
     def _title(file, frame_index):
         return ""
 
-    return hdf5_util.HDF5Util(str(run_dir.join(_BUNCH_REPORT_OUTPUT_FILE))).heatmap(
-        PKDict(
-            format_plot=_format_plot,
-            frame_index=0,
-            model=model,
-            points=_points,
-            title=_title,
+    return (
+        hdf5_util.HDF5Util(str(run_dir.join(_BUNCH_REPORT_OUTPUT_FILE)))
+        .heatmap(
+            PKDict(
+                format_plot=_format_plot,
+                frame_index=0,
+                model=model,
+                points=_points,
+                title=_title,
+            )
+        )
+        .pkupdate(
+            # empty bins are transparent
+            threshold=[0],
         )
     )
 

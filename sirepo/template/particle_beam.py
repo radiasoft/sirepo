@@ -198,6 +198,7 @@ def populate_uncoupled_beam(
     dtau,
     dpt,
     iseed=None,
+    dispersion=None,
 ):
     """
     Return a particle beam matched to point described by given Twiss parameters.
@@ -226,6 +227,9 @@ def populate_uncoupled_beam(
     dpt -- variation in PT
     iseed -- initial seed for the random number generator; defaults to None,
                in which case “unpredictable entropy will be pulled from the OS”
+    dispersion -- optional (dx, dpx, dy, dpy), MAD-X's dispersion: the
+               derivatives with respect to PT, added to each particle as
+               D * PT
     """
     # (pseudo)random number generator
     rng = np.random.default_rng(seed=iseed)
@@ -265,6 +269,12 @@ def populate_uncoupled_beam(
     long_dist = rng.multivariate_normal([0, 0], [[dtau**2, 0], [0, dpt**2]], n_ptcl).T
     ct = long_dist[0]
     pt = long_dist[1]
+
+    if dispersion:
+        x = x + dispersion[0] * pt
+        xp = xp + dispersion[1] * pt
+        y = y + dispersion[2] * pt
+        yp = yp + dispersion[3] * pt
 
     # return the particle array
     return np.column_stack([x, xp, y, yp, -ct, pt])

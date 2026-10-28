@@ -42,6 +42,11 @@ _MADX_TRACK_OUTPUT_FILE = "madx/ptc_track.file.tfs"
 
 
 class CanvasMadxConverter(MadxConverter):
+    _DIPEDGE_FIELDS = PKDict(
+        entrance=PKDict(e1="e1", fint="fint"),
+        exit=PKDict(e1="e2", fint="fintx"),
+    )
+    _DIPEDGE_GAP = ("gap", 2)
     _FIELD_MAP = [
         [
             "COLLIMATOR",
@@ -78,12 +83,11 @@ class CanvasMadxConverter(MadxConverter):
             qcall=qcall,
             **kwargs,
         )
-        self.dipedges = PKDict()
 
     def from_madx(self, madx):
         data = self.fill_in_missing_constants(super().from_madx(madx), PKDict())
         self._remove_zero_drifts(data)
-        self.__merge_dipedges(data)
+        self._merge_dipedges(madx, data, ("SBEND",))
         return data
 
     def _fixup_element(self, element_in, element_out):
@@ -92,65 +96,20 @@ class CanvasMadxConverter(MadxConverter):
             pass
         else:
             if element_in.type == "COLLIMATOR":
-                element_out.shape = (
-                    "rectangular"
-                    if element_in.apertype == "rectangle"
-                    else "elliptical"
-                )
-                m = re.search(r"^\{?\s*(.*?),\s*(.*?)\s*\}?$", element_in.aperture)
-                if m:
-                    element_out.xmax = float(m.group(1))
-                    element_out.ymax = float(m.group(2))
-            if element_in.type == "DIPEDGE":
-                self.dipedges[element_out._id] = element_in
+                a = self._aperture(element_in)
+                if a:
+                    element_out.shape = (
+                        "rectangular" if a.apertype == "rectangle" else "elliptical"
+                    )
+                    element_out.xmax = a.x
+                    element_out.ymax = a.y
             elif element_in.type == "SBEND":
-                element_out.gap = self.__val(element_in.hgap) * 2
+                element_out.gap = self._val(element_in.hgap) * 2
                 if element_out.fintx == -1:
                     element_out.fintx = element_out.fint
             elif element_in.type == "RFCAVITY":
-                element_out.volt = self.__val(element_out.volt) * 1e6
-                element_out.phase = self.__val(element_out.phase) * -180
-
-    def __merge_dipedges(self, data):
-        # dipedge in: {'e1': 0.048345620280243, 'fint': 0.0, 'h': 0.096653578905433, 'hgap': 0.0, }
-        # bend angle, gap, fint, fintx, e1, e2
-        bends = PKDict()
-        el = []
-        for e in data.models.elements:
-            if e._id in self.dipedges:
-                continue
-            if e.type == "SBEND":
-                bends[e._id] = e
-            el.append(e)
-        data.models.elements = el
-        for b in data.models.beamlines:
-            bl = []
-            dip = None
-            bend = None
-            for i in b["items"]:
-                if i in self.dipedges:
-                    if bend:
-                        # trailing dipedge
-                        bend.fintx = self.dipedges[i].fint
-                        bend.e2 = self.dipedges[i].e1
-                        bend.gap = 2 * self.__val(self.dipedges[i].hgap)
-                        bend = None
-                    else:
-                        dip = self.dipedges[i]
-                    continue
-                if i in bends:
-                    bend = bends[i]
-                    if dip:
-                        # leading dipedge
-                        bend.fint = dip.fint
-                        bend.e1 = dip.e1
-                        bend.gap = 2 * self.__val(dip.hgap)
-                        dip = None
-                bl.append(i)
-            b["items"] = bl
-
-    def __val(self, var_value):
-        return self.vars.eval_var_with_assert(var_value)
+                element_out.volt = self._val(element_out.volt) * 1e6
+                element_out.phase = self._val(element_out.phase) * -180
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -314,6 +273,8 @@ def sim_frame(frame_args):
             x_label=_PHASE_SPACE_LABEL[frame_args.x],
             y_label=_PHASE_SPACE_LABEL[frame_args.y],
             title=f"{frame_args.simCode} {title}",
+            # empty bins are transparent
+            threshold=[0],
         ),
     )
 

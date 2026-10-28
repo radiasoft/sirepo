@@ -1,0 +1,15 @@
+title, "opal_multipole";
+
+REAL sr_brho = 0.3335640951979142;
+REAL sr_n_particles_per_bunch = 1000;
+
+D1: DRIFT,l=1.0;
+M1: MULTIPOLE,knl={0.0, -1.1991698319991033, -2.9979245799977585},ksl={0.0, 0.0, -0.5995849159995517},lrad=0.2;
+M1_D: DRIFT,l=0.1;
+BL: LINE=(D1,M1_D,M1,M1_D,D1);
+
+
+beam,ex=1e-06,ey=1e-06,particle=electron,pc=0.1;
+use,sequence=BL;
+twiss,file="twiss.file.tfs";
+

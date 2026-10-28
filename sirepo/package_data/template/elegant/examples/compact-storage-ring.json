@@ -96,22 +96,22 @@
             "sourceFile": null
         },
         "bunchReport1": {
-            "histogramBins": 200,
+            "histogramBins": 35,
             "x": "x",
             "y": "xp"
         },
         "bunchReport2": {
-            "histogramBins": 200,
+            "histogramBins": 35,
             "x": "y",
             "y": "yp"
         },
         "bunchReport3": {
-            "histogramBins": 200,
+            "histogramBins": 35,
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
-            "histogramBins": 200,
+            "histogramBins": 35,
             "x": "t",
             "y": "p"
         },
@@ -255,14 +255,14 @@
             }
         ],
         "elementAnimation": {
-            "histogramBins": 200,
+            "histogramBins": 35,
             "x": "x",
             "y": "xp"
         },
         "elementAnimation20-18": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 35,
             "notes": "",
             "panelTitle": "run_setup.output",
             "valueList": {
@@ -317,9 +317,9 @@
         },
         "elementAnimation20-29": {
             "aspectRatio": "0.5625",
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 35,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -788,9 +788,9 @@
             "y5Position": "right"
         },
         "elementAnimation20-3": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 35,
             "notes": "",
             "panelTitle": "run_setup.centroid",
             "valueList": {
@@ -861,9 +861,9 @@
         },
         "elementAnimation22-13": {
             "aspectRatio": "0.5625",
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 35,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",

@@ -114,7 +114,8 @@ def _lattice():
         res.append(e)
     o = numpy.zeros((len(elements), 7))
     o[:, 3] = 1.0
-    # mm, then rotations about x, y, z
+    # offset [mm], then the rotation as a quaternion (w, x, y, z): about 2,
+    # 4 and 6 mrad about x, y and z
     o[5] = [0.5, -0.3, 0.0, 1.0, 1e-3, 2e-3, 3e-3]
     res.set_elements_offsets(o)
     res.autophase(
