@@ -8,11 +8,7 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import code_variable, template_common
-from sirepo.template.madx_converter import (
-    MadxConverter,
-    convert_lattice,
-    initial_twiss,
-)
+from sirepo.template.madx_converter import MadxConverter
 import beamphysics
 import copy
 import lume_rftrack.utils
@@ -25,6 +21,7 @@ import scipy.spatial.transform
 import sirepo.mpi
 import sirepo.sim_data
 import sirepo.template.lattice
+import sirepo.template.madx_converter
 import sirepo.util
 
 
@@ -503,7 +500,7 @@ class RftrackMadxConverter(MadxConverter):
         )
         self._set_particle_count(madx, self._val(b.np))
         # a Lattice is a line, its twiss starts with the beam's
-        initial_twiss(madx)
+        sirepo.template.madx_converter.initial_twiss(madx)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -769,7 +766,11 @@ def stat_columns():
 
 
 def stateful_compute_convert_lattice(data, **kwargs):
-    return PKDict(imported_data=convert_lattice(data, data.args.toSimType))
+    return PKDict(
+        imported_data=sirepo.template.madx_converter.convert_lattice(
+            data, data.args.toSimType
+        )
+    )
 
 
 def stateful_compute_import_file(data, **kwargs):

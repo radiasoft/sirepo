@@ -15,7 +15,6 @@ from sirepo.template import opal_parser
 from sirepo.template import particle_beam
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
-from sirepo.template.madx_converter import convert_lattice
 import copy
 import functools
 import h5py
@@ -27,6 +26,7 @@ import pykern.pkinspect
 import re
 import sirepo.lib
 import sirepo.sim_data
+import sirepo.template.madx_converter
 
 
 _BUNCH_PARTICLES_FILE = "ptc_particles.json"
@@ -633,7 +633,11 @@ def stateless_compute_command_template(data, **kwargs):
 
 
 def stateful_compute_convert_lattice(data, **kwargs):
-    return PKDict(imported_data=convert_lattice(data, data.args.toSimType))
+    return PKDict(
+        imported_data=sirepo.template.madx_converter.convert_lattice(
+            data, data.args.toSimType
+        )
+    )
 
 
 def stateful_compute_import_file(data, **kwargs):

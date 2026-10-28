@@ -25,7 +25,7 @@
             "aspectRatio": "1",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 60,
+            "histogramBins": 50,
             "horizontalOffset": 0.0,
             "horizontalSize": 0.0,
             "notes": "",
@@ -40,7 +40,7 @@
         "bunchAnimation1": {
             "colorMap": "viridis",
             "coordOut": "",
-            "histogramBins": 60,
+            "histogramBins": 50,
             "notes": "",
             "plotType": "3d",
             "x": "x",
@@ -49,7 +49,7 @@
         "bunchAnimation2": {
             "colorMap": "viridis",
             "coordOut": "",
-            "histogramBins": 60,
+            "histogramBins": 50,
             "notes": "",
             "plotType": "3d",
             "x": "x",
@@ -58,7 +58,7 @@
         "bunchAnimation3": {
             "colorMap": "viridis",
             "coordOut": "",
-            "histogramBins": 60,
+            "histogramBins": 50,
             "notes": "",
             "plotType": "3d",
             "x": "x",
@@ -66,7 +66,7 @@
         },
         "bunchReport1": {
             "colorMap": "viridis",
-            "histogramBins": 80,
+            "histogramBins": 50,
             "notes": "",
             "plotType": "heatmap",
             "x": "x",
@@ -74,7 +74,7 @@
         },
         "bunchReport2": {
             "colorMap": "viridis",
-            "histogramBins": 80,
+            "histogramBins": 50,
             "notes": "",
             "plotType": "heatmap",
             "x": "y",
@@ -82,7 +82,7 @@
         },
         "bunchReport3": {
             "colorMap": "viridis",
-            "histogramBins": 80,
+            "histogramBins": 50,
             "notes": "",
             "plotType": "heatmap",
             "x": "x",
@@ -90,7 +90,7 @@
         },
         "bunchReport4": {
             "colorMap": "viridis",
-            "histogramBins": 80,
+            "histogramBins": 50,
             "notes": "",
             "plotType": "heatmap",
             "x": "z",

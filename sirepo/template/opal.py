@@ -16,17 +16,14 @@ from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template import track_parser
 from sirepo.template.lattice import LatticeUtil
-from sirepo.template.madx_converter import (
-    MadxConverter,
-    convert_lattice,
-    initial_twiss,
-)
+from sirepo.template.madx_converter import MadxConverter
 import math
 import numpy
 import re
 import scipy.constants
 import sirepo.lib
 import sirepo.sim_data
+import sirepo.template.madx_converter
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
@@ -846,7 +843,7 @@ class OpalMadxConverter(MadxConverter):
         if _val("corrz"):
             self._replace_var(madx, "dp_s_coupling", _val("corrz"))
         # a line, its twiss starts with the beam's
-        initial_twiss(madx)
+        sirepo.template.madx_converter.initial_twiss(madx)
 
     def __multipole_fields(self, element_type):
         n = self._MULTIPOLE_ORDER[element_type]
@@ -1213,7 +1210,11 @@ def sim_frame_plot2Animation(frame_args):
 
 
 def stateful_compute_convert_lattice(data, **kwargs):
-    return PKDict(imported_data=convert_lattice(data, data.args.toSimType))
+    return PKDict(
+        imported_data=sirepo.template.madx_converter.convert_lattice(
+            data, data.args.toSimType
+        )
+    )
 
 
 def stateful_compute_import_file(data, **kwargs):

@@ -19,11 +19,7 @@ from sirepo.template import elegant_lattice_importer
 from sirepo.template import lattice
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
-from sirepo.template.madx_converter import (
-    MadxConverter,
-    convert_lattice,
-    initial_twiss,
-)
+from sirepo.template.madx_converter import MadxConverter
 import copy
 import glob
 import h5py
@@ -38,6 +34,7 @@ import re
 import scipy.constants
 import sirepo.lib
 import sirepo.sim_data
+import sirepo.template.madx_converter
 import stat
 
 
@@ -778,9 +775,11 @@ class ElegantMadxConverter(MadxConverter):
         t = LatticeUtil.find_first_command(data, "twiss_output")
         if not t:
             if madx.models.bunch.get("matchTwissParameters") != "1":
-                initial_twiss(madx)
+                sirepo.template.madx_converter.initial_twiss(madx)
         elif not self._val(t.matched):
-            initial_twiss(madx, self.__twiss_values(t, beta))
+            sirepo.template.madx_converter.initial_twiss(
+                madx, self.__twiss_values(t, beta)
+            )
 
     def __multipole_from_madx(self, element_in, element_out):
         # skew terms are normal terms rotated by pi / (2 * (order + 1))
@@ -1324,7 +1323,11 @@ def sim_frame(frame_args):
 
 
 def stateful_compute_convert_lattice(data, **kwargs):
-    return PKDict(imported_data=convert_lattice(data, data.args.toSimType))
+    return PKDict(
+        imported_data=sirepo.template.madx_converter.convert_lattice(
+            data, data.args.toSimType
+        )
+    )
 
 
 def stateful_compute_get_beam_input_type(data, **kwargs):
