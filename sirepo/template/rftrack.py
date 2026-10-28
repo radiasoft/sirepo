@@ -157,6 +157,12 @@ class RftrackMadxConverter(MadxConverter):
     (Lattice) simulation only, field maps become drifts.
     """
 
+    # MadxConverter's settings, see MadxConverter
+    _DIPEDGE_BENDS = ("SBEND",)
+    _DOWNCASE_VARIABLES = True
+    _ELEMENT_POSITION = "relative"
+    _THICKEN_THIN_CAVITIES = True
+
     _DIPEDGE_FIELDS = PKDict(
         entrance=PKDict(e1="e1", fint="fint"), exit=PKDict(e1="e2")
     )
@@ -164,56 +170,45 @@ class RftrackMadxConverter(MadxConverter):
     _DISP_FIELDS = PKDict(dpx="disp_px", dpy="disp_py", dx="disp_x", dy="disp_y")
     # RF-Track's named particles, the same in MAD-X
     _PARTICLE_MAP = PKDict({p: p for p in SCHEMA.constants.particleMassAndCharge})
-    _FIELD_MAP = [
-        ["DRIFT", ["DRIFT", "l"]],
-        ["COLLIMATOR", ["DRIFT", "l"]],
-        # merged into the SBEND beside it, see _merge_dipedge()
-        ["DIPEDGE", ["DRIFT"]],
-        ["ECOLLIMATOR", ["DRIFT", "l", "aperture_x=xsize", "aperture_y=ysize"]],
-        ["HKICKER", ["CORRECTOR", "l"]],
-        ["HMONITOR", ["BPM", "l"]],
-        ["INSTRUMENT", ["DRIFT", "l"]],
-        ["KICKER", ["CORRECTOR", "l"]],
+    _ELEMENTS = PKDict(
+        BPM=["MONITOR", "l"],
+        CAVITY=["RFCAVITY", "l"],
+        CORRECTOR=["KICKER", "l"],
+        DRIFT=["DRIFT", "l"],
+        QUADRUPOLE=["QUADRUPOLE", "l", "k1", "rz=tilt"],
+        RBEND=["RBEND", "l", "angle", "rz=tilt"],
+        SBEND=["SBEND", "l", "angle", "e1", "e2", "k1", "hgap", "fint", "rz=tilt"],
+        SCREEN=["MARKER"],
+        SEXTUPOLE=["SEXTUPOLE", "l", "k2", "rz=tilt"],
+        SOLENOID=["SOLENOID", "l"],
+    )
+    _FROM_MADX = PKDict(
+        COLLIMATOR="DRIFT",
+        # merged into the SBEND beside it, see _merge_dipedges()
+        DIPEDGE=None,
+        DRIFT="DRIFT",
+        ECOLLIMATOR="DRIFT",
+        HKICKER="CORRECTOR",
+        HMONITOR="BPM",
+        INSTRUMENT="DRIFT",
+        KICKER="CORRECTOR",
         # zero length drifts without an aperture are removed
-        ["MARKER", ["DRIFT"], ["SCREEN"]],
-        ["MONITOR", ["BPM", "l"]],
-        ["PLACEHOLDER", ["DRIFT", "l"]],
-        ["QUADRUPOLE", ["QUADRUPOLE", "l", "k1", "rz=tilt"]],
-        ["RBEND", ["RBEND", "l", "angle", "rz=tilt"]],
-        ["RCOLLIMATOR", ["DRIFT", "l", "aperture_x=xsize", "aperture_y=ysize"]],
-        ["RFCAVITY", ["CAVITY", "l"]],
-        [
-            "SBEND",
-            ["SBEND", "l", "angle", "e1", "e2", "k1", "hgap", "fint", "rz=tilt"],
-        ],
-        ["SEXTUPOLE", ["SEXTUPOLE", "l", "k2", "rz=tilt"]],
-        ["SOLENOID", ["SOLENOID", "l"]],
-        ["VKICKER", ["CORRECTOR", "l"]],
-        ["VMONITOR", ["BPM", "l"]],
-    ]
+        MARKER="DRIFT",
+        MONITOR="BPM",
+        PLACEHOLDER="DRIFT",
+        QUADRUPOLE="QUADRUPOLE",
+        RBEND="RBEND",
+        RCOLLIMATOR="DRIFT",
+        RFCAVITY="CAVITY",
+        SBEND="SBEND",
+        SEXTUPOLE="SEXTUPOLE",
+        SOLENOID="SOLENOID",
+        VKICKER="CORRECTOR",
+        VMONITOR="BPM",
+    )
 
     def __init__(self, qcall=None, **kwargs):
-        super().__init__(
-            SIM_TYPE,
-            self._FIELD_MAP,
-            downcase_variables=True,
-            qcall=qcall,
-            **kwargs,
-        )
-
-    def from_madx(self, madx):
-        self.__inserts = PKDict()
-        self._thicken_thin_cavities(madx)
-        data = self.fill_in_missing_constants(super().from_madx(madx), PKDict())
-        data.models.simulation.elementPosition = "relative"
-        self._insert_elements(data, self.__inserts)
-        self._merge_dipedges(madx, data, ("SBEND",))
-        self.__flatten_beamline(madx, data)
-        self.__copy_beam(madx, data)
-        if any(e.type == "CAVITY" for e in data.models.elements):
-            data.models.simulationSettings.autophase = "1"
-        sirepo.template.lattice.LatticeUtil(data, SCHEMA).sort_elements_and_beamlines()
-        return data
+        super().__init__(SIM_TYPE, qcall=qcall, **kwargs)
 
     def to_madx(self, data):
         if data.models.simulation.elementPosition != "relative":
@@ -234,25 +229,45 @@ class RftrackMadxConverter(MadxConverter):
         self.particle_energy = PKDict(
             beta=self._val(b.pc) / math.hypot(self._val(b.pc), self._val(b.mass))
         )
-        res = super().to_madx(data)
-        self.__madx_beam(data, res)
-        return res
+        return super().to_madx(data)
+
+    def _beam_to_madx(self, data, madx):
+        b = data.models.beam
+        # MeV to GeV
+        res = PKDict(
+            particle=self._particle_to_madx(b.particle),
+            mass=self._val(b.mass) * 1e-3,
+            charge=self._val(b.charge),
+            pc=self._val(b.pc) * 1e-3,
+        )
+        if b.distributionType != "twiss":
+            return res
+        bg = self._val(b.pc) / self._val(b.mass)
+        # a Lattice is a line, its twiss starts with the beam's
+        return res.pkupdate(
+            distribution=PKDict(
+                # normalized [mm-mrad] to geometric [m]
+                ex=self._val(b.emit_x) * 1e-6 / bg,
+                ey=self._val(b.emit_y) * 1e-6 / bg,
+                # mm/c to m, sigma dE / (P c) [permille] to sigma E / E
+                sigt=self._val(b.sigma_t) * 1e-3,
+                sige=self._val(b.sigma_pt) * self.particle_energy.beta * 1e-3,
+                **{f: self._val(b[f]) for f in self._BEAM_TWISS_VARS},
+                **{f: b[d] for f, d in self._DISP_FIELDS.items() if self._val(b[d])},
+            ),
+            npart=self._val(b.charge_nC)
+            * 1e-9
+            / scipy.constants.e
+            / abs(self._val(b.charge)),
+            particle_count=self._val(b.np),
+        )
 
     def _fixup_element(self, element_in, element_out):
         super()._fixup_element(element_in, element_out)
         if self.from_class.sim_type() == SIM_TYPE:
             self.__fixup_to_madx(element_in, element_out)
-            return
-        t = element_in.type
-        # RF-Track's strengths are relative to the signed P/Q
-        q = 1 if self.beam.charge > 0 else -1
-        brho = self.particle_energy.brho
-        if t in ("ECOLLIMATOR", "RCOLLIMATOR"):
-            if self._val(element_out.aperture_x):
-                element_out.apertureShape = (
-                    "rectangular" if t == "RCOLLIMATOR" else "circular"
-                )
-        else:
+        elif element_in.type not in ("ECOLLIMATOR", "RCOLLIMATOR"):
+            # a collimator's own size, see _from_madx_ecollimator()
             a = self._aperture(element_in)
             if a:
                 element_out.apertureShape = (
@@ -260,62 +275,34 @@ class RftrackMadxConverter(MadxConverter):
                 )
                 element_out.aperture_x = a.x
                 element_out.aperture_y = a.y
-        if t == "QUADRUPOLE":
-            element_out.strengthType = "k1"
-        elif t == "SEXTUPOLE":
-            element_out.strengthType = "k2"
-        elif t in ("HKICKER", "KICKER", "VKICKER"):
-            # kick [rad] to integrated field [T*mm], signs found by tracking
-            if t != "VKICKER":
-                element_out.h_kick = (
-                    self._val(element_in.kick if t == "HKICKER" else element_in.hkick)
-                    * 1e3
-                    * brho
-                    * q
-                )
-            if t != "HKICKER":
-                element_out.v_kick = (
-                    -self._val(element_in.kick if t == "VKICKER" else element_in.vkick)
-                    * 1e3
-                    * brho
-                    * q
-                )
-        elif t == "SOLENOID":
-            element_out.b_field = self._val(element_in.ks) * brho * q
-        elif t == "RFCAVITY":
-            self.__fixup_cavity(element_in, element_out)
 
-    def __copy_beam(self, madx, data):
-        b = data.models.beam
-        e = self.particle_energy
-        b.particle = self._particle_from_madx(self.beam.particle) or "other"
-        b.mass = self.beam.mass * 1e3
-        b.charge = self.beam.charge
-        b.pc = e.pc * 1e3
-        for dim in ("x", "y"):
-            if self._is_beam_value_set(f"e{dim}"):
-                # geometric [m] to normalized [mm-mrad]
-                b[f"emit_{dim}"] = (
-                    self._val(self.beam[f"e{dim}"]) * e.beta * e.gamma * 1e6
-                )
-        b.update(self._beam_twiss(madx))
-        for f, v in self._beam_dispersion(madx).items():
-            b[self._DISP_FIELDS[f]] = v
-        if self._is_beam_value_set("sigt"):
-            # m to mm/c
-            b.sigma_t = self._val(self.beam.sigt) * 1e3
-        if self._is_beam_value_set("sige"):
-            # sigma E / E to RF-Track's sigma dE / (P c) [permille]
-            b.sigma_pt = self._val(self.beam.sige) / e.beta * 1e3
-        n = self._val(self.beam.npart)
-        if n > 1:
-            b.charge_nC = n * abs(b.charge) * scipy.constants.e * 1e9
-        n = self._particle_count(madx)
-        if n:
-            b.np = n
-        b.distributionType = "twiss"
+    def _fixup_from_madx(self, madx, data, beam):
+        self.__flatten_beamline(madx, data)
+        self.__copy_beam(data, beam)
+        if any(e.type == "CAVITY" for e in data.models.elements):
+            data.models.simulationSettings.autophase = "1"
+        sirepo.template.lattice.LatticeUtil(data, SCHEMA).sort_elements_and_beamlines()
 
-    def __fixup_cavity(self, element_in, element_out):
+    def _from_madx_ecollimator(self, element_in, element_out):
+        element_out.aperture_x = element_in.xsize
+        element_out.aperture_y = element_in.ysize
+        if self._val(element_out.aperture_x):
+            element_out.apertureShape = (
+                "rectangular" if element_in.type == "RCOLLIMATOR" else "circular"
+            )
+
+    def _from_madx_hkicker(self, element_in, element_out):
+        self.__corrector(element_out, h=element_in.kick)
+
+    def _from_madx_kicker(self, element_in, element_out):
+        self.__corrector(element_out, h=element_in.hkick, v=element_in.vkick)
+
+    def _from_madx_quadrupole(self, element_in, element_out):
+        element_out.strengthType = "k1"
+
+    _from_madx_rcollimator = _from_madx_ecollimator
+
+    def _from_madx_rfcavity(self, element_in, element_out):
         l = self._val(element_in.l)
         f = self._val(element_in.freq) * 1e6
         if not l or not f:
@@ -343,7 +330,7 @@ class RftrackMadxConverter(MadxConverter):
                 d = PKDict(
                     name=f"{element_in.name}_D", type="DRIFT", l=(l - element_out.l) / 2
                 )
-                self.__inserts[element_out._id] = PKDict(before=[d], after=[d])
+                self._inserts[element_out._id] = PKDict(before=[d], after=[d])
         if not n:
             n = 1
             pkdlog(
@@ -354,10 +341,103 @@ class RftrackMadxConverter(MadxConverter):
             )
         element_out.gradient = 2 * self._val(element_in.volt) / (n * w)
 
-    def __fixup_to_madx(self, element_in, element_out):
-        t = element_in.type
+    def _from_madx_sextupole(self, element_in, element_out):
+        element_out.strengthType = "k2"
+
+    def _from_madx_solenoid(self, element_in, element_out):
+        b, q = self.__brho_and_sign()
+        element_out.b_field = self._val(element_in.ks) * b * q
+
+    def _from_madx_vkicker(self, element_in, element_out):
+        self.__corrector(element_out, v=element_in.kick)
+
+    def _to_madx_cavity(self, element_in, element_out):
+        if self.__is_field_map(element_in):
+            return
+        f = self._val(element_in.frequency)
+        l = self._val(element_in.l)
+        w = scipy.constants.c / (2 * f)
+        if l < w / 2:
+            # the generated script's single gap
+            element_out.volt = self._val(element_in.gradient) * self._rf_gap_gain(l, f)
+        else:
+            # the generated script's pi-mode structure of whole half
+            # wavelength cells gains gradient * length / 2 on crest
+            element_out.volt = self._val(element_in.gradient) * round(l / w) * w / 2
+        element_out.freq = f * 1e-6
+        element_out.lag = self._lag_from_crest_offset(self._val(element_in.phase) / 360)
+        if not self.__autophase:
+            pkdlog(
+                "CAVITY={} phase is absolute without autophase, lag assumes it's from crest",
+                element_in.name,
+            )
+
+    def _to_madx_corrector(self, element_in, element_out):
+        # integrated field [T*mm] to kick [rad], see __corrector()
         q = self.__charge
-        if t in ("CAVITY", "SOLENOID") and element_in.fieldSource != "analytic":
+        element_out.hkick = self._val(element_in.h_kick) / (1e3 * self.__brho * q)
+        element_out.vkick = -self._val(element_in.v_kick) / (1e3 * self.__brho * q)
+
+    def _to_madx_quadrupole(self, element_in, element_out):
+        if element_in.strengthType != "k1":
+            element_out.k1 = self._val(element_in.gradient) / (
+                self.__brho * self.__charge
+            )
+
+    def _to_madx_sextupole(self, element_in, element_out):
+        if element_in.strengthType != "k2":
+            element_out.k2 = self._val(element_in.gradient) / (
+                self.__brho * self.__charge
+            )
+
+    def _to_madx_solenoid(self, element_in, element_out):
+        if self.__is_field_map(element_in):
+            return
+        element_out.ks = self._val(element_in.b_field) / (self.__brho * self.__charge)
+
+    def __brho_and_sign(self):
+        """MAD-X beam's rigidity [T*m] and charge's sign: RF-Track's
+        strengths are relative to the signed P/Q"""
+        return self.particle_energy.brho, 1 if self.beam.charge > 0 else -1
+
+    def __copy_beam(self, data, beam):
+        b = data.models.beam
+        e = self.particle_energy
+        b.particle = self._particle_from_madx(self.beam.particle) or "other"
+        b.mass = self.beam.mass * 1e3
+        b.charge = self.beam.charge
+        b.pc = e.pc * 1e3
+        for dim in ("x", "y"):
+            if beam[f"e{dim}"] is not None:
+                # geometric [m] to normalized [mm-mrad]
+                b[f"emit_{dim}"] = self._val(beam[f"e{dim}"]) * e.beta * e.gamma * 1e6
+        b.update(beam.twiss)
+        for f, v in beam.dispersion.items():
+            b[self._DISP_FIELDS[f]] = v
+        if beam.sigt is not None:
+            # m to mm/c
+            b.sigma_t = self._val(beam.sigt) * 1e3
+        # sigma E / E to RF-Track's sigma dE / (P c) [permille]
+        b.sigma_pt = self._val(beam.sige) / e.beta * 1e3
+        if beam.npart:
+            b.charge_nC = beam.npart * abs(b.charge) * scipy.constants.e * 1e9
+        if beam.particle_count:
+            b.np = beam.particle_count
+        b.distributionType = "twiss"
+
+    def __corrector(self, element_out, h=None, v=None):
+        # kick [rad] to integrated field [T*mm], signs found by tracking
+        b, q = self.__brho_and_sign()
+        if h is not None:
+            element_out.h_kick = self._val(h) * 1e3 * b * q
+        if v is not None:
+            element_out.v_kick = -self._val(v) * 1e3 * b * q
+
+    def __fixup_to_madx(self, element_in, element_out):
+        """Field maps as drifts, misalignments and apertures, before the
+        element type's handler"""
+        t = element_in.type
+        if self.__is_field_map(element_in):
             pkdlog(
                 "{}={} field map has no MAD-X equivalent, replaced by a DRIFT",
                 t,
@@ -366,41 +446,6 @@ class RftrackMadxConverter(MadxConverter):
             element_out.type = "DRIFT"
             element_out.l = element_in.l
             return
-        if t == "BPM":
-            element_out.type = "MONITOR"
-        elif t == "CAVITY":
-            f = self._val(element_in.frequency)
-            l = self._val(element_in.l)
-            w = scipy.constants.c / (2 * f)
-            if l < w / 2:
-                # the generated script's single gap
-                element_out.volt = self._val(element_in.gradient) * self._rf_gap_gain(
-                    l, f
-                )
-            else:
-                # the generated script's pi-mode structure of whole half
-                # wavelength cells gains gradient * length / 2 on crest
-                element_out.volt = self._val(element_in.gradient) * round(l / w) * w / 2
-            element_out.freq = f * 1e-6
-            element_out.lag = self._lag_from_crest_offset(
-                self._val(element_in.phase) / 360
-            )
-            if not self.__autophase:
-                pkdlog(
-                    "CAVITY={} phase is absolute without autophase, lag assumes it's from crest",
-                    element_in.name,
-                )
-        elif t == "CORRECTOR":
-            # integrated field [T*mm] to kick [rad], see _fixup_element()
-            element_out.type = "KICKER"
-            element_out.hkick = self._val(element_in.h_kick) / (1e3 * self.__brho * q)
-            element_out.vkick = -self._val(element_in.v_kick) / (1e3 * self.__brho * q)
-        elif t == "QUADRUPOLE" and element_in.strengthType != "k1":
-            element_out.k1 = self._val(element_in.gradient) / (self.__brho * q)
-        elif t == "SEXTUPOLE" and element_in.strengthType != "k2":
-            element_out.k2 = self._val(element_in.gradient) / (self.__brho * q)
-        elif t == "SOLENOID":
-            element_out.ks = self._val(element_in.b_field) / (self.__brho * q)
         if any(
             self._val(element_in.get(f, 0)) for f in ("dx", "dy", "dz", "rx", "ry")
         ) or (self._val(element_in.get("rz", 0)) and "tilt" not in element_out):
@@ -469,38 +514,10 @@ class RftrackMadxConverter(MadxConverter):
             data.models.simulation.visualizationBeamlineId
         ) = bl.id
 
-    def __madx_beam(self, data, madx):
-        b = data.models.beam
-        # MeV to GeV
-        a = [
-            self._particle_to_madx(b.particle),
-            self._val(b.mass) * 1e-3,
-            self._val(b.charge),
-            self._val(b.pc) * 1e-3,
-        ]
-        if b.distributionType != "twiss":
-            self._madx_beam(madx, *a)
-            return
-        bg = self._val(b.pc) / self._val(b.mass)
-        self._madx_beam(
-            madx,
-            *a,
-            PKDict(
-                # normalized [mm-mrad] to geometric [m]
-                ex=self._val(b.emit_x) * 1e-6 / bg,
-                ey=self._val(b.emit_y) * 1e-6 / bg,
-                # mm/c to m, sigma dE / (P c) [permille] to sigma E / E
-                sigt=self._val(b.sigma_t) * 1e-3,
-                sige=self._val(b.sigma_pt) * self.particle_energy.beta * 1e-3,
-                **{f: self._val(b[f]) for f in self._BEAM_TWISS_VARS},
-                **{f: b[d] for f, d in self._DISP_FIELDS.items() if self._val(b[d])},
-            ),
-        ).npart = (
-            self._val(b.charge_nC) * 1e-9 / scipy.constants.e / abs(self._val(b.charge))
+    def __is_field_map(self, element):
+        return (
+            element.type in ("CAVITY", "SOLENOID") and element.fieldSource != "analytic"
         )
-        self._set_particle_count(madx, self._val(b.np))
-        # a Lattice is a line, its twiss starts with the beam's
-        sirepo.template.madx_converter.initial_twiss(madx)
 
 
 def background_percent_complete(report, run_dir, is_running):

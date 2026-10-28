@@ -42,74 +42,56 @@ _MADX_TRACK_OUTPUT_FILE = "madx/ptc_track.file.tfs"
 
 
 class CanvasMadxConverter(MadxConverter):
+    # MadxConverter's settings, see MadxConverter
+    _DIPEDGE_BENDS = ("SBEND",)
+    _DOWNCASE_VARIABLES = True
+    _REMOVE_ZERO_DRIFTS = True
     _DIPEDGE_FIELDS = PKDict(
         entrance=PKDict(e1="e1", fint="fint"),
         exit=PKDict(e1="e2", fint="fintx"),
     )
     _DIPEDGE_GAP = ("gap", 2)
-    _FIELD_MAP = [
-        [
-            "COLLIMATOR",
-            ["APERTURE", "l"],
-        ],
-        [
-            "DRIFT",
-            ["DRIFT", "l"],
-        ],
-        [
-            "QUADRUPOLE",
-            ["QUADRUPOLE", "l", "k1", "k1s"],
-        ],
-        ["RFCAVITY", ["RFCAVITY", "l", "volt", "freq", "phase=lag"]],
-        [
-            "SBEND",
-            ["SBEND", "l", "angle", "fint", "fintx", "e1", "e2"],
-        ],
-        [
-            "DIPEDGE",
-            ["SBEND"],
-        ],
-        [
-            "SEXTUPOLE",
-            ["SEXTUPOLE", "l", "k2", "k2s"],
-        ],
-    ]
+    _ELEMENTS = PKDict(
+        APERTURE=["COLLIMATOR", "l"],
+        DRIFT=["DRIFT", "l"],
+        QUADRUPOLE=["QUADRUPOLE", "l", "k1", "k1s"],
+        RFCAVITY=["RFCAVITY", "l", "freq"],
+        SBEND=["SBEND", "l", "angle", "fint", "fintx", "e1", "e2"],
+        SEXTUPOLE=["SEXTUPOLE", "l", "k2", "k2s"],
+    )
+    _FROM_MADX = PKDict(
+        COLLIMATOR="APERTURE",
+        # merged into the SBEND beside it, see _merge_dipedges()
+        DIPEDGE=None,
+        DRIFT="DRIFT",
+        QUADRUPOLE="QUADRUPOLE",
+        RFCAVITY="RFCAVITY",
+        SBEND="SBEND",
+        SEXTUPOLE="SEXTUPOLE",
+    )
 
     def __init__(self, qcall=None, **kwargs):
-        super().__init__(
-            SIM_TYPE,
-            self._FIELD_MAP,
-            downcase_variables=True,
-            qcall=qcall,
-            **kwargs,
-        )
+        super().__init__(SIM_TYPE, qcall=qcall, **kwargs)
 
-    def from_madx(self, madx):
-        data = self.fill_in_missing_constants(super().from_madx(madx), PKDict())
-        self._remove_zero_drifts(data)
-        self._merge_dipedges(madx, data, ("SBEND",))
-        return data
+    def _from_madx_collimator(self, element_in, element_out):
+        a = self._aperture(element_in)
+        if a:
+            element_out.shape = (
+                "rectangular" if a.apertype == "rectangle" else "elliptical"
+            )
+            element_out.xmax = a.x
+            element_out.ymax = a.y
 
-    def _fixup_element(self, element_in, element_out):
-        super()._fixup_element(element_in, element_out)
-        if self.from_class.sim_type() == SIM_TYPE:
-            pass
-        else:
-            if element_in.type == "COLLIMATOR":
-                a = self._aperture(element_in)
-                if a:
-                    element_out.shape = (
-                        "rectangular" if a.apertype == "rectangle" else "elliptical"
-                    )
-                    element_out.xmax = a.x
-                    element_out.ymax = a.y
-            elif element_in.type == "SBEND":
-                element_out.gap = self._val(element_in.hgap) * 2
-                if element_out.fintx == -1:
-                    element_out.fintx = element_out.fint
-            elif element_in.type == "RFCAVITY":
-                element_out.volt = self._val(element_out.volt) * 1e6
-                element_out.phase = self._val(element_out.phase) * -180
+    def _from_madx_rfcavity(self, element_in, element_out):
+        # MV to V
+        element_out.volt = self._val(element_in.volt) * 1e6
+        element_out.phase = self._val(element_in.lag) * -180
+
+    def _from_madx_sbend(self, element_in, element_out):
+        # MAD-X's half gap
+        element_out.gap = self._val(element_in.hgap) * 2
+        if element_out.fintx == -1:
+            element_out.fintx = element_out.fint
 
 
 def background_percent_complete(report, run_dir, is_running):

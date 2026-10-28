@@ -14,6 +14,7 @@ from sirepo.template.template_common import ParticleEnergy
 import copy
 import math
 import numpy
+import re
 import scipy.constants
 import sirepo.sim_data
 import sirepo.template
@@ -77,6 +78,33 @@ def initial_twiss(madx, values=None):
 
 
 class MadxConverter:
+    # Settings: each converter sets those it needs and MadxConverter reads
+    # them, so a converter needn't use them itself.
+    #: from_madx(): the code's own constants, see fill_in_missing_constants()
+    _CONSTANTS = PKDict()
+    #: from_madx(): the bend types MAD-X DIPEDGEs are merged into, see
+    #: _merge_dipedges()
+    _DIPEDGE_BENDS = ()
+    #: from_madx_text(): MAD-X's variable names in lower case, see
+    #: madx_parser.parse_file()
+    _DOWNCASE_VARIABLES = False
+    #: from_madx(): the simulation's elementPosition, when the code has it
+    _ELEMENT_POSITION = None
+    #: from_madx(): remove zero length drifts, see _remove_zero_drifts()
+    _REMOVE_ZERO_DRIFTS = False
+    #: from_madx(): give thin RF cavities a length, see
+    #: _thicken_thin_cavities()
+    _THICKEN_THIN_CAVITIES = False
+    #: the code's element types: [MAD-X element type, field, ...], a field
+    #: being the same name in both or "code field=MAD-X field"; a field is
+    #: copied unchanged when the element has it, then
+    #: _from_madx_<MAD-X type>() or _to_madx_<code type>() is called, if
+    #: defined, for any other conversion (ex. units)
+    _ELEMENTS = PKDict()
+    #: MAD-X element type: the code element type made from it, see
+    #: _ELEMENTS, or None when it isn't copied (ex. DIPEDGE, which
+    #: _merge_dipedges() merges into the bend beside it)
+    _FROM_MADX = PKDict()
     #: _merge_dipedge(): a DIPEDGE's fields to the bend's, per edge
     _DIPEDGE_FIELDS = PKDict(entrance=PKDict(e1="e1"), exit=PKDict(e1="e2"))
     #: _merge_dipedge(): the bend's field for the DIPEDGE's hgap, and its
@@ -108,11 +136,19 @@ class MadxConverter:
     #: are expansions in r / length
     _THIN_CAVITY_LENGTH = 0.03
 
-    def __init__(self, sim_type, field_map, downcase_variables=False, qcall=None):
+    def __init__(self, sim_type, qcall=None):
         self.sim_type = sim_type
-        self.downcase_variables = downcase_variables
-        self.full_field_map = self._build_field_map(field_map)
         self.qcall = qcall
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        # a handler which no element type reaches, ex. a misspelled type
+        for n in dir(cls):
+            m = re.search(r"^_(from|to)_madx_(\w+)$", n)
+            if m and m.group(2).upper() not in (
+                cls._FROM_MADX if m.group(1) == "from" else cls._ELEMENTS
+            ):
+                pkdlog("{} {} matches no element type", cls.__name__, n)
 
     def fill_in_missing_constants(self, data, constants):
         import sirepo.template.madx
@@ -138,23 +174,43 @@ class MadxConverter:
         return data
 
     def from_madx(self, data):
+        """MAD-X `data` as the code's: the elements and beamlines, then the
+        steps the class attributes select (_CONSTANTS, ...), the elements
+        the handlers insert (_inserts), then _fixup_from_madx() with the
+        beam, see __beam_from_madx()"""
         from sirepo.template import madx
 
         self.__init_direction(data, madx.SIM_TYPE, self.sim_type)
-        self.field_map = self.full_field_map.from_madx
-        self.drift_type = "DRIFT"
-        return self._convert(self.__normalize_madx_beam(data))
+        self._inserts = PKDict()
+        if self._THICKEN_THIN_CAVITIES:
+            self._thicken_thin_cavities(data)
+        res = self.fill_in_missing_constants(
+            self._convert(self.__normalize_madx_beam(data)), self._CONSTANTS
+        )
+        if self._ELEMENT_POSITION:
+            res.models.simulation.elementPosition = self._ELEMENT_POSITION
+        if self._REMOVE_ZERO_DRIFTS:
+            self._remove_zero_drifts(res)
+        if self._DIPEDGE_BENDS:
+            self._merge_dipedges(data, res, self._DIPEDGE_BENDS)
+        self._insert_elements(res, self._inserts)
+        self._fixup_from_madx(data, res, self.__beam_from_madx(data))
+        return res
 
     def from_madx_text(self, text):
-        return self.from_madx(madx_parser.parse_file(text, self.downcase_variables))
+        return self.from_madx(madx_parser.parse_file(text, self._DOWNCASE_VARIABLES))
 
     def to_madx(self, data):
         from sirepo.template import madx
 
         self.__init_direction(data, self.sim_type, madx.SIM_TYPE)
-        self.field_map = self.full_field_map.to_madx
-        self.drift_type = self.full_field_map.from_madx.DRIFT[0]
-        return self._convert(data)
+        self._inserts = PKDict()
+        res = self._convert(data)
+        self._insert_elements(res, self._inserts)
+        b = self._beam_to_madx(data, res)
+        if b:
+            self.__beam_to_madx(res, b)
+        return res
 
     def to_madx_text(self, data):
         from sirepo.template import madx
@@ -213,6 +269,14 @@ class MadxConverter:
                 res[f] = v.value
         return res
 
+    def _beam_to_madx(self, data, madx):
+        """The code's beam for to_madx(), see __beam_to_madx()
+
+        Returns:
+            PKDict: None without a beam
+        """
+        return None
+
     def _beam_twiss(self, madx):
         """The beam's twiss variables present in `madx`, see
         _BEAM_TWISS_VARS
@@ -225,22 +289,6 @@ class MadxConverter:
             v = self._find_var(madx, f)
             if v:
                 res[f] = v.value
-        return res
-
-    def _build_field_map(self, field_map):
-        res = PKDict(
-            from_madx=PKDict(),
-            to_madx=PKDict(),
-        )
-        for el in field_map:
-            madx_name = el[0]
-            res.from_madx[madx_name] = el[1]
-            for idx in range(1, len(el)):
-                fields = copy.copy(el[idx])
-                name = fields[0]
-                if name not in res.to_madx:
-                    fields[0] = madx_name
-                    res.to_madx[name] = fields
         return res
 
     def _convert(self, data):
@@ -290,29 +338,10 @@ class MadxConverter:
         self.result.models.rpnVariables = res
 
     def _copy_elements(self, data):
-        for el in data.models.elements:
-            el = copy.deepcopy(el)
-            if el.type not in self.field_map:
-                pkdlog("Unhandled element type: {}", el.type)
-                el.type = self.drift_type
-                if "l" not in el:
-                    el.l = 0
-            fields = self.field_map[el.type]
-            values = PKDict(
-                name=el.name,
-                type=fields[0],
-                _id=el._id,
-            )
-            for idx in range(1, len(fields)):
-                f1 = f2 = fields[idx]
-                if "=" in fields[idx]:
-                    f1, f2 = fields[idx].split("=")
-                    if self.to_class.sim_type() == "madx":
-                        f2, f1 = f1, f2
-                values[f1] = el[f2]
-            self._fixup_element(el, values)
-            self.to_class.update_model_defaults(values, values.type)
-            self.result.models.elements.append(values)
+        for e in data.models.elements:
+            r = self.__copy_element(copy.deepcopy(e))
+            if r:
+                self.result.models.elements.append(r)
 
     def _crest_offset(self, lag):
         """MAD-X RF `lag` [turns] as the phase offset from crest [turns],
@@ -328,6 +357,11 @@ class MadxConverter:
         return None
 
     def _fixup_element(self, element_in, element_out):
+        pass
+
+    def _fixup_from_madx(self, madx, data, beam):
+        """The code's own steps after from_madx()'s, ex. its beam from
+        `beam`, see __beam_from_madx()"""
         pass
 
     def _insert_elements(self, data, inserts):
@@ -541,6 +575,94 @@ class MadxConverter:
                     i.append(it)
             bl["items"] = i
 
+    def __beam_from_madx(self, madx):
+        """The MAD-X beam's distribution, its values as MAD-X has them (ex.
+        an expression), None when MAD-X's is unset (a schema placeholder);
+        the reference particle is self.beam and self.particle_energy
+
+        Returns:
+            PKDict: dispersion (dx, dpx, dy, dpy with respect to PT, those
+            the beam has), dp_s_coupling, ex, ey [m], matched (the twiss is
+            the periodic twiss), npart (more than 1), particle_count (the
+            macro-particles), sige, sigt (c * sigma t [m]), twiss (alpha_x,
+            beta_x, alpha_y, beta_y, those the beam has)
+        """
+        v = self._find_var(madx, "dp_s_coupling")
+        n = self._val(self.beam.npart)
+        res = PKDict(
+            dispersion=self._beam_dispersion(madx),
+            dp_s_coupling=v.value if v else None,
+            matched=self._is_twiss_matched(madx),
+            npart=n if n > 1 else None,
+            particle_count=self._particle_count(madx),
+            # sige's default is a real energy spread, see _is_beam_value_set()
+            sige=self.beam.sige,
+            twiss=self._beam_twiss(madx),
+        )
+        for f in ("ex", "ey", "sigt"):
+            res[f] = self.beam[f] if self._is_beam_value_set(f) else None
+        return res
+
+    def __beam_to_madx(self, madx, beam):
+        """Set the MAD-X beam from the code's `beam` (_beam_to_madx()):
+        particle, mass [GeV], charge [e] and pc [GeV/c] the reference
+        particle, when the code doesn't set it; distribution, see
+        _madx_distribution(); dp_s_coupling, npart and particle_count (the
+        macro-particles), each when not None; and twiss, MAD-X's twiss
+        command's initial values, False for none (ex. periodic), by default
+        the distribution's twiss when it has one, see initial_twiss()
+        """
+        d = beam.get("distribution")
+        if beam.get("particle"):
+            self._madx_beam(madx, beam.particle, beam.mass, beam.charge, beam.pc, d)
+        elif d:
+            self._madx_distribution(madx, d)
+        if beam.get("dp_s_coupling") is not None:
+            self._replace_var(madx, "dp_s_coupling", beam.dp_s_coupling)
+        if beam.get("particle_count") is not None:
+            self._set_particle_count(madx, beam.particle_count)
+        if beam.get("npart") is not None:
+            LatticeUtil.find_first_command(madx, "beam").npart = beam.npart
+        t = beam.get("twiss")
+        if t:
+            initial_twiss(madx, t)
+        elif t is None and d and all(f in d for f in self._BEAM_TWISS_VARS):
+            initial_twiss(madx)
+
+    def __copy_element(self, element):
+        """`element` as the other code's, see _ELEMENTS
+
+        Returns:
+            PKDict: None when the element isn't copied, see _FROM_MADX
+        """
+        to_madx = self.to_class.sim_type() == "madx"
+        if not to_madx and self._FROM_MADX.get(element.type, "") is None:
+            return None
+        c = element.type if to_madx else self._FROM_MADX.get(element.type)
+        if c not in self._ELEMENTS:
+            pkdlog("Unhandled element type: {}", element.type)
+            c = self._FROM_MADX.DRIFT
+            element.type = c if to_madx else "DRIFT"
+            if "l" not in element:
+                element.l = 0
+        e = self._ELEMENTS[c]
+        res = PKDict(name=element.name, type=e[0] if to_madx else c, _id=element._id)
+        for f in e[1:]:
+            f, m = f.split("=") if "=" in f else (f, f)
+            s, d = (f, m) if to_madx else (m, f)
+            if s in element:
+                res[d] = element[s]
+        self._fixup_element(element, res)
+        h = getattr(
+            self,
+            f"_{'to' if to_madx else 'from'}_madx_{element.type.lower()}",
+            None,
+        )
+        if h:
+            h(element, res)
+        self.to_class.update_model_defaults(res, res.type)
+        return res
+
     def __init_direction(self, data, from_class, to_class):
         self.from_class = sirepo.sim_data.get_class(from_class)
         self.to_class = sirepo.sim_data.get_class(to_class)
@@ -619,6 +741,40 @@ class MadxConverter:
                 numpy.sin(math.pi * z / length) ** 2 * numpy.exp(1j * k * z), z
             )
         )
+
+    def _scale(self, value, op, factor):
+        """`value` times (op "*") or divided by (op "/") `factor`, a number
+        as text; an expression stays an expression, undoing a scale the
+        opposite conversion applied"""
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            u = " {} {}".format("/" if op == "*" else "*", factor)
+            if str(value).endswith(u):
+                return value[: -len(u)]
+            return f"{value} {op} {factor}"
+        return v * float(factor) if op == "*" else v / float(factor)
+
+    def _skew_as_tilt(self, element_in, element_out, order):
+        """A MAD-X multipole's normal and skew strength (ex. k1 and k1s,
+        order 1) as a normal strength rotated by tilt"""
+        n = f"k{order}"
+        k = self._val(element_in[n])
+        ks = self._val(element_in[f"{n}s"])
+        if ks:
+            element_out[n] = math.hypot(k, ks)
+            element_out.tilt = self._val(element_in.tilt) + math.atan2(ks, k) / (
+                order + 1
+            )
+
+    def _slices(self, value, per_slice, minimum):
+        """Slices of at most `per_slice` of `value` (ex. a bend's angle)
+
+        Returns:
+            int: None when not more than `minimum`
+        """
+        res = math.ceil(abs(value) / per_slice)
+        return res if res > minimum else None
 
     def _thicken_thin_cavities(self, madx):
         """Give each zero length RFCAVITY of `madx` _THIN_CAVITY_LENGTH,
