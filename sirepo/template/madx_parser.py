@@ -66,12 +66,12 @@ class MadXParser(lattice.LatticeParser):
         super().__init__(sirepo.sim_data.get_class("madx"))
 
     def parse_file(self, lattice_text, downcase_variables=False):
-        from sirepo.template import madx
+        import sirepo.template.madx
 
         lattice_text = re.sub(r",\s*,", ",", lattice_text)
         res = super().parse_file(lattice_text)
         self._add_variables_for_lattice_references()
-        cv = madx.code_var(self.data.models.rpnVariables)
+        cv = sirepo.template.madx.code_var(self.data.models.rpnVariables)
         self._code_variables_to_float(cv)
         self.__convert_sequences_to_beamlines(cv)
         self._set_default_beamline("use", "sequence", "period")
@@ -165,31 +165,40 @@ def _fixup_beam_vars(madx):
     sr_dx, ..., sr_n_particles_per_bunch), the bunch's, and
     sr_match_twiss_parameters = 1 when the twiss is matched (periodic)
     """
-    from sirepo.template import madx as madx_template
+    import sirepo.template.madx
+    import sirepo.template.madx_converter
+
+    def _is_var(name):
+        return sirepo.template.madx_converter.beam_var(name) in n
+
+    def _val(name):
+        return float(
+            cv.eval_var_with_assert(sirepo.template.madx_converter.beam_var(name))
+        )
 
     n = set(v.name for v in madx.models.rpnVariables)
-    cv = madx_template.code_var(madx.models.rpnVariables)
-    if "sr_n_particles_per_bunch" in n:
-        s = madx_template.SCHEMA.model.bunch.numberOfParticles
+    cv = sirepo.template.madx.code_var(madx.models.rpnVariables)
+    if _is_var(sirepo.template.madx_converter.PARTICLE_COUNT_VAR):
+        s = sirepo.template.madx.SCHEMA.model.bunch.numberOfParticles
         madx.models.bunch.numberOfParticles = min(
             max(
-                int(round(float(cv.eval_var_with_assert("sr_n_particles_per_bunch")))),
+                int(round(_val(sirepo.template.madx_converter.PARTICLE_COUNT_VAR))),
                 s[4],
             ),
             s[5],
         )
-    for f in ("dpx", "dpy", "dx", "dy"):
-        if f"sr_{f}" in n:
-            madx.models.bunch[f] = float(cv.eval_var_with_assert(f"sr_{f}"))
-    if "sr_match_twiss_parameters" in n:
+    for f in sirepo.template.madx_converter.BEAM_DISPERSION_VARS:
+        if _is_var(f):
+            madx.models.bunch[f] = _val(f)
+    if _is_var(sirepo.template.madx_converter.MATCH_TWISS_VAR):
         madx.models.bunch.matchTwissParameters = (
-            "1" if float(cv.eval_var_with_assert("sr_match_twiss_parameters")) else "0"
+            "1" if _val(sirepo.template.madx_converter.MATCH_TWISS_VAR) else "0"
         )
-    if not all(f"sr_{f}_{d}" in n for f in ("alpha", "beta") for d in ("x", "y")):
+    if not all(_is_var(f) for f in sirepo.template.madx_converter.BEAM_TWISS_VARS):
         return
     for d in ("x", "y"):
         for f, m in (("alpha", "alf"), ("beta", "bet")):
-            madx.models.bunch[f"{m}{d}"] = float(cv.eval_var_with_assert(f"sr_{f}_{d}"))
+            madx.models.bunch[f"{m}{d}"] = _val(f"{f}_{d}")
 
 
 def _fixup_madx(madx):

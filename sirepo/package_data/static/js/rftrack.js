@@ -100,11 +100,11 @@ SIREPO.app.directive('bpmTablePanel', function(plotting) {
     };
 });
 
-SIREPO.app.factory('rftrackService', function(appDataService, appState) {
+SIREPO.app.factory('rftrackService', function(appState) {
     const self = {};
 
-    // the settings menu's "Export as MAD-X lattice"
-    appDataService.canExportMadx = () => self.isLattice();
+    // the settings menu's "Export as MAD-X lattice", see settingsMenu
+    self.canExportMadx = () => self.isLattice();
 
     self.computeModel = () => 'animation';
 

@@ -16,7 +16,6 @@ from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template import track_parser
 from sirepo.template.lattice import LatticeUtil
-from sirepo.template.madx_converter import MadxConverter
 import math
 import numpy
 import re
@@ -162,7 +161,7 @@ class OpalOutputFileIterator(lattice.ModelIterator):
             self.model_index[self.model_name] = 1
 
 
-class OpalMadxConverter(MadxConverter):
+class OpalMadxConverter(sirepo.template.madx_converter.MadxConverter):
     # MadxConverter's settings, see MadxConverter
     _CONSTANTS = _OPAL_CONSTANTS
     _DIPEDGE_BENDS = ("SBEND", "RBEND")
@@ -245,7 +244,189 @@ class OpalMadxConverter(MadxConverter):
     def __init__(self, qcall, **kwargs):
         super().__init__(SIM_TYPE, qcall=qcall, **kwargs)
 
-    def to_madx(self, data):
+    def _beam_to_madx(self, data, madx):
+        """OPAL's energy and particle as written, then its beam"""
+        mb = LatticeUtil.find_first_command(madx, "beam")
+        ob = LatticeUtil.find_first_command(data, "beam")
+        for f in ob:
+            # OPAL's npart is the macro-particle count, MAD-X's the bunch's;
+            # OPAL's mass and charge default to 0, the particle's in MAD-X
+            if (
+                f in mb
+                and f in SCHEMA.model.command_beam
+                and f
+                not in (
+                    "charge",
+                    "mass",
+                    "npart",
+                )
+            ):
+                mb[f] = ob[f]
+                if f in ("gamma", "energy", "pc") and mb[f]:
+                    madx.models.bunch.beamDefinition = f
+        mb.particle = self._particle_to_madx(ob.particle)
+        if mb.particle == "other":
+            mb.particle = self._madx_particle(self.beam.mass, self.beam.charge)
+        if mb.particle == "other":
+            # ex. CARBON, or MASS and CHARGE
+            mb.mass = self.beam.mass
+            mb.charge = self.beam.charge
+        return self._beam_for_madx(
+            npart=(
+                # bunch charge [C] to particles
+                self._val(ob.bcurrent)
+                / (self._val(ob.bfreq) * 1e6)
+                / scipy.constants.e
+                / abs(self.beam.charge)
+                if self._val(ob.bcurrent) and self._val(ob.bfreq)
+                else None
+            ),
+            particle_count=self._val(ob.npart) or None,
+            **self.__madx_distribution(data),
+        )
+
+    def _element_handlers(self):
+        return PKDict(
+            from_madx=PKDict(
+                COLLIMATOR=self._from_madx_collimator,
+                MULTIPOLE=self._from_madx_multipole,
+                OCTUPOLE=self._from_madx_quadrupole,
+                QUADRUPOLE=self._from_madx_quadrupole,
+                RBEND=self._from_madx_rbend,
+                RFCAVITY=self._from_madx_rfcavity,
+                SBEND=self._from_madx_sbend,
+                SEXTUPOLE=self._from_madx_quadrupole,
+                SOLENOID=self._from_madx_solenoid,
+                TWCAVITY=self._from_madx_twcavity,
+            ),
+            to_madx=PKDict(
+                MULTIPOLE=self._to_madx_multipole,
+                OCTUPOLE=self._to_madx_quadrupole,
+                QUADRUPOLE=self._to_madx_quadrupole,
+                RBEND=self._to_madx_rbend,
+                RFCAVITY=self._to_madx_rfcavity,
+                SBEND=self._to_madx_sbend,
+                SEXTUPOLE=self._to_madx_quadrupole,
+                SOLENOID=self._to_madx_solenoid,
+                TRAVELINGWAVE=self._to_madx_travelingwave,
+            ),
+        )
+
+    def _fixup_element(self, element_in, element_out):
+        super()._fixup_element(element_in, element_out)
+        if self.from_class.sim_type() == SIM_TYPE:
+            self.__aperture_to_madx(element_in, element_out)
+        elif element_in.type not in ("COLLIMATOR", "RBEND", "SBEND"):
+            # OPAL refuses APERTURE on a bend, see __bend_gap()
+            self.__aperture_from_madx(element_in, element_out)
+
+    def _fixup_from_madx(self, madx, data, beam):
+        mb = LatticeUtil.find_first_command(madx, "beam")
+        LatticeUtil.find_first_command(data, "option").version = 20000
+        b = LatticeUtil.find_first_command(data, "beam")
+        b.particle = self._particle_from_madx(mb.particle) or ""
+        if not b.particle:
+            b.mass = self.beam.mass
+            b.charge = self.beam.charge
+        LatticeUtil.find_first_command(data, "beam").pc = self.particle_energy.pc
+        t = LatticeUtil.find_first_command(data, "track")
+        t.line = data.models.simulation.visualizationBeamlineId
+        # track to the end of the beamline, as opal.js updateZStop(): the
+        # design path, so MAD-X's arc lengths (ids are the same)
+        u = LatticeUtil(madx, self.from_class.schema())
+        t.zstop = round(
+            sum(
+                self._val(u.get_item(abs(i)).get("l", 0))
+                for i in u.explode_beamline(t.line)
+            ),
+            6,
+        )
+        self.__fixup_distribution(madx, data, beam)
+        for b, c in self.__rf_field_maps.items():
+            _SIM_DATA.lib_file_write(
+                _SIM_DATA.lib_file_name_with_model_field("RFCAVITY", "fmapfn", b),
+                c,
+                qcall=self.qcall,
+            )
+        _default_lattice_overlay(data)
+
+    def _fixup_to_madx(self, data, madx):
+        # OPAL's built-in constants the beam or lattice use
+        self.__madx_constants(madx)
+
+    def _from_madx_collimator(self, element_in, element_out):
+        a = self._aperture(element_in)
+        if a:
+            element_out.xsize = a.x
+            element_out.ysize = a.y
+            if a.apertype == "rectangle":
+                element_out.type = "RCOLLIMATOR"
+        if not self._val(element_in.l):
+            pkdlog(
+                "COLLIMATOR={} has zero length, which OPAL-T doesn't apply",
+                element_in.name,
+            )
+
+    def _from_madx_multipole(self, element_in, element_out):
+        pkdlog(
+            "thin MULTIPOLE={} has no OPAL equivalent, replaced by a MARKER",
+            element_in.name,
+        )
+        element_out.type = "MARKER"
+
+    def _from_madx_quadrupole(self, element_in, element_out):
+        for f in self.__multipole_fields(element_in.type):
+            element_out[f] = self.__to_brho(element_out[f])
+
+    def _from_madx_rbend(self, element_in, element_out):
+        self.__bend_design(element_in, element_out)
+
+    def _from_madx_rfcavity(self, element_in, element_out):
+        # OPAL's lag [rad] is relative to the autophased crest
+        element_out.lag = 2 * math.pi * self._crest_offset(element_in.lag)
+        m = self.__rf_field_map(element_in)
+        if m:
+            element_out.fmapfn = m.basename
+            element_out.rfcavity_type = "STANDING"
+            # MV to the field map's peak [MV/m]
+            element_out.volt = self._val(element_in.volt) / m.gain
+            self.__rf_field_maps[m.basename] = m.content
+        else:
+            pkdlog(
+                "RFCAVITY={} without length or frequency has no OPAL field map, replaced by a DRIFT",
+                element_in.name,
+            )
+            element_out.type = "DRIFT"
+
+    def _from_madx_sbend(self, element_in, element_out):
+        angle = self._val(element_in.angle)
+        if angle != 0:
+            # MAD-X's arc length to OPAL's chord length
+            length = self._val(element_in.l)
+            d1 = 2 * length / angle
+            element_out.l = d1 * math.sin(length / d1)
+        self.__bend_design(element_in, element_out)
+
+    def _from_madx_solenoid(self, element_in, element_out):
+        element_out.ks = self.__to_brho(element_out.ks)
+
+    def _from_madx_twcavity(self, element_in, element_out):
+        # OPAL's lag [rad] is relative to the autophased crest
+        element_out.lag = 2 * math.pi * self._crest_offset(element_in.lag)
+        # MV to MV/m
+        l = self._val(element_in.l)
+        if l:
+            element_out.volt = self._val(element_in.volt) / l
+
+    def _init_from_madx(self, madx):
+        # the RF cavities' field maps: written by _from_madx_rfcavity(),
+        # saved by _fixup_from_madx()
+        self.__rf_field_maps = PKDict()
+
+    def _init_to_madx(self, data):
+        """OPAL's absolute positions as relative ones, with drifts between
+        elements, and its beam's energy"""
+
         def _get_element_by_id(data, id):
             for e in data.models.elements:
                 if e._id == id:
@@ -343,159 +524,6 @@ class OpalMadxConverter(MadxConverter):
             for j, b in enumerate(data.models.beamlines):
                 _get_distance_and_insert_drift(b, j)
         self.__normalize_opal_beam(data)
-        madx = super().to_madx(data)
-        # OPAL's built-in constants the beam or lattice use
-        self.__madx_constants(madx)
-        return madx
-
-    def from_madx(self, madx):
-        # written by _fixup_from_madx()
-        self.__rf_field_maps = PKDict()
-        return super().from_madx(madx)
-
-    def _beam_to_madx(self, data, madx):
-        """OPAL's energy and particle as written, then its beam"""
-        mb = LatticeUtil.find_first_command(madx, "beam")
-        ob = LatticeUtil.find_first_command(data, "beam")
-        for f in ob:
-            # OPAL's npart is the macro-particle count, MAD-X's the bunch's;
-            # OPAL's mass and charge default to 0, the particle's in MAD-X
-            if (
-                f in mb
-                and f in SCHEMA.model.command_beam
-                and f
-                not in (
-                    "charge",
-                    "mass",
-                    "npart",
-                )
-            ):
-                mb[f] = ob[f]
-                if f in ("gamma", "energy", "pc") and mb[f]:
-                    madx.models.bunch.beamDefinition = f
-        mb.particle = self._particle_to_madx(ob.particle)
-        if mb.particle == "other":
-            mb.particle = self._madx_particle(self.beam.mass, self.beam.charge)
-        if mb.particle == "other":
-            # ex. CARBON, or MASS and CHARGE
-            mb.mass = self.beam.mass
-            mb.charge = self.beam.charge
-        res = self.__madx_distribution(data)
-        if self._val(ob.npart):
-            res.particle_count = self._val(ob.npart)
-        if self._val(ob.bcurrent) and self._val(ob.bfreq):
-            # bunch charge [C] to particles
-            res.npart = (
-                self._val(ob.bcurrent)
-                / (self._val(ob.bfreq) * 1e6)
-                / scipy.constants.e
-                / abs(self.beam.charge)
-            )
-        return res
-
-    def _fixup_element(self, element_in, element_out):
-        super()._fixup_element(element_in, element_out)
-        if self.from_class.sim_type() == SIM_TYPE:
-            self.__aperture_to_madx(element_in, element_out)
-        elif element_in.type not in ("COLLIMATOR", "RBEND", "SBEND"):
-            # OPAL refuses APERTURE on a bend, see __bend_gap()
-            self.__aperture_from_madx(element_in, element_out)
-
-    def _fixup_from_madx(self, madx, data, beam):
-        mb = LatticeUtil.find_first_command(madx, "beam")
-        LatticeUtil.find_first_command(data, "option").version = 20000
-        b = LatticeUtil.find_first_command(data, "beam")
-        b.particle = self._particle_from_madx(mb.particle) or ""
-        if not b.particle:
-            b.mass = self.beam.mass
-            b.charge = self.beam.charge
-        LatticeUtil.find_first_command(data, "beam").pc = self.particle_energy.pc
-        t = LatticeUtil.find_first_command(data, "track")
-        t.line = data.models.simulation.visualizationBeamlineId
-        # track to the end of the beamline, as opal.js updateZStop(): the
-        # design path, so MAD-X's arc lengths (ids are the same)
-        u = LatticeUtil(madx, self.from_class.schema())
-        t.zstop = round(
-            sum(
-                self._val(u.get_item(abs(i)).get("l", 0))
-                for i in u.explode_beamline(t.line)
-            ),
-            6,
-        )
-        self.__fixup_distribution(madx, data, beam)
-        for b, c in self.__rf_field_maps.items():
-            _SIM_DATA.lib_file_write(
-                _SIM_DATA.lib_file_name_with_model_field("RFCAVITY", "fmapfn", b),
-                c,
-                qcall=self.qcall,
-            )
-        _default_lattice_overlay(data)
-
-    def _from_madx_collimator(self, element_in, element_out):
-        a = self._aperture(element_in)
-        if a:
-            element_out.xsize = a.x
-            element_out.ysize = a.y
-            if a.apertype == "rectangle":
-                element_out.type = "RCOLLIMATOR"
-        if not self._val(element_in.l):
-            pkdlog(
-                "COLLIMATOR={} has zero length, which OPAL-T doesn't apply",
-                element_in.name,
-            )
-
-    def _from_madx_multipole(self, element_in, element_out):
-        pkdlog(
-            "thin MULTIPOLE={} has no OPAL equivalent, replaced by a MARKER",
-            element_in.name,
-        )
-        element_out.type = "MARKER"
-
-    def _from_madx_quadrupole(self, element_in, element_out):
-        for f in self.__multipole_fields(element_in.type):
-            element_out[f] = self.__to_brho(element_out[f])
-
-    _from_madx_octupole = _from_madx_sextupole = _from_madx_quadrupole
-
-    def _from_madx_rbend(self, element_in, element_out):
-        self.__bend_design(element_in, element_out)
-
-    def _from_madx_rfcavity(self, element_in, element_out):
-        # OPAL's lag [rad] is relative to the autophased crest
-        element_out.lag = 2 * math.pi * self._crest_offset(element_in.lag)
-        m = self.__rf_field_map(element_in)
-        if m:
-            element_out.fmapfn = m.basename
-            element_out.rfcavity_type = "STANDING"
-            # MV to the field map's peak [MV/m]
-            element_out.volt = self._val(element_in.volt) / m.gain
-            self.__rf_field_maps[m.basename] = m.content
-        else:
-            pkdlog(
-                "RFCAVITY={} without length or frequency has no OPAL field map, replaced by a DRIFT",
-                element_in.name,
-            )
-            element_out.type = "DRIFT"
-
-    def _from_madx_sbend(self, element_in, element_out):
-        angle = self._val(element_in.angle)
-        if angle != 0:
-            # MAD-X's arc length to OPAL's chord length
-            length = self._val(element_in.l)
-            d1 = 2 * length / angle
-            element_out.l = d1 * math.sin(length / d1)
-        self.__bend_design(element_in, element_out)
-
-    def _from_madx_solenoid(self, element_in, element_out):
-        element_out.ks = self.__to_brho(element_out.ks)
-
-    def _from_madx_twcavity(self, element_in, element_out):
-        # OPAL's lag [rad] is relative to the autophased crest
-        element_out.lag = 2 * math.pi * self._crest_offset(element_in.lag)
-        # MV to MV/m
-        l = self._val(element_in.l)
-        if l:
-            element_out.volt = self._val(element_in.volt) / l
 
     def _to_madx_multipole(self, element_in, element_out):
         # thick [T/m^n] to a thin kick between half length drifts
@@ -509,13 +537,11 @@ class OpalMadxConverter(MadxConverter):
         if l:
             element_out.lrad = l
             d = PKDict(name=f"{element_in.name}_D", type="DRIFT", l=l / 2)
-            self._inserts[element_out._id] = PKDict(before=[d], after=[d])
+            self._add_inserts(element_out._id, before=[d], after=[d])
 
     def _to_madx_quadrupole(self, element_in, element_out):
         for f in self.__multipole_fields(element_in.type):
             element_out[f] = self.__from_brho(element_in[f])
-
-    _to_madx_octupole = _to_madx_sextupole = _to_madx_quadrupole
 
     def _to_madx_rbend(self, element_in, element_out):
         element_out.hgap = self._val(element_in.gap) / 2
@@ -632,26 +658,27 @@ class OpalMadxConverter(MadxConverter):
             )
         if not (d.get("dx") or d.get("dpx")):
             return
-        twiss = beam.twiss
-        if not ("beta_x" in twiss and beam.ex is not None):
+        if not ("beta_x" in beam.twiss and beam.ex is not None):
             pkdlog("OPAL beam without twiss, dropped dispersion={}", d)
             return
         b = self.particle_energy.beta
         # MAD-X's dispersion (with respect to PT) to eta (with respect to
         # delta = dp / p), and sigma E / E to sigma delta
-        eta = d.get("dx", 0) * b
-        etap = d.get("dpx", 0) * b
-        sd = self._val(beam.sige) / b**2
-        e = self._val(beam.ex)
-        a = self._val(twiss.alpha_x)
-        bx = self._val(twiss.beta_x)
-        sx = math.sqrt(e * bx + (eta * sd) ** 2)
-        sxp = math.sqrt(e * (1 + a**2) / bx + (etap * sd) ** 2)
-        dist.sigmax = sx
-        dist.sigmapx = sxp * beta_gamma
-        dist.corrx = (-e * a + eta * etap * sd**2) / (sx * sxp)
-        dist.r61 = eta * sd / sx
-        dist.r62 = etap * sd / sxp
+        v = PKDict(
+            eta=d.get("dx", 0) * b,
+            etap=d.get("dpx", 0) * b,
+            sd=self._val(beam.sige) / b**2,
+            e=self._val(beam.ex),
+            a=self._val(beam.twiss.alpha_x),
+            bx=self._val(beam.twiss.beta_x),
+        )
+        v.sx = math.sqrt(v.e * v.bx + (v.eta * v.sd) ** 2)
+        v.sxp = math.sqrt(v.e * (1 + v.a**2) / v.bx + (v.etap * v.sd) ** 2)
+        dist.sigmax = v.sx
+        dist.sigmapx = v.sxp * beta_gamma
+        dist.corrx = (-v.e * v.a + v.eta * v.etap * v.sd**2) / (v.sx * v.sxp)
+        dist.r61 = v.eta * v.sd / v.sx
+        dist.r62 = v.etap * v.sd / v.sxp
 
     def __fixup_distribution(self, madx, data, beam):
         mb = LatticeUtil.find_first_command(madx, "beam")
@@ -786,44 +813,68 @@ class OpalMadxConverter(MadxConverter):
         def _val(field):
             return cv.eval_var_with_assert(d[field])
 
-        e = self.particle_energy
-        bg = e.beta * e.gamma
         # sigma (beta * gamma) to sigma delta = sigma p / p
-        sd = _val("sigmapz") / bg
+        sd = _val("sigmapz") / (self.particle_energy.beta * self.particle_energy.gamma)
         res = PKDict(
             # the bunch length in z to c * sigma t, sigma delta to sigma E / E
-            sigt=_val("sigmaz") / e.beta,
-            sige=sd * e.beta**2,
+            sigt=_val("sigmaz") / self.particle_energy.beta,
+            sige=sd * self.particle_energy.beta**2,
         )
         for dim in ("x", "y"):
-            s = _val(f"sigma{dim}")
-            # sigma (beta * gamma) to sigma x'
-            sp = _val(f"sigmap{dim}") / bg
-            eta = etap = 0
-            if dim == "x" and sd:
-                # OPAL has only horizontal dispersion
-                eta = _val("r61") * s / sd
-                etap = _val("r62") * sp / sd
-            # second moments without the dispersion's
-            xx = s**2 - (eta * sd) ** 2
-            pp = sp**2 - (etap * sd) ** 2
-            xp = _val(f"corr{dim}") * s * sp - eta * etap * sd**2
-            m = math.sqrt(max(xx * pp - xp**2, 0))
-            if not m:
+            p = self.__madx_plane(dim, _val, sd)
+            if not p:
                 pkdlog("OPAL distribution has no {} emittance, not exported", dim)
                 return PKDict()
-            res[f"e{dim}"] = m
-            res[f"alpha_{dim}"] = -xp / m if xp else 0.0
-            res[f"beta_{dim}"] = xx / m
-            if eta or etap:
-                # with respect to delta to with respect to PT
-                res[f"d{dim}"] = eta / e.beta
-                res[f"dp{dim}"] = etap / e.beta
+            res.update(p)
         # a line, its twiss starts with the beam's
         return PKDict(
             distribution=res,
             dp_s_coupling=_val("corrz") or None,
         )
+
+    def __madx_plane(self, dim, val, sigma_delta):
+        """One plane of OPAL's GAUSS distribution as the MAD-X beam's, see
+        __madx_distribution()
+
+        Args:
+            dim (str): x or y
+            val (function): the distribution's field's value
+            sigma_delta (float): sigma p / p
+        Returns:
+            PKDict: e<dim>, alpha_<dim>, beta_<dim>, and d<dim>, dp<dim>
+            with dispersion; empty without an emittance
+        """
+        e = self.particle_energy
+        v = PKDict(
+            s=val(f"sigma{dim}"),
+            # sigma (beta * gamma) to sigma x'
+            sp=val(f"sigmap{dim}") / (e.beta * e.gamma),
+            eta=0,
+            etap=0,
+        )
+        if dim == "x" and sigma_delta:
+            # OPAL has only horizontal dispersion
+            v.eta = val("r61") * v.s / sigma_delta
+            v.etap = val("r62") * v.sp / sigma_delta
+        # second moments without the dispersion's
+        v.xx = v.s**2 - (v.eta * sigma_delta) ** 2
+        v.pp = v.sp**2 - (v.etap * sigma_delta) ** 2
+        v.xp = val(f"corr{dim}") * v.s * v.sp - v.eta * v.etap * sigma_delta**2
+        v.m = math.sqrt(max(v.xx * v.pp - v.xp**2, 0))
+        if not v.m:
+            return PKDict()
+        res = PKDict(
+            {
+                f"e{dim}": v.m,
+                f"alpha_{dim}": -v.xp / v.m if v.xp else 0.0,
+                f"beta_{dim}": v.xx / v.m,
+            }
+        )
+        if v.eta or v.etap:
+            # with respect to delta to with respect to PT
+            res[f"d{dim}"] = v.eta / e.beta
+            res[f"dp{dim}"] = v.etap / e.beta
+        return res
 
     def __multipole_fields(self, element_type):
         n = self._MULTIPOLE_ORDER[element_type]
@@ -889,7 +940,7 @@ class OpalMadxConverter(MadxConverter):
             gain=(
                 abs(numpy.trapezoid(e * numpy.exp(1j * k * z), z))
                 if n
-                else self._rf_gap_gain(l, f * 1e6)
+                else self._rf_gap_gain(l, f * 1e6, self.particle_energy.beta)
             ),
         )
 

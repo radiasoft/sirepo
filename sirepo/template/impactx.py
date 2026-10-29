@@ -11,12 +11,12 @@ from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import hdf5_util
 from sirepo.template import template_common
-from sirepo.template.madx_converter import MadxConverter
 import numpy
 import pandas
 import sirepo.lib
 import sirepo.sim_data
 import sirepo.template.lattice
+import sirepo.template.madx_converter
 import sirepo.template.sdds_util
 
 FINAL_DISTRIBUTION_OUTPUT_FILE = "diags/final_distribution.h5"
@@ -68,7 +68,7 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
         return PKDict()
 
 
-class ImpactxMadxConverter(MadxConverter):
+class ImpactxMadxConverter(sirepo.template.madx_converter.MadxConverter):
     # MadxConverter's settings, see MadxConverter
     _DOWNCASE_VARIABLES = True
     _REMOVE_ZERO_DRIFTS = True
@@ -100,6 +100,19 @@ class ImpactxMadxConverter(MadxConverter):
     def __init__(self, qcall=None, nslice=1, **kwargs):
         super().__init__(SIM_TYPE, qcall=qcall, **kwargs)
         self.nslice = nslice
+
+    def _element_handlers(self):
+        return PKDict(
+            from_madx=PKDict(
+                COLLIMATOR=self._from_madx_collimator,
+                DIPEDGE=self._from_madx_dipedge,
+                QUADRUPOLE=self._from_madx_quadrupole,
+                RFCAVITY=self._from_madx_rfcavity,
+                SBEND=self._from_madx_sbend,
+                SOLENOID=self._from_madx_solenoid,
+            ),
+            to_madx=PKDict(),
+        )
 
     def _fixup_element(self, element_in, element_out):
         super()._fixup_element(element_in, element_out)

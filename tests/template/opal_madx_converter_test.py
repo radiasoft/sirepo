@@ -13,6 +13,7 @@ def test_opal_from_madx_and_back():
     from sirepo import srunit
     from sirepo.template import opal
     from sirepo.template.opal import OpalMadxConverter
+    import sirepo.sim_data
 
     with srunit.quest_start(want_user=True) as qcall:
         data = OpalMadxConverter(qcall=qcall).from_madx_text(
@@ -25,7 +26,7 @@ def test_opal_from_madx_and_back():
         # RFCAVITY's generated field map
         pkunit.pkre(
             r"^1DDynamic 521\n0 50 1301\n1300\n",
-            opal._SIM_DATA.lib_file_read_text(
+            sirepo.sim_data.get_class("opal").lib_file_read_text(
                 "RFCAVITY-fmapfn.madx-rfcavity-0.5m-1300MHz.txt",
                 qcall=qcall,
             ),

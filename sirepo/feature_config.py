@@ -45,6 +45,8 @@ FOSS_CODES = frozenset(
 _ALL_CODES = "DEFAULT"
 
 #: Codes which can be converted to each other through MAD-X
+# POSIT: sirepo.template.madx_converter._converter() has a converter for each
+# but madx
 LATTICE_CONVERSION_CODES = frozenset(("elegant", "madx", "opal", "rftrack"))
 
 #: Configuration

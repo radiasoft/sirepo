@@ -8,7 +8,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 from sirepo import simulation_db
 from sirepo.template import code_variable, template_common
-from sirepo.template.madx_converter import MadxConverter
 import beamphysics
 import copy
 import lume_rftrack.utils
@@ -151,7 +150,7 @@ _STAT_LABELS = PKDict(
 _VERBOSITY_T_RE = re.compile(r"t = ([0-9.eE+-]+) mm/c")
 
 
-class RftrackMadxConverter(MadxConverter):
+class RftrackMadxConverter(sirepo.template.madx_converter.MadxConverter):
     """MAD-X to RF-Track: the lattice becomes a single flattened,
     sequential (Lattice) beamline. RF-Track to MAD-X: a Sequential
     (Lattice) simulation only, field maps become drifts.
@@ -210,49 +209,32 @@ class RftrackMadxConverter(MadxConverter):
     def __init__(self, qcall=None, **kwargs):
         super().__init__(SIM_TYPE, qcall=qcall, **kwargs)
 
-    def to_madx(self, data):
-        if data.models.simulation.elementPosition != "relative":
-            raise sirepo.util.UserAlert(
-                "Only a Sequential (Lattice) simulation can be converted",
-                "rftrack elementPosition={} to MAD-X",
-                data.models.simulation.elementPosition,
-            )
-        self.vars = code_var(data.models.rpnVariables)
-        b = data.models.beam
-        self.__autophase = data.models.simulationSettings.autophase == "1"
-        self.__charge = 1 if self._val(b.charge) > 0 else -1
-        # MeV/c to T*m
-        self.__brho = (
-            self._val(b.pc) * 1e6 / scipy.constants.c / abs(self._val(b.charge))
-        )
-        # for _rf_gap_gain()
-        self.particle_energy = PKDict(
-            beta=self._val(b.pc) / math.hypot(self._val(b.pc), self._val(b.mass))
-        )
-        return super().to_madx(data)
-
     def _beam_to_madx(self, data, madx):
         b = data.models.beam
         # MeV to GeV
-        res = PKDict(
+        r = PKDict(
             particle=self._particle_to_madx(b.particle),
             mass=self._val(b.mass) * 1e-3,
             charge=self._val(b.charge),
             pc=self._val(b.pc) * 1e-3,
         )
         if b.distributionType != "twiss":
-            return res
+            return self._beam_for_madx(reference=r)
         bg = self._val(b.pc) / self._val(b.mass)
         # a Lattice is a line, its twiss starts with the beam's
-        return res.pkupdate(
+        return self._beam_for_madx(
+            reference=r,
             distribution=PKDict(
                 # normalized [mm-mrad] to geometric [m]
                 ex=self._val(b.emit_x) * 1e-6 / bg,
                 ey=self._val(b.emit_y) * 1e-6 / bg,
                 # mm/c to m, sigma dE / (P c) [permille] to sigma E / E
                 sigt=self._val(b.sigma_t) * 1e-3,
-                sige=self._val(b.sigma_pt) * self.particle_energy.beta * 1e-3,
-                **{f: self._val(b[f]) for f in self._BEAM_TWISS_VARS},
+                sige=self._val(b.sigma_pt) * self.__beta * 1e-3,
+                **{
+                    f: self._val(b[f])
+                    for f in sirepo.template.madx_converter.BEAM_TWISS_VARS
+                },
                 **{f: b[d] for f, d in self._DISP_FIELDS.items() if self._val(b[d])},
             ),
             npart=self._val(b.charge_nC)
@@ -260,6 +242,28 @@ class RftrackMadxConverter(MadxConverter):
             / scipy.constants.e
             / abs(self._val(b.charge)),
             particle_count=self._val(b.np),
+        )
+
+    def _element_handlers(self):
+        return PKDict(
+            from_madx=PKDict(
+                ECOLLIMATOR=self._from_madx_ecollimator,
+                HKICKER=self._from_madx_hkicker,
+                KICKER=self._from_madx_kicker,
+                QUADRUPOLE=self._from_madx_quadrupole,
+                RCOLLIMATOR=self._from_madx_ecollimator,
+                RFCAVITY=self._from_madx_rfcavity,
+                SEXTUPOLE=self._from_madx_sextupole,
+                SOLENOID=self._from_madx_solenoid,
+                VKICKER=self._from_madx_vkicker,
+            ),
+            to_madx=PKDict(
+                CAVITY=self._to_madx_cavity,
+                CORRECTOR=self._to_madx_corrector,
+                QUADRUPOLE=self._to_madx_quadrupole,
+                SEXTUPOLE=self._to_madx_sextupole,
+                SOLENOID=self._to_madx_solenoid,
+            ),
         )
 
     def _fixup_element(self, element_in, element_out):
@@ -300,8 +304,6 @@ class RftrackMadxConverter(MadxConverter):
     def _from_madx_quadrupole(self, element_in, element_out):
         element_out.strengthType = "k1"
 
-    _from_madx_rcollimator = _from_madx_ecollimator
-
     def _from_madx_rfcavity(self, element_in, element_out):
         l = self._val(element_in.l)
         f = self._val(element_in.freq) * 1e6
@@ -317,7 +319,9 @@ class RftrackMadxConverter(MadxConverter):
         w = scipy.constants.c / (2 * f)
         if l < w / 2:
             # the generated script's single gap, sin^2(pi z / l)
-            element_out.gradient = self._val(element_in.volt) / self._rf_gap_gain(l, f)
+            element_out.gradient = self._val(element_in.volt) / self._rf_gap_gain(
+                l, f, self.particle_energy.beta
+            )
             return
         # the generated script's pi-mode structure is a whole number of
         # half wavelength cells, gaining gradient * length / 2 on crest
@@ -330,7 +334,7 @@ class RftrackMadxConverter(MadxConverter):
                 d = PKDict(
                     name=f"{element_in.name}_D", type="DRIFT", l=(l - element_out.l) / 2
                 )
-                self._inserts[element_out._id] = PKDict(before=[d], after=[d])
+                self._add_inserts(element_out._id, before=[d], after=[d])
         if not n:
             n = 1
             pkdlog(
@@ -351,6 +355,23 @@ class RftrackMadxConverter(MadxConverter):
     def _from_madx_vkicker(self, element_in, element_out):
         self.__corrector(element_out, v=element_in.kick)
 
+    def _init_to_madx(self, data):
+        if data.models.simulation.elementPosition != "relative":
+            raise sirepo.util.UserAlert(
+                "Only a Sequential (Lattice) simulation can be converted",
+                "rftrack elementPosition={} to MAD-X",
+                data.models.simulation.elementPosition,
+            )
+        b = data.models.beam
+        self.__autophase = data.models.simulationSettings.autophase == "1"
+        # v / c, for _rf_gap_gain()
+        self.__beta = self._val(b.pc) / math.hypot(self._val(b.pc), self._val(b.mass))
+        # MeV/c to T*m
+        self.__brho = (
+            self._val(b.pc) * 1e6 / scipy.constants.c / abs(self._val(b.charge))
+        )
+        self.__charge = 1 if self._val(b.charge) > 0 else -1
+
     def _to_madx_cavity(self, element_in, element_out):
         if self.__is_field_map(element_in):
             return
@@ -359,7 +380,9 @@ class RftrackMadxConverter(MadxConverter):
         w = scipy.constants.c / (2 * f)
         if l < w / 2:
             # the generated script's single gap
-            element_out.volt = self._val(element_in.gradient) * self._rf_gap_gain(l, f)
+            element_out.volt = self._val(element_in.gradient) * self._rf_gap_gain(
+                l, f, self.__beta
+            )
         else:
             # the generated script's pi-mode structure of whole half
             # wavelength cells gains gradient * length / 2 on crest
@@ -394,6 +417,21 @@ class RftrackMadxConverter(MadxConverter):
         if self.__is_field_map(element_in):
             return
         element_out.ks = self._val(element_in.b_field) / (self.__brho * self.__charge)
+
+    def __beamline_elements(self, data, beamline_id, is_reversed=False):
+        """The element ids of a beamline and its sub-beamlines, in order: a
+        reversed beamline's in reverse, each sub-beamline reversed again
+        when it is itself reversed"""
+        b = PKDict({x.id: x for x in data.models.beamlines})
+        res = []
+        for i in (reversed if is_reversed else iter)(b[beamline_id]["items"]):
+            if abs(i) in b:
+                res.extend(
+                    self.__beamline_elements(data, abs(i), (i < 0) != is_reversed)
+                )
+            else:
+                res.append(abs(i))
+        return res
 
     def __brho_and_sign(self):
         """MAD-X beam's rigidity [T*m] and charge's sign: RF-Track's
@@ -470,54 +508,56 @@ class RftrackMadxConverter(MadxConverter):
                 )
 
     def __flatten_beamline(self, madx, data):
-        els = PKDict({e._id: e for e in data.models.elements})
-        bls = PKDict({b.id: b for b in data.models.beamlines})
-
-        def _items(beamline_id, is_reversed):
-            # a reversed beamline's items in reverse, each sub-beamline
-            # reversed again when it is itself reversed
-            res = []
-            items = bls[beamline_id]["items"]
-            for i in reversed(items) if is_reversed else items:
-                if abs(i) in bls:
-                    res.extend(_items(abs(i), (i < 0) != is_reversed))
-                else:
-                    res.append(abs(i))
-            return res
-
-        bl = bls.get(data.models.simulation.get("visualizationBeamlineId"))
-        if not any(c._type == "use" for c in madx.models.commands):
-            # without "use", the last beamline no other beamline contains
-            u = set(abs(i) for b in bls.values() for i in b["items"])
-            bl = [b for b in data.models.beamlines if b.id not in u][-1]
-        cv = code_var(data.models.rpnVariables)
-        items = []
-        positions = []
-        s = 0
-        for i in _items(bl.id, False):
-            l = cv.eval_var_with_assert(els[i].l)
-            # a zero length aperture (ex. a COLLIMATOR) stays
-            if (
-                els[i].type == "DRIFT"
-                and l == 0
-                and els[i].get("apertureShape", "none") == "none"
-            ):
-                continue
-            items.append(i)
-            positions.append(PKDict(elemedge=s))
-            s += l
-        data.models.beamlines = [
-            PKDict(id=bl.id, name=bl.name, items=items, positions=positions)
-        ]
-        data.models.elements = [e for e in data.models.elements if e._id in items]
+        """The used beamline as one beamline of its elements in sequence,
+        see __used_beamline()"""
+        b = self.__used_beamline(madx, data)
+        s = self.__sequential_items(data, self.__beamline_elements(data, b.id))
+        data.models.beamlines = [PKDict(id=b.id, name=b.name, **s)]
+        data.models.elements = [e for e in data.models.elements if e._id in s["items"]]
         data.models.simulation.activeBeamlineId = (
             data.models.simulation.visualizationBeamlineId
-        ) = bl.id
+        ) = b.id
 
     def __is_field_map(self, element):
         return (
             element.type in ("CAVITY", "SOLENOID") and element.fieldSource != "analytic"
         )
+
+    def __sequential_items(self, data, element_ids):
+        """`element_ids` placed one after another, without zero length drifts
+        (a zero length aperture, ex. a COLLIMATOR, stays)
+
+        Returns:
+            PKDict: items and positions, see __flatten_beamline()
+        """
+        e = PKDict({x._id: x for x in data.models.elements})
+        v = code_var(data.models.rpnVariables)
+        res = PKDict(items=[], positions=[], s=0)
+        for i in element_ids:
+            l = v.eval_var_with_assert(e[i].l)
+            if (
+                e[i].type == "DRIFT"
+                and l == 0
+                and e[i].get("apertureShape", "none") == "none"
+            ):
+                continue
+            res["items"].append(i)
+            res.positions.append(PKDict(elemedge=res.s))
+            res.s += l
+        res.pkdel("s")
+        return res
+
+    def __used_beamline(self, madx, data):
+        """The beamline MAD-X's "use" names, else the last one no other
+        beamline contains"""
+        if any(c._type == "use" for c in madx.models.commands):
+            return next(
+                b
+                for b in data.models.beamlines
+                if b.id == data.models.simulation.get("visualizationBeamlineId")
+            )
+        u = set(abs(i) for b in data.models.beamlines for i in b["items"])
+        return [b for b in data.models.beamlines if b.id not in u][-1]
 
 
 def background_percent_complete(report, run_dir, is_running):

@@ -2915,7 +2915,12 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                 return SIREPO.APP_SCHEMA.constants.canShowDocumentationUrl;
             };
 
-            $scope.canExportMadx = () => appDataService.canExportMadx();
+            // the app's service may narrow it, ex. rftrackService
+            $scope.canExportMadx = () => {
+                const s = appState.appService;
+                return SIREPO.APP_SCHEMA.constants.hasMadxExport
+                    && ! (s && s.canExportMadx && ! s.canExportMadx());
+            };
 
             $scope.exportArchiveUrl = extension => {
                 return panelState.exportArchiveUrl($scope.simulationId(), `${$scope.nav.simulationName()}.${extension}`);
@@ -3359,6 +3364,8 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
         restrict: 'A',
         scope: {
             convMethod: '@',
+            // the dialog's element id, default "sr-conv-dialog"
+            dialogId: '@',
             // the converted simulation's section, default "beamline"
             section: '@',
             // the target sim type, sent as args.toSimType
@@ -3470,10 +3477,11 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
                 return Boolean($scope.newSimURL);
             };
 
-            $scope.modalId = () => 'sr-conv-dialog' + ($scope.toSimType ? `-${$scope.toSimType}` : '');
+            $scope.modalId = () => $scope.dialogId || 'sr-conv-dialog';
 
             $scope.title = () => {
                 if ($scope.toSimType) {
+                    // POSIT: appInfo has every sim type's, see simulation_db
                     return SIREPO.APP_SCHEMA.appInfo[$scope.toSimType].longName;
                 }
                 return $scope.convMethod == 'create_shadow_simulation' ? 'Shadow' : 'SRW';

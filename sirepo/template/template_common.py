@@ -292,6 +292,8 @@ class ParticleEnergy:
             .get("mass")
         )
         res = list(default)
+        # POSIT: a mass equal to the schema's default (the electron's)
+        # wasn't given
         if beam.get("mass") and (not m or float(beam.mass) != float(m[2])):
             res[0] = float(beam.mass)
         if beam.get("charge"):

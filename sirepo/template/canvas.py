@@ -12,7 +12,6 @@ from sirepo.template import madx_parser
 from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
-from sirepo.template.madx_converter import MadxConverter
 import h5py
 import impactx
 import math
@@ -26,6 +25,7 @@ import scipy.constants
 import sirepo.sim_data
 import sirepo.template.impactx
 import sirepo.template.madx
+import sirepo.template.madx_converter
 import tempfile
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -41,7 +41,7 @@ _PHASE_SPACE_LABEL = PKDict(
 _MADX_TRACK_OUTPUT_FILE = "madx/ptc_track.file.tfs"
 
 
-class CanvasMadxConverter(MadxConverter):
+class CanvasMadxConverter(sirepo.template.madx_converter.MadxConverter):
     # MadxConverter's settings, see MadxConverter
     _DIPEDGE_BENDS = ("SBEND",)
     _DOWNCASE_VARIABLES = True
@@ -72,6 +72,16 @@ class CanvasMadxConverter(MadxConverter):
 
     def __init__(self, qcall=None, **kwargs):
         super().__init__(SIM_TYPE, qcall=qcall, **kwargs)
+
+    def _element_handlers(self):
+        return PKDict(
+            from_madx=PKDict(
+                COLLIMATOR=self._from_madx_collimator,
+                RFCAVITY=self._from_madx_rfcavity,
+                SBEND=self._from_madx_sbend,
+            ),
+            to_madx=PKDict(),
+        )
 
     def _from_madx_collimator(self, element_in, element_out):
         a = self._aperture(element_in)

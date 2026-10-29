@@ -19,7 +19,6 @@ from sirepo.template import elegant_lattice_importer
 from sirepo.template import lattice
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
-from sirepo.template.madx_converter import MadxConverter
 import copy
 import glob
 import h5py
@@ -256,7 +255,7 @@ class OutputFileIterator(lattice.ModelIterator):
         return "sdds"
 
 
-class ElegantMadxConverter(MadxConverter):
+class ElegantMadxConverter(sirepo.template.madx_converter.MadxConverter):
     # MadxConverter's settings, see MadxConverter
     _CONSTANTS = _ELEGANT_CONSTANTS
     _DIPEDGE_BENDS = ("CSBEND", "RBEN")
@@ -376,32 +375,30 @@ class ElegantMadxConverter(MadxConverter):
     def __init__(self, qcall=None, **kwargs):
         super().__init__(SIM_TYPE, qcall=qcall, **kwargs)
 
-    def to_madx(self, data):
-        # see __phase_offset()
-        self.__elegant_data = data
-        return super().to_madx(data)
-
     def _beam_to_madx(self, data, madx):
         p = self.__p_central_mev(data)
         if p is None:
-            return None
+            return self._beam_for_madx()
         c = LatticeUtil.find_first_command(data, "change_particle")
         m, q = self.__particle_mass_and_charge()
-        res = PKDict(
+        r = PKDict(
             particle=self._particle_to_madx(c.name) if c else "electron",
             mass=m,
             charge=q,
             # elegant's p_central is per unit charge, see from_madx()
             pc=p * 1e-3 * abs(q),
-            npart=self.__charge_npart(data, q),
         )
         eb = LatticeUtil.find_first_command(data, "bunched_beam")
         if not eb:
             # sdds_beam: only the reference momentum
-            return res
+            return self._beam_for_madx(
+                npart=self.__charge_npart(data, q) or None, reference=r
+            )
         self.__normalize_elegant_beam(data, eb)
-        b = res.pc / math.hypot(res.pc, m)
-        res.pkupdate(
+        b = r.pc / math.hypot(r.pc, m)
+        # twiss_output's initial values, unless matched (periodic)
+        t = LatticeUtil.find_first_command(data, "twiss_output")
+        return self._beam_for_madx(
             distribution=PKDict(
                 ex=eb.emit_x,
                 ey=eb.emit_y,
@@ -412,13 +409,42 @@ class ElegantMadxConverter(MadxConverter):
                 **self.__beam_twiss(data, eb, b),
             ),
             dp_s_coupling=eb.dp_s_coupling,
+            initial_twiss=(
+                self.__twiss_values(t, b) if t and not self._val(t.matched) else None
+            ),
+            npart=self.__charge_npart(data, q) or None,
             particle_count=self._val(eb.n_particles_per_bunch),
+            periodic_twiss=bool(t and self._val(t.matched)),
+            reference=r,
         )
-        t = LatticeUtil.find_first_command(data, "twiss_output")
-        if t:
-            # twiss_output's initial values, unless matched (periodic)
-            res.twiss = False if self._val(t.matched) else self.__twiss_values(t, b)
-        return res
+
+    def _element_handlers(self):
+        return PKDict(
+            from_madx=PKDict(
+                COLLIMATOR=self._from_madx_collimator,
+                CRABCAVITY=self._from_madx_crabcavity,
+                MATRIX=self._from_madx_matrix,
+                MULTIPOLE=self._from_madx_multipole,
+                OCTUPOLE=self._from_madx_octupole,
+                QUADRUPOLE=self._from_madx_quadrupole,
+                RBEND=self._from_madx_sbend,
+                RFCAVITY=self._from_madx_rfcavity,
+                SBEND=self._from_madx_sbend,
+                SEXTUPOLE=self._from_madx_sextupole,
+                TWCAVITY=self._from_madx_twcavity,
+            ),
+            to_madx=PKDict(
+                CSBEND=self._to_madx_csbend,
+                EMATRIX=self._to_madx_ematrix,
+                MODRF=self._to_madx_rfca,
+                MULT=self._to_madx_mult,
+                RAMPRF=self._to_madx_rfca,
+                RFCA=self._to_madx_rfca,
+                RFCW=self._to_madx_rfca,
+                RFDF=self._to_madx_rfdf,
+                TWLA=self._to_madx_twla,
+            ),
+        )
 
     def _fixup_from_madx(self, madx, data, beam):
         eb = LatticeUtil.find_first_command(data, "bunched_beam")
@@ -441,10 +467,10 @@ class ElegantMadxConverter(MadxConverter):
                 eb[e] = beam[f]
         b = self.particle_energy.beta
         # sigma E / E to sigma p / p
-        eb.sigma_dp = beam.sige / b**2
+        eb.sigma_dp = self._val(beam.sige) / b**2
         if beam.sigt is not None:
             # c * sigma t to elegant's beta * c * sigma t
-            eb.sigma_s = beam.sigt * b
+            eb.sigma_s = self._val(beam.sigt) * b
         self.__twiss_output(madx, data, beam)
         self.__beam_charge(data, beam)
         if mb.particle != "electron":
@@ -469,8 +495,8 @@ class ElegantMadxConverter(MadxConverter):
 
     def _from_madx_crabcavity(self, element_in, element_out):
         # MV and MHz to V and Hz
-        element_out.voltage = self._scale(element_in.volt, "*", "1e6")
-        element_out.frequency = self._scale(element_in.freq, "*", "1e6")
+        element_out.voltage = self.__scale(element_in.volt, "*", "1e6")
+        element_out.frequency = self.__scale(element_in.freq, "*", "1e6")
         element_out.phase = (self._val(element_in.lag) * 360) % 360
 
     def _from_madx_matrix(self, element_in, element_out):
@@ -480,23 +506,22 @@ class ElegantMadxConverter(MadxConverter):
         self.__multipole_from_madx(element_in, element_out)
 
     def _from_madx_octupole(self, element_in, element_out):
-        self._skew_as_tilt(element_in, element_out, 3)
+        self.__skew_as_tilt(element_in, element_out, 3)
 
     def _from_madx_quadrupole(self, element_in, element_out):
-        self._skew_as_tilt(element_in, element_out, 1)
+        self.__skew_as_tilt(element_in, element_out, 1)
         # n_kicks is deprecated
-        n = self._slices(
+        n = self.__slices(
             math.sqrt(abs(self._val(element_out.k1))) * self._val(element_out.l),
             self._KQUAD_PHASE_PER_SLICE,
-            SCHEMA.model.KQUAD.n_slices[2],
         )
-        if n:
+        if n > SCHEMA.model.KQUAD.n_slices[2]:
             element_out.n_slices = n
 
     def _from_madx_rfcavity(self, element_in, element_out):
         # MV and MHz to V and Hz
-        element_out.volt = self._scale(element_in.volt, "*", "1e6")
-        element_out.freq = self._scale(element_in.freq, "*", "1e6")
+        element_out.volt = self.__scale(element_in.volt, "*", "1e6")
+        element_out.freq = self.__scale(element_in.freq, "*", "1e6")
         element_out.phase = (
             self._val(element_in.lag) * 360 + self.__phase_offset()
         ) % 360
@@ -507,31 +532,29 @@ class ElegantMadxConverter(MadxConverter):
             return
         # the edges' chromatic focusing, as MAD-X and PTC
         element_out.edge_order = 2
-        n = self._slices(
-            self._val(element_out.angle),
-            self._CSBEND_ANGLE_PER_SLICE,
-            SCHEMA.model.CSBEND.n_slices[2],
-        )
-        if n:
+        n = self.__slices(self._val(element_out.angle), self._CSBEND_ANGLE_PER_SLICE)
+        if n > SCHEMA.model.CSBEND.n_slices[2]:
             element_out.n_slices = n
         x = self._val(element_in.fintx)
         if x >= 0 and x != self._val(element_in.fint):
             element_out.fint2 = x
 
-    _from_madx_rbend = _from_madx_sbend
-
     def _from_madx_sextupole(self, element_in, element_out):
-        self._skew_as_tilt(element_in, element_out, 2)
+        self.__skew_as_tilt(element_in, element_out, 2)
 
     def _from_madx_twcavity(self, element_in, element_out):
         # MV to V/m and MHz to Hz, same phase convention as RFCAVITY in
         # radians
         l = self._val(element_in.l)
         element_out.ez = self._val(element_in.volt) * 1e6 / l if l else 0
-        element_out.frequency = self._scale(element_in.freq, "*", "1e6")
+        element_out.frequency = self.__scale(element_in.freq, "*", "1e6")
         element_out.phase = math.radians(
             (self._val(element_in.lag) * 360 + self.__phase_offset()) % 360
         )
+
+    def _init_to_madx(self, data):
+        # for __phase_offset() and __particle_mass_and_charge()
+        self.__elegant_data = data
 
     def _to_madx_csbend(self, element_in, element_out):
         # entrance and exit fringe integrals, -1 is fint
@@ -551,24 +574,22 @@ class ElegantMadxConverter(MadxConverter):
 
     def _to_madx_rfca(self, element_in, element_out):
         # V and Hz to MV and MHz
-        element_out.volt = self._scale(element_in.volt, "/", "1e6")
-        element_out.freq = self._scale(element_in.freq, "/", "1e6")
+        element_out.volt = self.__scale(element_in.volt, "/", "1e6")
+        element_out.freq = self.__scale(element_in.freq, "/", "1e6")
         element_out.lag = (
             (self._val(element_in.phase) - self.__phase_offset()) / 360
         ) % 1
 
-    _to_madx_modrf = _to_madx_ramprf = _to_madx_rfcw = _to_madx_rfca
-
     def _to_madx_rfdf(self, element_in, element_out):
         # V and Hz to MV and MHz
-        element_out.volt = self._scale(element_in.voltage, "/", "1e6")
-        element_out.freq = self._scale(element_in.frequency, "/", "1e6")
+        element_out.volt = self.__scale(element_in.voltage, "/", "1e6")
+        element_out.freq = self.__scale(element_in.frequency, "/", "1e6")
         element_out.lag = (self._val(element_in.phase) / 360) % 1
 
     def _to_madx_twla(self, element_in, element_out):
         # V/m to MV and Hz to MHz
         element_out.volt = self._val(element_in.ez) * self._val(element_in.l) / 1e6
-        element_out.freq = self._scale(element_in.frequency, "/", "1e6")
+        element_out.freq = self.__scale(element_in.frequency, "/", "1e6")
         element_out.lag = (
             (math.degrees(self._val(element_in.phase)) - self.__phase_offset()) / 360
         ) % 1
@@ -604,7 +625,7 @@ class ElegantMadxConverter(MadxConverter):
         """A CHARGE element's total as MAD-X's npart, see __beam_charge
 
         Returns:
-            float: None without a CHARGE
+            float: 0 without a CHARGE
         """
         c = next(
             (
@@ -614,7 +635,7 @@ class ElegantMadxConverter(MadxConverter):
             ),
             None,
         )
-        return self._val(c.total) / scipy.constants.e / abs(charge) if c else None
+        return self._val(c.total) / scipy.constants.e / abs(charge) if c else 0.0
 
     def __convert_matrix(self, element_in, element_out):
         # MAD-X (x, px, y, py, t, pt) to elegant (x, xp, y, yp, s, delta)
@@ -691,7 +712,7 @@ class ElegantMadxConverter(MadxConverter):
             res.append(e)
         if len(res) > 1:
             # a MULT after the original for each additional order
-            self._inserts[element_out._id] = PKDict(after=res[1:])
+            self._add_inserts(element_out._id, after=res[1:])
 
     def __normalize_elegant_beam(self, data, beam):
         # ensure p_central_mev, emit_x, emit_y, sigma_s, sigma_dp and dp_s_coupling are set
@@ -776,6 +797,36 @@ class ElegantMadxConverter(MadxConverter):
             bg = self._val(ers.p_central)
         return bg / math.sqrt(1 + bg**2) if bg else 1
 
+    def __scale(self, value, op, factor):
+        """`value` times (op "*") or divided by (op "/") `factor`, a number
+        as text; an expression stays an expression, undoing a scale the
+        opposite conversion applied"""
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            # POSIT: the opposite conversion wrote exactly "<value> <op> <factor>"
+            u = " {} {}".format("/" if op == "*" else "*", factor)
+            if str(value).endswith(u):
+                return value[: -len(u)]
+            return f"{value} {op} {factor}"
+        return v * float(factor) if op == "*" else v / float(factor)
+
+    def __skew_as_tilt(self, element_in, element_out, order):
+        """A MAD-X multipole's normal and skew strength (ex. k1 and k1s,
+        order 1) as a normal strength rotated by tilt"""
+        n = f"k{order}"
+        k = self._val(element_in[n])
+        ks = self._val(element_in[f"{n}s"])
+        if ks:
+            element_out[n] = math.hypot(k, ks)
+            element_out.tilt = self._val(element_in.tilt) + math.atan2(ks, k) / (
+                order + 1
+            )
+
+    def __slices(self, value, per_slice):
+        """Slices of at most `per_slice` of `value` (ex. a bend's angle)"""
+        return math.ceil(abs(value) / per_slice)
+
     def __twiss_output(self, madx, data, beam):
         """twiss_output as MAD-X's twiss: from its initial values (a line),
         else matched (periodic)"""
@@ -783,7 +834,7 @@ class ElegantMadxConverter(MadxConverter):
         t = LatticeUtil.find_first_command(data, "twiss_output")
         if not m or not t:
             return
-        if all(self._val(m.get(f, 0)) for f in ("betx", "bety")):
+        if sirepo.template.madx_converter.has_initial_twiss(m):
             t.matched = "0"
             for f, v in (
                 ("alpha_x", "alfx"),
@@ -805,7 +856,9 @@ class ElegantMadxConverter(MadxConverter):
 
     def __twiss_values(self, twiss, beta):
         """bunched_beam's or twiss_output's twiss and dispersion as MAD-X's"""
-        res = PKDict({f: twiss[f] for f in self._BEAM_TWISS_VARS})
+        res = PKDict(
+            {f: twiss[f] for f in sirepo.template.madx_converter.BEAM_TWISS_VARS}
+        )
         for f, e in self._ETA_FIELDS.items():
             if self._val(twiss.get(e, 0)):
                 res[f] = self._val(twiss[e]) / beta

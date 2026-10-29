@@ -308,9 +308,7 @@ def command_template(name, next_id, beamline_id=None, twiss=None):
 
     def _ptc_twiss():
         res = PKDict(_type="ptc_twiss", file="1", icase="5")
-        if twiss and all(
-            twiss.get(f) not in (None, "", 0, "0") for f in ("betx", "bety")
-        ):
+        if sirepo.template.madx_converter.has_initial_twiss(twiss):
             for f in _TWISS_INITIAL_FIELDS:
                 if f in twiss:
                     res[f] = twiss[f]
@@ -685,6 +683,26 @@ def to_string(value):
     return value.replace('"', "")
 
 
+def uses_normalized_emittance(beam, dim, variables):
+    """Does MAD-X take the beam's geometric emittance from its normalized
+    one, ex = exn / (beta * gamma)? When exn is given and ex is the
+    schema's placeholder
+
+    Args:
+        beam (PKDict): MAD-X beam command
+        dim (str): x or y
+        variables (CodeVar): to evaluate the beam's values
+    Returns:
+        bool: ex from exn
+    """
+    # POSIT: a value equal to the schema's placeholder wasn't given
+    return bool(
+        float(variables.eval_var_with_assert(beam[f"e{dim}n"]))
+        and float(variables.eval_var_with_assert(beam[f"e{dim}"]))
+        == SCHEMA.model.command_beam[f"e{dim}"][2]
+    )
+
+
 def write_parameters(data, run_dir, is_parallel, filename=MADX_INPUT_FILE):
     """Write the parameters file
 
@@ -731,18 +749,16 @@ def _add_commands(data, util):
 
 
 def _beam_emittance(beam, dim, energy, variables):
-    """The beam's geometric emittance, from exn or eyn when ex or ey is the
-    schema's placeholder, as MAD-X's ex = exn / (beta * gamma)"""
-    e = float(variables.eval_var_with_assert(beam[f"e{dim}"]))
-    n = float(variables.eval_var_with_assert(beam[f"e{dim}n"]))
-    if n and e == SCHEMA.model.command_beam[f"e{dim}"][2]:
-        return n / (energy.beta * energy.gamma)
-    return e
+    """The beam's geometric emittance, see uses_normalized_emittance()"""
+    if uses_normalized_emittance(beam, dim, variables):
+        return float(variables.eval_var_with_assert(beam[f"e{dim}n"])) / (
+            energy.beta * energy.gamma
+        )
+    return float(variables.eval_var_with_assert(beam[f"e{dim}"]))
 
 
 def _beam_energy(bunch, beam, variables):
-    """The beam's energy fields from its beamDefinition field (as
-    _calc_bunch_parameters)"""
+    """The beam's energy fields from its beamDefinition field"""
     return template_common.ParticleEnergy.compute_energy(
         SIM_TYPE,
         beam.particle,
@@ -773,23 +789,33 @@ def _bunch_vars(data):
     when it has any; a matched bunch's twiss is the computed periodic
     twiss, with sr_match_twiss_parameters = 1; none for a bunch still at
     the schema's default twiss"""
+
+    def _var(name):
+        return sirepo.template.madx_converter.beam_var(name)
+
     b = data.models.bunch
     if b.distributionType != "twiss" or b.beamDefinition == "file":
         return data
     cv = code_var(data.models.rpnVariables)
     n = set(v.name for v in data.models.rpnVariables)
-    if "sr_n_particles_per_bunch" not in n:
+    if _var(sirepo.template.madx_converter.PARTICLE_COUNT_VAR) not in n:
         data.models.rpnVariables.append(
-            PKDict(name="sr_n_particles_per_bunch", value=int(b.numberOfParticles))
+            PKDict(
+                name=_var(sirepo.template.madx_converter.PARTICLE_COUNT_VAR),
+                value=int(b.numberOfParticles),
+            )
         )
     # dispersion (with respect to PT), when the bunch has any
-    for f in ("dpx", "dpy", "dx", "dy"):
+    for f in sirepo.template.madx_converter.BEAM_DISPERSION_VARS:
         v = float(cv.eval_var_with_assert(b.get(f, 0)))
-        if v and f"sr_{f}" not in n:
-            data.models.rpnVariables.append(PKDict(name=f"sr_{f}", value=v))
-    if b.matchTwissParameters == "1" and "sr_match_twiss_parameters" not in n:
+        if v and _var(f) not in n:
+            data.models.rpnVariables.append(PKDict(name=_var(f), value=v))
+    if (
+        b.matchTwissParameters == "1"
+        and _var(sirepo.template.madx_converter.MATCH_TWISS_VAR) not in n
+    ):
         data.models.rpnVariables.append(
-            PKDict(name="sr_match_twiss_parameters", value=1)
+            PKDict(name=_var(sirepo.template.madx_converter.MATCH_TWISS_VAR), value=1)
         )
     t = PKDict(
         {
@@ -797,22 +823,24 @@ def _bunch_vars(data):
             for f in ("alfx", "alfy", "betx", "bety")
         }
     )
-    # still the schema's defaults, not a twiss of its own (ex. converted OPAL)
+    # POSIT: a bunch still at the schema's default twiss has none of its own
+    # (ex. converted OPAL), not one equal to the defaults
     if all(t[f] == float(SCHEMA.model.bunch[f][2]) for f in t):
         return data
     for dim in ("x", "y"):
-        if f"sr_beta_{dim}" not in n:
+        if _var(f"beta_{dim}") not in n:
             data.models.rpnVariables.extend(
                 (
-                    PKDict(name=f"sr_alpha_{dim}", value=t[f"alf{dim}"]),
-                    PKDict(name=f"sr_beta_{dim}", value=t[f"bet{dim}"]),
+                    PKDict(name=_var(f"alpha_{dim}"), value=t[f"alf{dim}"]),
+                    PKDict(name=_var(f"beta_{dim}"), value=t[f"bet{dim}"]),
                 )
             )
-        if f"sr_gamma_{dim}" not in n:
+        if _var(f"gamma_{dim}") not in n:
+            a = _var(f"alpha_{dim}")
             data.models.rpnVariables.append(
                 PKDict(
-                    name=f"sr_gamma_{dim}",
-                    value=f"(1 + sr_alpha_{dim} * sr_alpha_{dim}) / sr_beta_{dim}",
+                    name=_var(f"gamma_{dim}"),
+                    value=f"(1 + {a} * {a}) / {_var(f'beta_{dim}')}",
                 )
             )
     return data
@@ -821,18 +849,7 @@ def _bunch_vars(data):
 def _calc_bunch_parameters(bunch, beam, variables):
     try:
         field = bunch.beamDefinition
-        cv = code_var(variables)
-        energy = template_common.ParticleEnergy.compute_energy(
-            SIM_TYPE,
-            beam.particle,
-            PKDict(
-                {
-                    "mass": cv.eval_var_with_assert(beam.mass),
-                    "charge": cv.eval_var_with_assert(beam.charge),
-                    field: cv.eval_var_with_assert(beam[field]),
-                }
-            ),
-        )
+        energy = _beam_energy(bunch, beam, code_var(variables))
         for f in energy:
             # don't overwrite mass or charge
             if f in ("mass", "charge"):
@@ -1168,8 +1185,11 @@ def _twiss_report_commands(data):
     u = LatticeUtil(d, SCHEMA)
     m = _build_filename_map_from_util(u)
     _add_commands(d, u)
-    f = next(m[k].filename for k in m.keys_in_order if m[k].model_type == "twiss")
-    return _generate_commands(m, u).replace(f'"{f}"', f'"{_TWISS_OUTPUT_FILE}"')
+    # the twiss command's output file, the twiss report's
+    next(m[k] for k in m.keys_in_order if m[k].model_type == "twiss").filename = (
+        _TWISS_OUTPUT_FILE
+    )
+    return _generate_commands(m, u)
 
 
 def _update_beam_energy(data):

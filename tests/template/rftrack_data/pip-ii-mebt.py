@@ -6756,6 +6756,7 @@ def build_beamline():
             e.set_odeint_epsrel(spec.odeint_epsrel)
         # misalignment about the element's entrance, as Volume.add() below:
         # roll about z, pitch about x, yaw about y
+        # POSIT: Lattice.append(e, x0, y0, z0, roll, pitch, yaw), in m and rad
         v.append(e, spec.dx, spec.dy, spec.dz, spec.rz, spec.rx, spec.ry)
     # nonzero: RF_Track prints tracking progress (e.g. "t = ... mm/c")
     # straight to stdout as track() advances, which is run.log's own

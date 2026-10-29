@@ -6,12 +6,12 @@ RF-Track
 """
 
 from pykern.pkcollections import PKDict
+import pytest
 
-_EXAMPLES = PKDict(
-    elegant="SPEAR3",
-    madx="FODO PTC",
-    opal="CSR Bend Drift",
-    rftrack="X-band Linac FODO Cell",
+# the codes converted between, whichever the environment enables, and the
+# test client's default (myapp)
+pytestmark = pytest.mark.sirepo_args(
+    fc_module=PKDict(sim_types="elegant:madx:myapp:opal:rftrack"),
 )
 
 
@@ -19,8 +19,9 @@ def test_convert_lattice(fc):
     from pykern import pkunit
     from sirepo import feature_config
 
-    for from_type, name in _EXAMPLES.items():
-        targets = sorted(t for t in _EXAMPLES if t != from_type)
+    e = _examples()
+    for from_type, name in e.items():
+        targets = sorted(t for t in e if t != from_type)
         pkunit.pkeq(
             targets,
             feature_config.for_sim_type(from_type).lattice_conversion_targets,
@@ -90,3 +91,13 @@ def _convert(fc, data, from_type, to_type):
         to_type,
     )
     return res
+
+
+def _examples():
+    """An example of each code converted"""
+    return PKDict(
+        elegant="SPEAR3",
+        madx="FODO PTC",
+        opal="CSR Bend Drift",
+        rftrack="X-band Linac FODO Cell",
+    )
