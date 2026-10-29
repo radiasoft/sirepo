@@ -779,7 +779,7 @@
         "bunchReport1": {
             "aspectRatio": "1",
             "colorMap": "viridis",
-            "histogramBins": 33,
+            "histogramBins": 50,
             "notes": "",
             "plotType": "3d",
             "x": "x",
@@ -788,7 +788,7 @@
         "bunchReport2": {
             "aspectRatio": "1",
             "colorMap": "viridis",
-            "histogramBins": 33,
+            "histogramBins": 50,
             "notes": "",
             "plotType": "3d",
             "x": "y",
@@ -797,7 +797,7 @@
         "bunchReport3": {
             "aspectRatio": "1",
             "colorMap": "viridis",
-            "histogramBins": 33,
+            "histogramBins": 50,
             "notes": "",
             "plotType": "3d",
             "x": "x",
@@ -806,7 +806,7 @@
         "bunchReport4": {
             "aspectRatio": "1",
             "colorMap": "viridis",
-            "histogramBins": 33,
+            "histogramBins": 50,
             "notes": "",
             "plotType": "3d",
             "x": "t",

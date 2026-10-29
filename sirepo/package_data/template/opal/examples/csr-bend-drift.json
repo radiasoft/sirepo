@@ -20,7 +20,7 @@
             "aspectRatio": "1",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 35,
+            "histogramBins": 50,
             "horizontalOffset": -0.0010212848300086264,
             "horizontalSize": 0.013571305951667036,
             "isRunning": 0,

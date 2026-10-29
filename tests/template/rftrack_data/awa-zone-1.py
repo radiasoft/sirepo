@@ -517,10 +517,6 @@ def build_beamline():
     v.tt_dt_mm = SETTINGS.volume_tt_dt_mm
     if "t_max_mm" in SETTINGS:
         v.t_max_mm = SETTINGS.t_max_mm
-    # nonzero: RF_Track prints tracking progress (e.g. "t = ... mm/c")
-    # straight to stdout as track() advances, which is run.log's own
-    # content with no further plumbing needed
-    v.verbosity = 1
     return v
 
 
@@ -563,6 +559,12 @@ def main():
     volume = build_beamline()
     autophase(volume, bunch)
     lume_rftrack.utils.apply_space_charge(volume, SETTINGS.space_charge)
+    # nonzero: RF_Track prints tracking progress to stdout (run.log) as
+    # track() advances; after autophase(), which tracks too, so run.log
+    # has only the bunch's progress
+    # POSIT: _rough_percent_complete() parses a Volume's "t = ... mm/c"
+    # and a Lattice's "[###...]  86.1%"
+    volume.verbosity = 1
 
     simulator = lume_rftrack.simulator.RFTrackSimulator(volume, bunch)
     simulator.track()

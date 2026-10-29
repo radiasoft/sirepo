@@ -33,28 +33,28 @@
         },
         "bunchReport1": {
             "colorMap": "viridis",
-            "histogramBins": 16,
+            "histogramBins": 50,
             "notes": "",
             "x": "x",
             "y": "px"
         },
         "bunchReport2": {
             "colorMap": "viridis",
-            "histogramBins": 16,
+            "histogramBins": 50,
             "notes": "",
             "x": "y",
             "y": "py"
         },
         "bunchReport3": {
             "colorMap": "viridis",
-            "histogramBins": 16,
+            "histogramBins": 50,
             "notes": "",
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
             "colorMap": "viridis",
-            "histogramBins": 16,
+            "histogramBins": 50,
             "notes": "",
             "x": "t",
             "y": "pt"
@@ -308,7 +308,7 @@
         "elementAnimation109-20": {
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 16,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -1346,7 +1346,7 @@
         "elementAnimation114-6": {
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 16,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "0",
@@ -1407,7 +1407,7 @@
         "elementAnimation118-15": {
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 16,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",

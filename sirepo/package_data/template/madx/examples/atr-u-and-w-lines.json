@@ -535,7 +535,7 @@
         "elementAnimation294-20": {
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 16,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -789,7 +789,7 @@
         "elementAnimation295-15": {
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 16,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -3374,7 +3374,7 @@
         "twissFromParticlesAnimation": {
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 16,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",

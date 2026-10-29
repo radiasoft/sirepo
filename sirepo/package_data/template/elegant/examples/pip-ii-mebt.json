@@ -367,7 +367,7 @@
         },
         "bunchReport1": {
             "colorMap": "viridis",
-            "histogramBins": 35,
+            "histogramBins": 50,
             "notes": "",
             "plotType": "heatmap",
             "x": "x",
@@ -375,7 +375,7 @@
         },
         "bunchReport2": {
             "colorMap": "viridis",
-            "histogramBins": 35,
+            "histogramBins": 50,
             "notes": "",
             "plotType": "heatmap",
             "x": "y",
@@ -383,7 +383,7 @@
         },
         "bunchReport3": {
             "colorMap": "viridis",
-            "histogramBins": 35,
+            "histogramBins": 50,
             "notes": "",
             "plotType": "heatmap",
             "x": "x",
@@ -391,7 +391,7 @@
         },
         "bunchReport4": {
             "colorMap": "viridis",
-            "histogramBins": 35,
+            "histogramBins": 50,
             "notes": "",
             "plotType": "heatmap",
             "x": "t",
@@ -561,7 +561,7 @@
             "aspectRatio": "0.5625",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 35,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -1033,7 +1033,7 @@
             "aspectRatio": "0.5625",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 35,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",

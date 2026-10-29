@@ -57,22 +57,22 @@
             "sourceFile": "forward-beam-output.sdds"
         },
         "bunchReport1": {
-            "histogramBins": 35,
+            "histogramBins": 50,
             "x": "x",
             "y": "xp"
         },
         "bunchReport2": {
-            "histogramBins": 35,
+            "histogramBins": 50,
             "x": "y",
             "y": "yp"
         },
         "bunchReport3": {
-            "histogramBins": 35,
+            "histogramBins": 50,
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
-            "histogramBins": 35,
+            "histogramBins": 50,
             "x": "t",
             "y": "p"
         },
@@ -164,7 +164,7 @@
             }
         ],
         "elementAnimation": {
-            "histogramBins": 35,
+            "histogramBins": 50,
             "x": "x",
             "y": "xp"
         },
@@ -172,7 +172,7 @@
             "aspectRatio": "1",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 35,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "0",
@@ -235,7 +235,7 @@
             "aspectRatio": "0.5625",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 35,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -553,7 +553,7 @@
             "aspectRatio": "0.5625",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 35,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -632,7 +632,7 @@
             "aspectRatio": "1",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 35,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "0",
