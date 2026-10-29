@@ -790,17 +790,10 @@ def build_beamline():
             e.set_odeint_algorithm(spec.odeint_algorithm)
             e.set_odeint_epsabs(spec.odeint_epsabs)
             e.set_odeint_epsrel(spec.odeint_epsrel)
-        v.append(e)
-    # Element.set_offsets(), called on an already-appended element,
-    # silently has no effect (verified empirically) --
-    # Lattice.set_elements_offsets() is the reliable, bulk equivalent of
-    # Volume.add()'s per-element x/y/z/roll/pitch/yaw args, but it takes
-    # offsets in mm (not m) and rotations about x, y, z in that order (not
-    # roll, pitch, yaw). Its extra 4th column, always 1.0 here, is
-    # unrelated to any misalignment field.
-    v.set_elements_offsets(numpy.array(
-        [[1000 * s.dx, 1000 * s.dy, 1000 * s.dz, 1.0, s.rx, s.ry, s.rz] for s in ELEMENTS]
-    ))
+        # misalignment about the element's entrance, as Volume.add() below:
+        # roll about z, pitch about x, yaw about y
+        # POSIT: Lattice.append(e, x0, y0, z0, roll, pitch, yaw), in m and rad
+        v.append(e, spec.dx, spec.dy, spec.dz, spec.rz, spec.rx, spec.ry)
     # nonzero: RF_Track prints tracking progress (e.g. "t = ... mm/c")
     # straight to stdout as track() advances, which is run.log's own
     # content with no further plumbing needed
@@ -878,17 +871,30 @@ def _build_element(spec):
         e = rft.Corrector(spec.l, spec.h_kick, spec.v_kick)
     elif spec.kind == "cavity_analytic":
         # A standing-wave pi-mode structure of half-wavelength cells,
-        # Ez = gradient * cos(n_cells * pi * z / l) on axis, as a field map
+        # Ez = gradient * sin(n_cells * pi * z / l) on axis, as a field map
         # so RF-Track derives the off-axis fields from it. Pillbox_Cavity
         # can't model it: its field repeats unchanged in every cell, and
         # its off-axis fields for any mode but the first are inconsistent
-        # with Maxwell's equations (B in phase with E). 40 points per cell
-        # gives the energy gain to 0.05%.
-        n_cells = max(1, round(2.0 * spec.l * spec.frequency_hz / rft.clight))
-        l = n_cells * rft.clight / (2.0 * spec.frequency_hz)
-        z = numpy.linspace(0.0, l, 40 * n_cells + 1)
-        e = rft.RF_FieldMap_1d(
-            (spec.gradient_v_per_m * numpy.cos(n_cells * numpy.pi * z / l)).astype(complex),
+        # with Maxwell's equations (B in phase with E). 80 points per cell
+        # gives the energy gain to 0.03%. Cubic interpolation: the off-axis
+        # fields come from Ez's derivatives, which linear interpolation
+        # gets wrong (defocusing in place of the ponderomotive focusing).
+        # Ez is zero at the irises and ends, peaking mid-cell: peaks at the
+        # ends would kick the beam outward on entry with no matching edge.
+        # Shorter than half a cell, a single gap of its own length,
+        # Ez = gradient * sin^2(pi * z / l): its zero slope at the ends keeps
+        # the off-axis fields' energy gain from growing with r^2 / l^2.
+        n_cells = round(2.0 * spec.l * spec.frequency_hz / rft.clight)
+        if n_cells:
+            l = n_cells * rft.clight / (2.0 * spec.frequency_hz)
+            z = numpy.linspace(0.0, l, 80 * n_cells + 1)
+            ez = numpy.sin(n_cells * numpy.pi * z / l)
+        else:
+            l = spec.l
+            z = numpy.linspace(0.0, l, 81)
+            ez = numpy.sin(numpy.pi * z / l) ** 2
+        e = rft.RF_FieldMap_1d_CINT(
+            (spec.gradient_v_per_m * ez).astype(complex),
             z[1] - z[0],
             l,
             spec.frequency_hz,

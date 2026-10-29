@@ -20,7 +20,7 @@
             "aspectRatio": "1",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 158,
             "horizontalOffset": -0.010236269976135307,
             "horizontalSize": 0.020472478572077984,
             "isRunning": 0,
@@ -33,28 +33,28 @@
         },
         "bunchReport1": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 158,
             "notes": "",
             "x": "x",
             "y": "px"
         },
         "bunchReport2": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 158,
             "notes": "",
             "x": "y",
             "y": "py"
         },
         "bunchReport3": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 158,
             "notes": "",
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 158,
             "notes": "",
             "x": "z",
             "y": "pz"
@@ -459,7 +459,7 @@
             "aspectRatio": "1",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 158,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "notes": "",
@@ -473,7 +473,7 @@
             "aspectRatio": "1",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 158,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "notes": "",
@@ -487,7 +487,7 @@
             "aspectRatio": "1",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 158,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "notes": "",

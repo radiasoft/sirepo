@@ -176,6 +176,16 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         self.editElement(copy.type, copy);
     };
 
+    // "Open as a New ... Simulation"'s dialog element id for simType, see
+    // latticeConversionMenu and latticeConversionModals
+    self.conversionModalId = (simType) => `sr-conv-dialog-${simType}`;
+
+    // sim types for "Open as a New ... Simulation", see simConversionModal
+    self.conversionTargets = () => SIREPO.APP_SCHEMA.feature_config.lattice_conversion_targets || [];
+
+    // POSIT: appInfo has every sim type's, see simulation_db
+    self.conversionTitle = (simType) => SIREPO.APP_SCHEMA.appInfo[simType].longName;
+
     self.createElement = function(type) {
         var model = self.getNextElement(type);
         appState.setModelDefaults(model, type);
@@ -3118,6 +3128,34 @@ SIREPO.app.directive('varName', function(latticeService) {
                 return value;
             });
         }
+    };
+});
+
+// POSIT: the app's footer has latticeConversionModals, the dialogs this opens
+SIREPO.app.directive('latticeConversionMenu', function(latticeService) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div data-ng-repeat="t in latticeService.conversionTargets()"><a href data-ng-click="openConfirm(t)"><span class="glyphicon glyphicon-upload"></span> Open as a New {{ latticeService.conversionTitle(t) }} Simulation</a></div>
+        `,
+        controller: function($scope) {
+            $scope.latticeService = latticeService;
+            $scope.openConfirm = (simType) => $('#' + latticeService.conversionModalId(simType)).modal('show');
+        },
+    };
+});
+
+SIREPO.app.directive('latticeConversionModals', function(latticeService) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div data-ng-repeat="t in latticeService.conversionTargets()" data-sim-conversion-modal="" data-conv-method="convert_lattice" data-dialog-id="{{ latticeService.conversionModalId(t) }}" data-section="lattice" data-to-sim-type="{{ t }}"></div>
+        `,
+        controller: function($scope) {
+            $scope.latticeService = latticeService;
+        },
     };
 });
 

@@ -2603,32 +2603,32 @@
             "sourceFile": null
         },
         "bunchReport1": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 50,
             "notes": "",
             "plotType": "heatmap",
             "x": "x",
             "y": "xp"
         },
         "bunchReport2": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 50,
             "notes": "",
             "plotType": "heatmap",
             "x": "y",
             "y": "yp"
         },
         "bunchReport3": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 50,
             "notes": "",
             "plotType": "heatmap",
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 50,
             "notes": "",
             "plotType": "heatmap",
             "x": "t",

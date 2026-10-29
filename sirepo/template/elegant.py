@@ -19,7 +19,6 @@ from sirepo.template import elegant_lattice_importer
 from sirepo.template import lattice
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
-from sirepo.template.madx_converter import MadxConverter
 import copy
 import glob
 import h5py
@@ -34,6 +33,7 @@ import re
 import scipy.constants
 import sirepo.lib
 import sirepo.sim_data
+import sirepo.template.madx_converter
 import stat
 
 
@@ -255,352 +255,464 @@ class OutputFileIterator(lattice.ModelIterator):
         return "sdds"
 
 
-class ElegantMadxConverter(MadxConverter):
-    _BEAM_VARS = [
-        "beta_x",
-        "beta_y",
-        "alpha_x",
-        "alpha_y",
-        "n_particles_per_bunch",
-        "dp_s_coupling",
-    ]
+class ElegantMadxConverter(sirepo.template.madx_converter.MadxConverter):
+    # MadxConverter's settings, see MadxConverter
+    _CONSTANTS = _ELEGANT_CONSTANTS
+    _DIPEDGE_BENDS = ("CSBEND", "RBEN")
+    _DOWNCASE_VARIABLES = True
+    #: MAD-X's dispersion (with respect to PT) to elegant's (with respect to
+    #: delta = beta * PT): elegant's is beta times MAD-X's
+    _ETA_FIELDS = PKDict(dpx="etap_x", dpy="etap_y", dx="eta_x", dy="eta_y")
+    #: MAD-X's particle to elegant's change_particle name; any other MAD-X
+    #: particle is elegant's custom, by mass and charge relative to the
+    #: electron
     _PARTICLE_MAP = PKDict(
         electron="electron",
+        negmuon="muon",
         positron="positron",
         proton="proton",
-        muon="negmuon",
-        negmuon="muon",
-        custom="other",
     )
-    _FIELD_MAP = [
-        [
-            "DRIFT",
-            ["DRIF", "l"],
-            ["CSRDRIFT", "l"],
-            ["EDRIFT", "l"],
-            ["LSCDRIFT", "l"],
-        ],
-        [
-            "SBEND",
-            [
-                "CSBEND",
-                "l",
-                "angle",
-                "k1",
-                "k2",
-                "e1",
-                "e2",
-                "h1",
-                "h2",
-                "tilt",
-                "hgap",
-                "fint",
-            ],
-            [
-                "SBEN",
-                "l",
-                "angle",
-                "k1",
-                "k2",
-                "e1",
-                "e2",
-                "h1",
-                "h2",
-                "tilt",
-                "hgap",
-                "fint",
-            ],
-            [
-                "CSRCSBEND",
-                "l",
-                "angle",
-                "k1",
-                "k2",
-                "e1",
-                "e2",
-                "h1",
-                "h2",
-                "tilt",
-                "hgap",
-                "fint",
-            ],
-            [
-                "KSBEND",
-                "l",
-                "angle",
-                "k1",
-                "k2",
-                "e1",
-                "e2",
-                "h1",
-                "h2",
-                "tilt",
-                "hgap",
-                "fint",
-            ],
-            ["NIBEND", "l", "angle", "e1", "e2", "tilt", "hgap", "fint"],
-        ],
-        [
-            "RBEND",
-            [
-                "RBEN",
-                "l",
-                "angle",
-                "k1",
-                "k2",
-                "e1",
-                "e2",
-                "h1",
-                "h2",
-                "tilt",
-                "hgap",
-                "fint",
-            ],
-            ["TUBEND", "l", "angle"],
-        ],
-        [
-            # DIPEDGE attributes will be combined with any CSBEND or RBEN elements nearby
-            "DIPEDGE",
-            ["CSBEND", "e1", "tilt", "hgap", "fint"],
-        ],
-        [
-            "QUADRUPOLE",
-            ["QUAD", "l", "k1", "tilt"],
-            ["KQUAD", "l", "k1", "tilt"],
-        ],
-        [
-            "SEXTUPOLE",
-            ["SEXT", "l", "k2", "tilt"],
-            ["KSEXT", "l", "k2", "tilt"],
-        ],
-        [
-            "OCTUPOLE",
-            ["OCTU", "l", "k3", "tilt"],
-            ["KOCT", "l", "k3", "tilt"],
-        ],
-        [
-            "SOLENOID",
-            ["SOLE", "l", "ks"],
-        ],
-        [
-            "MULTIPOLE",
-            # TODO(pjm): compute knl and order from first knl value in madx
-            ["MULT", "tilt"],
-        ],
-        [
-            "HKICKER",
-            ["HKICK", "l", "kick", "tilt"],
-            ["EHKICK", "l", "kick", "tilt"],
-        ],
-        [
-            "VKICKER",
-            ["VKICK", "l", "kick", "tilt"],
-            ["EVKICK", "l", "kick", "tilt"],
-        ],
-        [
-            "KICKER",
-            ["KICKER", "l", "hkick", "vkick", "tilt"],
-            ["EKICKER", "l", "hkick", "vkick", "tilt"],
-        ],
-        [
-            "MARKER",
-            ["MARK"],
-        ],
-        [
-            "PLACEHOLDER",
-            ["DRIF", "l"],
-        ],
-        [
-            "INSTRUMENT",
-            ["DRIF", "l"],
-        ],
-        [
-            "ECOLLIMATOR",
-            ["ECOL", "l", "x_max=xsize", "y_max=ysize"],
-        ],
-        [
-            "RCOLLIMATOR",
-            ["RCOL", "l", "x_max=xsize", "y_max=ysize"],
-        ],
-        [
-            "COLLIMATOR",
-            ["ECOL", "l"],
-        ],
-        [
-            "RFCAVITY",
-            ["RFCA", "l", "volt", "freq", "phase=lag"],
-            ["MODRF", "l", "volt", "freq", "phase=lag"],
-            ["RAMPRF", "l", "volt", "freq", "phase=lag"],
-            ["RFCW", "l", "volt", "freq", "phase=lag"],
-        ],
-        [
-            "TWCAVITY",
-            ["RFDF", "l", "voltage=volt", "frequency=freq", "phase=lag"],
-        ],
-        [
-            "HMONITOR",
-            ["HMON", "l"],
-        ],
-        [
-            "VMONITOR",
-            ["VMON", "l"],
-        ],
-        [
-            "MONITOR",
-            ["MONI", "l"],
-            ["WATCH"],
-        ],
-        [
-            "SROTATION",
-            ["ROTATE", "tilt=angle"],
-        ],
+    _DIPEDGE_FIELDS = PKDict(
+        entrance=PKDict(e1="e1", fint="fint1", tilt="tilt"),
+        exit=PKDict(e1="e2", fint="fint2"),
+    )
+    _BEND_FIELDS = [
+        "l",
+        "angle",
+        "k1",
+        "k2",
+        "e1",
+        "e2",
+        "h1",
+        "h2",
+        "tilt",
+        "hgap",
+        "fint",
     ]
-    _FIELD_SCALE = PKDict(
-        RFCAVITY=PKDict(
-            freq="1e6",
-            volt="1e6",
-        ),
-        TWCAVITY=PKDict(
-            freq="1e6",
-            volt="1e6",
-        ),
+    _KICKER_FIELDS = ["l", "hkick", "vkick", "tilt"]
+    _ELEMENTS = PKDict(
+        CSBEND=["SBEND", *_BEND_FIELDS],
+        CSRCSBEND=["SBEND", *_BEND_FIELDS],
+        CSRDRIFT=["DRIFT", "l"],
+        DRIF=["DRIFT", "l"],
+        ECOL=["ECOLLIMATOR", "l", "x_max=xsize", "y_max=ysize"],
+        EDRIFT=["DRIFT", "l"],
+        EHKICK=["HKICKER", "l", "kick", "tilt"],
+        EKICKER=["KICKER", *_KICKER_FIELDS],
+        EMATRIX=["MATRIX", "l"],
+        EVKICK=["VKICKER", "l", "kick", "tilt"],
+        HKICK=["HKICKER", "l", "kick", "tilt"],
+        HMON=["HMONITOR", "l"],
+        KICKER=["KICKER", *_KICKER_FIELDS],
+        KOCT=["OCTUPOLE", "l", "k3", "tilt"],
+        KQUAD=["QUADRUPOLE", "l", "k1", "tilt"],
+        KSBEND=["SBEND", *_BEND_FIELDS],
+        KSEXT=["SEXTUPOLE", "l", "k2", "tilt"],
+        LSCDRIFT=["DRIFT", "l"],
+        MARK=["MARKER"],
+        MODRF=["RFCAVITY", "l"],
+        MONI=["MONITOR", "l"],
+        # one MULT per non-zero order, see __multipole_from_madx()
+        MULT=["MULTIPOLE", "tilt"],
+        NIBEND=["SBEND", "l", "angle", "e1", "e2", "tilt", "hgap", "fint"],
+        OCTU=["OCTUPOLE", "l", "k3", "tilt"],
+        QUAD=["QUADRUPOLE", "l", "k1", "tilt"],
+        RAMPRF=["RFCAVITY", "l"],
+        RBEN=["RBEND", *_BEND_FIELDS],
+        RCOL=["RCOLLIMATOR", "l", "x_max=xsize", "y_max=ysize"],
+        RFCA=["RFCAVITY", "l"],
+        RFCW=["RFCAVITY", "l"],
+        RFDF=["CRABCAVITY", "l"],
+        ROTATE=["SROTATION", "tilt=angle"],
+        SBEN=["SBEND", *_BEND_FIELDS],
+        SEXT=["SEXTUPOLE", "l", "k2", "tilt"],
+        SOLE=["SOLENOID", "l", "ks"],
+        TUBEND=["RBEND", "l", "angle"],
+        TWLA=["TWCAVITY", "l"],
+        VKICK=["VKICKER", "l", "kick", "tilt"],
+        VMON=["VMONITOR", "l"],
+        WATCH=["MONITOR"],
     )
+    # from MAD-X, the symplectic integrated elements like MAD-X's own thick
+    # tracking (QUAD's matrix is truncated at default_order)
+    _FROM_MADX = PKDict(
+        COLLIMATOR="ECOL",
+        CRABCAVITY="RFDF",
+        # merged into the CSBEND or RBEN beside it, see _merge_dipedges()
+        DIPEDGE=None,
+        DRIFT="DRIF",
+        ECOLLIMATOR="ECOL",
+        HKICKER="HKICK",
+        HMONITOR="HMON",
+        INSTRUMENT="DRIF",
+        KICKER="KICKER",
+        MARKER="MARK",
+        MATRIX="EMATRIX",
+        MONITOR="MONI",
+        MULTIPOLE="MULT",
+        OCTUPOLE="KOCT",
+        PLACEHOLDER="DRIF",
+        QUADRUPOLE="KQUAD",
+        RBEND="RBEN",
+        RCOLLIMATOR="RCOL",
+        RFCAVITY="RFCA",
+        SBEND="CSBEND",
+        SEXTUPOLE="KSEXT",
+        SOLENOID="SOLE",
+        SROTATION="ROTATE",
+        TWCAVITY="TWLA",
+        VKICKER="VKICK",
+        VMONITOR="VMON",
+    )
+    #: CSBEND's bend angle [rad] per slice, at most; with fewer slices a
+    #: large angle bend doesn't close the reference orbit (4.5e-5 rad for
+    #: 30 degrees in elegant's default 4 slices)
+    _CSBEND_ANGLE_PER_SLICE = 0.05
+    #: KQUAD's phase advance sqrt(|k1|) * l per slice, at most; at this, it
+    #: matches MAD-X's PTC to about 1e-5 for short, strong quadrupoles
+    _KQUAD_PHASE_PER_SLICE = 0.01
 
     def __init__(self, qcall=None, **kwargs):
-        super().__init__(
-            SIM_TYPE,
-            self._FIELD_MAP,
-            downcase_variables=True,
-            qcall=qcall,
-            **kwargs,
+        super().__init__(SIM_TYPE, qcall=qcall, **kwargs)
+
+    def _beam_to_madx(self, data, madx):
+        p = self.__p_central_mev(data)
+        if p is None:
+            return self._beam_for_madx()
+        c = LatticeUtil.find_first_command(data, "change_particle")
+        m, q = self.__particle_mass_and_charge()
+        r = PKDict(
+            particle=self._particle_to_madx(c.name) if c else "electron",
+            mass=m,
+            charge=q,
+            # elegant's p_central is per unit charge, see from_madx()
+            pc=p * 1e-3 * abs(q),
         )
-
-    def from_madx(self, madx):
-        data = self.fill_in_missing_constants(
-            super().from_madx(madx), _ELEGANT_CONSTANTS
-        )
-        self.__combine_dipedge(data)
-        eb = LatticeUtil.find_first_command(data, "bunched_beam")
-        mb = self.beam
-        for f in self._BEAM_VARS:
-            v = self._find_var(madx, f)
-            if v:
-                eb[f] = v.value
-        ers = LatticeUtil.find_first_command(data, "run_setup")
-        ers.p_central_mev = self.particle_energy.pc * 1e3
-        eb.emit_x = mb.ex
-        eb.emit_y = mb.ey
-        eb.sigma_s = mb.sigt
-        eb.sigma_dp = mb.sige
-
-        if mb.particle != "electron":
-            data.models.commands.insert(
-                0,
-                PKDict(
-                    _id=LatticeUtil.max_id(data),
-                    _type="change_particle",
-                    name=self._PARTICLE_MAP.get(mb.particle, "custom"),
-                    # TODO(pjm): custom particle should set mass_ratio and charge_ratio
-                ),
-            )
-        return data
-
-    def to_madx(self, data):
-        madx = super().to_madx(data)
         eb = LatticeUtil.find_first_command(data, "bunched_beam")
         if not eb:
-            return madx
-        self.__normalize_elegant_beam(data, eb)
-        mb = LatticeUtil.find_first_command(madx, "beam")
-        particle = LatticeUtil.find_first_command(data, "change_particle")
-        if particle:
-            mb.particle = self._PARTICLE_MAP.get(particle.name, "other")
-            # TODO(pjm): other particle should set mass and charge
-        else:
-            mb.particle = "electron"
-        mb.energy = 0
-        madx.models.bunch.beamDefinition = "pc"
-        madx.models.bunch.longitudinalMethod = "2"
-        mb.pc = eb.p_central_mev * 1e-3
-        mb.sigt = eb.sigma_s
-        mb.sige = eb.sigma_dp
-        for f in self._BEAM_VARS:
-            self._replace_var(madx, f, eb[f])
-        for dim in ("x", "y"):
-            mb[f"e{dim}"] = eb[f"emit_{dim}"]
-            self._replace_var(
-                madx,
-                f"gamma_{dim}",
-                "(1 + {} * {}) / {}".format(
-                    self._var_name(f"alpha_{dim}"),
-                    self._var_name(f"alpha_{dim}"),
-                    self._var_name(f"beta_{dim}"),
-                ),
+            # sdds_beam: only the reference momentum
+            return self._beam_for_madx(
+                npart=self.__charge_npart(data, q) or None, reference=r
             )
-        return madx
+        self.__normalize_elegant_beam(data, eb)
+        b = r.pc / math.hypot(r.pc, m)
+        # twiss_output's initial values, unless matched (periodic)
+        t = LatticeUtil.find_first_command(data, "twiss_output")
+        return self._beam_for_madx(
+            distribution=PKDict(
+                ex=eb.emit_x,
+                ey=eb.emit_y,
+                # elegant's beta * c * sigma t and sigma p / p to c * sigma t
+                # and sigma E / E
+                sigt=self._val(eb.sigma_s) / b,
+                sige=self._val(eb.sigma_dp) * b**2,
+                **self.__beam_twiss(data, eb, b),
+            ),
+            dp_s_coupling=eb.dp_s_coupling,
+            initial_twiss=(
+                self.__twiss_values(t, b) if t and not self._val(t.matched) else None
+            ),
+            npart=self.__charge_npart(data, q) or None,
+            particle_count=self._val(eb.n_particles_per_bunch),
+            periodic_twiss=bool(t and self._val(t.matched)),
+            reference=r,
+        )
 
-    def _fixup_element(self, element_in, element_out):
-        super()._fixup_element(element_in, element_out)
-        if self.from_class.sim_type() == SIM_TYPE:
-            el = element_out
-            op = "/"
-        else:
-            el = element_in
-            op = "*"
-        scale = self._FIELD_SCALE.get(el.type)
-        if scale:
-            for f in scale:
-                if f in element_out:
-                    element_out[f] = f"{element_out[f]} {op} {scale[f]}"
-        if element_in.type == "COLLIMATOR":
-            m = re.search(r"^\{?\s*(.*?),\s*(.*?)\s*\}?$", element_in.aperture)
-            if m:
-                element_out.x_max = self.__val(m.group(1))
-                element_out.y_max = self.__val(m.group(2))
-            if element_in.apertype == "rectangle":
+    def _element_handlers(self):
+        return PKDict(
+            from_madx=PKDict(
+                COLLIMATOR=self._from_madx_collimator,
+                CRABCAVITY=self._from_madx_crabcavity,
+                MATRIX=self._from_madx_matrix,
+                MULTIPOLE=self._from_madx_multipole,
+                OCTUPOLE=self._from_madx_octupole,
+                QUADRUPOLE=self._from_madx_quadrupole,
+                RBEND=self._from_madx_sbend,
+                RFCAVITY=self._from_madx_rfcavity,
+                SBEND=self._from_madx_sbend,
+                SEXTUPOLE=self._from_madx_sextupole,
+                TWCAVITY=self._from_madx_twcavity,
+            ),
+            to_madx=PKDict(
+                CSBEND=self._to_madx_csbend,
+                EMATRIX=self._to_madx_ematrix,
+                MODRF=self._to_madx_rfca,
+                MULT=self._to_madx_mult,
+                RAMPRF=self._to_madx_rfca,
+                RFCA=self._to_madx_rfca,
+                RFCW=self._to_madx_rfca,
+                RFDF=self._to_madx_rfdf,
+                TWLA=self._to_madx_twla,
+            ),
+        )
+
+    def _fixup_from_madx(self, madx, data, beam):
+        eb = LatticeUtil.find_first_command(data, "bunched_beam")
+        mb = self.beam
+        eb.update(beam.twiss)
+        for f, v in beam.dispersion.items():
+            eb[self._ETA_FIELDS[f]] = self._val(v) * self.particle_energy.beta
+        if beam.dp_s_coupling is not None:
+            eb.dp_s_coupling = beam.dp_s_coupling
+        if beam.particle_count:
+            eb.n_particles_per_bunch = beam.particle_count
+        ers = LatticeUtil.find_first_command(data, "run_setup")
+        # elegant multiplies p_central by a custom particle's |charge_ratio|
+        ers.p_central_mev = self.particle_energy.pc * 1e3 / abs(self.beam.charge)
+        for f, e in (
+            ("ex", "emit_x"),
+            ("ey", "emit_y"),
+        ):
+            if beam[f] is not None:
+                eb[e] = beam[f]
+        b = self.particle_energy.beta
+        # sigma E / E to sigma p / p
+        eb.sigma_dp = self._val(beam.sige) / b**2
+        if beam.sigt is not None:
+            # c * sigma t to elegant's beta * c * sigma t
+            eb.sigma_s = self._val(beam.sigt) * b
+        self.__twiss_output(madx, data, beam)
+        self.__beam_charge(data, beam)
+        if mb.particle != "electron":
+            p = PKDict(
+                _id=LatticeUtil.max_id(data) + 1,
+                _type="change_particle",
+                name=self._particle_from_madx(mb.particle) or "custom",
+            )
+            if p.name == "custom":
+                p.mass_ratio = mb.mass / self.__electron_mass()
+                # relative to the electron's negative charge
+                p.charge_ratio = -mb.charge
+            data.models.commands.insert(0, p)
+
+    def _from_madx_collimator(self, element_in, element_out):
+        a = self._aperture(element_in)
+        if a:
+            element_out.x_max = a.x
+            element_out.y_max = a.y
+            if a.apertype == "rectangle":
                 element_out.type = "RCOL"
-        elif element_in.type == "RFCAVITY":
-            element_out.phase = self.__val(element_out.phase) * 360 + 180
-            while element_out.phase >= 360:
-                element_out.phase -= 360
 
-    def __combine_dipedge(self, data):
-        # DIPEDGE elements get converted into a CSBEND with no length
-        # combine attributes with nearby CSBEND elements
-        dmap = PKDict()
-        bmap = PKDict()
-        els = []
-        for el in data.models.elements:
-            if el.type == "CSBEND" or el.type == "RBEN":
-                if el.l == 0:
-                    dmap[el._id] = el
-                    continue
-                else:
-                    bmap[el._id] = el
-            els.append(el)
-        data.models.elements = els
-        for bl in data.models.beamlines:
-            bl2 = []
-            for i, id in enumerate(bl["items"]):
-                if id in dmap:
-                    if i > 0 and bl["items"][i - 1] in bmap:
-                        # trailing dipedge
-                        b = bmap[bl["items"][i - 1]]
-                        d = dmap[id]
-                        b.e2 = d.e1
-                        b.fint2 = d.fint
-                        b.hgap = d.hgap
-                    continue
-                if id in bmap and i > 0 and bl["items"][i - 1] in dmap:
-                    # leading dipedge
-                    d = dmap[bl["items"][i - 1]]
-                    b = bmap[id]
-                    b.e1 = d.e1
-                    b.fint1 = d.fint
-                    b.hgap = d.hgap
-                    b.tilt = d.tilt
-                bl2.append(id)
-            bl["items"] = bl2
+    def _from_madx_crabcavity(self, element_in, element_out):
+        # MV and MHz to V and Hz
+        element_out.voltage = self.__scale(element_in.volt, "*", "1e6")
+        element_out.frequency = self.__scale(element_in.freq, "*", "1e6")
+        element_out.phase = (self._val(element_in.lag) * 360) % 360
+
+    def _from_madx_matrix(self, element_in, element_out):
+        self.__convert_matrix(element_in, element_out)
+
+    def _from_madx_multipole(self, element_in, element_out):
+        self.__multipole_from_madx(element_in, element_out)
+
+    def _from_madx_octupole(self, element_in, element_out):
+        self.__skew_as_tilt(element_in, element_out, 3)
+
+    def _from_madx_quadrupole(self, element_in, element_out):
+        self.__skew_as_tilt(element_in, element_out, 1)
+        # n_kicks is deprecated
+        n = self.__slices(
+            math.sqrt(abs(self._val(element_out.k1))) * self._val(element_out.l),
+            self._KQUAD_PHASE_PER_SLICE,
+        )
+        if n > SCHEMA.model.KQUAD.n_slices[2]:
+            element_out.n_slices = n
+
+    def _from_madx_rfcavity(self, element_in, element_out):
+        # MV and MHz to V and Hz
+        element_out.volt = self.__scale(element_in.volt, "*", "1e6")
+        element_out.freq = self.__scale(element_in.freq, "*", "1e6")
+        element_out.phase = (
+            self._val(element_in.lag) * 360 + self.__phase_offset()
+        ) % 360
+
+    def _from_madx_sbend(self, element_in, element_out):
+        if element_out.type != "CSBEND":
+            # RBEND becomes RBEN, which has no edge_order, n_slices or fint2
+            return
+        # the edges' chromatic focusing, as MAD-X and PTC
+        element_out.edge_order = 2
+        n = self.__slices(self._val(element_out.angle), self._CSBEND_ANGLE_PER_SLICE)
+        if n > SCHEMA.model.CSBEND.n_slices[2]:
+            element_out.n_slices = n
+        x = self._val(element_in.fintx)
+        if x >= 0 and x != self._val(element_in.fint):
+            element_out.fint2 = x
+
+    def _from_madx_sextupole(self, element_in, element_out):
+        self.__skew_as_tilt(element_in, element_out, 2)
+
+    def _from_madx_twcavity(self, element_in, element_out):
+        # MV to V/m and MHz to Hz, same phase convention as RFCAVITY in
+        # radians
+        l = self._val(element_in.l)
+        element_out.ez = self._val(element_in.volt) * 1e6 / l if l else 0
+        element_out.frequency = self.__scale(element_in.freq, "*", "1e6")
+        element_out.phase = math.radians(
+            (self._val(element_in.lag) * 360 + self.__phase_offset()) % 360
+        )
+
+    def _init_to_madx(self, data):
+        # for __phase_offset() and __particle_mass_and_charge()
+        self.__elegant_data = data
+
+    def _to_madx_csbend(self, element_in, element_out):
+        # entrance and exit fringe integrals, -1 is fint
+        f = [self._val(element_in[x]) for x in ("fint", "fint1", "fint2")]
+        e = [v if v >= 0 else f[0] for v in f[1:]]
+        element_out.fint = e[0]
+        element_out.fintx = e[1] if e[1] != e[0] else -1
+
+    def _to_madx_ematrix(self, element_in, element_out):
+        self.__convert_matrix(element_in, element_out)
+
+    def _to_madx_mult(self, element_in, element_out):
+        k = [0] * int(self._val(element_in.order)) + [
+            self._val(element_in.knl) * self._val(element_in.factor)
+        ]
+        element_out.knl = self._array_text(k)
+
+    def _to_madx_rfca(self, element_in, element_out):
+        # V and Hz to MV and MHz
+        element_out.volt = self.__scale(element_in.volt, "/", "1e6")
+        element_out.freq = self.__scale(element_in.freq, "/", "1e6")
+        element_out.lag = (
+            (self._val(element_in.phase) - self.__phase_offset()) / 360
+        ) % 1
+
+    def _to_madx_rfdf(self, element_in, element_out):
+        # V and Hz to MV and MHz
+        element_out.volt = self.__scale(element_in.voltage, "/", "1e6")
+        element_out.freq = self.__scale(element_in.frequency, "/", "1e6")
+        element_out.lag = (self._val(element_in.phase) / 360) % 1
+
+    def _to_madx_twla(self, element_in, element_out):
+        # V/m to MV and Hz to MHz
+        element_out.volt = self._val(element_in.ez) * self._val(element_in.l) / 1e6
+        element_out.freq = self.__scale(element_in.frequency, "/", "1e6")
+        element_out.lag = (
+            (math.degrees(self._val(element_in.phase)) - self.__phase_offset()) / 360
+        ) % 1
+
+    def __beam_charge(self, data, beam):
+        """MAD-X's npart as a CHARGE element starting the beamline"""
+        n = beam.npart
+        if not n:
+            return
+        e = PKDict(
+            _id=LatticeUtil.max_id(data) + 1,
+            name="BEAM_CHARGE",
+            total=n * scipy.constants.e * abs(self.beam.charge),
+            type="CHARGE",
+        )
+        self.to_class.update_model_defaults(e, e.type)
+        data.models.elements.append(e)
+        i = data.models.simulation.activeBeamlineId
+        next(b for b in data.models.beamlines if b.id == i)["items"].insert(0, e._id)
+
+    def __beam_twiss(self, data, bunched_beam, beta):
+        """bunched_beam's twiss and dispersion (MAD-X's), empty when it is the
+        lattice's periodic twiss (use_twiss_command_values with a matched
+        twiss_output)"""
+        t = bunched_beam
+        if self._val(bunched_beam.use_twiss_command_values):
+            t = LatticeUtil.find_first_command(data, "twiss_output")
+            if not t or self._val(t.matched):
+                return PKDict()
+        return self.__twiss_values(t, beta)
+
+    def __charge_npart(self, data, charge):
+        """A CHARGE element's total as MAD-X's npart, see __beam_charge
+
+        Returns:
+            float: 0 without a CHARGE
+        """
+        c = next(
+            (
+                e
+                for e in data.models.elements
+                if e.type == "CHARGE" and self._val(e.total)
+            ),
+            None,
+        )
+        return self._val(c.total) / scipy.constants.e / abs(charge) if c else 0.0
+
+    def __convert_matrix(self, element_in, element_out):
+        # MAD-X (x, px, y, py, t, pt) to elegant (x, xp, y, yp, s, delta)
+        # to first order: s = -t, delta = pt / beta
+        from_madx = element_in.type == "MATRIX"
+        d = [1, 1, 1, 1, -1, 1 / self.__reference_beta()]
+        if not from_madx:
+            d = [1 / v for v in d]
+        names = PKDict(
+            c=("kick{}", "c{}"),
+            r=("rm{}{}", "r{}{}"),
+            t=("tm{}{}{}", "t{}{}{}"),
+        )
+        n_in, n_out = (0, 1) if from_madx else (1, 0)
+        has_t = False
+        for i in range(1, 7):
+            element_out[names.c[n_out].format(i)] = d[i - 1] * self._val(
+                element_in[names.c[n_in].format(i)]
+            )
+            for j in range(1, 7):
+                element_out[names.r[n_out].format(i, j)] = (
+                    d[i - 1]
+                    * self._val(element_in[names.r[n_in].format(i, j)])
+                    / d[j - 1]
+                )
+                for k in range(1, 7):
+                    f = d[i - 1] / (d[j - 1] * d[k - 1])
+                    if from_madx:
+                        # elegant sums T over k <= j, MAD-X over all j, k
+                        if k > j:
+                            continue
+                        v = self._val(element_in[f"tm{i}{j}{k}"])
+                        if k != j:
+                            v += self._val(element_in[f"tm{i}{k}{j}"])
+                    else:
+                        v = self._val(element_in[f"t{i}{max(j, k)}{min(j, k)}"])
+                        if k != j:
+                            v /= 2
+                    element_out[names.t[n_out].format(i, j, k)] = f * v
+                    has_t = has_t or v != 0
+        if from_madx:
+            element_out.order = 2 if has_t else 1
+
+    def __electron_mass(self):
+        # [GeV], for custom particles' mass_ratio
+        return template_common.ParticleEnergy.get_mass(
+            "madx", "electron", PKDict(mass=0, charge=0)
+        )
+
+    def __multipole_from_madx(self, element_in, element_out):
+        # skew terms are normal terms rotated by pi / (2 * (order + 1))
+        terms = [
+            (n, v, s)
+            for f, s in (("knl", False), ("ksl", True))
+            for n, v in enumerate(self._array_values(element_in[f]))
+            if v
+        ]
+        if not terms:
+            element_out.knl = 0
+            return
+        res = []
+        for n, v, s in terms:
+            e = (
+                element_out
+                if not res
+                else PKDict(
+                    name=f"{element_out.name}_{len(res)}",
+                    type=element_out.type,
+                )
+            )
+            e.order = n
+            e.knl = v
+            e.tilt = self._val(element_in.tilt) + (math.pi / (2 * (n + 1)) if s else 0)
+            res.append(e)
+        if len(res) > 1:
+            # a MULT after the original for each additional order
+            self._add_inserts(element_out._id, after=res[1:])
 
     def __normalize_elegant_beam(self, data, beam):
         # ensure p_central_mev, emit_x, emit_y, sigma_s, sigma_dp and dp_s_coupling are set
@@ -611,9 +723,7 @@ class ElegantMadxConverter(MadxConverter):
         ers = LatticeUtil.find_first_command(data, "run_setup")
         if not ers:
             return
-        if not _var(ers.p_central_mev):
-            # TODO(pjm): use particle mass, don't assume electron
-            ers.p_central_mev = _var(ers.p_central) * SCHEMA.constants.ELEGANT_ME_EV
+        ers.p_central_mev = self.__p_central_mev(data)
         beam.p_central_mev = _var(ers.p_central_mev)
         beta_gamma = beam.p_central_mev / SCHEMA.constants.ELEGANT_ME_EV
         for f in ("x", "y"):
@@ -641,8 +751,118 @@ class ElegantMadxConverter(MadxConverter):
             )
             # TODO(pjm): determine conversion from momentum_chirp to db_s_coupling
 
-    def __val(self, var_value):
-        return self.vars.eval_var_with_assert(var_value)
+    def __p_central_mev(self, data):
+        """run_setup's reference momentum [MeV/c], or None without run_setup"""
+        ers = LatticeUtil.find_first_command(data, "run_setup")
+        if not ers:
+            return None
+        res = self._val(ers.p_central_mev)
+        if not res:
+            # TODO(pjm): use particle mass, don't assume electron
+            res = self._val(ers.p_central) * SCHEMA.constants.ELEGANT_ME_EV
+        return res
+
+    def __particle_mass_and_charge(self):
+        # [mass [GeV], charge [e]] of the elegant beam
+        if self.from_class.sim_type() != SIM_TYPE:
+            return [self.beam.mass, self.beam.charge]
+        p = LatticeUtil.find_first_command(self.__elegant_data, "change_particle")
+        if p and p.name == "custom":
+            return [
+                self._val(p.mass_ratio) * self.__electron_mass(),
+                -self._val(p.charge_ratio),
+            ]
+        n = self._particle_to_madx(p.name) if p else "electron"
+        e = PKDict(mass=0, charge=0)
+        return [
+            template_common.ParticleEnergy.get_mass("madx", n, e),
+            template_common.ParticleEnergy.get_charge("madx", n, e),
+        ]
+
+    def __phase_offset(self):
+        # degrees from MAD-X's lag * 360 to elegant's RF phase: MAD-X is on
+        # crest at lag 0.25 for any particle, elegant at 90 for a negative
+        # particle and 270 for a positive one (verified by tracking)
+        return 0 if self.__particle_mass_and_charge()[1] < 0 else 180
+
+    def __reference_beta(self):
+        if self.from_class.sim_type() != SIM_TYPE:
+            return self.particle_energy.beta
+        ers = LatticeUtil.find_first_command(self.__elegant_data, "run_setup")
+        if not ers:
+            return 1
+        # GeV to MeV
+        bg = self._val(ers.p_central_mev) / (self.__particle_mass_and_charge()[0] * 1e3)
+        if not bg:
+            bg = self._val(ers.p_central)
+        return bg / math.sqrt(1 + bg**2) if bg else 1
+
+    def __scale(self, value, op, factor):
+        """`value` times (op "*") or divided by (op "/") `factor`, a number
+        as text; an expression stays an expression, undoing a scale the
+        opposite conversion applied"""
+        try:
+            v = float(value)
+        except (TypeError, ValueError):
+            # POSIT: the opposite conversion wrote exactly "<value> <op> <factor>"
+            u = " {} {}".format("/" if op == "*" else "*", factor)
+            if str(value).endswith(u):
+                return value[: -len(u)]
+            return f"{value} {op} {factor}"
+        return v * float(factor) if op == "*" else v / float(factor)
+
+    def __skew_as_tilt(self, element_in, element_out, order):
+        """A MAD-X multipole's normal and skew strength (ex. k1 and k1s,
+        order 1) as a normal strength rotated by tilt"""
+        n = f"k{order}"
+        k = self._val(element_in[n])
+        ks = self._val(element_in[f"{n}s"])
+        if ks:
+            element_out[n] = math.hypot(k, ks)
+            element_out.tilt = self._val(element_in.tilt) + math.atan2(ks, k) / (
+                order + 1
+            )
+
+    def __slices(self, value, per_slice):
+        """Slices of at most `per_slice` of `value` (ex. a bend's angle)"""
+        return math.ceil(abs(value) / per_slice)
+
+    def __twiss_output(self, madx, data, beam):
+        """twiss_output as MAD-X's twiss: from its initial values (a line),
+        else matched (periodic)"""
+        m = LatticeUtil.find_first_command(madx, "twiss")
+        t = LatticeUtil.find_first_command(data, "twiss_output")
+        if not m or not t:
+            return
+        if sirepo.template.madx_converter.has_initial_twiss(m):
+            t.matched = "0"
+            for f, v in (
+                ("alpha_x", "alfx"),
+                ("alpha_y", "alfy"),
+                ("beta_x", "betx"),
+                ("beta_y", "bety"),
+            ):
+                t[f] = m.get(v, 0)
+            for f, e in self._ETA_FIELDS.items():
+                if self._val(m.get(f, 0)):
+                    t[e] = self._val(m[f]) * self.particle_energy.beta
+        else:
+            t.matched = "1"
+            if beam.matched:
+                # the beam's twiss is the periodic twiss, see __beam_twiss()
+                LatticeUtil.find_first_command(
+                    data, "bunched_beam"
+                ).use_twiss_command_values = "1"
+
+    def __twiss_values(self, twiss, beta):
+        """bunched_beam's or twiss_output's twiss and dispersion as MAD-X's"""
+        res = PKDict(
+            {f: twiss[f] for f in sirepo.template.madx_converter.BEAM_TWISS_VARS}
+        )
+        for f, e in self._ETA_FIELDS.items():
+            if self._val(twiss.get(e, 0)):
+                res[f] = self._val(twiss[e]) / beta
+        return res
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -813,16 +1033,23 @@ def extract_report_data(filename, frame_args, page_count=0):
         )
 
     y_field = "y1" if "y1" in frame_args else "y"
-    return sdds_util.SDDSUtil(filename).heatmap(
-        plot_attrs=plot_attrs.pkupdate(
-            title=_title(
-                frame_args[x_field],
-                frame_args[y_field],
-                plot_attrs.page_index,
-                page_count,
-                position,
-            ),
-            y_field=y_field,
+    return (
+        sdds_util.SDDSUtil(filename)
+        .heatmap(
+            plot_attrs=plot_attrs.pkupdate(
+                title=_title(
+                    frame_args[x_field],
+                    frame_args[y_field],
+                    plot_attrs.page_index,
+                    page_count,
+                    position,
+                ),
+                y_field=y_field,
+            )
+        )
+        .pkupdate(
+            # empty bins are transparent
+            threshold=[0],
         )
     )
 
@@ -1017,6 +1244,14 @@ def sim_frame(frame_args):
         ),
         frame_args,
         page_count=page_count,
+    )
+
+
+def stateful_compute_convert_lattice(data, **kwargs):
+    return PKDict(
+        imported_data=sirepo.template.madx_converter.convert_lattice(
+            data, data.args.toSimType
+        )
     )
 
 

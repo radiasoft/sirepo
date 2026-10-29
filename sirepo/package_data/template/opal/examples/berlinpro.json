@@ -1147,7 +1147,7 @@
             "aspectRatio": "1",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 63,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "isRunning": 0,
@@ -1160,28 +1160,28 @@
         },
         "bunchReport1": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 63,
             "notes": "",
             "x": "x",
             "y": "px"
         },
         "bunchReport2": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 63,
             "notes": "",
             "x": "y",
             "y": "py"
         },
         "bunchReport3": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 63,
             "notes": "",
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
             "colorMap": "viridis",
-            "histogramBins": 200,
+            "histogramBins": 63,
             "notes": "",
             "x": "z",
             "y": "pz"

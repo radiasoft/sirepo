@@ -375,7 +375,7 @@
             }
         ],
         "elementAnimation124-20": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
             "horizontalOffset": 0,
             "horizontalSize": 0,
@@ -1412,7 +1412,7 @@
             "y3Position": "right"
         },
         "elementAnimation132-6": {
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
             "horizontalOffset": 0,
             "horizontalSize": 0,

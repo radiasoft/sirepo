@@ -425,6 +425,8 @@ SIREPO.app.directive('confirmationModal', function() {
             title: '@',
             okText: '@',
             okClicked: '&',
+            // optional, ex. while the ok request is processing
+            okDisabled: '&',
             cancelText: '@',
             modalClosed: '&',
             isRequired: '@',
@@ -446,7 +448,7 @@ SIREPO.app.directive('confirmationModal', function() {
                       </div>
                       <div class="row">
                         <div class="col-sm-6 pull-right" style="margin-top: 1em">
-                          <button data-ng-if="okText" data-ng-disabled="! isValid()" data-ng-click="clicked()" class="btn btn-default sr-button-size">{{ okText }}</button>
+                          <button data-ng-if="okText" data-ng-disabled="! isValid() || okDisabled()" data-ng-click="clicked()" class="btn btn-default sr-button-size">{{ okText }}</button>
                            <button data-ng-if="! isRequired" data-dismiss="modal" class="btn btn-default sr-button-size">{{ cancelText || 'Cancel' }}</button>
                         </div>
                       </div>
@@ -2871,7 +2873,7 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                     <li><a href data-ng-if="nav.modeIsDefault() && canShowDocumentationUrl()" data-ng-click="showDocumentationUrl()"><span class="glyphicon glyphicon-book"></span> Simulation Documentation URL</a></li>
                     <li><a href data-ng-if="::canExportArchive()" data-ng-href="{{ exportArchiveUrl('zip') }}"><span class="glyphicon glyphicon-cloud-download"></span> Export as ZIP</a></li>
                     <li data-ng-if="::canDownloadInputFile()"><a data-ng-href="{{ pythonSourceUrl() }}"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> {{ ::stringsService.formatKey('simulationSource') }}</a></li>
-                    <li data-ng-if="::canExportMadx()" ><a data-ng-href="{{ pythonSourceUrl('madx') }}"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as MAD-X lattice</a></li>
+                    <li data-ng-if="canExportMadx()"><a data-ng-href="{{ pythonSourceUrl('madx') }}"><span class="glyphicon glyphicon-cloud-download sr-nav-icon"></span> Export as MAD-X lattice</a></li>
                     <li data-ng-if="canCopy()"><a href data-ng-click="copyItem()"><span class="glyphicon glyphicon-copy"></span> Open as a New Copy</a></li>
                     <li data-ng-if="isExample()"><a href data-target="#reset-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-repeat"></span> Discard Changes to Example</a></li>
                     <li data-ng-if="! isExample()"><a href data-target="#delete-confirmation" data-toggle="modal"><span class="glyphicon glyphicon-trash"></span> Delete</a></li>
@@ -2913,8 +2915,11 @@ SIREPO.app.directive('settingsMenu', function(appDataService, appState, fileMana
                 return SIREPO.APP_SCHEMA.constants.canShowDocumentationUrl;
             };
 
-            $scope.canExportMadx = function() {
-                return SIREPO.APP_SCHEMA.constants.hasMadxExport;
+            // the app's service may narrow it, ex. rftrackService
+            $scope.canExportMadx = () => {
+                const s = appState.appService;
+                return SIREPO.APP_SCHEMA.constants.hasMadxExport
+                    && ! (s && s.canExportMadx && ! s.canExportMadx());
             };
 
             $scope.exportArchiveUrl = extension => {
@@ -3359,19 +3364,30 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
         restrict: 'A',
         scope: {
             convMethod: '@',
+            // the dialog's element id, default "sr-conv-dialog"
+            dialogId: '@',
+            // the converted simulation's section, default "beamline"
+            section: '@',
+            // the target sim type, sent as args.toSimType
+            toSimType: '@',
         },
         template: `
-            <div data-confirmation-modal="" data-is-required="" data-id="sr-conv-dialog" data-title="Open as a New {{ title }} Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? 'Close' : 'Cancel' }}" data-ok-text="{{ displayLink() ? '' : 'Create' }}" data-ok-clicked="openConvertedSimulation()">
-              <div data-ng-if="! displayLink()"> Create a {{ title }} simulation with an equivalent beamline? </div>
+            <div data-confirmation-modal="" data-is-required="" data-id="{{ modalId() }}" data-title="Open as a New {{ title() }} Simulation" data-modal-closed="resetURL()" data-cancel-text="{{ displayLink() ? 'Close' : 'Cancel' }}" data-ok-text="{{ displayLink() ? '' : 'Create' }}" data-ok-clicked="openConvertedSimulation()" data-ok-disabled="isCreating">
+              <div data-ng-if="! displayLink() && ! isCreating"> Create a {{ title() }} simulation with an equivalent beamline? </div>
+              <div data-ng-if="isCreating"><span class="glyphicon glyphicon-hourglass"></span> Creating {{ title() }} simulation...</div>
+              <div data-ng-if="errorText" class="alert alert-danger" style="margin: 1em 0 0 0">{{ errorText }}</div>
               <div data-ng-if="displayLink()">
-                <p>{{ title }} simulation created:</p>
+                <p>{{ title() }} simulation created:</p>
                 <p><a data-ng-click="closeModal()" href="{{ newSimURL }}" target="_blank">{{ newSimURL }} </a></p>
               </div>
             </div>
         `,
         controller: function($scope) {
             $scope.newSimURL = false;
-            $scope.title = $scope.convMethod == 'create_shadow_simulation' ? 'Shadow' : 'SRW';
+            // the conversion and its new simulation's requests are processing
+            $scope.isCreating = false;
+            // the failed request's error, shown in the dialog
+            $scope.errorText = '';
 
             function createNewSim(data) {
                 requestSender.sendRequest(
@@ -3384,9 +3400,16 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
                         requestSender.sendRequest(
                             'saveSimulationData',
                             genSimURL,
-                            data);
+                            data,
+                            onError);
                     },
-                    newSimData(data));
+                    newSimData(data),
+                    onError);
+            }
+
+            function onError(data) {
+                $scope.isCreating = false;
+                $scope.errorText = 'Request failed: ' + (data.error || 'unknown error');
             }
 
             function newSimData(data) {
@@ -3399,35 +3422,69 @@ SIREPO.app.directive('simConversionModal', function(appState, requestSender) {
             }
 
             function genSimURL(data) {
+                $scope.isCreating = false;
                 $scope.newSimURL = requestSender.formatUrlLocal(
-                    'beamline',
+                    $scope.section || 'beamline',
                     { 'simulationId': data.models.simulation.simulationId},
                     data.simulationType
                 );
             }
 
             $scope.closeModal = function() {
-                $('#sr-conv-dialog').modal('hide');
+                $('#' + $scope.modalId()).modal('hide');
                 $scope.resetURL();
             };
 
             $scope.resetURL = function() {
                 $scope.newSimURL = false;
+                $scope.isCreating = false;
+                $scope.errorText = '';
             };
 
             $scope.openConvertedSimulation = function() {
+                $scope.isCreating = true;
+                $scope.errorText = '';
+                if ($scope.toSimType) {
+                    requestSender.sendStatefulCompute(
+                        appState,
+                        // a failed compute replies with state "error"
+                        r => r.state === 'error' || ! r.imported_data
+                            ? onError(r)
+                            : createNewSim(r.imported_data),
+                        {
+                            method: $scope.convMethod,
+                            models: appState.models,
+                            args: {
+                                toSimType: $scope.toSimType,
+                            },
+                        },
+                        onError,
+                    );
+                    return false;
+                }
                 const d = appState.models;
                 d.method = $scope.convMethod;
                 requestSender.sendStatefulCompute(
                     appState,
-                    createNewSim,
-                    d
+                    r => r.state === 'error' ? onError(r) : createNewSim(r),
+                    d,
+                    onError,
                 );
                 return false;
             };
 
             $scope.displayLink = function() {
                 return Boolean($scope.newSimURL);
+            };
+
+            $scope.modalId = () => $scope.dialogId || 'sr-conv-dialog';
+
+            $scope.title = () => {
+                if ($scope.toSimType) {
+                    // POSIT: appInfo has every sim type's, see simulation_db
+                    return SIREPO.APP_SCHEMA.appInfo[$scope.toSimType].longName;
+                }
+                return $scope.convMethod == 'create_shadow_simulation' ? 'Shadow' : 'SRW';
             };
         },
     };

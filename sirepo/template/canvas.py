@@ -12,7 +12,6 @@ from sirepo.template import madx_parser
 from sirepo.template import sdds_util
 from sirepo.template import template_common
 from sirepo.template.lattice import LatticeUtil
-from sirepo.template.madx_converter import MadxConverter
 import h5py
 import impactx
 import math
@@ -26,6 +25,7 @@ import scipy.constants
 import sirepo.sim_data
 import sirepo.template.impactx
 import sirepo.template.madx
+import sirepo.template.madx_converter
 import tempfile
 
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
@@ -41,116 +41,67 @@ _PHASE_SPACE_LABEL = PKDict(
 _MADX_TRACK_OUTPUT_FILE = "madx/ptc_track.file.tfs"
 
 
-class CanvasMadxConverter(MadxConverter):
-    _FIELD_MAP = [
-        [
-            "COLLIMATOR",
-            ["APERTURE", "l"],
-        ],
-        [
-            "DRIFT",
-            ["DRIFT", "l"],
-        ],
-        [
-            "QUADRUPOLE",
-            ["QUADRUPOLE", "l", "k1", "k1s"],
-        ],
-        ["RFCAVITY", ["RFCAVITY", "l", "volt", "freq", "phase=lag"]],
-        [
-            "SBEND",
-            ["SBEND", "l", "angle", "fint", "fintx", "e1", "e2"],
-        ],
-        [
-            "DIPEDGE",
-            ["SBEND"],
-        ],
-        [
-            "SEXTUPOLE",
-            ["SEXTUPOLE", "l", "k2", "k2s"],
-        ],
-    ]
+class CanvasMadxConverter(sirepo.template.madx_converter.MadxConverter):
+    # MadxConverter's settings, see MadxConverter
+    _DIPEDGE_BENDS = ("SBEND",)
+    _DOWNCASE_VARIABLES = True
+    _REMOVE_ZERO_DRIFTS = True
+    _DIPEDGE_FIELDS = PKDict(
+        entrance=PKDict(e1="e1", fint="fint"),
+        exit=PKDict(e1="e2", fint="fintx"),
+    )
+    _DIPEDGE_GAP = ("gap", 2)
+    _ELEMENTS = PKDict(
+        APERTURE=["COLLIMATOR", "l"],
+        DRIFT=["DRIFT", "l"],
+        QUADRUPOLE=["QUADRUPOLE", "l", "k1", "k1s"],
+        RFCAVITY=["RFCAVITY", "l", "freq"],
+        SBEND=["SBEND", "l", "angle", "fint", "fintx", "e1", "e2"],
+        SEXTUPOLE=["SEXTUPOLE", "l", "k2", "k2s"],
+    )
+    _FROM_MADX = PKDict(
+        COLLIMATOR="APERTURE",
+        # merged into the SBEND beside it, see _merge_dipedges()
+        DIPEDGE=None,
+        DRIFT="DRIFT",
+        QUADRUPOLE="QUADRUPOLE",
+        RFCAVITY="RFCAVITY",
+        SBEND="SBEND",
+        SEXTUPOLE="SEXTUPOLE",
+    )
 
     def __init__(self, qcall=None, **kwargs):
-        super().__init__(
-            SIM_TYPE,
-            self._FIELD_MAP,
-            downcase_variables=True,
-            qcall=qcall,
-            **kwargs,
+        super().__init__(SIM_TYPE, qcall=qcall, **kwargs)
+
+    def _element_handlers(self):
+        return PKDict(
+            from_madx=PKDict(
+                COLLIMATOR=self._from_madx_collimator,
+                RFCAVITY=self._from_madx_rfcavity,
+                SBEND=self._from_madx_sbend,
+            ),
+            to_madx=PKDict(),
         )
-        self.dipedges = PKDict()
 
-    def from_madx(self, madx):
-        data = self.fill_in_missing_constants(super().from_madx(madx), PKDict())
-        self._remove_zero_drifts(data)
-        self.__merge_dipedges(data)
-        return data
+    def _from_madx_collimator(self, element_in, element_out):
+        a = self._aperture(element_in)
+        if a:
+            element_out.shape = (
+                "rectangular" if a.apertype == "rectangle" else "elliptical"
+            )
+            element_out.xmax = a.x
+            element_out.ymax = a.y
 
-    def _fixup_element(self, element_in, element_out):
-        super()._fixup_element(element_in, element_out)
-        if self.from_class.sim_type() == SIM_TYPE:
-            pass
-        else:
-            if element_in.type == "COLLIMATOR":
-                element_out.shape = (
-                    "rectangular"
-                    if element_in.apertype == "rectangle"
-                    else "elliptical"
-                )
-                m = re.search(r"^\{?\s*(.*?),\s*(.*?)\s*\}?$", element_in.aperture)
-                if m:
-                    element_out.xmax = float(m.group(1))
-                    element_out.ymax = float(m.group(2))
-            if element_in.type == "DIPEDGE":
-                self.dipedges[element_out._id] = element_in
-            elif element_in.type == "SBEND":
-                element_out.gap = self.__val(element_in.hgap) * 2
-                if element_out.fintx == -1:
-                    element_out.fintx = element_out.fint
-            elif element_in.type == "RFCAVITY":
-                element_out.volt = self.__val(element_out.volt) * 1e6
-                element_out.phase = self.__val(element_out.phase) * -180
+    def _from_madx_rfcavity(self, element_in, element_out):
+        # MV to V
+        element_out.volt = self._val(element_in.volt) * 1e6
+        element_out.phase = self._val(element_in.lag) * -180
 
-    def __merge_dipedges(self, data):
-        # dipedge in: {'e1': 0.048345620280243, 'fint': 0.0, 'h': 0.096653578905433, 'hgap': 0.0, }
-        # bend angle, gap, fint, fintx, e1, e2
-        bends = PKDict()
-        el = []
-        for e in data.models.elements:
-            if e._id in self.dipedges:
-                continue
-            if e.type == "SBEND":
-                bends[e._id] = e
-            el.append(e)
-        data.models.elements = el
-        for b in data.models.beamlines:
-            bl = []
-            dip = None
-            bend = None
-            for i in b["items"]:
-                if i in self.dipedges:
-                    if bend:
-                        # trailing dipedge
-                        bend.fintx = self.dipedges[i].fint
-                        bend.e2 = self.dipedges[i].e1
-                        bend.gap = 2 * self.__val(self.dipedges[i].hgap)
-                        bend = None
-                    else:
-                        dip = self.dipedges[i]
-                    continue
-                if i in bends:
-                    bend = bends[i]
-                    if dip:
-                        # leading dipedge
-                        bend.fint = dip.fint
-                        bend.e1 = dip.e1
-                        bend.gap = 2 * self.__val(dip.hgap)
-                        dip = None
-                bl.append(i)
-            b["items"] = bl
-
-    def __val(self, var_value):
-        return self.vars.eval_var_with_assert(var_value)
+    def _from_madx_sbend(self, element_in, element_out):
+        # MAD-X's half gap
+        element_out.gap = self._val(element_in.hgap) * 2
+        if element_out.fintx == -1:
+            element_out.fintx = element_out.fint
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -314,6 +265,8 @@ def sim_frame(frame_args):
             x_label=_PHASE_SPACE_LABEL[frame_args.x],
             y_label=_PHASE_SPACE_LABEL[frame_args.y],
             title=f"{frame_args.simCode} {title}",
+            # empty bins are transparent
+            threshold=[0],
         ),
     )
 

@@ -1,0 +1,145 @@
+{
+    "beamlines": [
+        {
+            "id": 112,
+            "items": [
+                108,
+                102,
+                104,
+                103,
+                106,
+                107,
+                106,
+                102,
+                105,
+                103,
+                109,
+                110,
+                111
+            ],
+            "name": "bl"
+        }
+    ],
+    "elements": [
+        {
+            "_id": 108,
+            "_super": "_ELEMENT_WITH_ERROR",
+            "aperture_x": 0.01,
+            "aperture_y": 0.02,
+            "dx": 0.0,
+            "dy": 0.0,
+            "name": "c1",
+            "rotation": 0.0,
+            "shape": "elliptical",
+            "type": "APERTURE"
+        },
+        {
+            "_id": 109,
+            "_super": "_ELEMENT_WITH_ERROR",
+            "aperture_x": 0.03,
+            "aperture_y": 0.04,
+            "dx": 0.0,
+            "dy": 0.0,
+            "name": "c2",
+            "rotation": 0.0,
+            "shape": "rectangular",
+            "type": "APERTURE"
+        },
+        {
+            "_id": 110,
+            "_super": "_ELEMENT_WITH_ERROR",
+            "aperture_x": 0.05,
+            "aperture_y": 0.05,
+            "dx": 0.0,
+            "dy": 0.0,
+            "name": "c3",
+            "rotation": 0.0,
+            "shape": "elliptical",
+            "type": "APERTURE"
+        },
+        {
+            "_id": 111,
+            "_super": "_ELEMENT_WITH_ERROR",
+            "dx": 0.0,
+            "dy": 0.0,
+            "name": "c4",
+            "rotation": 0.0,
+            "shape": "rectangular",
+            "type": "APERTURE"
+        },
+        {
+            "K2": 0.5,
+            "_id": 102,
+            "_super": "_ELEMENT_WITH_ERROR",
+            "dx": 0.0,
+            "dy": 0.0,
+            "g": 0.02,
+            "name": "de1",
+            "psi": 0.05,
+            "rc": 10.0,
+            "rotation": 0.0,
+            "tilt": 0.02,
+            "type": "DIPEDGE"
+        },
+        {
+            "K2": 0.4,
+            "_id": 103,
+            "_super": "_ELEMENT_WITH_ERROR",
+            "dx": 0.0,
+            "dy": 0.0,
+            "g": 0.02,
+            "name": "de2",
+            "psi": 0.06,
+            "rc": 10.0,
+            "rotation": 0.0,
+            "tilt": 0.0,
+            "type": "DIPEDGE"
+        },
+        {
+            "_id": 106,
+            "_super": "_ELEMENT_WITH_LENGTH_AND_ERROR",
+            "dx": 0.0,
+            "dy": 0.0,
+            "l": 0.5,
+            "name": "d1",
+            "nslice": 1,
+            "rotation": 0.0,
+            "type": "DRIFT"
+        },
+        {
+            "_id": 105,
+            "_super": "_ELEMENT_WITH_LENGTH_AND_ERROR",
+            "dx": 0.0,
+            "dy": 0.0,
+            "l": 1.0,
+            "name": "r1",
+            "nslice": 1,
+            "rotation": 0.0,
+            "type": "DRIFT"
+        },
+        {
+            "_id": 107,
+            "_super": "_ELEMENT_WITH_LENGTH_AND_ERROR",
+            "dx": 0.0,
+            "dy": 0.0,
+            "k": 1.0,
+            "l": 0.2,
+            "name": "q1",
+            "nslice": 1,
+            "rotation": 0.0,
+            "type": "QUAD"
+        },
+        {
+            "_id": 104,
+            "_super": "_ELEMENT_WITH_LENGTH_AND_ERROR",
+            "dx": 0.0,
+            "dy": 0.0,
+            "l": 1.0,
+            "name": "b1",
+            "nslice": 1,
+            "rc": 10.0,
+            "rotation": 0.0,
+            "type": "SBEND"
+        }
+    ]
+}

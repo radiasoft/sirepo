@@ -207,22 +207,22 @@
             "sourceFile": null
         },
         "bunchReport1": {
-            "histogramBins": 200,
+            "histogramBins": 158,
             "x": "x",
             "y": "xp"
         },
         "bunchReport2": {
-            "histogramBins": 200,
+            "histogramBins": 158,
             "x": "y",
             "y": "yp"
         },
         "bunchReport3": {
-            "histogramBins": 200,
+            "histogramBins": 158,
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
-            "histogramBins": 200,
+            "histogramBins": 158,
             "x": "t",
             "y": "p"
         },
@@ -366,14 +366,14 @@
             }
         ],
         "elementAnimation": {
-            "histogramBins": 200,
+            "histogramBins": 158,
             "x": "x",
             "y": "xp"
         },
         "elementAnimation0-1": {
             "fileId": "0-1",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "x",
                 "xp",
@@ -389,7 +389,7 @@
         "elementAnimation10-5": {
             "fileId": "10-5",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "w1",
             "valueList": {
                 "x": [
@@ -459,7 +459,7 @@
         "elementAnimation10-6": {
             "fileId": "10-6",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "x",
                 "xp",
@@ -476,7 +476,7 @@
         "elementAnimation11-5": {
             "fileId": "11-5",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "h1",
             "valueList": {
                 "x": [
@@ -536,7 +536,7 @@
         "elementAnimation11-6": {
             "fileId": "11-6",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "t",
                 "tFrequency",
@@ -551,7 +551,7 @@
         "elementAnimation12-5": {
             "fileId": "12-5",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "w2",
             "valueList": {
                 "x": [
@@ -621,7 +621,7 @@
         "elementAnimation12-6": {
             "fileId": "12-6",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "x",
                 "xp",
@@ -638,7 +638,7 @@
         "elementAnimation13-5": {
             "fileId": "13-5",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "h2",
             "valueList": {
                 "x": [
@@ -698,7 +698,7 @@
         "elementAnimation13-6": {
             "fileId": "13-6",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "t",
                 "tFrequency",
@@ -713,7 +713,7 @@
         "elementAnimation14-5": {
             "fileId": "14-5",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "w3",
             "valueList": {
                 "x": [
@@ -784,7 +784,7 @@
         "elementAnimation14-6": {
             "fileId": "14-6",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "x",
                 "xp",
@@ -801,7 +801,7 @@
         "elementAnimation15-5": {
             "fileId": "15-5",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "h3",
             "valueList": {
                 "x": [
@@ -861,7 +861,7 @@
         "elementAnimation15-6": {
             "fileId": "15-6",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "t",
                 "tFrequency",
@@ -876,7 +876,7 @@
         "elementAnimation16-5": {
             "fileId": "16-5",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "w4",
             "valueList": {
                 "x": [
@@ -946,7 +946,7 @@
         "elementAnimation16-6": {
             "fileId": "16-6",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "x",
                 "xp",
@@ -963,7 +963,7 @@
         "elementAnimation17-5": {
             "fileId": "17-5",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "h4",
             "valueList": {
                 "x": [
@@ -1023,7 +1023,7 @@
         "elementAnimation17-6": {
             "fileId": "17-6",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "t",
                 "tFrequency",
@@ -1038,7 +1038,7 @@
         "elementAnimation18-5": {
             "fileId": "18-5",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "w5",
             "valueList": {
                 "x": [
@@ -1108,7 +1108,7 @@
         "elementAnimation18-6": {
             "fileId": "18-6",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "x",
                 "xp",
@@ -1125,7 +1125,7 @@
         "elementAnimation19-5": {
             "fileId": "19-5",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "h5",
             "valueList": {
                 "x": [
@@ -1185,7 +1185,7 @@
         "elementAnimation19-6": {
             "fileId": "19-6",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "t",
                 "tFrequency",
@@ -1200,7 +1200,7 @@
         "elementAnimation20-5": {
             "fileId": "20-5",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "w6",
             "valueList": {
                 "x": [
@@ -1270,7 +1270,7 @@
         "elementAnimation20-6": {
             "fileId": "20-6",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "x",
                 "xp",
@@ -1287,7 +1287,7 @@
         "elementAnimation21-5": {
             "fileId": "21-5",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "h6",
             "valueList": {
                 "x": [
@@ -1347,7 +1347,7 @@
         "elementAnimation21-6": {
             "fileId": "21-6",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "t",
                 "tFrequency",
@@ -1362,7 +1362,7 @@
         "elementAnimation29-18": {
             "fileId": "29-18",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "run_setup.output",
             "valueList": {
                 "x": [
@@ -1427,7 +1427,7 @@
         "elementAnimation29-25": {
             "fileId": "29-25",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "run_setup.sigma",
             "valueList": {
                 "x": [
@@ -1807,7 +1807,7 @@
         "elementAnimation29-3": {
             "fileId": "29-3",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "run_setup.centroid",
             "valueList": {
                 "x": [
@@ -1891,7 +1891,7 @@
         "elementAnimation31-13": {
             "fileId": "31-13",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "includeLattice": "1",
             "panelTitle": "twiss_output",
             "valueList": {
@@ -1997,7 +1997,7 @@
         "elementAnimation4-54": {
             "fileId": "4-54",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "B1",
             "valueList": {
                 "x": [
@@ -2062,7 +2062,7 @@
         "elementAnimation4-55": {
             "fileId": "4-55",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "s",
                 "LinearDensity",
@@ -2078,7 +2078,7 @@
         "elementAnimation5-54": {
             "fileId": "5-54",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "B2",
             "valueList": {
                 "x": [
@@ -2143,7 +2143,7 @@
         "elementAnimation5-55": {
             "fileId": "5-55",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "s",
                 "LinearDensity",
@@ -2159,7 +2159,7 @@
         "elementAnimation6-54": {
             "fileId": "6-54",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "B3",
             "valueList": {
                 "x": [
@@ -2224,7 +2224,7 @@
         "elementAnimation6-55": {
             "fileId": "6-55",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "s",
                 "LinearDensity",
@@ -2240,7 +2240,7 @@
         "elementAnimation7-54": {
             "fileId": "7-54",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "B4",
             "valueList": {
                 "x": [
@@ -2305,7 +2305,7 @@
         "elementAnimation7-55": {
             "fileId": "7-55",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "s",
                 "LinearDensity",
@@ -2321,7 +2321,7 @@
         "elementAnimation8-5": {
             "fileId": "8-5",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "w0",
             "valueList": {
                 "x": [
@@ -2391,7 +2391,7 @@
         "elementAnimation8-6": {
             "fileId": "8-6",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "x",
                 "xp",
@@ -2408,7 +2408,7 @@
         "elementAnimation9-5": {
             "fileId": "9-5",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "panelTitle": "h0",
             "valueList": {
                 "x": [
@@ -2468,7 +2468,7 @@
         "elementAnimation9-6": {
             "fileId": "9-6",
             "framesPerSecond": 2,
-            "histogramBins": 200,
+            "histogramBins": 158,
             "values": [
                 "t",
                 "tFrequency",

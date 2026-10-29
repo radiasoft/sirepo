@@ -11,13 +11,12 @@ from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import hdf5_util
 from sirepo.template import template_common
-from sirepo.template.madx_converter import MadxConverter
 import numpy
 import pandas
-import re
 import sirepo.lib
 import sirepo.sim_data
 import sirepo.template.lattice
+import sirepo.template.madx_converter
 import sirepo.template.sdds_util
 
 FINAL_DISTRIBUTION_OUTPUT_FILE = "diags/final_distribution.h5"
@@ -69,124 +68,114 @@ class LibAdapter(sirepo.lib.LibAdapterBase):
         return PKDict()
 
 
-class ImpactxMadxConverter(MadxConverter):
-    _FIELD_MAP = [
-        [
-            "COLLIMATOR",
-            ["APERTURE"],
-        ],
-        [
-            "DRIFT",
-            ["DRIFT", "l"],
-        ],
-        [
-            "DIPEDGE",
-            ["DIPEDGE", "tilt", "K2=fint"],
-        ],
-        [
-            "SBEND",
-            ["SBEND", "l"],
-        ],
-        [
-            "QUADRUPOLE",
-            ["QUAD", "l", "k=k1"],
-        ],
-        [
-            "SOLENOID",
-            ["SOL", "l", "ks"],
-        ],
-        [
-            "KICKER",
-            ["KICKER", "xkick=hkick", "ykick=vkick"],
-        ],
-        [
-            "MONITOR",
-            ["BEAMMONITOR"],
-        ],
-        [
-            "RFCAVITY",
-            ["SHORTRF", "V=volt", "freq", "phase=lag"],
-        ],
-    ]
+class ImpactxMadxConverter(sirepo.template.madx_converter.MadxConverter):
+    # MadxConverter's settings, see MadxConverter
+    _DOWNCASE_VARIABLES = True
+    _REMOVE_ZERO_DRIFTS = True
+    _ELEMENTS = PKDict(
+        APERTURE=["COLLIMATOR"],
+        BEAMMONITOR=["MONITOR"],
+        DIPEDGE=["DIPEDGE", "tilt", "K2=fint"],
+        DRIFT=["DRIFT", "l"],
+        # TODO(pjm): add l/2 drift around a kicker with length
+        KICKER=["KICKER", "xkick=hkick", "ykick=vkick"],
+        QUAD=["QUADRUPOLE", "l", "k=k1"],
+        SBEND=["SBEND", "l"],
+        SHORTRF=["RFCAVITY"],
+        SOL=["SOLENOID", "l", "ks"],
+    )
+    _FROM_MADX = PKDict(
+        COLLIMATOR="APERTURE",
+        DIPEDGE="DIPEDGE",
+        DRIFT="DRIFT",
+        KICKER="KICKER",
+        # TODO(pjm): add drifts around a monitor with length
+        MONITOR="BEAMMONITOR",
+        QUADRUPOLE="QUAD",
+        RFCAVITY="SHORTRF",
+        SBEND="SBEND",
+        SOLENOID="SOL",
+    )
 
     def __init__(self, qcall=None, nslice=1, **kwargs):
-        super().__init__(
-            SIM_TYPE,
-            self._FIELD_MAP,
-            downcase_variables=True,
-            qcall=qcall,
-            **kwargs,
-        )
+        super().__init__(SIM_TYPE, qcall=qcall, **kwargs)
         self.nslice = nslice
 
-    def from_madx(self, madx):
-        data = self.fill_in_missing_constants(super().from_madx(madx), PKDict())
-        self._remove_zero_drifts(data)
-        return data
+    def _element_handlers(self):
+        return PKDict(
+            from_madx=PKDict(
+                COLLIMATOR=self._from_madx_collimator,
+                DIPEDGE=self._from_madx_dipedge,
+                QUADRUPOLE=self._from_madx_quadrupole,
+                RFCAVITY=self._from_madx_rfcavity,
+                SBEND=self._from_madx_sbend,
+                SOLENOID=self._from_madx_solenoid,
+            ),
+            to_madx=PKDict(),
+        )
 
     def _fixup_element(self, element_in, element_out):
         super()._fixup_element(element_in, element_out)
-        if self.from_class.sim_type() == SIM_TYPE:
-            pass
-        else:
-            if "nslice" in SCHEMA.model[element_out.type]:
-                element_out.nslice = self.nslice
-            if element_in.type == "SBEND":
-                if self.__val(element_in.angle) != 0:
-                    element_out.rc = self.__val(element_out.l) / self.__val(
-                        element_in.angle
-                    )
-                else:
-                    element_out.rc = 0
-                if element_out.rc == 0:
-                    element_out.type = "DRIFT"
-            elif element_in.type == "COLLIMATOR":
-                m = re.search(r"^\{?\s*(.*?),\s*(.*?)\s*\}?$", element_in.aperture)
-                if m:
-                    element_out.aperture_x = self.__val(m.group(1))
-                    element_out.aperture_y = self.__val(m.group(2))
-                element_out.shape = (
-                    "rectangular"
-                    if element_in.apertype == "rectangle"
-                    else "elliptical"
-                )
-            elif element_in.type == "DIPEDGE":
-                if self.__val(element_in.h) != 0:
-                    element_out.rc = 1.0 / self.__val(element_in.h)
-                else:
-                    element_out.rc = 0
-                element_out.g = 2 * self.__val(element_in.hgap)
-                element_out.psi = element_in.e1
-                if element_out.rc == 0:
-                    element_out.type = "DRIFT"
-            elif element_out.type == "QUAD" and self.__val(element_out.k) == 0:
-                element_out.type = "DRIFT"
-            elif element_out.type == "SOL" and self.__val(element_out.ks) == 0:
-                element_out.type = "DRIFT"
-            elif "KICKER" in element_in.type and self.__val(element_in.l) > 0:
-                # TODO(pjm): add l/2 drift around kicker in beamline
-                pass
-            elif element_in.type == "MONITOR" and self.__val(element_in.l) > 0:
-                # TODO(pjm) add drift
-                pass
-            elif element_in.type == "RFCAVITY" and self.__val(element_in.freq) == 0:
-                if self.__val(element_in.l) > 0:
-                    element_out.l = element_in.l
-                    element_out.type = "DRIFT"
-            elif element_in.type == "RFCAVITY":
-                element_out.phase = -(self.__val(element_out.phase) * 360 + 90)
-                element_out.freq = self.__val(element_out.freq) * 1e6
-                p = "electron"
-                if (
-                    self.beam
-                    and self.beam.particle in SCHEMA.constants.particleMassAndCharge
-                ):
-                    p = self.beam.particle
-                mc = SCHEMA.constants.particleMassAndCharge.get(p)
-                element_out.V = self.__val(element_out.V) / (mc[0] * 1e3)
+        if (
+            self.from_class.sim_type() != SIM_TYPE
+            and "nslice" in SCHEMA.model[element_out.type]
+        ):
+            element_out.nslice = self.nslice
 
-    def __val(self, var_value):
-        return self.vars.eval_var_with_assert(var_value)
+    def _from_madx_collimator(self, element_in, element_out):
+        a = self._aperture(element_in)
+        if a:
+            element_out.aperture_x = a.x
+            element_out.aperture_y = a.y
+            element_out.shape = (
+                "rectangular" if a.apertype == "rectangle" else "elliptical"
+            )
+
+    def _from_madx_dipedge(self, element_in, element_out):
+        if self._val(element_in.h) != 0:
+            element_out.rc = 1.0 / self._val(element_in.h)
+        else:
+            element_out.rc = 0
+        element_out.g = 2 * self._val(element_in.hgap)
+        element_out.psi = element_in.e1
+        if element_out.rc == 0:
+            element_out.type = "DRIFT"
+
+    def _from_madx_quadrupole(self, element_in, element_out):
+        if self._val(element_out.k) == 0:
+            element_out.type = "DRIFT"
+
+    def _from_madx_rfcavity(self, element_in, element_out):
+        if self._val(element_in.freq) == 0:
+            if self._val(element_in.l) > 0:
+                element_out.l = element_in.l
+                element_out.type = "DRIFT"
+            else:
+                element_out.pkupdate(
+                    V=element_in.volt, freq=element_in.freq, phase=element_in.lag
+                )
+            return
+        element_out.phase = -(self._val(element_in.lag) * 360 + 90)
+        # MHz to Hz
+        element_out.freq = self._val(element_in.freq) * 1e6
+        p = "electron"
+        if self.beam and self.beam.particle in SCHEMA.constants.particleMassAndCharge:
+            p = self.beam.particle
+        mc = SCHEMA.constants.particleMassAndCharge.get(p)
+        # MV to the voltage over the particle's rest energy
+        element_out.V = self._val(element_in.volt) / (mc[0] * 1e3)
+
+    def _from_madx_sbend(self, element_in, element_out):
+        if self._val(element_in.angle) != 0:
+            element_out.rc = self._val(element_out.l) / self._val(element_in.angle)
+        else:
+            element_out.rc = 0
+        if element_out.rc == 0:
+            element_out.type = "DRIFT"
+
+    def _from_madx_solenoid(self, element_in, element_out):
+        if self._val(element_out.ks) == 0:
+            element_out.type = "DRIFT"
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -319,13 +308,20 @@ def _bunch_plot(run_dir, model):
     def _title(file, frame_index):
         return ""
 
-    return hdf5_util.HDF5Util(str(run_dir.join(_BUNCH_REPORT_OUTPUT_FILE))).heatmap(
-        PKDict(
-            format_plot=_format_plot,
-            frame_index=0,
-            model=model,
-            points=_points,
-            title=_title,
+    return (
+        hdf5_util.HDF5Util(str(run_dir.join(_BUNCH_REPORT_OUTPUT_FILE)))
+        .heatmap(
+            PKDict(
+                format_plot=_format_plot,
+                frame_index=0,
+                model=model,
+                points=_points,
+                title=_title,
+            )
+        )
+        .pkupdate(
+            # empty bins are transparent
+            threshold=[0],
         )
     )
 

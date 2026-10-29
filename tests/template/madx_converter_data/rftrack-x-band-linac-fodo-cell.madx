@@ -1,0 +1,24 @@
+title, "X-band Linac FODO Cell";
+
+REAL sr_alpha_x = 0.0;
+REAL sr_alpha_y = 0.0;
+REAL sr_beta_x = 1.0;
+REAL sr_beta_y = 1.0;
+REAL sr_gamma_x = (1 + sr_alpha_x * sr_alpha_x) / sr_beta_x;
+REAL sr_gamma_y = (1 + sr_alpha_y * sr_alpha_y) / sr_beta_y;
+REAL sr_n_particles_per_bunch = 10000;
+
+D0: DRIFT,l=0.05;
+QD: QUADRUPOLE,k1=14.9896229,l=0.1;
+QF: QUADRUPOLE,k1=-14.9896229,l=0.1;
+C1: RFCAVITY,freq=11994.199999999999,l=0.15,lag=0.25,volt=5.998748555134982;
+C2: RFCAVITY,freq=11994.199999999999,l=0.15,lag=0.25,volt=5.998748555134982;
+C3: RFCAVITY,freq=11994.199999999999,l=0.15,lag=0.25,volt=5.998748555134982;
+C4: RFCAVITY,freq=11994.199999999999,l=0.15,lag=0.25,volt=5.998748555134982;
+BL1: LINE=(D0,C1,C2,QF,C3,C4,QD);
+
+
+beam,ex=2.5549947499999995e-08,ey=2.5549947499999995e-08,npart=312075453.7230382,particle=electron,pc=0.1,sige=0.000999986944259338,sigt=0.001;
+use,sequence=BL1;
+twiss,alfx=sr_alpha_x,alfy=sr_alpha_y,betx=sr_beta_x,bety=sr_beta_y,file="twiss.file.tfs";
+

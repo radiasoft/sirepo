@@ -29,6 +29,7 @@
             "bunchReport": [{"title": "OpenPMD HDF5", "suffix": "openpmd"}],
             "elementAnimation": [{"title": "OpenPMD HDF5", "suffix": "openpmd"}]
         },
+        "hasMadxExport": true,
         "particleMassAndCharge": {
             "electron": [0.51099895069, -1.0],
             "positron": [0.51099895069, 1.0],
@@ -207,8 +208,12 @@
             "beta_y": ["Vertical Beta [m]", "RPNValue", 1.0],
             "alpha_x": ["Horizontal Alpha", "RPNValue", 0.0],
             "alpha_y": ["Vertical Alpha", "RPNValue", 0.0],
+            "disp_x": ["Horizontal Spatial Dispersion [m]", "RPNValue", 0.0, "Dispersion of x with respect to the energy coordinate dE / (P c), as MAD-X's DX"],
+            "disp_px": ["Horizontal Angular Dispersion [rad]", "RPNValue", 0.0, "Dispersion of x' with respect to the energy coordinate dE / (P c), as MAD-X's DPX"],
+            "disp_y": ["Vertical Spatial Dispersion [m]", "RPNValue", 0.0, "Dispersion of y with respect to the energy coordinate dE / (P c), as MAD-X's DY"],
+            "disp_py": ["Vertical Angular Dispersion [rad]", "RPNValue", 0.0, "Dispersion of y' with respect to the energy coordinate dE / (P c), as MAD-X's DPY"],
             "sigma_t": ["Bunch Length [mm/c]", "RPNValue", 1.0],
-            "sigma_pt": ["Relative Energy Spread [permille]", "RPNValue", 1.0],
+            "sigma_pt": ["Energy Spread [permille]", "RPNValue", 1.0, "RMS energy deviation over the reference momentum, dE / (P c); the relative energy spread dE / E for beta = 1"],
             "distributionType": ["Distribution", "BeamDistributionType", "twiss", "Twiss parameters generate a bunch analytically. Cathode Emission models photoemission from a cathode with RF_Track's Bunch6dT_Generator, tracked from rest. From File loads a previously-saved particle bunch from an OpenPMD HDF5 file."],
             "distributionFile": ["Distribution File", "InputFile", "", "OpenPMD HDF5 file (iteration 0) containing a saved particle bunch: per-particle position (m), momentum (kg*m/s), and optionally time (s), for the species selected above. Accepts files from this app's own OpenPMD download (any report) or from the AWA rftrack_utils posproc.save_bunch_to_openpmd() helper."],
             "fromFileNearRest": ["Near-Rest Bunch", "Boolean", "1", "Checked (e.g. a Cathode Emission snapshot, where Pz can be comparable to the transverse momentum): builds a Bunch6dT preserving the full 3D momentum, avoiding the small-angle approximation an at-rest bunch would otherwise need. Unchecked (an already-accelerated bunch, e.g. re-injecting a previous sim's own tracked output downstream, where Pz dominates): builds a Bunch6d using the standard small-angle x'/y' -- required for Sequential (Lattice) positioning, since RF_Track's Lattice.track() has no Bunch6dT support at all."],
@@ -435,8 +440,8 @@
                 "distributionFile",
                 "fromFileNearRest",
                 [
-                    ["Horizontal", ["beta_x", "alpha_x", "emit_x"]],
-                    ["Vertical", ["beta_y", "alpha_y", "emit_y"]]
+                    ["Horizontal", ["beta_x", "alpha_x", "emit_x", "disp_x", "disp_px"]],
+                    ["Vertical", ["beta_y", "alpha_y", "emit_y", "disp_y", "disp_py"]]
                 ],
                 "sigma_t",
                 "sigma_pt",

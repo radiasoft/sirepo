@@ -473,7 +473,7 @@
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "x"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate", "y"],
             "plotType": ["Plot Type", "PlotType", "heatmap"],
-            "histogramBins": ["Histogram Bins", "Integer", 80],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
@@ -481,7 +481,7 @@
             "x": ["X Value", "PhaseSpaceCoordinate", "x"],
             "y": ["Y Value", "PhaseSpaceCoordinate", "px"],
             "plotType": ["Plot Type", "PlotType", "3d"],
-            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "fit"],
@@ -497,7 +497,7 @@
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
             "plotType": ["Plot Type", "PlotType", "3d"],
-            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "coordOut": ["TRACK Coord Output", "InputFile", "", "TRACK coord.out output file"],
             "notes": ["Notes", "Text", ""]
@@ -506,7 +506,7 @@
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
             "plotType": ["Plot Type", "PlotType", "3d"],
-            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "coordOut": ["TRACK Coord Output", "InputFile", "", "TRACK coord.out output file"],
             "notes": ["Notes", "Text", ""]
@@ -515,7 +515,7 @@
             "x": ["Horizontal Value to Plot", "PhaseSpaceCoordinate", "x"],
             "y": ["Vertical Value to Plot", "PhaseSpaceCoordinate", "px"],
             "plotType": ["Plot Type", "PlotType", "3d"],
-            "histogramBins": ["Histogram Bins", "Integer", 60],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "coordOut": ["TRACK Coord Output", "InputFile", "", "TRACK coord.out output file"],
             "notes": ["Notes", "Text", ""]
@@ -531,7 +531,7 @@
             "x": ["X Value", "PhaseSpaceCoordinate2", "x"],
             "y": ["Y Value", "PhaseSpaceCoordinate2", "px"],
             "plotType": ["Plot Type", "PlotType", "heatmap"],
-            "histogramBins": ["Histogram Bins", "Integer", 80],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
             "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "none"],

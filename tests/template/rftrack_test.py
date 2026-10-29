@@ -8,7 +8,7 @@
 # TODO(pjm): reenable tests after container beamsim is built with new rftrack location
 
 
-def xtest_analytic_cavity_gain():
+def test_analytic_cavity_gain():
     """An analytic CAVITY is a standing wave of half-wavelength cells: on
     crest, an ultrarelativistic particle gains gradient * l / 2, however
     many cells it has."""
@@ -39,7 +39,7 @@ def xtest_analytic_cavity_gain():
             numpy.array([0.0, 0.0, 0.0, 0.0, 0.0, m.BUNCH.pc_mev]),
         )
         lattice.autophase(b)
-        # measured within 5e-4 for 1 and 12 cells: the field map's sampling
+        # measured within 2.5e-4 for 1 and 12 cells: the field map's sampling
         numpy.testing.assert_allclose(
             lattice.track(b).get_phase_space("%Pc")[0, 0] - m.BUNCH.pc_mev,
             spec.gradient_v_per_m * spec.l / 2e6,
@@ -48,7 +48,7 @@ def xtest_analytic_cavity_gain():
         )
 
 
-def xtest_aperture_shapes():
+def test_aperture_shapes():
     """A particle beyond an element's aperture is lost: circular is an
     ellipse with half-axes X and Y, rectangular a rectangle, none no
     aperture, in a Lattice and a Volume."""
@@ -88,7 +88,7 @@ def xtest_aperture_shapes():
                 )
 
 
-def xtest_bpm_resolution():
+def test_bpm_resolution():
     """A BPM's readings have its resolution's random error, the same for
     the same seed."""
     import numpy
@@ -109,7 +109,7 @@ def xtest_bpm_resolution():
     numpy.testing.assert_array_equal(r, _readings(0.5))
 
 
-def xtest_coil():
+def test_coil():
     """A COIL is a current loop in the middle of L: its on-axis field
     falls as R^3 / (R^2 + dz^2)^(3/2), and it focuses a particle at r by
     r'/r = -integral (Bz / (2 Brho))^2 dz, as a thin lens, in a Lattice and
@@ -155,7 +155,7 @@ def xtest_coil():
     )
 
 
-def xtest_fixup_recorded_autophase():
+def test_fixup_recorded_autophase():
     """A simulation saved with Recorded t0 autophases again, and its
     elements' t0 is gone."""
     from pykern import pkunit
@@ -176,7 +176,7 @@ def xtest_fixup_recorded_autophase():
     )
 
 
-def xtest_fixup_set_aperture():
+def test_fixup_set_aperture():
     """A simulation saved with the Set Aperture checkbox has a circular
     aperture where it was checked, and none elsewhere."""
     from pykern import pkunit
@@ -194,7 +194,7 @@ def xtest_fixup_set_aperture():
     )
 
 
-def xtest_fixup_solenoid_radius():
+def test_fixup_solenoid_radius():
     """A simulation saved before SOLENOID had a radius has its aperture_x,
     which was its bore radius."""
     from pykern import pkunit
@@ -211,7 +211,7 @@ def xtest_fixup_solenoid_radius():
     pkunit.pkeq([0.02, 0.05], [e.radius for e in data.models.elements])
 
 
-def xtest_generate_python():
+def test_generate_python():
     from pykern import pkunit
     from sirepo.template import rftrack
     import re
@@ -222,6 +222,8 @@ def xtest_generate_python():
             ("AWA Zone #2", "awa-zone-2.py"),
             ("CERN Linac4 CCDTL", "cern-linac4-ccdtl.py"),
             ("Corrector Steering Line", "corrector-steering-line.py"),
+            ("IOTA Ring", "iota-ring.py"),
+            ("PIP-II Linac MEBT", "pip-ii-mebt.py"),
             ("X-band Linac FODO Cell", "x-band-linac-fodo-cell.py"),
         ):
             data = _shipped_example(name)
@@ -238,7 +240,7 @@ def xtest_generate_python():
             )
 
 
-def xtest_import_refused():
+def test_import_refused():
     """An archive with an element this app can't reproduce -- a static
     field, or a field map cropped by z0/z1 -- is refused, with every
     reason, before any lib file is written."""
@@ -279,7 +281,7 @@ def xtest_import_refused():
     pkunit.pkfail("expected a UserAlert")
 
 
-def xtest_import_round_trip(monkeypatch):
+def test_import_round_trip(monkeypatch):
     """Each import_file_test archive, imported and tracked by the generated
     script, tracks like lume_rftrack's own reload of it: exactly for the
     Volume; for the Lattice, whose cavities the script phases again from
@@ -353,7 +355,7 @@ def xtest_import_round_trip(monkeypatch):
                 )
 
 
-def xtest_lattice_integration():
+def test_lattice_integration():
     """A Lattice element gets its step counts and, if it integrates its
     field, its integrator; 0 steps keeps RF-Track's default."""
     from pykern import pkunit
@@ -391,11 +393,13 @@ def xtest_lattice_integration():
     pkunit.pkeq(3, b.get_elements_by_name("E1").get_nsteps())
 
 
-def xtest_lattice_misalignment():
+def test_lattice_misalignment():
     """A Lattice element's misalignment is a position offset in meters and
     rotations in radians about x (pitch), y (yaw) and z (roll): an offset
-    quadrupole kicks a particle on axis by about K1 L dx, and tilting it
-    about x kicks in y, about y kicks in x."""
+    quadrupole kicks a particle on axis by about K1 L dx, tilting it about
+    x kicks in y, about y kicks in x, and rolling it is the same as
+    rotating the particle into the quadrupole's frame and back (MAD-X's
+    tilt)."""
     import numpy
     import scipy.constants
     from pykern import pkunit
@@ -414,6 +418,20 @@ def xtest_lattice_misalignment():
     kl = quad.gradient * quad.l / (pc * 1e6 / scipy.constants.c)
 
     def _kick(**misalignment):
+        return numpy.abs(_track(numpy.zeros(4), **misalignment)[[1, 3]])
+
+    def _rotate(x, angle):
+        c, s = numpy.cos(angle), numpy.sin(angle)
+        return numpy.array(
+            [
+                c * x[0] + s * x[2],
+                c * x[1] + s * x[3],
+                -s * x[0] + c * x[2],
+                -s * x[1] + c * x[3],
+            ]
+        )
+
+    def _track(x, **misalignment):
         m.ELEMENTS = [
             PKDict(
                 {
@@ -427,9 +445,9 @@ def xtest_lattice_misalignment():
             m.BUNCH.mass_mev,
             0.0,
             m.BUNCH.charge,
-            numpy.array([0.0, 0.0, 0.0, 0.0, 0.0, pc]),
+            numpy.array([*x, 0.0, pc]),
         )
-        return numpy.abs(m.build_beamline().track(b).get_phase_space("%xp %yp")[0])
+        return m.build_beamline().track(b).get_phase_space("%x %xp %y %yp")[0]
 
     # 5%: the quadrupole is thick; xp, yp are in mrad, dx in mm
     numpy.testing.assert_allclose(_kick(dx=1e-3)[0], kl * 1.0, rtol=0.05)
@@ -437,9 +455,16 @@ def xtest_lattice_misalignment():
     pkunit.pkok(y > 10 * x, "rx should kick in y: xp={} yp={}", x, y)
     x, y = _kick(ry=0.01)
     pkunit.pkok(x > 10 * y, "ry should kick in x: xp={} yp={}", x, y)
+    # x [mm], xp [mrad], y [mm], yp [mrad]
+    p = numpy.array([1.0, 0.5, 0.7, -0.3])
+    numpy.testing.assert_allclose(
+        _track(p, rz=0.3),
+        _rotate(_track(_rotate(p, 0.3)), -0.3),
+        rtol=1e-6,
+    )
 
 
-def xtest_lattice_space_charge():
+def test_lattice_space_charge():
     """A Lattice applies space charge only with kicks: the Total
     Space-Charge Kicks spread over the elements, or, with 0, the
     elements' own."""
@@ -490,7 +515,7 @@ def xtest_lattice_space_charge():
             )
 
 
-def xtest_rpn_undefined_variable():
+def test_rpn_undefined_variable():
     from pykern import pkunit
     from sirepo.template import rftrack
     import sirepo.util
@@ -507,7 +532,7 @@ def xtest_rpn_undefined_variable():
     pkunit.pkfail("expected a UserAlert for an undefined variable")
 
 
-def xtest_rpn_variables():
+def test_rpn_variables():
     """Variables in element, beam and beamline position fields generate the
     same script as the values they evaluate to."""
     import copy
@@ -540,7 +565,7 @@ def xtest_rpn_variables():
     )
 
 
-def xtest_sbend():
+def test_sbend():
     """A sector SBEND in a Lattice keeps an on-momentum particle on axis
     and moves one with momentum error d by the dispersion rho (1 - cos
     angle) d, x' sin(angle) d, and its edge focusing uses its hgap and
@@ -588,7 +613,7 @@ def xtest_sbend():
             _beamline(PKDict(sbend, type=t), "absolute")
 
 
-def xtest_screen_size():
+def test_screen_size():
     """A screen records only the particles within its width and height,
     or all of them with 0, in a Lattice and a Volume."""
     import numpy
@@ -624,7 +649,7 @@ def xtest_screen_size():
             )
 
 
-def xtest_sextupole():
+def test_sextupole():
     """A SEXTUPOLE kicks a particle at (x, y) by x' = -k2 L (x^2 - y^2) / 2,
     y' = k2 L x y, as MAD-X defines k2, in a Lattice and a Volume; a
     Field Gradient strength is k2 times the beam's (signed) rigidity."""
@@ -672,7 +697,7 @@ def xtest_sextupole():
             )
 
 
-def xtest_solenoid():
+def test_solenoid():
     """An analytic SOLENOID's on-axis field at its centre is
     B0 L / sqrt(L^2 + 4 R^2) for its bore radius R, whatever its
     aperture."""
@@ -701,7 +726,7 @@ def xtest_solenoid():
     )
 
 
-def xtest_stat_plot_presets():
+def test_stat_plot_presets():
     """Every Plot Presets entry (schema `statPlotPresets`) is in the
     `StatPlotPreset` menu and plots only real stat columns."""
     from pykern import pkunit
@@ -724,7 +749,7 @@ def xtest_stat_plot_presets():
             )
 
 
-def xtest_track_drift_and_screen():
+def test_track_drift_and_screen():
     """A real run of the generated script. Its own `v.verbosity = 1` prints
     RF_Track's native progress lines to `run.log`, which
     `background_percent_complete()` reads back: since `is_running=True`,
@@ -776,7 +801,7 @@ def xtest_track_drift_and_screen():
         )
 
 
-def xtest_volume_settings():
+def test_volume_settings():
     """A Volume gets its integration algorithm, error tolerances and
     maximum tracking time, which stops a particle short of the tracking
     end; 0 is no limit."""

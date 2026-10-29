@@ -1,0 +1,5 @@
+beam, particle=proton, pc=1;
+m1: multipole, knl={0, 0.1, 0.6}, ksl={0, 0, 0.5}, tilt=0.01;
+m2: matrix, l=1, rm12=2, rm56=0.3, rm16=0.1, tm166=3, tm126=0.4, tm162=0.6, kick5=0.1, kick6=0.2;
+d: drift, l=1;
+bl: line=(m1,d,m2,d,m1);

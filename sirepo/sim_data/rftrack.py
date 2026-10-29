@@ -12,7 +12,7 @@ class SimData(sirepo.sim_data.lattice.LatticeSimData):
 
     @classmethod
     def prepare_import_file_args(cls, req):
-        """Read the lume_rftrack HDF5 archive (`RFTrackSimulator.archive()`)
+        """Read a lume_rftrack HDF5 archive (`RFTrackSimulator.archive()`)
         and build the full imported sirepo data right here, on the API
         server -- not in `stateful_compute_import_file`
         (sirepo.template.rftrack), which runs in the job agent instead.
@@ -31,6 +31,9 @@ class SimData(sirepo.sim_data.lattice.LatticeSimData):
         import tempfile
 
         res = cls._prepare_import_file_name_args(req)
+        if res.ext_lower != ".h5":
+            # MAD-X, converted by stateful_compute_import_file
+            return super().prepare_import_file_args(req)
         with tempfile.NamedTemporaryFile(suffix=".h5") as t:
             t.write(req.form_file.as_bytes())
             t.flush()

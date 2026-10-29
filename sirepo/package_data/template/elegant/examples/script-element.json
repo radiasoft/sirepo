@@ -197,7 +197,7 @@
         ],
         "elementAnimation2-21": {
             "aspectRatio": "1",
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "fileId": "2-18",
             "framesPerSecond": 2,
             "histogramBins": 200,
@@ -263,7 +263,7 @@
         },
         "elementAnimation2-29": {
             "aspectRatio": "0.5625",
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
             "histogramBins": 200,
             "horizontalOffset": 0,

@@ -232,6 +232,7 @@ SIREPO.app.directive('appFooter', function() {
         template: `
             <div data-common-footer="nav"></div>
             <div data-lattice-import-dialog=""></div>
+            <div data-lattice-conversion-modals=""></div>
         `,
     };
 });
@@ -257,6 +258,7 @@ SIREPO.app.directive('appHeader', function(appState, latticeService, opalService
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
+                <div data-lattice-conversion-menu=""></div>
               </app-settings>
               <app-header-right-sim-list>
                 <ul class="nav navbar-nav sr-navbar-right">

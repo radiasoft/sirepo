@@ -477,6 +477,37 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         return fn.replace(/\.(?:sdds|output_file|filename)/g, '');
     }
 
+    // plot fields for elegant's standard outputs, by their columns: the
+    // first whose x and y columns are all present
+    const DEFAULT_PLOTS = [
+        // twiss_output
+        {x: 's', y: [['betax', 'left'], ['betay', 'left'], ['etax', 'right']]},
+        // run_setup.sigma
+        {x: 's', y: [['Sx', 'left'], ['Sy', 'left'], ['Ss', 'right']]},
+        // run_setup.centroid
+        {x: 's', y: [['Cx', 'left'], ['Cy', 'left']]},
+        // WATCH in centroid or parameter mode
+        {x: 'Pass', y: [['Cx', 'left'], ['Cy', 'left']]},
+        // particles, ex. run_setup.output or a coordinate WATCH
+        {x: 'x', y: [['xp', 'left']]},
+    ];
+
+    function setDefaultPlot(model, columns) {
+        const d = DEFAULT_PLOTS.find(
+            p => [p.x].concat(p.y.map(y => y[0])).every(c => columns.includes(c)));
+        if (! d) {
+            return;
+        }
+        model.x = d.x;
+        d.y.forEach((y, i) => {
+            model['y' + (i + 1)] = y[0];
+            model['y' + (i + 1) + 'Position'] = y[1];
+        });
+        if (d.x == 's') {
+            model.includeLattice = '1';
+        }
+    }
+
     function defaultYColumn(columns, xCol) {
         for (var i = 0; i < columns.length; i++) {
             // Ignore "ElementOccurence" column
@@ -538,7 +569,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             var rowCountsKey = info.rowCounts.join(' ');
         });
 
-        self.outputFiles.forEach(function (outputFile, i) {
+        self.outputFiles.forEach(function (outputFile) {
             var info = outputFile.info;
             var modelKey = outputFile.modelAccess.modelKey;
             var m = null;
@@ -559,10 +590,7 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                     x: info.plottableColumns[0],
                     xFileId: info.id,
                 };
-                // Only display the first outputFile
-                if (i > 0 && ! panelState.isHidden(modelKey)) {
-                    panelState.toggleHidden(modelKey);
-                }
+                setDefaultPlot(m, info.plottableColumns);
             }
             if (! m.aspectRatio) {
                 m.aspectRatio = outputFile.reportType === 'heatmap' ? '1' : '0.5625';
@@ -655,6 +683,7 @@ SIREPO.app.directive('appFooter', function() {
         template: `
             <div data-common-footer="nav"></div>
             <div data-lattice-import-dialog=""></div>
+            <div data-lattice-conversion-modals=""></div>
         `,
     };
 });
@@ -679,6 +708,7 @@ SIREPO.app.directive('appHeader', function(appState, elegantService, latticeServ
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
+                <div data-lattice-conversion-menu=""></div>
               </app-settings>
               <app-header-right-sim-list>
                 <ul class="nav navbar-nav sr-navbar-right">
