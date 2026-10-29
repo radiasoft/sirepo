@@ -7,34 +7,35 @@
  """
  inputs.py
  =========
-@@ -19,12 +20,14 @@
- # =============================================================================
+@@ -21,13 +22,15 @@
  # SIMULATION TYPE
  # =============================================================================
--SIM_TYPE     = "tokamak"      # "tokamak"  |  "slab" | "fast_slab"
-+#SIM_TYPE     = "tokamak"      # "tokamak"  |  "slab" | "fast_slab"
+ #SIM_TYPE     = "slab"      # "tokamak"  |  "slab" | "fast_slab"
+-SIM_TYPE     = os.environ.get("SIM_TYPE", "slab")
++#SIM_TYPE     = os.environ.get("SIM_TYPE", "slab")
 +SIM_TYPE     = "slab"      # "tokamak"  |  "slab" | "fast_slab"
  
  # =============================================================================
  # BREEDER TYPE
  # =============================================================================
--BREEDER_TYPE = "WCLL"         # "WCLL"  |  "HCLL"  |  "HCPB"
-+#BREEDER_TYPE = "WCLL"         # "WCLL"  |  "HCLL"  |  "HCPB"
+ #BREEDER_TYPE = "WCLL"         # "WCLL"  |  "HCLL"  |  "HCPB"
+-BREEDER_TYPE = os.environ.get("BREEDER_TYPE", "WCLL")
++#BREEDER_TYPE = os.environ.get("BREEDER_TYPE", "WCLL")
 +BREEDER_TYPE = "{{ slabType }}"
  
  # =============================================================================
  # ENVIRONMENT FLAG
-@@ -33,7 +36,8 @@
- # TESTING -> will load from previous tokamak run/folder
+@@ -37,7 +40,8 @@
  # CORTEX  -> will load from file saved in the same slab folder
  #            (if not available, it will copy from tokamak run/folder)
--ENVIRONMENT  = "TESTING"      # "CORTEX"  |  "TESTING"
-+#ENVIRONMENT  = "TESTING"      # "CORTEX"  |  "TESTING"
+ #ENVIRONMENT  = "CORTEX"      # "CORTEX"  |  "TESTING"
+-ENVIRONMENT  = os.environ.get("ENVIRONMENT", "CORTEX")
++#ENVIRONMENT  = os.environ.get("ENVIRONMENT", "CORTEX")
 +ENVIRONMENT  = "CORTEX"      # "CORTEX"  |  "TESTING"
  
  # =============================================================================
  # VALIDATION
-@@ -54,7 +58,7 @@
+@@ -58,7 +62,7 @@
  # DIRECTORY LAYOUT
  # =============================================================================
  BASE_DIR = Path.cwd()
@@ -43,7 +44,7 @@
  
  # Simulation-type subdirectory (all run/result files go here)
  SIM_DIR = BASE_DIR / SIM_TYPE / BREEDER_TYPE
-@@ -68,7 +72,8 @@
+@@ -72,7 +76,8 @@
  SUMMARY_RESULTS_CSV = NEUTRONICS_RESULTS_DIR / "OB_1_b6" / "summary_results.csv"
  
  # Important input files — all live in PROJECT_ROOT/dagmc_files/ 
@@ -53,7 +54,7 @@
  
  _JSON_FILENAMES = {
      "WCLL": "EUDEMO_WCLL_inputs.json",
-@@ -93,21 +98,21 @@
+@@ -97,21 +102,21 @@
  else:
      DAGMC_MODEL_FILE = DAGMC_DIR / _DAGMC_FILENAMES[BREEDER_TYPE]
  
@@ -86,20 +87,23 @@
  
  # =============================================================================
  # TALLY SETTINGS
-@@ -122,8 +127,10 @@
+@@ -126,9 +131,12 @@
  if ENVIRONMENT == "CORTEX":
      # Static files, one per breeder type, fixed location
      # Pre-copied once into slab/BREEDER_TYPE/ and never change between runs.
 -    SURFACE_SOURCE_FILE = SIM_DIR / "surface_source.h5"
 -    ARMOR_CURRENT_JSON  = SIM_DIR / "armor_current_neutron.json"
+-    TBR_SCALING_JSON    = SIM_DIR / "tbr_scaling.json" 
 +    # SURFACE_SOURCE_FILE = SIM_DIR / "surface_source.h5"
 +    # ARMOR_CURRENT_JSON  = SIM_DIR / "armor_current_neutron.json"
++    # TBR_SCALING_JSON    = SIM_DIR / "tbr_scaling.json"
 +    SURFACE_SOURCE_FILE = DAGMC_DIR / f"{ BREEDER_TYPE }_surface_source.h5"
 +    ARMOR_CURRENT_JSON  = DAGMC_DIR / f"{ BREEDER_TYPE }_armor_current_neutron.json"
++    TBR_SCALING_JSON    = DAGMC_DIR / f"{ BREEDER_TYPE }_tbr_scaling.json"
  
  else:  # TESTING
      # Load directly from the tokamak simulation outputs
-@@ -170,17 +177,23 @@
+@@ -180,11 +188,11 @@
  # MATERIALS 
  # (FOR CORTEX, UPDATE HERE WITH USER'S MATERIALS)
  # =============================================================================
@@ -115,35 +119,48 @@
  print("SIM_TYPE:", SIM_TYPE)
  print("BREEDER_TYPE:", BREEDER_TYPE)
  
+@@ -221,16 +229,22 @@
+ # other structural materials explored in the FS&T paper
+ #structural_material = materials.V4Cr4Ti(6.05)
+ #structural_material = materials.SiC(2.5)
+-structural_material = materials.inconel718(8.19)
++#structural_material = materials.inconel718(8.19)
+ #structural_material = materials.ht9(7.86)
+ #structural_material = materials.ods_eurofer(7.87)
+ 
+ # ------------
+ 
  # Materials common to all breeder types
--armor_material      = materials.W(19.3)
 +{% if material_is_plasma_facing == '1' %}
 +armor_material      = t
- structural_material = materials.eurofer97(7.87)
++structural_material = materials.eurofer97(7.87)
 +{% else %}
-+armor_material      = materials.W(19.3)
+ armor_material      = materials.W(19.3)
 +structural_material = t
 +{% endif %}
 +
  vv_material = materials.ss316Ln_ig(7.93)
+-#structural_material = materials.eurofer97(7.87)
  
- # ----------- The comments that follow here were used for the FS&T paper; please leave these
-@@ -259,24 +272,23 @@
+ # Breeder-specific materials
+ if BREEDER_TYPE == "WCLL":
+@@ -290,25 +304,23 @@
  if SIM_TYPE == "tokamak":
-     TALLY_CONVERGENCE_THRESHOLD = 0.01
+     TALLY_CONVERGENCE_THRESHOLD = 0.05
      BATCHES                     = 10
 -    TRIGGER_BATCH_INTERVAL      = 10
      PARTICLES_PER_BATCH         = 1_000_000
  else:
--    TALLY_CONVERGENCE_THRESHOLD = 0.01
+-    TALLY_CONVERGENCE_THRESHOLD = 0.05
 +    TALLY_CONVERGENCE_THRESHOLD = {{ simulationSettings_tallyConvergenceThreshold }}
      BATCHES                     = 10
 -    TRIGGER_BATCH_INTERVAL      = 10
--    PARTICLES_PER_BATCH         = 1_000_000
+-    PARTICLES_PER_BATCH         = 100_000
 +    PARTICLES_PER_BATCH    = {{ simulationSettings_particlesPerBatch }}
  
  
  USE_TRIGGER            = True  # False = fixed batches, no convergence check
+-
 +TRIGGER_BATCH_INTERVAL = 10
  TRIGGER_MAX_BATCHES    = 2000
  
@@ -158,7 +175,7 @@
  
  # =============================================================================
  # FEATURE TOGGLES
-@@ -337,7 +349,8 @@
+@@ -383,7 +395,8 @@
  # =============================================================================
  # REFERENCE (GOLD) RUN COMPARISON
  # =============================================================================
@@ -168,8 +185,3 @@
  REFERENCE_PLOT_SUFFIX = "_vs_ref"                      # appended to overlay figs
  
  
-@@ -356,3 +369,4 @@
- #   for OB_1_b6. To improve for any given breeder chunk we must first improve:
- #      1 - _get_breeder_reflective_cuts
- #      2 - TBD
-+

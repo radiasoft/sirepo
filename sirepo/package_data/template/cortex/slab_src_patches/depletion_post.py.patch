@@ -51,7 +51,7 @@
                         csv_name: str, cid: int) -> None:
      if _ref_data is None or _ref_data.get("depletion_dir") is None:
          return
-@@ -1012,7 +1014,6 @@
+@@ -1173,7 +1175,6 @@
              idx_shutdown=idx_shutdown, activity_units=activity_units,
              chunk_key=chunk_key,
          )
@@ -59,7 +59,7 @@
          plot_activity_all_cells(ta_all, cell_id_to_name, act_dir,
                                  activity_units=activity_units,
                                  global_min_topn_edge=act_min)
-@@ -1047,97 +1048,116 @@
+@@ -1213,112 +1214,130 @@
  # ──────────────────────────────────────────────────────────────────────────────
  # MAIN
  # ──────────────────────────────────────────────────────────────────────────────
@@ -73,11 +73,6 @@
 -        raise FileNotFoundError(f"Not found: {DEPLETION_RESULTS_H5}")
 -    if not CELL_MATERIAL_MAP_CSV.is_file():
 -        raise FileNotFoundError(f"Not found: {CELL_MATERIAL_MAP_CSV}")
--
--    results = openmc.deplete.Results(str(DEPLETION_RESULTS_H5))
--
--    # Chunk helpers from geometry (no model rebuild)
--    from geometry import build_breeder_chunks
 +# Chain file
 +openmc.config["chain_file"] = str(cfg.OPENMC_CHAIN_FILE)
 +print(f"[chain] Using: {cfg.OPENMC_CHAIN_FILE}")
@@ -89,10 +84,13 @@
 +    raise FileNotFoundError(f"Not found: {CELL_MATERIAL_MAP_CSV}")
 +
 +results = openmc.deplete.Results(str(DEPLETION_RESULTS_H5))
-+
+ 
+-    results = openmc.deplete.Results(str(DEPLETION_RESULTS_H5))
 +# Chunk helpers from geometry (no model rebuild)
 +#from geometry import build_breeder_chunks
-+
+ 
+-    # Chunk helpers from geometry (no model rebuild)
+-    from geometry import build_breeder_chunks
 +_chunk = build_breeder_chunks(
 +    cfg.INPUT_JSON, default_chunk_key=cfg.ALBEDO_CHUNK_KEY
 +)
@@ -118,7 +116,16 @@
 +if cfg.SIM_TYPE in ("slab", "fast_slab"):
 +    _map_df  = pd.read_csv(str(CELL_MATERIAL_MAP_CSV))
 +    _present = set(int(x) for x in _map_df["cell_id"])
-+    CHUNKS   = {k: list(_present) for k in CHUNKS}
++    # IMPORTANT: filter each chunk's own (radially ordered) cell list
++    # down to the cells actually present, rather than replacing it with
++    # list(_present) — a set has no defined order, so it scrambles which
++    # cell gets which layer tag ("Armor", "VV", ...) and which radial
++    # x-position, and it also collapses every chunk key onto the same
++    # cell list instead of each key's own subset.
++    CHUNKS = {
++        k: [c for c in v if int(c) in _present]
++        for k, v in CHUNKS.items()
++    }
 +
 +# Layer tags and centroids
 +layer_tags_by_chunk:  Dict[str, Sequence[str]]   = {}
@@ -147,20 +154,39 @@
 -            CHUNKS[key] = ib_by_key[key]
 -        else:
 -            print(f"[warn] DEPLETION_CHUNKS key {key!r} not found – skipping")
--
--    # For slab: restrict to cells present in the depletion results
--    if cfg.SIM_TYPE in ("slab", "fast_slab"):
--        _map_df  = pd.read_csv(str(CELL_MATERIAL_MAP_CSV))
--        _present = set(int(x) for x in _map_df["cell_id"])
--        CHUNKS   = {k: list(_present) for k in CHUNKS}
--
--    # Layer tags and centroids
--    layer_tags_by_chunk:  Dict[str, Sequence[str]]   = {}
--    xcentroids_by_chunk:  Dict[str, Sequence[float]] = {}
 +    try:
 +        xcentroids_by_chunk[key], _, _ = radial_bins_for_key(key)
 +    except Exception as e:
 +        print(f"[warn] centroids for {key}: {e}")
+ 
+-    # For slab: restrict to cells present in the depletion results
+-    if cfg.SIM_TYPE in ("slab", "fast_slab"):
+-        _map_df  = pd.read_csv(str(CELL_MATERIAL_MAP_CSV))
+-        _present = set(int(x) for x in _map_df["cell_id"])
+-        # IMPORTANT: filter each chunk's own (radially ordered) cell list
+-        # down to the cells actually present, rather than replacing it with
+-        # list(_present) — a set has no defined order, so it scrambles which
+-        # cell gets which layer tag ("Armor", "VV", ...) and which radial
+-        # x-position, and it also collapses every chunk key onto the same
+-        # cell list instead of each key's own subset.
+-        CHUNKS = {
+-            k: [c for c in v if int(c) in _present]
+-            for k, v in CHUNKS.items()
+-        }
+-
+-    # Layer tags and centroids
+-    layer_tags_by_chunk:  Dict[str, Sequence[str]]   = {}
+-    xcentroids_by_chunk:  Dict[str, Sequence[float]] = {}
++# Shutdown index
++sr           = results.get_source_rates()
++times        = results.get_times(time_units="s")
++idx_shutdown = shutdown_index_from_source_rates(np.asarray(sr), len(times))
++
++# Radial-profile snapshot indices — resolved from actual cooling times
++# rather than a hardcoded array position (see indices_for_milestone_years).
++idx_to_plot = indices_for_milestone_years(
++    times, idx_shutdown, cfg.DEPLETION_MILESTONE_SECONDS_TO_PLOT
++)
  
 -    for key, cell_ids in CHUNKS.items():
 -        if not cell_ids:
@@ -177,25 +203,14 @@
 -
 -    # Shutdown index
 -    sr           = results.get_source_rates()
--    times        = results.get_times()
+-    times        = results.get_times(time_units="s")
 -    idx_shutdown = shutdown_index_from_source_rates(np.asarray(sr), len(times))
 -
--    # Run
--    run_chunk_postprocess(
--        results,
--        CHUNKS,
--        xcentroids_by_chunk = xcentroids_by_chunk,
--        layer_tags_by_chunk = layer_tags_by_chunk,
--        idx_shutdown        = idx_shutdown,
--        activity_units      = "Bq/kg",
--        decayheat_units     = "W/cm3",
--        idx_to_plot         = cfg.DEPLETION_IDX_TO_PLOT,
+-    # Radial-profile snapshot indices — resolved from actual cooling times
+-    # rather than a hardcoded array position (see indices_for_milestone_years).
+-    idx_to_plot = indices_for_milestone_years(
+-        times, idx_shutdown, cfg.DEPLETION_MILESTONE_SECONDS_TO_PLOT
 -    )
-+# Shutdown index
-+sr           = results.get_source_rates()
-+times        = results.get_times()
-+idx_shutdown = shutdown_index_from_source_rates(np.asarray(sr), len(times))
-+
 +# Run
 +run_chunk_postprocess(
 +    results,
@@ -205,10 +220,21 @@
 +    idx_shutdown        = idx_shutdown,
 +    activity_units      = "Bq/kg",
 +    decayheat_units     = "W/cm3",
-+    idx_to_plot         = cfg.DEPLETION_IDX_TO_PLOT,
++    idx_to_plot         = idx_to_plot,
 +)
-+
-+
+ 
+-    # Run
+-    run_chunk_postprocess(
+-        results,
+-        CHUNKS,
+-        xcentroids_by_chunk = xcentroids_by_chunk,
+-        layer_tags_by_chunk = layer_tags_by_chunk,
+-        idx_shutdown        = idx_shutdown,
+-        activity_units      = "Bq/kg",
+-        decayheat_units     = "W/cm3",
+-        idx_to_plot         = idx_to_plot,
+-    )
+ 
 +# Verify CSVs were actually written before proceeding — catches silent
 +# failures in run_chunk_postprocess (e.g. mat ID mismatch, empty ta_all)
 +for _key in CHUNKS:
@@ -228,7 +254,6 @@
 +    decayheat_units = "W/cm3",
 +)
  
- 
 -    # Verify CSVs were actually written before proceeding — catches silent
 -    # failures in run_chunk_postprocess (e.g. mat ID mismatch, empty ta_all)
 -    for _key in CHUNKS:
@@ -247,7 +272,6 @@
 -        activity_units  = "Bq/kg",
 -        decayheat_units = "W/cm3",
 -    )
-\ No newline at end of file
 +# ──────────────────────────────────────────────────────────────────────────────
 +# FLATTEN OUTPUT — move every png (and its companion .json) to the root of
 +# the simulation run_dir so the frontend can find them by basename alone.

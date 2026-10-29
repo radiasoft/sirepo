@@ -6,6 +6,9 @@
 
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
+import csv
+import io
+import pykern.pkio
 import pykern.sql_db
 import re
 import sirepo.srdb
@@ -14,7 +17,13 @@ import sirepo.util
 import sqlalchemy
 import sqlalchemy.exc
 
+#: directory in srdb root which holds each material's plot csv, png and hdf5 files
+CORTEXDB_DIR = "cortexdb"
+
 _BASE = "cortex_material.sqlite3"
+
+#: plot data now in csv files, tables dropped by drop_plot_tables()
+_OLD_PLOT_TABLES = frozenset(("plot_legend", "plot_point"))
 
 # these were required for old xls imports, now they are brought in with independent_variables
 _OLD_PROPERTY_COLUMNS = PKDict(
@@ -92,9 +101,6 @@ def delete_material(material_id, uid):
                 _delete(s, "independent_variable_value", material_property_value_id=v)
             _delete(s, "material_property_value", material_property_id=p)
             _delete(s, "independent_variable", material_property_id=p)
-        for p in _select_id(s, "plot", material_id=material_id):
-            _delete(s, "plot_legend", plot_id=p)
-            _delete(s, "plot_point", plot_id=p)
         for t in (
             "material_property",
             "material_component",
@@ -106,6 +112,63 @@ def delete_material(material_id, uid):
         ):
             _delete(s, t, material_id=material_id)
     return True
+
+
+def drop_plot_tables():
+    """Move plot_point and plot_legend rows into plot csv files and drop the tables
+
+    Plot points and legends are read from the csv files written
+    alongside each plot's png. Older plots may only have their data in
+    the db, so a csv is written for any plot which is missing one.
+    """
+
+    def _points(session, plot_id):
+        rv = []
+        for r in session.execute(
+            sqlalchemy.text(
+                "SELECT dim, idx, point FROM plot_point"
+                " WHERE plot_id = :plot_id ORDER BY dim, idx"
+            ).bindparams(plot_id=plot_id)
+        ):
+            if r.idx == 0:
+                rv.append([])
+            rv[r.dim].append(r.point)
+        return rv
+
+    def _write_csv(session, plot):
+        p = _points(session, plot.plot_id)
+        if not p:
+            return
+        l = [
+            r.label
+            for r in session.select(
+                sqlalchemy.select(session.t.plot_legend)
+                .where(session.t.plot_legend.c.plot_id == plot.plot_id)
+                .order_by(session.t.plot_legend.c.dim)
+            )
+        ]
+        v = io.StringIO()
+        w = csv.writer(v)
+        w.writerow([plot.xlabel] + l[1:])
+        for i in range(len(p[0])):
+            w.writerow([p[j][i] for j in range(len(p))])
+        f = plot_csv_path(plot.material_id, plot.model, plot.stat)
+        pykern.pkio.mkdir_parent_only(f)
+        pykern.pkio.atomic_write(f, v.getvalue())
+
+    t = _old_plot_tables()
+    if not t:
+        return
+    with _session() as s:
+        if t == _OLD_PLOT_TABLES:
+            for p in s.select("plot").all():
+                if not plot_csv_path(p.material_id, p.model, p.stat).exists():
+                    _write_csv(s, p)
+        for n in sorted(t):
+            s.execute(sqlalchemy.text(f"DROP TABLE {n}"))
+    # plot_point was most of the db, VACUUM must run outside a transaction
+    with _meta._engine.connect().execution_options(isolation_level="AUTOCOMMIT") as c:
+        c.execute(sqlalchemy.text("VACUUM"))
 
 
 def featured_materials():
@@ -302,19 +365,6 @@ def init_module(**imports):
                 ylabel="str 100",
                 plot_type="str 10",
             ),
-            plot_point=PKDict(
-                plot_id="primary_id primary_key index",
-                # plot dimension 0: x, 1: y1, 2: y2 ...
-                dim="int 32 primary_key",
-                idx="int 32 primary_key",
-                point=f,
-            ),
-            plot_legend=PKDict(
-                plot_id="primary_id primary_key index",
-                # plot dimension 0: x, 1: y1, 2: y2 ...
-                dim="int 32 primary_key",
-                label="str 100",
-            ),
             sim_summary=PKDict(
                 material_id="primary_id primary_key index",
                 model="str 100 primary_key",
@@ -332,7 +382,7 @@ def init_module(**imports):
                 processes="str 500",
                 production_qty="int 32",
             ),
-        ),
+        ).pkupdate(_old_plot_schema(f)),
     )
 
 
@@ -502,34 +552,29 @@ def load_summary(material_id, is_public, uid):
                 rows.append(row)
         return rows
 
-    def _load_plot(row):
-        p = PKDict(row).pkupdate(
-            points=[],
-            legend=[
-                r["label"]
-                for r in s.select(
-                    "plot_legend", where=PKDict(plot_id=row.plot_id)
-                ).all()
-            ],
+    def _load_plot(row, path):
+        with pykern.pkio.open_text(path) as f:
+            c = list(csv.reader(f))
+        return _format_plot(
+            PKDict(row).pkupdate(
+                # csv columns are plot dimensions 0: x, 1: y1, 2: y2 ...
+                points=[[float(v[i]) for v in c[1:]] for i in range(len(c[0]))],
+                # header is xlabel followed by the y labels, the x legend is empty
+                legend=[""] + c[0][1:],
+            )
         )
-        for point in s.select(
-            sqlalchemy.select(s.t.plot_point)
-            .where(s.t.plot_point.c.plot_id == p.plot_id)
-            .order_by(s.t.plot_point.c.dim, s.t.plot_point.c.idx)
-        ).all():
-            if point.idx == 0:
-                assert point.dim == len(p.points)
-                p.points.append([])
-            assert point.idx == len(p.points[point.dim])
-            p.points[point.dim].append(point.point)
-        return _format_plot(p)
 
     def _load_plots(session):
-        return [
-            _load_plot(r)
-            for r in s.select("plot", where=PKDict(material_id=material_id)).all()
-            if not _skip_plot(r.stat)
-        ]
+        rv = []
+        for r in s.select("plot", where=PKDict(material_id=material_id)).all():
+            if _skip_plot(r.stat):
+                continue
+            p = plot_csv_path(r.material_id, r.model, r.stat)
+            if not p.exists():
+                pkdlog("missing plot csv={}", p)
+                continue
+            rv.append(_load_plot(r, p))
+        return rv
 
     def _load_summary(session):
         r = PKDict()
@@ -550,7 +595,7 @@ def load_summary(material_id, is_public, uid):
 
     def _skip_plot(name):
         return (
-            re.search(r"(cell|decayheat)_(OB|Breeder)", name)
+            re.search(r"(cell|decayheat|waste_summary)_(OB|Breeder)", name)
             or re.search(r"sdr_(profile|time)", name)
             or re.search(r"radial_", name)
         )
@@ -600,6 +645,19 @@ def material_detail(material_id, is_public, uid):
                 ):
                     mpv[ivs[iv.independent_variable_id]] = iv.value
         return rv
+
+
+def plot_csv_path(material_id, model, stat):
+    """Path to the csv file which holds a plot's points
+
+    Args:
+        material_id (int or str): material
+        model (str): report name, e.g. wcllSlabAnimation
+        stat (str): plot name, e.g. dpa_OB_1_b6
+    Returns:
+        py.path: csv file path, which may not exist
+    """
+    return sirepo.srdb.root().join(CORTEXDB_DIR, str(material_id), model, f"{stat}.csv")
 
 
 def public_materials():
@@ -680,49 +738,59 @@ def _insert_plot(session, plotdef, uid):
                     )
                 }
             ),
-        ).plot_id
+        )
 
-    def _insert_plot_legend(plot_id):
-        for dim, label in enumerate(plotdef.legend):
-            session.insert(
-                "plot_legend",
-                PKDict(
-                    plot_id=plot_id,
-                    dim=dim,
-                    label=label,
-                ),
-            )
-
-    def _insert_plot_points(plot_id):
-        for dim, points in enumerate(plotdef["points"]):
-            for idx, v in enumerate(points):
-                session.insert(
-                    "plot_point",
-                    PKDict(
-                        plot_id=plot_id,
-                        dim=dim,
-                        idx=idx,
-                        point=v,
-                    ),
-                )
-
+    # points and legend are stored in the plot csv file, see plot_csv_path()
     if m := session.select_one_or_none(
         "plot",
         where=PKDict(
             material_id=plotdef.material_id, model=plotdef.model, stat=plotdef.stat
         ),
     ):
-        for n in ("plot_legend", "plot_point", "plot"):
-            session.delete(n, PKDict(plot_id=m.plot_id))
-    p = _insert()
-    _insert_plot_legend(p)
-    _insert_plot_points(p)
+        session.delete("plot", PKDict(plot_id=m.plot_id))
+    _insert()
 
 
 def _material_by_id(session, material_id, uid):
     return session.select_one(
         "material", where=PKDict(material_id=material_id, uid=uid)
     )
+
+
+def _old_plot_schema(float_type):
+    """Schema for plot_point and plot_legend, only while the tables exist
+
+    pykern.sql_db requires every existing table be in the schema, but
+    the tables must not be recreated after drop_plot_tables()
+    """
+    t = _old_plot_tables()
+    rv = PKDict()
+    if "plot_legend" in t:
+        rv.plot_legend = PKDict(
+            plot_id="primary_id primary_key index",
+            # plot dimension 0: x, 1: y1, 2: y2 ...
+            dim="int 32 primary_key",
+            label="str 100",
+        )
+    if "plot_point" in t:
+        rv.plot_point = PKDict(
+            plot_id="primary_id primary_key index",
+            # plot dimension 0: x, 1: y1, 2: y2 ...
+            dim="int 32 primary_key",
+            idx="int 32 primary_key",
+            point=float_type,
+        )
+    return rv
+
+
+def _old_plot_tables():
+    if not _path().exists():
+        return set()
+    e = sqlalchemy.create_engine(pykern.sql_db.sqlite_uri(_path()))
+    try:
+        return _OLD_PLOT_TABLES.intersection(sqlalchemy.inspect(e).get_table_names())
+    finally:
+        e.dispose()
 
 
 def _public_material_by_id(session, material_id):

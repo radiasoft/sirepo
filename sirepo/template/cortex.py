@@ -73,15 +73,27 @@ _REPORT_TITLE = PKDict(
         decayheat_VV="Decay heat - Vacuum Vessel",
         radial_activity_profiles="Radial profile of Total activity per cooling time",
         radial_decayheat_profiles="Radial profile of decay heat per cooling time",
+        waste_summary_Armor="Waste disposal rating - Armor",
+        waste_summary_First_wall="Waste disposal rating - First Wall",
+        waste_summary_Breeder_layer_1="Waste disposal rating - Breeder layer 1",
+        waste_summary_Breeder_layer_2="Waste disposal rating - Breeder layer 2",
+        waste_summary_Breeder_layer_3="Waste disposal rating - Breeder layer 3",
+        waste_summary_Breeder_layer_4="Waste disposal rating - Breeder layer 4",
+        waste_summary_Breeder_layer_5="Waste disposal rating - Breeder layer 5",
+        waste_summary_Breeder_layer_6="Waste disposal rating - Breeder layer 6",
+        waste_summary_Breeder_layer_7="Waste disposal rating - Breeder layer 7",
+        waste_summary_Breeder_layer_8="Waste disposal rating - Breeder layer 8",
+        waste_summary_Breeder_layer_9="Waste disposal rating - Breeder layer 9",
+        waste_summary_VV="Waste disposal rating - Vacuum Vessel",
         sdr_profile_OB_1_b6="D1S spatial profile",
         sdr_time_layers_OB_1_b6="D1S SDR per OB layer",
     ),
 )
 
 SIM_VERSION = PKDict(
-    hcllSlabAnimation="1.02",
-    hcpbSlabAnimation="1.02",
-    wcllSlabAnimation="1.02",
+    hcllSlabAnimation="1.03",
+    hcpbSlabAnimation="1.03",
+    wcllSlabAnimation="1.03",
 )
 
 _SIM_OUTPUT = PKDict(
@@ -293,7 +305,12 @@ def plotdef_to_sim_frame(plotdef):
     def _section(stat):
         if "_flux" in stat:
             return "flux"
-        if "activity" in stat or "decayheat" in stat or "sdr_layer" in stat:
+        if (
+            "activity" in stat
+            or "decayheat" in stat
+            or "sdr_layer" in stat
+            or "waste" in stat
+        ):
             return "time_dependent"
         return "steady_state"
 

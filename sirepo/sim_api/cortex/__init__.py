@@ -29,6 +29,7 @@ _SIM_DATA, SIM_TYPE, _ = sirepo.sim_data.template_globals(sim_type="cortex")
 #: These operations are all fast. There shouldn't be much contention
 _ACTION_TIMEOUT = 20
 
+#: same as material_db.CORTEXDB_DIR, which can't be referenced while this package imports
 _CORTEXDB_DIR = "cortexdb"
 
 _EXT = ".xlsx"
@@ -55,12 +56,16 @@ def check_for_sim_summary(qcall, uid):
         with open(str(n)) as f:
             d = pykern.pkjson.load_any(f)
             d.completed = datetime.datetime.fromisoformat(d.completed)
+        # verifies material ownership, so must happen before the csv files are written
         sirepo.sim_api.cortex.material_db.update_sim_summary(d, uid)
-        r = pykern.pkio.mkdir_parent(
-            sirepo.srdb.root().join(_CORTEXDB_DIR, material_id, report)
-        )
         for q in d.plots:
-            r.join(f"{q.stat}.csv").write(q.csv)
+            # plot points and legend are only stored in the csv, written atomically
+            # so load_summary never reads a partial file
+            c = sirepo.sim_api.cortex.material_db.plot_csv_path(
+                material_id, report, q.stat
+            )
+            pykern.pkio.mkdir_parent_only(c)
+            pykern.pkio.atomic_write(c, q.csv)
         n.remove()
 
         # TODO(pjm): processing can be slow and running too many can cause a tornado timeout

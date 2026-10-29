@@ -31,6 +31,7 @@ class pyplot:
     _figure = PKDict(plots=[])
     _ax = None
     _fig = None
+    canvas = None
     xaxis = None
     yaxis = None
 
@@ -41,6 +42,7 @@ class pyplot:
     @classmethod
     def subplots(cls, **kwargs):
         cls._fig, cls._ax = _plt.subplots(**kwargs)
+        cls.canvas = cls._fig.canvas
         cls.xaxis = cls._ax.xaxis
         cls.yaxis = cls._ax.yaxis
         return cls, cls
@@ -135,11 +137,17 @@ class pyplot:
             _plt.axvline(x, **kwargs)
 
     @classmethod
+    def axvspan(cls, xmin, xmax, **kwargs):
+        if cls._ax is not None:
+            cls._ax.axvspan(xmin, xmax, **kwargs)
+        else:
+            _plt.axvspan(xmin, xmax, **kwargs)
+
+    @classmethod
     def text(cls, x, y, s, **kwargs):
         if cls._ax is not None:
-            cls._ax.text(x, y, s, **kwargs)
-        else:
-            _plt.text(x, y, s, **kwargs)
+            return cls._ax.text(x, y, s, **kwargs)
+        return _plt.text(x, y, s, **kwargs)
 
     @classmethod
     def set(cls, **kwargs):
@@ -301,6 +309,7 @@ class pyplot:
         cls._figure = PKDict(plots=[])
         cls._ax = None
         cls._fig = None
+        cls.canvas = None
         cls.xaxis = None
         cls.yaxis = None
 
