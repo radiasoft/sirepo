@@ -13,6 +13,7 @@ import copy
 import lume_rftrack.utils
 import math
 import numpy
+import os
 import pykern.pkio
 import re
 import scipy.constants
@@ -101,6 +102,10 @@ _LUME_RFTRACK_CLASS_TO_TYPE = PKDict(
     Static_Magnetic_FieldMap_1d="SOLENOID",
 )
 
+#: bytes at run.log's end _rough_percent_complete() reads, several progress
+#: updates
+_RUN_LOG_TAIL_BYTES = 4096
+
 _SCREEN_FILE = "screen-{}.npy"
 
 _STATS_FILE = "stats.npy"
@@ -142,8 +147,13 @@ _STAT_LABELS = PKDict(
     Bz="Bz [T]",
 )
 
-#: RF_Track's own verbosity=1 tracking-progress line (see
-#: parameters.py.jinja's `v.verbosity`), e.g.
+#: A Lattice's verbosity=1 tracking-progress bar (see parameters.py.jinja's
+#: `volume.verbosity`), e.g. "[#####.....]  86.1%", each update after ANSI
+#: "clear line" and carriage return; the first is "-0.0%"
+_VERBOSITY_PERCENT_RE = re.compile(r"\]\s+(-?[0-9.]+)%")
+
+#: A Volume's verbosity=1 tracking-progress line (see parameters.py.jinja's
+#: `volume.verbosity`), e.g.
 #: "info: tracking in progress, t = 500000.0 mm/c" -- written to run.log
 #: with ANSI "clear line" escapes between updates, not plain newlines,
 #: but those don't interfere with finding this substring anywhere in it
@@ -1674,18 +1684,22 @@ def _read_data(run_dir):
 
 
 def _rough_percent_complete(run_dir):
-    """A rough running estimate from RF_Track's own verbosity progress
-    output, not an exact one: `t` (mm/c) is `c * t_phys`, the distance
-    light would travel in the elapsed time, and a particle moving at
-    close to c covers very nearly that same physical distance -- true
-    for all but a brief low-energy stretch near a cathode, negligible
-    against a typical multi-meter tracking range -- so the last `t`
-    printed so far, divided by the tracking range's own end position
-    (both in mm), stands in for actual progress through it.
+    """A running estimate from RF_Track's own verbosity progress output
+    at run.log's end (`_RUN_LOG_TAIL_BYTES`).
 
-    The end position is the one the generated script actually tracks to:
-    the Volume's tracking range (`_tracking_range()`), or the end of the
-    last element for a Lattice, which has no tracking range.
+    A Lattice prints its percent complete. A Volume's is rough: `t`
+    (mm/c) is `c * t_phys`, the distance light would travel in the
+    elapsed time, and a particle moving at close to c covers very nearly
+    that same physical distance -- true for all but a brief low-energy
+    stretch near a cathode, negligible against a typical multi-meter
+    tracking range -- so the last `t` printed so far, divided by the end
+    of the Volume's tracking range (`_tracking_range()`, both in mm),
+    stands in for actual progress through it.
+
+    Not 100: is_running is still True, and a Volume's true final t can
+    run a little past this rough estimate's own denominator (see the
+    "brief low-energy stretch" caveat) -- 100 is reserved for the one
+    time this is actually known, once the job is done.
 
     Returns:
         float: 0 whenever that's not yet knowable -- run.log doesn't
@@ -1698,22 +1712,26 @@ def _rough_percent_complete(run_dir):
     data = _read_data(run_dir)
     if "bunchReport" in data.get("report", ""):
         return 0
-    data = _evaluated_data(data)
-    util = sirepo.template.lattice.LatticeUtil(data, SCHEMA)
-    elements = _generate_lattice(util, util.select_beamline().id, [])
+    with open(log, "rb") as f:
+        f.seek(max(0, f.seek(0, os.SEEK_END) - _RUN_LOG_TAIL_BYTES))
+        t = f.read().decode(errors="replace")
     if data.models.simulation.elementPosition == "relative":
-        s1_mm = max((e.elemedge + e.l for e in elements), default=0) * 1e3
-    else:
-        s1_mm = _tracking_range(data.models.simulationSettings, elements)[1] * 1e3
-    if s1_mm <= 0:
-        return 0
-    m = _VERBOSITY_T_RE.findall(pykern.pkio.read_text(log))
+        m = _VERBOSITY_PERCENT_RE.findall(t)
+        return min(99, max(0, float(m[-1]))) if m else 0
+    m = _VERBOSITY_T_RE.findall(t)
     if not m:
         return 0
-    # not 100: is_running is still True, and the true final t can run a
-    # little past this rough estimate's own denominator (see the
-    # docstring's "brief low-energy stretch" caveat) -- 100 is reserved
-    # for the one time this is actually known, once the job is done
+    data = _evaluated_data(data)
+    util = sirepo.template.lattice.LatticeUtil(data, SCHEMA)
+    s1_mm = (
+        _tracking_range(
+            data.models.simulationSettings,
+            _generate_lattice(util, util.select_beamline().id, []),
+        )[1]
+        * 1e3
+    )
+    if s1_mm <= 0:
+        return 0
     return min(99, float(m[-1]) * 100.0 / s1_mm)
 
 

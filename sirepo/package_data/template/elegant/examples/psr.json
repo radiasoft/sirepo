@@ -114,7 +114,7 @@
             "limit_invariants": "0",
             "longitudinalMethod": "3",
             "momentum_chirp": "0.0",
-            "n_particles_per_bunch": 1000,
+            "n_particles_per_bunch": 5000,
             "optimized_halton": "0",
             "p_central_mev": 797,
             "randomize_order": "0, 0, 0",
@@ -127,22 +127,22 @@
             "sourceFile": null
         },
         "bunchReport1": {
-            "histogramBins": 16,
+            "histogramBins": 50,
             "x": "x",
             "y": "xp"
         },
         "bunchReport2": {
-            "histogramBins": 16,
+            "histogramBins": 50,
             "x": "y",
             "y": "yp"
         },
         "bunchReport3": {
-            "histogramBins": 16,
+            "histogramBins": 50,
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
-            "histogramBins": 16,
+            "histogramBins": 50,
             "x": "t",
             "y": "p"
         },
@@ -303,14 +303,14 @@
             }
         ],
         "elementAnimation": {
-            "histogramBins": 16,
+            "histogramBins": 50,
             "x": "x",
             "y": "xp"
         },
         "elementAnimation2-18": {
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 16,
+            "histogramBins": 50,
             "includeLattice": "0",
             "notes": "",
             "panelTitle": "run_setup.output",
@@ -368,7 +368,7 @@
         "elementAnimation2-25": {
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 16,
+            "histogramBins": 50,
             "includeLattice": "0",
             "notes": "",
             "panelTitle": "run_setup.sigma",
@@ -681,7 +681,7 @@
         "elementAnimation2-3": {
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 16,
+            "histogramBins": 50,
             "includeLattice": "0",
             "notes": "",
             "panelTitle": "run_setup.centroid",
@@ -755,7 +755,7 @@
         "elementAnimation4-13": {
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 16,
+            "histogramBins": 50,
             "includeLattice": "1",
             "notes": "",
             "panelTitle": "twiss_output",

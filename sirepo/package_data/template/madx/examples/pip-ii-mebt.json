@@ -687,7 +687,7 @@
         "elementAnimation206-20": {
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 35,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -973,7 +973,7 @@
         "elementAnimation219-15": {
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 35,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",

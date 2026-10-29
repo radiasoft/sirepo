@@ -464,6 +464,39 @@ def test_lattice_misalignment():
     )
 
 
+def test_lattice_percent_complete():
+    """A running Lattice's percent complete is the last of RF_Track's
+    progress bar updates at run.log's end, at most 99, the first "-0.0%"
+    as 0."""
+    from pykern import pkio, pkunit
+
+    def _bar(percent):
+        return "\x1b[2K\r[" + "#" * int(percent * 0.71) + "]  " + f"{percent}%"
+
+    with pkunit.save_chdir_work():
+        from sirepo import simulation_db
+        from sirepo.template import rftrack, template_common
+
+        d = _example_data()
+        d.models.simulation.elementPosition = "relative"
+        d.report = "animation"
+        simulation_db.write_json(template_common.INPUT_BASE_NAME, d)
+        for e, log in (
+            (0, ""),
+            (0, "info: tracking in progress..." + _bar(0.0) + _bar(-0.0)),
+            # many updates, more than _RUN_LOG_TAIL_BYTES
+            (86.1, "".join(_bar(p / 10) for p in range(862))),
+            (99, _bar(100.0)),
+        ):
+            pkio.write_text(template_common.RUN_LOG, log)
+            pkunit.pkeq(
+                e,
+                rftrack.background_percent_complete(
+                    "animation", pkio.py_path("."), True
+                ).percentComplete,
+            )
+
+
 def test_lattice_space_charge():
     """A Lattice applies space charge only with kicks: the Total
     Space-Charge Kicks spread over the elements, or, with 0, the

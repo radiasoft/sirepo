@@ -451,10 +451,6 @@ def build_beamline():
         # roll about z, pitch about x, yaw about y
         # POSIT: Lattice.append(e, x0, y0, z0, roll, pitch, yaw), in m and rad
         v.append(e, spec.dx, spec.dy, spec.dz, spec.rz, spec.rx, spec.ry)
-    # nonzero: RF_Track prints tracking progress (e.g. "t = ... mm/c")
-    # straight to stdout as track() advances, which is run.log's own
-    # content with no further plumbing needed
-    v.verbosity = 1
     return v
 
 
@@ -486,6 +482,12 @@ def main():
 
     volume = build_beamline()
     autophase(volume, bunch)
+    # nonzero: RF_Track prints tracking progress to stdout (run.log) as
+    # track() advances; after autophase(), which tracks too, so run.log
+    # has only the bunch's progress
+    # POSIT: _rough_percent_complete() parses a Volume's "t = ... mm/c"
+    # and a Lattice's "[###...]  86.1%"
+    volume.verbosity = 1
 
     simulator = lume_rftrack.simulator.RFTrackSimulator(volume, bunch)
     simulator.track()
