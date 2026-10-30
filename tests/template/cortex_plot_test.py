@@ -6,6 +6,8 @@
 
 _WASTE_PREFIX = "waste_summary_"
 
+_WASTE_SCALED_SUFFIX = "_struct_scaled"
+
 
 def test_slab_pyplot_attributes():
     """Every plt., ax. and fig. attribute in slab.py.jinja exists on the wrapper
@@ -53,6 +55,7 @@ def test_waste_plot():
             "_class_regions",
             "_finalize_legend",
             "_format_log_axes",
+            "_plot_waste_summary_one",
             "_safe_csv_label",
             "plot_waste_wdr_per_layer",
         )
@@ -61,10 +64,22 @@ def test_waste_plot():
             for k in sirepo.template.cortex._REPORT_TITLE.slabAnimation
             if k.startswith(_WASTE_PREFIX)
         ]
-        g["plot_waste_wdr_per_layer"](_waste_data(s), pathlib.Path("."))
+        g["plot_waste_wdr_per_layer"](
+            _waste_data(
+                [k for k in s if not k.endswith(_WASTE_SCALED_SUFFIX)],
+            ),
+            pathlib.Path("."),
+        )
         for k in s:
             p = sirepo.template.cortex._plot_from_file(
-                pkjson.load_any(pkio.read_text(f"{k}.png.json")),
+                pkjson.load_any(
+                    pkio.read_text(
+                        "{}/{}.png.json".format(
+                            "struct_scaled" if k.endswith(_WASTE_SCALED_SUFFIX) else "raw",
+                            k,
+                        )
+                    )
+                ),
                 1,
                 "wcllSlabAnimation",
                 k,
@@ -153,7 +168,8 @@ def _waste_data(stats):
     """Rows for waste_timeseries' columns, one layer per listed waste stat
 
     Classes change over cooling time, and Fetter's rating crosses 1.0, so the
-    class regions and their labels are drawn.
+    class regions and their labels are drawn. The structure scaled columns are
+    the unscaled ones over a structural volume fraction of 0.5.
     """
     import numpy
     import pandas
@@ -169,6 +185,13 @@ def _waste_data(stats):
                 wdr_short_b=5 / (1 + t),
                 wdr_short_c=0.5 / (1 + t),
                 wdr_fetter=2 / (1 + t**0.5),
+                structural_volume_fraction=0.5,
+                nrc_class_struct_scaled="GTCC" if t < 1e-1 else "Class C" if t < 20 else "Class A",
+                wdr_long_struct_scaled=2e-3 * t**-0.1,
+                wdr_short_a_struct_scaled=100 / (1 + t),
+                wdr_short_b_struct_scaled=10 / (1 + t),
+                wdr_short_c_struct_scaled=1 / (1 + t),
+                wdr_fetter_struct_scaled=4 / (1 + t**0.5),
             )
             for s in stats
             for t in numpy.logspace(-7, 4, 40)

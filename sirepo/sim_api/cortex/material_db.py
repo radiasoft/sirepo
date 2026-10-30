@@ -618,6 +618,8 @@ def load_summary(material_id, is_public, uid):
             re.search(r"(cell|decayheat|waste_summary)_(OB|Breeder)", name)
             or re.search(r"sdr_(profile|time)", name)
             or re.search(r"radial_", name)
+            # only in the output zip
+            or re.search(r"waste_summary_.*_struct_scaled", name)
         )
 
     with _session() as s:

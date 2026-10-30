@@ -100,7 +100,14 @@
                     v-bind:viewName="report.viewName"
                     v-bind:title="report.title"
                     v-bind:canFullScreen="true"
+                    v-bind:canNavigate="true"
                     v-bind:downloadActions="report.downloadActions"
+                    v-bind:fullscreen="fullscreenKey === report.trackBy"
+                    v-bind:hasNext="hasSibling(report, 1)"
+                    v-bind:hasPrev="hasSibling(report, -1)"
+                    v-on:next="showSibling(report, 1)"
+                    v-on:prev="showSibling(report, -1)"
+                    v-on:update:fullscreen="onFullscreen(report, $event)"
                 >
                     <div v-if="report.error">{{ report.error }}</div>
                     <div v-if="report.image" v-bind:class="{ 'sr-slab-image': report.isStatic }">
@@ -145,6 +152,7 @@
  const { formatValue, formatStd } = useSummary(3);
  let rebuildCounter = 0;
  let summary;
+ const fullscreenKey = ref(null);
  const hasPlots = ref(false);
  const isLoadingPlots = ref(false);
  const isReady = ref(false);
@@ -178,6 +186,10 @@
      return '';
  };
 
+ const hasSibling = (report, offset) => {
+     return Boolean(siblingReport(report, offset));
+ };
+
  const isSimOutOfDate = () => {
      if (! (summary && summary.sim[props.neutronics])) {
          return true;
@@ -187,8 +199,18 @@
 
  const isViewing = () => route.name === "view";
 
+ const onFullscreen = (report, isFullscreen) => {
+     if (isFullscreen) {
+         fullscreenKey.value = report.trackBy;
+     }
+     else if (fullscreenKey.value === report.trackBy) {
+         fullscreenKey.value = null;
+     }
+ };
+
  const onSimStarted = () => {
      hasPlots.value = false;
+     fullscreenKey.value = null;
      simSummary.value = null;
      for (const v in reportsBySection) {
          delete reportsBySection[v];
@@ -245,6 +267,19 @@
      // does not await for images images to load
      rebuildCounter += 1;
      loadImages(rebuildCounter);
+ };
+
+ const showSibling = (report, offset) => {
+     const r = siblingReport(report, offset);
+     if (r) {
+         fullscreenKey.value = r.trackBy;
+     }
+ };
+
+ const siblingReport = (report, offset) => {
+     // reports in the order displayed, across all sections
+     const l = Object.values(reportsBySection).flat();
+     return l[l.indexOf(report) + offset];
  };
 
  const loadAndRebuild = async () => {

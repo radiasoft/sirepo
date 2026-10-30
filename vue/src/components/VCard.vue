@@ -4,6 +4,18 @@
         <div class="sr-panel-header card-header text-bg-info bg-opacity-25">
             {{ title }}
             <div class="sr-panel-options float-end">
+                <template v-if="canNavigate && isFullscreen()">
+                    <a href
+                       v-on:click.prevent="emit('prev')"
+                       v-if="hasPrev"
+                       title="Previous"
+                    ><span class="bi bi-chevron-left"></span></a>
+                    <a href
+                       v-on:click.prevent="emit('next')"
+                       v-if="hasNext"
+                       title="Next"
+                    ><span class="bi bi-chevron-right"></span></a>
+                </template>
                 <a v-if="canEdit" href title="Edit" v-on:click.prevent="showModal"><span class="bi bi-pencil-fill"></span></a>
                 <div v-if="downloadActions" class="dropdown-menu-end d-inline-block" title="Download">
                     <a href data-bs-toggle="dropdown"><span class="bi bi-cloud-download-fill"></span></a>
@@ -53,8 +65,19 @@
      viewName: String,
      title: String,
      canFullScreen: Boolean,
+     // prev/next buttons are shown in the header while full screen
+     canNavigate: Boolean,
      downloadActions: Array,
+     // optional, parent controls full screen state (v-bind:fullscreen and
+     // v-on:update:fullscreen), otherwise the card keeps its own state
+     fullscreen: {
+         type: Boolean,
+         default: undefined,
+     },
+     hasNext: Boolean,
+     hasPrev: Boolean,
  });
+ const emit = defineEmits(['next', 'prev', 'update:fullscreen']);
 
  if (! schema.view[props.viewName]) {
      throw new Error(`Missing schema entry for ${props.viewName}`);
@@ -67,7 +90,7 @@
 
  const onKeydown = (event) => {
      if (event.key === 'Escape' && isFullscreen()) {
-         toggleFullscreen();
+         setFullscreen(false);
      }
  };
 
@@ -75,10 +98,9 @@
 
  const showModal = () => modal.value.showModal();
 
- const toggleFullscreen = () => {
-     cardStyle.value = isFullscreen()
-         ? {}
-         : {
+ const setFullscreen = (value) => {
+     cardStyle.value = value
+         ? {
              position: 'fixed',
              left: 0,
              top: 0,
@@ -86,7 +108,13 @@
              height: '100%',
              overflow: 'hidden',
              zIndex: 1000,
-         };
+         }
+         : {};
+     emit('update:fullscreen', value);
+ };
+
+ const toggleFullscreen = () => {
+     setFullscreen(! isFullscreen());
  };
 
  const toggleHidden = () => {
@@ -99,6 +127,12 @@
 
  onMounted(() => {
      document.addEventListener('keydown', onKeydown);
+ });
+
+ watch(() => props.fullscreen, (value) => {
+     if (value !== undefined && value !== isFullscreen()) {
+         setFullscreen(value);
+     }
  });
 
  watch(() => props.title, () => {
