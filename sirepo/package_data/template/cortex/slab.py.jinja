@@ -140,6 +140,8 @@ if ENVIRONMENT == "CORTEX":
     # TBR_SCALING_JSON    = SIM_DIR / "tbr_scaling.json"
     SURFACE_SOURCE_FILE = DAGMC_DIR / f"{ BREEDER_TYPE }_surface_source.h5"
     ARMOR_CURRENT_JSON  = DAGMC_DIR / f"{ BREEDER_TYPE }_armor_current_neutron.json"
+    # POSIT: not fetched by sirepo template/cortex.py write_parameters (not in
+    # the data repo yet); neutronics_post falls back to the local TBR if missing
     TBR_SCALING_JSON    = DAGMC_DIR / f"{ BREEDER_TYPE }_tbr_scaling.json"
 
 else:  # TESTING

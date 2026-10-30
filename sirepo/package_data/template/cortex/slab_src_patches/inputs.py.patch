@@ -87,7 +87,7 @@
  
  # =============================================================================
  # TALLY SETTINGS
-@@ -126,9 +131,12 @@
+@@ -126,9 +131,14 @@
  if ENVIRONMENT == "CORTEX":
      # Static files, one per breeder type, fixed location
      # Pre-copied once into slab/BREEDER_TYPE/ and never change between runs.
@@ -99,11 +99,13 @@
 +    # TBR_SCALING_JSON    = SIM_DIR / "tbr_scaling.json"
 +    SURFACE_SOURCE_FILE = DAGMC_DIR / f"{ BREEDER_TYPE }_surface_source.h5"
 +    ARMOR_CURRENT_JSON  = DAGMC_DIR / f"{ BREEDER_TYPE }_armor_current_neutron.json"
++    # POSIT: not fetched by sirepo template/cortex.py write_parameters (not in
++    # the data repo yet); neutronics_post falls back to the local TBR if missing
 +    TBR_SCALING_JSON    = DAGMC_DIR / f"{ BREEDER_TYPE }_tbr_scaling.json"
  
  else:  # TESTING
      # Load directly from the tokamak simulation outputs
-@@ -180,11 +188,11 @@
+@@ -180,11 +190,11 @@
  # MATERIALS 
  # (FOR CORTEX, UPDATE HERE WITH USER'S MATERIALS)
  # =============================================================================
@@ -119,7 +121,7 @@
  print("SIM_TYPE:", SIM_TYPE)
  print("BREEDER_TYPE:", BREEDER_TYPE)
  
-@@ -221,16 +229,22 @@
+@@ -221,16 +231,22 @@
  # other structural materials explored in the FS&T paper
  #structural_material = materials.V4Cr4Ti(6.05)
  #structural_material = materials.SiC(2.5)
@@ -144,7 +146,7 @@
  
  # Breeder-specific materials
  if BREEDER_TYPE == "WCLL":
-@@ -290,25 +304,23 @@
+@@ -290,25 +306,23 @@
  if SIM_TYPE == "tokamak":
      TALLY_CONVERGENCE_THRESHOLD = 0.05
      BATCHES                     = 10
@@ -175,7 +177,7 @@
  
  # =============================================================================
  # FEATURE TOGGLES
-@@ -383,7 +395,8 @@
+@@ -383,7 +397,8 @@
  # =============================================================================
  # REFERENCE (GOLD) RUN COMPARISON
  # =============================================================================

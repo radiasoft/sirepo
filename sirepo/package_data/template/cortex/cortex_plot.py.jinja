@@ -25,6 +25,11 @@ class pyplot:
 
     Acts as ``fig``, ``ax``, and ``plt`` simultaneously — all three are
     returned as this class from ``subplots()``.
+
+    POSIT: implements every ``plt.``, ``ax.`` and ``fig.`` attribute used by
+    slab.py.jinja (generated from the cortex repo's full_model_bluemira); a
+    missing one only fails when a sim runs. tests/template/cortex_plot_test.py
+    checks this, so run it after rebuilding slab.py.jinja.
     """
 
     cm = _cm
@@ -32,6 +37,7 @@ class pyplot:
     _ax = None
     _fig = None
     canvas = None
+    transAxes = None
     xaxis = None
     yaxis = None
 
@@ -43,6 +49,7 @@ class pyplot:
     def subplots(cls, **kwargs):
         cls._fig, cls._ax = _plt.subplots(**kwargs)
         cls.canvas = cls._fig.canvas
+        cls.transAxes = cls._ax.transAxes
         cls.xaxis = cls._ax.xaxis
         cls.yaxis = cls._ax.yaxis
         return cls, cls
@@ -280,6 +287,13 @@ class pyplot:
             _plt.minorticks_on()
 
     @classmethod
+    def tick_params(cls, **kwargs):
+        if cls._ax is not None:
+            cls._ax.tick_params(**kwargs)
+        else:
+            _plt.tick_params(**kwargs)
+
+    @classmethod
     def gca(cls):
         return cls._ax if cls._ax is not None else _plt.gca()
 
@@ -300,8 +314,15 @@ class pyplot:
         return _plt.gca().get_xaxis_transform()
 
     @classmethod
+    def get_yscale(cls):
+        if cls._ax is not None:
+            return cls._ax.get_yscale()
+        return _plt.gca().get_yscale()
+
+    @classmethod
     def savefig(cls, filename, **kwargs):
-        assert len(cls._figure.plots)
+        # POSIT: plots may be empty, e.g. the D1S "No positive SDR values" layer
+        # plot; sirepo template/cortex._save_summary_to_database skips those
         pykern.pkjson.dump_pretty(cls._figure, f"{filename}.json")
         # ensure plots label fit on canvas
         _plt.tight_layout()
@@ -310,6 +331,7 @@ class pyplot:
         cls._ax = None
         cls._fig = None
         cls.canvas = None
+        cls.transAxes = None
         cls.xaxis = None
         cls.yaxis = None
 

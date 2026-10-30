@@ -21,16 +21,12 @@ import sirepo.sim_api.cortex.material_xlsx
 import sirepo.sim_api.cortex.tea_cost
 import sirepo.sim_data
 import sirepo.simulation_db
-import sirepo.srdb
 import sirepo.util
 
 _SIM_DATA, SIM_TYPE, _ = sirepo.sim_data.template_globals(sim_type="cortex")
 
 #: These operations are all fast. There shouldn't be much contention
 _ACTION_TIMEOUT = 20
-
-#: same as material_db.CORTEXDB_DIR, which can't be referenced while this package imports
-_CORTEXDB_DIR = "cortexdb"
 
 _EXT = ".xlsx"
 
@@ -57,6 +53,7 @@ def check_for_sim_summary(qcall, uid):
             d = pykern.pkjson.load_any(f)
             d.completed = datetime.datetime.fromisoformat(d.completed)
         # verifies material ownership, so must happen before the csv files are written
+        # POSIT: material_db.load_summary skips plot rows whose csv doesn't exist yet
         sirepo.sim_api.cortex.material_db.update_sim_summary(d, uid)
         for q in d.plots:
             # plot points and legend are only stored in the csv, written atomically
@@ -80,7 +77,9 @@ def check_for_sim_summary(qcall, uid):
                 str(p),
                 str(
                     pykern.pkio.mkdir_parent(
-                        sirepo.srdb.root().join(_CORTEXDB_DIR, str(material_id), report)
+                        sirepo.sim_api.cortex.material_db.cortexdb_path(
+                            material_id, report
+                        )
                     ).join(f"{name}.{suffix}")
                 ),
             )
@@ -275,13 +274,13 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
             material_id=arg.material_id, uid=uid
         )
         pykern.pkio.unchecked_remove(
-            sirepo.srdb.root().join(_CORTEXDB_DIR, str(arg.material_id))
+            sirepo.sim_api.cortex.material_db.cortexdb_path(arg.material_id)
         )
         return PKDict()
 
     def action_stat_image(self, arg, uid):
-        p = sirepo.srdb.root().join(
-            _CORTEXDB_DIR, str(arg.material_id), arg.modelName, f"{arg.stat}.png"
+        p = sirepo.sim_api.cortex.material_db.cortexdb_path(
+            arg.material_id, arg.modelName, f"{arg.stat}.png"
         )
         if not p.exists():
             raise sirepo.util.NotFound(
@@ -333,7 +332,9 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         )
 
     def action_load_output_zip(self, arg, uid):
-        d = sirepo.srdb.root().join(_CORTEXDB_DIR, str(arg.material_id), arg.modelName)
+        d = sirepo.sim_api.cortex.material_db.cortexdb_path(
+            arg.material_id, arg.modelName
+        )
         if not d.exists():
             raise sirepo.util.NotFound(
                 f"material_id={arg.material_id} modelName={arg.modelName}"

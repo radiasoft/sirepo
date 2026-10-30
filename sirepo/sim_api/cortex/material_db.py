@@ -6,8 +6,7 @@
 
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-import csv
-import io
+import contextlib
 import pykern.pkio
 import pykern.sql_db
 import re
@@ -17,10 +16,10 @@ import sirepo.util
 import sqlalchemy
 import sqlalchemy.exc
 
-#: directory in srdb root which holds each material's plot csv, png and hdf5 files
-CORTEXDB_DIR = "cortexdb"
-
 _BASE = "cortex_material.sqlite3"
+
+#: directory in srdb root which holds each material's plot csv, png and hdf5 files
+_CORTEXDB_DIR = "cortexdb"
 
 #: plot data now in csv files, tables dropped by drop_plot_tables()
 _OLD_PLOT_TABLES = frozenset(("plot_legend", "plot_point"))
@@ -57,6 +56,20 @@ _meta = None
 
 class Error(RuntimeError):
     pass
+
+
+def cortexdb_path(material_id, *paths):
+    """Path to a material's stored sim output: plot csv, png and hdf5 files
+
+    Laid out as ``<material_id>/<model>/<file>``.
+
+    Args:
+        material_id (int or str): material
+        paths (str): optional model and file name within the material's directory
+    Returns:
+        py.path: path, which may not exist
+    """
+    return sirepo.srdb.root().join(_CORTEXDB_DIR, str(material_id), *paths)
 
 
 def db_upgrade():
@@ -127,7 +140,7 @@ def drop_plot_tables():
         for r in session.execute(
             sqlalchemy.text(
                 "SELECT dim, idx, point FROM plot_point"
-                " WHERE plot_id = :plot_id ORDER BY dim, idx"
+                + " WHERE plot_id = :plot_id ORDER BY dim, idx"
             ).bindparams(plot_id=plot_id)
         ):
             if r.idx == 0:
@@ -139,36 +152,46 @@ def drop_plot_tables():
         p = _points(session, plot.plot_id)
         if not p:
             return
-        l = [
-            r.label
-            for r in session.select(
-                sqlalchemy.select(session.t.plot_legend)
-                .where(session.t.plot_legend.c.plot_id == plot.plot_id)
-                .order_by(session.t.plot_legend.c.dim)
-            )
-        ]
-        v = io.StringIO()
-        w = csv.writer(v)
-        w.writerow([plot.xlabel] + l[1:])
-        for i in range(len(p[0])):
-            w.writerow([p[j][i] for j in range(len(p))])
         f = plot_csv_path(plot.material_id, plot.model, plot.stat)
         pykern.pkio.mkdir_parent_only(f)
-        pykern.pkio.atomic_write(f, v.getvalue())
+        pykern.pkio.atomic_write(
+            f,
+            sirepo.template.cortex.csv_from_plot(
+                PKDict(
+                    xlabel=plot.xlabel,
+                    legend=[
+                        r.label
+                        for r in session.select(
+                            sqlalchemy.select(session.t.plot_legend)
+                            .where(session.t.plot_legend.c.plot_id == plot.plot_id)
+                            .order_by(session.t.plot_legend.c.dim)
+                        )
+                    ],
+                    points=p,
+                )
+            ),
+        )
 
+    # db_upgrade may run in a process which hasn't initialized this module
+    init_module()
     t = _old_plot_tables()
     if not t:
         return
     with _session() as s:
-        if t == _OLD_PLOT_TABLES:
+        if "plot_point" in t:
+            if "plot_legend" not in t:
+                raise AssertionError(
+                    f"plot_point without plot_legend, can't write plot csvs db={_path()}"
+                )
             for p in s.select("plot").all():
                 if not plot_csv_path(p.material_id, p.model, p.stat).exists():
                     _write_csv(s, p)
         for n in sorted(t):
             s.execute(sqlalchemy.text(f"DROP TABLE {n}"))
     # plot_point was most of the db, VACUUM must run outside a transaction
-    with _meta._engine.connect().execution_options(isolation_level="AUTOCOMMIT") as c:
-        c.execute(sqlalchemy.text("VACUUM"))
+    with _engine(isolation_level="AUTOCOMMIT") as e:
+        with e.connect() as c:
+            c.execute(sqlalchemy.text("VACUUM"))
 
 
 def featured_materials():
@@ -553,14 +576,9 @@ def load_summary(material_id, is_public, uid):
         return rows
 
     def _load_plot(row, path):
-        with pykern.pkio.open_text(path) as f:
-            c = list(csv.reader(f))
         return _format_plot(
             PKDict(row).pkupdate(
-                # csv columns are plot dimensions 0: x, 1: y1, 2: y2 ...
-                points=[[float(v[i]) for v in c[1:]] for i in range(len(c[0]))],
-                # header is xlabel followed by the y labels, the x legend is empty
-                legend=[""] + c[0][1:],
+                sirepo.template.cortex.plot_from_csv(pykern.pkio.read_text(path))
             )
         )
 
@@ -570,6 +588,8 @@ def load_summary(material_id, is_public, uid):
             if _skip_plot(r.stat):
                 continue
             p = plot_csv_path(r.material_id, r.model, r.stat)
+            # POSIT: sim_api.cortex.check_for_sim_summary writes the csv after
+            # the plot row, so it may be missing (or failed to be written)
             if not p.exists():
                 pkdlog("missing plot csv={}", p)
                 continue
@@ -657,7 +677,7 @@ def plot_csv_path(material_id, model, stat):
     Returns:
         py.path: csv file path, which may not exist
     """
-    return sirepo.srdb.root().join(CORTEXDB_DIR, str(material_id), model, f"{stat}.csv")
+    return cortexdb_path(material_id, model, f"{stat}.csv")
 
 
 def public_materials():
@@ -718,6 +738,20 @@ def update_sim_summary(summary, uid):
 
         for p in summary.plots:
             _insert_plot(s, p, uid)
+
+
+@contextlib.contextmanager
+def _engine(**kwargs):
+    """Short-lived engine for the db file, separate from _meta's
+
+    pykern.sql_db.Meta doesn't expose its engine. Used to inspect tables
+    before _meta exists and to run VACUUM outside a transaction.
+    """
+    rv = sqlalchemy.create_engine(pykern.sql_db.sqlite_uri(_path()), **kwargs)
+    try:
+        yield rv
+    finally:
+        rv.dispose()
 
 
 def _insert_plot(session, plotdef, uid):
@@ -785,12 +819,9 @@ def _old_plot_schema(float_type):
 
 def _old_plot_tables():
     if not _path().exists():
-        return set()
-    e = sqlalchemy.create_engine(pykern.sql_db.sqlite_uri(_path()))
-    try:
+        return frozenset()
+    with _engine() as e:
         return _OLD_PLOT_TABLES.intersection(sqlalchemy.inspect(e).get_table_names())
-    finally:
-        e.dispose()
 
 
 def _public_material_by_id(session, material_id):

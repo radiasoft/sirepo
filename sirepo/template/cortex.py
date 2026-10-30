@@ -33,6 +33,12 @@ _CHAIN_ENDF_FILE = "chain_endf_b8.0.xml"
 _EUDEMO_H5M_FILE = "eudemo_f_1_27a.h5m"
 _SLAB_CHAIN_ENDF_FILE = "chain_endfb80_sfr.xml"
 _TOKAMAK_INPUTS_FILE = "Tokamak_inputs.json"
+# POSIT: each slabAnimation key is the basename of a <key>.png and <key>.png.json
+# written by the cortex repo's full_model_bluemira post-processing (e.g.
+# waste_summary_<layer> from depletion_post.py, with spaces in the layer name
+# replaced by "_") and moved to the run dir by the FLATTEN OUTPUT step in
+# slab_src_patches/depletion_post.py.patch. _save_summary_to_database fails if
+# any listed file is missing, so a renamed plot or layer there breaks every run.
 _REPORT_TITLE = PKDict(
     slabAnimation=PKDict(
         dpa_OB_1_b6="DPA",
@@ -244,6 +250,24 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
+def csv_from_plot(plot):
+    """Plot points and legend as csv text, the only stored copy of them
+
+    Read back with `plot_from_csv`.
+
+    Args:
+        plot (PKDict): xlabel, legend and points (dimension 0: x, 1: y1, 2: y2 ...)
+    Returns:
+        str: header is xlabel followed by legend[1:], one column per dimension
+    """
+    v = io.StringIO()
+    w = csv.writer(v)
+    w.writerow([plot.xlabel] + plot.legend[1:])
+    for i in range(len(plot.points[0])):
+        w.writerow([plot.points[j][i] for j in range(len(plot.points))])
+    return v.getvalue()
+
+
 def stateless_compute_calculate_cost(data, **kwargs):
     """Run the tea manufacturing cost model for a cortex material.
 
@@ -300,6 +324,22 @@ def stateless_compute_calculate_cost(data, **kwargs):
     )
 
 
+def plot_from_csv(text):
+    """Parse plot points and legend written by `csv_from_plot`
+
+    Args:
+        text (str): csv text
+    Returns:
+        PKDict: legend and points (dimension 0: x, 1: y1, 2: y2 ...)
+    """
+    c = list(csv.reader(io.StringIO(text)))
+    return PKDict(
+        # POSIT: the x legend is always empty, see _plot_from_file
+        legend=[""] + c[0][1:],
+        points=[[float(r[i]) for r in c[1:]] for i in range(len(c[0]))],
+    )
+
+
 def plotdef_to_sim_frame(plotdef):
 
     def _section(stat):
@@ -309,7 +349,7 @@ def plotdef_to_sim_frame(plotdef):
             "activity" in stat
             or "decayheat" in stat
             or "sdr_layer" in stat
-            or "waste" in stat
+            or stat.startswith("waste_summary_")
         ):
             return "time_dependent"
         return "steady_state"
@@ -350,6 +390,10 @@ def write_parameters(data, run_dir, is_parallel):
         template_common.render_jinja(SIM_TYPE, PKDict(), "cortex_materials.py"),
     )
     t = re.search(r"(\w+)SlabAnimation", data.report).group(1).upper()
+    # POSIT: slab_src_patches/inputs.py.patch also reads {t}_tbr_scaling.json
+    # from dagmcPath. It isn't in the data repo yet, so it isn't fetched here
+    # and the sim falls back to the local (unscaled) TBR. Add it to this list
+    # once it's uploaded.
     for n in (
         f"EUDEMO_{t}_inputs.json",
         f"{t}_surface_source.h5",
@@ -448,7 +492,7 @@ def _json_filename(stat):
     return f"{_png_filename(stat)}.json"
 
 
-def _plot_from_file(run_dir, material_id, report, stat):
+def _plot_from_file(plot_json, material_id, report, stat):
     def _label(value):
         return re.sub(r"\$\^2\$", "²", value)
 
@@ -469,20 +513,18 @@ def _plot_from_file(run_dir, material_id, report, stat):
                 r.append(plot[dim][i])
         return r
 
-    with open(str(run_dir.join(_json_filename(stat))), "r") as f:
-        d = pykern.pkjson.load_any(f)
-
-    single = len(d.plots) == 1
+    single = len(plot_json.plots) == 1
     # TODO(pjm): assert x points match across plots
-    points = [_process_points(d.plots[0], "x")]
+    points = [_process_points(plot_json.plots[0], "x")]
+    # POSIT: the x legend is always empty, see plot_from_csv
     legend = [""]
-    for p in d.plots:
+    for p in plot_json.plots:
         points.append(_process_points(p, "y"))
-        legend.append(p.label or d.ylabel)
-    for p in d.plots:
+        legend.append(p.label or plot_json.ylabel)
+    for p in plot_json.plots:
         if "lo" not in p:
             continue
-        n = "" if single else f"{p.label or d.ylabel}_"
+        n = "" if single else f"{p.label or plot_json.ylabel}_"
         points.append(_process_points(p, "lo"))
         legend.append(f"{n}low")
         points.append(_process_points(p, "hi"))
@@ -490,9 +532,9 @@ def _plot_from_file(run_dir, material_id, report, stat):
     return PKDict(
         material_id=material_id,
         title=_REPORT_TITLE[_report_type(report)][stat],
-        xlabel=_label(d.xlabel),
-        ylabel=_label(d.ylabel),
-        plot_type=d.type or "linear",
+        xlabel=_label(plot_json.xlabel),
+        ylabel=_label(plot_json.ylabel),
+        plot_type=plot_json.type or "linear",
         model=report,
         stat=stat,
         legend=legend,
@@ -509,14 +551,6 @@ def _report_type(report):
 
 
 def _save_summary_to_database(run_dir, report, stats):
-    def _csv_from_plot(plot):
-        v = io.StringIO()
-        w = csv.writer(v)
-        w.writerow([plot.xlabel] + plot.legend[1:])
-        for i in range(len(plot.points[0])):
-            w.writerow([plot.points[j][i] for j in range(len(plot.points))])
-        return v.getvalue()
-
     def _material_id_from_run_dir():
         return int(
             sirepo.simulation_db.read_json(
@@ -559,8 +593,16 @@ def _save_summary_to_database(run_dir, report, stats):
         values=_summary_from_csv(),
     )
     for s in stats:
-        p = _plot_from_file(run_dir, m, report, s)
-        p.csv = _csv_from_plot(p)
+        d = pykern.pkjson.load_any(
+            pykern.pkio.read_text(run_dir.join(_json_filename(s)))
+        )
+        if not d.plots:
+            # POSIT: cortex_plot.pyplot.savefig writes figures with no lines,
+            # e.g. the D1S "No positive SDR values" layer plot
+            pkdlog("plot has no lines, not saved stat={} run_dir={}", s, run_dir)
+            continue
+        p = _plot_from_file(d, m, report, s)
+        p.csv = csv_from_plot(p)
         summary.plots.append(p)
         _SIM_DATA.lib_file_write(
             _SIM_DATA.lib_file_from_parts(report, m, s, "png"),
