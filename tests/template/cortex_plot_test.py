@@ -75,7 +75,11 @@ def test_waste_plot():
                 pkjson.load_any(
                     pkio.read_text(
                         "{}/{}.png.json".format(
-                            "struct_scaled" if k.endswith(_WASTE_SCALED_SUFFIX) else "raw",
+                            (
+                                "struct_scaled"
+                                if k.endswith(_WASTE_SCALED_SUFFIX)
+                                else "raw"
+                            ),
                             k,
                         )
                     )
@@ -186,7 +190,9 @@ def _waste_data(stats):
                 wdr_short_c=0.5 / (1 + t),
                 wdr_fetter=2 / (1 + t**0.5),
                 structural_volume_fraction=0.5,
-                nrc_class_struct_scaled="GTCC" if t < 1e-1 else "Class C" if t < 20 else "Class A",
+                nrc_class_struct_scaled=(
+                    "GTCC" if t < 1e-1 else "Class C" if t < 20 else "Class A"
+                ),
                 wdr_long_struct_scaled=2e-3 * t**-0.1,
                 wdr_short_a_struct_scaled=100 / (1 + t),
                 wdr_short_b_struct_scaled=10 / (1 + t),
