@@ -573,30 +573,20 @@ class SimDataBase(object):
             qcall (quest.API): logged in user
         """
 
-        def _target():
-            return (
-                cls._simulation_db()
-                .simulation_lib_dir(cls.sim_type(), qcall=qcall)
-                .join(basename)
-            )
-
         if cls._is_agent_side():
             cls.sim_db_client().put(cls.LIB_DIR, basename, path_or_content)
             return
+        t = cls._lib_file_abspath(basename, qcall=qcall)
         if isinstance(path_or_content, pkconst.PY_PATH_LOCAL_TYPE):
-            path_or_content.copy(_target())
+            path_or_content.copy(t)
         else:
-            _target().write_binary(pkcompat.to_bytes(path_or_content))
+            t.write_binary(pkcompat.to_bytes(path_or_content))
 
     @classmethod
     def lib_file_write_path(cls, basename, qcall=None):
         """DEPRECATED: Use `lib_file_write`"""
 
-        return (
-            cls._simulation_db()
-            .simulation_lib_dir(cls.sim_type(), qcall=qcall)
-            .join(basename)
-        )
+        return cls._lib_file_abspath(basename, qcall=qcall)
 
     @classmethod
     def lib_files_for_export(cls, data, qcall=None):
@@ -1116,12 +1106,16 @@ class SimDataBase(object):
 
     @classmethod
     def _lib_file_abspath(cls, basename, qcall):
-        """Path in user lib directory for `basename`"""
-        return (
-            cls._simulation_db()
-            .simulation_lib_dir(cls.sim_type(), qcall=qcall)
-            .join(basename)
-        )
+        """Path in user lib directory for `basename`
+
+        `basename` may come from untrusted simulation data so
+        must not escape the lib directory.
+        """
+        d = cls._simulation_db().simulation_lib_dir(cls.sim_type(), qcall=qcall)
+        res = d.join(basename)
+        if d.common(res) != d:
+            raise AssertionError(f"basename={basename} escapes lib dir={d}")
+        return res
 
     @classmethod
     def _lib_file_abspath_or_exists(

@@ -1947,7 +1947,8 @@ def _write_field_map_lib_file(
     k = (el_type, model_field, h)
     if k in field_map_cache:
         return field_map_cache[k]
-    basename = f"{element_name}-{h[:8]}.dat"
+    # element_name comes from the uploaded archive so is untrusted
+    basename = f"{sirepo.util.secure_filename(element_name) or el_type}-{h[:8]}.dat"
     _write_lib_file_once(
         _SIM_DATA.lib_file_name_with_model_field(el_type, model_field, basename),
         text,
