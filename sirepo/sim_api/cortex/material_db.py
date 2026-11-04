@@ -9,7 +9,6 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 import contextlib
 import pykern.pkio
 import pykern.sql_db
-import re
 import sirepo.srdb
 import sirepo.template.cortex
 import sirepo.util
@@ -585,7 +584,11 @@ def load_summary(material_id, is_public, uid):
     def _load_plots(session):
         rv = []
         for r in s.select("plot", where=PKDict(material_id=material_id)).all():
-            if _skip_plot(r.stat):
+            # POSIT: _load_summary skips the same models, the db may have
+            # plots for models which are no longer simulated
+            if r.model not in sirepo.template.cortex.SIM_VERSION:
+                continue
+            if not sirepo.template.cortex.report_is_listed(r.stat):
                 continue
             p = plot_csv_path(r.material_id, r.model, r.stat)
             # POSIT: sim_api.cortex.check_for_sim_summary writes the csv after
@@ -612,15 +615,6 @@ def load_summary(material_id, is_public, uid):
                 results=_layer_summary_rows(session, summary["model"]),
             )
         return r
-
-    def _skip_plot(name):
-        return (
-            re.search(r"(cell|decayheat|waste_summary)_(OB|Breeder)", name)
-            or re.search(r"sdr_(profile|time)", name)
-            or re.search(r"radial_", name)
-            # only in the output zip
-            or re.search(r"waste_summary_.*_struct_scaled", name)
-        )
 
     with _session() as s:
         # ensure authorized to material

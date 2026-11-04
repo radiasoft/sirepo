@@ -33,6 +33,93 @@ _CHAIN_ENDF_FILE = "chain_endf_b8.0.xml"
 _EUDEMO_H5M_FILE = "eudemo_f_1_27a.h5m"
 _SLAB_CHAIN_ENDF_FILE = "chain_endfb80_sfr.xml"
 _TOKAMAK_INPUTS_FILE = "Tokamak_inputs.json"
+_COOLING_TIME = "cooling time (time after irradiation)"
+
+_NUCLIDE_LEGEND = "The legend gives each nuclide and its half-life."
+
+# Section and description of each report, the first pattern matching a stat
+# wins so a specific pattern must precede the general one it overlaps. A None
+# section is for a report which is only in the output zip, not listed in the UI.
+# POSIT: the sections are the keys of VNeutronics.vue's sections, and the
+# patterns are the stats in _REPORT_TITLE
+_REPORT_GROUP = (
+    (r"(cell|decayheat|waste_summary)_(OB|Breeder)", None, ""),
+    (r"sdr_(profile|time)", None, ""),
+    (r"^radial_", None, ""),
+    (
+        r"^dpa_",
+        "steady_state",
+        "Displacement damage in displacements per atom (DPA), from the Norgett-Robinson-Torrens (NRT) model, per full-power year (fpy) through the slab.",
+    ),
+    (
+        r"^h1_",
+        "steady_state",
+        "Hydrogen gas production in atomic parts per million (appm) per full-power year through the slab.",
+    ),
+    (
+        r"^he_",
+        "steady_state",
+        "Helium gas production in atomic parts per million (appm) per full-power year through the slab.",
+    ),
+    (
+        r"^heating_",
+        "steady_state",
+        "Nuclear heating power density (W/cm³) through the slab.",
+    ),
+    (
+        r"^flux_total_",
+        "flux",
+        "Total neutron and photon flux (1/cm²/s) through the slab.",
+    ),
+    (
+        r"^n_flux_spectrum_",
+        "flux",
+        "Neutron flux per unit lethargy versus energy, one curve for each layer.",
+    ),
+    (
+        r"^p_flux_spectrum_",
+        "flux",
+        "Photon flux per unit lethargy versus energy, one curve for each layer.",
+    ),
+    (
+        r"^activity_all_cells$",
+        "activity",
+        f"Specific activity (Bq/kg) of each layer versus {_COOLING_TIME}.",
+    ),
+    (
+        r"^activity_cell_",
+        "activity",
+        f"Specific activity (Bq/kg) of the layer by nuclide versus {_COOLING_TIME}. {_NUCLIDE_LEGEND}",
+    ),
+    (
+        r"^decayheat_all_cells$",
+        "decay_heat",
+        f"Decay heat power density (W/cm³) of each layer versus {_COOLING_TIME}.",
+    ),
+    (
+        r"^decayheat_",
+        "decay_heat",
+        f"Decay heat power density (W/cm³) of the layer by nuclide versus {_COOLING_TIME}. {_NUCLIDE_LEGEND}",
+    ),
+    (
+        r"^sdr_layer_",
+        "waste_dose",
+        f"Shutdown dose rate (μSv/h) calculated with the Direct 1-Step (D1S) method versus {_COOLING_TIME}.",
+    ),
+    (
+        r"^waste_summary_.*_struct_scaled$",
+        "waste_dose",
+        # POSIT: "struct. frac" is the plot title's title_suffix in
+        # slab.py.jinja's _plot_waste_summary_one, see cortex_plot_test
+        'Waste disposal ratings scaled up by dividing by the layer\'s structural volume fraction ("struct. frac" in the plot title). This approximates the structural material alone, without the coolant or breeder mixed into the layer. The NRC class shading is recomputed from the scaled ratings.',
+    ),
+    (
+        r"^waste_summary_",
+        "waste_dose",
+        f"Waste disposal rating versus {_COOLING_TIME} for the U.S. Nuclear Regulatory Commission (NRC) limits in Title 10 of the Code of Federal Regulations (CFR) part 61.55 (Table 1 long-lived, Table 2 Class A, B and C) and for Fetter et al. A rating below 1 meets that limit. The shading shows the resulting NRC class.",
+    ),
+)
+
 # POSIT: each slabAnimation key is the basename of a <key>.png and <key>.png.json
 # written by the cortex repo's full_model_bluemira post-processing (e.g.
 # waste_summary_<layer> from depletion_post.py, with spaces in the layer name
@@ -41,16 +128,16 @@ _TOKAMAK_INPUTS_FILE = "Tokamak_inputs.json"
 # any listed file is missing, so a renamed plot or layer there breaks every run.
 _REPORT_TITLE = PKDict(
     slabAnimation=PKDict(
-        dpa_OB_1_b6="DPA",
+        dpa_OB_1_b6="Displacements per atom (DPA)",
         h1_OB_1_b6="Hydrogen",
         he_OB_1_b6="Helium",
         flux_total_OB_1_b6="Flux",
         heating_OB_1_b6="Heating",
         p_flux_spectrum_OB_1_b6="Photon Flux",
         n_flux_spectrum_OB_1_b6="Neutron Flux",
-        sdr_layer_00_Armor_OB_1_b6="Armor SDR",
-        sdr_layer_01_First_Wall_OB_1_b6="First wall SDR",
-        sdr_layer_12_VV_OB_1_b6="Vacuum Vessel SDR",
+        sdr_layer_00_Armor_OB_1_b6="Shutdown dose rate - Armor",
+        sdr_layer_01_First_Wall_OB_1_b6="Shutdown dose rate - First Wall",
+        sdr_layer_12_VV_OB_1_b6="Shutdown dose rate - Vacuum Vessel",
         activity_all_cells="Total Activity over cooling time",
         activity_cell_Armor="Activity - Armor",
         activity_cell_First_wall="Activity - First Wall",
@@ -108,7 +195,7 @@ _REPORT_TITLE = PKDict(
         waste_summary_Breeder_layer_10_struct_scaled="Waste disposal rating, structure scaled - Breeder layer 10",
         waste_summary_VV_struct_scaled="Waste disposal rating, structure scaled - Vacuum Vessel",
         sdr_profile_OB_1_b6="D1S spatial profile",
-        sdr_time_layers_OB_1_b6="D1S SDR per OB layer",
+        sdr_time_layers_OB_1_b6="D1S shutdown dose rate per OB layer",
     ),
 )
 
@@ -357,19 +444,7 @@ def plot_from_csv(text):
 
 
 def plotdef_to_sim_frame(plotdef):
-
-    def _section(stat):
-        if "_flux" in stat:
-            return "flux"
-        if (
-            "activity" in stat
-            or "decayheat" in stat
-            or "sdr_layer" in stat
-            or stat.startswith("waste_summary_")
-        ):
-            return "time_dependent"
-        return "steady_state"
-
+    g = _report_group(plotdef.stat)
     res = PKDict(
         title=plotdef.title,
         x_range=[plotdef.points[0][0], plotdef.points[0][-1]],
@@ -387,13 +462,25 @@ def plotdef_to_sim_frame(plotdef):
         meta=PKDict(
             model=plotdef.model,
             stat=plotdef.stat,
-            section=_section(plotdef.stat),
+            section=g.section,
+            description=g.description,
         ),
     )
     res.y_range = template_common.compute_plot_color_and_range(res.plots)
     if plotdef.stat == "flux" or plotdef.stat == "sdr":
         res.alignLegend = "right"
     return res
+
+
+def report_is_listed(stat):
+    """Whether a report is listed in the UI, otherwise it is only in the output zip
+
+    Args:
+        stat (str): plot name, e.g. dpa_OB_1_b6
+    Returns:
+        bool: True if the report has a section
+    """
+    return _report_group(stat).section is not None
 
 
 def write_parameters(data, run_dir, is_parallel):
@@ -560,6 +647,13 @@ def _plot_from_file(plot_json, material_id, report, stat):
 
 def _png_filename(stat):
     return f"{stat}.png"
+
+
+def _report_group(stat):
+    for p, s, d in _REPORT_GROUP:
+        if re.search(p, stat):
+            return PKDict(section=s, description=d)
+    raise AssertionError(f"no report group stat={stat}")
 
 
 def _report_type(report):

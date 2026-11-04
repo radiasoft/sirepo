@@ -9,6 +9,65 @@ _WASTE_PREFIX = "waste_summary_"
 _WASTE_SCALED_SUFFIX = "_struct_scaled"
 
 
+def test_report_group():
+    """Every report has a section and description, and only these are listed
+
+    The UI lists a report if it has a section, so the listing is pinned here.
+    """
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
+    import sirepo.template.cortex
+
+    c = sirepo.template.cortex
+    g = PKDict()
+    for k in c._REPORT_TITLE.slabAnimation:
+        if c.report_is_listed(k):
+            d = c._report_group(k)
+            pkunit.pkok(d.description, "no description stat={}", k)
+            g.setdefault(d.section, []).append(k)
+    pkunit.pkeq(
+        dict(
+            activity=[
+                "activity_all_cells",
+                "activity_cell_Armor",
+                "activity_cell_First_wall",
+                "activity_cell_VV",
+            ],
+            decay_heat=[
+                "decayheat_Armor",
+                "decayheat_First_wall",
+                "decayheat_VV",
+                "decayheat_all_cells",
+            ],
+            flux=[
+                "flux_total_OB_1_b6",
+                "n_flux_spectrum_OB_1_b6",
+                "p_flux_spectrum_OB_1_b6",
+            ],
+            steady_state=[
+                "dpa_OB_1_b6",
+                "h1_OB_1_b6",
+                "he_OB_1_b6",
+                "heating_OB_1_b6",
+            ],
+            waste_dose=[
+                "sdr_layer_00_Armor_OB_1_b6",
+                "sdr_layer_01_First_Wall_OB_1_b6",
+                "sdr_layer_12_VV_OB_1_b6",
+                "waste_summary_Armor",
+                "waste_summary_Armor_struct_scaled",
+                "waste_summary_First_wall",
+                "waste_summary_First_wall_struct_scaled",
+                "waste_summary_VV",
+                "waste_summary_VV_struct_scaled",
+            ],
+        ),
+        {k: sorted(v) for k, v in g.items()},
+    )
+    with pkunit.pkexcept("no report group"):
+        c.report_is_listed("not_a_report")
+
+
 def test_slab_pyplot_attributes():
     """Every plt., ax. and fig. attribute in slab.py.jinja exists on the wrapper
 
@@ -71,26 +130,35 @@ def test_waste_plot():
             pathlib.Path("."),
         )
         for k in s:
-            p = sirepo.template.cortex._plot_from_file(
-                pkjson.load_any(
-                    pkio.read_text(
-                        "{}/{}.png.json".format(
-                            (
-                                "struct_scaled"
-                                if k.endswith(_WASTE_SCALED_SUFFIX)
-                                else "raw"
-                            ),
-                            k,
-                        )
+            j = pkjson.load_any(
+                pkio.read_text(
+                    "{}/{}.png.json".format(
+                        (
+                            "struct_scaled"
+                            if k.endswith(_WASTE_SCALED_SUFFIX)
+                            else "raw"
+                        ),
+                        k,
                     )
-                ),
+                )
+            )
+            p = sirepo.template.cortex._plot_from_file(
+                j,
                 1,
                 "wcllSlabAnimation",
                 k,
             )
             f = sirepo.template.cortex.plotdef_to_sim_frame(p)
             pkunit.pkeq("loglog", f.type)
-            pkunit.pkeq("time_dependent", f.meta.section)
+            pkunit.pkeq(
+                "waste_dose" if sirepo.template.cortex.report_is_listed(k) else None,
+                f.meta.section,
+            )
+            if k.endswith(_WASTE_SCALED_SUFFIX):
+                # the description quotes the structural fraction in the plot title
+                pkunit.pkre(r"struct\. frac", j.title)
+                if sirepo.template.cortex.report_is_listed(k):
+                    pkunit.pkre(r"struct\. frac", f.meta.description)
             pkunit.pkeq(
                 [x[1] for x in g["WASTE_SUMMARY_METRICS"]],
                 [x.label for x in f.plots],

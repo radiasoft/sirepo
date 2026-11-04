@@ -41,7 +41,13 @@ def init_apis(**kwargs):
 
 
 def check_for_sim_summary(qcall, uid):
+    """Import a sim summary written by template.cortex, and move its png and hdf5 files
+
+    Returns:
+        bool: True if a summary was imported, more may remain
+    """
     # TODO(pjm): this should be replaced with a direct sim_api call from template.cortex
+    rv = False
     for p in pykern.pkio.sorted_glob(
         str(_SIM_DATA.lib_file_write_path(_SIM_DATA.SUMMARY_GLOB, qcall=qcall))
     ):
@@ -64,6 +70,7 @@ def check_for_sim_summary(qcall, uid):
             pykern.pkio.mkdir_parent_only(c)
             pykern.pkio.atomic_write(c, q.csv)
         n.remove()
+        rv = True
 
         # TODO(pjm): processing can be slow and running too many can cause a tornado timeout
         # so only process one in one call for now
@@ -83,6 +90,7 @@ def check_for_sim_summary(qcall, uid):
                     ).join(f"{name}.{suffix}")
                 ),
             )
+    return rv
 
 
 def update_sim_from_material_detail(sim, material_id, detail):
