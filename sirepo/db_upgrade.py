@@ -151,6 +151,15 @@ def _20260112_audit_roles(qcall):
             m.expire_role(p.pop(), u)
 
 
+def _20261029_cortex_drop_plot_tables(qcall):
+    """Plot points and legends moved from the cortex db to csv files"""
+    if not sirepo.template.is_sim_type("cortex"):
+        return
+    from sirepo.sim_api.cortex import material_db
+
+    material_db.drop_plot_tables()
+
+
 @contextlib.contextmanager
 def _backup_db_and_prevent_upgrade_on_error():
     b = sirepo.auth_db.db_filename() + ".bak"

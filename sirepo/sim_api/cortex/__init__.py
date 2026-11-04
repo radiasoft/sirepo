@@ -21,15 +21,12 @@ import sirepo.sim_api.cortex.material_xlsx
 import sirepo.sim_api.cortex.tea_cost
 import sirepo.sim_data
 import sirepo.simulation_db
-import sirepo.srdb
 import sirepo.util
 
 _SIM_DATA, SIM_TYPE, _ = sirepo.sim_data.template_globals(sim_type="cortex")
 
 #: These operations are all fast. There shouldn't be much contention
 _ACTION_TIMEOUT = 20
-
-_CORTEXDB_DIR = "cortexdb"
 
 _EXT = ".xlsx"
 
@@ -44,7 +41,13 @@ def init_apis(**kwargs):
 
 
 def check_for_sim_summary(qcall, uid):
+    """Import a sim summary written by template.cortex, and move its png and hdf5 files
+
+    Returns:
+        bool: True if a summary was imported, more may remain
+    """
     # TODO(pjm): this should be replaced with a direct sim_api call from template.cortex
+    rv = False
     for p in pykern.pkio.sorted_glob(
         str(_SIM_DATA.lib_file_write_path(_SIM_DATA.SUMMARY_GLOB, qcall=qcall))
     ):
@@ -55,13 +58,19 @@ def check_for_sim_summary(qcall, uid):
         with open(str(n)) as f:
             d = pykern.pkjson.load_any(f)
             d.completed = datetime.datetime.fromisoformat(d.completed)
+        # verifies material ownership, so must happen before the csv files are written
+        # POSIT: material_db.load_summary skips plot rows whose csv doesn't exist yet
         sirepo.sim_api.cortex.material_db.update_sim_summary(d, uid)
-        r = pykern.pkio.mkdir_parent(
-            sirepo.srdb.root().join(_CORTEXDB_DIR, material_id, report)
-        )
         for q in d.plots:
-            r.join(f"{q.stat}.csv").write(q.csv)
+            # plot points and legend are only stored in the csv, written atomically
+            # so load_summary never reads a partial file
+            c = sirepo.sim_api.cortex.material_db.plot_csv_path(
+                material_id, report, q.stat
+            )
+            pykern.pkio.mkdir_parent_only(c)
+            pykern.pkio.atomic_write(c, q.csv)
         n.remove()
+        rv = True
 
         # TODO(pjm): processing can be slow and running too many can cause a tornado timeout
         # so only process one in one call for now
@@ -75,10 +84,13 @@ def check_for_sim_summary(qcall, uid):
                 str(p),
                 str(
                     pykern.pkio.mkdir_parent(
-                        sirepo.srdb.root().join(_CORTEXDB_DIR, str(material_id), report)
+                        sirepo.sim_api.cortex.material_db.cortexdb_path(
+                            material_id, report
+                        )
                     ).join(f"{name}.{suffix}")
                 ),
             )
+    return rv
 
 
 def update_sim_from_material_detail(sim, material_id, detail):
@@ -270,13 +282,13 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
             material_id=arg.material_id, uid=uid
         )
         pykern.pkio.unchecked_remove(
-            sirepo.srdb.root().join(_CORTEXDB_DIR, str(arg.material_id))
+            sirepo.sim_api.cortex.material_db.cortexdb_path(arg.material_id)
         )
         return PKDict()
 
     def action_stat_image(self, arg, uid):
-        p = sirepo.srdb.root().join(
-            _CORTEXDB_DIR, str(arg.material_id), arg.modelName, f"{arg.stat}.png"
+        p = sirepo.sim_api.cortex.material_db.cortexdb_path(
+            arg.material_id, arg.modelName, f"{arg.stat}.png"
         )
         if not p.exists():
             raise sirepo.util.NotFound(
@@ -328,7 +340,9 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         )
 
     def action_load_output_zip(self, arg, uid):
-        d = sirepo.srdb.root().join(_CORTEXDB_DIR, str(arg.material_id), arg.modelName)
+        d = sirepo.sim_api.cortex.material_db.cortexdb_path(
+            arg.material_id, arg.modelName
+        )
         if not d.exists():
             raise sirepo.util.NotFound(
                 f"material_id={arg.material_id} modelName={arg.modelName}"

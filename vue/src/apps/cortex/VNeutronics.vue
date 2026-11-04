@@ -89,7 +89,26 @@
             </div>
         </VCard>
     </div>
-    <VCortexCard v-bind:title="sections[section]" v-for="section in Object.keys(reportsBySection)">
+    <ul v-if="visibleTabs().length > 1" class="nav nav-tabs mb-3">
+        <li class="nav-item" v-for="t in visibleTabs()" v-bind:key="t">
+            <button
+                type="button"
+                class="nav-link"
+                v-bind:class="{ active: t === activeTab() }"
+                v-on:click="selectedTab = t"
+            >
+                {{ t }}
+            </button>
+        </li>
+    </ul>
+    <!-- v-show, not v-if, so every report stays mounted for full screen prev/next -->
+    <component
+        v-bind:is="isTabTitle(section) ? 'div' : VCortexCard"
+        v-bind="isTabTitle(section) ? {} : { title: sections[section].title }"
+        v-for="section in Object.keys(reportsBySection)"
+        v-bind:key="section"
+        v-show="sections[section].tab === activeTab()"
+    >
         <div class="row">
             <VCol
                 v-for="report in reportsBySection[section]"
@@ -100,7 +119,14 @@
                     v-bind:viewName="report.viewName"
                     v-bind:title="report.title"
                     v-bind:canFullScreen="true"
+                    v-bind:canNavigate="true"
                     v-bind:downloadActions="report.downloadActions"
+                    v-bind:fullscreen="fullscreenKey === report.trackBy"
+                    v-bind:hasNext="hasSibling(report, 1)"
+                    v-bind:hasPrev="hasSibling(report, -1)"
+                    v-on:next="showSibling(report, 1)"
+                    v-on:prev="showSibling(report, -1)"
+                    v-on:update:fullscreen="onFullscreen(report, $event)"
                 >
                     <div v-if="report.error">{{ report.error }}</div>
                     <div v-if="report.image" v-bind:class="{ 'sr-slab-image': report.isStatic }">
@@ -109,10 +135,13 @@
                             v-bind:alt="report.stat"
                         />
                     </div>
+                    <div v-if="report.description" class="text-muted small mt-2">
+                        {{ report.description }}
+                    </div>
                 </VCard>
             </VCol>
         </div>
-    </VCortexCard>
+    </component>
 </template>
 
 <script setup>
@@ -136,19 +165,28 @@
      title: String,
  });
  const reportsBySection = reactive({});
+ const GEOMETRY_DESCRIPTION = 'Layered slab model: armor, first wall, breeder layers and vacuum vessel. The plots show results through the slab thickness (radial position).';
+ // POSIT: the keys are the sections of sirepo.template.cortex _REPORT_GROUP
  const sections = {
-     steady_state: 'Steady State',
-     flux: 'Particle Fluxes',
-     time_dependent: 'Time-Dependent Responses',
+     steady_state: { tab: 'Steady State', title: 'Steady State' },
+     flux: { tab: 'Particle Fluxes', title: 'Particle Fluxes' },
+     activity: { tab: 'Activity', title: 'Activity' },
+     decay_heat: { tab: 'Decay Heat', title: 'Decay Heat' },
+     waste_dose: {
+         tab: 'Waste & Dose Rate',
+         title: 'Waste Disposal Rating & Shutdown Dose Rate',
+     },
  };
  const summaryCols = SUMMARY_COLUMNS;
  const { formatValue, formatStd } = useSummary(3);
  let rebuildCounter = 0;
  let summary;
+ const fullscreenKey = ref(null);
  const hasPlots = ref(false);
  const isLoadingPlots = ref(false);
  const isReady = ref(false);
  const route = useRoute();
+ const selectedTab = ref(null);
  const simSummary = ref(null);
 
  const downloadOutputZip = async () => {
@@ -178,6 +216,22 @@
      return '';
  };
 
+ const activeTab = () => {
+     const v = visibleTabs();
+     return v.includes(selectedTab.value) ? selectedTab.value : v[0];
+ };
+
+ const hasSibling = (report, offset) => {
+     return Boolean(siblingReport(report, offset));
+ };
+
+ // a section alone on its tab doesn't need a panel title, the tab names it
+ const isTabTitle = (section) => {
+     return visibleTabs().length > 1 && Object.keys(reportsBySection).filter(
+         s => sections[s].tab === sections[section].tab
+     ).length === 1;
+ };
+
  const isSimOutOfDate = () => {
      if (! (summary && summary.sim[props.neutronics])) {
          return true;
@@ -187,8 +241,18 @@
 
  const isViewing = () => route.name === "view";
 
+ const onFullscreen = (report, isFullscreen) => {
+     if (isFullscreen) {
+         fullscreenKey.value = report.trackBy;
+     }
+     else if (fullscreenKey.value === report.trackBy) {
+         fullscreenKey.value = null;
+     }
+ };
+
  const onSimStarted = () => {
      hasPlots.value = false;
+     fullscreenKey.value = null;
      simSummary.value = null;
      for (const v in reportsBySection) {
          delete reportsBySection[v];
@@ -215,6 +279,7 @@
              viewName: r.meta.model,
              trackBy: r.meta.model + r.meta.stat,
              stat: r.meta.stat,
+             description: r.meta.description,
              // needed by util.downloadCSV(); .image is added later by loadImages()
              x_label: r.x_label,
              y_label: r.y_label,
@@ -230,6 +295,7 @@
              viewName: props.neutronics,
              trackBy: 'geometry',
              stat: 'Slab',
+             description: GEOMETRY_DESCRIPTION,
              image: slabUrl,
              isStatic: true,
          });
@@ -245,6 +311,29 @@
      // does not await for images images to load
      rebuildCounter += 1;
      loadImages(rebuildCounter);
+ };
+
+ const showSibling = (report, offset) => {
+     const r = siblingReport(report, offset);
+     if (r) {
+         // the report must be on the displayed tab to be visible
+         for (const s in reportsBySection) {
+             if (reportsBySection[s].includes(r)) {
+                 selectedTab.value = sections[s].tab;
+             }
+         }
+         fullscreenKey.value = r.trackBy;
+     }
+ };
+
+ const siblingReport = (report, offset) => {
+     // reports in the order displayed, across all sections
+     const l = Object.values(reportsBySection).flat();
+     return l[l.indexOf(report) + offset];
+ };
+
+ const visibleTabs = () => {
+     return [...new Set(Object.keys(reportsBySection).map(s => sections[s].tab))];
  };
 
  const loadAndRebuild = async () => {

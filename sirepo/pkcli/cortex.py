@@ -258,6 +258,24 @@ def gen_components():
     return _to_str(_parse())
 
 
+def import_summary(uid):
+    """Import the sim results written by `run_batch` into the database
+
+    This is to be run on the front-end (database) server.
+
+    Moves the summary, plot csv, png and hdf5 files from the user's lib dir
+    to the database, so this must run where the database is.
+
+    Args:
+        uid (str): owner of the materials
+    """
+    with sirepo.quest.start() as qcall:
+        with qcall.auth.logged_in_user_set(uid, method=sirepo.auth.METHOD_EMAIL):
+            # imports one summary per call
+            while sirepo.sim_api.cortex.check_for_sim_summary(qcall, uid):
+                pass
+
+
 def import_xlsx(uid_or_email, *args):
     sirepo.sim_api.cortex.material_db.init_module()
 
@@ -295,7 +313,10 @@ def run_background(cfg_dir):
 
 
 def run_batch(run_dir, uid, material_id):
-    """Generate and run sim in run_dir. Updates database."""
+    """Generate and run sim in run_dir. Writes results for `import_summary`.
+
+    This is to bez run on the back-end (agent) server.
+    """
 
     def _prep_sim(run_dir, uid, data):
         sirepo.sim_data.get_class(
@@ -340,7 +361,6 @@ def run_batch(run_dir, uid, material_id):
                 sirepo.template.cortex.background_percent_complete(
                     d.report, p, is_running=False
                 )
-                sirepo.sim_api.cortex.check_for_sim_summary(qcall, uid)
 
 
 def set_material_featured(material_id, is_featured, uid):
