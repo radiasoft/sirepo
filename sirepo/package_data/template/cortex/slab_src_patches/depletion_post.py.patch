@@ -15,7 +15,7 @@
  
  import json
  import math
-@@ -34,12 +36,12 @@
+@@ -34,13 +36,14 @@
  
  import numpy as np
  import pandas as pd
@@ -26,11 +26,14 @@
  import openmc.deplete
  
 -import inputs as cfg
+-import eudemo_materials
 +#import inputs as cfg
++#import eudemo_materials
++eudemo_materials = PKDict(globals())
  
  # ──────────────────────────────────────────────────────────────────────────────
  # Paths
-@@ -57,10 +59,10 @@
+@@ -58,10 +61,10 @@
  # Load Reference Run (gold)
  # ──────────────────────────────────────────────────────────────────────────────
  
@@ -42,7 +45,7 @@
      try:
          _ref_data = load_reference(cfg.REFERENCE_LABEL)
          print(f"[reference] Loaded gold run: {cfg.REFERENCE_LABEL}")
-@@ -216,7 +218,7 @@
+@@ -217,7 +220,7 @@
  # Reference overlay helper
  # ──────────────────────────────────────────────────────────────────────────────
  
@@ -51,7 +54,18 @@
                         csv_name: str, cid: int) -> None:
      if _ref_data is None or _ref_data.get("depletion_dir") is None:
          return
-@@ -1012,7 +1014,6 @@
+@@ -1195,7 +1198,9 @@
+     _add_time_reference_lines(ax); _format_log_axes(ax)
+     _finalize_legend(ax, ncol=1, title="Metric")
+     fig.subplots_adjust(right=0.78)
+-    out_png = out_dir / f"waste_summary_{_safe_csv_label(layer)}.png"
++    # POSIT: suffix keeps the struct_scaled basename distinct from raw; sirepo
++    # flattens every png to the run_dir root by basename
++    out_png = out_dir / f"waste_summary_{_safe_csv_label(layer)}{suffix}.png"
+     fig.savefig(out_png, dpi=200, bbox_inches="tight")
+     plt.close(fig)
+     print(f"[waste summary] {layer}: wrote {out_png}")
+@@ -1281,7 +1286,6 @@
              idx_shutdown=idx_shutdown, activity_units=activity_units,
              chunk_key=chunk_key,
          )
@@ -59,7 +73,7 @@
          plot_activity_all_cells(ta_all, cell_id_to_name, act_dir,
                                  activity_units=activity_units,
                                  global_min_topn_edge=act_min)
-@@ -1047,97 +1048,116 @@
+@@ -1321,112 +1325,130 @@
  # ──────────────────────────────────────────────────────────────────────────────
  # MAIN
  # ──────────────────────────────────────────────────────────────────────────────
@@ -73,11 +87,6 @@
 -        raise FileNotFoundError(f"Not found: {DEPLETION_RESULTS_H5}")
 -    if not CELL_MATERIAL_MAP_CSV.is_file():
 -        raise FileNotFoundError(f"Not found: {CELL_MATERIAL_MAP_CSV}")
--
--    results = openmc.deplete.Results(str(DEPLETION_RESULTS_H5))
--
--    # Chunk helpers from geometry (no model rebuild)
--    from geometry import build_breeder_chunks
 +# Chain file
 +openmc.config["chain_file"] = str(cfg.OPENMC_CHAIN_FILE)
 +print(f"[chain] Using: {cfg.OPENMC_CHAIN_FILE}")
@@ -87,12 +96,33 @@
 +    raise FileNotFoundError(f"Not found: {DEPLETION_RESULTS_H5}")
 +if not CELL_MATERIAL_MAP_CSV.is_file():
 +    raise FileNotFoundError(f"Not found: {CELL_MATERIAL_MAP_CSV}")
-+
+ 
+-    results = openmc.deplete.Results(str(DEPLETION_RESULTS_H5))
 +results = openmc.deplete.Results(str(DEPLETION_RESULTS_H5))
-+
+ 
+-    # Chunk helpers from geometry (no model rebuild)
+-    from geometry import build_breeder_chunks
 +# Chunk helpers from geometry (no model rebuild)
 +#from geometry import build_breeder_chunks
-+
+ 
+-    _chunk = build_breeder_chunks(
+-        cfg.INPUT_JSON, default_chunk_key=cfg.ALBEDO_CHUNK_KEY
+-    )
+-    ob_by_key           = _chunk["ob_by_key"]
+-    ib_by_key           = _chunk["ib_by_key"]
+-    radial_bins_for_key = _chunk["radial_bins_for_key"]
+-
+-    # Resolve chunks from cfg.DEPLETION_CHUNKS
+-    CHUNKS: Dict[str, Sequence[int]] = {}
+-    for key, override_cells in cfg.DEPLETION_CHUNKS.items():
+-        if override_cells is not None:
+-            CHUNKS[key] = list(override_cells)
+-        elif key in ob_by_key:
+-            CHUNKS[key] = ob_by_key[key]
+-        elif key in ib_by_key:
+-            CHUNKS[key] = ib_by_key[key]
+-        else:
+-            print(f"[warn] DEPLETION_CHUNKS key {key!r} not found – skipping")
 +_chunk = build_breeder_chunks(
 +    cfg.INPUT_JSON, default_chunk_key=cfg.ALBEDO_CHUNK_KEY
 +)
@@ -112,55 +142,38 @@
 +    else:
 +        print(f"[warn] DEPLETION_CHUNKS key {key!r} not found – skipping")
  
--    _chunk = build_breeder_chunks(
--        cfg.INPUT_JSON, default_chunk_key=cfg.ALBEDO_CHUNK_KEY
-+# For slab: restrict to cells present in the depletion results
-+if cfg.SIM_TYPE in ("slab", "fast_slab"):
-+    _map_df  = pd.read_csv(str(CELL_MATERIAL_MAP_CSV))
-+    _present = set(int(x) for x in _map_df["cell_id"])
-+    CHUNKS   = {k: list(_present) for k in CHUNKS}
-+
-+# Layer tags and centroids
-+layer_tags_by_chunk:  Dict[str, Sequence[str]]   = {}
-+xcentroids_by_chunk:  Dict[str, Sequence[float]] = {}
-+
-+for key, cell_ids in CHUNKS.items():
-+    if not cell_ids:
-+        continue
-+    n_breeder_layers = len(cell_ids) - 3
-+    side = "OB" if key.startswith("OB_") else "IB"
-+    layer_tags_by_chunk[key] = make_default_layer_tags(
-+        n_breeder_layers, breeder_prefix=side
-     )
--    ob_by_key           = _chunk["ob_by_key"]
--    ib_by_key           = _chunk["ib_by_key"]
--    radial_bins_for_key = _chunk["radial_bins_for_key"]
--
--    # Resolve chunks from cfg.DEPLETION_CHUNKS
--    CHUNKS: Dict[str, Sequence[int]] = {}
--    for key, override_cells in cfg.DEPLETION_CHUNKS.items():
--        if override_cells is not None:
--            CHUNKS[key] = list(override_cells)
--        elif key in ob_by_key:
--            CHUNKS[key] = ob_by_key[key]
--        elif key in ib_by_key:
--            CHUNKS[key] = ib_by_key[key]
--        else:
--            print(f"[warn] DEPLETION_CHUNKS key {key!r} not found – skipping")
--
 -    # For slab: restrict to cells present in the depletion results
 -    if cfg.SIM_TYPE in ("slab", "fast_slab"):
 -        _map_df  = pd.read_csv(str(CELL_MATERIAL_MAP_CSV))
 -        _present = set(int(x) for x in _map_df["cell_id"])
--        CHUNKS   = {k: list(_present) for k in CHUNKS}
+-        # IMPORTANT: filter each chunk's own (radially ordered) cell list
+-        # down to the cells actually present, rather than replacing it with
+-        # list(_present) — a set has no defined order, so it scrambles which
+-        # cell gets which layer tag ("Armor", "VV", ...) and which radial
+-        # x-position, and it also collapses every chunk key onto the same
+-        # cell list instead of each key's own subset.
+-        CHUNKS = {
+-            k: [c for c in v if int(c) in _present]
+-            for k, v in CHUNKS.items()
+-        }
 -
 -    # Layer tags and centroids
 -    layer_tags_by_chunk:  Dict[str, Sequence[str]]   = {}
 -    xcentroids_by_chunk:  Dict[str, Sequence[float]] = {}
-+    try:
-+        xcentroids_by_chunk[key], _, _ = radial_bins_for_key(key)
-+    except Exception as e:
-+        print(f"[warn] centroids for {key}: {e}")
++# For slab: restrict to cells present in the depletion results
++if cfg.SIM_TYPE in ("slab", "fast_slab"):
++    _map_df  = pd.read_csv(str(CELL_MATERIAL_MAP_CSV))
++    _present = set(int(x) for x in _map_df["cell_id"])
++    # IMPORTANT: filter each chunk's own (radially ordered) cell list
++    # down to the cells actually present, rather than replacing it with
++    # list(_present) — a set has no defined order, so it scrambles which
++    # cell gets which layer tag ("Armor", "VV", ...) and which radial
++    # x-position, and it also collapses every chunk key onto the same
++    # cell list instead of each key's own subset.
++    CHUNKS = {
++        k: [c for c in v if int(c) in _present]
++        for k, v in CHUNKS.items()
++    }
  
 -    for key, cell_ids in CHUNKS.items():
 -        if not cell_ids:
@@ -177,9 +190,30 @@
 -
 -    # Shutdown index
 -    sr           = results.get_source_rates()
--    times        = results.get_times()
+-    times        = results.get_times(time_units="s")
 -    idx_shutdown = shutdown_index_from_source_rates(np.asarray(sr), len(times))
 -
+-    # Radial-profile snapshot indices — resolved from actual cooling times
+-    # rather than a hardcoded array position (see indices_for_milestone_years).
+-    idx_to_plot = indices_for_milestone_years(
+-        times, idx_shutdown, cfg.DEPLETION_MILESTONE_SECONDS_TO_PLOT
++# Layer tags and centroids
++layer_tags_by_chunk:  Dict[str, Sequence[str]]   = {}
++xcentroids_by_chunk:  Dict[str, Sequence[float]] = {}
++
++for key, cell_ids in CHUNKS.items():
++    if not cell_ids:
++        continue
++    n_breeder_layers = len(cell_ids) - 3
++    side = "OB" if key.startswith("OB_") else "IB"
++    layer_tags_by_chunk[key] = make_default_layer_tags(
++        n_breeder_layers, breeder_prefix=side
+     )
++    try:
++        xcentroids_by_chunk[key], _, _ = radial_bins_for_key(key)
++    except Exception as e:
++        print(f"[warn] centroids for {key}: {e}")
+ 
 -    # Run
 -    run_chunk_postprocess(
 -        results,
@@ -189,12 +223,18 @@
 -        idx_shutdown        = idx_shutdown,
 -        activity_units      = "Bq/kg",
 -        decayheat_units     = "W/cm3",
--        idx_to_plot         = cfg.DEPLETION_IDX_TO_PLOT,
+-        idx_to_plot         = idx_to_plot,
 -    )
 +# Shutdown index
 +sr           = results.get_source_rates()
-+times        = results.get_times()
++times        = results.get_times(time_units="s")
 +idx_shutdown = shutdown_index_from_source_rates(np.asarray(sr), len(times))
++
++# Radial-profile snapshot indices — resolved from actual cooling times
++# rather than a hardcoded array position (see indices_for_milestone_years).
++idx_to_plot = indices_for_milestone_years(
++    times, idx_shutdown, cfg.DEPLETION_MILESTONE_SECONDS_TO_PLOT
++)
 +
 +# Run
 +run_chunk_postprocess(
@@ -205,27 +245,7 @@
 +    idx_shutdown        = idx_shutdown,
 +    activity_units      = "Bq/kg",
 +    decayheat_units     = "W/cm3",
-+    idx_to_plot         = cfg.DEPLETION_IDX_TO_PLOT,
-+)
-+
-+
-+# Verify CSVs were actually written before proceeding — catches silent
-+# failures in run_chunk_postprocess (e.g. mat ID mismatch, empty ta_all)
-+for _key in CHUNKS:
-+    _act_csv = cfg.DEPLETION_RESULTS_DIR / _key / "activity"   / "activity_all_cells.csv"
-+    _dh_csv  = cfg.DEPLETION_RESULTS_DIR / _key / "decay_heat" / "decayheat_all_cells.csv"
-+    if not _act_csv.is_file():
-+        raise RuntimeError(f"[ERROR] activity CSV not written for {_key}: {_act_csv}")
-+    if not _dh_csv.is_file():
-+        raise RuntimeError(f"[ERROR] decay heat CSV not written for {_key}: {_dh_csv}")
-+    print(f"[completed] {_key}: activity and decay heat CSVs verified")
-+
-+update_summary_results_with_activity(
-+    results,
-+    neutronics_csv  = cfg.SUMMARY_RESULTS_CSV,
-+    out_csv         = cfg.SUMMARY_RESULTS_CSV,
-+    activity_units  = "Bq/kg",
-+    decayheat_units = "W/cm3",
++    idx_to_plot         = idx_to_plot,
 +)
  
  
@@ -247,7 +267,25 @@
 -        activity_units  = "Bq/kg",
 -        decayheat_units = "W/cm3",
 -    )
-\ No newline at end of file
++# Verify CSVs were actually written before proceeding — catches silent
++# failures in run_chunk_postprocess (e.g. mat ID mismatch, empty ta_all)
++for _key in CHUNKS:
++    _act_csv = cfg.DEPLETION_RESULTS_DIR / _key / "activity"   / "activity_all_cells.csv"
++    _dh_csv  = cfg.DEPLETION_RESULTS_DIR / _key / "decay_heat" / "decayheat_all_cells.csv"
++    if not _act_csv.is_file():
++        raise RuntimeError(f"[ERROR] activity CSV not written for {_key}: {_act_csv}")
++    if not _dh_csv.is_file():
++        raise RuntimeError(f"[ERROR] decay heat CSV not written for {_key}: {_dh_csv}")
++    print(f"[completed] {_key}: activity and decay heat CSVs verified")
++
++update_summary_results_with_activity(
++    results,
++    neutronics_csv  = cfg.SUMMARY_RESULTS_CSV,
++    out_csv         = cfg.SUMMARY_RESULTS_CSV,
++    activity_units  = "Bq/kg",
++    decayheat_units = "W/cm3",
++)
++
 +# ──────────────────────────────────────────────────────────────────────────────
 +# FLATTEN OUTPUT — move every png (and its companion .json) to the root of
 +# the simulation run_dir so the frontend can find them by basename alone.

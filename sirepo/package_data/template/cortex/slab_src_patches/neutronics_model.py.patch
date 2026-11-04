@@ -28,7 +28,7 @@
  
  # ──────────────────────────────────────────────────────────────────────────────
  # Aliases from geometry
-@@ -145,7 +149,7 @@
+@@ -147,7 +151,7 @@
  openmc.Cell.reset_ids()
  openmc.Surface.reset_ids()
  
@@ -37,15 +37,15 @@
  model.sync_dagmc_universes()
  model.finalize_lib()
  
-@@ -475,7 +479,6 @@
-         "dpa_gas":           {str(cid): t.id for cid, t in dpa_gas_tallies.items()},
+@@ -522,7 +526,6 @@
+         "slab_partial_current": {str(cid): t.id for cid, t in slab_partial_current_tallies.items()},
      },
  }
 -
  with open(cfg.NEUTRONICS_RESULTS_DIR / "run_meta.json", "w", encoding="utf-8") as _f:
      json.dump(_run_meta, _f, indent=2)
  print(f"[neutronics_model] run_meta.json written to: {cfg.NEUTRONICS_RESULTS_DIR}")
-@@ -494,7 +497,7 @@
+@@ -541,7 +544,7 @@
  # behaving as we expect
  
  if cfg.DO_CHECK_SOURCE:
@@ -54,7 +54,7 @@
      n_samples  = 100_000
      particles  = openmc.lib.sample_external_source(n_samples=n_samples)
      in_cells:  Dict[int, int] = {}
-@@ -507,4 +510,5 @@
+@@ -554,4 +557,5 @@
          print(f"  Cell {k:6d}: {v / n_samples * 100:.2f} %")
      openmc.lib.finalize()
  
