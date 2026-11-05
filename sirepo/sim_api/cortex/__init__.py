@@ -72,13 +72,26 @@ def init_apis(**kwargs):
 
 
 def check_for_sim_summary(qcall, uid):
-    """Import a sim summary written by template.cortex, and move its png and hdf5 files
+    """Import a sim summary zip written by template.cortex
+
+    The zip is the summary json, and the png and hdf5 files of the sim.
 
     Returns:
         bool: True if a summary was imported, more may remain
     """
+
+    def _extract(zip_file, material_id, report):
+        d = pykern.pkio.mkdir_parent(
+            sirepo.sim_api.cortex.material_db.cortexdb_path(material_id, report)
+        )
+        for n in zip_file.namelist():
+            if n == _SIM_DATA.SUMMARY_JSON:
+                continue
+            if n != pykern.pkio.py_path(n).basename:
+                raise AssertionError(f"invalid name={n} in summary zip")
+            pykern.pkio.atomic_write(d.join(n), zip_file.read(n), mode="wb")
+
     # TODO(pjm): this should be replaced with a direct sim_api call from template.cortex
-    rv = False
     for p in pykern.pkio.sorted_glob(
         str(_SIM_DATA.lib_file_write_path(_SIM_DATA.SUMMARY_GLOB, qcall=qcall))
     ):
@@ -86,12 +99,12 @@ def check_for_sim_summary(qcall, uid):
         # move the file before processing to prevent other import attempts
         n = p.dirpath().join(f"{p.basename}.import")
         shutil.move(str(p), str(n))
-        with open(str(n)) as f:
-            d = pykern.pkjson.load_any(f)
+        with zipfile.ZipFile(str(n)) as z:
+            d = pykern.pkjson.load_any(z.read(_SIM_DATA.SUMMARY_JSON))
             d.completed = datetime.datetime.fromisoformat(d.completed)
-        # verifies material ownership, so must happen before the csv files are written
-        # POSIT: material_db.load_summary skips plot rows whose csv doesn't exist yet
-        sirepo.sim_api.cortex.material_db.update_sim_summary(d, uid)
+            # verifies material ownership, so must happen before any file is written
+            sirepo.sim_api.cortex.material_db.update_sim_summary(d, uid)
+            _extract(z, material_id, report)
         for q in d.plots:
             # plot points and legend are only stored in the csv, written atomically
             # so load_summary never reads a partial file
@@ -101,27 +114,10 @@ def check_for_sim_summary(qcall, uid):
             pykern.pkio.mkdir_parent_only(c)
             pykern.pkio.atomic_write(c, q.csv)
         n.remove()
-        rv = True
-
         # TODO(pjm): processing can be slow and running too many can cause a tornado timeout
         # so only process one in one call for now
-        break
-    for suffix in ("png", "hdf5"):
-        for p in pykern.pkio.sorted_glob(
-            str(_SIM_DATA.lib_file_write_path(_SIM_DATA.lib_glob(suffix), qcall=qcall))
-        ):
-            report, material_id, name = _SIM_DATA.parts_from_lib_file(p.basename)
-            shutil.move(
-                str(p),
-                str(
-                    pykern.pkio.mkdir_parent(
-                        sirepo.sim_api.cortex.material_db.cortexdb_path(
-                            material_id, report
-                        )
-                    ).join(f"{name}.{suffix}")
-                ),
-            )
-    return rv
+        return True
+    return False
 
 
 def update_sim_from_material_detail(sim, material_id, detail):

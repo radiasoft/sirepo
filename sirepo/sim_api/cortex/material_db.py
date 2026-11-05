@@ -615,7 +615,8 @@ def load_summary(material_id, is_public, uid):
                 continue
             p = plot_csv_path(r.material_id, r.model, r.stat)
             # POSIT: sim_api.cortex.check_for_sim_summary writes the csv after
-            # the plot row, so it may be missing (or failed to be written)
+            # the plot row and the png, so it may be missing (or failed to be
+            # written); a plot is only listed once its image exists
             if not p.exists():
                 pkdlog("missing plot csv={}", p)
                 continue

@@ -24,6 +24,7 @@ import sirepo.mpi
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.template.openmc
+import zipfile
 
 CORTEX_RUN_LOG = "cortex.log"
 STATEPOINTS = ["neutronics", "depletion"]
@@ -702,31 +703,27 @@ def _save_summary_to_database(run_dir, report, stats):
         plots=[],
         values=_summary_from_csv(),
     )
-    for s in stats:
-        d = pykern.pkjson.load_any(
-            pykern.pkio.read_text(run_dir.join(_json_filename(s)))
-        )
-        if not d.plots:
-            # POSIT: cortex_plot.pyplot.savefig writes figures with no lines,
-            # e.g. the D1S "No positive SDR values" layer plot
-            pkdlog("plot has no lines, not saved stat={} run_dir={}", s, run_dir)
-            continue
-        p = _plot_from_file(d, m, report, s)
-        p.csv = csv_from_plot(p)
-        summary.plots.append(p)
-        _SIM_DATA.lib_file_write(
-            _SIM_DATA.lib_file_from_parts(report, m, s, "png"),
-            run_dir.join(_png_filename(s)),
-        )
-    for s in STATEPOINTS:
-        _SIM_DATA.lib_file_write(
-            _SIM_DATA.lib_file_from_parts(report, m, s, "hdf5"),
-            run_dir.join(f"{s}.hdf5"),
-        )
-    _SIM_DATA.lib_file_write(
-        _SIM_DATA.summary_file_from_parts(report, m),
-        pykern.pkjson.dump_str(summary),
-    )
+    # one file, so the database side never sees a partial result
+    # POSIT: sim_api.cortex.check_for_sim_summary reads this zip
+    z = run_dir.join("summary.zip")
+    with zipfile.ZipFile(str(z), "w", zipfile.ZIP_DEFLATED) as f:
+        for s in stats:
+            d = pykern.pkjson.load_any(
+                pykern.pkio.read_text(run_dir.join(_json_filename(s)))
+            )
+            if not d.plots:
+                # POSIT: cortex_plot.pyplot.savefig writes figures with no lines,
+                # e.g. the D1S "No positive SDR values" layer plot
+                pkdlog("plot has no lines, not saved stat={} run_dir={}", s, run_dir)
+                continue
+            p = _plot_from_file(d, m, report, s)
+            p.csv = csv_from_plot(p)
+            summary.plots.append(p)
+            f.write(str(run_dir.join(_png_filename(s))), f"{s}.png")
+        for s in STATEPOINTS:
+            f.write(str(run_dir.join(f"{s}.hdf5")), f"{s}.hdf5")
+        f.writestr(_SIM_DATA.SUMMARY_JSON, pykern.pkjson.dump_str(summary))
+    _SIM_DATA.lib_file_write(_SIM_DATA.summary_file_from_parts(report, m), z)
 
 
 # ------------------------------------------------------------------

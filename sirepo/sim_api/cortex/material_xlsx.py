@@ -80,8 +80,10 @@ _COMPONENT_ERROR = "error"
 
 _BALANCE = "balance"
 
-# TODO(robnagler) what's reasonable?
-_EPSILON = 1e-8
+# Spreadsheets may display the amounts rounded (e.g. 4 decimal places) while
+# the cells hold the full values. Rounding at 4 places can be off by 5e-5 per
+# component, so allow for that for 100 components.
+_EPSILON = 0.005
 
 _SUM = 100.0
 
@@ -420,10 +422,14 @@ class Parser:
                 else:
                     s += t
             if s > _SUM_MAX:
-                return self._error(f"{kind} sum={s:g} greater than {_SUM:g}")
+                return self._error(
+                    f"{kind} sum={s:.10g} greater than {_SUM:g} by {s - _SUM:.3g}, must be within {_EPSILON:g}"
+                )
             if not b:
                 if s < _SUM_MIN:
-                    return self._error(f"{kind} sum={s:g} less than {_SUM:g}")
+                    return self._error(
+                        f"{kind} sum={s:.10g} less than {_SUM:g} by {_SUM - s:.3g}, must be within {_EPSILON:g}"
+                    )
             else:
                 b.percentage[_TARGET] = _SUM - s
                 if b.percentage[_TARGET] < 0.0:
@@ -619,11 +625,11 @@ def _parse_neutron_wall_loading(value):
 def _parse_percent(value):
     if (rv := _parse_float(value)) is None:
         return None, "must be a number (percentage)"
-    if value < 0.0:
+    if rv < 0.0:
         return None, "must not be negative"
-    if value > _SUM:
+    if rv > _SUM:
         return None, f"must not be greater than {_SUM:g}"
-    return value, None
+    return rv, None
 
 
 def _parse_pointer(value):
