@@ -16,6 +16,7 @@ import re
 import shutil
 import zipfile
 import sirepo.quest
+import sirepo.sim_api.cortex.batch
 import sirepo.sim_api.cortex.material_db
 import sirepo.sim_api.cortex.material_xlsx
 import sirepo.sim_api.cortex.tea_cost
@@ -31,6 +32,36 @@ _ACTION_TIMEOUT = 20
 _EXT = ".xlsx"
 
 _action_loop = None
+
+
+async def get_sim_data(qcall, material_id, create=False):
+    """The sirepo sim for the material_id of the logged in user
+
+    Args:
+        qcall (quest.API): request state
+        material_id (int): material which names the sim
+        create (bool): create the sim if it doesn't exist [False]
+    Returns:
+        PKDict: sim data or None if not found and not create
+    """
+    s = (
+        await qcall.call_api(
+            "listSimulations",
+            body=PKDict(
+                simulationType=SIM_TYPE,
+                search=PKDict({"simulation.name": str(material_id)}),
+            ),
+        )
+    ).content_as_object()
+    if len(s):
+        return sirepo.simulation_db.open_json_file(
+            SIM_TYPE, sid=s[0].simulationId, qcall=qcall
+        )
+    if not create:
+        return None
+    d = sirepo.simulation_db.default_data(SIM_TYPE)
+    d.models.simulation.name = str(material_id)
+    return sirepo.simulation_db.save_new_simulation(d, qcall=qcall)
 
 
 def init_apis(**kwargs):
@@ -118,6 +149,11 @@ def update_sim_from_material_detail(sim, material_id, detail):
 
 class API(sirepo.quest.API):
 
+    @sirepo.quest.Spec("require_adm", sim_type=f"SimType const={SIM_TYPE}")
+    async def api_cortexBatch(self):
+        a = self.parse_post(type=SIM_TYPE).req_data
+        return await sirepo.sim_api.cortex.batch.op(a.op_name, a.op_args)
+
     @sirepo.quest.Spec("require_plan", sim_type=f"SimType const={SIM_TYPE}")
     async def api_cortexDb(self):
         a = self.parse_post(type=SIM_TYPE).req_data
@@ -152,26 +188,6 @@ class API(sirepo.quest.API):
 
     def cortex_db_done(self, result):
         self.__loop.call_soon_threadsafe(self.__result.put_nowait, result)
-
-    async def _get_sim_data(self, material_id, create=False):
-        s = (
-            await self.call_api(
-                "listSimulations",
-                body=PKDict(
-                    simulationType=SIM_TYPE,
-                    search=PKDict({"simulation.name": str(material_id)}),
-                ),
-            )
-        ).content_as_object()
-        if len(s):
-            return sirepo.simulation_db.open_json_file(
-                SIM_TYPE, sid=s[0].simulationId, qcall=self
-            )
-        if not create:
-            return None
-        d = sirepo.simulation_db.default_data(SIM_TYPE)
-        d.models.simulation.name = str(material_id)
-        return sirepo.simulation_db.save_new_simulation(d, qcall=self)
 
     async def _sim_calculate_cost(self, args):
         """Query the material (fast) then dispatch the CPU-heavy tea
@@ -208,7 +224,7 @@ class API(sirepo.quest.API):
         return r
 
     async def _sim_delete(self, args):
-        s = await self._get_sim_data(args.material_id)
+        s = await get_sim_data(self, args.material_id)
         if s:
             await self.call_api(
                 "deleteSimulation",
@@ -271,7 +287,7 @@ class API(sirepo.quest.API):
             )
 
         return await _update_sim(
-            await self._get_sim_data(material_id, create=True), material_id
+            await get_sim_data(self, material_id, create=True), material_id
         )
 
 

@@ -53,6 +53,7 @@
                 <li data-ng-if="isAdm()"><a data-ng-href="{{ getUrl('admUsers') }}">Admin Users</a></li>
                 <li><a data-ng-click="showJobsList()" style="cursor:pointer">Jobs</a></li>
                 -->
+                <slot v-if="authState.isAdm()" name="admin"></slot>
                 <li>
                     <a
                         class="dropdown-item"

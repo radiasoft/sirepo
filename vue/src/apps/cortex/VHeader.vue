@@ -19,7 +19,15 @@
             </li>
         </ul>
         <div class="navbar-nav ms-auto"></div>
-        <VHelpAndLogout />
+        <VHelpAndLogout>
+            <template v-slot:admin>
+                <li>
+                    <RouterLink class="dropdown-item" v-bind:to="{ name: 'batch' }">
+                        Admin Cortex Batch
+                    </RouterLink>
+                </li>
+            </template>
+        </VHelpAndLogout>
         </div>
     </VNavHolder>
 </template>

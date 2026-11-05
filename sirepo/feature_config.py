@@ -174,6 +174,13 @@ def _init():
                 "url base to reach activait example files",
             ),
         ),
+        cortex=dict(
+            batch_uid=(
+                None,
+                str,
+                "uid of the user which runs the admin batch simulations (requires a plan which allows parallel jobs)",
+            ),
+        ),
         debug_mode=(pkconfig.in_dev_mode(), bool, "control debugging output"),
         default_proprietary_sim_types=(
             frozenset(),
