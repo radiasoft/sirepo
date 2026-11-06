@@ -57,6 +57,29 @@ class Error(RuntimeError):
     pass
 
 
+def all_materials():
+    """Every material with its owner and the last time a sim completed (admin only)"""
+    with _session() as s:
+        c = PKDict()
+        for r in s.select("sim_summary").all():
+            c[r["material_id"]] = max(
+                c.get(r["material_id"], r["completed"]), r["completed"]
+            )
+        return [
+            PKDict(
+                _row_values(
+                    r, ("material_id", "material_name", "is_plasma_facing", "uid")
+                ),
+                completed=(
+                    int(c[r["material_id"]].timestamp())
+                    if r["material_id"] in c
+                    else None
+                ),
+            )
+            for r in s.select("material").all()
+        ]
+
+
 def cortexdb_path(material_id, *paths):
     """Path to a material's stored sim output: plot csv, png and hdf5 files
 
@@ -592,7 +615,8 @@ def load_summary(material_id, is_public, uid):
                 continue
             p = plot_csv_path(r.material_id, r.model, r.stat)
             # POSIT: sim_api.cortex.check_for_sim_summary writes the csv after
-            # the plot row, so it may be missing (or failed to be written)
+            # the plot row and the png, so it may be missing (or failed to be
+            # written); a plot is only listed once its image exists
             if not p.exists():
                 pkdlog("missing plot csv={}", p)
                 continue
@@ -661,6 +685,12 @@ def material_detail(material_id, is_public, uid):
                 ):
                     mpv[ivs[iv.independent_variable_id]] = iv.value
         return rv
+
+
+def material_owner(material_id):
+    """uid of the user who owns material_id"""
+    with _session() as s:
+        return s.select_one("material", where=PKDict(material_id=material_id))["uid"]
 
 
 def plot_csv_path(material_id, model, stat):

@@ -46,6 +46,11 @@ class AuthState {
             || `Server reported an error, please contact ${schema.feature_config.support_email}`
         );
     }
+
+    isAdm() {
+        // roles is an object of role to expiration when logged in
+        return this.roles ? 'adm' in this.roles : false;
+    }
 }
 
 export const authState = singleton.add('authState', () => reactive(new AuthState()));

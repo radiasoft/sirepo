@@ -21,3 +21,14 @@ def test_1():
     import sirepo.feature_config
 
     sirepo.feature_config.cfg()
+
+
+def test_server_only():
+    from pykern import pkunit
+    import sirepo.feature_config
+
+    pkunit.pkeq(None, sirepo.feature_config.cfg().cortex.batch_uid)
+    pkunit.pkok(
+        "batch_uid" not in sirepo.feature_config.for_sim_type("cortex"),
+        "batch_uid is in the schema",
+    )
