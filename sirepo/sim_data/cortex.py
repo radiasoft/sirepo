@@ -24,10 +24,14 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def parts_from_summary_file(cls, filename):
-        m = re.search(r"^(.*?)-(\d+)-summary\.zip$", filename)
-        if not m:
-            raise AssertionError(f"Unexpected summary filename: {filename}")
-        return m.group(1), int(m.group(2))
+        """Parse a name from `summary_file_from_parts`
+
+        Returns:
+            tuple: report, material_id or None if filename isn't a summary file
+        """
+        if m := re.search(r"^(.*?)-(\d+)-summary\.zip$", filename):
+            return m.group(1), int(m.group(2))
+        return None
 
     @classmethod
     def summary_file_from_parts(cls, report, material_id):

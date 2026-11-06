@@ -83,6 +83,8 @@ _BALANCE = "balance"
 # Spreadsheets may display the amounts rounded (e.g. 4 decimal places) while
 # the cells hold the full values. Rounding at 4 places can be off by 5e-5 per
 # component, so allow for that for 100 components.
+# POSIT: the amounts are stored as entered, not rescaled to 100, so the
+# consumers normalize: tea_cost._convert_ao_to_wo (weight_sum) and openmc
 _EPSILON = 0.005
 
 _SUM = 100.0

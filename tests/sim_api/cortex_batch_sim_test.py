@@ -29,3 +29,16 @@ def test_batch_user_sim():
     with srunit.quest_start(want_user=True) as qcall:
         u = qcall.auth.logged_in_user()
     pkunit.pkeq(u, asyncio.run(_op(sirepo.sim_api.cortex.batch._Batch(u, []))))
+
+
+def test_run_not_started():
+    """A run which can't start is an error, runStatus would just say missing"""
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
+    import sirepo.sim_api.cortex.batch
+
+    sirepo.sim_api.cortex.batch._check_run_started(PKDict(state="pending"))
+    with pkunit.pkexcept("not allowed"):
+        sirepo.sim_api.cortex.batch._check_run_started(
+            PKDict(state="error", error="not allowed")
+        )

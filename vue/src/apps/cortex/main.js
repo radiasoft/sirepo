@@ -21,6 +21,7 @@ appResources.setAppRoutes([
         name: 'batch',
         path: `/batch`,
         component: VBatch,
+        // authState is initialized before the router is (see src/main.js)
         beforeEnter: () => authState.isAdm() || { name: 'search' },
     },
     {

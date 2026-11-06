@@ -1,4 +1,4 @@
-"""Test pkcli.cortex
+"""Test sim_api.cortex.tea_cost
 
 :copyright: Copyright (c) 2026 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
@@ -8,9 +8,9 @@
 def test_convert_ao_to_wo():
     from pykern import pkio, pkunit
     from pykern.pkcollections import PKDict
-    from sirepo.pkcli import cortex
+    from sirepo.sim_api.cortex import tea_cost
 
-    c = cortex._convert_ao_to_wo(
+    c = tea_cost._convert_ao_to_wo(
         PKDict(
             m=PKDict(
                 is_atom_pct=True,

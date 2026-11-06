@@ -14,7 +14,10 @@ import asyncio
 import contextlib
 import sirepo.auth
 import sirepo.feature_config
+import sirepo.job
 import sirepo.quest
+
+# POSIT: see the import of this module in sirepo.sim_api.cortex
 import sirepo.sim_api.cortex
 import sirepo.sim_api.cortex.material_db
 import sirepo.sim_data
@@ -22,20 +25,32 @@ import sirepo.simulation_db
 import sirepo.template.cortex
 import sirepo.util
 
-_SIM_DATA, SIM_TYPE, _ = sirepo.sim_data.template_globals(sim_type="cortex")
+#: states of a job in `_Batch`
+_CANCELED = "canceled"
+
+_COMPLETED = "completed"
+
+_ERROR = "error"
 
 _POLL_SECS = 10
 
-#: states of a job in `_Batch`
-_CANCELED = "canceled"
-_ERROR = "error"
 _QUEUED = "queued"
+
 _RUNNING = "running"
-_COMPLETED = "completed"
 
 #: states of a run which are not going to change
-_RUN_DONE = frozenset(("canceled", "completed", "error", "missing"))
+_RUN_DONE = frozenset(
+    (
+        sirepo.job.CANCELED,
+        sirepo.job.COMPLETED,
+        sirepo.job.ERROR,
+        sirepo.job.MISSING,
+    )
+)
 
+_SIM_DATA, SIM_TYPE, _ = sirepo.sim_data.template_globals(sim_type="cortex")
+
+# POSIT: the state is per process, so this assumes there is one API server
 _batch = None
 
 
@@ -48,9 +63,16 @@ async def op(op_name, op_args):
     Returns:
         PKDict: reply
     """
-    if op_name not in ("cancel", "list_materials", "run", "status"):
+    if not (
+        f := PKDict(
+            cancel=_op_cancel,
+            list_materials=_op_list_materials,
+            run=_op_run,
+            status=_op_status,
+        ).get(op_name)
+    ):
         raise AssertionError(f"invalid op_name={op_name}")
-    return await globals()[f"_op_{op_name}"](op_args)
+    return await f(op_args)
 
 
 def _auth_method():
@@ -71,6 +93,19 @@ def _batch_uid():
     return rv
 
 
+def _check_run_started(reply):
+    """Raise if the run request itself failed
+
+    A run which can't start (e.g. the batch user's plan doesn't allow parallel
+    jobs) replies with an error state, which `runStatus` would later only
+    report as missing.
+    """
+    if reply.state in (sirepo.job.CANCELED, sirepo.job.ERROR):
+        raise AssertionError(
+            f"runSimulation state={reply.state} error={reply.get('error')}"
+        )
+
+
 def _material_ids(op_args):
     rv = [int(m) for m in op_args.material_ids]
     if not rv:
@@ -80,7 +115,7 @@ def _material_ids(op_args):
 
 async def _op_cancel(op_args):
     if _batch and _batch.is_running():
-        _batch.is_canceled = True
+        _batch.cancel()
     return _status()
 
 
@@ -109,6 +144,14 @@ async def _op_status(op_args):
     return _status()
 
 
+def _reply_object(reply, api_name):
+    try:
+        return reply.content_as_object()
+    except AssertionError:
+        # e.g. an srException, which has no content to return
+        raise AssertionError(f"{api_name} was refused reply={reply}")
+
+
 def _reports(op_args):
     rv = op_args.get("reports") or sorted(sirepo.template.cortex.SIM_VERSION)
     for r in rv:
@@ -128,9 +171,12 @@ class _Batch:
 
     def __init__(self, batch_uid, jobs):
         self.batch_uid = batch_uid
-        self.is_canceled = False
+        self._is_canceled = False
         self.jobs = jobs
         self._task = None
+
+    def cancel(self):
+        self._is_canceled = True
 
     def is_running(self):
         return self._task is not None and not self._task.done()
@@ -138,9 +184,17 @@ class _Batch:
     def start(self):
         self._task = asyncio.ensure_future(self._run())
 
+    @contextlib.contextmanager
+    def _qcall(self):
+        # in_pkcli only initializes the request and reply that call_api needs,
+        # there is no pkcli involved
+        with sirepo.quest.start(in_pkcli=True) as q:
+            with q.auth.logged_in_user_set(self.batch_uid, method=_auth_method()):
+                yield q
+
     async def _run(self):
         for j in self.jobs:
-            if self.is_canceled:
+            if self._is_canceled:
                 j.state = _CANCELED
                 continue
             j.state = _RUNNING
@@ -155,6 +209,9 @@ class _Batch:
 
         owner = sirepo.sim_api.cortex.material_db.material_owner(job.material_id)
         with self._qcall() as q:
+            # TODO(pjm): delete the batch user's sims after the results are
+            # imported, and when a material is deleted. They are kept for now
+            # to debug results.
             s = await sirepo.sim_api.cortex.get_sim_data(
                 q, job.material_id, create=True
             )
@@ -167,37 +224,33 @@ class _Batch:
                 ),
             )
             s = sirepo.simulation_db.save_simulation_json(s, fixup=True, qcall=q)
-            b = PKDict(
-                report=job.report,
-                models=s.models,
-                simulationType=SIM_TYPE,
-                simulationId=s.models.simulation.simulationId,
+            b = sirepo.sim_api.cortex.run_simulation_body(s, job.report)
+            _check_run_started(
+                _reply_object(
+                    await q.call_api(
+                        "runSimulation", body=b.copy().pkupdate(forceRun=True)
+                    ),
+                    "runSimulation",
+                )
             )
-            await q.call_api("runSimulation", body=b.copy().pkupdate(forceRun=True))
         while True:
             await asyncio.sleep(_POLL_SECS)
-            if self.is_canceled:
+            if self._is_canceled:
                 with self._qcall() as q:
                     await q.call_api("runCancel", body=b)
                 job.state = _CANCELED
                 return
             with self._qcall() as q:
-                r = (await q.call_api("runStatus", body=b)).content_as_object()
+                r = _reply_object(await q.call_api("runStatus", body=b), "runStatus")
             if r.state in _RUN_DONE:
                 break
         if r.state != _COMPLETED:
             job.pkupdate(state=_ERROR, error=f"run state={r.state}")
             return
         with self._qcall() as q:
-            # one summary is imported per call, until all are imported
-            while await asyncio.to_thread(
-                sirepo.sim_api.cortex.check_for_sim_summary, q, owner
-            ):
-                pass
+            # One summary is imported per call, until all are imported.
+            # Not in a thread: q is not safe to share, and the material db is
+            # otherwise only written by one thread (see _CortexDb).
+            while sirepo.sim_api.cortex.check_for_sim_summary(q, owner):
+                await sirepo.util.yield_to_event_loop()
         job.state = _COMPLETED
-
-    @contextlib.contextmanager
-    def _qcall(self):
-        with sirepo.quest.start(in_pkcli=True) as q:
-            with q.auth.logged_in_user_set(self.batch_uid, method=_auth_method()):
-                yield q

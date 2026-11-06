@@ -9,7 +9,6 @@ from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import csv
 import io
-import openmc.data
 import openpyxl
 import os
 import pykern.pkio
@@ -288,50 +287,3 @@ def set_material_featured(material_id, is_featured, uid):
 def set_material_public(material_id, is_public, uid):
     sirepo.sim_api.cortex.material_db.init_module()
     sirepo.sim_api.cortex.material_db.set_public(material_id, bool(int(is_public)), uid)
-
-
-def _convert_ao_to_wo(materials):
-
-    def _ao_to_wo(ao):
-        weight_sum = 0
-        mass = PKDict()
-        weight = PKDict()
-        for e in ao:
-            if re.search(r"\d", e):
-                # Nuclide
-                try:
-                    w = openmc.data.atomic_mass(e)
-                except KeyError as err:
-                    raise ValueError(f"Unknown nuclide: {e}")
-            else:
-                # Element
-                if e not in openmc.data.ATOMIC_NUMBER:
-                    raise ValueError(f"Unknown element: {e}")
-                # may raise ValueError: No naturally-occuring isotopes for element
-                w = openmc.data.atomic_weight(e)
-            mass[e] = w / openmc.data.AVOGADRO
-            weight[e] = ao[e].target_pct * mass[e]
-            weight_sum += weight[e]
-
-        wo = PKDict()
-        for e in ao:
-            # ao to wo scale factor, independent of target_pct which may be 0
-            f = 100.0 * mass[e] / weight_sum
-            wo[e] = PKDict(
-                target_pct=ao[e].target_pct * f,
-                min_pct=None,
-                max_pct=None,
-            )
-            if ao[e].max_pct is not None:
-                if ao[e].min_pct is None:
-                    wo[e].max_pct = wo[e].target_pct
-                else:
-                    wo[e].min_pct = ao[e].min_pct * f
-                    wo[e].max_pct = ao[e].max_pct * f
-        return wo
-
-    for m in materials.values():
-        if m.is_atom_pct:
-            m.components = _ao_to_wo(m.components)
-        del m["is_atom_pct"]
-    return materials

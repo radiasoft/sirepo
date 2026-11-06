@@ -122,6 +122,8 @@
  import { util } from '@/services/util.js';
 
  const PAGE_SIZE = 50;
+ // POSIT: the job states are those of sirepo.sim_api.cortex.batch
+ const JOB_DONE = ['completed', 'error', 'canceled'];
  const POLL_MS = 5000;
  // POSIT: the names are the keys of sirepo.template.cortex SIM_VERSION
  const REPORTS = [
@@ -151,7 +153,7 @@
 
  const canRun = () => ! batch.is_running && selectedIds.value.length > 0 && selectedReports.value.length > 0;
 
- const doneCount = () => batch.jobs.filter(j => ['completed', 'error', 'canceled'].includes(j.state)).length;
+ const doneCount = () => batch.jobs.filter(j => JOB_DONE.includes(j.state)).length;
 
  const jobsFor = (material) => batch.jobs.filter(j => j.material_id === material.material_id);
 

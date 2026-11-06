@@ -704,7 +704,8 @@ def _save_summary_to_database(run_dir, report, stats):
         values=_summary_from_csv(),
     )
     # one file, so the database side never sees a partial result
-    # POSIT: sim_api.cortex.check_for_sim_summary reads this zip
+    # POSIT: sim_api.cortex.check_for_sim_summary reads this zip and extracts
+    # the entries as is, action_stat_image and load_output_zip read them
     z = run_dir.join("summary.zip")
     with zipfile.ZipFile(str(z), "w", zipfile.ZIP_DEFLATED) as f:
         for s in stats:

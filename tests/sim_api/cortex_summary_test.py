@@ -33,7 +33,7 @@ def test_all():
             input=pkcompat.to_bytes(f),
         )
 
-    def _write_zip(qcall):
+    def _write_zip(qcall, file_material_id=_MATERIAL_ID):
         z = pkunit.work_dir().join("summary.zip")
         with zipfile.ZipFile(str(z), "w") as f:
             f.writestr("dpa_all.png", b"png")
@@ -63,7 +63,9 @@ def test_all():
                 ),
             )
         _SIM_DATA.lib_file_write(
-            _SIM_DATA.summary_file_from_parts(_REPORT, _MATERIAL_ID), z, qcall=qcall
+            _SIM_DATA.summary_file_from_parts(_REPORT, file_material_id),
+            z,
+            qcall=qcall,
         )
 
     _SIM_DATA = sirepo.sim_data.get_class("cortex")
@@ -73,10 +75,15 @@ def test_all():
         with pkunit.save_chdir_work(want_empty=False):
             uid = qcall.auth.logged_in_user()
             _sqlite3("data", uid)
+            # sorts first, but doesn't stop the import of the summary
+            _SIM_DATA.lib_file_write("a-summary.zip", b"x", qcall=qcall)
             _write_zip(qcall)
             # one summary is imported per call
             pkunit.pkeq(True, sirepo.sim_api.cortex.check_for_sim_summary(qcall, uid))
             pkunit.pkeq(False, sirepo.sim_api.cortex.check_for_sim_summary(qcall, uid))
+            b = _SIM_DATA.lib_file_write_path("a-summary.zip", qcall=qcall)
+            pkunit.pkok(not b.exists(), "{} was not moved", b)
+            pkunit.pkok(b.new(ext="zip.failed").exists(), "{}.failed missing", b)
             d = material_db.cortexdb_path(_MATERIAL_ID, _REPORT)
             pkunit.pkeq(b"png", d.join("dpa_all.png").read_binary())
             pkunit.pkeq(b"hdf5", d.join("neutronics.hdf5").read_binary())
@@ -119,6 +126,14 @@ def test_all():
             pkunit.pkeq(True, sirepo.sim_api.cortex.check_for_sim_summary(qcall, uid))
             pkunit.pkeq(b"png2", d.join("dpa_OB_1_b6.png").read_binary())
             pkunit.pkeq(b"depletion", d.join("depletion.hdf5").read_binary())
+            # the file name can't point at another material than the json
+            _write_zip(qcall, file_material_id=2001)
+            with pkunit.pkexcept("does not match"):
+                sirepo.sim_api.cortex.check_for_sim_summary(qcall, uid)
+            pkunit.pkok(
+                not material_db.cortexdb_path(2001, _REPORT).exists(),
+                "files written for the material of the file name",
+            )
             # a different user can't import a summary for the material
             _write_zip(qcall)
             with pkunit.pkexcept("NoRows"):
