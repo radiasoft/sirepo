@@ -94,12 +94,12 @@ class SbatchDriver(job_driver.DriverBase):
                 10,
                 pkconfig.parse_seconds,
                 "how long to wait for an agent that lost its websocket to reconnect"
-                + " before asking for credentials; less than agent_starting_secs",
+                + " before asking for credentials",
             ),
             agent_starting_secs=(
                 cls._AGENT_STARTING_SECS_DEFAULT * 3,
                 int,
-                "how long to wait for agent start",
+                "how long to wait for the agent to connect after the start script is run",
             ),
             cores=(None, int, "dev cores config"),
             host=pkconfig.Required(str, "host name for slum controller"),
@@ -114,7 +114,7 @@ class SbatchDriver(job_driver.DriverBase):
             ssh_timeout_secs=(
                 30,
                 pkconfig.parse_seconds,
-                "how long to wait to connect to the host and run the agent start script",
+                "how long to wait, in total, to connect to the host and run the agent start script",
             ),
             supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
         )
@@ -188,6 +188,14 @@ class SbatchDriver(job_driver.DriverBase):
             return True
         except asyncio.TimeoutError:
             return False
+
+    def _agent_start_delay(self, op):
+        # The timer for the agent to connect is started before _do_agent_start,
+        # which can take up to ssh_timeout_secs (or agent_reconnect_secs). Otherwise,
+        # a slow login ends up freeing the resources of the agent just started.
+        return super()._agent_start_delay(op) + max(
+            self.cfg.ssh_timeout_secs, self.cfg.agent_reconnect_secs
+        )
 
     def _assert_creds(self, msg):
         if not self.get("_creds") or "username" not in self._creds:
@@ -296,18 +304,19 @@ disown
             # Every await that can hang (login node, file system) must time out
             # or the driver is stuck until the supervisor is restarted. A timeout is
             # reported as general-connection-error like any other failure.
-            async with asyncssh.connect(
-                self.cfg.host,
-                connect_timeout=self.cfg.ssh_timeout_secs,
-                login_timeout=self.cfg.ssh_timeout_secs,
-                **_creds(),
-            ) as c:
-                await asyncio.wait_for(_run_script(c), self.cfg.ssh_timeout_secs)
-                self.driver_details.pkupdate(
-                    host=self.cfg.host,
-                    username=self._creds.username,
-                )
-                await _get_agent_log(c, before_start=False)
+            # POSIT: _agent_start_delay adds ssh_timeout_secs to the time allowed
+            # for the agent to connect, which starts before this call.
+            async with asyncio.timeout(self.cfg.ssh_timeout_secs) as t:
+                async with asyncssh.connect(self.cfg.host, **_creds()) as c:
+                    await _run_script(c)
+                    # The agent is started. Reading its log is only diagnostic
+                    # and has its own timeout.
+                    t.reschedule(None)
+                    self.driver_details.pkupdate(
+                        host=self.cfg.host,
+                        username=self._creds.username,
+                    )
+                    await _get_agent_log(c, before_start=False)
         except Exception as e:
             pkdlog("error={} stack={}", e, pkdexc())
             self._srdb_root = None
