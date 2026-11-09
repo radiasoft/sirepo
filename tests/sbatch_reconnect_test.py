@@ -9,6 +9,9 @@ Separate from sbatch_test, because of the ping config.
 from pykern.pkcollections import PKDict
 import pytest
 
+# POSIT: "sbatch" in the file name gives the sbatch config (srunit_servers) and
+# skips the test if slurm is not installed (conftest.pytest_collection_modifyitems)
+
 # Supervisor closes the websocket if the agent does not answer a ping. Not too
 # short, because the agent is blocked for a few seconds when it starts a run.
 pytestmark = pytest.mark.sirepo_args(
@@ -31,10 +34,11 @@ def test_srw_agent_reconnect(new_user_fc):
     """
     from pykern.pkunit import pkeq, pkok
     import os
+    import sbatch_test
     import signal
 
     f = new_user_fc
-    d, c = _srw_login(f)
+    d, c = sbatch_test._srw_login(f)
     p = _agent_pid(f)
     pkok(_login_status(f, d, c).ready, "not ready after login")
     os.kill(p, signal.SIGSTOP)
@@ -58,11 +62,12 @@ def test_srw_op_waits_for_agent_reconnect(new_user_fc):
     """
     from pykern.pkunit import pkeq, pkok
     import os
+    import sbatch_test
     import signal
     import threading
 
     f = new_user_fc
-    d, c = _srw_login(f)
+    d, c = sbatch_test._srw_login(f)
     p = _agent_pid(f)
     os.kill(p, signal.SIGSTOP)
     t = threading.Timer(3, os.kill, (p, signal.SIGCONT))
@@ -104,30 +109,6 @@ def _login_status(fc, data, compute_model):
             simulationType=data.simulationType,
         ),
     )
-
-
-def _srw_login(fc):
-    from pykern import pkunit
-    from sirepo import util
-
-    c = "multiElectronAnimation"
-    d = fc.sr_sim_data("Young's Double Slit Experiment", compute_model=c)
-    d.models.multiElectronAnimation.numberOfMacroElectrons = 50
-    d.models.simulation.sampleFactor = 0.0001
-    try:
-        r = fc.sr_run_sim(d, c, expect_completed=False)
-        pkunit.pkfail("did not raise SRException reply={}", r)
-    except util.SRException:
-        pass
-    fc.sr_post(
-        "sbatchLogin",
-        fc.sr_sbatch_creds().pkupdate(
-            computeModel=c,
-            simulationId=d.models.simulation.simulationId,
-            simulationType=d.simulationType,
-        ),
-    )
-    return d, c
 
 
 def _wait_ready(fc, data, compute_model, expect, desc, secs=60):

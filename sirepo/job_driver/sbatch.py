@@ -46,6 +46,9 @@ class SbatchDriver(job_driver.DriverBase):
         self.pkupdate(
             # before it is overwritten by prepare_send
             _local_user_dir=pkio.py_path(op.msg.userDir),
+            # None until the user has logged in. Then it only means the user
+            # (and so the agent's directory) is known. It does not mean creds
+            # are available, which are dropped once the agent is started.
             _srdb_root=None,
             # Allow self.cfg.run_slots and every other op type to
             # run (assume OP_RUN is one of SLOT_OPS). This
@@ -270,6 +273,7 @@ class SbatchDriver(job_driver.DriverBase):
         # Before the try so missing creds are not turned into a connection error.
         # srdb_root is retained across a websocket close (see free_resources)
         # so creds may be missing when the agent has to be restarted.
+        # srdb_root set and no creds means a user had an agent, which was lost.
         if self._srdb_root is not None and not self.get("_creds"):
             # An op that arrives right after a close would otherwise ask for a
             # login, when the agent is about to reconnect by itself.
@@ -352,6 +356,8 @@ disown
         # only depends on the username so keep it. Otherwise, the reconnected agent
         # would be unusable (no-creds) and login would be a no-op, since the agent
         # is ready. Creds are only needed to start a new agent (_do_agent_start).
+        # POSIT: job_driver.DriverBase.websocket_on_close passes caller as a
+        # keyword (_start_free_resources) with this value.
         if kwargs.get("caller") != "websocket_on_close":
             self._srdb_root = None
         return await super().free_resources(*args, **kwargs)

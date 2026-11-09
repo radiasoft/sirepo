@@ -9,6 +9,9 @@ Separate from sbatch_test, because of the config.
 from pykern.pkcollections import PKDict
 import pytest
 
+# POSIT: "sbatch" in the file name gives the sbatch config (srunit_servers) and
+# skips the test if slurm is not installed (conftest.pytest_collection_modifyitems)
+
 # The ssh start script and the agent connecting take seconds, which is longer
 # than this
 pytestmark = pytest.mark.sirepo_args(
