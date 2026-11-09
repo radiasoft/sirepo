@@ -93,16 +93,11 @@ class SbatchDriver(job_driver.DriverBase):
                 int,
                 "how long to wait before reading the agent log on start",
             ),
-            agent_reconnect_secs=(
-                10,
-                pkconfig.parse_seconds,
-                "how long to wait for an agent that lost its websocket to reconnect"
-                + " before asking for credentials",
-            ),
             agent_starting_secs=(
                 cls._AGENT_STARTING_SECS_DEFAULT * 3,
                 int,
-                "how long to wait for the agent to connect after the start script is run",
+                "how long to wait for the agent to connect after the start script is run,"
+                + " or to reconnect after its websocket is lost, before asking for credentials",
             ),
             cores=(None, int, "dev cores config"),
             host=pkconfig.Required(str, "host name for slum controller"),
@@ -182,11 +177,12 @@ class SbatchDriver(job_driver.DriverBase):
     async def _agent_reconnected(self):
         """Wait for an agent that lost its websocket to reconnect on its own
 
-        job_agent retries for about 10 seconds, see _MAX_LOOP_RETRY.
+        POSIT: job_agent retries for about 10 seconds, see _MAX_LOOP_RETRY,
+        which agent_starting_secs has to cover.
         """
         try:
             await asyncio.wait_for(
-                self._websocket_ready.wait(), self.cfg.agent_reconnect_secs
+                self._websocket_ready.wait(), self.cfg.agent_starting_secs
             )
             return True
         except asyncio.TimeoutError:
@@ -194,11 +190,9 @@ class SbatchDriver(job_driver.DriverBase):
 
     def _agent_start_delay(self, op):
         # The timer for the agent to connect is started before _do_agent_start,
-        # which can take up to ssh_timeout_secs (or agent_reconnect_secs). Otherwise,
-        # a slow login ends up freeing the resources of the agent just started.
-        return super()._agent_start_delay(op) + max(
-            self.cfg.ssh_timeout_secs, self.cfg.agent_reconnect_secs
-        )
+        # which can take up to ssh_timeout_secs. Otherwise, a slow login ends up
+        # freeing the resources of the agent just started.
+        return super()._agent_start_delay(op) + self.cfg.ssh_timeout_secs
 
     def _assert_creds(self, msg):
         if not self.get("_creds") or "username" not in self._creds:
