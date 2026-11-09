@@ -399,8 +399,9 @@ class DriverBase(PKDict):
                 if self.agent_is_ready_or_starting():
                     return
                 pkdlog("{} {} await=_do_agent_start", self, op)
-                # All awaits must be after this. If a call hangs the timeout
-                # handler will cancel this task
+                # All awaits must be after this. If a call hangs, the lock is held
+                # and free_resources (timeout handler) waits for it, so
+                # _do_agent_start must bound every await that can hang
                 self._websocket_ready_timeout = (
                     tornado.ioloop.IOLoop.current().call_later(
                         self._agent_start_delay(op),
