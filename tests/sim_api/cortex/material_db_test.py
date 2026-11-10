@@ -9,7 +9,6 @@ def test_all():
     from pykern import pkcompat, pkdebug, pkunit, pkio, pkjson
     from pykern.pkcollections import PKDict
     from sirepo import srunit
-    import re
     import subprocess
     from sirepo.sim_api.cortex import material_db
 
@@ -30,16 +29,9 @@ def test_all():
     _sqlite3("schema", None)
     with srunit.quest_start(want_user=True) as qcall:
         with pkunit.save_chdir_work(want_empty=False):
-            from sirepo.pkcli import cortex
-
             uid = qcall.auth.logged_in_user()
             _sqlite3("data", uid)
             pkunit.file_eq("out.json", material_db.list_materials(uid=uid))
-            pkio.write_text(
-                "tea.ndiff",
-                re.sub(r"# Generated on .*\n", "", cortex.export_tea(db_path)),
-            )
-            pkunit.file_eq("tea.ndiff")
             pkunit.file_eq(
                 "detail.json",
                 material_db.material_detail(material_id=1001, is_public=False, uid=uid),

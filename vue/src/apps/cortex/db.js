@@ -5,6 +5,22 @@ import { requestSender } from '@/services/requestsender.js';
 export const DB_UPDATED = 'DbUpdated';
 
 class DB {
+    async batchCancel() {
+        return await this.#sendBatch('cancel');
+    }
+
+    async batchListMaterials() {
+        return (await this.#sendBatch('list_materials')).rows;
+    }
+
+    async batchRun(material_ids, reports) {
+        return await this.#sendBatch('run', {material_ids, reports});
+    }
+
+    async batchStatus() {
+        return await this.#sendBatch('status');
+    }
+
     async calculateCost(material_id, is_public, processes, cmp, production_qty) {
         // goes through cortexSim (not cortexDb): the heavy computation runs
         // via an async statelessCompute call in template.cortex rather than
@@ -92,6 +108,10 @@ class DB {
         }
         return await requestSender.sendRequest("cortexDb", d);
 
+    }
+
+    async #sendBatch(op_name, op_args = {}) {
+        return await requestSender.sendRequest("cortexBatch", {op_name, op_args});
     }
 }
 
