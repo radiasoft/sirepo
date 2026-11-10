@@ -13,37 +13,30 @@ import sirepo.util
 
 
 class SimData(sirepo.sim_data.SimDataBase):
-    SUMMARY_GLOB = "*-summary.json"
+    #: json of the sim summary inside the summary zip
+    SUMMARY_JSON = "summary.json"
+
+    SUMMARY_GLOB = "*-summary.zip"
 
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         cls._init_models(data.models)
 
     @classmethod
-    def lib_file_from_parts(cls, report, material_id, stat, suffix):
-        return f"{report}-{material_id}-{stat}.{suffix}"
-
-    @classmethod
-    def lib_glob(cls, suffix):
-        return f"*-[0-9]*-*.{suffix}"
-
-    @classmethod
-    def parts_from_lib_file(cls, filename):
-        m = re.search(r"^(.*?)-(\d+)-(.+)\.[^.]+$", filename)
-        if not m:
-            raise AssertionError(f"Unexpected lib filename: {filename}")
-        return m.group(1), int(m.group(2)), m.group(3)
-
-    @classmethod
     def parts_from_summary_file(cls, filename):
-        m = re.search(r"(.*?)-(.*?)-summary.json", filename)
-        if not m:
-            raise AssertionError(f"Unexpected summary filename: {filename}")
-        return m.group(1, 2)
+        """Parse a name from `summary_file_from_parts`
+
+        Returns:
+            tuple: report, material_id or None if filename isn't a summary file
+        """
+        if m := re.search(r"^(.*?)-(\d+)-summary\.zip$", filename):
+            return m.group(1), int(m.group(2))
+        return None
 
     @classmethod
     def summary_file_from_parts(cls, report, material_id):
-        return f"{report}-{material_id}-summary.json"
+        """Zip of the summary json, and the png and hdf5 files of a sim"""
+        return f"{report}-{material_id}-summary.zip"
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):

@@ -44,6 +44,9 @@ FOSS_CODES = frozenset(
 
 _ALL_CODES = "DEFAULT"
 
+#: cfg values of a sim type which are only used by the server, so are not in the schema
+_SERVER_ONLY = dict(cortex=frozenset(("batch_uid",)))
+
 #: Codes which can be converted to each other through MAD-X
 # POSIT: sirepo.template.madx_converter._converter() has a converter for each
 # but madx
@@ -105,6 +108,8 @@ def for_sim_type(sim_type):
     res = pykern.pkcollections.PKDict(c[sim_type] if sim_type in c else {}).pkupdate(
         c.schema_common
     )
+    for k in _SERVER_ONLY.get(sim_type, ()):
+        res.pkdel(k)
     if sim_type in LATTICE_CONVERSION_CODES:
         # "Open as a New ... Simulation" targets
         res.lattice_conversion_targets = sorted(
@@ -172,6 +177,13 @@ def _init():
                 "https://github.com/radiasoft/sirepo-data-activait/raw/master/",
                 str,
                 "url base to reach activait example files",
+            ),
+        ),
+        cortex=dict(
+            batch_uid=(
+                None,
+                str,
+                "uid of the user which runs the admin batch simulations (requires a plan which allows parallel jobs)",
             ),
         ),
         debug_mode=(pkconfig.in_dev_mode(), bool, "control debugging output"),

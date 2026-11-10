@@ -4,19 +4,15 @@
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
-from datetime import datetime
 from pykern import pksubprocess
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
-from sqlalchemy.schema import MetaData
 import csv
 import io
-import openmc.data
 import openpyxl
 import os
 import pykern.pkio
 import pykern.pkjson
-import pykern.sql_db
 import re
 import requests
 import sirepo.auth
@@ -24,11 +20,8 @@ import sirepo.mpi
 import sirepo.quest
 import sirepo.resource
 import sirepo.sim_api.cortex
-import sirepo.sim_data
-import sirepo.simulation_db
 import sirepo.template.cortex
 import sirepo.template.template_common
-import sqlalchemy
 import subprocess
 import tempfile
 
@@ -198,16 +191,6 @@ def create_reference_xlsx(xlsx_template_filename, compendium_filename):
         _create_xlsx(v)
 
 
-# TODO(robnagler) move to material_db and use pprint
-def export_tea(db_file):
-    """Returns a python-compatible representation of all materials in
-    the specified database."""
-    uri = pykern.sql_db.sqlite_uri(pykern.pkio.py_path(db_file))
-    m = _populate_materials(_dump_sqlalchemy(uri))
-    return f"""# Generated on {datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")}
-MATERIALS = {_json_to_python(pykern.pkjson.dump_pretty(m))}"""
-
-
 def gen_components():
 
     def _livechart_csv():
@@ -258,24 +241,6 @@ def gen_components():
     return _to_str(_parse())
 
 
-def import_summary(uid):
-    """Import the sim results written by `run_batch` into the database
-
-    This is to be run on the front-end (database) server.
-
-    Moves the summary, plot csv, png and hdf5 files from the user's lib dir
-    to the database, so this must run where the database is.
-
-    Args:
-        uid (str): owner of the materials
-    """
-    with sirepo.quest.start() as qcall:
-        with qcall.auth.logged_in_user_set(uid, method=sirepo.auth.METHOD_EMAIL):
-            # imports one summary per call
-            while sirepo.sim_api.cortex.check_for_sim_summary(qcall, uid):
-                pass
-
-
 def import_xlsx(uid_or_email, *args):
     sirepo.sim_api.cortex.material_db.init_module()
 
@@ -312,57 +277,6 @@ def run_background(cfg_dir):
     )
 
 
-def run_batch(run_dir, uid, material_id):
-    """Generate and run sim in run_dir. Writes results for `import_summary`.
-
-    This is to bez run on the back-end (agent) server.
-    """
-
-    def _prep_sim(run_dir, uid, data):
-        sirepo.sim_data.get_class(
-            sirepo.template.cortex.SIM_TYPE
-        ).sim_run_input_to_run_dir(data, run_dir)
-        sirepo.simulation_db._cfg.logged_in_user = uid
-        sirepo.template.cortex.write_parameters(data, run_dir, is_parallel=True)
-
-    def _sim_for_material(run_dir, uid, material_id, qcall):
-        r = run_dir.basename
-        if r not in sirepo.template.cortex.SIM_VERSION:
-            raise AssertionError(f"invalid report={r} for run_dir={run_dir}")
-        s = sirepo.simulation_db.iterate_simulation_datafiles(
-            sirepo.template.cortex.SIM_TYPE,
-            lambda v, _p, d: v.append(d),
-            search={"simulation.name": str(material_id)},
-            qcall=qcall,
-        )
-        if not s:
-            # create a proxy sim data
-            d = sirepo.simulation_db.default_data(sirepo.template.cortex.SIM_TYPE)
-            d.models.simulation.name = str(material_id)
-            sirepo.sim_api.cortex.update_sim_from_material_detail(
-                d,
-                material_id,
-                sirepo.sim_api.cortex.material_db.format_material_detail(
-                    material_id, False, uid
-                ),
-            )
-            s = [d]
-        return s[0].pkupdate(report=r)
-
-    p = pykern.pkio.py_path(run_dir)
-    with pykern.pkio.save_chdir(p, mkdir=True):
-        with sirepo.quest.start() as qcall:
-            with qcall.auth.logged_in_user_set(uid, method=sirepo.auth.METHOD_EMAIL):
-                d = _sim_for_material(p, uid, material_id, qcall)
-                # this may be missing for old data
-                d.models.material.material_id = material_id
-                _prep_sim(p, uid, d)
-                run_background(p)
-                sirepo.template.cortex.background_percent_complete(
-                    d.report, p, is_running=False
-                )
-
-
 def set_material_featured(material_id, is_featured, uid):
     sirepo.sim_api.cortex.material_db.init_module()
     sirepo.sim_api.cortex.material_db.set_featured(
@@ -373,113 +287,3 @@ def set_material_featured(material_id, is_featured, uid):
 def set_material_public(material_id, is_public, uid):
     sirepo.sim_api.cortex.material_db.init_module()
     sirepo.sim_api.cortex.material_db.set_public(material_id, bool(int(is_public)), uid)
-
-
-def _convert_ao_to_wo(materials):
-
-    def _ao_to_wo(ao):
-        weight_sum = 0
-        mass = PKDict()
-        weight = PKDict()
-        for e in ao:
-            if re.search(r"\d", e):
-                # Nuclide
-                try:
-                    w = openmc.data.atomic_mass(e)
-                except KeyError as err:
-                    raise ValueError(f"Unknown nuclide: {e}")
-            else:
-                # Element
-                if e not in openmc.data.ATOMIC_NUMBER:
-                    raise ValueError(f"Unknown element: {e}")
-                # may raise ValueError: No naturally-occuring isotopes for element
-                w = openmc.data.atomic_weight(e)
-            mass[e] = w / openmc.data.AVOGADRO
-            weight[e] = ao[e].target_pct * mass[e]
-            weight_sum += weight[e]
-
-        wo = PKDict()
-        for e in ao:
-            # ao to wo scale factor, independent of target_pct which may be 0
-            f = 100.0 * mass[e] / weight_sum
-            wo[e] = PKDict(
-                target_pct=ao[e].target_pct * f,
-                min_pct=None,
-                max_pct=None,
-            )
-            if ao[e].max_pct is not None:
-                if ao[e].min_pct is None:
-                    wo[e].max_pct = wo[e].target_pct
-                else:
-                    wo[e].min_pct = ao[e].min_pct * f
-                    wo[e].max_pct = ao[e].max_pct * f
-        return wo
-
-    for m in materials.values():
-        if m.is_atom_pct:
-            m.components = _ao_to_wo(m.components)
-        del m["is_atom_pct"]
-    return materials
-
-
-def _dump_sqlalchemy(uri):
-    _DUMP = PKDict(
-        material=set(
-            [
-                "material_id",
-                "material_name",
-                "is_plasma_facing",
-                "structure",
-                "microstructure",
-                "processing_steps",
-                "density_g_cm3",
-                "is_atom_pct",
-            ]
-        ),
-        material_component=None,
-    )
-    e = sqlalchemy.create_engine(uri)
-    meta = MetaData()
-    meta.reflect(bind=e)
-    res = PKDict()
-    with e.connect() as conn:
-        for t in meta.sorted_tables:
-            if t.name not in _DUMP:
-                continue
-            res[t.name] = [
-                PKDict(r._asdict()) for r in conn.execute(sqlalchemy.select(t))
-            ]
-            if _DUMP[t.name]:
-                for r in res[t.name]:
-                    for c in t.columns:
-                        if c.name not in _DUMP[t.name]:
-                            del r[c.name]
-    return res
-
-
-def _json_to_python(value):
-    return re.sub(
-        r"\bnull\b",
-        "None",
-        re.sub(r"\bfalse\b", "False", re.sub(r"\btrue\b", "True", value)),
-    )
-
-
-def _populate_materials(dump):
-    res = PKDict()
-    for m in dump.material:
-        res[m.material_name] = m
-        m.components = PKDict()
-        for c in dump.material_component:
-            if c.material_id == m.material_id:
-                mc = c.copy()
-                for n in (
-                    "material_component_id",
-                    "material_component_name",
-                    "material_id",
-                ):
-                    del mc[n]
-                m.components[c.material_component_name.capitalize()] = mc
-        for n in ("material_id", "material_name"):
-            del m[n]
-    return _convert_ao_to_wo(res)

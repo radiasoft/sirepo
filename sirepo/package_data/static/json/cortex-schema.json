@@ -1,5 +1,6 @@
 {
     "apiRoute": {
+        "cortexBatch": "/cortex-batch",
         "cortexDb": "/cortex-db",
         "cortexSim": "/cortex-sim"
     },

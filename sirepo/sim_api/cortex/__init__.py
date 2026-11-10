@@ -16,11 +16,16 @@ import re
 import shutil
 import zipfile
 import sirepo.quest
+
+# POSIT: batch imports this module, which works because both only use the
+# other's attributes when called, so don't change either to a `from` import
+import sirepo.sim_api.cortex.batch
 import sirepo.sim_api.cortex.material_db
 import sirepo.sim_api.cortex.material_xlsx
 import sirepo.sim_api.cortex.tea_cost
 import sirepo.sim_data
 import sirepo.simulation_db
+import sirepo.template.cortex
 import sirepo.util
 
 _SIM_DATA, SIM_TYPE, _ = sirepo.sim_data.template_globals(sim_type="cortex")
@@ -33,34 +38,58 @@ _EXT = ".xlsx"
 _action_loop = None
 
 
-def init_apis(**kwargs):
-    global _action_loop
-
-    sirepo.sim_api.cortex.material_db.init_module()
-    _action_loop = _CortexDb()
-
-
 def check_for_sim_summary(qcall, uid):
-    """Import a sim summary written by template.cortex, and move its png and hdf5 files
+    """Import a sim summary zip written by template.cortex
 
+    The zip is the summary json, and the png and hdf5 files of the sim.
+
+    Args:
+        qcall (quest.API): its logged in user's lib dir is searched for zips
+        uid (str): owner of the material, which is authorized to the results.
+            Differs from qcall's user when the batch user ran the sim.
     Returns:
         bool: True if a summary was imported, more may remain
     """
+
+    def _extract(zip_file, material_id, report):
+        d = pykern.pkio.mkdir_parent(
+            sirepo.sim_api.cortex.material_db.cortexdb_path(material_id, report)
+        )
+        for n in zip_file.namelist():
+            if n == _SIM_DATA.SUMMARY_JSON:
+                continue
+            if n != pykern.pkio.py_path(n).basename:
+                raise AssertionError(f"invalid name={n} in summary zip")
+            pykern.pkio.atomic_write(d.join(n), zip_file.read(n), mode="wb")
+
     # TODO(pjm): this should be replaced with a direct sim_api call from template.cortex
-    rv = False
     for p in pykern.pkio.sorted_glob(
         str(_SIM_DATA.lib_file_write_path(_SIM_DATA.SUMMARY_GLOB, qcall=qcall))
     ):
-        report, material_id = _SIM_DATA.parts_from_summary_file(p.basename)
+        if not (x := _SIM_DATA.parts_from_summary_file(p.basename)):
+            # don't let one unexpected file stop the other imports
+            pkdlog("unexpected summary file={}, moved to .failed", p)
+            shutil.move(str(p), f"{p}.failed")
+            continue
+        report, material_id = x
         # move the file before processing to prevent other import attempts
         n = p.dirpath().join(f"{p.basename}.import")
         shutil.move(str(p), str(n))
-        with open(str(n)) as f:
-            d = pykern.pkjson.load_any(f)
+        with zipfile.ZipFile(str(n)) as z:
+            d = pykern.pkjson.load_any(z.read(_SIM_DATA.SUMMARY_JSON))
+            # The file name is chosen by whoever can write the lib dir, but only
+            # the json is checked for ownership below, so they must be the same
+            # before either is used for a path.
+            if (d.model, d.material_id) != (report, material_id):
+                raise AssertionError(
+                    f"summary file={p.basename} does not match json model={d.model} material_id={d.material_id}"
+                )
+            if report not in sirepo.template.cortex.SIM_VERSION:
+                raise AssertionError(f"invalid report={report} file={p.basename}")
             d.completed = datetime.datetime.fromisoformat(d.completed)
-        # verifies material ownership, so must happen before the csv files are written
-        # POSIT: material_db.load_summary skips plot rows whose csv doesn't exist yet
-        sirepo.sim_api.cortex.material_db.update_sim_summary(d, uid)
+            # verifies material ownership, so must happen before any file is written
+            sirepo.sim_api.cortex.material_db.update_sim_summary(d, uid)
+            _extract(z, material_id, report)
         for q in d.plots:
             # plot points and legend are only stored in the csv, written atomically
             # so load_summary never reads a partial file
@@ -70,27 +99,64 @@ def check_for_sim_summary(qcall, uid):
             pykern.pkio.mkdir_parent_only(c)
             pykern.pkio.atomic_write(c, q.csv)
         n.remove()
-        rv = True
-
         # TODO(pjm): processing can be slow and running too many can cause a tornado timeout
         # so only process one in one call for now
-        break
-    for suffix in ("png", "hdf5"):
-        for p in pykern.pkio.sorted_glob(
-            str(_SIM_DATA.lib_file_write_path(_SIM_DATA.lib_glob(suffix), qcall=qcall))
-        ):
-            report, material_id, name = _SIM_DATA.parts_from_lib_file(p.basename)
-            shutil.move(
-                str(p),
-                str(
-                    pykern.pkio.mkdir_parent(
-                        sirepo.sim_api.cortex.material_db.cortexdb_path(
-                            material_id, report
-                        )
-                    ).join(f"{name}.{suffix}")
-                ),
-            )
-    return rv
+        return True
+    return False
+
+
+async def get_sim_data(qcall, material_id, create=False):
+    """The sirepo sim for the material_id of the logged in user
+
+    Args:
+        qcall (quest.API): request state
+        material_id (int): material which names the sim
+        create (bool): create the sim if it doesn't exist [False]
+    Returns:
+        PKDict: sim data or None if not found and not create
+    """
+    s = (
+        await qcall.call_api(
+            "listSimulations",
+            body=PKDict(
+                simulationType=SIM_TYPE,
+                search=PKDict({"simulation.name": str(material_id)}),
+            ),
+        )
+    ).content_as_object()
+    if len(s):
+        return sirepo.simulation_db.open_json_file(
+            SIM_TYPE, sid=s[0].simulationId, qcall=qcall
+        )
+    if not create:
+        return None
+    d = sirepo.simulation_db.default_data(SIM_TYPE)
+    d.models.simulation.name = str(material_id)
+    return sirepo.simulation_db.save_new_simulation(d, qcall=qcall)
+
+
+def init_apis(**kwargs):
+    global _action_loop
+
+    sirepo.sim_api.cortex.material_db.init_module()
+    _action_loop = _CortexDb()
+
+
+def run_simulation_body(sim, report):
+    """The runSimulation (and runStatus, runCancel) request body for report
+
+    Args:
+        sim (PKDict): sim data of the material
+        report (str): one of `sirepo.template.cortex.SIM_VERSION`
+    Returns:
+        PKDict: body for call_api
+    """
+    return PKDict(
+        report=report,
+        models=sim.models,
+        simulationType=SIM_TYPE,
+        simulationId=sim.models.simulation.simulationId,
+    )
 
 
 def update_sim_from_material_detail(sim, material_id, detail):
@@ -117,6 +183,11 @@ def update_sim_from_material_detail(sim, material_id, detail):
 
 
 class API(sirepo.quest.API):
+
+    @sirepo.quest.Spec("require_adm", sim_type=f"SimType const={SIM_TYPE}")
+    async def api_cortexBatch(self):
+        a = self.parse_post(type=SIM_TYPE).req_data
+        return await sirepo.sim_api.cortex.batch.op(a.op_name, a.op_args)
 
     @sirepo.quest.Spec("require_plan", sim_type=f"SimType const={SIM_TYPE}")
     async def api_cortexDb(self):
@@ -153,26 +224,6 @@ class API(sirepo.quest.API):
     def cortex_db_done(self, result):
         self.__loop.call_soon_threadsafe(self.__result.put_nowait, result)
 
-    async def _get_sim_data(self, material_id, create=False):
-        s = (
-            await self.call_api(
-                "listSimulations",
-                body=PKDict(
-                    simulationType=SIM_TYPE,
-                    search=PKDict({"simulation.name": str(material_id)}),
-                ),
-            )
-        ).content_as_object()
-        if len(s):
-            return sirepo.simulation_db.open_json_file(
-                SIM_TYPE, sid=s[0].simulationId, qcall=self
-            )
-        if not create:
-            return None
-        d = sirepo.simulation_db.default_data(SIM_TYPE)
-        d.models.simulation.name = str(material_id)
-        return sirepo.simulation_db.save_new_simulation(d, qcall=self)
-
     async def _sim_calculate_cost(self, args):
         """Query the material (fast) then dispatch the CPU-heavy tea
         evaluation/chart rendering to template.cortex via statelessCompute,
@@ -208,7 +259,7 @@ class API(sirepo.quest.API):
         return r
 
     async def _sim_delete(self, args):
-        s = await self._get_sim_data(args.material_id)
+        s = await get_sim_data(self, args.material_id)
         if s:
             await self.call_api(
                 "deleteSimulation",
@@ -223,13 +274,7 @@ class API(sirepo.quest.API):
         s = await self._update_material_sim(args.material_id)
         await self.call_api(
             "runSimulation",
-            body=PKDict(
-                forceRun=True,
-                report=args.report,
-                models=s.models,
-                simulationType=SIM_TYPE,
-                simulationId=s.models.simulation.simulationId,
-            ),
+            body=run_simulation_body(s, args.report).pkupdate(forceRun=True),
         )
         return PKDict()
 
@@ -271,7 +316,7 @@ class API(sirepo.quest.API):
             )
 
         return await _update_sim(
-            await self._get_sim_data(material_id, create=True), material_id
+            await get_sim_data(self, material_id, create=True), material_id
         )
 
 
@@ -287,6 +332,8 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         return PKDict()
 
     def action_stat_image(self, arg, uid):
+        # POSIT: check_for_sim_summary extracts the png of each stat from the
+        # summary zip, named as written by template.cortex._save_summary_to_database
         p = sirepo.sim_api.cortex.material_db.cortexdb_path(
             arg.material_id, arg.modelName, f"{arg.stat}.png"
         )
