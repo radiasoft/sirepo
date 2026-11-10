@@ -12,6 +12,7 @@ from pykern.pkdebug import pkdp, pkdlog, pkdexc
 from sirepo import job
 from sirepo import job_driver
 from sirepo import util
+import asyncio
 import asyncssh
 import datetime
 import errno
@@ -23,6 +24,9 @@ import sirepo.util
 import tornado.gen
 import tornado.ioloop
 import tornado.websocket
+
+#: reading the agent log is only diagnostic so don't wait long for it
+_LOG_READ_TIMEOUT_SECS = 10
 
 _RUN_DIR_OPS = job.SLOT_OPS.union((job.OP_RUN_STATUS,))
 
@@ -42,6 +46,9 @@ class SbatchDriver(job_driver.DriverBase):
         self.pkupdate(
             # before it is overwritten by prepare_send
             _local_user_dir=pkio.py_path(op.msg.userDir),
+            # None until the user has logged in. Then it only means the user
+            # (and so the agent's directory) is known. It does not mean creds
+            # are available, which are dropped once the agent is started.
             _srdb_root=None,
             # Allow self.cfg.run_slots and every other op type to
             # run (assume OP_RUN is one of SLOT_OPS). This
@@ -89,7 +96,8 @@ class SbatchDriver(job_driver.DriverBase):
             agent_starting_secs=(
                 cls._AGENT_STARTING_SECS_DEFAULT * 3,
                 int,
-                "how long to wait for agent start",
+                "how long to wait for the agent to connect after the start script is run,"
+                + " or to reconnect after its websocket is lost, before asking for credentials",
             ),
             cores=(None, int, "dev cores config"),
             host=pkconfig.Required(str, "host name for slum controller"),
@@ -100,6 +108,11 @@ class SbatchDriver(job_driver.DriverBase):
             sirepo_cmd=pkconfig.Required(str, "how to run sirepo"),
             srdb_root=pkconfig.Required(
                 _cfg_srdb_root, "where to run job_agent, must include {sbatch_user}"
+            ),
+            ssh_timeout_secs=(
+                30,
+                pkconfig.parse_seconds,
+                "how long to wait, in total, to connect to the host and run the agent start script",
             ),
             supervisor_uri=job.DEFAULT_SUPERVISOR_URI_DECL,
         )
@@ -161,6 +174,26 @@ class SbatchDriver(job_driver.DriverBase):
             ),
         )
 
+    async def _agent_reconnected(self):
+        """Wait for an agent that lost its websocket to reconnect on its own
+
+        POSIT: job_agent retries for about 10 seconds, see _MAX_LOOP_RETRY,
+        which agent_starting_secs has to cover.
+        """
+        try:
+            await asyncio.wait_for(
+                self._websocket_ready.wait(), self.cfg.agent_starting_secs
+            )
+            return True
+        except asyncio.TimeoutError:
+            return False
+
+    def _agent_start_delay(self, op):
+        # The timer for the agent to connect is started before _do_agent_start,
+        # which can take up to ssh_timeout_secs. Otherwise, a slow login ends up
+        # freeing the resources of the agent just started.
+        return super()._agent_start_delay(op) + self.cfg.ssh_timeout_secs
+
     def _assert_creds(self, msg):
         if not self.get("_creds") or "username" not in self._creds:
             self._raise_sbatch_login_srexception("no-creds", msg)
@@ -203,7 +236,11 @@ class SbatchDriver(job_driver.DriverBase):
                     # location. can trust that it will be in the path
                     f"test -e {f} && tail --lines=200 {f}"
                 ) as p:
-                    o, e = await p.communicate()
+                    # Only diagnostic so must not hold up (or fail) the start, e.g.
+                    # if the file system is hung
+                    o, e = await asyncio.wait_for(
+                        p.communicate(), _LOG_READ_TIMEOUT_SECS
+                    )
                     _write_to_log(
                         o, e, f"remote-{'before' if before_start else 'after'}-start"
                     )
@@ -227,6 +264,16 @@ class SbatchDriver(job_driver.DriverBase):
 
         # must be saved, because op is only valid before first await
         original_msg = op.msg
+        # Before the try so missing creds are not turned into a connection error.
+        # srdb_root is retained across a websocket close (see free_resources)
+        # so creds may be missing when the agent has to be restarted.
+        # srdb_root set and no creds means a user had an agent, which was lost.
+        if self._srdb_root is not None and not self.get("_creds"):
+            # An op that arrives right after a close would otherwise ask for a
+            # login, when the agent is about to reconnect by itself.
+            if await self._agent_reconnected():
+                return
+        self._assert_creds(original_msg)
         log_file = "job_agent.log"
         agent_start_dir = self._srdb_root
         if pkconfig.in_dev_mode():
@@ -240,18 +287,34 @@ cd '{self._srdb_root}'
 (/usr/bin/env; setsid {self.cfg.sirepo_cmd} job_agent start_sbatch) &>> {log_file} &
 disown
 """
+
+        async def _run_script(connection):
+            async with connection.create_process(
+                "/bin/bash --noprofile --norc -l"
+            ) as p:
+                await _get_agent_log(connection, before_start=True)
+                o, e = await p.communicate(input=script)
+                if o or e:
+                    _write_to_log(o, e, "start")
+
         try:
-            async with asyncssh.connect(self.cfg.host, **_creds()) as c:
-                async with c.create_process("/bin/bash --noprofile --norc -l") as p:
-                    await _get_agent_log(c, before_start=True)
-                    o, e = await p.communicate(input=script)
-                    if o or e:
-                        _write_to_log(o, e, "start")
-                self.driver_details.pkupdate(
-                    host=self.cfg.host,
-                    username=self._creds.username,
-                )
-                await _get_agent_log(c, before_start=False)
+            # This call holds _agent_life_change_lock, which free_resources needs.
+            # Every await that can hang (login node, file system) must time out
+            # or the driver is stuck until the supervisor is restarted. A timeout is
+            # reported as general-connection-error like any other failure.
+            # POSIT: _agent_start_delay adds ssh_timeout_secs to the time allowed
+            # for the agent to connect, which starts before this call.
+            async with asyncio.timeout(self.cfg.ssh_timeout_secs) as t:
+                async with asyncssh.connect(self.cfg.host, **_creds()) as c:
+                    await _run_script(c)
+                    # The agent is started. Reading its log is only diagnostic
+                    # and has its own timeout.
+                    t.reschedule(None)
+                    self.driver_details.pkupdate(
+                        host=self.cfg.host,
+                        username=self._creds.username,
+                    )
+                    await _get_agent_log(c, before_start=False)
         except Exception as e:
             pkdlog("error={} stack={}", e, pkdexc())
             self._srdb_root = None
@@ -283,10 +346,14 @@ disown
         pass
 
     async def free_resources(self, *args, **kwargs):
-        try:
+        # The agent at NERSC reconnects by itself after a websocket close. srdb_root
+        # only depends on the username so keep it. Otherwise, the reconnected agent
+        # would be unusable (no-creds) and login would be a no-op, since the agent
+        # is ready. Creds are only needed to start a new agent (_do_agent_start).
+        # POSIT: job_driver.DriverBase.websocket_on_close passes caller as a
+        # keyword (_start_free_resources) with this value.
+        if kwargs.get("caller") != "websocket_on_close":
             self._srdb_root = None
-        except Exception as e:
-            pkdlog("{} error={} stack={}", self, e, pkdexc())
         return await super().free_resources(*args, **kwargs)
 
 

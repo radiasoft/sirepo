@@ -85,6 +85,14 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
     def on_close(self):
         try:
             d = getattr(self, "sr_driver", None)
+            # close_code is None if the connection dropped without a close frame
+            # (e.g. ping timeout, network failure)
+            pkdlog(
+                "close_code={} close_reason={} driver={}",
+                self.close_code,
+                self.close_reason,
+                d,
+            )
             if d:
                 del self.sr_driver
                 d.websocket_on_close()

@@ -601,10 +601,10 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
               <div data-sbatch-options="simState"></div>
             </div>
             <div data-parallel-options="simState"></div>
-            <div data-ng-if="sbatchLoginService.query('showLoginOrStatus')">
+            <div data-ng-if="showLoginOrStatus()">
               <button ng-disabled="! sbatchLoginService.query('showLogin')" class="col-sm-6 pull-right btn btn-default" data-ng-click="loginClicked()">{{ label() }}</button>
             </div>
-            <div class="col-sm-6 pull-right" data-ng-if="! sbatchLoginService.query('showLoginOrStatus')">
+            <div class="col-sm-6 pull-right" data-ng-if="! showLoginOrStatus()">
               <button class="btn btn-default" data-ng-click="start()">{{ startButtonLabel }}</button>
             </div>
 	`,
@@ -626,6 +626,11 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
                 $scope.startWasClicked = false;
                 sbatchLoginService.jobRunModeChanged($scope);
             };
+            $scope.showLoginOrStatus = () => {
+                return sbatchLoginService.isSbatchMode($scope.simState.model)
+                    && sbatchLoginService.query('showLoginOrStatus');
+            };
+            $scope.$on('$destroy', () => sbatchLoginService.directiveDestroyed($scope));
             appState.whenModelsLoaded($scope, _jobRunModeChanged);
             appState.watchModelFields(
                 $scope,
@@ -636,7 +641,9 @@ SIREPO.app.directive('jobSettingsSbatchLoginAndStartSimulation', function() {
                 'sbatchLoginEvent',
                 (_, sbatchLoginEvent) => {
                     if (sbatchLoginEvent.query('showCredsForm')) {
-                        $scope.loginClicked();
+                        if (sbatchLoginService.isOwner($scope)) {
+                            $scope.loginClicked();
+                        }
                     }
                     else if (sbatchLoginEvent.query('isLoggedInFromCreds')) {
                         if ($scope.startWasClicked) {
@@ -4588,7 +4595,7 @@ SIREPO.app.directive('sbatchOptions', function(appState, sbatchLoginService) {
             simState: '=sbatchOptions',
         },
         template: `
-            <div data-ng-show="sbatchLoginService.query('showSbatchOptions')">
+            <div data-ng-show="showSbatchOptions()">
               <div class="form-group form-group-sm" data-ng-repeat="pair in sbatchFields track by $index">
                 <div data-ng-repeat="sbatchField in pair" data-model-field='sbatchField' data-model-name="simState.model" data-label-size="3" data-field-size="3"></div>
               </div>
@@ -4597,6 +4604,10 @@ SIREPO.app.directive('sbatchOptions', function(appState, sbatchLoginService) {
         controller: function($scope, authState, stringsService) {
             $scope.sbatchFields = getSbatchFields();
 	    $scope.sbatchLoginService = sbatchLoginService;
+            $scope.showSbatchOptions = () => {
+                return sbatchLoginService.isSbatchMode($scope.simState.model)
+                    && sbatchLoginService.query('showSbatchOptions');
+            };
 
             function getSbatchFields() {
                 const f = [...SIREPO.APP_SCHEMA.constants.sbatch.fields];
