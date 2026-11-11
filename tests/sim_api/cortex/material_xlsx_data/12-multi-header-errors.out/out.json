@@ -19,7 +19,7 @@
     },
     {
         "col": 2,
-        "msg": "location must be Armor or Plasma-Facing in cell=Core",
+        "msg": "location must be Armor or First Wall in cell=Core",
         "row": 4,
         "sheet": "Composition"
     }

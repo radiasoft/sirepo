@@ -18,8 +18,10 @@ _DENSITY_RE = re.compile(r"^density(?:\s*\(.*\))?$", re.IGNORECASE)
 # true expressions return a group(1) that's true (not None)
 _BOOL_RE = re.compile(r"^(?:(t|true|y|yes)|f|false|n|no)$", re.IGNORECASE)
 
-# Loose
-_TYPE_RE = re.compile(r"(?:(fac(?:e|ing))|structur)", re.IGNORECASE)
+# Loose, the location (armor or first wall) or the older type (plasma-facing or structural)
+_TYPE_RE = re.compile(
+    r"(?:(fac(?:e|ing)|armor)|structur|first[\s\-]*wall)", re.IGNORECASE
+)
 
 _WALL_RE = re.compile(r"^(?:(iter)|demo)$", re.IGNORECASE)
 
@@ -30,7 +32,9 @@ _POINTER_RE = re.compile(r"^((?:(?:p|t|f)\d+(?:[\.\-]\d+)*[,;]?\s*)+)$", re.IGNO
 _SOURCE_RE = re.compile(r"^(exp|pp|nom|ml|dft)$", re.IGNORECASE)
 
 # true expressions return a group(1)
-_LOCATION_RE = re.compile(r"^(?:(plasma[\s\-]*facing)|armor)$", re.IGNORECASE)
+# POSIT: slab.py.jinja puts a plasma-facing material in the armor layer
+# and any other in the first wall
+_LOCATION_RE = re.compile(r"^(?:(armor)|first[\s\-]*wall)$", re.IGNORECASE)
 
 _IGNORE_FIRST_CELL_RE = re.compile(
     r"^(?:select|enter|please|choose)\s|^(?:material\s+name|multi-layer\s+geometry|operating\s+condition|composition|density\s+unit|legend|required\s+data|optional\s+data|add\s+or\s+remove)",
@@ -714,6 +718,8 @@ def _init():
             ("Homogenized Divertor", "is_homogenized_divertor", False, False),
             ("Homogenized HCPB", "is_homogenized_hcpb", False, False),
             ("Homogenized WCLL", "is_homogenized_wcll", False, False),
+            ("Location", "is_plasma_facing", True, False),
+            # older spreadsheets
             ("Material Type", "is_plasma_facing", True, False),
             ("Microstructure Information", "microstructure", False, False),
             ("Name", "material_name", True, False),
@@ -742,9 +748,11 @@ def _init():
     global _COMPONENT_FROM_LOWER, _LABEL_TO_COL, _VALID_COLS
     _COMPONENT_FROM_LOWER = PKDict(_components())
     _LABEL_TO_COL = PKDict(_cols())
-    _VALID_COLS = PKDict(
-        {c.name: c for c in [v for v in _LABEL_TO_COL.values() if v.is_required]}
-    )
+    _VALID_COLS = PKDict()
+    for v in _LABEL_TO_COL.values():
+        if v.is_required:
+            # the first label, not an older one, names the column in errors
+            _VALID_COLS.setdefault(v.name, v)
 
 
 def _parse_availability_factor(value):
@@ -814,7 +822,7 @@ def _parse_material_name(value):
 def _parse_is_plasma_facing(value):
     if isinstance(value, str) and (m := _TYPE_RE.search(value)):
         return bool(m.group(1)), None
-    return None, "must be structural or plasma-facing"
+    return None, "must be Armor or First Wall"
 
 
 def _parse_is_neutron_source_dt(value):
@@ -826,7 +834,7 @@ def _parse_is_neutron_source_dt(value):
 def _parse_location(value):
     if isinstance(value, str) and (m := _LOCATION_RE.search(value)):
         return bool(m.group(1)), None
-    return None, "must be Armor or Plasma-Facing"
+    return None, "must be Armor or First Wall"
 
 
 def _parse_microstructure(value):

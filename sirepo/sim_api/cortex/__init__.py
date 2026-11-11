@@ -432,9 +432,12 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
             raise sirepo.util.NotFound("Material not found")
 
     def action_set_material_public(self, arg, uid):
-        sirepo.sim_api.cortex.material_db.set_public(
-            arg.material_id, arg.is_public, uid
-        )
+        try:
+            sirepo.sim_api.cortex.material_db.set_public(
+                arg.material_id, arg.is_public, uid
+            )
+        except sirepo.sim_api.cortex.material_db.Error as e:
+            return PKDict(error=PKDict(value=e.args[0]))
         return PKDict()
 
     def _destroy(self):

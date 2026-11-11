@@ -1,5 +1,6 @@
 {
     "detail": {
+        "can_be_public": false,
         "components": [
             {
                 "material_component_id": 21002,
@@ -44,7 +45,7 @@
         "name": "Simple One",
         "properties": [],
         "section1": {
-            "Material Type": "structural",
+            "Location": "First Wall",
             "Microstructure Information": null,
             "Processing": null,
             "Structure": null

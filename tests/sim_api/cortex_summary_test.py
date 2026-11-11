@@ -169,6 +169,18 @@ def test_all():
                 )
             with pkunit.pkexcept("BadRequest"):
                 material_db.list_materials(uid, "notASlabAnimation")
+            # with hcpb results it can be public
+            pkunit.pkeq(
+                True,
+                material_db.format_material_detail(
+                    _MATERIAL_ID, False, uid
+                ).can_be_public,
+            )
+            material_db.set_public(_MATERIAL_ID, True, uid)
+            pkunit.pkeq(
+                True,
+                material_db.format_material_detail(_MATERIAL_ID, False, uid).is_public,
+            )
             # a different user can't import a summary for the material
             _write_zip(qcall)
             with pkunit.pkexcept("NoRows"):

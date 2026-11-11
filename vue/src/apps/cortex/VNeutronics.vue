@@ -5,14 +5,17 @@
             v-bind:viewName="isViewing() ? 'simulationStatus' : 'simulationSettings'"
             v-bind:title="report().title"
         >
-            <div v-if="hasPlots" class="float-end">
+            <div v-if="hasPlots" class="float-end text-end">
                 <button
                     class="btn btn-sm btn-outline-secondary"
                     v-on:click="downloadOutputZip"
+                    v-bind:disabled="isDownloading"
                     title="Download output files"
                 >
-                    <span class="bi bi-download"></span>
+                    <span v-if="isDownloading" class="spinner-border spinner-border-sm"></span>
+                    <span v-else class="bi bi-download"></span>
                 </button>
+                <div v-if="downloadError" class="text-danger small mt-1">{{ downloadError }}</div>
             </div>
             <div class="row">
                 <div class="col-lg-4">
@@ -179,7 +182,9 @@
  let rebuildCounter = 0;
  let summary;
  const fullscreenKey = ref(null);
+ const downloadError = ref('');
  const hasPlots = ref(false);
+ const isDownloading = ref(false);
  const isLoadingPlots = ref(false);
  const isReady = ref(false);
  const route = useRoute();
@@ -188,17 +193,27 @@
  const simSummary = ref(null);
 
  const downloadOutputZip = async () => {
-     const b = await db.loadOutputZip(props.materialId, props.neutronics);
-     if (! b) {
-         //TODO(pjm): error handling
-         return;
+     downloadError.value = '';
+     isDownloading.value = true;
+     try {
+         const b = await db.loadOutputZip(props.materialId, props.neutronics);
+         if (! b) {
+             downloadError.value = 'The output files are not available';
+             return;
+         }
+         const u = URL.createObjectURL(b);
+         const a = document.createElement('a');
+         a.href = u;
+         a.download = util.downloadFilename(`${props.materialName} ${report().label}`, 'zip');
+         a.click();
+         URL.revokeObjectURL(u);
      }
-     const u = URL.createObjectURL(b);
-     const a = document.createElement('a');
-     a.href = u;
-     a.download = util.downloadFilename(`${props.materialName} ${report().label}`, 'zip');
-     a.click();
-     URL.revokeObjectURL(u);
+     catch (e) {
+         downloadError.value = 'Unable to download the output files, please try again';
+     }
+     finally {
+         isDownloading.value = false;
+     }
  };
 
  const layerMaterial = (row) => {

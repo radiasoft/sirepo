@@ -1,7 +1,9 @@
 <template>
-    <div v-if="error" class="h2 text-center">
-        {{ error }}
+    <div v-if="error" class="container-lg sr-fixed-lg">
+        <div class="alert alert-danger">{{ error }}</div>
+        <RouterLink v-bind:to="{ name: 'search' }">Back to Materials</RouterLink>
     </div>
+    <VLoadingIndicator v-if="! material && ! error" message="Loading material" />
     <div v-if="material" class="container-lg sr-fixed-lg">
         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
             <div class="h2 mb-0 text-break">{{ material.name }}</div>
@@ -60,7 +62,9 @@
  import VNeutronics from '@/apps/cortex/VNeutronics.vue';
  import VOverview from '@/apps/cortex/VOverview.vue';
  import VProperties from '@/apps/cortex/VProperties.vue';
+ import VLoadingIndicator from '@/components/VLoadingIndicator.vue';
  import VTabs from '@/components/VTabs.vue';
+ import { RouterLink } from 'vue-router';
  import { DEFAULT_REPORT, REPORTS } from '@/apps/cortex/reports.js';
  import { db } from '@/apps/cortex/db.js';
  import { onMounted, ref } from 'vue';
@@ -96,12 +100,18 @@
 
  onMounted(async () => {
      materialId.value = route.params.materialId;
-     const r = await db.materialDetail(materialId.value, route.name === "view");
-     if (r.error) {
-         error.value = r.error.value;
+     try {
+         const r = await db.materialDetail(materialId.value, route.name === "view");
+         if (r.error) {
+             // POSIT: api_cortexDb replies with Not Found for a missing material
+             error.value = r.error.value === 'Not Found' ? 'Material not found' : r.error.value;
+         }
+         else {
+             material.value = r.detail;
+         }
      }
-     else {
-         material.value = r.detail;
+     catch (e) {
+         error.value = 'Unable to load the material, please try again';
      }
  });
 </script>

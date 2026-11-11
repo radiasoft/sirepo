@@ -1,6 +1,6 @@
 <template>
     <div class="container-xl sr-fixed-lg">
-        <VCortexCard title="Batch Runs">
+        <VCortexCard title="Admin Batch Runs">
             <p class="text-muted small">
                 Runs the selected simulations one at a time as the batch user.
                 Results replace the material's current results for its owner.
@@ -58,7 +58,7 @@
                         </th>
                         <th>Material Name</th>
                         <th>Owner</th>
-                        <th>Material Type</th>
+                        <th>{{ LOCATION_HEADING }}</th>
                         <th>Last Completed</th>
                         <th>Status</th>
                     </tr>
@@ -76,7 +76,7 @@
                         </td>
                         <td>{{ m.material_name }}</td>
                         <td>{{ m.uid }}</td>
-                        <td>{{ m.is_plasma_facing ? 'plasma-facing' : 'structural' }}</td>
+                        <td>{{ locationName(m.is_plasma_facing) }}</td>
                         <td>{{ m.completed ? util.formatDate(m.completed) : '' }}</td>
                         <td>
                             <div v-for="j in jobsFor(m)" v-bind:key="j.report">
@@ -101,6 +101,7 @@
 <script setup>
  import VCortexCard from '@/apps/cortex/VCortexCard.vue';
  import VPager from '@/apps/cortex/VPager.vue';
+ import { LOCATION_HEADING, locationName } from '@/apps/cortex/location.js';
  import { REPORTS } from '@/apps/cortex/reports.js';
  import { db } from '@/apps/cortex/db.js';
  import { onMounted, onUnmounted, reactive, ref } from 'vue';

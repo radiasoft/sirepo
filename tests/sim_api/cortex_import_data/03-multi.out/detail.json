@@ -1,5 +1,6 @@
 {
     "detail": {
+        "can_be_public": false,
         "components": [
             {
                 "material_component_id": 25002,
@@ -44,7 +45,7 @@
         "name": "Fe 9Cr 1W 0.2V",
         "properties": [],
         "section1": {
-            "Material Type": "structural",
+            "Location": "First Wall",
             "Microstructure Information": null,
             "Processing": null,
             "Structure": null

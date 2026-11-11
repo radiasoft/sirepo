@@ -42,7 +42,7 @@
                             <input
                                 type="text"
                                 class="form-control form-control-sm"
-                                placeholder="Filter by name or type"
+                                placeholder="Filter by name or location"
                                 v-model="filter"
                             />
                             <VPager

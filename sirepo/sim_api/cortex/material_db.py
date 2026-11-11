@@ -32,6 +32,9 @@ _OLD_PROPERTY_COLUMNS = PKDict(
     neutron_fluence_1_cm2="Neutron Fluence [1/cm²]",
 )
 
+# POSIT: public materials show the results of this report, see VOverview.vue
+_PUBLIC_MODEL = "hcpbSlabAnimation"
+
 _SOURCE_DESC = PKDict(
     EXP="experiment",
     PP="predictive physics model",
@@ -292,11 +295,11 @@ def format_material_detail(material_id, is_public, uid):
         is_atom_pct=m.is_atom_pct,
         is_plasma_facing=m.is_plasma_facing,
         is_public=m.is_public,
+        can_be_public=_has_public_model(material_id),
         section1=PKDict(
             {
-                "Material Type": (
-                    "plasma-facing" if m.is_plasma_facing else "structural"
-                ),
+                # POSIT: the location names of material_xlsx and location.js
+                "Location": "Armor" if m.is_plasma_facing else "First Wall",
                 "Structure": m.structure,
                 "Microstructure Information": m.microstructure,
                 "Processing": m.processing_steps,
@@ -692,6 +695,19 @@ def set_featured(material_id, is_featured, uid):
 
 
 def set_public(material_id, is_public, uid):
+    """Make the material public or private
+
+    Raises:
+        Error: making it public before its _PUBLIC_MODEL results exist
+    """
+    with _session() as s:
+        # ensure authorized before saying anything about the material
+        _material_by_id(s, material_id, uid)
+    if is_public and not _has_public_model(material_id):
+        raise Error(
+            "The HCPB slab neutronics simulation needs to be completed before"
+            + " a material can be made publicly available."
+        )
     _update_material(material_id, uid, PKDict(is_public=is_public))
 
 
@@ -751,6 +767,16 @@ def _engine(**kwargs):
         yield rv
     finally:
         rv.dispose()
+
+
+def _has_public_model(material_id):
+    with _session() as s:
+        return bool(
+            s.select_one_or_none(
+                "sim_summary",
+                where=PKDict(material_id=material_id, model=_PUBLIC_MODEL),
+            )
+        )
 
 
 def _insert_one(s, parsed, uid):
@@ -910,8 +936,12 @@ def _session():
 def _update_material(material_id, uid, values):
     with _session() as s:
         # ensure authorized to material
+        _material_by_id(s, material_id, uid)
         s.execute(
             sqlalchemy.update(s.t.material)
             .values(values)
-            .where(s.t.material.c.material_id == material_id)
+            .where(
+                s.t.material.c.material_id == material_id,
+                s.t.material.c.uid == uid,
+            )
         )

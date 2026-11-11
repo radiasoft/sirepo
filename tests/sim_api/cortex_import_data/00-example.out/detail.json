@@ -1,5 +1,6 @@
 {
     "detail": {
+        "can_be_public": false,
         "components": [
             {
                 "material_component_id": 1002,
@@ -172,7 +173,7 @@
         "name": "Eurofer 97",
         "properties": [],
         "section1": {
-            "Material Type": "plasma-facing",
+            "Location": "Armor",
             "Microstructure Information": null,
             "Processing": null,
             "Structure": null

@@ -31,20 +31,18 @@
                     v-for="col in cols"
                     v-bind:key="col.name"
                     v-bind:class="{ 'text-end': col.std || col.numeric }"
-                >{{ formatValue(mat, col) }}<span
+                ><VMaterialLink
+                    v-if="col.isLink"
+                    v-bind:materialId="mat.material_id"
+                >{{ formatValue(mat, col) }}</VMaterialLink><template
+                    v-else
+                >{{ formatValue(mat, col) }}</template><span
                     v-if="col.std && mat[col.name]"
                     class="sr-subheading"
                 >&nbsp;&plusmn;&nbsp;{{ formatStd(mat, col) }}</span></td>
                 <td class="sr-button-bar-td">
                     <div class="sr-button-bar-parent">
                         <div class="sr-button-bar">
-                            <VMaterialLink
-                                v-bind:materialId="mat.material_id"
-                                >
-                                <div class="btn btn-sm btn-info">
-                                    View
-                                </div>
-                            </VMaterialLink>
                             <button
                                 type="button"
                                 v-on:click="removeMaterial(mat)"
@@ -95,6 +93,7 @@
  import { pubSub } from '@/services/pubsub.js';
  import { requestSender } from '@/services/requestsender.js';
  import { util } from '@/services/util.js';
+ import { LOCATION_HEADING, locationName } from '@/apps/cortex/location.js';
  import { SUMMARY_COLUMNS, useSummary } from '@/apps/cortex/useSummary.js';
  import { usePagedList } from '@/apps/cortex/usePagedList.js';
 
@@ -118,6 +117,8 @@
      {
          name: 'material_name',
          heading: 'Material Name',
+         // the name opens the material
+         isLink: true,
      },
      {
          name: 'created',
@@ -131,8 +132,8 @@
      },
      {
          name: 'is_plasma_facing',
-         heading: 'Material Type',
-         format: (v) => _typeName(v),
+         heading: LOCATION_HEADING,
+         format: (v) => locationName(v),
      },
      ...SUMMARY_COLUMNS,
  ]);
@@ -146,7 +147,8 @@
  const lastPage = defineModel('pageCount', { type: Number, default: 1 });
  const { pageCount, pageItems, pageRange, visible } = usePagedList(
      toRef(state, 'materials'),
-     (m, f) => m.material_name.toLowerCase().includes(f) || _type(m).includes(f),
+     (m, f) => m.material_name.toLowerCase().includes(f)
+         || locationName(m.is_plasma_facing).toLowerCase().includes(f),
      { filter: toRef(props, 'filter'), page, pageSize: PAGE_SIZE },
  );
 
@@ -215,30 +217,11 @@
          // a newer load was started while waiting
          return;
      }
+     // only the known columns are shown, other fields in the rows are ignored
      state.materials = m;
-
-     const c = cols.map((v) => v.name);
-     for (const r of state.materials) {
-         for (const k in r) {
-             if (k === 'material_id' || k.endsWith('_std') || c.includes(k)) {
-                 continue;
-             }
-             c.push(k);
-             cols.push({
-                 name: k,
-                 heading: k,
-                 format: (v) => util.formatExponential(v),
-                 numeric: true,
-             });
-         }
-     }
      emit('materialCount', state.materials.length);
      _sortMaterials();
  };
-
- const _type = (material) => _typeName(material.is_plasma_facing);
-
- const _typeName = (isPlasmaFacing) => isPlasmaFacing ? 'plasma-facing' : 'structural';
 
  const _sortMaterials = () => {
      state.materials.sort(
