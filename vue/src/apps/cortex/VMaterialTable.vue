@@ -20,7 +20,7 @@
         </thead>
         <tbody>
             <tr
-                v-for="mat in state.materials"
+                v-for="mat in pageItems"
                 v-bind:key="mat.material_id"
             >
                 <td
@@ -52,8 +52,19 @@
                     </div>
                 </td>
             </tr>
+            <tr v-if="! visible.length">
+                <td v-bind:colspan="cols.length + 1" class="text-muted">
+                    No materials match the filter
+                </td>
+            </tr>
         </tbody>
     </table>
+    <VPager
+        v-model:page="page"
+        v-bind:pageCount="pageCount"
+        v-bind:range="pageRange"
+        v-bind:total="visible.length"
+    />
     <VConfirmationModal
         ref="confirmDeleteModal"
         title="Delete Material"
@@ -67,15 +78,25 @@
 <script setup>
  import VConfirmationModal from '@/components/VConfirmationModal.vue';
  import VMaterialLink from '@/apps/cortex/VMaterialLink.vue';
+ import VPager from '@/apps/cortex/VPager.vue';
  import { RouterLink } from 'vue-router';
  import { db, DB_UPDATED } from '@/apps/cortex/db.js';
- import { onMounted, onUnmounted, reactive, ref } from 'vue';
+ import { onMounted, onUnmounted, reactive, ref, toRef, watch } from 'vue';
  import { pubSub } from '@/services/pubsub.js';
  import { requestSender } from '@/services/requestsender.js';
  import { util } from '@/services/util.js';
  import { SUMMARY_COLUMNS, useSummary } from '@/apps/cortex/useSummary.js';
+ import { usePagedList } from '@/apps/cortex/usePagedList.js';
 
+ const props = defineProps({
+     // text to filter by, entered in the header of the card
+     filter: { type: String, default: '' },
+     // simulation of the summary columns
+     report: { type: String, required: true },
+ });
  const emit = defineEmits(['materialCount']);
+ // a user's materials have wide rows, a user has fewer than the admin batch page
+ const PAGE_SIZE = 25;
  const confirmDeleteModal = ref(null);
  const selectedMaterial = ref(null);
  const { formatValue, formatStd } = useSummary();
@@ -98,14 +119,23 @@
      {
          name: 'is_plasma_facing',
          heading: 'Material Type',
-         format: (v) => v ? 'plasma-facing' : 'structural',
+         format: (v) => _typeName(v),
      },
      ...SUMMARY_COLUMNS,
  ]);
+ let loadCount = 0;
  const state = reactive({
      sort: ['material_name', true],
      materials: [],
  });
+ // the page can be changed outside of the table, which also needs the page count
+ const page = defineModel('page', { type: Number, default: 1 });
+ const lastPage = defineModel('pageCount', { type: Number, default: 1 });
+ const { pageCount, pageItems, pageRange, visible } = usePagedList(
+     toRef(state, 'materials'),
+     (m, f) => m.material_name.toLowerCase().includes(f) || _type(m).includes(f),
+     { filter: toRef(props, 'filter'), page, pageSize: PAGE_SIZE },
+ );
 
  const deleteSelectedMaterial = async () => {
      confirmDeleteModal.value.closeModal();
@@ -142,9 +172,19 @@
  }
 
  const _loadMaterials = async () => {
-     // don't show the import panel until we know how many materials are present
-     emit('materialCount', undefined);
-     state.materials = await db.listMaterials();
+     // don't show the import panel until we know how many materials are present.
+     // Not on a reload, which would hide this table until the list returns, and
+     // the page would lose its scroll position.
+     if (! state.materials.length) {
+         emit('materialCount', undefined);
+     }
+     const n = ++loadCount;
+     const m = await db.listMaterials(props.report);
+     if (n !== loadCount) {
+         // a newer load was started while waiting
+         return;
+     }
+     state.materials = m;
 
      const c = cols.map((v) => v.name);
      for (const r of state.materials) {
@@ -164,6 +204,10 @@
      emit('materialCount', state.materials.length);
      _sortMaterials();
  };
+
+ const _type = (material) => _typeName(material.is_plasma_facing);
+
+ const _typeName = (isPlasmaFacing) => isPlasmaFacing ? 'plasma-facing' : 'structural';
 
  const _sortMaterials = () => {
      state.materials.sort(
@@ -189,6 +233,13 @@
          },
      );
  };
+
+ watch(pageCount, (n) => {
+     lastPage.value = n;
+ }, { immediate: true });
+
+ // the summary columns of another simulation
+ watch(() => props.report, _loadMaterials);
 
  onMounted(async () => {
      pubSub.subscribe(DB_UPDATED, _loadMaterials);

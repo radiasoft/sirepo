@@ -12,6 +12,9 @@ import pykern.pkcompat
 import re
 import urllib
 
+# Header of the multiple materials sheet, density is followed by components
+_DENSITY_RE = re.compile(r"^density(?:\s*\(.*\))?$", re.IGNORECASE)
+
 # true expressions return a group(1) that's true (not None)
 _BOOL_RE = re.compile(r"^(?:(t|true|y|yes)|f|false|n|no)$", re.IGNORECASE)
 
@@ -26,6 +29,9 @@ _POINTER_RE = re.compile(r"^((?:(?:p|t|f)\d+(?:[\.\-]\d+)*[,;]?\s*)+)$", re.IGNO
 
 _SOURCE_RE = re.compile(r"^(exp|pp|nom|ml|dft)$", re.IGNORECASE)
 
+# true expressions return a group(1)
+_LOCATION_RE = re.compile(r"^(?:(plasma[\s\-]*facing)|armor)$", re.IGNORECASE)
+
 _IGNORE_FIRST_CELL_RE = re.compile(
     r"^(?:select|enter|please|choose)\s|^(?:material\s+name|multi-layer\s+geometry|operating\s+condition|composition|density\s+unit|legend|required\s+data|optional\s+data|add\s+or\s+remove)",
 )
@@ -36,6 +42,10 @@ _IGNORE_INDEPENDENT_VARIABLE_HEADER_RE = re.compile(
 )
 
 _COMPONENTS_COL = "components"
+
+_MULTI_SHEET = "Composition"
+
+_SINGLE_SHEET = "Metadata and Settings"
 
 _COMPONENT_FROM_LOWER = None
 
@@ -489,6 +499,206 @@ class Parser:
                 del self.result[col.name]
 
 
+class MultiParser(Parser):
+    """Parse a sheet with a material per row, see `parse`
+
+    Subclasses `Parser` for `_error` and `_validate_components`, so it
+    follows `Parser` instead of alphabetical order. `results` are in the
+    same form as `Parser.result`.
+
+    Args:
+        path (py.path): xlsx file
+    """
+
+    def __init__(self, path):
+        self.errors = []
+        self.results = []
+        self.result = self._sheet = self._row_num = self._col_num = None
+        self._parse(path)
+
+    def _cells(self, path):
+        """The rows of the sheet with cells as float or stripped str"""
+
+        def _fix(v):
+            if isinstance(v, bool):
+                return v
+            if isinstance(v, float):
+                return "" if math.isnan(v) else v
+            if isinstance(v, int):
+                return float(v)
+            return str(v).strip()
+
+        try:
+            return [
+                tuple(_fix(c) for c in r)
+                for r in pandas.read_excel(
+                    str(path), header=None, sheet_name=_MULTI_SHEET
+                ).itertuples(index=False)
+            ]
+        except Exception as e:
+            self._error(f"error={e}", is_exc=True)
+            return []
+
+    def _header(self, rows):
+        """Find the header row and the columns of the materials
+
+        Returns:
+            tuple: index of the header row and PKDict with the indexes of the
+                name, location and density columns and components, which maps
+                the index to the lower case name. Both None on errors.
+        """
+        for i, r in enumerate(rows):
+            if isinstance(r[0], str) and r[0].lower() == "name":
+                break
+        else:
+            self._error("missing header row starting with Name")
+            return None, None
+        self._row_num = i + 1
+        rv = PKDict(name=0, components=PKDict())
+        for c, v in enumerate(r):
+            if c == 0 or not v:
+                continue
+            self._col_num = c + 1
+            n = str(v).lower()
+            if n == "location":
+                k = "location"
+            elif _DENSITY_RE.search(n):
+                k = "density"
+            elif n in _COMPONENT_FROM_LOWER:
+                if n in rv.components.values():
+                    self._error(f"duplicate nuclide or element in cell={v}")
+                rv.components[c] = n
+                continue
+            else:
+                self._error(f"unknown nuclide or element in cell={v}")
+                continue
+            if k in rv:
+                self._error(f"duplicate column in cell={v}")
+            else:
+                rv[k] = c
+        self._col_num = None
+        # Unknown and duplicate columns are errors, but the rows are still
+        # checked so all the errors are reported together
+        f = False
+        for k in "location", "density":
+            if k not in rv:
+                f = self._error(f"missing column {k}") or True
+        if not rv.components:
+            f = (
+                self._error("at least one element or nuclide column must be provided")
+                or True
+            )
+        return (None, None) if f else (i, rv)
+
+    def _parse(self, path):
+        def _components(row, header, labels):
+            x = len(self.errors)
+            rv = PKDict()
+            for c, n in header.components.items():
+                v = row[c]
+                if v == "" or v == 0.0:
+                    continue
+                self._col_num = c + 1
+                if isinstance(v, str) and v.lower() == _BALANCE:
+                    v = _BALANCE
+                else:
+                    v, e = _parse_percent(v)
+                    if e:
+                        self._error(
+                            f"{_WEIGHT} {e} in cell={row[c]} for component={labels[c]}"
+                        )
+                        continue
+                rv[n] = PKDict(
+                    name=n,
+                    label=labels[c],
+                    percentage=PKDict({_TARGET: v}, kind=_WEIGHT),
+                )
+            self._col_num = None
+            if not rv and x == len(self.errors):
+                self._error("at least one element or nuclide must be provided")
+            # an error for a component would also be a bad sum
+            return rv if x == len(self.errors) else None
+
+        def _material(row, header):
+            def _value(col, parser, name):
+                self._col_num = header[col] + 1
+                rv, e = parser(row[header[col]])
+                if e:
+                    self._error(f"{col} {e} in cell={row[header[col]]}")
+                self.result[name] = rv
+
+            self._col_num = 1
+            n = row[0]
+            if not n or not isinstance(n, str) or len(n) > 100:
+                return self._error("name must be a string up to 100 characters")
+            if n in names:
+                return self._error(f"duplicate name={n}")
+            names.add(n)
+            self.result = PKDict(
+                material_name=n,
+                components=PKDict(),
+                properties=PKDict(),
+            )
+            _value("location", _parse_location, "is_plasma_facing")
+            _value("density", _parse_density_g_cm3, "density_g_cm3")
+            self._col_num = None
+            return True
+
+        self._sheet = _MULTI_SHEET
+        rows = self._cells(path)
+        if self.errors:
+            return
+        i, h = self._header(rows)
+        if h is None:
+            return
+        names = set()
+        for j, r in enumerate(rows[i + 1 :], start=i + 2):
+            if not any(c != "" for c in r):
+                continue
+            self._row_num = j
+            n = len(self.errors)
+            try:
+                if _material(r, h) and (c := _components(r, h, rows[i])):
+                    self._validate_components(c)
+            except Exception as e:
+                self._error(f"error={e}", is_exc=True)
+            if len(self.errors) == n:
+                self.results.append(self.result)
+        self._row_num = self.result = None
+        if not self.results and not self.errors:
+            self._error(
+                "no materials, expected a row for each material after the header"
+            )
+        if self.errors:
+            self.results = []
+
+
+def parse(path):
+    """Parse a single or multiple materials spreadsheet
+
+    The multiple materials spreadsheet has the sheet `Composition` and not
+    `Metadata and Settings`. Anything else is parsed as a single material.
+
+    Args:
+        path (py.path): xlsx file
+    Returns:
+        PKDict: materials (list of parsed materials) and errors, which is empty
+            if there are materials
+    """
+    try:
+        n = pandas.ExcelFile(str(path)).sheet_names
+    except Exception as e:
+        pkdlog("path={} error={} stack={}", path, e, pkdexc())
+        return PKDict(
+            materials=[], errors=[PKDict(msg=f"unable to read file error={e}")]
+        )
+    if _MULTI_SHEET in n and _SINGLE_SHEET not in n:
+        p = MultiParser(path)
+        return PKDict(materials=p.results, errors=p.errors)
+    p = Parser(path)
+    return PKDict(materials=[] if p.errors else [p.result], errors=p.errors)
+
+
 def _format_property(name):
     return re.sub(r"'", "", name).replace(" ", "_").lower()
 
@@ -611,6 +821,12 @@ def _parse_is_neutron_source_dt(value):
     if isinstance(value, str) and (m := _NEUTRON_SOURCE_RE.search(value)):
         return bool(m.group(1)), None
     return None, "must be D-T or D-D"
+
+
+def _parse_location(value):
+    if isinstance(value, str) and (m := _LOCATION_RE.search(value)):
+        return bool(m.group(1)), None
+    return None, "must be Armor or Plasma-Facing"
 
 
 def _parse_microstructure(value):

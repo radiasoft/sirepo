@@ -6,15 +6,23 @@
          }"
          ref=dropPanel
     >
-        <p>Drag and drop an Excel material file here to process a new material.</p>
+        <p>Drag and drop an Excel material file here to import one or many materials.</p>
         <p>
             <strong>
                 <a v-bind:href="templateURL">
-                    Use this Excel template
+                    Single material Excel template
                     <span class="bi bi-cloud-download"></span>
                 </a>
             </strong>
-            for reference.
+        </p>
+        <p>
+            <strong>
+                <a v-bind:href="multiTemplateURL">
+                    Multiple materials Excel template
+                    <span class="bi bi-cloud-download"></span>
+                </a>
+            </strong>
+            with one row per material.
         </p>
         <div class="text-end" v-if="! isProcessing">
             <VFileUploadButton
@@ -34,7 +42,13 @@
         title="Material Imported"
         cancelText="Close"
     >
-        Imported <strong>{{ materialName }}</strong> successfully
+        <span v-if="materialCount > 1">
+            Imported <strong>{{ materialCount }}</strong> materials successfully.
+            Simulation of <strong>{{ materialName }}</strong> has started.
+        </span>
+        <span v-else>
+            Imported <strong>{{ materialName }}</strong> successfully
+        </span>
     </VConfirmationModal>
     <VConfirmationModal
         ref="errorsModal"
@@ -53,6 +67,7 @@
                 {{ err.msg }}
             </div>
         </div>
+        <div v-if="moreErrors > 0">and {{ moreErrors }} more</div>
     </VConfirmationModal>
 </template>
 
@@ -72,12 +87,20 @@
  const errorList = ref(null);
  const errorsModal = ref(null);
  const isProcessing = ref(false);
+ const maxErrors = 50;
+ const moreErrors = ref(0);
+ const materialCount = ref(0);
  const materialName = ref('');
  const xlsxMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
  const templateURL = uri.format('downloadLibFile', {
      simulation_type: schema.simulationType,
      filename: 'materials_input.xlsx',
+ });
+
+ const multiTemplateURL = uri.format('downloadLibFile', {
+     simulation_type: schema.simulationType,
+     filename: 'materials_multi_input.xlsx',
  });
 
  const onDrop = (files) => {
@@ -107,10 +130,13 @@
      const r = await db.insertMaterial(file);
      isProcessing.value = false;
      if (r.error) {
-         errorList.value = filterSheets(r.error);
+         // many materials can have many errors
+         errorList.value = filterSheets(r.error).slice(0, maxErrors);
+         moreErrors.value = r.error.length - errorList.value.length;
          errorsModal.value.showModal();
          return;
      }
+     materialCount.value = r.op_result.materials.length;
      materialName.value = r.op_result.material_name;
      confirmModal.value.showModal();
      db.updated();

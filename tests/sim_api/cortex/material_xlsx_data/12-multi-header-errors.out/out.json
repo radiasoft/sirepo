@@ -1,0 +1,26 @@
+[
+    {
+        "col": 5,
+        "msg": "unknown nuclide or element in cell=Bogus",
+        "row": 2,
+        "sheet": "Composition"
+    },
+    {
+        "col": 6,
+        "msg": "duplicate nuclide or element in cell=Fe",
+        "row": 2,
+        "sheet": "Composition"
+    },
+    {
+        "col": 7,
+        "msg": "duplicate column in cell=Location",
+        "row": 2,
+        "sheet": "Composition"
+    },
+    {
+        "col": 2,
+        "msg": "location must be Armor or Plasma-Facing in cell=Core",
+        "row": 4,
+        "sheet": "Composition"
+    }
+]

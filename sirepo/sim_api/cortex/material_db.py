@@ -15,6 +15,9 @@ import sirepo.util
 import sqlalchemy
 import sqlalchemy.exc
 
+#: report of the summary values listed with the materials unless another is asked for
+DEFAULT_LIST_MODEL = "hcpbSlabAnimation"
+
 _BASE = "cortex_material.sqlite3"
 
 #: directory in srdb root which holds each material's plot csv, png and hdf5 files
@@ -432,70 +435,40 @@ def init_module(**imports):
 
 
 def insert_material(parsed, uid):
-    def _insert_property(session, name, values):
-        vals = values.pop("vals")
-        ivars = values.pop("independent_variables", PKDict())
-        prop_id = session.insert(
-            "material_property",
-            property_name=name,
-            **values,
-        ).material_property_id
-        ivar_ids = {
-            name: session.insert(
-                "independent_variable",
-                material_property_id=prop_id,
-                name=name,
-            ).independent_variable_id
-            for name in ivars
-        }
-        for idx, val in enumerate(vals):
-            val_id = session.insert(
-                "material_property_value",
-                material_property_id=prop_id,
-                **val,
-            ).material_property_value_id
-            for name, values_list in ivars.items():
-                if idx < len(values_list) and values_list[idx] is not None:
-                    session.insert(
-                        "independent_variable_value",
-                        independent_variable_id=ivar_ids[name],
-                        material_property_value_id=val_id,
-                        value=values_list[idx],
-                    )
+    return insert_materials([parsed], uid)[0]
 
-    def _values(cols, vals):
-        return PKDict((c, vals[c]) for c in cols if c in vals)
 
+def insert_materials(parsed, uid):
+    """Insert all materials or none
+
+    Args:
+        parsed (list): parsed materials in file order
+        uid (str): owner of the materials
+    Returns:
+        list: PKDict of material_id and material_name for each material
+    Raises:
+        Error: args[0] is the list of messages, one for each existing name
+    """
     with _session() as s:
-        try:
-            rv = s.insert(
-                "material",
-                _values(s.t.material.columns.keys(), parsed).pkupdate(uid=uid),
-            )
-        except sqlalchemy.exc.IntegrityError as e:
-            if "unique" in str(e).lower():
-                # Needs to raise to signal to the session to rollback
-                raise Error(f"material name={parsed.material_name} already exists")
-            raise
-        for v in parsed.components.values():
-            s.insert(
-                "material_component",
-                _values(s.t.material_component.columns.keys(), v).pkupdate(
-                    material_id=rv.material_id
-                ),
-            )
-        for n in parsed.properties:
-            if not parsed.properties[n].property_unit:
-                parsed.properties[n].property_unit = "1"
-            _insert_property(
-                s, n, parsed.properties[n].pkupdate(material_id=rv.material_id)
-            )
-        return PKDict((k, rv[k]) for k in ("material_id", "material_name"))
+        x = {
+            r["material_name"]
+            for r in s.select("material", where=PKDict(uid=uid)).all()
+        }
+        if d := [p.material_name for p in parsed if p.material_name in x]:
+            # report every name, so they can be fixed in one pass
+            raise Error([f"material name={n} already exists" for n in d])
+        return [_insert_one(s, p, uid) for p in parsed]
 
 
-def list_materials(uid):
-    # TODO(pjm): pass model
-    model = "hcpbSlabAnimation"
+def list_materials(uid, model=DEFAULT_LIST_MODEL):
+    """The materials of uid with the summary values of model
+
+    Args:
+        uid (str): owner of the materials
+        model (str): report, which has a summary in `SIM_VERSION`
+    """
+    if model not in sirepo.template.cortex.SIM_VERSION:
+        raise sirepo.util.BadRequest(f"invalid model={model}")
 
     def _sim_summary_values(session, material_id):
         return PKDict(
@@ -778,6 +751,67 @@ def _engine(**kwargs):
         yield rv
     finally:
         rv.dispose()
+
+
+def _insert_one(s, parsed, uid):
+    def _insert_property(session, name, values):
+        vals = values.pop("vals")
+        ivars = values.pop("independent_variables", PKDict())
+        prop_id = session.insert(
+            "material_property",
+            property_name=name,
+            **values,
+        ).material_property_id
+        ivar_ids = {
+            name: session.insert(
+                "independent_variable",
+                material_property_id=prop_id,
+                name=name,
+            ).independent_variable_id
+            for name in ivars
+        }
+        for idx, val in enumerate(vals):
+            val_id = session.insert(
+                "material_property_value",
+                material_property_id=prop_id,
+                **val,
+            ).material_property_value_id
+            for name, values_list in ivars.items():
+                if idx < len(values_list) and values_list[idx] is not None:
+                    session.insert(
+                        "independent_variable_value",
+                        independent_variable_id=ivar_ids[name],
+                        material_property_value_id=val_id,
+                        value=values_list[idx],
+                    )
+
+    def _values(cols, vals):
+        return PKDict((c, vals[c]) for c in cols if c in vals)
+
+    try:
+        rv = s.insert(
+            "material",
+            _values(s.t.material.columns.keys(), parsed).pkupdate(uid=uid),
+        )
+    except sqlalchemy.exc.IntegrityError as e:
+        if "unique" in str(e).lower():
+            # Needs to raise to signal to the session to rollback
+            raise Error([f"material name={parsed.material_name} already exists"])
+        raise
+    for v in parsed.components.values():
+        s.insert(
+            "material_component",
+            _values(s.t.material_component.columns.keys(), v).pkupdate(
+                material_id=rv.material_id
+            ),
+        )
+    for n in parsed.properties:
+        if not parsed.properties[n].property_unit:
+            parsed.properties[n].property_unit = "1"
+        _insert_property(
+            s, n, parsed.properties[n].pkupdate(material_id=rv.material_id)
+        )
+    return PKDict((k, rv[k]) for k in ("material_id", "material_name"))
 
 
 def _insert_plot(session, plotdef, uid):

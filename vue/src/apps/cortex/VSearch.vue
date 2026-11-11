@@ -24,7 +24,41 @@
         <div class="row">
             <div v-show="materialCount" class="col-sm-12">
                 <VCortexCard title="Your Materials" v-show="materialCount">
-                    <VMaterialTable v-on:materialCount="updateMaterialCount" />
+                    <template v-slot:header>
+                        <div class="d-flex gap-2">
+                            <select
+                                class="form-select form-select-sm w-auto"
+                                title="Simulation of the results shown"
+                                v-model="report"
+                            >
+                                <option
+                                    v-for="r in REPORTS"
+                                    v-bind:key="r.name"
+                                    v-bind:value="r.name"
+                                >
+                                    {{ r.label }}
+                                </option>
+                            </select>
+                            <input
+                                type="text"
+                                class="form-control form-control-sm"
+                                placeholder="Filter by name or type"
+                                v-model="filter"
+                            />
+                            <VPager
+                                v-model:page="page"
+                                v-bind:compact="true"
+                                v-bind:pageCount="pageCount"
+                            />
+                        </div>
+                    </template>
+                    <VMaterialTable
+                        v-model:page="page"
+                        v-model:pageCount="pageCount"
+                        v-bind:filter="filter"
+                        v-bind:report="report"
+                        v-on:materialCount="updateMaterialCount"
+                    />
                 </VCortexCard>
             </div>
         </div>
@@ -37,11 +71,17 @@
  import VImportXLSXPanel from '@/apps/cortex/VImportXLSXPanel.vue';
  import VLoadingIndicator from '@/components/VLoadingIndicator.vue';
  import VMaterialTable from '@/apps/cortex/VMaterialTable.vue';
+ import VPager from '@/apps/cortex/VPager.vue';
+ import { DEFAULT_REPORT, REPORTS } from '@/apps/cortex/reports.js';
  import { db } from '@/apps/cortex/db.js';
  import { onMounted } from 'vue';
  import { ref } from 'vue';
 
+ const filter = ref('');
+ const report = ref(DEFAULT_REPORT);
  const materialCount = ref(0);
+ const page = ref(1);
+ const pageCount = ref(1);
  const loadingMessage = ref('');
  const featuredMaterials = ref(null);
 

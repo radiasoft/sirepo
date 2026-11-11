@@ -363,20 +363,32 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
         # TODO(pjm): first entrypoint into app - openmc must exist prior to running cortex sims
         #  this should be part of feature_config _DEPENDENT_CODES
         sirepo.simulation_db.simulation_dir("openmc", qcall=arg.qcall)
-        p = sirepo.sim_api.cortex.material_xlsx.Parser(_save())
+        p = sirepo.sim_api.cortex.material_xlsx.parse(_save())
         if p.errors:
             return PKDict(error=p.errors)
         try:
-            return sirepo.sim_api.cortex.material_db.insert_material(
-                parsed=p.result, uid=uid
+            m = sirepo.sim_api.cortex.material_db.insert_materials(
+                parsed=p.materials, uid=uid
             )
         except sirepo.sim_api.cortex.material_db.Error as e:
-            return PKDict(error=[PKDict(msg=str(e.args[0]))])
+            return PKDict(error=[PKDict(msg=m) for m in e.args[0]])
+        # the first material is also returned at the top level for the
+        # browser to run, the others are only imported
+        return PKDict(
+            material_id=m[0].material_id,
+            material_name=m[0].material_name,
+            materials=m,
+        )
 
     def action_list_materials(self, arg, uid):
         check_for_sim_summary(arg.qcall, uid)
         return PKDict(
-            rows=sirepo.sim_api.cortex.material_db.list_materials(uid=uid),
+            rows=sirepo.sim_api.cortex.material_db.list_materials(
+                uid=uid,
+                model=arg.get(
+                    "model", sirepo.sim_api.cortex.material_db.DEFAULT_LIST_MODEL
+                ),
+            ),
         )
 
     def action_load_cost_input(self, arg, uid):

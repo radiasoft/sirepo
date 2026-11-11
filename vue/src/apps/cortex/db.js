@@ -47,8 +47,8 @@ class DB {
         return await this.#send('insert_material', {}, file);
     }
 
-    async listMaterials() {
-        const r = await this.#send('list_materials');
+    async listMaterials(model) {
+        const r = await this.#send('list_materials', {model});
         if (r.op_result) {
             return r.op_result.rows;
         }

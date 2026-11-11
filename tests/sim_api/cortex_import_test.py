@@ -24,12 +24,13 @@ def test_all(fc):
             file_handle=d.join(_INPUT).open("rb"),
         )
         pkjson.dump_pretty(r, filename="insert.json")
-        if "error" in r:
-            continue
+        # shows nothing is inserted on an error
         pkio.write_text(
             "tables.csv",
             subprocess.check_output(["sqlite3", "-csv", db_path, _SQL], text=True),
         )
+        if "error" in r:
+            continue
         pkdebug.pkdp(r)
         pkjson.dump_pretty(
             fc.sr_post(

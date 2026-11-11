@@ -134,6 +134,41 @@ def test_all():
                 not material_db.cortexdb_path(2001, _REPORT).exists(),
                 "files written for the material of the file name",
             )
+            # the list has the summary values of the model asked for
+            for m, v in (("hcpbSlabAnimation", 1.5), ("wcllSlabAnimation", 2.5)):
+                material_db.update_sim_summary(
+                    PKDict(
+                        material_id=_MATERIAL_ID,
+                        model=m,
+                        version="1.03",
+                        completed=datetime.datetime.now(datetime.timezone.utc),
+                        values=[
+                            PKDict(layer=l, dpa_fpy=v) for l in ("Armor", "First Wall")
+                        ],
+                        plots=[],
+                    ),
+                    uid,
+                )
+            for m, v in (
+                (None, 1.5),
+                ("hcpbSlabAnimation", 1.5),
+                ("wcllSlabAnimation", 2.5),
+                ("hcllSlabAnimation", None),
+            ):
+                pkunit.pkeq(
+                    v,
+                    [
+                        r.get("dpa_fpy")
+                        for r in (
+                            material_db.list_materials(uid, m)
+                            if m
+                            else material_db.list_materials(uid)
+                        )
+                        if r.material_id == _MATERIAL_ID
+                    ][0],
+                )
+            with pkunit.pkexcept("BadRequest"):
+                material_db.list_materials(uid, "notASlabAnimation")
             # a different user can't import a summary for the material
             _write_zip(qcall)
             with pkunit.pkexcept("NoRows"):

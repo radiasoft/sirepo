@@ -1,0 +1,86 @@
+[
+    {
+        "components": {
+            "cr": {
+                "material_component_name": "cr",
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 17.5
+            },
+            "fe": {
+                "material_component_name": "fe",
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 65.65
+            },
+            "ni": {
+                "material_component_name": "ni",
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 16.85
+            }
+        },
+        "density_g_cm3": 8.0,
+        "is_atom_pct": false,
+        "is_plasma_facing": false,
+        "material_name": "316 steel",
+        "properties": {}
+    },
+    {
+        "components": {
+            "cr": {
+                "material_component_name": "cr",
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 29.0
+            },
+            "fe": {
+                "material_component_name": "fe",
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 56.99999999999999
+            },
+            "ni": {
+                "material_component_name": "ni",
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 14.0
+            }
+        },
+        "density_g_cm3": 8.9,
+        "is_atom_pct": false,
+        "is_plasma_facing": true,
+        "material_name": "noise",
+        "properties": {}
+    },
+    {
+        "components": {
+            "fe": {
+                "material_component_name": "fe",
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 100.0
+            }
+        },
+        "density_g_cm3": 7.5,
+        "is_atom_pct": false,
+        "is_plasma_facing": false,
+        "material_name": "zeros",
+        "properties": {}
+    },
+    {
+        "components": {
+            "fe": {
+                "material_component_name": "fe",
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 99.999
+            }
+        },
+        "density_g_cm3": 7.5,
+        "is_atom_pct": false,
+        "is_plasma_facing": true,
+        "material_name": "rounded",
+        "properties": {}
+    }
+]
