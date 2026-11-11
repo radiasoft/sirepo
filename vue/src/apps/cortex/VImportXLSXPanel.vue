@@ -126,14 +126,29 @@
          return errorList;
      };
 
-     isProcessing.value = true;
-     const r = await db.insertMaterial(file);
-     isProcessing.value = false;
-     if (r.error) {
+     const showErrors = (errors) => {
          // many materials can have many errors
-         errorList.value = filterSheets(r.error).slice(0, maxErrors);
-         moreErrors.value = r.error.length - errorList.value.length;
+         errorList.value = filterSheets(errors).slice(0, maxErrors);
+         moreErrors.value = errors.length - errorList.value.length;
          errorsModal.value.showModal();
+     };
+
+     isProcessing.value = true;
+     let r;
+     try {
+         r = await db.insertMaterial(file);
+     }
+     catch (e) {
+         // e.g. the server could not be reached
+         showErrors([{ msg: 'Unable to import the file, please try again' }]);
+         return;
+     }
+     finally {
+         isProcessing.value = false;
+     }
+     if (r.error) {
+         // parse and db errors are a list, an internal error is a single value
+         showErrors(Array.isArray(r.error) ? r.error : [{ msg: r.error.value }]);
          return;
      }
      materialCount.value = r.op_result.materials.length;

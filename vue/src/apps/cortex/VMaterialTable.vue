@@ -1,4 +1,8 @@
 <template>
+    <div v-if="deleteError" class="alert alert-danger alert-dismissible">
+        {{ deleteError }}
+        <button type="button" class="btn-close" v-on:click="deleteError = ''"></button>
+    </div>
     <table class="table table-striped">
         <thead>
             <tr>
@@ -37,7 +41,7 @@
                             <VMaterialLink
                                 v-bind:materialId="mat.material_id"
                                 >
-                                <div class="btn btm-sm btn-info">
+                                <div class="btn btn-sm btn-info">
                                     View
                                 </div>
                             </VMaterialLink>
@@ -45,8 +49,14 @@
                                 type="button"
                                 v-on:click="removeMaterial(mat)"
                                 class="btn btn-danger btn-sm"
+                                v-bind:disabled="deletingId === mat.material_id"
+                                title="Delete"
                             >
-                                <span class="bi bi-trash3"></span>
+                                <span
+                                    v-if="deletingId === mat.material_id"
+                                    class="spinner-border spinner-border-sm"
+                                ></span>
+                                <span v-else class="bi bi-trash3"></span>
                             </button>
                         </div>
                     </div>
@@ -98,6 +108,9 @@
  // a user's materials have wide rows, a user has fewer than the admin batch page
  const PAGE_SIZE = 25;
  const confirmDeleteModal = ref(null);
+ const deleteError = ref('');
+ // the material being deleted
+ const deletingId = ref(null);
  const selectedMaterial = ref(null);
  const { formatValue, formatStd } = useSummary();
 
@@ -139,13 +152,31 @@
 
  const deleteSelectedMaterial = async () => {
      confirmDeleteModal.value.closeModal();
-     await db.deleteMaterial(selectedMaterial.value.material_id);
-     await requestSender.sendRequest("cortexSim", {
-         op_name: 'delete',
-         op_args: {
-             material_id: selectedMaterial.value.material_id,
-         },
-     });
+     const m = selectedMaterial.value;
+     deleteError.value = '';
+     deletingId.value = m.material_id;
+     try {
+         const r = await db.deleteMaterial(m.material_id);
+         if (r.error) {
+             deleteError.value = `Unable to delete ${m.material_name}: ${r.error.value}`;
+             return;
+         }
+         // the material is gone, so remove the row without waiting for the sim or the list
+         state.materials = state.materials.filter((x) => x.material_id !== m.material_id);
+         emit('materialCount', state.materials.length);
+         await requestSender.sendRequest("cortexSim", {
+             op_name: 'delete',
+             op_args: {
+                 material_id: m.material_id,
+             },
+         });
+     }
+     catch (e) {
+         deleteError.value = `Unable to delete ${m.material_name}, please try again`;
+     }
+     finally {
+         deletingId.value = null;
+     }
      _loadMaterials();
  };
 
