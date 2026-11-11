@@ -95,18 +95,11 @@
         </div>
         <div class="col-lg-8">
             <VCortexCard>
-                <ul class="nav nav-tabs mb-3">
-                    <li class="nav-item" v-for="t in tabs" v-bind:key="t">
-                        <button
-                            type="button"
-                            class="nav-link"
-                            v-bind:class="{ active: t === selectedTab }"
-                            v-on:click="selectedTab = t"
-                        >
-                            {{ t }}
-                        </button>
-                    </li>
-                </ul>
+                <VTabs
+                    class="mb-3"
+                    v-bind:items="tabs.map((t) => ({ value: t, label: t }))"
+                    v-model="selectedTab"
+                />
                 <div v-if="selectedTab === tabs[0]">
                     <div v-if="isCalculating">
                         <span class="bi bi-hourglass-split"></span>
@@ -220,6 +213,7 @@
  import VCard from '@/components/VCard.vue';
  import VCortexCard from '@/apps/cortex/VCortexCard.vue';
  import VReportImage from '@/apps/cortex/VReportImage.vue';
+ import VTabs from '@/components/VTabs.vue';
  import { db } from '@/apps/cortex/db.js';
  import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
  import { useRoute } from 'vue-router';

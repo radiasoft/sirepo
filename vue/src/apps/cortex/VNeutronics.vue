@@ -3,7 +3,7 @@
         <VCard
             v-if="isReady"
             v-bind:viewName="isViewing() ? 'simulationStatus' : 'simulationSettings'"
-            v-bind:title="title"
+            v-bind:title="report().title"
         >
             <div v-if="hasPlots" class="float-end">
                 <button
@@ -89,18 +89,13 @@
             </div>
         </VCard>
     </div>
-    <ul v-if="visibleTabs().length > 1" class="nav nav-tabs mb-3">
-        <li class="nav-item" v-for="t in visibleTabs()" v-bind:key="t">
-            <button
-                type="button"
-                class="nav-link"
-                v-bind:class="{ active: t === activeTab() }"
-                v-on:click="selectedTab = t"
-            >
-                {{ t }}
-            </button>
-        </li>
-    </ul>
+    <VTabs
+        v-if="visibleTabs().length > 1"
+        class="mb-3"
+        v-bind:items="visibleTabs().map((t) => ({ value: t, label: t }))"
+        v-bind:modelValue="activeTab()"
+        v-on:update:modelValue="selectTab"
+    />
     <!-- v-show, not v-if, so every report stays mounted for full screen prev/next -->
     <component
         v-bind:is="isTabTitle(section) ? 'div' : VCortexCard"
@@ -150,10 +145,13 @@
  import VCortexCard from '@/apps/cortex/VCortexCard.vue';
  import VNeutronicsSim from '@/apps/cortex/VNeutronicsSim.vue';
  import VReportImage from '@/apps/cortex/VReportImage.vue';
+ import VTabs from '@/components/VTabs.vue';
+ import { REPORTS } from '@/apps/cortex/reports.js';
  import slabUrl from '@/assets/cortex/slab.png';
  import { db } from '@/apps/cortex/db.js';
  import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
  import { useRoute } from 'vue-router';
+ import { useRouteQuery } from '@/components/useRouteQuery.js';
  import { util } from '@/services/util.js';
  import { SUMMARY_COLUMNS, useSummary } from '@/apps/cortex/useSummary.js';
 
@@ -162,7 +160,6 @@
      materialName: String,
      isPlasmaFacing: Boolean,
      neutronics: String,
-     title: String,
  });
  const reportsBySection = reactive({});
  const GEOMETRY_DESCRIPTION = 'Layered slab model: armor, first wall, breeder layers and vacuum vessel. The plots show results through the slab thickness (radial position).';
@@ -186,7 +183,8 @@
  const isLoadingPlots = ref(false);
  const isReady = ref(false);
  const route = useRoute();
- const selectedTab = ref(null);
+ // in the url by its key, e.g. waste-dose-rate, which activeTab() checks is visible
+ const selectedTabKey = useRouteQuery('tab', '');
  const simSummary = ref(null);
 
  const downloadOutputZip = async () => {
@@ -198,7 +196,7 @@
      const u = URL.createObjectURL(b);
      const a = document.createElement('a');
      a.href = u;
-     a.download = util.downloadFilename(`${props.materialName} ${props.title}`, 'zip');
+     a.download = util.downloadFilename(`${props.materialName} ${report().label}`, 'zip');
      a.click();
      URL.revokeObjectURL(u);
  };
@@ -218,7 +216,7 @@
 
  const activeTab = () => {
      const v = visibleTabs();
-     return v.includes(selectedTab.value) ? selectedTab.value : v[0];
+     return v.find((t) => tabKey(t) === selectedTabKey.value) || v[0];
  };
 
  const hasSibling = (report, offset) => {
@@ -319,11 +317,18 @@
          // the report must be on the displayed tab to be visible
          for (const s in reportsBySection) {
              if (reportsBySection[s].includes(r)) {
-                 selectedTab.value = sections[s].tab;
+                 selectTab(sections[s].tab);
              }
          }
          fullscreenKey.value = r.trackBy;
      }
+ };
+
+ const report = () => REPORTS.find((r) => r.name === props.neutronics);
+
+ const selectTab = (tab) => {
+     // the first tab is the default, so it isn't in the url
+     selectedTabKey.value = tab === visibleTabs()[0] ? '' : tabKey(tab);
  };
 
  const siblingReport = (report, offset) => {
@@ -331,6 +336,8 @@
      const l = Object.values(reportsBySection).flat();
      return l[l.indexOf(report) + offset];
  };
+
+ const tabKey = (tab) => tab.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
  const visibleTabs = () => {
      return [...new Set(Object.keys(reportsBySection).map(s => sections[s].tab))];

@@ -37,8 +37,10 @@ export const usePagedList = (
         page.value = 1;
     });
     // a shorter list may leave the page out of range
-    watch(pageCount, (n) => {
-        page.value = Math.min(page.value, n);
+    watch([pageCount, items], () => {
+        if (page.value > pageCount.value) {
+            page.value = pageCount.value;
+        }
     });
 
     return { filter, page, pageCount, pageItems, pageRange, visible };

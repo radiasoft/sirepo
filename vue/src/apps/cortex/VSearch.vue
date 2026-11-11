@@ -76,9 +76,14 @@
  import { db } from '@/apps/cortex/db.js';
  import { onMounted } from 'vue';
  import { ref } from 'vue';
+ import { useRouteQuery } from '@/components/useRouteQuery.js';
 
- const filter = ref('');
- const report = ref(DEFAULT_REPORT);
+ // in the url, so refresh, Back and links show the same list. The page isn't,
+ // because it depends on the sort, which isn't either.
+ const filter = useRouteQuery('q', '');
+ const report = useRouteQuery('sim', DEFAULT_REPORT, {
+     isValid: (v) => REPORTS.some((r) => r.name === v),
+ });
  const materialCount = ref(0);
  const page = ref(1);
  const pageCount = ref(1);
