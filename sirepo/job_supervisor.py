@@ -1431,4 +1431,12 @@ def _exception_reply(exc):
                 _REPLY_ERROR_STATE: exc.sr_args.error,
             }
         )
+    if isinstance(exc, sirepo.util.NotFound):
+        # e.g. a frame request for a previous run, which isn't an internal error
+        return PKDict(
+            {
+                _REPLY_STATE: _REPLY_ERROR_STATE,
+                _REPLY_ERROR_STATE: "not found",
+            }
+        )
     raise AssertionError(f"Reply class={exc.__class__.__name__} unknown exc={exc}")
