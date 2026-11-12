@@ -279,10 +279,10 @@ def stateful_compute_import_file(data, **kwargs):
         )
     res = sirepo.simulation_db.default_data(SIM_TYPE)
     res.models.simulation.name = data.args.purebasename
-    return PKDict(imported_data=_parse_namelist(res, text))
+    return _parse_namelist(res, text)
 
 
-def validate_file(file_type, path):
+def validate_file(file_type, path, **kwargs):
     if file_type == "io-partfile":
         if pkio.is_pure_text(path):
             return "The PARTFILE should be a binary file. Use the DISTFILE to import a text file."
@@ -406,7 +406,7 @@ def _get_frame_counts(run_dir):
     )
     with pkio.open_text(run_dir.join(GENESIS_OUTPUT_FILE)) as f:
         for line in f:
-            m = re.match("^\s*(\d+) (\w+): records in z", line)
+            m = re.match(r"^\s*(\d+) (\w+): records in z", line)
             if m:
                 res[m.group(2)] = int(m.group(1))
                 if m.group(1) == "field":
@@ -446,7 +446,6 @@ def _parse_namelist(data, text):
         nl["wcoefz1"] = nl["wcoefz"][0]
         nl["wcoefz2"] = nl["wcoefz"][1]
         nl["wcoefz3"] = nl["wcoefz"][2]
-    missing_files = []
     for m in SCHEMA.model:
         for f in SCHEMA.model[m]:
             if f not in nl:
@@ -456,17 +455,8 @@ def _parse_namelist(data, text):
                 v = v[-1]
             t = SCHEMA.model[m][f][1]
             if t == "InputFile":
-                if not _SIM_DATA.lib_file_exists(
-                    _SIM_DATA.lib_file_name_with_model_field(m, f, v),
-                ):
-                    missing_files.append(
-                        PKDict(
-                            filename=v,
-                            file_type="{}-{}".format(m, f),
-                        )
-                    )
-                else:
-                    dm.io[f] = v
+                dm.io[f] = _SIM_DATA.lib_file_name_without_type(v, m, f)
+                continue
             d = dm[m]
             if t == "Float":
                 d[f] = float(v)
@@ -487,14 +477,10 @@ def _parse_namelist(data, text):
                 d[f] = "0" if int(v) == 0 else "1"
             elif t == "TaperModel":
                 d[f] = "1" if int(v) == 1 else "2" if int(v) == 2 else "0"
-    # TODO(pjm): remove this if scanning is implemented in the UI
-    if missing_files:
-        return PKDict(
-            error="Missing data files",
-            missingFiles=missing_files,
-        )
     dm.scan.iscan = "0"
-    return data
+    return PKDict(
+        imported_data=data,
+    )
 
 
 def _particle_plot(frame_args, filename):

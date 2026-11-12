@@ -6,18 +6,13 @@ execution_mode = 'serial'
 lattice_file = """
 % 180 pi / sto degrad
 % pi 180 / sto raddeg
-% 1 sto sr_alpha_x
-% 1 sto sr_alpha_y
-% 10 sto sr_beta_x
-% 10 sto sr_beta_y
 % 0.0 sto sr_dp_s_coupling
-% 1 sr_alpha_x sr_alpha_x * + sr_beta_x / sto sr_gamma_x
-% 1 sr_alpha_y sr_alpha_y * + sr_beta_y / sto sr_gamma_y
+% 1 sto sr_match_twiss_parameters
 % 10000 sto sr_n_particles_per_bunch
 % pi 2 * sto twopi
 
-"B34": CSBEND,angle=0.138599675893667,e1=0.069299837946834,e2=0.069299837946834,k1=-0.33,k2=0.1415,l=1.08837093518965
-"BEND": CSBEND,angle=0.184799567858223,e1=0.092399783929112,e2=0.092399783929112,k1=-0.33,k2=0.1415,l=1.45206533937021
+"B34": CSBEND,angle=0.138599675893667,e1=0.069299837946834,e2=0.069299837946834,edge_order=2,k1=-0.33,k2=0.1415,l=1.08837093518965
+"BEND": CSBEND,angle=0.184799567858223,e1=0.092399783929112,e2=0.092399783929112,edge_order=2,k1=-0.33,k2=0.1415,l=1.45206533937021
 "BL10": DRIF
 "BL11": DRIF
 "BL12": DRIF
@@ -52,20 +47,20 @@ lattice_file = """
 "SQSE": DRIF,l=0.25
 "SQSW": DRIF,l=0.25
 "HCOR": HKICK,l=0.1
+"QD": KQUAD,k1=-1.569398098382,l=0.15,n_slices=19
+"QDX": KQUAD,k1=-1.37118218444,l=0.34,n_slices=40
+"QDY": KQUAD,k1=-0.439037182042,l=0.34,n_slices=23
+"QDZ": KQUAD,k1=-0.780124438508,l=0.34,n_slices=31
+"QF": KQUAD,k1=1.824535892328,l=0.34,n_slices=46
+"QFC": KQUAD,k1=1.786614917998,l=0.25,n_slices=34
+"QFX": KQUAD,k1=1.531422437496,l=0.6,n_slices=75
+"QFY": KQUAD,k1=1.317793654731,l=0.5,n_slices=58
+"QFZ": KQUAD,k1=1.41081398507,l=0.34,n_slices=41
+"SD": KSEXT,k2=-36.3607602054839,l=0.25
+"SDI": KSEXT,k2=-10,l=0.21
+"SF": KSEXT,k2=29.6547246115592,l=0.21
+"SFI": KSEXT,k2=9,l=0.21
 "BPM": MONI
-"QD": QUAD,k1=-1.569398098382,l=0.15
-"QDX": QUAD,k1=-1.37118218444,l=0.34
-"QDY": QUAD,k1=-0.439037182042,l=0.34
-"QDZ": QUAD,k1=-0.780124438508,l=0.34
-"QF": QUAD,k1=1.824535892328,l=0.34
-"QFC": QUAD,k1=1.786614917998,l=0.25
-"QFX": QUAD,k1=1.531422437496,l=0.6
-"QFY": QUAD,k1=1.317793654731,l=0.5
-"QFZ": QUAD,k1=1.41081398507,l=0.34
-"SD": SEXT,k2=-36.3607602054839,l=0.25
-"SDI": SEXT,k2=-10,l=0.21
-"SF": SEXT,k2=29.6547246115592,l=0.21
-"SFI": SEXT,k2=9,l=0.21
 "VCOR": VKICK,l=0.1
 "HVCOR": LINE=("HCOR","VCOR")
 "HCEL1": LINE=("DC1","QF","DC2","HVCOR","BPM","DC2","QD","DC3","BEND","DC4","SD","DC5","BPM","HVCOR","DC5","SF","DC6","BPM","QFC")
@@ -101,14 +96,9 @@ elegant_file = """
 
 &twiss_output
   filename = "twiss_output.filename.sdds",
-  matched = 0,
 &end
 
 &bunched_beam
-  alpha_x = 1,
-  alpha_y = 1,
-  beta_x = 10,
-  beta_y = 10,
   distribution_cutoff[0] = 3, 3, 3,
   emit_x = 4.6e-08,
   emit_y = 4.6e-08,
@@ -116,6 +106,7 @@ elegant_file = """
   n_particles_per_bunch = 10000,
   sigma_dp = 0.001,
   sigma_s = 0.00065,
+  use_twiss_command_values = 1,
 &end
 
 &track

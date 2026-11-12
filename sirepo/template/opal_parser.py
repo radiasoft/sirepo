@@ -246,6 +246,15 @@ class OpalParser(lattice.LatticeParser):
         self.data.models.elements = elements
 
     def __set_element_positions(self, code_var):
+        def _position(el):
+            if "origin" in el:
+                p = self.__split_values(el.origin)[2]
+            else:
+                p = el.get("elemedge", el.get("z", 0))
+            return PKDict(
+                elemedge=p,
+            )
+
         beamline_ids = []
         for beamline in self.data.models.beamlines:
             beamline_ids.append(beamline.id)
@@ -261,11 +270,7 @@ class OpalParser(lattice.LatticeParser):
                         )
                     )
                 else:
-                    positions.append(
-                        PKDict(
-                            elemedge=el.get("elemedge", el.get("z", 0)),
-                        )
-                    )
+                    positions.append(_position(el))
             beamline.positions = positions
         for beamline in self.data.models.beamlines:
             if "origin" in beamline:
@@ -322,7 +327,7 @@ class OpalParser(lattice.LatticeParser):
                     elif el_schema[f][1] == "InputFile" and el[f]:
                         if update_filenames:
                             el[f] = self.sim_data.lib_file_name_without_type(
-                                os.path.basename(el[f])
+                                os.path.basename(el[f]), model_name, f
                             )
                         filename = self.sim_data.lib_file_name_with_model_field(
                             model_name, f, el[f]
@@ -344,6 +349,8 @@ class OpalParser(lattice.LatticeParser):
 
 def parse_file(lattice_text, filename=None, update_filenames=True):
     res, files = OpalParser().parse_file(lattice_text, update_filenames)
+    if not len(res.models.beamlines):
+        raise AssertionError("No beamlines parsed from OPAL input file")
     set_simulation_name(res, filename)
     return res, files
 
@@ -357,5 +364,5 @@ def set_simulation_name(data, filename):
         else:
             commands.append(cmd)
     data.models.commands = commands
-    if not data.models.simulation.name:
+    if not data.models.simulation.name and filename:
         data.models.simulation.name = re.sub(r"\..*$", "", os.path.basename(filename))

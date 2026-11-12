@@ -1,0 +1,6 @@
+[
+    {
+        "msg": "missing header row starting with Name in sheet=Composition for multiple materials, or sheet=Metadata and Settings for a single material",
+        "sheet": "Composition"
+    }
+]

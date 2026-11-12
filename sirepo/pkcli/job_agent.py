@@ -82,6 +82,8 @@ def start():
             pkio.py_path,
             "directory of fastcfgi socket, must be less than 50 chars",
         ),
+        mpich_shm_clean_up=(False, bool, "mpich4 orphans shm; see sirepo#7741"),
+        no_hdf5_do_mpi_file_sync=(False, bool, "turn off hdf5 file sync"),
         start_delay=(0, pkconfig.parse_seconds, "delay startup in internal_test mode"),
         global_resources_server_token=pkconfig.Required(
             str,
@@ -613,6 +615,13 @@ class _Cmd(PKDict):
         self.destroy()
 
     def destroy(self, terminating=False):
+        def _mpich_shm_clean_up():
+            if not self.msg.get("isParallel") or terminating:
+                return
+            # POSIT: only one parallel process per parallel job agent.
+            # Running inside a container.
+            pkio.unchecked_remove(*pkio.sorted_glob("/dev/shm/*"))
+
         if self._destroying:
             return
         if self.dispatcher.fastcgi_cmd == self:
@@ -626,6 +635,8 @@ class _Cmd(PKDict):
             self.dispatcher.cmds.remove(self)
         except ValueError:
             pass
+        if _cfg.mpich_shm_clean_up:
+            _mpich_shm_clean_up()
 
     def format_op(self, **kwargs):
         return self.dispatcher.format_op(
@@ -654,16 +665,16 @@ class _Cmd(PKDict):
         )
 
     def job_cmd_env(self, env=None):
-        return job.agent_env(
-            env=(env or PKDict()).pksetdefault(
-                SIREPO_GLOBAL_RESOURCES_SERVER_TOKEN=_cfg.global_resources_server_token,
-                SIREPO_GLOBAL_RESOURCES_SERVER_URI=_cfg.global_resources_server_uri,
-                SIREPO_MPI_CORES=self.msg.get("mpiCores", 1),
-                SIREPO_SIM_DB_FILE_SERVER_TOKEN=_cfg.sim_db_file_server_token,
-                SIREPO_SIM_DB_FILE_SERVER_URI=_cfg.sim_db_file_server_uri,
-            ),
-            uid=self._uid,
+        e = (env or PKDict()).pksetdefault(
+            SIREPO_GLOBAL_RESOURCES_SERVER_TOKEN=_cfg.global_resources_server_token,
+            SIREPO_GLOBAL_RESOURCES_SERVER_URI=_cfg.global_resources_server_uri,
+            SIREPO_MPI_CORES=self.msg.get("mpiCores", 1),
+            SIREPO_SIM_DB_FILE_SERVER_TOKEN=_cfg.sim_db_file_server_token,
+            SIREPO_SIM_DB_FILE_SERVER_URI=_cfg.sim_db_file_server_uri,
         )
+        if _cfg.no_hdf5_do_mpi_file_sync:
+            e.HDF5_DO_MPI_FILE_SYNC = "FALSE"
+        return job.agent_env(env=e, uid=self._uid)
 
     def job_cmd_source_bashrc(self):
         if sirepo.feature_config.cfg().trust_sh_env:
@@ -1113,6 +1124,7 @@ sirepo.sim_data.get_class('{self.msg.data.simulationType}').sim_run_dir_prepare(
             "run.bash",
             f"""#!/bin/bash
 set -eou pipefail
+{self.job_cmd_env()}
 {_sim_prepare_cmd()}
 {_sbatch_cmd()}
 """,

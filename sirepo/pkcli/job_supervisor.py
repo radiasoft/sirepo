@@ -9,6 +9,7 @@ from pykern import pkio
 from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog, pkdexc, pkdc
+import aiofiles
 import asyncio
 import signal
 import sirepo.const
@@ -84,6 +85,14 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
     def on_close(self):
         try:
             d = getattr(self, "sr_driver", None)
+            # close_code is None if the connection dropped without a close frame
+            # (e.g. ping timeout, network failure)
+            pkdlog(
+                "close_code={} close_reason={} driver={}",
+                self.close_code,
+                self.close_reason,
+                d,
+            )
             if d:
                 del self.sr_driver
                 d.websocket_on_close()
@@ -197,7 +206,8 @@ class _DataFileReq(tornado.web.RequestHandler):
         assert d.check(dir=True), "directory does not exist={}".format(d)
         # (tornado ensures no '..' and '.'), but a bit of sanity doesn't hurt
         assert not f.startswith("."), "invalid file={}".format(f)
-        d.join(f).write_binary(self.request.body)
+        async with aiofiles.open(d.join(f), "wb") as f:
+            await f.write(self.request.body)
 
 
 async def _terminate():

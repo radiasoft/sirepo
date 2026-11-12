@@ -7,16 +7,6 @@
 from pykern.pkdebug import pkdc, pkdp, pkdlog, pkdexc
 
 
-def test_activait_logparser():
-    from sirepo.template import activait
-
-    _case(
-        "Descriptors cannot be created directly.\n",
-        "activait1.txt",
-        parser_function=activait._parse_activate_log,
-    )
-
-
 def test_epicsllrf_logparser():
     from sirepo.template import epicsllrf
 
@@ -99,21 +89,6 @@ def test_shadow_logparser():
     )
 
 
-def test_silas_logparser():
-    from sirepo.template import silas
-
-    _case(
-        "Point evaulated outside of mesh boundary. Consider increasing Mesh Density or Boundary Tolerance.",
-        "silas1.txt",
-        parser_object=silas._SilasLogParser,
-    )
-    _case(
-        "An unknown error occurred",
-        "unknown_error_case.txt",
-        parser_object=silas._SilasLogParser,
-    )
-
-
 def test_srw_logparser():
     from sirepo.template import template_common
 
@@ -124,17 +99,6 @@ def test_srw_logparser():
         "SRW can not compute this case. Longitudinal position of the Observation Plane is within the Integration limits.\n",
         "srw2.txt",
         parser_object=template_common.LogParser,
-    )
-
-
-def test_zgoubi_logparser():
-    from sirepo.template import zgoubi
-
-    _case("", "unknown_error_case.txt", parser_function=zgoubi._parse_zgoubi_log)
-    _case(
-        "example fortran runtime error\n",
-        "zgoubi1.txt",
-        parser_function=zgoubi._parse_zgoubi_log,
     )
 
 

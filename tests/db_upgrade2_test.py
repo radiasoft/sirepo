@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """auth_db db upgrade
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
@@ -10,7 +9,6 @@ _UID_WITH_FLASH_ROLE = "pzHuDps6"
 
 
 def setup_module(module):
-    from sirepo import srunit
     import os
 
     os.environ.update(

@@ -23,7 +23,7 @@ class BrowserStorage {
 
     getString(name, defaultValue=null) {
         const rv = localStorage.getItem(name);
-        return rv == null ? defaultValue : rv;
+        return rv === null ? defaultValue : rv;
     }
 
     removeItem(name) {

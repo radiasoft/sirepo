@@ -1,0 +1,8 @@
+beam, particle=electron, pc=0.1;
+q1: quadrupole, l=0.2, k1=1, k1s=1;
+q2: quadrupole, l=0.2, k1s=2, tilt=0.1;
+s1: sextupole, l=0.1, k2s=3;
+o1: octupole, l=0.1, k3=-4, k3s=4;
+b1: sbend, l=1, angle=0.1, fint=0.5, fintx=0.3;
+b2: sbend, l=1, angle=0.1, fint=0.4;
+bl: line=(q1,q2,s1,o1,b1,b2);

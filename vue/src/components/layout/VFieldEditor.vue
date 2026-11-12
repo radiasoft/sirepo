@@ -116,7 +116,7 @@
 
  //TODO(pjm): move to a utility
  const formatExponential = (value) => {
-     if (Math.abs(value) >= 10000 || (value != 0 && Math.abs(value) < 0.001)) {
+     if (Math.abs(value) >= 10000 || (value !== 0 && Math.abs(value) < 0.001)) {
          value = (+value).toExponential(9).replace(/\.?0+e/, 'e');
      }
      return value;

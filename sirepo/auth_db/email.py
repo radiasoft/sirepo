@@ -4,7 +4,6 @@
 :copyright: Copyright (c) 2022 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import datetime
 import sirepo.auth_db
@@ -48,13 +47,6 @@ class AuthEmailUser(sirepo.auth_db.UserDbBase):
     def create_token(self):
         self.expires = sirepo.srtime.utc_now() + _EXPIRES_DELTA
         self.token = sirepo.util.create_token(self.unverified_email)
-
-    def delete_changed_email(self, user):
-        cls = self.__class__
-        self.query().filter(
-            (cls.user_name == user.unverified_email),
-            cls.unverified_email != user.unverified_email,
-        ).delete()
 
     def unchecked_uid(self, **filter_by):
         u = self.unchecked_search_by(**filter_by)

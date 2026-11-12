@@ -24,9 +24,8 @@ import sirepo.sim_data
 import sirepo.sim_run
 import subprocess
 
+OPENMC_CACHE_DIR = "openmc-cache"
 STANDARD_MATERIALS_DB = "pnnl-materials.h5"
-_STANDARD_MATERIALS_DB_GZ = f"{STANDARD_MATERIALS_DB}.gz"
-_OPENMC_CACHE_DIR = "openmc-cache"
 _STANDARD_MATERIAL_CACHE_DIR = "openmc-standard-materials"
 _OUTLINES_FILE = "outlines.h5"
 _PREP_SBATCH_PREFIX = "prep-sbatch"
@@ -110,6 +109,35 @@ def prepare_for_save(data, qcall):
 
 def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data, qcall=qcall)
+
+
+def remote_datafile_path(filename, compress=True):
+    """Download and cache file from sirepo data repo"""
+
+    def _remote_uri(base):
+        return "/".join(
+            [
+                sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
+                base,
+            ]
+        )
+
+    m = sirepo.sim_run.cache_dir(_STANDARD_MATERIAL_CACHE_DIR).join(filename)
+    if m.exists():
+        return m
+    n = f"{filename}.gz" if compress else filename
+
+    if not _SIM_DATA.lib_file_exists(n):
+        c = _SIM_DATA.sim_db_client()
+        c.save_from_url(_remote_uri(n), c.uri(_SIM_DATA.LIB_DIR, n))
+
+    if compress:
+        with gzip.open(str(_SIM_DATA.lib_file_abspath(n)), "rb") as f_in:
+            with open(str(m), "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
+    else:
+        shutil.copy2(str(_SIM_DATA.lib_file_abspath(n)), str(m))
+    return m
 
 
 def sim_frame(frame_args):
@@ -246,18 +274,6 @@ def stateful_compute_verify_geometry(data, **kwargs):
     )
 
 
-def stateful_compute_download_remote_lib_file(data, **kwargs):
-    _SIM_DATA.lib_file_save_from_url(
-        "{}/{}".format(
-            sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
-            data.args.exampleURL,
-        ),
-        "geometryInput",
-        "dagmcFile",
-    )
-    return PKDict()
-
-
 def stateful_compute_get_standard_material_names(data, **kwargs):
     res = []
     with _standard_material_open() as f:
@@ -337,7 +353,7 @@ def stateless_compute_validate_material_name(data, **kwargs):
     return res
 
 
-def validate_file(file_type, path):
+def validate_file(file_type, path, **kwargs):
     if file_type == "geometryInput-dagmcFile":
         t = _SIM_DATA.get_input_file_type(str(path))
         if t == _SIM_DATA.INPUT_DAGMC and not h5py.is_hdf5(path):
@@ -376,7 +392,7 @@ def write_parameters(data, run_dir, is_parallel):
             template_common.render_jinja(
                 SIM_TYPE,
                 PKDict(
-                    cacheDir=sirepo.sim_run.cache_dir(_OPENMC_CACHE_DIR),
+                    cacheDir=sirepo.sim_run.cache_dir(OPENMC_CACHE_DIR),
                     numThreads=data.models.openmcAnimation.ompThreads,
                     saveWeightWindowsFile=_generate_save_weight_windows(data),
                 ),
@@ -767,7 +783,7 @@ def _generate_parameters_file(data, run_dir=None, qcall=None):
         v.materialDirectory = "."
         v.isSBATCH = False
     else:
-        v.materialDirectory = sirepo.sim_run.cache_dir(_OPENMC_CACHE_DIR)
+        v.materialDirectory = sirepo.sim_run.cache_dir(OPENMC_CACHE_DIR)
         v.isSBATCH = _is_sbatch_run_mode(data)
     if data.models.settings.materialDefinition == "mgxs":
         v.mgxsFile = _SIM_DATA.lib_file_name_with_model_field(
@@ -789,6 +805,7 @@ def _generate_parameters_file(data, run_dir=None, qcall=None):
     v.materials = _generate_materials(data, errors)
     v.sources = _generate_sources(data, errors, qcall)
     v.sourceFile = _source_filename(data)
+    v.materialLibraries = _generate_material_library_selection(data)
     v.maxSampleSourceParticles = SCHEMA.model.openmcAnimation.numSampleSourceParticles[
         5
     ]
@@ -820,6 +837,14 @@ def _generate_energy_range(filter):
         start = numpy.log10(start)
         stop = numpy.log10(stop)
     return "numpy.{}({}, {}, {})".format(space, start, stop, filter.num)
+
+
+def _generate_material_library_selection(data):
+    res = [data.models.settings.materialLibrary]
+    for e in SCHEMA.enum.MaterialLibrary:
+        if res[0] != e[0]:
+            res.append(e[0])
+    return ", ".join([f'"{v}"' for v in res])
 
 
 def _generate_run_mode(data, v):
@@ -1053,7 +1078,7 @@ def _parse_run_stats(run_dir, out):
                 res.append(g.strip())
         return res
 
-    RE_F = "\d*\.\d+"
+    RE_F = r"\d*\.\d+"
     log = run_dir.join(template_common.RUN_LOG)
     if not log.exists():
         return
@@ -1200,24 +1225,7 @@ def _standard_material_open():
 
 
 def _standard_material_path():
-    def _remote_uri(base):
-        return "/".join(
-            sirepo.feature_config.for_sim_type(SIM_TYPE).data_storage_url,
-            base,
-        )
-
-    m = sirepo.sim_run.cache_dir(_STANDARD_MATERIAL_CACHE_DIR).join(
-        STANDARD_MATERIALS_DB
-    )
-    if m.exists():
-        return m
-    n = STANDARD_MATERIALS_DB_GZ
-    if not _SIM_DATA.lib_file_exists(n):
-        c = _SIM_DATA.sim_db_client(n)
-        c.save_from_url(_remote_uri(), c.uri(_SIM_DATA.LIB_DIR, n))
-    with gzip.open(str(_SIM_DATA.lib_file_abspath(n)), "rb") as f:
-        m.write_binary(f)
-    return m
+    return remote_datafile_path(STANDARD_MATERIALS_DB)
 
 
 def _statepoint_filename(data, frame_index=None):

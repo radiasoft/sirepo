@@ -36,6 +36,18 @@ class UserRole(sirepo.auth_db.UserDbBase):
         e = sirepo.util.plan_role_expiration(role)
         if expiration:
             e = expiration
+        # check active plan, warn and expire them
+        if r := self.unchecked_active_plan(uid):
+            if r.role != role:
+                pkdlog(
+                    "user {} had existing active plan: [{}, {}], expiring now before applying new plan: [{}, {}]",
+                    uid,
+                    r.role,
+                    r.expiration,
+                    role,
+                    e,
+                )
+                self.expire_role(r.role, uid)
         self.add_roles([role], uid, expiration=e)
 
     def add_roles(self, roles, uid, expiration=None):
@@ -47,13 +59,10 @@ class UserRole(sirepo.auth_db.UserDbBase):
                 raise AssertionError(f"no single letter role={r}")
             # Check here, because sqlite doesn't throw IntegrityErrors
             # at the point of the new() operation.
-            if x := self._has_role(r, uid):
-                x.expiration = expiration
-            try:
-                # The save() is probably what throws the integrity constraint
-                self.new(uid=uid, role=r, expiration=expiration).save()
-            except sqlalchemy.exc.IntegrityError:
+            if self._has_role(r, uid):
                 self.set_role_expiration(r, uid, expiration)
+            else:
+                self.new(uid=uid, role=r, expiration=expiration).save()
         sim_data.audit_proprietary_lib_files(qcall=self.auth_db.qcall, uid=uid)
 
     def delete_roles(self, roles, uid):
@@ -84,19 +93,7 @@ class UserRole(sirepo.auth_db.UserDbBase):
         ]
 
     def has_active_plan(self, uid):
-        cls = self.__class__
-        return bool(
-            self.query()
-            .filter(
-                cls.role.in_(sirepo.auth_role.PLAN_ROLES),
-                cls.uid == uid,
-                sqlalchemy.or_(
-                    cls.expiration.is_(None),
-                    cls.expiration > sirepo.srtime.utc_now(),
-                ),
-            )
-            .first()
-        )
+        return bool(self.unchecked_active_plan(uid))
 
     def has_active_role(self, role, uid):
         r = self._has_role(role, uid)
@@ -128,6 +125,21 @@ class UserRole(sirepo.auth_db.UserDbBase):
             .distinct()
             .all()
         ]
+
+    def unchecked_active_plan(self, uid):
+        cls = self.__class__
+        return (
+            self.query()
+            .filter(
+                cls.role.in_(sirepo.auth_role.PLAN_ROLES),
+                cls.uid == uid,
+                sqlalchemy.or_(
+                    cls.expiration.is_(None),
+                    cls.expiration > sirepo.srtime.utc_now(),
+                ),
+            )
+            .first()
+        )
 
     def _has_role(self, role, uid):
         return self.unchecked_search_by(uid=uid, role=role)

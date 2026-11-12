@@ -80,6 +80,48 @@ def test_elegant_from_madx():
         )
 
 
+def test_dipedge_and_aperture_from_madx():
+    from pykern import pkio
+    from pykern import pkjson
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
+    from sirepo import srunit
+    from sirepo.template.canvas import CanvasMadxConverter
+    from sirepo.template.elegant import ElegantMadxConverter
+    from sirepo.template.impactx import ImpactxMadxConverter
+    from sirepo.template.opal import OpalMadxConverter
+
+    with pkunit.save_chdir_work():
+        t = pkio.read_text(pkunit.data_dir().join("dipedge_aperture.madx"))
+        with srunit.quest_start() as qcall:
+            for n, c in PKDict(
+                canvas=CanvasMadxConverter,
+                elegant=ElegantMadxConverter,
+                impactx=ImpactxMadxConverter,
+                opal=OpalMadxConverter,
+            ).items():
+                d = c(qcall=qcall).from_madx_text(t)
+                pkunit.file_eq(
+                    f"dipedge_aperture_{n}.json",
+                    actual=PKDict(
+                        beamlines=d.models.beamlines,
+                        elements=d.models.elements,
+                    ),
+                )
+
+
+def test_elegant_cavities_from_madx_and_back():
+    _elegant_from_madx_and_back("elegant_cavities")
+
+
+def test_elegant_fields_from_madx_and_back():
+    _elegant_from_madx_and_back("elegant_fields")
+
+
+def test_elegant_matrix_multipole_from_madx_and_back():
+    _elegant_from_madx_and_back("elegant_matrix_multipole")
+
+
 def test_import_opal_export_madx():
     _opal_to_madx("test2")
 
@@ -92,11 +134,64 @@ def test_import_opal_export_madx_pow():
     _opal_to_madx("test3")
 
 
-def _example_data(simulation_name):
-    from sirepo import simulation_db
-    from sirepo.template import elegant
+def test_import_opal_multipole_export_madx():
+    _opal_to_madx("opal_multipole")
 
-    for data in simulation_db.examples(elegant.SIM_TYPE):
+
+def test_rftrack_to_madx():
+    from pykern import pkunit
+    from sirepo import srunit
+    from sirepo.template.rftrack import RftrackMadxConverter
+    import sirepo.util
+
+    with pkunit.save_chdir_work():
+        with srunit.quest_start() as qcall:
+            for name in (
+                "AWA Zone #2",
+                "CERN Linac4 CCDTL",
+                "Corrector Steering Line",
+                "X-band Linac FODO Cell",
+            ):
+                pkunit.file_eq(
+                    "rftrack-"
+                    + name.lower().replace(" ", "-").replace("#", "")
+                    + ".madx",
+                    actual=RftrackMadxConverter(qcall=qcall).to_madx_text(
+                        _example_data(name, "rftrack")
+                    ),
+                )
+            with pkunit.pkexcept(sirepo.util.UserAlert):
+                RftrackMadxConverter(qcall=qcall).to_madx(
+                    _example_data("AWA Zone #1", "rftrack")
+                )
+
+
+def _elegant_from_madx_and_back(basename):
+    from pykern import pkio
+    from pykern import pkunit
+    from sirepo import srunit
+    from sirepo.template import elegant
+    from sirepo.template.elegant import ElegantMadxConverter
+
+    with pkunit.save_chdir_work():
+        with srunit.quest_start() as qcall:
+            data = ElegantMadxConverter(qcall=qcall).from_madx_text(
+                pkio.read_text(pkunit.data_dir().join(f"{basename}.madx"))
+            )
+            pkunit.file_eq(
+                f"{basename}.lte",
+                actual=elegant.python_source_for_model(data, model=None, qcall=qcall),
+            )
+            pkunit.file_eq(
+                f"{basename}_back.madx",
+                actual=ElegantMadxConverter(qcall=qcall).to_madx_text(data),
+            )
+
+
+def _example_data(simulation_name, sim_type="elegant"):
+    from sirepo import simulation_db
+
+    for data in simulation_db.examples(sim_type):
         if data.models.simulation.name == simulation_name:
             return simulation_db.fixup_old_data(data)[0]
     raise AssertionError(f"failed to find example={simulation_name}")

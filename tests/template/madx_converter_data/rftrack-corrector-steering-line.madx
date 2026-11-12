@@ -1,0 +1,20 @@
+title, "Corrector Steering Line";
+
+REAL sr_alpha_x = 0.0;
+REAL sr_alpha_y = 0.0;
+REAL sr_beta_x = 1.0;
+REAL sr_beta_y = 1.0;
+REAL sr_gamma_x = (1 + sr_alpha_x * sr_alpha_x) / sr_beta_x;
+REAL sr_gamma_y = (1 + sr_alpha_y * sr_alpha_y) / sr_beta_y;
+REAL sr_n_particles_per_bunch = 10000;
+
+D1: DRIFT,l=1;
+D2: DRIFT,l=1;
+COR1: KICKER,aperture={0.015},hkick=-0.0014989622899999999,l=0.1,vkick=-0.000899377374;
+BL1: LINE=(D1,COR1,D2);
+
+
+beam,ex=5.109989499999999e-09,ey=5.109989499999999e-09,npart=6241509074.460763,particle=electron,pc=0.1,sige=0.000999986944259338,sigt=0.001;
+use,sequence=BL1;
+twiss,alfx=sr_alpha_x,alfy=sr_alpha_y,betx=sr_beta_x,bety=sr_beta_y,file="twiss.file.tfs";
+

@@ -1,0 +1,31 @@
+title, "";
+
+REAL sr_alpha_x = 0.0;
+REAL sr_alpha_y = 0.0;
+REAL sr_gamma = 195.69768175898784;
+REAL sr_beta = sqrt(1 - (1 / (sr_gamma * sr_gamma)));
+REAL sr_beta_x = 47.019849021294235;
+REAL sr_beta_y = 44.25212986837831;
+REAL sr_brho = 0.3335640951979142;
+REAL sr_gamma_x = (1 + sr_alpha_x * sr_alpha_x) / sr_beta_x;
+REAL sr_gamma_y = (1 + sr_alpha_y * sr_alpha_y) / sr_beta_y;
+REAL sr_n_particles_per_bunch = 30000;
+
+C1: ECOLLIMATOR,l=0.1,xsize=0.01,ysize=0.02;
+C3: ECOLLIMATOR,l=0.1,xsize=0.05,ysize=0.05;
+MP: MARKER;
+Q1: QUADRUPOLE,aperture={0.02, 0.03},apertype=ellipse,k1=2.0,l=0.2;
+C2: RCOLLIMATOR,l=0.1,xsize=0.03,ysize=0.04;
+RF: RFCAVITY,freq=1300.0,l=0.5,lag=0.25,volt=1.0;
+B1: SBEND,angle=0.3,hgap=0.01,l=1.0;
+B2: SBEND,angle=0.3,hgap=0.02,l=1.0;
+B3: SBEND,angle=0.3,l=1.0;
+S1: SOLENOID,ks=0.5,l=0.2;
+TW: TWCAVITY,freq=2856.0,l=2.0,lag=0.8,volt=10.0;
+BL: LINE=(MP,C1,C2,C3,Q1,S1,B1,B2,B3,RF,TW);
+
+
+beam,ex=4.612544521926887e-07,ey=4.372862761443655e-07,particle=electron,pc=0.1,sige=0.0010000000430492187,sigt=0.0001807793602084439;
+use,sequence=bl;
+twiss,alfx=sr_alpha_x,alfy=sr_alpha_y,betx=sr_beta_x,bety=sr_beta_y,file="twiss.file.tfs";
+

@@ -1,0 +1,24 @@
+title, "";
+
+REAL sr_alpha_x = 0;
+REAL sr_alpha_y = 0;
+REAL sr_beta_x = 1.0;
+REAL sr_beta_y = 1.0;
+REAL sr_dp_s_coupling = 0;
+REAL sr_gamma_x = (1 + sr_alpha_x * sr_alpha_x) / sr_beta_x;
+REAL sr_gamma_y = (1 + sr_alpha_y * sr_alpha_y) / sr_beta_y;
+REAL sr_n_particles_per_bunch = 5000;
+
+O1: OCTUPOLE,k3=5.656854249492381,l=0.1,tilt=0.5890486225480862;
+Q1: QUADRUPOLE,k1=1.4142135623730951,l=0.2,tilt=0.39269908169872414;
+Q2: QUADRUPOLE,k1=2.0,l=0.2,tilt=0.8853981633974483;
+B1: SBEND,angle=0.1,fint=0.5,fintx=0.3,l=1.0;
+B2: SBEND,angle=0.1,fint=0.4,l=1.0;
+S1: SEXTUPOLE,k2=3.0,l=0.1,tilt=0.5235987755982988;
+BL: LINE=(Q1,Q2,S1,O1,B1,B2);
+
+
+beam,ex=4.6e-08,ey=4.6e-08,particle=electron,pc=0.1,sigt=0.0006500084863414951;
+use,sequence=bl;
+twiss,betx=1,bety=1,file="twiss.file.tfs";
+

@@ -109,7 +109,7 @@ class SimDbClient:
 
         Args:
             lib_sid_uri (object): see above
-            basename (str): naem without directories (see above)
+            basename (str): name without directories (see above)
             sim_type (str): valid code [sim_data.sim_type]
         Returns:
             SimDbUri: valid in any string context
@@ -194,7 +194,7 @@ class SimDbServer(sirepo.agent_supervisor_api.ReqBase):
                 e,
                 pkdexc(),
             )
-            self.write({state: "error"})
+            self.write({"state": "error"})
 
     async def _sr_post_delete_glob(self, path, args):
         t = []

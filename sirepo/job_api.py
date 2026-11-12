@@ -201,10 +201,7 @@ class API(sirepo.quest.API):
 
     @sirepo.quest.Spec("require_plan")
     async def api_runSimulation(self):
-        r = self._request_content(PKDict())
-        if r.isParallel:
-            r.isPremiumUser = self.auth.is_premium_user()
-        return await self._request_api(_request_content=r)
+        return await self._request_api(_request_content=self._request_content(PKDict()))
 
     @sirepo.quest.Spec("require_plan")
     async def api_runStatus(self):
@@ -375,7 +372,13 @@ class API(sirepo.quest.API):
                     request_content.computeJid,
                 )
             request_content.jobRunMode = j
-            return _validate_and_add_sbatch_fields(request_content, m)
+            if j == sirepo.job.SBATCH:
+                return _validate_and_add_sbatch_fields(request_content, m)
+            if j == sirepo.job.PARALLEL and (p := m.get("parallelCores")):
+                request_content.parallelCores = p
+            elif j == sirepo.job.SEQUENTIAL:
+                request_content.parallelCores = 1
+            return request_content
 
         def _validate_and_add_sbatch_fields(request_content, compute_model):
             m = compute_model
@@ -387,7 +390,12 @@ class API(sirepo.quest.API):
                 ), f"sbatchQueue={m.sbatchQueue} not in NERSC_QUEUES={sirepo.job.NERSC_QUEUES}"
                 c.sbatchQueue = m.sbatchQueue
                 c.sbatchProject = m.sbatchProject
-            for f in "sbatchCores", "sbatchHours", "sbatchNodes", "tasksPerNode":
+            for f in (
+                "sbatchCores",
+                "sbatchHours",
+                "sbatchNodes",
+                "tasksPerNode",
+            ):
                 if f not in m:
                     continue
                 assert m[f] > 0, f"{f}={m[f]} must be greater than 0"
@@ -427,8 +435,10 @@ class API(sirepo.quest.API):
 
     def _request_content_put_user(self, content):
         """Required request content"""
+        u = self.auth.logged_in_user()
         return content.pkupdate(
-            uid=self.auth.logged_in_user(),
+            uid=u,
+            activePlan=self.auth.active_plan(u),
             userDir=str(sirepo.simulation_db.user_path(qcall=self)),
         )
 

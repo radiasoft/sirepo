@@ -685,6 +685,11 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
             return json.aspectRatio || defaultRatio || 1.0;
         },
 
+        hasFocusPoint: function(plot) {
+            // a "band" plot has no single focus value
+            return ! plot || plot.style !== 'band';
+        },
+
         initialHeight: function(scope) {
             return scope.isAnimation ? 1 : INITIAL_HEIGHT;
         },
@@ -729,7 +734,7 @@ SIREPO.app.factory('plotting', function(appState, frameCache, panelState, utilit
                         if (threshold[0] === 0 && v === 0) {
                             a = 0;
                         }
-                        else {
+                        else if (threshold[1] !== undefined) {
                             a = v <= threshold[1] && v >= threshold[0] ? 255 : 0;
                         }
                     }
@@ -1167,6 +1172,7 @@ SIREPO.app.service('plot2dService', function(appState, layoutService, panelState
         $.extend($scope, attrs);
         $scope.width = $scope.height = 0;
         $scope.dataCleared = true;
+        $scope.hasFocusPoint = plotting.hasFocusPoint;
         $scope.axes = {
             x: layoutService.plotAxis($scope.margin, 'x', 'bottom', refresh),
             y: layoutService.plotAxis($scope.margin, 'y', 'left', refresh),
@@ -1768,6 +1774,7 @@ SIREPO.app.service('layoutService', function(mathRendering, panelState, plotting
                 return res.replace(/e\+0$/, '');
             });
             self.unitSymbol = formatInfo.unit ? formatInfo.unit.symbol : '';
+            self.unit = formatInfo.unit;
             return formatInfo;
         }
 
@@ -1998,6 +2005,9 @@ SIREPO.app.directive('interactiveOverlay', function(focusPointService, keypressS
                     var fpt = plotScope.formatFocusPointData(fp);
                     if (fpIndex === 0) {
                         fmtText = fmtText + fpt.xText + '\n';
+                    }
+                    if (! plotting.hasFocusPoint(plotScope.plots && plotScope.plots[fpIndex])) {
+                        return;
                     }
                     fmtText = fmtText + fpt.yText;
                     if (fpt.fwhmText) {
@@ -2258,10 +2268,12 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
                 <div style="padding: 4px; white-space: nowrap">
                 <div style="height: 20px"><span data-text-with-math="focusPoints[0].config.xAxis.label"
                   data-is-dynamic="1"></span> = {{ pointText(0, true) }} {{ focusPoints[0].config.xAxis.units }}</div>
-                <div data-ng-style="{ opacity: opacity($index) }" style="height: 20px"
-                  data-ng-repeat="p in plots track by p._label + $index">
-                  <div style="display:inline" data-color-circle="p"></div>
-                  <span data-text-with-math="p._label"></span> = {{ pointText($index) }} {{ p._units }}
+                <div data-ng-repeat="p in plots track by p._label + $index">
+                  <div data-ng-if="hasFocusPoint(p)" data-ng-style="{ opacity: opacity($index) }" style="height: 20px">
+                    <div style="display:inline" data-color-circle="p"></div>
+                    <span data-text-with-math="p._label"></span> = {{ pointText($index) }}
+                    <span data-text-with-math="p._units"></span>
+                  </div>
                 </div>
                 </div>
               </div>
@@ -2272,6 +2284,7 @@ SIREPO.app.directive('popupReport', function(focusPointService, plotting) {
 
             // prevent memory leak?
             $scope.focusPoints.allowClone = true;
+            $scope.hasFocusPoint = plotting.hasFocusPoint;
 
             function adjustBounds(bound, dim) {
                 if (bound < 1) {
@@ -2593,7 +2606,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
             $scope.wantCrossHairs = ! SIREPO.PLOTTING_SUMMED_LINEOUTS;
             $scope.focusPoints = [];
 
-            var canvas, ctx, fullDomain, heatmap, lineOuts, prevDomain, scaleFunction, xyZoom;
+            var canvas, ctx, fullDomain, heatmap, lineOuts, prevDomain, scaleFunction, xyZoom, zUnits;
             var cacheCanvas, imageData;
             var aspectRatio = 1.0;
             var axes = {
@@ -2708,7 +2721,6 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 var xRight = axes.x.indexScale(axes.x.scale.domain()[1]);
                 var xv = Math.round(xLeft + (xRight - xLeft) / 2);
                 var points;
-
                 if (SIREPO.PLOTTING_SUMMED_LINEOUTS) {
                     points = d3.zip(axes.y.values, sumRegion(
                         false,
@@ -2832,6 +2844,25 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 d[1] = oldValue[1];
             }
 
+            function scaleZ(isWidth, points) {
+                if (! zUnits) {
+                    return points;
+                }
+                const dim = isWidth ? 'x' : 'y';
+                select('.z-axis-label' + (isWidth ? '2' : '')).text(
+                    zUnits + '/' + axes[dim].unitSymbol + axes[dim].units,
+                );
+                let d = (fullDomain[isWidth ? 0 : 1][1] - fullDomain[isWidth ? 0 : 1][0]);
+                if (axes[dim].unit) {
+                    d = axes[dim].unit.scale(d);
+                }
+                const s = heatmap[0].length / d;
+                for (let i = 0; i < points.length; i++) {
+                    points[i] *= s;
+                }
+                return points;
+            }
+
             function select(selector) {
                 var e = d3.select($scope.element);
                 return selector ? e.select(selector) : e;
@@ -2849,7 +2880,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                         points[index] += heatmap[axes.y.values.length - 1 - i][j];
                     }
                 }
-                return points;
+                return scaleZ(isWidth, points);
             }
 
             $scope.clearData = function() {
@@ -2951,6 +2982,7 @@ SIREPO.app.directive('plot3d', function(appState, focusPointService, layoutServi
                 axes.x.updateLabel(json.x_label, select);
                 axes.y.updateLabel(json.y_label, select);
                 select('.z-axis-label').text(json.z_label);
+                zUnits = json.z_units;
                 if (json.z_footer) {
                     select('.z-axis-footer').text(json.z_footer);
                 }
@@ -3450,8 +3482,14 @@ SIREPO.app.directive('colorCircle', function() {
         },
         template: `
               <svg width="30" height="10">
-                <line x1="0" y1="5" x2="30" y2="5"
-                  data-ng-attr-stroke-width="{{ plot.strokeWidth }}"
+                <circle data-ng-if="plot.circleRadius >= 4"
+                  cx="15" cy="5"
+                  data-ng-attr-r="{{ plot.circleRadius }}"
+                  data-ng-attr-fill="{{ plot.color }}"
+                />
+                <line data-ng-if="! plot.circleRadias || plot.circleRadius < 4"
+                  x1="0" y1="5" x2="30" y2="5"
+                  data-ng-attr-stroke-width="{{ plot.strokeWidth > 4 ? plot.strokeWidth : 4 }}"
                   data-ng-attr-opacity="{{ plot.opacity || 1.0 }}"
                   data-ng-attr-stroke="{{ plot.color }}"
                   data-ng-attr-stroke-dasharray="{{ plot.dashes }}" />
@@ -3567,21 +3605,51 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             }
 
             function normalizeInput(json) {
-                $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 4.0 / 7);
+                $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 0.5625);
                 $scope.dynamicYLabel = json.dynamicYLabel || false;
-                // data may contain 2 plots (y1, y2) or multiple plots (plots)
-                json.plots = json.plots || [
-                    {
-                        points: json.points[0],
-                        label: json.y1_title,
-                        color: '#1f77b4',
-                    },
-                    {
-                        points: json.points[1],
-                        label: json.y2_title,
-                        color: '#ff7f0e',
-                    },
-                ];
+                if (! json.plots) {
+                    if (json.y2_title) {
+                        // legacy plot data may contain 2 plots (y1, y2)
+                        json.plots = [
+                            {
+                                points: json.points[0],
+                                label: json.y1_title,
+                                color: '#1f77b4',
+                            },
+                            {
+                                points: json.points[1],
+                                label: json.y2_title,
+                                color: '#ff7f0e',
+                            },
+                        ];
+                    }
+                    else {
+                        // legacy 2d plots
+                        $scope.focusStrategy = 'maximum';
+                        json.plots = [
+                            {
+                                points: json.points,
+                                label: json.y_label,
+                                color: '#1f77b4',
+                            },
+                        ];
+                        if (! json.x_points) {
+                            json.x_points = plotting.linearlySpacedArray(
+                                json.x_range[0],
+                                json.x_range[1],
+                                json.points.length,
+                            );
+                        }
+                        if (! json.y_range) {
+                            if (json.z_range) {
+                                json.y_range = json.z_range;
+                            }
+                            else {
+                                json.y_range = d3.extent(json.points);
+                            }
+                        }
+                    }
+                }
                 if (json.plots[0].x_points) {
                     $scope.noOverlay = true;
                 }
@@ -3663,10 +3731,22 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
             function setupPlots(json) {
                 const viewport = $scope.select('.plot-viewport');
                 viewport.selectAll('.line').remove();
+                viewport.selectAll('.band').remove();
                 viewport.selectAll('g.param-plot').remove();
                 json.plots.forEach(function(plot, ip) {
                     plot.strokeWidth = plot.strokeWidth || 2.0;
-                    if (plot.style === 'scatter') {
+                    if (plot.style === 'band') {
+                        // a shaded region between plot.pointsLower and plot.pointsUpper,
+                        // e.g. a confidence/uncertainty interval
+                        viewport.append('path')
+                            .attr('class', 'param-plot band')
+                            .attr('data-sr-index', ip)
+                            .style('fill', plot.color)
+                            .style('stroke', 'none')
+                            .style('opacity', plot.opacity || 0.25)
+                            .datum(plot.pointsUpper);
+                    }
+                    else if (plot.style === 'scatter') {
                         let clusterInfo;
                         let circleRadius = plot.circleRadius || 2;
                         if (json.clusters) {
@@ -3821,10 +3901,11 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
 
             $scope.init = function() {
                 plot2dService.init2dPlot($scope, {
-                    margin: {top: 50, right: yMargin, bottom: 20, left: yMargin}
+                    margin: {top: 50, right: 10, bottom: 20, left: yMargin}
                 });
                 y2_axis = $scope.axes.y2;
                 delete $scope.axes.y2;
+                scaleFunction = plotting.scaleFunction($scope.modelName);
                 // override graphLine to work with multiple point sets
                 $scope.plotGraphLine = function(plotIndex) {
                     const p = ($scope.plots || [])[plotIndex] || {};
@@ -3836,6 +3917,24 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         })
                         .y(function(d) {
                             return yaxis.scale(scaleFunction ? scaleFunction(d) : d);
+                        });
+                };
+                // area generator for a "band" plot, filling between pointsLower and pointsUpper
+                $scope.plotGraphArea = function(plotIndex) {
+                    const p = ($scope.plots || [])[plotIndex] || {};
+                    const xPoints = p.x_points || $scope.axes.x.points;
+                    const yaxis = p._yaxis == 'right' ? $scope.axes.y2 : $scope.axes.y;
+                    return d3.svg.area()
+                        .x(function(d, i) {
+                            return $scope.axes.x.scale(xPoints[i]);
+                        })
+                        .y0(function(d, i) {
+                            const v = p.pointsLower[i];
+                            return yaxis.scale(scaleFunction ? scaleFunction(v) : v);
+                        })
+                        .y1(function(d, i) {
+                            const v = p.pointsUpper[i];
+                            return yaxis.scale(scaleFunction ? scaleFunction(v) : v);
                         });
                 };
                 $scope.graphLine = d3.svg.line()
@@ -3852,6 +3951,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     //TODO(pjm): plot may be loaded with { state: 'canceled' }?
                     return;
                 }
+                scaleFunction = plotting.scaleFunction($scope.modelName);
                 normalizeInput(json);
                 updateAxes(json);
                 const oldPlots = $scope.plots;
@@ -3875,32 +3975,38 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                         }
                     }
                 }
+                else {
+                    focusPointService.hideFocusPoint($scope);
+                }
                 $scope.resize();
             };
 
             function calcYDomains(plots, xdom) {
                 // calculate left and right y axis domains for plots (assumed all visible)
                 const ydom = [null, null];
-                const xPoints = $scope.axes.x.points;
 
-                for (let i = 0; i < xPoints.length; i++) {
-                    const x = xPoints[i];
-                    if (xdom && (x > xdom[1] || x < xdom[0])) {
-                        continue;
-                    }
-                    for (const p of plots) {
-                        const y = p.points[i];
-                        const ia = p._yaxis == 'left' ? 0 : 1;
-                        if (ydom[ia]) {
-                            if (y < ydom[ia][0]) {
-                                ydom[ia][0] = y;
-                            }
-                            else if (y > ydom[ia][1]) {
-                                ydom[ia][1] = y;
-                            }
+                for (const p of plots) {
+                    const pXPoints = p.x_points || $scope.axes.x.points;
+                    const ia = p._yaxis == 'left' ? 0 : 1;
+                    for (let i = 0; i < pXPoints.length; i++) {
+                        const x = pXPoints[i];
+                        if (xdom && (x > xdom[1] || x < xdom[0])) {
+                            continue;
                         }
-                        else {
-                            ydom[ia] = [y, y];
+                        // a "band" plot has no single points[i] value -- use both edges
+                        const ys = p.style === 'band' ? [p.pointsLower[i], p.pointsUpper[i]] : [p.points[i]];
+                        for (const y of ys) {
+                            if (ydom[ia]) {
+                                if (y < ydom[ia][0]) {
+                                    ydom[ia][0] = y;
+                                }
+                                else if (y > ydom[ia][1]) {
+                                    ydom[ia][1] = y;
+                                }
+                            }
+                            else {
+                                ydom[ia] = [y, y];
+                            }
                         }
                     }
                 }
@@ -3939,6 +4045,12 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     .each(function (d) {
                         var ip = parseInt(d3.select(this).attr('data-sr-index'));
                         d3.select(this).attr('d', $scope.plotGraphLine(ip));
+                    });
+
+                $scope.select('.plot-viewport').selectAll('.band')
+                    .each(function (d) {
+                        var ip = parseInt(d3.select(this).attr('data-sr-index'));
+                        d3.select(this).attr('d', $scope.plotGraphArea(ip));
                     });
 
                 $scope.select('.plot-viewport').selectAll('g.param-plot')
@@ -4020,7 +4132,7 @@ SIREPO.app.directive('particle', function(plotting, plot2dService) {
             };
 
             $scope.load = function(json) {
-                $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 4.0 / 7);
+                $scope.aspectRatio = plotting.getAspectRatio($scope.modelName, json, 0.5625);
                 allPoints = [];
                 var xdom = [json.x_range[0], json.x_range[1]];
                 $scope.axes.x.domain = xdom;

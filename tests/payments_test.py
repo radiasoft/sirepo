@@ -22,15 +22,14 @@ _UID_IN_DB = "Uh4mhMWU"
 
 
 def test_auditor(monkeypatch):
-    from pykern import pkio
-    from pykern import pkunit
+    from pykern import pkio, pkunit, pkcompat
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from sirepo import srdb
     from sirepo import srunit
     import asyncio
 
-    _EXPIRATION = datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
+    _EXPIRATION = pkcompat.utcnow() + datetime.timedelta(minutes=30)
     pkio.unchecked_remove(srdb.root())
     pkunit.data_dir().join("auditor_db").copy(srdb.root())
     with srunit.quest_start(cfg=_state_for_testing()) as qcall:
@@ -85,15 +84,78 @@ def test_auditor(monkeypatch):
             )
 
 
+def test_auditor_multiple_subscriptions(monkeypatch):
+    """Inactive old subscription must not expire role of active new one"""
+    from pykern import pkio, pkunit, pkcompat
+    from pykern.pkcollections import PKDict
+    from sirepo import srdb
+    from sirepo import srunit
+    import asyncio
+
+    _ACTIVE_SUBSCRIPTION_ID = None
+    _EXPIRATION = pkcompat.utcnow() + datetime.timedelta(minutes=30)
+    pkio.unchecked_remove(srdb.root())
+    pkunit.data_dir().join("auditor_db").copy(srdb.root())
+    with srunit.quest_start(cfg=_state_for_testing()) as qcall:
+        from sirepo import auth_role
+        from sirepo import payments
+        from sirepo import srtime
+
+        m = qcall.auth_db.model("StripeSubscription")
+        n = m.not_revoked_stripe_subscriptions()[0]
+        _ACTIVE_SUBSCRIPTION_ID = n.subscription_id
+        m.new(
+            uid=n.uid,
+            customer_id=n.customer_id,
+            checkout_session_id=None,
+            creation_reason=n.creation_reason,
+            subscription_id="subscription_id_old",
+            created=srtime.utc_now(),
+            revocation_reason=None,
+            revoked=None,
+            role=n.role,
+        ).save()
+        qcall.auth_db.model("UserRole").set_role_expiration(
+            n.role,
+            uid=n.uid,
+            expiration=_EXPIRATION,
+        )
+
+    async def _retrieve(sid, *args, **kwargs):
+        r = await _get_subscription_active(_EXPIRATION)()
+        if sid == "subscription_id_old":
+            r.status = "canceled"
+        return r
+
+    monkeypatch.setattr(stripe.Subscription, "retrieve_async", _retrieve)
+    with srunit.quest_start(cfg=_state_for_testing()) as qcall:
+        asyncio.run(payments._auditor(None))
+    with srunit.quest_start(cfg=_state_for_testing()) as qcall:
+        pkunit.pkeq(
+            [_ACTIVE_SUBSCRIPTION_ID],
+            [
+                s.subscription_id
+                for s in qcall.auth_db.model(
+                    "StripeSubscription"
+                ).not_revoked_stripe_subscriptions()
+            ],
+        )
+        pkunit.pkok(
+            qcall.auth_db.model("UserRole").has_active_role(
+                auth_role.ROLE_PLAN_BASIC, uid=_UID_IN_DB
+            ),
+            "role should still be active",
+        )
+
+
 def test_checkout_session(monkeypatch):
-    from pykern import pkio
-    from pykern import pkunit
+    from pykern import pkio, pkunit, pkcompat
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from sirepo import srdb
     from sirepo import srunit
 
-    _EXPIRATION = datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
+    _EXPIRATION = pkcompat.utcnow() + datetime.timedelta(minutes=30)
     monkeypatch.setattr(stripe.checkout.Session, "create_async", _checkout_create)
     monkeypatch.setattr(stripe.checkout.Session, "retrieve_async", _checkout_retrieve)
     monkeypatch.setattr(
@@ -155,8 +217,7 @@ def test_checkout_session(monkeypatch):
 
 
 def test_event_paid_webhook(monkeypatch):
-    from pykern import pkio
-    from pykern import pkunit
+    from pykern import pkio, pkunit, pkcompat
     from pykern.pkcollections import PKDict
     from pykern.pkdebug import pkdp
     from sirepo import srdb
@@ -166,9 +227,7 @@ def test_event_paid_webhook(monkeypatch):
     monkeypatch.setattr(
         stripe.Subscription,
         "retrieve_async",
-        _get_subscription_active(
-            datetime.datetime.utcnow() + datetime.timedelta(minutes=30)
-        ),
+        _get_subscription_active(pkcompat.utcnow() + datetime.timedelta(minutes=30)),
     )
     monkeypatch.setattr(stripe.Product, "retrieve_async", _product_retrieve)
     pkio.unchecked_remove(srdb.root())
@@ -238,7 +297,8 @@ def _get_subscription_active(expiration):
             status="active",
         )
         if expiration is not None:
-            res.current_period_end = expiration.timestamp()
+            # stripe API >= basil has current_period_end on the item
+            res["items"].data[0].current_period_end = expiration.timestamp()
         return res
 
     return _do

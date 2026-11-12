@@ -6,15 +6,23 @@
          }"
          ref=dropPanel
     >
-        <p>Drag and drop an Excel material file here to process a new material.</p>
+        <p>Drag and drop an Excel material file here to import one or many materials.</p>
         <p>
             <strong>
                 <a v-bind:href="templateURL">
-                    Use this Excel template
+                    Single material Excel template
                     <span class="bi bi-cloud-download"></span>
                 </a>
             </strong>
-            for reference.
+        </p>
+        <p>
+            <strong>
+                <a v-bind:href="multiTemplateURL">
+                    Multiple materials Excel template
+                    <span class="bi bi-cloud-download"></span>
+                </a>
+            </strong>
+            with one row per material.
         </p>
         <div class="text-end" v-if="! isProcessing">
             <VFileUploadButton
@@ -34,7 +42,13 @@
         title="Material Imported"
         cancelText="Close"
     >
-        Imported {{ materialName }} successfully
+        <span v-if="materialCount > 1">
+            Imported <strong>{{ materialCount }}</strong> materials successfully.
+            Simulation of <strong>{{ materialName }}</strong> has started.
+        </span>
+        <span v-else>
+            Imported <strong>{{ materialName }}</strong> successfully
+        </span>
     </VConfirmationModal>
     <VConfirmationModal
         ref="errorsModal"
@@ -48,10 +62,12 @@
                 <span v-if="err.row">
                     row {{ err.row }}<span v-if="err.col">, col {{ err.col }}</span>:
                 </span>
-                <span v-if="err.value">{{ err.value }}:</span>
+                <span v-if="err.value">{{ err.value }}</span>
+                <span v-if="err.value && err.msg">:</span>
                 {{ err.msg }}
             </div>
         </div>
+        <div v-if="moreErrors > 0">and {{ moreErrors }} more</div>
     </VConfirmationModal>
 </template>
 
@@ -60,6 +76,7 @@
  import VFileUploadButton from '@/apps/cortex/VFileUploadButton.vue';
  import VProgress from '@/components/VProgress.vue';
  import { db } from '@/apps/cortex/db.js';
+ import { DEFAULT_REPORT } from '@/apps/cortex/reports.js';
  import { ref } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
  import { schema } from '@/services/schema.js';
@@ -71,6 +88,9 @@
  const errorList = ref(null);
  const errorsModal = ref(null);
  const isProcessing = ref(false);
+ const maxErrors = 50;
+ const moreErrors = ref(0);
+ const materialCount = ref(0);
  const materialName = ref('');
  const xlsxMimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
@@ -79,61 +99,71 @@
      filename: 'materials_input.xlsx',
  });
 
+ const multiTemplateURL = uri.format('downloadLibFile', {
+     simulation_type: schema.simulationType,
+     filename: 'materials_multi_input.xlsx',
+ });
+
  const onDrop = (files) => {
      if (! isProcessing.value) {
          processFile(files[0]);
      }
  };
 
- const parseErrors = (errorMessage) => {
-     const p = {
-         col: /\scol=(\d+)/,
-         row: /\srow=(\d+)/,
-         sheet: /\ssheet=(.*)/,
-         value: /(invalid\s.*?=\w*\s)/,
-     };
-     const res = [];
-     let sheet = undefined;
-     for (let line of errorMessage.split("\n")) {
-         const e = {
-             line: line,
-         };
-         for (const f in p) {
-             const m = line.match(p[f]);
-             if (m) {
-                 e[f] = m[1];
-                 line = line.replace(p[f], '');
+ const processFile = async (file) => {
+     const filterSheets = (errorList) => {
+         let s = null;
+         for (const e of errorList) {
+             if (! e.sheet) {
+                 continue;
              }
-         }
-         if (line) {
-             e.msg = line;
-             if (e.value) {
-                 e.value = e.value.trim().replace(/=$/, '');
-             }
-             if (e.sheet && e.sheet === sheet) {
-                 delete e.sheet;
+             if (e.sheet === s) {
+                 e.sheet = null;
              }
              else {
-                 sheet = e.sheet;
+                 s = e.sheet;
              }
-             res.push(e);
          }
-     }
-     return res;
- };
+         return errorList;
+     };
 
- const processFile = async (file) => {
-     isProcessing.value = true;
-     const r = await requestSender.importFile(file);
-     isProcessing.value = false;
-     if (r.data.error) {
-         errorList.value = parseErrors(r.data.error);
+     const showErrors = (errors) => {
+         // many materials can have many errors
+         errorList.value = filterSheets(errors).slice(0, maxErrors);
+         moreErrors.value = errors.length - errorList.value.length;
          errorsModal.value.showModal();
+     };
+
+     isProcessing.value = true;
+     let r;
+     try {
+         r = await db.insertMaterial(file);
+     }
+     catch (e) {
+         // e.g. the server could not be reached
+         showErrors([{ msg: 'Unable to import the file, please try again' }]);
          return;
      }
-     db.updated();
-     materialName.value = r.data.models.parsed_material[0].material_name;
+     finally {
+         isProcessing.value = false;
+     }
+     if (r.error) {
+         // parse and db errors are a list, an internal error is a single value
+         showErrors(Array.isArray(r.error) ? r.error : [{ msg: r.error.value }]);
+         return;
+     }
+     materialCount.value = r.op_result.materials.length;
+     materialName.value = r.op_result.material_name;
      confirmModal.value.showModal();
+     db.updated();
+     // do not await simulation completion
+     requestSender.sendRequest("cortexSim", {
+         op_name: 'runSim',
+         op_args: {
+             report: DEFAULT_REPORT,
+             material_id: r.op_result.material_id,
+         },
+     });
  };
 
  const { isOverDropZone, isInvalidMimeType } = useFileDrop(dropPanel, onDrop, xlsxMimeType);
@@ -143,6 +173,9 @@
 <style scoped>
  .sr-drop-zone {
      border: 2px dashed #ccc;
+     min-height: 270px;
+     display: flex;
+     justify-content: center;
  }
  .sr-drop-zone.sr-drag-over {
      border: 2px solid var(--bs-primary);

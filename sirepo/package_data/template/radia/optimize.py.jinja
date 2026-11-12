@@ -7,6 +7,7 @@
 from pykern.pkcollections import PKDict
 from sirepo.template import radia_util
 from sirepo.template import template_common
+import numpy as np
 
 VIEW_TYPE_OBJ = "objects"
 VIEW_TYPE_FIELD = "fields"
@@ -119,5 +120,3 @@ def main(*args, **kwargs):
     g_id, id_map = _build_radia_geom()
     s = radia_util.solve(g_id, {{ solvePrec }}, {{ solveMaxIter }}, {{ solveMethod }})
     return objective_function(g_id)
-
-

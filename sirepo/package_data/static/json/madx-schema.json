@@ -176,6 +176,8 @@
             "y1",
             "y2",
             "y3",
+            "y4",
+            "y5",
             "histogramBins",
             "plotRangeType",
             "horizontalSize",
@@ -228,6 +230,10 @@
             "bety": ["Vertical Beta [m]", "Float", 1.0],
             "alfx": ["Horizontal Alpha", "Float", 0.0],
             "alfy": ["Vertical Alpha", "Float", 0.0],
+            "dx": ["Dispersion of X [m]", "Float", 0.0, "Dispersion of x: dx / dpt, as MAD-X's DX"],
+            "dpx": ["Dispersion of Px", "Float", 0.0, "Dispersion of px: dpx / dpt, as MAD-X's DPX"],
+            "dy": ["Dispersion of Y [m]", "Float", 0.0, "Dispersion of y: dy / dpt, as MAD-X's DY"],
+            "dpy": ["Dispersion of Py", "Float", 0.0, "Dispersion of py: dpy / dpt, as MAD-X's DPY"],
             "px": ["Horizontal Canonical Momentum of $p_x$", "Float", 0.0],
             "py": ["Vertical Canonical Momentum of $p_y$", "Float", 0.0],
             "x": ["Horizontal Centroid [m]", "Float", 0.0],
@@ -244,8 +250,9 @@
         "bunchReport": {
             "x": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
             "y": ["Phase Space Coordinate", "PhaseSpaceCoordinate"],
-            "histogramBins": ["Histogram Bins", "Integer", 200],
-            "colorMap": ["Color Map", "ColorMap", "afmhot"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "notes": ["Notes", "Text", ""]
         },
         "_COMMAND": {
@@ -758,21 +765,16 @@
             "opt": ["OPT", "RPNValue", 0.0, "Optimal value for the parameter"]
         },
         "elementAnimation": {
-            "x": ["Horizontal Value to Plot", "ValueList", ""],
-            "y1": ["Vertical Value to Plot", "ValueList", ""],
-            "y2": ["Vertical Value to Plot", "ValueList", ""],
-            "y3": ["Vertical Value to Plot", "ValueList", ""],
-            "includeLattice": ["Show Lattice Overlay", "Boolean", "0"],
-            "histogramBins": ["Histogram Bins", "Integer", 200],
+            "_super": ["_", "model", "_PARAMETER_PLOT_COMMON"],
+            "plotType": ["Plot Type", "PlotType", "heatmap"],
+            "histogramBins": ["Histogram Bins", "Integer", 50],
             "framesPerSecond": ["Frames per Second", "FramesPerSecond", "2"],
-            "colorMap": ["Color Map", "ColorMap", "afmhot"],
+            "colorMap": ["Color Map", "ColorMap", "viridis"],
             "plotRangeType": ["Range", "PlotRangeType", "none"],
             "horizontalSize": ["Horizontal Size", "Float", 0],
             "verticalSize": ["Vertical Size", "Float", 0],
             "horizontalOffset": ["Horizontal Offset", "Float", 0.0],
-            "verticalOffset": ["Vertical Offset", "Float", 0.0],
-            "aspectRatio": ["Aspect Ratio", "AspectRatio", "1"],
-            "notes": ["Notes", "Text", ""]
+            "verticalOffset": ["Vertical Offset", "Float", 0.0]
         },
         "matchSummaryAnimation": {
         },
@@ -781,12 +783,7 @@
             "value": ["Value", "RPNValue"]
         },
         "twissFromParticlesAnimation": {
-            "x": ["Horizontal Value to Plot", "ValueList", ""],
-            "y1": ["Vertical Value to Plot", "ValueList", ""],
-            "y2": ["Vertical Value to Plot", "ValueList", ""],
-            "y3": ["Vertical Value to Plot", "ValueList", ""],
-            "includeLattice": ["Show Lattice Overlay", "Boolean", "1"],
-            "notes": ["Notes", "Text", ""]
+            "_super": ["_", "model", "_PARAMETER_PLOT_COMMON"]
         },
         "twissReport": {
             "y1": ["Y1 Value", "TwissParameter", "betx"],
@@ -1355,12 +1352,16 @@
                         ["Horizontal", [
                             "command_beam.ex",
                             "betx",
-                            "alfx"
+                            "alfx",
+                            "dx",
+                            "dpx"
                         ]],
                         ["Vertical", [
                             "command_beam.ey",
                             "bety",
-                            "alfy"
+                            "alfy",
+                            "dy",
+                            "dpy"
                         ]]
                     ],
                     "command_beam.et",
@@ -1389,6 +1390,7 @@
         "bunchReport": {
             "title": "Bunch Report",
             "advanced": [
+                "plotType",
                 [
                     ["Horizontal",
                         ["x"]
@@ -1407,6 +1409,7 @@
             "model": "elementAnimation",
             "title": "Output Report",
             "advanced": [
+                "plotType",
                 [
                     ["Horizontal", [
                         "x"
@@ -1426,19 +1429,41 @@
             "model": "elementAnimation",
             "title": "Output Report",
             "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y1",
-                        "y2",
-                        "y3"
-                    ]]
-                ],
-                "framesPerSecond",
-                "includeLattice",
-                "notes"
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1",
+                            "y2",
+                            "y3",
+                            "y4",
+                            "y5"
+                        ]],
+                        ["Position", [
+                            "y1Position",
+                            "y2Position",
+                            "y3Position",
+                            "y4Position",
+                            "y5Position"
+                        ]]
+                    ],
+                    "framesPerSecond",
+                    "includeLattice",
+                    "aspectRatio",
+                    "notes"
+                ]],
+                ["Limits", [
+                    [
+                        ["Left", [
+                            "leftLimit"
+                        ]],
+                        ["Right", [
+                            "rightLimit"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "matchSummaryAnimation": {
@@ -2040,18 +2065,40 @@
         "twissFromParticlesAnimation": {
             "title": "Twiss From Particles",
             "advanced": [
-                [
-                    ["Horizontal", [
-                        "x"
-                    ]],
-                    ["Vertical", [
-                        "y1",
-                        "y2",
-                        "y3"
-                    ]]
-                ],
-                "includeLattice",
-                "notes"
+                ["Main", [
+                    [
+                        ["Horizontal", [
+                            "x"
+                        ]],
+                        ["Vertical", [
+                            "y1",
+                            "y2",
+                            "y3",
+                            "y4",
+                            "y5"
+                        ]],
+                        ["Position", [
+                            "y1Position",
+                            "y2Position",
+                            "y3Position",
+                            "y4Position",
+                            "y5Position"
+                        ]]
+                    ],
+                    "includeLattice",
+                    "aspectRatio",
+                    "notes"
+                ]],
+                ["Limits", [
+                    [
+                        ["Left", [
+                            "leftLimit"
+                        ]],
+                        ["Right", [
+                            "rightLimit"
+                        ]]
+                    ]
+                ]]
             ]
         },
         "twissAnimation": {

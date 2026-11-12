@@ -176,6 +176,16 @@ SIREPO.app.factory('latticeService', function(appState, panelState, rpnService, 
         self.editElement(copy.type, copy);
     };
 
+    // "Open as a New ... Simulation"'s dialog element id for simType, see
+    // latticeConversionMenu and latticeConversionModals
+    self.conversionModalId = (simType) => `sr-conv-dialog-${simType}`;
+
+    // sim types for "Open as a New ... Simulation", see simConversionModal
+    self.conversionTargets = () => SIREPO.APP_SCHEMA.feature_config.lattice_conversion_targets || [];
+
+    // POSIT: appInfo has every sim type's, see simulation_db
+    self.conversionTitle = (simType) => SIREPO.APP_SCHEMA.appInfo[simType].longName;
+
     self.createElement = function(type) {
         var model = self.getNextElement(type);
         appState.setModelDefaults(model, type);
@@ -590,6 +600,15 @@ SIREPO.app.service('rpnService', function(appState, requestSender, $rootScope) {
                 method: 'recompute_rpn_cache_values',
                 cache: appState.models.rpnCache,
             });
+    };
+
+    self.valueAsString = (value) => {
+        if (! angular.isDefined(value)) {
+            return value;
+        }
+        return value > 10**8
+             ? value.toExponential()
+             : value.toString();
     };
 
     $rootScope.$on('rpnVariables.changed', clearBooleanValues);
@@ -1691,7 +1710,9 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                             for (var k = 0; k < ovalCount; k++) {
                                 groupItem.ovals.push(groupItem.x + k * groupItem.ovalWidth + groupItem.ovalWidth / 2);
                             }
-                            groupItem.color = getPicColor(item, 'gold');
+                            groupItem.color = ('volt' in item && rpnValue(item.volt || 1) === 0)
+                                ? 'lightgrey'
+                                : getPicColor(item, 'gold');
                         }
                         else if (picType == 'recirc') {
                             groupItem.radius = 0.3;
@@ -1823,6 +1844,10 @@ SIREPO.app.directive('lattice', function(appState, latticeService, panelState, p
                         }
                     }
                     var picType = getPicType(item.type);
+                    //TODO(pjm): SOLRF is impactt-specific
+                    if (item.type == 'SOLRF' && ! item.solenoid_field_scale && item.rf_frequency) {
+                        item.type = 'RFCW';
+                    }
                     //TODO(pjm): CHANGREF is zgoubi-specific
                     if (picType != 'drift' && item.type.indexOf('CHANGREF') < 0) {
                         pos.count++;
@@ -2470,7 +2495,7 @@ SIREPO.app.directive('latticeElementTable', function(appState, latticeService, p
                   </td>
                   <td style="overflow: hidden"><span style="color: #777; white-space: nowrap">{{ element.description }}</span></td>
                   <td style="text-align: right">{{ elementLength(element) }}</td>
-                  <td style="text-align: right">{{ element.bend || \'&nbsp;\' }}<span data-ng-if="element.isBend">&deg;</span><div class="sr-button-bar-parent"><div class="sr-button-bar"><button type="button" class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyElement(element)">Copy</button> <button type="button" data-ng-show="latticeService.activeBeamlineId" class="btn btn-info btn-xs sr-hover-button" data-ng-click="latticeService.addToBeamline(element)">Add to Beamline</button> <button type="button" data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button type="button" data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div><div></td>
+                  <td style="text-align: right">{{ element.bend || \'&nbsp;\' }}<span data-ng-if="element.isBend">&deg;</span><div class="sr-button-bar-parent"><div class="sr-button-bar"><button type="button" class="btn btn-info btn-xs sr-hover-button" data-ng-click="copyElement(element)">Copy</button> <button type="button" data-ng-show="latticeService.activeBeamlineId" class="btn btn-info btn-xs sr-hover-button" data-ng-click="latticeService.addToBeamline(element)">Add to Beamline</button> <button type="button" data-ng-click="editElement(category.name, element)" class="btn btn-info btn-xs sr-hover-button">Edit</button> <button type="button" data-ng-click="deleteElement(element)" class="btn btn-danger btn-xs"><span class="glyphicon glyphicon-remove"></span></button></div></div></td>
                 </tr>
               </tbody>
             </table>
@@ -2800,7 +2825,7 @@ SIREPO.app.directive('rpnStatic', function(rpnService) {
                 }
                 return $scope.isError
                     ? ''
-                    : rpnService.getRpnValueForField($scope.model, $scope.field);
+                    : rpnService.valueAsString(rpnService.getRpnValueForField($scope.model, $scope.field));
             };
         },
     };
@@ -2890,7 +2915,7 @@ SIREPO.app.directive('rpnValue', function(appState, rpnService, $timeout) {
                 if (ngModel.$isEmpty(value)) {
                     return value;
                 }
-                return value.toString();
+                return rpnService.valueAsString(value);
             });
 
             // handle programmatic changes - don't step on current parsing
@@ -3103,6 +3128,402 @@ SIREPO.app.directive('varName', function(latticeService) {
                 return value;
             });
         }
+    };
+});
+
+// POSIT: the app's footer has latticeConversionModals, the dialogs this opens
+SIREPO.app.directive('latticeConversionMenu', function(latticeService) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div data-ng-repeat="t in latticeService.conversionTargets()"><a href data-ng-click="openConfirm(t)"><span class="glyphicon glyphicon-upload"></span> Open as a New {{ latticeService.conversionTitle(t) }} Simulation</a></div>
+        `,
+        controller: function($scope) {
+            $scope.latticeService = latticeService;
+            $scope.openConfirm = (simType) => $('#' + latticeService.conversionModalId(simType)).modal('show');
+        },
+    };
+});
+
+SIREPO.app.directive('latticeConversionModals', function(latticeService) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div data-ng-repeat="t in latticeService.conversionTargets()" data-sim-conversion-modal="" data-conv-method="convert_lattice" data-dialog-id="{{ latticeService.conversionModalId(t) }}" data-section="lattice" data-to-sim-type="{{ t }}"></div>
+        `,
+        controller: function($scope) {
+            $scope.latticeService = latticeService;
+        },
+    };
+});
+
+SIREPO.app.directive('latticeImportDialog', function(appState, commandService, fileManager, fileUpload, requestSender) {
+    return {
+        restrict: 'A',
+        scope: {},
+        template: `
+            <div class="modal fade" data-backdrop="static" id="simulation-import" tabindex="-1" role="dialog">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header bg-info">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <div data-help-button="{{ title }}"></div>
+                    <span class="lead modal-title text-info">{{ title }}</span>
+                  </div>
+                  <div class="modal-body">
+                    <div class="container-fluid">
+                        <form class="form-horizontal" name="importForm">
+                          <div data-ng-show="filename" class="form-group">
+                            <label class="col-xs-4 control-label">Importing file</label>
+                            <div class="col-xs-8">
+                              <p class="form-control-static">{{ filename }}</p>
+                            </div>
+                          </div>
+                          <div data-ng-show="isState('ready') || isState('lattice')">
+                            <div data-ng-show="isState('ready')" class="form-group">
+                              <label>{{ fileTypes() }}</label>
+                              <input id="sr-lattice-file-import" type="file" data-file-model="latticeFile" data-ng-attr-accept="{{ acceptFileTypes() }}" />
+                              <br />
+                              <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
+                            </div>
+                            <div data-ng-show="isState('lattice')" class="form-group">
+                              <label>Select Lattice File ({{ latticeFileName }})</label>
+                              <input id="sr-lattice-import" type="file" data-file-model="latticeFile" data-ng-attr-accept="{{ latticeFileExtension }}" />
+                              <br />
+                              <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
+                            </div>
+                            <div class="col-sm-6 pull-right">
+                              <button data-ng-click="importLatticeFile(latticeFile)" data-ng-disabled="isMissingImportFile()" class="btn btn-primary">Import File</button>
+                               <button data-dismiss="modal" class="btn btn-default">Cancel</button>
+                            </div>
+                          </div>
+                          <div data-ng-show="isState('import') || isState('load-file-lists')" class="col-sm-6 col-sm-offset-6">
+                            Uploading file - please wait.
+                            <br /><br />
+                          </div>
+                          <div data-ng-show="isState('missing-files')">
+                            <p>Please upload the files below which are referenced in the ${SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].longName} file.</p>
+                            <div class="form-group" data-ng-repeat="item in missingFiles">
+                              <div class="col-sm-11 col-sm-offset-1">
+                                <span data-ng-if="item.file && isCorrectMissingFile(item)" class="glyphicon glyphicon-ok"></span>
+                                <span data-ng-if="item.file && ! isCorrectMissingFile(item)" class="glyphicon glyphicon-flag text-danger"></span> <span data-ng-if="item.file && ! isCorrectMissingFile(item)" class="text-danger">Filename: <b>{{item.file.name}}</b> does not match, expected: </span>
+                                <label>{{ item.filename }}</label> ({{ auxFileName(item) }})
+                                <input type="file" data-file-model="item.file" />
+                              </div>
+                            </div>
+                            <div class="text-warning"><strong>{{ fileUploadError }}</strong></div>
+                            <div class="col-sm-6 pull-right">
+                              <button data-ng-click="importMissingFiles()" data-ng-disabled="isMissingFiles()"" class="btn btn-primary">{{ importMissingFilesButtonText() }}</button>
+                               <button data-dismiss="modal" class="btn btn-default">Cancel</button>
+                            </div>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+        `,
+        controller: function($scope) {
+            $scope.title = 'Import ' + SIREPO.APP_SCHEMA.appInfo[SIREPO.APP_NAME].shortName + ' File';
+            // states: ready, import, lattice, load-file-lists, missing-files
+            $scope.state = 'ready';
+
+            function classifyInputFiles(model, modelType, modelName, requiredFiles) {
+                var inputFiles = modelInputFiles(modelType);
+                for (var i = 0; i < inputFiles.length; i++) {
+                    if (model[inputFiles[i]]) {
+                        if (! requiredFiles[modelType]) {
+                            requiredFiles[modelType] = {};
+                        }
+                        if (! requiredFiles[modelType][inputFiles[i]]) {
+                            requiredFiles[modelType][inputFiles[i]] = {};
+                        }
+                        requiredFiles[modelType][inputFiles[i]][model[inputFiles[i]]] = modelName;
+                    }
+                }
+            }
+
+            function hideAndRedirect() {
+                $('#simulation-import').modal('hide');
+                requestSender.localRedirect(SIREPO.lattice.latticeRedirect || 'lattice', {
+                    ':simulationId': $scope.id,
+                });
+            }
+
+            function latticeFormat() {
+                return SIREPO.lattice.latticeImport || '.ele, .in, .lte, .madx, .seq';
+            }
+
+            function loadFileLists() {
+                $scope.state = 'load-file-lists';
+                if (! $scope.missingFileLists.length) {
+                    verifyMissingFiles();
+                    return;
+                }
+                var fileType = $scope.missingFileLists.pop();
+                requestSender.loadListFiles(
+                    fileType,
+                    {
+                        simulationType: SIREPO.APP_SCHEMA.simulationType,
+                        fileType: fileType,
+                    },
+                    loadFileLists,
+                );
+            }
+
+            function modelInputFiles(type) {
+                var res = [];
+                var elementSchema = SIREPO.APP_SCHEMA.model[type];
+                for (var f in elementSchema) {
+                    if (elementSchema[f][1].indexOf('InputFile') >= 0) {
+                        res.push(f);
+                    }
+                }
+                return res;
+            }
+
+            function verifyInputFiles(data) {
+                var requiredFiles = {};
+                var i;
+                for (i = 0; i < data.models?.elements?.length; i++) {
+                    var el = data.models.elements[i];
+                    classifyInputFiles(el, el.type, el.name, requiredFiles);
+                }
+                for (i = 0; i < data.models?.commands?.length; i++) {
+                    var cmd = data.models.commands[i];
+                    classifyInputFiles(cmd, commandService.commandModelName(cmd._type), cmd._type, requiredFiles);
+                }
+                //TODO(pjm): special case for genesis
+                if (data.models.io) {
+                    classifyInputFiles(data.models.io, 'io', 'io', requiredFiles);
+                }
+                $scope.inputFiles = [];
+                for (var type in requiredFiles) {
+                    for (var field in requiredFiles[type]) {
+                        for (var filename in requiredFiles[type][field]) {
+                            var fileType = type + '-' + field;
+                            //TODO(pjm): special case for BeamInputFile which shares files between bunchFile and command_sdds_beam
+                            if (type == 'command_sdds_beam' && field == 'input') {
+                                fileType = 'bunchFile-sourceFile';
+                            }
+                            $scope.inputFiles.push({
+                                type,
+                                field,
+                                filename,
+                                fileType,
+                                elementName: requiredFiles[type][field][filename],
+                            });
+                        }
+                    }
+                }
+                verifyFileLists();
+            }
+
+            function verifyFileLists() {
+                var res = [];
+                for (var i = 0; i < $scope.inputFiles.length; i++) {
+                    var fileType = $scope.inputFiles[i].fileType;
+                    if (! requestSender.getListFilesData(fileType)) {
+                        res.push(fileType);
+                    }
+                }
+                $scope.missingFileLists = res;
+                loadFileLists();
+            }
+
+            function verifyMissingFiles() {
+                var res = [];
+                for (var i = 0; i < $scope.inputFiles.length; i++) {
+                    var filename = $scope.inputFiles[i].filename;
+                    var fileType = $scope.inputFiles[i].fileType;
+                    var list = requestSender.getListFilesData(fileType);
+                    if (list.indexOf(filename) < 0) {
+                        res.push($scope.inputFiles[i]);
+                    }
+                }
+                if (! res.length) {
+                    hideAndRedirect();
+                    return;
+                }
+                $scope.state = 'missing-files';
+                $scope.missingFiles = res.sort(function(a, b) {
+                    if (a.type < b.type) {
+                        return -1;
+                    }
+                    if (a.type > b.type) {
+                        return 1;
+                    }
+                    if (a.field < b.field) {
+                        return -1;
+                    }
+                    if (a.field > b.field) {
+                        return 1;
+                    }
+                    return 0;
+                });
+            }
+
+            $scope.auxFileName = (item) => {
+                return item.elementName
+                    + ': '
+                    + (commandService.isCommandModelName(item.type)
+                       ? ''
+                       : (item.type + ' '))
+                    + item.field;
+            };
+
+            $scope.acceptFileTypes = () => {
+                return (latticeFormat() + ',.zip').replace(' ', '');
+            };
+
+            $scope.fileTypes = function() {
+                return (
+                    `Select Lattice (${latticeFormat()}),`
+                ) + ` or ${SIREPO.APP_SCHEMA.productInfo.shortName} Export (.zip)`;
+            };
+
+            $scope.importLatticeFile = function(latticeFile) {
+                if (! latticeFile) {
+                    return;
+                }
+                var args = {
+                    folder: fileManager.getActiveFolderPath(),
+                };
+                if ($scope.state == 'lattice') {
+                    args.arguments = JSON.stringify($scope.eleData);
+                }
+                else {
+                    $scope.resetState();
+                    $scope.filename = latticeFile.name;
+                }
+                $scope.state = 'import';
+                fileUpload.uploadFileToUrl(
+                    latticeFile,
+                    args,
+                    requestSender.formatUrl('importFile'),
+                    function(data) {
+                        if (data.error) {
+                            $scope.resetState();
+                            $scope.fileUploadError = data.error;
+                        }
+                        else if (data.importState === "needLattice") {
+                            //TODO(pjm): need generalization for lattice extension
+                            $scope.latticeFileExtension = $scope.filename.toLowerCase().endsWith('.dat')
+                                ? '.dat' : '.lte';
+                            $scope.state = 'lattice';
+                            $scope.latticeFile = null;
+                            $('#sr-lattice-import').val(null);
+                            $scope.eleData = data.eleData;
+                            $scope.latticeFileName = data.latticeFileName;
+                        }
+                        else {
+                            $scope.id = data.models.simulation.simulationId;
+                            $scope.simulationName = data.models.simulation.name;
+                            verifyInputFiles(data);
+                        }
+                    });
+            };
+
+            $scope.importMissingFiles = function() {
+                $scope.state = 'import';
+                let fileCount = 0;
+                const responseHandler = (resp, missingInfo) => {
+                    fileCount -= 1;
+                    if (resp.error) {
+                        $scope.state = 'missing-files';
+                        $scope.fileUploadError = resp.error;
+                        return;
+                    }
+                    if (fileCount === 0) {
+                        requestSender.getListFilesData(resp.fileType).push(resp.filename);
+                        hideAndRedirect();
+                    }
+                };
+                const uploadFile = (i) => {
+                    fileUpload.uploadFileToUrl(
+                        $scope.missingFiles[i].file,
+                        null,
+                        requestSender.formatUrl(
+                            'uploadLibFile',
+                            {
+                                '<simulation_id>': $scope.id,
+                                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+                                '<file_type>': $scope.missingFiles[i].fileType,
+                            },
+                        ),
+                        (resp) => responseHandler(resp, $scope.missingFiles[i]),
+                    );
+                };
+                for (let i = 0; i < $scope.missingFiles.length; i++) {
+                    fileCount += 1;
+                    uploadFile(i);
+                }
+            };
+
+            $scope.importMissingFilesButtonText = function() {
+                if (! $scope.missingFiles) {
+                    return '';
+                }
+                return 'Import File' + ($scope.missingFiles.length > 1 ? 's' : '');
+            };
+
+            $scope.isCorrectMissingFile = function(item) {
+                if (! item.file) {
+                    return false;
+                }
+                return item.filename === item.file.name;
+            };
+
+            $scope.isMissingFiles = function() {
+                if (! $scope.missingFiles) {
+                    return true;
+                }
+                for (var i = 0; i < $scope.missingFiles.length; i++) {
+                    if (! $scope.missingFiles[i].file) {
+                        return true;
+                    }
+                    if (! $scope.isCorrectMissingFile($scope.missingFiles[i])) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
+            $scope.isMissingImportFile = function() {
+                return ! $scope.latticeFile;
+            };
+
+            $scope.isState = function(state) {
+                return $scope.state == state;
+            };
+
+            $scope.resetState = function() {
+                $scope.id = null;
+                $scope.latticeFile = null;
+                $scope.filename = '';
+                $scope.simulationName = '';
+                $scope.state = 'ready';
+                $scope.fileUploadError = '';
+                $scope.latticeFileName = '';
+                $scope.inputFiles = null;
+            };
+
+            $scope.resetState();
+        },
+        link: function(scope, element) {
+            $(element).on('show.bs.modal', function() {
+                $('#sr-lattice-file-import').val(null);
+                $('#sr-lattice-import').val(null);
+                scope.resetState();
+            });
+            scope.$on('$destroy', function() {
+                $(element).off();
+            });
+        },
     };
 });
 

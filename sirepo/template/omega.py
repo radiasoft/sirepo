@@ -168,7 +168,7 @@ def get_data_file(run_dir, model, frame, options):
                 data=pmd_beamphysics.interfaces.elegant.elegant_to_data(particle_file),
             )
         elif sim_type == "opal":
-            step = _template_for_sim_type(sim_type).read_frame_count(run_dir)
+            step, p = _template_for_sim_type(sim_type).read_frame_count(run_dir)
             with h5py.File(particle_file, "r") as f:
                 return pmd_beamphysics.ParticleGroup(
                     data=pmd_beamphysics.interfaces.opal.opal_to_data(
@@ -248,7 +248,7 @@ def sim_frame(frame_args):
         int(frame_args.simCount) - 1
     ].simulationType
     frame_args.run_dir = _sim_dir(frame_args.run_dir, frame_args.simCount)
-    frame_args.sim_in = _SIM_DATA.sim_run_input(frame_args)
+    frame_args.sim_in = _SIM_DATA.sim_run_input(frame_args.run_dir)
     if "Phase" in frame_args.frameReport:
         return _plot_phase(sim_type, frame_args)
     if "Beam" in frame_args.frameReport:
@@ -307,8 +307,7 @@ def _extract_elegant_beam_plot(frame_args):
         )
         if res:
             for p in r.plots:
-                # TODO(pjm): reaches inside template_common to get colors
-                p.color = template_common._PLOT_LINE_COLOR[len(res.plots)]
+                p.color = template_common.PLOT_LINE_COLOR[len(res.plots)]
                 res.plots.append(p)
         else:
             res = r
@@ -407,7 +406,7 @@ def _plot_beam(sim_type, frame_args):
     if sim_type == "elegant":
         return _extract_elegant_beam_plot(frame_args)
     if sim_type == "genesis":
-        frame_args.sim_in = _SIM_DATA.sim_run_input(run_dir)
+        frame_args.sim_in = _SIM_DATA.sim_run_input(frame_args.run_dir)
         return _template_for_sim_type(sim_type).sim_frame_parameterAnimation(frame_args)
 
     raise AssertionError("unhandled sim_type for sim_frame(): {}".format(sim_type))

@@ -286,27 +286,28 @@ def _to_madx(data, source_file):
         beamDefinition="file",
         sourceFile=source_file,
     )
+    beam = _command(
+        state,
+        PKDict(
+            _type="beam",
+            particle=data.models.distribution.species,
+        ).pkupdate(_beam_settings_from_file(source_file)),
+    )
+    twiss = _command(
+        state,
+        PKDict(
+            _type="twiss",
+            file="1",
+        ).pkupdate(_beam_settings_from_file(source_file, model="twiss")),
+    )
     res = PKDict(
         models=PKDict(
             beamlines=copy.deepcopy(data.models.beamlines),
             bunch=bunch,
-            commands=[
-                _command(
-                    state,
-                    PKDict(
-                        _type="beam",
-                        particle=data.models.distribution.species,
-                    ).pkupdate(_beam_settings_from_file(source_file)),
-                ),
-                _command(
-                    state,
-                    PKDict(
-                        _type="twiss",
-                        file="1",
-                    ).pkupdate(_beam_settings_from_file(source_file, model="twiss")),
-                ),
-            ]
-            + sirepo.template.madx.command_template("particle", _next_id(state)),
+            commands=[beam, twiss]
+            + sirepo.template.madx.command_template(
+                "particle", _next_id(state), twiss=twiss
+            ),
             elements=[],
             rpnVariables=data.models.rpnVariables,
             simulation=PKDict(

@@ -1,0 +1,5 @@
+beam, particle=electron, pc=0.1;
+rf: rfcavity, l=0.5, volt=1, freq=1300, lag=0.25;
+tw: twcavity, l=2, volt=10, freq=2856, lag=0.8;
+cc: crabcavity, l=0.3, volt=2, freq=400, lag=0.1;
+bl: line=(rf,tw,cc);

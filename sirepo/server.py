@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
 """Primary sirepo.quest.API's
 
 :copyright: Copyright (c) 2015-2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern import pkconfig
 from pykern import pkio
 from pykern.pkcollections import PKDict
@@ -37,6 +37,8 @@ _PROXY_VUE_URI_RE = None
 
 #: See `_proxy_vue`
 _VUE_SERVER_BUILD = "build"
+
+_INDEX_HTML = "index.html"
 
 
 class API(sirepo.quest.API):
@@ -338,7 +340,12 @@ class API(sirepo.quest.API):
     @sirepo.quest.Spec("allow_visitor", path_info="PathInfo optional")
     async def api_homePage(self, path_info=None):
         return await self.call_api(
-            "staticFile", kwargs=PKDict(path_info="en/" + (path_info or "landing.html"))
+            "staticFile",
+            kwargs=PKDict(
+                path_info=sirepo.feature_config.cfg().home_page_subdir
+                + "/"
+                + (path_info or _INDEX_HTML)
+            ),
         )
 
     @sirepo.quest.Spec("require_plan", folder="FolderName", name="SimName")
@@ -532,11 +539,21 @@ class API(sirepo.quest.API):
         Returns:
             Reply: reply with file
         """
+
+        def _dir(path):
+            if not path.check(dir=True):
+                return path
+            rv = path.join(_INDEX_HTML)
+            if not rv.check(file=True):
+                raise sirepo.util.NotFound("{} not in dir={}", _INDEX_HTML, path)
+            return rv
+
         if not path_info:
             raise sirepo.util.NotFound("empty path info")
         self._proxy_vue(f"{sirepo.const.STATIC_D}/" + path_info)
-        p = sirepo.resource.static(sirepo.util.validate_path(path_info))
-        if re.match(r"^(html|en)/[^/]+html$", path_info):
+        p = _dir(sirepo.resource.static(sirepo.util.validate_path(path_info)))
+        s = re.escape(sirepo.feature_config.cfg().home_page_subdir)
+        if re.match(rf"^(html|{s})/[^/]+html$", path_info):
             return self.reply_html(p)
         return self.reply_file(p)
 
@@ -565,10 +582,10 @@ class API(sirepo.quest.API):
                 qcall=self,
             ):
                 f = r.models.simulation.folder
-                if f.lower() == o.lower():
+                if f == o:
                     r.models.simulation.folder = n
-                elif f.lower().startswith(o.lower() + "/"):
-                    r.models.simulation.folder = n + f[len() :]
+                elif f.startswith(o + "/"):
+                    r.models.simulation.folder = n + f[len(o) :]
                 else:
                     continue
                 simulation_db.save_simulation_json(r, fixup=False, qcall=self)
@@ -608,7 +625,14 @@ class API(sirepo.quest.API):
             t.write_binary(f.as_bytes())
             if hasattr(req.template, "validate_file"):
                 # Note: validate_file may modify the file
-                e = req.template.validate_file(req.file_type, t)
+                e = req.template.validate_file(
+                    req.file_type, t, sim_id=req.id, qcall=self
+                )
+                if e and not isinstance(e, str):
+                    # allow implementation to return a PKDict(error=...,filename=...)
+                    if "filename" in e:
+                        req.filename = e.filename
+                    e = e.get("error")
             if (
                 not e
                 and req.sim_data.lib_file_exists(req.filename, qcall=self)
@@ -643,12 +667,12 @@ class API(sirepo.quest.API):
             p = path
             m = re.search(r"^(\w+)(?:$|/)", p)
             if m and m.group(1) in sirepo.feature_config.cfg().sim_types:
-                p = "index.html"
+                p = _INDEX_HTML
             # do not call api_staticFile due to recursion of _proxy_vue()
             r = self.reply_file(
                 sirepo.resource.static(sirepo.util.validate_path(f"vue/{p}")),
             )
-            if p == "index.html":
+            if p == _INDEX_HTML:
                 # Ensures latest vue is always returned, because index.html contains
                 # version-tagged values but index.html does not. It's likely that
                 # a check would be made on a refresh, this ensures no caching.
@@ -797,7 +821,7 @@ _cfg = pkconfig.init(
         bool,
         "enable source cache key, disable to allow local file edits in Chrome",
     ),
-    home_page_uri=("/en/landing.html", str, "home page to redirect to"),
+    home_page_uri=("/en/", str, "home page to redirect to"),
     vue_server=(
         None if pkconfig.in_dev_mode() else _VUE_SERVER_BUILD,
         _cfg_vue_server,

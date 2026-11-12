@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
     SIREPO.FILE_UPLOAD_TYPE = {
         'bunchFile-sourceFile': '.sdds,.h5',
     };
@@ -476,6 +477,37 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         return fn.replace(/\.(?:sdds|output_file|filename)/g, '');
     }
 
+    // plot fields for elegant's standard outputs, by their columns: the
+    // first whose x and y columns are all present
+    const DEFAULT_PLOTS = [
+        // twiss_output
+        {x: 's', y: [['betax', 'left'], ['betay', 'left'], ['etax', 'right']]},
+        // run_setup.sigma
+        {x: 's', y: [['Sx', 'left'], ['Sy', 'left'], ['Ss', 'right']]},
+        // run_setup.centroid
+        {x: 's', y: [['Cx', 'left'], ['Cy', 'left']]},
+        // WATCH in centroid or parameter mode
+        {x: 'Pass', y: [['Cx', 'left'], ['Cy', 'left']]},
+        // particles, ex. run_setup.output or a coordinate WATCH
+        {x: 'x', y: [['xp', 'left']]},
+    ];
+
+    function setDefaultPlot(model, columns) {
+        const d = DEFAULT_PLOTS.find(
+            p => [p.x].concat(p.y.map(y => y[0])).every(c => columns.includes(c)));
+        if (! d) {
+            return;
+        }
+        model.x = d.x;
+        d.y.forEach((y, i) => {
+            model['y' + (i + 1)] = y[0];
+            model['y' + (i + 1) + 'Position'] = y[1];
+        });
+        if (d.x == 's') {
+            model.includeLattice = '1';
+        }
+    }
+
     function defaultYColumn(columns, xCol) {
         for (var i = 0; i < columns.length; i++) {
             // Ignore "ElementOccurence" column
@@ -514,7 +546,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
     function loadElementReports(outputInfo) {
         self.outputFiles = [];
         self.outputFileMap = {};
-        var similarRowCounts = {};
 
         outputInfo.forEach(function (info) {
             if (info.isAuxFile) {
@@ -536,14 +567,9 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             self.outputFiles.push(outputFile);
             self.outputFileMap[outputFile.filename] = outputFile;
             var rowCountsKey = info.rowCounts.join(' ');
-            if (!(rowCountsKey in similarRowCounts)) {
-                similarRowCounts[rowCountsKey] = [];
-            }
-            similarRowCounts[rowCountsKey].push(info.filename);
-            info.similarFiles = similarRowCounts[rowCountsKey];
         });
 
-        self.outputFiles.forEach(function (outputFile, i) {
+        self.outputFiles.forEach(function (outputFile) {
             var info = outputFile.info;
             var modelKey = outputFile.modelAccess.modelKey;
             var m = null;
@@ -551,7 +577,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
                 m = appState.models[modelKey];
                 m.xFileId = info.id;
                 m.xFile = info.filename;
-                m.y1File = info.filename;
                 if (info.plottableColumns.indexOf(m.x) < 0) {
                     m.x = info.plottableColumns[0];
                 }
@@ -562,26 +587,19 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             else {
                 m = appState.models[modelKey] = {
                     xFile: info.filename,
-                    y1File: info.filename,
                     x: info.plottableColumns[0],
                     xFileId: info.id,
                 };
-                // Only display the first outputFile
-                if (i > 0 && ! panelState.isHidden(modelKey)) {
-                    panelState.toggleHidden(modelKey);
-                }
+                setDefaultPlot(m, info.plottableColumns);
             }
-            if (outputFile.reportType != 'heatmap') {
-                m.aspectRatio = 4.0 / 7;
+            if (! m.aspectRatio) {
+                m.aspectRatio = outputFile.reportType === 'heatmap' ? '1' : '0.5625';
             }
             appState.setModelDefaults(m, 'elementAnimation');
             m.valueList = {
                 x: info.plottableColumns,
                 y1: info.plottableColumns,
                 xFile: [m.xFile],
-                y1File: [m.xFile],
-                y2File: info.similarFiles,
-                y3File: info.similarFiles,
             };
             m.latticeId = info.latticeId;
             m.panelTitle = cleanFilename(m.xFile);
@@ -591,12 +609,6 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
             if (! info.pageCount) {
                 panelState.setError(modelKey, 'No output was generated for this report.');
             }
-            appState.watchModelFields(
-                $scope,
-                [modelKey + '.y2File', modelKey + '.y3File'],
-                function () {
-                    yFileUpdate(modelKey);
-                });
         });
         $rootScope.$broadcast('elementAnimation.outputInfo', outputInfo);
     }
@@ -606,13 +618,8 @@ SIREPO.app.controller('VisualizationController', function(appState, elegantServi
         if (! m.y1 && m.y) {
             m.y1 = m.y;
         }
-        ['y1', 'y2', 'y3'].forEach(function(f) {
-            var field = f + 'File';
-            if (m.valueList[field].indexOf(m[field]) < 0) {
-                m[field] = m.xFile;
-            }
-            var info = self.outputFileMap[m[field]].info;
-            m[field + 'Id'] = info.id;
+        ['y1', 'y2', 'y3', 'y4', 'y5'].forEach(function(f) {
+            var info = self.outputFileMap[m.xFile].info;
             var cols = m.valueList[f] = appState.clone(info.plottableColumns);
             if (f != 'y1') {
                 cols.unshift('None');
@@ -675,7 +682,8 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: `
             <div data-common-footer="nav"></div>
-            <div data-elegant-import-dialog=""></div>
+            <div data-lattice-import-dialog=""></div>
+            <div data-lattice-conversion-modals=""></div>
         `,
     };
 });
@@ -688,7 +696,7 @@ SIREPO.app.directive('appHeader', function(appState, elegantService, latticeServ
             nav: '=appHeader',
         },
         template: `
-            <div data-app-header-brand="" data-app-url="/en/particle-accelerators.html"></div>
+            <div data-app-header-brand=""></div>
             <div data-app-header-left="nav"></div>
             <div data-app-header-right="nav">
               <app-header-right-sim-loaded>
@@ -700,6 +708,7 @@ SIREPO.app.directive('appHeader', function(appState, elegantService, latticeServ
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
+                <div data-lattice-conversion-menu=""></div>
               </app-settings>
               <app-header-right-sim-list>
                 <ul class="nav navbar-nav sr-navbar-right">

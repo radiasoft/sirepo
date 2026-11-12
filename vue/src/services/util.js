@@ -1,7 +1,15 @@
+import { saveAs } from 'file-saver';
 import { singleton } from '@/services/singleton.js';
 
 class Util {
     uniqueIdCount = 0;
+    _dateFormat = Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+    });
 
     clone(obj) {
         return window.structuredClone
@@ -31,7 +39,64 @@ class Util {
             }
             return ! keys.some(k => ! this.deepEquals(v1[k], v2[k]));
         }
-        return v1 == v2;
+        return v1 === v2;
+    }
+
+    downloadCSV = (report) => {
+        //TODO(pjm): could be in plotutil.js
+        if (! report) {
+            return;
+        }
+        let res = [report.x_label, ...report.plots.map((p) => p.label)].map((v) => `"${v}"`).join(',') + "\n";
+        for (let i = 0; i < report.x_points.length; i++) {
+            res += [report.x_points[i], ...report.plots.map((p) => p.points[i])].join(',') + "\n";
+        }
+        const n = report.y_label.replace(/ \[.*/, '');
+        saveAs(new Blob([res], {type: 'text/csv;charset=utf-8'}), `${n}.csv`);
+    }
+
+    downloadPNG = (report) => {
+        if (! report || ! report.image) {
+            return;
+        }
+        const n = report.y_label.replace(/ \[.*/, '');
+        saveAs(report.image, `${n}.png`);
+    }
+
+    downloadFilename(name, suffix) {
+        return name.replace(/[^\w\s-]/g, '_').trim() + '.' + suffix;
+    }
+
+    downloadText = (content, filename) => {
+        saveAs(new Blob([content], {type: 'text/plain;charset=utf-8'}), filename);
+    }
+
+    formatDate(pythonTime) {
+        return this._dateFormat.format(pythonTime * 1000);
+    }
+
+    formatExponential(value) {
+        return (value ? value.toExponential(3) : '').replace(/e\+0$/, '');
+    }
+
+    formatTime(unixTime) {
+        function format(val) {
+            return leftPadZero(Math.floor(val));
+        }
+
+        function leftPadZero(num) {
+            return num >= 10 ? num : ('0' + num);
+        }
+
+        const d = Math.floor(unixTime / (3600*24));
+        const h = format(unixTime % (3600*24) / 3600);
+        const m = format(unixTime % 3600 / 60);
+        const s = format(unixTime % 60);
+        let res = d > 0 ? d : '';
+        if (res) {
+            res += d === 1 ? ' day ': ' days ';
+        }
+        return res + h + ':' + m + ':' + s;
     }
 
     isArray(arr) {
@@ -40,6 +105,19 @@ class Util {
 
     isObject(value) {
         return value !== null && typeof value === 'object';
+    }
+
+    reportDownloadActions(report) {
+        return [
+            {
+                onClick: () => this.downloadCSV(report),
+                label: 'Download CSV',
+            },
+            {
+                onClick: () => this.downloadPNG(report),
+                label: 'Download PNG',
+            },
+        ];
     }
 
     uniqueId() {

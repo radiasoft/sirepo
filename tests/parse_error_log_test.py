@@ -29,7 +29,7 @@ def test_parse_python_errors():
 
     err = """
 Traceback (most recent call last):
-  File "/home/vagrant/src/radiasoft/sirepo/sirepo/pkcli/zgoubi.py", line 120, in _validate_estimate_output_file_size
+  File "/home/vagrant/src/radiasoft/sirepo/sirepo/pkcli/just-forthis-test.py", line 120, in _validate_estimate_output_file_size
     'Estimated FAI output too large.\n'
 AssertionError: Estimated FAI output too large.
 Reduce particle count or number of runs,

@@ -137,6 +137,7 @@ class SDDSUtil:
                 points=col["values"],
                 label=plot_attrs.model[f],
                 col_name=col_name,
+                dim=f,
             )
             plot_attrs.format_plot(plot, col.column_def[1])
             if f == x_field:

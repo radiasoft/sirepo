@@ -51,7 +51,7 @@ http {
         root /usr/share/nginx/html;
         {% if jupyterhub_root  %}
         location /{{ jupyterhub_root }}/hub/logout {
-            return 301 /auth-logout;
+            return 302 /auth-logout;
         }
         location /{{ jupyterhub_root }}/ {
             proxy_pass http://127.0.0.1:{{ jupyterhub_port }};

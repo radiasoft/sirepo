@@ -256,8 +256,13 @@ class SimDataBase(object):
         res.update(
             "".join(
                 (
-                    str(cls.lib_file_abspath(b, data=data, qcall=qcall).mtime())
-                    for b in sorted(cls.lib_file_basenames(data))
+                    # file may not exist yet if it is an external example datafile
+                    str(p.mtime())
+                    for p in [
+                        cls._lib_file_abspath(b, qcall)
+                        for b in sorted(cls.lib_file_basenames(data))
+                    ]
+                    if p.exists()
                 ),
             ).encode()
         )
@@ -463,7 +468,7 @@ class SimDataBase(object):
         return "{}.{}".format(file_type, filename)
 
     @classmethod
-    def lib_file_name_without_type(cls, basename):
+    def lib_file_name_without_type(cls, basename, model_name=None, field=None):
         """Strip the file type prefix
 
         See `lib_file_name` which prefixes with ``model-field.``
@@ -473,7 +478,9 @@ class SimDataBase(object):
         Returns:
             str: basename without type prefix
         """
-        return re.sub(r"^.*?-.*?\.(.+\..+)$", r"\1", basename)
+        if model_name and field:
+            return re.sub(r"^{}-{}\.".format(model_name, field), "", basename)
+        return re.sub(r"^.*?-.*?\.(.+)$", r"\1", basename)
 
     @classmethod
     def lib_file_resource_path(cls, basename):
@@ -566,30 +573,20 @@ class SimDataBase(object):
             qcall (quest.API): logged in user
         """
 
-        def _target():
-            return (
-                cls._simulation_db()
-                .simulation_lib_dir(cls.sim_type(), qcall=qcall)
-                .join(basename)
-            )
-
         if cls._is_agent_side():
             cls.sim_db_client().put(cls.LIB_DIR, basename, path_or_content)
             return
+        t = cls._lib_file_abspath(basename, qcall=qcall)
         if isinstance(path_or_content, pkconst.PY_PATH_LOCAL_TYPE):
-            path_or_content.copy(_target())
+            path_or_content.copy(t)
         else:
-            _target().write_binary(pkcompat.to_bytes(path_or_content))
+            t.write_binary(pkcompat.to_bytes(path_or_content))
 
     @classmethod
     def lib_file_write_path(cls, basename, qcall=None):
         """DEPRECATED: Use `lib_file_write`"""
 
-        return (
-            cls._simulation_db()
-            .simulation_lib_dir(cls.sim_type(), qcall=qcall)
-            .join(basename)
-        )
+        return cls._lib_file_abspath(basename, qcall=qcall)
 
     @classmethod
     def lib_files_for_export(cls, data, qcall=None):
@@ -918,8 +915,26 @@ class SimDataBase(object):
                 return data
             raise FileNotFoundError(f"path={cls.sim_run_input_path(run_dir)}")
 
+        def _download_external_files(data):
+            for f in data.models.get("_externalFiles", []):
+                if cls.lib_file_exists(
+                    cls.lib_file_name_with_model_field(f.model, f.field, f.name)
+                ):
+                    continue
+                cls.lib_file_save_from_url(
+                    "{}/{}".format(
+                        sirepo.feature_config.for_sim_type(
+                            cls.sim_type()
+                        ).data_storage_url,
+                        f.name,
+                    ),
+                    f.model,
+                    f.field,
+                )
+
         r = pkio.py_path(run_dir)
         d = _data(r, data)
+        _download_external_files(d)
         cls.support_files_to_run_dir(data=d, run_dir=r)
         return _cmd(r, d, sirepo.template.import_module(cls.sim_type()))
 
@@ -1091,12 +1106,16 @@ class SimDataBase(object):
 
     @classmethod
     def _lib_file_abspath(cls, basename, qcall):
-        """Path in user lib directory for `basename`"""
-        return (
-            cls._simulation_db()
-            .simulation_lib_dir(cls.sim_type(), qcall=qcall)
-            .join(basename)
-        )
+        """Path in user lib directory for `basename`
+
+        `basename` may come from untrusted simulation data so
+        must not escape the lib directory.
+        """
+        d = cls._simulation_db().simulation_lib_dir(cls.sim_type(), qcall=qcall)
+        res = d.join(basename)
+        if d.common(res) != d:
+            raise AssertionError(f"basename={basename} escapes lib dir={d}")
+        return res
 
     @classmethod
     def _lib_file_abspath_or_exists(

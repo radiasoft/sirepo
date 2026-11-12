@@ -1,43 +1,841 @@
 """cortex execution template.
 
-:copyright: Copyright (c) 2025 RadiaSoft LLC.  All Rights Reserved.
+:copyright: Copyright (c) 2026 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
 
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdc, pkdlog
+from sirepo.template import template_common
+import cortex_tea.component_def
+import cortex_tea.material_def
+import cortex_tea.plotting
+import cortex_tea.tea_api
+import csv
+import io
+import math
+import numpy
+import os
+import pykern.pkcompat
+import pykern.pkio
+import pykern.pkjson
+import re
+import sirepo.mpi
 import sirepo.sim_data
 import sirepo.simulation_db
-import sirepo.template.cortex_sql_db
-import sirepo.template.cortex_xlsx
+import sirepo.template.openmc
+import zipfile
 
+CORTEX_RUN_LOG = "cortex.log"
+STATEPOINTS = ["neutronics", "depletion"]
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 
+_CHAIN_ENDF_FILE = "chain_endf_b8.0.xml"
+_EUDEMO_H5M_FILE = "eudemo_f_1_27a.h5m"
+_SLAB_CHAIN_ENDF_FILE = "chain_endfb80_sfr.xml"
+_TOKAMAK_INPUTS_FILE = "Tokamak_inputs.json"
+_COOLING_TIME = "cooling time (time after irradiation)"
 
-def stateful_compute_cortex_db(data, **kwargs):
-    if data.args.api_name == "list_materials":
-        return PKDict(
-            api_result=sirepo.template.cortex_sql_db.list_materials(),
+_NUCLIDE_LEGEND = "The legend gives each nuclide and its half-life."
+
+# Section and description of each report, the first pattern matching a stat
+# wins so a specific pattern must precede the general one it overlaps. A None
+# section is for a report which is only in the output zip, not listed in the UI.
+# POSIT: the sections are the keys of VNeutronics.vue's sections, and the
+# patterns are the stats in _REPORT_TITLE
+_REPORT_GROUP = (
+    (r"(cell|decayheat|waste_summary)_(OB|Breeder)", None, ""),
+    (r"sdr_(profile|time)", None, ""),
+    (r"^radial_", None, ""),
+    (
+        r"^dpa_",
+        "steady_state",
+        "Displacement damage in displacements per atom (DPA), from the Norgett-Robinson-Torrens (NRT) model, per full-power year (fpy) through the slab.",
+    ),
+    (
+        r"^h1_",
+        "steady_state",
+        "Hydrogen gas production in atomic parts per million (appm) per full-power year through the slab.",
+    ),
+    (
+        r"^he_",
+        "steady_state",
+        "Helium gas production in atomic parts per million (appm) per full-power year through the slab.",
+    ),
+    (
+        r"^heating_",
+        "steady_state",
+        "Nuclear heating power density (W/cm³) through the slab.",
+    ),
+    (
+        r"^flux_total_",
+        "flux",
+        "Total neutron and photon flux (1/cm²/s) through the slab.",
+    ),
+    (
+        r"^n_flux_spectrum_",
+        "flux",
+        "Neutron flux per unit lethargy versus energy, one curve for each layer.",
+    ),
+    (
+        r"^p_flux_spectrum_",
+        "flux",
+        "Photon flux per unit lethargy versus energy, one curve for each layer.",
+    ),
+    (
+        r"^activity_all_cells$",
+        "activity",
+        f"Specific activity (Bq/kg) of each layer versus {_COOLING_TIME}.",
+    ),
+    (
+        r"^activity_cell_",
+        "activity",
+        f"Specific activity (Bq/kg) of the layer by nuclide versus {_COOLING_TIME}. {_NUCLIDE_LEGEND}",
+    ),
+    (
+        r"^decayheat_all_cells$",
+        "decay_heat",
+        f"Decay heat power density (W/cm³) of each layer versus {_COOLING_TIME}.",
+    ),
+    (
+        r"^decayheat_",
+        "decay_heat",
+        f"Decay heat power density (W/cm³) of the layer by nuclide versus {_COOLING_TIME}. {_NUCLIDE_LEGEND}",
+    ),
+    (
+        r"^sdr_layer_",
+        "waste_dose",
+        f"Shutdown dose rate (μSv/h) calculated with the Direct 1-Step (D1S) method versus {_COOLING_TIME}.",
+    ),
+    (
+        r"^waste_summary_.*_struct_scaled$",
+        "waste_dose",
+        # POSIT: "struct. frac" is the plot title's title_suffix in
+        # slab.py.jinja's _plot_waste_summary_one, see cortex_plot_test
+        'Waste disposal ratings scaled up by dividing by the layer\'s structural volume fraction ("struct. frac" in the plot title). This approximates the structural material alone, without the coolant or breeder mixed into the layer. The NRC class shading is recomputed from the scaled ratings.',
+    ),
+    (
+        r"^waste_summary_",
+        "waste_dose",
+        f"Waste disposal rating versus {_COOLING_TIME} for the U.S. Nuclear Regulatory Commission (NRC) limits in Title 10 of the Code of Federal Regulations (CFR) part 61.55 (Table 1 long-lived, Table 2 Class A, B and C) and for Fetter et al. A rating below 1 meets that limit. The shading shows the resulting NRC class.",
+    ),
+)
+
+# POSIT: each slabAnimation key is the basename of a <key>.png and <key>.png.json
+# written by the cortex repo's full_model_bluemira post-processing (e.g.
+# waste_summary_<layer> from depletion_post.py, with spaces in the layer name
+# replaced by "_") and moved to the run dir by the FLATTEN OUTPUT step in
+# slab_src_patches/depletion_post.py.patch. _save_summary_to_database fails if
+# any listed file is missing, so a renamed plot or layer there breaks every run.
+_REPORT_TITLE = PKDict(
+    slabAnimation=PKDict(
+        dpa_OB_1_b6="Displacements per atom (DPA)",
+        h1_OB_1_b6="Hydrogen",
+        he_OB_1_b6="Helium",
+        flux_total_OB_1_b6="Flux",
+        heating_OB_1_b6="Heating",
+        p_flux_spectrum_OB_1_b6="Photon Flux",
+        n_flux_spectrum_OB_1_b6="Neutron Flux",
+        sdr_layer_00_Armor_OB_1_b6="Shutdown dose rate - Armor",
+        sdr_layer_01_First_Wall_OB_1_b6="Shutdown dose rate - First Wall",
+        sdr_layer_12_VV_OB_1_b6="Shutdown dose rate - Vacuum Vessel",
+        activity_all_cells="Total Activity over cooling time",
+        activity_cell_Armor="Activity - Armor",
+        activity_cell_First_wall="Activity - First Wall",
+        activity_cell_Breeder_layer_1="Activity - Breeder layer 1",
+        activity_cell_Breeder_layer_2="Activity - Breeder layer 2",
+        activity_cell_Breeder_layer_3="Activity - Breeder layer 3",
+        activity_cell_Breeder_layer_4="Activity - Breeder layer 4",
+        activity_cell_Breeder_layer_10="Activity - Breeder layer 10",
+        activity_cell_Breeder_layer_5="Activity - Breeder layer 5",
+        activity_cell_Breeder_layer_6="Activity - Breeder layer 6",
+        activity_cell_Breeder_layer_7="Activity - Breeder layer 7",
+        activity_cell_Breeder_layer_8="Activity - Breeder layer 8",
+        activity_cell_Breeder_layer_9="Activity - Breeder layer 9",
+        activity_cell_VV="Activity - Vacuum Vessel",
+        decayheat_all_cells="Total decay heat",
+        decayheat_Armor="Decay heat - Armor",
+        decayheat_First_wall="Decay heat - First Wall",
+        decayheat_Breeder_layer_1="Decay heat - Breeder layer 1",
+        decayheat_Breeder_layer_2="Decay heat - Breeder layer 2",
+        decayheat_Breeder_layer_3="Decay heat - Breeder layer 3",
+        decayheat_Breeder_layer_4="Decay heat - Breeder layer 4",
+        decayheat_Breeder_layer_5="Decay heat - Breeder layer 5",
+        decayheat_Breeder_layer_6="Decay heat - Breeder layer 6",
+        decayheat_Breeder_layer_7="Decay heat - Breeder layer 7",
+        decayheat_Breeder_layer_8="Decay heat - Breeder layer 8",
+        decayheat_Breeder_layer_9="Decay heat - Breeder layer 9",
+        decayheat_Breeder_layer_10="Decay heat - Breeder layer 10",
+        decayheat_VV="Decay heat - Vacuum Vessel",
+        radial_activity_profiles="Radial profile of Total activity per cooling time",
+        radial_decayheat_profiles="Radial profile of decay heat per cooling time",
+        waste_summary_Armor="Waste disposal rating - Armor",
+        waste_summary_First_wall="Waste disposal rating - First Wall",
+        waste_summary_Breeder_layer_1="Waste disposal rating - Breeder layer 1",
+        waste_summary_Breeder_layer_2="Waste disposal rating - Breeder layer 2",
+        waste_summary_Breeder_layer_3="Waste disposal rating - Breeder layer 3",
+        waste_summary_Breeder_layer_4="Waste disposal rating - Breeder layer 4",
+        waste_summary_Breeder_layer_5="Waste disposal rating - Breeder layer 5",
+        waste_summary_Breeder_layer_6="Waste disposal rating - Breeder layer 6",
+        waste_summary_Breeder_layer_7="Waste disposal rating - Breeder layer 7",
+        waste_summary_Breeder_layer_8="Waste disposal rating - Breeder layer 8",
+        waste_summary_Breeder_layer_9="Waste disposal rating - Breeder layer 9",
+        waste_summary_Breeder_layer_10="Waste disposal rating - Breeder layer 10",
+        waste_summary_VV="Waste disposal rating - Vacuum Vessel",
+        waste_summary_Armor_struct_scaled="Waste disposal rating, structure scaled - Armor",
+        waste_summary_First_wall_struct_scaled="Waste disposal rating, structure scaled - First Wall",
+        waste_summary_Breeder_layer_1_struct_scaled="Waste disposal rating, structure scaled - Breeder layer 1",
+        waste_summary_Breeder_layer_2_struct_scaled="Waste disposal rating, structure scaled - Breeder layer 2",
+        waste_summary_Breeder_layer_3_struct_scaled="Waste disposal rating, structure scaled - Breeder layer 3",
+        waste_summary_Breeder_layer_4_struct_scaled="Waste disposal rating, structure scaled - Breeder layer 4",
+        waste_summary_Breeder_layer_5_struct_scaled="Waste disposal rating, structure scaled - Breeder layer 5",
+        waste_summary_Breeder_layer_6_struct_scaled="Waste disposal rating, structure scaled - Breeder layer 6",
+        waste_summary_Breeder_layer_7_struct_scaled="Waste disposal rating, structure scaled - Breeder layer 7",
+        waste_summary_Breeder_layer_8_struct_scaled="Waste disposal rating, structure scaled - Breeder layer 8",
+        waste_summary_Breeder_layer_9_struct_scaled="Waste disposal rating, structure scaled - Breeder layer 9",
+        waste_summary_Breeder_layer_10_struct_scaled="Waste disposal rating, structure scaled - Breeder layer 10",
+        waste_summary_VV_struct_scaled="Waste disposal rating, structure scaled - Vacuum Vessel",
+        sdr_profile_OB_1_b6="D1S spatial profile",
+        sdr_time_layers_OB_1_b6="D1S shutdown dose rate per OB layer",
+    ),
+)
+
+SIM_VERSION = PKDict(
+    hcllSlabAnimation="1.03",
+    hcpbSlabAnimation="1.03",
+    wcllSlabAnimation="1.03",
+)
+
+_SIM_OUTPUT = PKDict(
+    slabAnimation=list(_REPORT_TITLE.slabAnimation.keys()),
+)
+
+# Seconds of a hcpb run. WCLL has the same output, which is why the report
+# type is shared, and is only approximated.
+_SIM_TIME = PKDict(
+    slabAnimation=451,
+)
+
+# Each marker is found in order in the log and the seconds are when it
+# was output. The log has three openmc runs: neutronics, D1S, and depletion.
+# POSIT: batches are counted in the log, and the markers are only for the
+# first 5, which is slab.py.jinja BATCHES. A trigger can run more, and the
+# extras don't match a marker, so the progress waits for the next marker.
+# The times are from a run which took 451 seconds, see
+# tests/template/cortex_plot_test.py::test_log_progress.
+_LOG_TIME = PKDict(
+    slabAnimation=[
+        [v[0], v[1] / _SIM_TIME.slabAnimation]
+        for v in (
+            # neutronics
+            ["Reading model XML file", 45],
+            ["Simulating batch 1", 54],
+            ["Simulating batch 2", 68],
+            ["Simulating batch 3", 81],
+            ["Simulating batch 4", 95],
+            ["Simulating batch 5", 109],
+            ["Creating state point", 122],
+            # D1S
+            ["Performing D1S run", 126],
+            ["Reading model XML file", 132],
+            ["Simulating batch 1", 140],
+            ["Simulating batch 2", 155],
+            ["Simulating batch 3", 170],
+            ["Simulating batch 4", 185],
+            ["Simulating batch 5", 200],
+            ["Creating state point", 216],
+            # depletion
+            ["Reading model XML file", 230],
+            ["Simulating batch 1", 238],
+            ["Simulating batch 2", 264],
+            ["Simulating batch 3", 289],
+            ["Simulating batch 4", 315],
+            ["Simulating batch 5", 340],
+            ["Creating state point", 365],
+            ["[openmc.deplete]", 366],
+            ["[waste summary]", 403],
         )
-    raise AssertionError("Unhandled api_name: {}", data.args.api_name)
+    ],
+)
+
+# ------------------------------------------------------------------
+# tea manufacturing cost model (stateless_compute_calculate_cost)
+#
+# categorical cost levels (tooling/equipment/time) for each process,
+# transcribed from cortex_tea's database_processes/*.py (tea_api resolves a
+# Process/Geometry straight from these values, no on-disk database lookup
+# needed).
+_COST_PROCESS_LEVELS = PKDict(
+    {
+        "CNC": PKDict(
+            tooling_level="Low", equipment_level="Low-Medium", time_level="Medium-High"
+        ),
+        "Cold Rolling": PKDict(
+            tooling_level="Medium", equipment_level="High-Very High", time_level="Low"
+        ),
+        "Diffusion Bonding": PKDict(
+            tooling_level="Low-Medium",
+            equipment_level="Low-Medium",
+            time_level="Medium",
+        ),
+        "Electron Beam": PKDict(
+            tooling_level="Medium", equipment_level="Medium", time_level="Medium"
+        ),
+        "HIP": PKDict(
+            tooling_level="Low-Medium", equipment_level="High", time_level="Medium"
+        ),
+        "Hot Rolling": PKDict(
+            tooling_level="Medium", equipment_level="High-Very High", time_level="Low"
+        ),
+        "Spray Deposition": PKDict(
+            tooling_level="Low-Medium", equipment_level="High", time_level="Medium"
+        ),
+    }
+)
+
+#: relative cost coefficients (Cc/Cs/Ct/Cf) for every process, given to both
+#: fixed geometries below - 1.0 (ideal/no penalty) for all of them, same
+#: placeholder convention tea's own "Plasma Facing Surface" geometry uses,
+#: since there's no DFM curve data for these processes at any thickness
+_COST_UNIT_COEFF_MAP = PKDict((n, 1.0) for n in _COST_PROCESS_LEVELS)
+
+# HCPB layer thicknesses (EUDEMO_HCPB_inputs.json: armor_cm=3.2, fw_cm=3.0),
+# so the plasma-facing (armor) layer is 3.2-3.0=0.2cm=2mm - exactly tea's
+# existing "Plasma Facing Surface" geometry - and the first wall layer is
+# 3.0cm=30mm. Volume scales with thickness at the same implied panel area
+# as "Plasma Facing Surface" (3,000,000mm^3 / 2mm = 1.5 m^2).
+_COST_GEOMETRY_ARMOR = PKDict(
+    name="Plasma Facing Surface",
+    volume_mm3=3_000_000,
+    section_thickness_mm=2,
+    shape_class="C1",
+    tolerance_mm=0.1,
+    surface_finish_um_ra=1,
+)
+_COST_GEOMETRY_FIRST_WALL = PKDict(
+    name="First Wall",
+    volume_mm3=45_000_000,
+    section_thickness_mm=30,
+    shape_class="C1",
+    tolerance_mm=0.1,
+    surface_finish_um_ra=1,
+)
+
+COST_PROCESS_NAMES = tuple(_COST_PROCESS_LEVELS.keys())
 
 
-def stateful_compute_import_file(data, **kwargs):
-    return _import_file(data)
+def background_percent_complete(report, run_dir, is_running):
 
+    def _percent_complete():
+        r = 0
+        i = 0
+        log_time = _LOG_TIME[_report_type(report)]
+        n = run_dir.join(CORTEX_RUN_LOG)
+        if n.exists():
+            with pykern.pkio.open_text(n) as f:
+                for line in f:
+                    if log_time[i][0] in line:
+                        r = log_time[i][1]
+                        i += 1
+                        if i >= len(log_time):
+                            break
+        return r * 100
 
-def _import_file(data):
-    p = sirepo.template.cortex_xlsx.Parser(
-        _SIM_DATA.lib_file_abspath(data.args.lib_file)
+    o = _SIM_OUTPUT[_report_type(report)]
+    if not is_running and run_dir.join(_json_filename(o[0])).exists():
+        _save_summary_to_database(run_dir, report, o)
+        return PKDict(
+            frameCount=1,
+            percentComplete=100,
+            reports=[],
+            simulationSettings=sirepo.simulation_db.read_json(
+                run_dir.join(template_common.INPUT_BASE_NAME)
+            ).models.simulationSettings,
+        )
+    return PKDict(
+        frameCount=0,
+        percentComplete=_percent_complete(),
     )
-    if p.errors:
-        return PKDict(error="\n".join(p.errors))
+
+
+def csv_from_plot(plot):
+    """Plot points and legend as csv text, the only stored copy of them
+
+    Read back with `plot_from_csv`.
+
+    Args:
+        plot (PKDict): xlabel, legend and points (dimension 0: x, 1: y1, 2: y2 ...)
+    Returns:
+        str: header is xlabel followed by legend[1:], one column per dimension
+    """
+    v = io.StringIO()
+    w = csv.writer(v)
+    w.writerow([plot.xlabel] + plot.legend[1:])
+    for i in range(len(plot.points[0])):
+        w.writerow([plot.points[j][i] for j in range(len(plot.points))])
+    return v.getvalue()
+
+
+def stateless_compute_calculate_cost(data, **kwargs):
+    """Run the tea manufacturing cost model for a cortex material.
+
+    The heavy part of the CORTEX Cost tab's calculation (building the tea
+    Material/Geometry, tea_api.evaluate(), matplotlib chart rendering) -
+    dispatched here via statelessCompute so it runs off the api server's
+    single-threaded cortexDb action loop. This function can't query the
+    cortex database itself (it may run on a different server than the api
+    server), so data.args carries a plain material spec built by
+    sirepo.sim_api.cortex.tea_cost.material_spec() instead.
+
+    Args:
+        data (PKDict): data.args has material (name/density/composition/
+            remainder_element), is_plasma_facing, processes (list of
+            COST_PROCESS_NAMES), cmp ({process: Cmp}, default 1.0),
+            production_qty
+    Returns:
+        PKDict: summary, material_composition, warnings, chart_png and
+            curve_png (list of bytes), source_code
+    """
+
+    def _processes(args):
+        cmp = args.get("cmp") or PKDict()
+        rv = []
+        for n in args.processes:
+            c = float(cmp.get(n, 1.0))
+            if c <= 0:
+                raise cortex_tea.tea_api.TeaError(
+                    f"Compatibility factor for {n} must be greater than zero."
+                )
+            rv.append(PKDict(name=n, Cmp=c, **_COST_PROCESS_LEVELS[n]))
+        return rv
+
+    g = _cost_geometry(data.args.is_plasma_facing)
     try:
-        sirepo.template.cortex_sql_db.insert_material(p.result)
-    except sirepo.template.cortex_sql_db.Error as e:
-        return PKDict(error=e.args[0])
-    rv = sirepo.simulation_db.default_data(SIM_TYPE)
-    rv.models.simulation.name = p.result.material_name
-    # TODO(robnagler) define in schema?
-    rv.models.parsed_material = (p.result,)
-    return PKDict(imported_data=rv)
+        m = _cost_material(data.args.material)
+        a = PKDict(
+            material=m,
+            processes=_processes(data.args),
+            volume_mm3=g.volume_mm3,
+            production_qty=data.args.production_qty,
+            geometry=g,
+            component_name=m.name,
+        )
+    except cortex_tea.tea_api.TeaError as e:
+        return PKDict(error=str(e))
+    r = PKDict(cortex_tea.tea_api.evaluate(**a))
+    c = cortex_tea.tea_api.make_component(**a)
+    return r.pkupdate(
+        warnings=[_cost_humanize_warning(w) for w in r.warnings],
+        chart_png=list(cortex_tea.plotting.cost_breakdown_png(c)),
+        curve_png=list(cortex_tea.plotting.process_cost_curves_png(c)),
+        source_code=_cost_source_code(m, g, a.processes, data.args.production_qty),
+    )
+
+
+def plot_from_csv(text):
+    """Parse plot points and legend written by `csv_from_plot`
+
+    Args:
+        text (str): csv text
+    Returns:
+        PKDict: legend and points (dimension 0: x, 1: y1, 2: y2 ...)
+    """
+    c = list(csv.reader(io.StringIO(text)))
+    return PKDict(
+        # POSIT: the x legend is always empty, see _plot_from_file
+        legend=[""] + c[0][1:],
+        points=[[float(r[i]) for r in c[1:]] for i in range(len(c[0]))],
+    )
+
+
+def plotdef_to_sim_frame(plotdef):
+    g = _report_group(plotdef.stat)
+    res = PKDict(
+        title=plotdef.title,
+        x_range=[plotdef.points[0][0], plotdef.points[0][-1]],
+        y_label=plotdef.ylabel,
+        x_label=plotdef.xlabel,
+        x_points=plotdef.points[0],
+        plots=[
+            PKDict(
+                points=plotdef.points[i],
+                label=plotdef.legend[i],
+            )
+            for i in range(1, len(plotdef.points))
+        ],
+        type=plotdef.plot_type,
+        meta=PKDict(
+            model=plotdef.model,
+            stat=plotdef.stat,
+            section=g.section,
+            description=g.description,
+        ),
+    )
+    res.y_range = template_common.compute_plot_color_and_range(res.plots)
+    if plotdef.stat == "flux" or plotdef.stat == "sdr":
+        res.alignLegend = "right"
+    return res
+
+
+def report_is_listed(stat):
+    """Whether a report is listed in the UI, otherwise it is only in the output zip
+
+    Args:
+        stat (str): plot name, e.g. dpa_OB_1_b6
+    Returns:
+        bool: True if the report has a section
+    """
+    return _report_group(stat).section is not None
+
+
+def write_parameters(data, run_dir, is_parallel):
+    pykern.pkio.write_text(
+        "cortex_plot.py",
+        template_common.render_jinja(SIM_TYPE, PKDict(), "cortex_plot.py"),
+    )
+    pykern.pkio.write_text(
+        "cortex_materials.py",
+        template_common.render_jinja(SIM_TYPE, PKDict(), "cortex_materials.py"),
+    )
+    t = re.search(r"(\w+)SlabAnimation", data.report).group(1).upper()
+    # POSIT: slab_src_patches/inputs.py.patch also reads {t}_tbr_scaling.json
+    # from dagmcPath. It isn't in the data repo yet, so it isn't fetched here
+    # and the sim falls back to the local (unscaled) TBR. Add it to this list
+    # once it's uploaded.
+    for n in (
+        f"EUDEMO_{t}_inputs.json",
+        f"{t}_surface_source.h5",
+        f"{t}_armor_current_neutron.json",
+    ):
+        sirepo.template.openmc.remote_datafile_path(n, compress=False)
+    pykern.pkio.write_text(
+        run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
+        template_common.render_jinja(
+            SIM_TYPE,
+            template_common.flatten_data(data.models, PKDict()).pkupdate(
+                materialDefinition=_generate_material_definition(data),
+                materialDirectory=sirepo.sim_run.cache_dir(
+                    sirepo.template.openmc.OPENMC_CACHE_DIR
+                ),
+                mpiCores=sirepo.mpi.cfg().cores,
+                chainPath=sirepo.template.openmc.remote_datafile_path(
+                    _SLAB_CHAIN_ENDF_FILE
+                ),
+                dagmcPath=sirepo.template.openmc.remote_datafile_path(
+                    f"eudemo_{t.lower()}.h5m", compress=False
+                ).dirname,
+                slabType=t,
+            ),
+            "slab.py",
+        ),
+    )
+    return None
+
+
+def _generate_material_definition(data):
+    m = data.models.material
+    components = ""
+    for c in m.components:
+        components += f"""
+            PKDict(
+                {c.component_type}="{c.component}",
+                percent={c.percent / 100.0},
+            ),"""
+    material_directory = sirepo.sim_run.cache_dir(
+        sirepo.template.openmc.OPENMC_CACHE_DIR
+    )
+    return f"""
+# this import add openmc.Materials.download_cross_section_data()
+import openmc_data_downloader
+from pykern.pkcollections import PKDict
+import openmc.deplete.pool
+import pykern.pkrunpy
+import shutil
+
+# replaces matplotlib with stub which saves plot data
+plt = pykern.pkrunpy.run_path_as_module("cortex_plot.py").pyplot
+materials = pykern.pkrunpy.run_path_as_module("cortex_materials.py")
+
+
+def material_from_definition(definition):
+    m = openmc.Material()
+    for c in definition.components:
+        if "element" in c:
+            m.add_element(c.element, c.percent, definition.percent_type)
+        elif "nuclide" in c:
+            m.add_nuclide(c.nuclide, c.percent, definition.percent_type)
+        else:
+            raise AssertionError(f"unhandled material component {{c}}")
+    m.set_density("g/cc", definition.density_gcc)
+    return m
+
+sp_count = 0
+sp_names = {STATEPOINTS}
+
+def rsdownload(materials):
+    materials.download_cross_section_data(
+        libraries=["ENDFB-8.0-NNDC", "ENDFB-7.1-NNDC", "FENDL-3.1d", "TENDL-2019"],
+        destination="{ material_directory }",
+    )
+
+def rsrun(statepoint):
+    global sp_count
+    if sp_count < len(sp_names):
+        shutil.copy(statepoint, f"{{sp_names[sp_count]}}.hdf5")
+    sp_count += 1
+    return statepoint
+
+
+t = material_from_definition(
+    PKDict(
+        density_gcc={m.density},
+        percent_type="{m.percent_type}",
+        components=[{components}
+        ],
+    )
+)"""
+
+
+def _json_filename(stat):
+    return f"{_png_filename(stat)}.json"
+
+
+def _plot_from_file(plot_json, material_id, report, stat):
+    def _label(value):
+        return re.sub(r"\$\^2\$", "²", value)
+
+    def _process_points(plot, dim):
+        # convert NaN to 0
+        for i in range(len(plot[dim])):
+            if math.isnan(plot[dim][i]):
+                plot[dim][i] = 0
+        if plot.get("_type", "") != "step":
+            return plot[dim]
+        r = []
+        for i in range(len(plot.x) - 1):
+            if dim == "x":
+                r.append(plot.x[i])
+                r.append(plot.x[i + 1])
+            else:
+                r.append(plot[dim][i])
+                r.append(plot[dim][i])
+        return r
+
+    single = len(plot_json.plots) == 1
+    # TODO(pjm): assert x points match across plots
+    points = [_process_points(plot_json.plots[0], "x")]
+    # POSIT: the x legend is always empty, see plot_from_csv
+    legend = [""]
+    for p in plot_json.plots:
+        points.append(_process_points(p, "y"))
+        legend.append(p.label or plot_json.ylabel)
+    for p in plot_json.plots:
+        if "lo" not in p:
+            continue
+        n = "" if single else f"{p.label or plot_json.ylabel}_"
+        points.append(_process_points(p, "lo"))
+        legend.append(f"{n}low")
+        points.append(_process_points(p, "hi"))
+        legend.append(f"{n}high")
+    return PKDict(
+        material_id=material_id,
+        title=_REPORT_TITLE[_report_type(report)][stat],
+        xlabel=_label(plot_json.xlabel),
+        ylabel=_label(plot_json.ylabel),
+        plot_type=plot_json.type or "linear",
+        model=report,
+        stat=stat,
+        legend=legend,
+        points=points,
+    )
+
+
+def _png_filename(stat):
+    return f"{stat}.png"
+
+
+def _report_group(stat):
+    for p, s, d in _REPORT_GROUP:
+        if re.search(p, stat):
+            return PKDict(section=s, description=d)
+    raise AssertionError(f"no report group stat={stat}")
+
+
+def _report_type(report):
+    return re.sub(r"(\w+S)(labAnimation)", r"s\2", report)
+
+
+def _save_summary_to_database(run_dir, report, stats):
+    def _material_id_from_run_dir():
+        return int(
+            sirepo.simulation_db.read_json(
+                run_dir.join(template_common.INPUT_BASE_NAME)
+            ).models.material.material_id
+        )
+
+    def _summary_from_csv():
+        def _value(v):
+            try:
+                return float(v)
+            except ValueError:
+                return v
+
+        m = re.search(r"(\w+)SlabAnimation", report)
+        if not m:
+            return []
+        p = run_dir.join(
+            "slab",
+            m.group(1).upper(),
+            "neutronics_results",
+            "OB_1_b6",
+            "summary_results.csv",
+        )
+        if not p.exists():
+            return []
+        with pykern.pkio.open_text(p) as f:
+            return [
+                PKDict({k: _value(v) for k, v in row.items()})
+                for row in csv.DictReader(f)
+            ]
+
+    m = _material_id_from_run_dir()
+    summary = PKDict(
+        material_id=m,
+        model=report,
+        version=SIM_VERSION[report],
+        completed=pykern.pkcompat.utcnow(),
+        plots=[],
+        values=_summary_from_csv(),
+    )
+    # one file, so the database side never sees a partial result
+    # POSIT: sim_api.cortex.check_for_sim_summary reads this zip and extracts
+    # the entries as is, action_stat_image and load_output_zip read them
+    z = run_dir.join("summary.zip")
+    with zipfile.ZipFile(str(z), "w", zipfile.ZIP_DEFLATED) as f:
+        for s in stats:
+            d = pykern.pkjson.load_any(
+                pykern.pkio.read_text(run_dir.join(_json_filename(s)))
+            )
+            if not d.plots:
+                # POSIT: cortex_plot.pyplot.savefig writes figures with no lines,
+                # e.g. the D1S "No positive SDR values" layer plot
+                pkdlog("plot has no lines, not saved stat={} run_dir={}", s, run_dir)
+                continue
+            p = _plot_from_file(d, m, report, s)
+            p.csv = csv_from_plot(p)
+            summary.plots.append(p)
+            f.write(str(run_dir.join(_png_filename(s))), f"{s}.png")
+        for s in STATEPOINTS:
+            f.write(str(run_dir.join(f"{s}.hdf5")), f"{s}.hdf5")
+        f.writestr(_SIM_DATA.SUMMARY_JSON, pykern.pkjson.dump_str(summary))
+    _SIM_DATA.lib_file_write(_SIM_DATA.summary_file_from_parts(report, m), z)
+
+
+# ------------------------------------------------------------------
+# tea manufacturing cost model private helpers (stateless_compute_calculate_cost)
+
+
+def _cost_geometry(is_plasma_facing):
+    g = _COST_GEOMETRY_ARMOR if is_plasma_facing else _COST_GEOMETRY_FIRST_WALL
+    return cortex_tea.component_def.build_geometry(
+        Cc_map=_COST_UNIT_COEFF_MAP,
+        Cs_map=_COST_UNIT_COEFF_MAP,
+        Ct_map=_COST_UNIT_COEFF_MAP,
+        Cf_map=_COST_UNIT_COEFF_MAP,
+        verbose=False,
+        **g,
+    )
+
+
+def _cost_humanize_warning(warning):
+    """tea_api.material_cost_breakdown() formats a missing-element warning
+    with a raw python list repr and a quoted material name, e.g.
+    "...elements ['H', 'Na'] in 'Zeolite'."; replace it with a plain
+    comma-separated list and an unquoted material name, e.g. "...elements
+    H, Na of Zeolite."."""
+
+    def _to_list(m):
+        return ", ".join(re.findall(r"'([^']*)'", m.group(0)))
+
+    warning = re.sub(r"\[(?:'[^']*'(?:, )?)+\]", _to_list, warning)
+    return re.sub(r"in '([^']*)'", r"of \1", warning)
+
+
+def _cost_material(material_spec):
+    """Build a tea Material from the plain material_spec dict (see
+    sirepo.sim_api.cortex.tea_cost.material_spec()) - build_material()
+    directly rather than tea_api.resolve_material(): a single-element
+    material (e.g. pure Tungsten) has nothing left in composition once the
+    remainder element is excluded, and resolve_material's dict-spec branch
+    rejects an empty composition even though build_material() itself
+    handles it fine (the remainder element alone balances to 100%)."""
+    material, captured = cortex_tea.tea_api._captured_call(
+        cortex_tea.material_def.build_material,
+        name=material_spec.name,
+        density=material_spec.density,
+        composition=material_spec.composition,
+        remainder_element=material_spec.remainder_element,
+        Cmp_map={},
+    )
+    if material is None:
+        raise cortex_tea.tea_api.TeaError(
+            cortex_tea.tea_api._extract_error(
+                captured, f"Failed to build material '{material_spec.name}'."
+            )
+        )
+    return material
+
+
+def _cost_source_code(material, geometry, process_specs, production_qty):
+    """A standalone python script that reproduces this calculation with
+    only the pip-installed `cortex_tea` package (no sirepo) - same calls
+    stateless_compute_calculate_cost() itself makes, so running it gives
+    identical results. Rendered from cost_source.py.jinja.
+
+    String values are pre-formatted with repr() so the template gets a
+    correctly quoted/escaped python literal (jinja's default {{ }}
+    stringification would emit them unquoted, which isn't valid python);
+    numeric values are passed through as-is, since str() and repr() are
+    identical for int/float. composition/coefficient maps/process_specs
+    are pre-formatted with _cost_pretty() for consistent indentation."""
+
+    def _cost_pretty(value):
+        """Format value (a dict or list of dicts) as an indented, always
+        consistently-aligned python literal - pkjson.dump_pretty() nests
+        every level at a fixed indent regardless of content size or where
+        the result is embedded, unlike pprint's width-based line wrapping
+        (whose continuation lines don't line up with this f-string
+        template's own 4-space argument indentation). Double-quoted JSON
+        strings are valid python syntax, so the result can be pasted
+        directly into a script."""
+        return pykern.pkjson.dump_pretty(value).rstrip().replace("\n", "\n    ")
+
+    c = PKDict(
+        (e, PKDict(wt=v["wt"], type=v["type"]))
+        for e, v in material.composition.items()
+        if v["type"] != "rem"
+    )
+    r = next(e for e, v in material.composition.items() if v["type"] == "rem")
+    return template_common.render_jinja(
+        SIM_TYPE,
+        PKDict(
+            material_name_text=material.name,
+            material_name=repr(material.name),
+            material_density=material.density,
+            composition=_cost_pretty(c),
+            remainder_element=repr(r),
+            geometry_name=repr(geometry.name),
+            geometry_volume_mm3=geometry.volume_mm3,
+            geometry_section_thickness_mm=geometry.section_thickness_mm,
+            geometry_shape_class=repr(geometry.shape_class),
+            geometry_tolerance_mm=geometry.tolerance_mm,
+            geometry_surface_finish_um_ra=geometry.surface_finish_um_ra,
+            cc_map=_cost_pretty(geometry.Cc_map),
+            cs_map=_cost_pretty(geometry.Cs_map),
+            ct_map=_cost_pretty(geometry.Ct_map),
+            cf_map=_cost_pretty(geometry.Cf_map),
+            process_specs=_cost_pretty([PKDict(p) for p in process_specs]),
+            production_qty=production_qty,
+        ),
+        name="cost_source.py",
+    )

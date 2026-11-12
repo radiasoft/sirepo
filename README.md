@@ -8,7 +8,8 @@
 
 The Sirepo gateway supports physics codes like elegant, Warp, SRW, JSPEC, Zgoubi, and more. With it, you can configure, run, visualize, and share end-to-end HPC physical simulations on your browser. We call this Clickable Physics(TM).
 
-[Try the Sirepo gateway](https://www.sirepo.com). All you need is an email address to access. Sirepo is completely free.
+[Try the Sirepo gateway](https://www.sirepo.com). All you need is an
+institutional email address to access a free trial.
 
 ### If you prefer, Sirepo can also be downloaded! :arrow_down:
 * [Curl Installer for Mac and Linux](#curl-installer)

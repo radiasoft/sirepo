@@ -1,0 +1,23 @@
+title, "";
+
+REAL sr_alpha_x = 0;
+REAL sr_alpha_y = 0;
+REAL sr_beta_x = 1.0;
+REAL sr_beta_y = 1.0;
+REAL sr_dp_s_coupling = 0;
+REAL sr_gamma_x = (1 + sr_alpha_x * sr_alpha_x) / sr_beta_x;
+REAL sr_gamma_y = (1 + sr_alpha_y * sr_alpha_y) / sr_beta_y;
+REAL sr_n_particles_per_bunch = 5000;
+
+D: DRIFT,l=1.0;
+M2: MATRIX,kick5=0.1,kick6=0.2,l=1.0,rm12=2.0,rm16=0.1,rm56=0.3,tm126=0.5,tm162=0.5,tm166=3.0000000000000004;
+M1: MULTIPOLE,knl={0.0, 0.1},tilt=0.01;
+M1_1: MULTIPOLE,knl={0.0, 0.0, 0.6},tilt=0.01;
+M1_2: MULTIPOLE,knl={0.0, 0.0, 0.5},tilt=0.5335987755982988;
+BL: LINE=(M1,M1_1,M1_2,D,M2,D,M1,M1_1,M1_2);
+
+
+beam,ex=4.6e-08,ey=4.6e-08,particle=proton,pc=1.0,sige=0.0010000000000000005,sigt=0.0008913191053987755;
+use,sequence=bl;
+twiss,betx=1,bety=1,file="twiss.file.tfs";
+

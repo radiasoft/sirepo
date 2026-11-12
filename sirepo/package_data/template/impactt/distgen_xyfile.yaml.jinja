@@ -1,0 +1,36 @@
+n_particle: {{ beam_Np }}
+random_type: hammersley
+species: {{ distgen_species }}
+
+start:
+  type: cathode
+  MTE: {{ distgen_cathode_mte }} eV
+
+total_charge: {{ distgen_total_charge }} C
+
+xy_dist:
+  file: {{ distgenXYFile }}
+  type: file2d
+
+{% if distgen_t_dist == 'gaussian' %}
+t_dist:
+   type: gaussian
+   avg_t: 0 s
+   sigma_t: {{ distgen_sigma_t }} s
+   n_sigma_cutoff: 3
+{% elif distgen_t_dist == 'tukey' %}
+t_dist:
+   type: tukey
+   length: {{ distgen_tukey_length }} s
+   ratio: {{ distgen_tukey_ratio }} dimensionless
+{% endif %}
+
+{% if distgen_centerBeam %}
+transforms:
+  tx:
+    avg_x: 0 m
+    type: set_avg x
+  ty:
+    avg_y: 0 m
+    type: set_avg y
+{% endif %}

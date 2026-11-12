@@ -1,0 +1,21 @@
+title, "";
+
+REAL sr_alpha_x = 0;
+REAL sr_alpha_y = 0;
+REAL sr_beta_x = 1.0;
+REAL sr_beta_y = 1.0;
+REAL sr_dp_s_coupling = 0;
+REAL sr_gamma_x = (1 + sr_alpha_x * sr_alpha_x) / sr_beta_x;
+REAL sr_gamma_y = (1 + sr_alpha_y * sr_alpha_y) / sr_beta_y;
+REAL sr_n_particles_per_bunch = 5000;
+
+CC: CRABCAVITY,freq=400.0,l=0.3,lag=0.1,volt=2.0;
+RF: RFCAVITY,freq=1300.0,l=0.5,lag=0.25,volt=1.0;
+TW: TWCAVITY,freq=2856.0,l=2.0,lag=0.8,volt=10.0;
+BL: LINE=(RF,TW,CC);
+
+
+beam,ex=4.6e-08,ey=4.6e-08,particle=electron,pc=0.1,sigt=0.0006500084863414951;
+use,sequence=bl;
+twiss,betx=1,bety=1,file="twiss.file.tfs";
+

@@ -5,6 +5,12 @@ import openmc
 import openmc.lib
 # this import add openmc.Materials.download_cross_section_data()
 import openmc_data_downloader
+from openmc.data import NATURAL_ABUNDANCE
+
+# this can be removed when the ENDF/B-VIII.1 library is available via openmc_data_downloader
+if "Ta180_m1" in NATURAL_ABUNDANCE:
+    NATURAL_ABUNDANCE["Ta180"] = NATURAL_ABUNDANCE["Ta180_m1"]
+    del NATURAL_ABUNDANCE["Ta180_m1"]
 
 
 {% if generateMGXS %}
@@ -58,7 +64,7 @@ def create_materials():
     {% endfilter %}
     {% if settings_materialDefinition == 'library' %}
     materials.download_cross_section_data(
-        libraries=["{{ settings_materialLibrary }}"],
+        libraries=[{{ materialLibraries }}],
         destination="{{ materialDirectory }}",
     )
     {% endif %}

@@ -5,36 +5,6 @@
 """
 
 
-def test_activait_remote_data(fc):
-    from pykern.pkcollections import PKDict
-    from pykern.pkdebug import pkdp, pkdpretty
-    from pykern import pkunit, pkcompat
-    from sirepo import srunit
-    import os.path
-
-    fc.sr_post(
-        "listSimulations",
-        PKDict(simulationType=fc.sr_sim_type),
-    )
-    u = "https://raw.githubusercontent.com/radiasoft/sirepo/master/sirepo/package_data/template/activait/lib/dataFile-file.iris.data.csv"
-    r = fc.sr_post(
-        "statefulCompute",
-        PKDict(
-            method="get_remote_data",
-            simulationType=fc.sr_sim_type,
-            args=PKDict(url=u),
-        ),
-    )
-    r = fc.sr_get(
-        "downloadLibFile",
-        params=PKDict(
-            simulation_type=fc.sr_sim_type,
-            filename="dataFile-file." + os.path.basename(u),
-        ),
-    )
-    pkunit.pkre(r"sepal length", pkcompat.from_bytes(r.data))
-
-
 def test_srw_sample_preview(fc):
     from pykern.pkdebug import pkdp
     from pykern.pkunit import pkeq, pkfail

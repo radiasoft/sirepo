@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """Runs processes on the current host
 
 :copyright: Copyright (c) 2019 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
-from __future__ import absolute_import, division, print_function
+
 from pykern import pkconfig, pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdp, pkdlog
@@ -97,7 +96,10 @@ class LocalDriver(job_driver.DriverBase):
 
     async def prepare_send(self, op):
         if op.op_name == job.OP_RUN:
-            op.msg.mpiCores = sirepo.mpi.cfg().cores if op.msg.isParallel else 1
+            op.msg.mpiCores = self._mpi_cores(
+                op,
+                sirepo.mpi.cfg().cores if op.msg.isParallel else 1,
+            )
         return await super().prepare_send(op)
 
     def _agent_on_exit(self, returncode):

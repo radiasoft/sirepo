@@ -1,0 +1,67 @@
+#!/usr/bin/env python
+
+# 
+execution_mode = 'serial'
+
+lattice_file = """
+% 180 pi / sto degrad
+% pi 180 / sto raddeg
+% pi 2 * sto twopi
+
+"B1": CSBEND,angle=0.1,edge_order=2,fint2=0.3,l=1
+"B2": CSBEND,angle=0.1,edge_order=2,fint=0.4,l=1
+"O1": KOCT,k3=5.656854249492381,l=0.1,tilt=0.5890486225480862
+"Q1": KQUAD,k1=1.4142135623730951,l=0.2,n_slices=24,tilt=0.39269908169872414
+"Q2": KQUAD,k1=2,l=0.2,n_slices=29,tilt=0.8853981633974483
+"S1": KSEXT,k2=3,l=0.1,tilt=0.5235987755982988
+"BL": LINE=("Q1","Q2","S1","O1","B1","B2")
+
+"""
+
+elegant_file = """
+
+&global_settings
+  mpi_io_write_buffer_size = 1048576,
+&end
+
+&run_setup
+  semaphore_file = run_setup.semaphore,
+  centroid = "run_setup.centroid.sdds",
+  lattice = "elegant.lte",
+  output = "run_setup.output.sdds",
+  p_central_mev = 100,
+  parameters = "run_setup.parameters.sdds",
+  sigma = "run_setup.sigma.sdds",
+&end
+
+&run_control
+&end
+
+&twiss_output
+  filename = "twiss_output.filename.sdds",
+  matched = 0,
+&end
+
+&bunched_beam
+  distribution_cutoff[0] = 3, 3, 3,
+  emit_x = 4.6e-08,
+  emit_y = 4.6e-08,
+  enforce_rms_values[0] = 1, 1, 1,
+  n_particles_per_bunch = 5000,
+  sigma_dp = 0.0010000261119904419,
+  sigma_s = 0.00065,
+&end
+
+&track
+&end
+
+"""
+
+with open('elegant.lte', 'w') as f:
+    f.write(lattice_file)
+
+with open('elegant.ele', 'w') as f:
+    f.write(elegant_file)
+
+import os
+os.system('elegant elegant.ele')

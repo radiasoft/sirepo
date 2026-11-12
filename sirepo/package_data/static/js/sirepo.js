@@ -345,7 +345,7 @@ SIREPO.app.factory('authState', (errorService, uri, $rootScope) => {
         return true;
     };
 
-    if (self.hasRole('trial') && ! (self.hasRole('basic') || self.hasRole('premium'))) {
+    if (self.hasRole('trial') && ! (self.hasRole('basic') || self.hasRole('premium') || self.hasRole('enterprise'))) {
         const d = new Date(self.roles.trial * 1000);
         errorService.messageText(
             'subscription',
@@ -358,7 +358,7 @@ SIREPO.app.factory('authState', (errorService, uri, $rootScope) => {
     return self;
 });
 
-SIREPO.app.factory('activeSection', function(authState, requestSender, uri, $location, $route, $rootScope, appState) {
+SIREPO.app.factory('activeSection', function(appState, authState, requestSender, simulationQueue, uri, $location, $route, $rootScope) {
     var self = this;
 
     self.getActiveSection = function() {
@@ -370,6 +370,9 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, uri, $loc
     };
 
     $rootScope.$on('$routeChangeSuccess', function() {
+        if (appState.isLoaded()) {
+            simulationQueue.cancelTransientItems();
+        }
         const i = uri.currentRouteParam('simulationId', '');
         if (i) {
             appState.loadModels(
@@ -383,7 +386,7 @@ SIREPO.app.factory('activeSection', function(authState, requestSender, uri, $loc
     return self;
 });
 
-SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, requestQueue, requestSender, utilities, $document, $interval, $rootScope, $filter) {
+SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, requestQueue, requestSender, utilities, $document, $interval, $rootScope, $filter, $window) {
     var self = {
         models: {},
     };
@@ -956,6 +959,13 @@ SIREPO.app.factory('appState', function(errorService, fileManager, msgRouter, re
         }
     };
 
+    //TODO(pjm): onbeforeunload() gets invoked when downloadLibFileUrl() is selected on a fileField
+    // $window.onbeforeunload = () => {
+    //     if (self.isLoaded()) {
+    //         self.clearModels();
+    //     }
+    // };
+
     return self;
 });
 
@@ -1173,7 +1183,8 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
             //[_e_authSuccess]: _s_ok,
             [_e_credsCancel]: _s_idle,
             [_e_credsConfirm]: _s_auth,
-            //[_e_loginClicked]: _s_creds,
+            // Every job settings directive hears an event and may call loginClicked
+            [_e_loginClicked]: _s_creds,
             //[_e_needNo]: _s_notNeeded,
             //[_e_needYes]: _s_creds,
             [_e_unloaded]: _s_initial,
@@ -1229,6 +1240,10 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     const _EVENTS =  new Set(Object.values(_TRANSITIONS).map((x) => {return Object.keys(x);}).flat(1));
 
     let _state = _s_initial;
+
+    // directives (one per panel) whose model has jobRunMode == sbatch. The state
+    // is global so it needs to be derived from all panels, not the last one to load.
+    const _sbatchScopes = new Set();
 
     const _STATE_QUERIES = {
         ignoreSRException: (state) => {
@@ -1433,16 +1448,40 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         );
     };
 
+    self.directiveDestroyed = (directiveScope) => {
+        // The state is reset by modelsUnloaded so only need to forget the scope
+        _sbatchScopes.delete(directiveScope);
+    };
+
     self.event = (event, eventArg) => {
         (new _Event(event, eventArg)).transition();
     };
 
-    self.jobRunModeChanged = (directiveScope) => {
-        const m = appState.models[directiveScope.simState.model];
-        self.event(
-            m && m.jobRunMode === 'sbatch' ? _e_needYes : _e_needNo,
-            {directiveScope: directiveScope},
+    self.isOwner = (directiveScope) => {
+        // Events are broadcast to all directives, only one should act on them
+        return _sbatchScopes.values().next().value === directiveScope;
+    };
 
+    self.isSbatchMode = (modelName) => {
+        const m = appState.models[modelName];
+        return !! m && m.jobRunMode === 'sbatch';
+    };
+
+    self.jobRunModeChanged = (directiveScope) => {
+        if (self.isSbatchMode(directiveScope.simState.model)) {
+            _sbatchScopes.add(directiveScope);
+        }
+        else {
+            _sbatchScopes.delete(directiveScope);
+        }
+        const n = _sbatchScopes.size > 0;
+        if (_state !== _s_initial && n === (_state !== _s_notNeeded)) {
+            // another panel already determined the state
+            return;
+        }
+        self.event(
+            n ? _e_needYes : _e_needNo,
+            {directiveScope: n ? _sbatchScopes.values().next().value : directiveScope},
         );
     };
 
@@ -1462,7 +1501,10 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     };
 
     requestSender.registerSRExceptionHandler(_handleSRException);
-    $rootScope.$on('modelsUnloaded', () => self.event(_e_unloaded));
+    $rootScope.$on('modelsUnloaded', () => {
+        _sbatchScopes.clear();
+        self.event(_e_unloaded);
+    });
     $rootScope.$on('sbatchLoginEvent', _internalEventActions);
 
     return self;
@@ -2394,13 +2436,6 @@ SIREPO.app.factory('panelState', function(appState, uri, simulationQueue, utilit
     self.setFieldLabel = function(model, field, text) {
         $('.' + utilities.modelFieldID(model, field)  + ' .control-label label')
             .text(text);
-    };
-
-    self.setHidden = (name, doHide=true) => {
-        if ((self.isHidden(name) && doHide) || (! self.isHidden(name) && ! doHide) ) {
-            return;
-        }
-        self.toggleHidden(name);
     };
 
     self.setLoading = (name, isLoading) => setPanelValue(name, 'loading', isLoading);
@@ -4253,7 +4288,7 @@ SIREPO.app.factory('fileManager', function(requestSender) {
                 }
             }
             return false;
-        });
+        }).sort((a, b) => a.name.localeCompare(b.name));
     };
     self.getUserFolderPaths = function() {
         return self.getUserFolders()
@@ -4851,7 +4886,8 @@ SIREPO.app.controller('ServerUpgradedController', function (errorService, reques
 
 SIREPO.app.controller('SimulationsController', function (appState, browserStorage, errorService, fileManager, panelState, requestSender, stringsService, $location, $rootScope, $scope) {
     var self = this;
-    const storageKey = "iconView";
+    const iconViewStorageKey = "iconView";
+    const sortFieldStorageKey = "sortField";
     self.stringsService = stringsService;
     self.importText = SIREPO.APP_SCHEMA.strings.importText;
     self.fileTree = fileManager.getFileTree();
@@ -4868,9 +4904,9 @@ SIREPO.app.controller('SimulationsController', function (appState, browserStorag
             heading: 'Last Modified',
         }];
     self.selectedItem = null;
-    self.sortField = 'name';
     self.isWaitingForSim = false;
-
+    self.isIconView = browserStorage.getBoolean(iconViewStorageKey, true);
+    self.sortField = browserStorage.getString(sortFieldStorageKey, self.listColumns[0].field);
     self.fileManager = fileManager;
 
     function clearModels() {
@@ -5105,10 +5141,8 @@ SIREPO.app.controller('SimulationsController', function (appState, browserStorag
 
     self.toggleIconView = function() {
         self.isIconView = ! self.isIconView;
-        browserStorage.setBoolean(storageKey, self.isIconView);
+        browserStorage.setBoolean(iconViewStorageKey, self.isIconView);
     };
-
-    self.isIconView = browserStorage.getBoolean(storageKey, true);
 
     self.toggleFolder = function(item) {
         if (item == self.activeFolder) {
@@ -5127,6 +5161,7 @@ SIREPO.app.controller('SimulationsController', function (appState, browserStorag
         else {
             self.sortField = field;
         }
+        browserStorage.setString(sortFieldStorageKey, self.sortField);
     };
 
     clearModels();

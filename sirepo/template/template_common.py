@@ -36,12 +36,8 @@ OUTPUT_BASE_NAME = "out"
 #: Python file (not all simulations)
 PARAMETERS_PYTHON_FILE = "parameters.py"
 
-#: stderr and stdout
-RUN_LOG = "run.log"
-
-_HISTOGRAM_BINS_MAX = 500
-
-_PLOT_LINE_COLOR = [
+#: default line colors for parameter_plot plots
+PLOT_LINE_COLOR = [
     "#1f77b4",
     "#ff7f0e",
     "#2ca02c",
@@ -53,6 +49,11 @@ _PLOT_LINE_COLOR = [
     "#bcbd22",
     "#17becf",
 ]
+
+#: stderr and stdout
+RUN_LOG = "run.log"
+
+_HISTOGRAM_BINS_MAX = 500
 
 
 #: for JobCmdFile replies
@@ -281,6 +282,25 @@ class ParticleEnergy:
         return cls.__particle_info(sim_type, particle, beam)[0]
 
     @classmethod
+    def __ion_info(cls, sim_type, default, beam):
+        """MAD-X's ion: the beam's mass and charge when given (the mass
+        differs from the schema's default), else 1 amu and +1"""
+        m = (
+            sirepo.sim_data.get_class(sim_type)
+            .schema()
+            .model.get("command_beam", PKDict())
+            .get("mass")
+        )
+        res = list(default)
+        # POSIT: a mass equal to the schema's default (the electron's)
+        # wasn't given
+        if beam.get("mass") and (not m or float(beam.mass) != float(m[2])):
+            res[0] = float(beam.mass)
+        if beam.get("charge"):
+            res[1] = float(beam.charge)
+        return res
+
+    @classmethod
     def __particle_info(cls, sim_type, particle, beam):
         mass_and_charge = (
             sirepo.sim_data.get_class(sim_type)
@@ -290,6 +310,8 @@ class ParticleEnergy:
                 cls.PARTICLE_MASS_AND_CHARGE,
             )
         )
+        if particle == "ion" and particle in mass_and_charge:
+            return cls.__ion_info(sim_type, mass_and_charge[particle], beam)
         if particle in mass_and_charge:
             return mass_and_charge[particle]
         return [beam.mass, beam.charge]
@@ -357,24 +379,34 @@ def compute_plot_color_and_range(plots, plot_colors=None, fixed_y_range=None):
     """For parameter plots, assign each plot a color and compute the full y_range.
     If a fixed range is provided, use that instead
     """
-    y_range = fixed_y_range
-    colors = plot_colors if plot_colors is not None else _PLOT_LINE_COLOR
+
+    def _points_for_plot_type(plot):
+        return (
+            plot["pointsLower"] + plot["pointsUpper"]
+            if plot.get("style") == "band"
+            else plot["points"]
+        )
+
+    def _update_y_range(y_range, points):
+        if points:
+            vmin = min(points)
+            vmax = max(points)
+            if not y_range:
+                return [vmin, vmax]
+            if vmin < y_range[0]:
+                y_range[0] = vmin
+            if vmax > y_range[1]:
+                y_range[1] = vmax
+        return y_range
+
+    res = fixed_y_range
+    c = plot_colors if plot_colors else PLOT_LINE_COLOR
     for i in range(len(plots)):
-        plot = plots[i]
-        plot["color"] = colors[i % len(colors)]
-        if not plot["points"]:
-            y_range = [0, 0]
-        elif fixed_y_range is None:
-            vmin = min(plot["points"])
-            vmax = max(plot["points"])
-            if y_range:
-                if vmin < y_range[0]:
-                    y_range[0] = vmin
-                if vmax > y_range[1]:
-                    y_range[1] = vmax
-            else:
-                y_range = [vmin, vmax]
-    return y_range
+        p = plots[i]
+        p["color"] = c[i % len(c)]
+        if not fixed_y_range:
+            res = _update_y_range(res, _points_for_plot_type(p))
+    return res if res else [0, 0]
 
 
 def write_dict_to_h5(d, file_path, h5_path=None):

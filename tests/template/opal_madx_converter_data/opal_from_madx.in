@@ -1,0 +1,42 @@
+
+Title, string="";
+
+REAL sr_gamma = 195.69768175898784;
+REAL sr_beta = sqrt(1 - (1 / (sr_gamma * sr_gamma)));
+REAL sr_brho = 0.3335640951979142;
+
+
+"OP1": option,psdumpfreq=1000.0,version=20000.0;
+
+"C1": ECOLLIMATOR,l=0.1,xsize=0.01,ysize=0.02;
+"C3": ECOLLIMATOR,l=0.1,xsize=0.05,ysize=0.05;
+"MP": MARKER;
+"Q1": QUADRUPOLE,aperture="ellipse(0.04, 0.06)",k1=-2.0 * sr_brho,l=0.2;
+"C2": RCOLLIMATOR,l=0.1,xsize=0.03,ysize=0.04;
+"RF": RFCAVITY,fmapfn="RFCAVITY-fmapfn.madx-rfcavity-0.5m-1300MHz.txt",freq=1300.0,l=0.5,type=STANDING,volt=4.336333231535079;
+"B1": SBEND,angle=0.3,designenergy=99.490307,gap=0.02,l=0.9962542164906615;
+"B2": SBEND,angle=0.3,designenergy=99.490307,gap=0.04,l=0.9962542164906615;
+"B3": SBEND,angle=0.3,designenergy=99.490307,l=0.9962542164906615;
+"S1": SOLENOID,ks=-0.5 * sr_brho,l=0.2;
+"TW": TRAVELINGWAVE,freq=2856.0,l=2.0,lag=-2.8274333882308134,volt=5.0;
+
+"MP#0": "MP",elemedge=0;
+"C1#0": "C1",elemedge=0;
+"C2#0": "C2",elemedge=0.1;
+"C3#0": "C3",elemedge=0.2;
+"Q1#0": "Q1",elemedge=0.30000000000000004;
+"S1#0": "S1",elemedge=0.5;
+"B1#0": "B1",elemedge=0.7;
+"B2#0": "B2",elemedge=1.7;
+"B3#0": "B3",elemedge=2.7;
+"RF#0": "RF",elemedge=3.7;
+"TW#0": "TW",elemedge=4.2;
+bl: LINE=("MP#0","C1#0","C2#0","C3#0","Q1#0","S1#0","B1#0","B2#0","B3#0","RF#0","TW#0");
+
+
+"FI1": fieldsolver,fstype="NONE",mt=32.0,mx=16.0,my=16.0;
+"BE1": beam,bfreq=50.6328,npart=30000.0,particle="ELECTRON",pc=0.1;
+"DI1": distribution,cutofflong=5.0,cutoffpx=5.0,cutoffpy=5.0,cutoffpz=5.0,cutoffx=5.0,cutoffy=5.0,inputmounits="NONE",sigmapx=0.0193824942,sigmapy=0.01945341389,sigmapz=0.001 * sr_gamma / sr_beta,sigmax=0.00465705,sigmay=0.00439896,sigmaz=0.000180777,type="GAUSS";
+"TR1": track,beam=BE1,line=bl,maxsteps=1000000.0,zstop=6.2;
+ run, beam=BE1,distribution=DI1,fieldsolver=FI1,method="PARALLEL-T";
+endtrack;

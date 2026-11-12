@@ -96,18 +96,61 @@ _op_flash() {
 }
 
 _op_jupyterhub() {
-    # POSIT: versions same in container-beamsim-jupyter/build.sh
-    # Order is important: jupyterlab-server should be last so it isn't
-    # overwritten with a newer version.
+    # POSIT: versions same in container-{beamsim-jupyter-base,jupyterhub}/build.sh
     declare p=$(pip freeze)
     declare -a i=()
     declare f
-    for f in \
-        jupyterhub==1.4.2 \
-        jupyterlab==3.1.14  \
-        'notebook>=6.5.6' \
-        jupyterlab-server==2.8.2 \
-        ; do
+    declare -a jupyter_base=(
+        'docker==7.1.0'
+        'traitlets==5.14.3'
+        'jupyterhub==5.4.3'
+        'oauthenticator==17.3.0'
+        'dockerspawner==14.0.0'
+        'jupyter==1.1.1'
+        'jupyter-console==6.6.3'
+        'jupyterlab==4.5.1'
+        'argon2-cffi==25.1.0'
+        'argon2-cffi-bindings==25.1.0'
+        'arrow==1.4.0'
+        'async-lru==2.0.5'
+        'beautifulsoup4==4.14.3'
+        'bleach==6.3.0'
+        'defusedxml==0.7.1'
+        'fastjsonschema==2.21.2'
+        'fqdn==1.5.1'
+        'isoduration==20.11.0'
+        'json5==0.12.1'
+        'jsonpointer==3.0.0'
+        'jupyter-events==0.12.0'
+        'jupyter-lsp==2.3.0'
+        'jupyter-server==2.17.0'
+        'jupyter-server-terminals==0.5.3'
+        'jupyterlab-pygments==0.3.0'
+        'jupyterlab-server==2.28.0'
+        'mistune==3.1.4'
+        'nbclient==0.10.3'
+        'nbconvert==7.16.6'
+        'nbformat==5.10.4'
+        'notebook-shim==0.2.4'
+        'pandocfilters==1.5.1'
+        'prometheus-client==0.23.1'
+        'python-json-logger==4.0.0'
+        'rfc3339-validator==0.1.4'
+        'rfc3986-validator==0.1.1'
+        'rfc3987-syntax==1.1.0'
+        'send2trash==1.8.3'
+        'soupsieve==2.8.1'
+        'terminado==0.18.1'
+        'tinycss2==1.4.0'
+        'uri-template==1.3.0'
+        'webcolors==25.10.0'
+        'webencodings==0.5.1'
+        'websocket-client==1.9.0'
+        'jupyterlab-launcher==0.13.1'
+        'jupyterlab-favorites==3.3.1'
+        'plotly==6.5.0'
+    )
+    for f in "${jupyter_base[@]}"; do
         if ! [[ $p =~ $f ]]; then
             i+=( $f )
         fi
@@ -117,7 +160,7 @@ _op_jupyterhub() {
     fi
     if ! type configurable-http-proxy &> /dev/null; then
         # POSIT: same version in radiasoft/container-jupyterhub
-        npm install --global configurable-http-proxy@4.6.3
+        npm install --global configurable-http-proxy@5.1.0
     fi
     # POSIT: same as sirepo.smtp.DEV_SMTP_SERVER
     export SIREPO_SMTP_SERVER=dev
@@ -125,6 +168,7 @@ _op_jupyterhub() {
     export SIREPO_FEATURE_CONFIG_SIM_TYPES=jupyterhublogin:DEFAULT
     sirepo service jupyterhub &
     # jupyterhub/conf.py uses local spawner not rsdockerspawner
+    # Look at README in jupyterhub-docker.tgz for how to use rsdockerspawner
     _msg_login 'To test:
 
 Login as vagrant@<anything>

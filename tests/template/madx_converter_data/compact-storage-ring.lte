@@ -6,32 +6,27 @@ execution_mode = 'serial'
 lattice_file = """
 % 180 pi / sto degrad
 % pi 180 / sto raddeg
-% 1 sto sr_alpha_x
-% 1 sto sr_alpha_y
-% 10 sto sr_beta_x
-% 10 sto sr_beta_y
 % 0.0 sto sr_dp_s_coupling
-% 1 sr_alpha_x sr_alpha_x * + sr_beta_x / sto sr_gamma_x
-% 1 sr_alpha_y sr_alpha_y * + sr_beta_y / sto sr_gamma_y
+% 1 sto sr_match_twiss_parameters
 % 5000 sto sr_n_particles_per_bunch
 % pi 2 * sto twopi
 
-"BM": CSBEND,angle=0.78539816,e1=0.39269908,e2=0.39269908,l=1.8
+"BM": CSBEND,angle=0.78539816,e1=0.39269908,e2=0.39269908,edge_order=2,l=1.8,n_slices=16
 "L0": DRIF,l=1.43
 "L1": DRIF,l=0.25
 "L2": DRIF,l=0.35
+"Q1": KQUAD,k1=2.875068323553936,l=0.25,n_slices=43
+"Q2": KQUAD,k1=-6.313934929538485,l=0.25,n_slices=63
+"Q3": KQUAD,k1=4.369624927236353,l=0.25,n_slices=53
+"Q4": KQUAD,k1=5.508911786298143,l=0.25,n_slices=59
+"SD": KSEXT
+"SF": KSEXT
 "M0": MARK
 "M1": MARK
 "M2": MARK
 "M3": MARK
 "M4": MARK
 "M5": MARK
-"Q1": QUAD,k1=2.875068323553936,l=0.25
-"Q2": QUAD,k1=-6.313934929538485,l=0.25
-"Q3": QUAD,k1=4.369624927236353,l=0.25
-"Q4": QUAD,k1=5.508911786298143,l=0.25
-"SD": SEXT
-"SF": SEXT
 "QUARTER": LINE=("M0","L0","Q1","M1","L2","Q2","M2","L2","Q3","M3","L2","BM","L2","SD","L1","Q4","M4","L1","SF","L2","BM","L2","M3","Q3","L2","M2","Q2","L2","M1","Q1","L0")
 "CSR": LINE=("QUARTER","QUARTER","QUARTER","QUARTER")
 
@@ -58,21 +53,17 @@ elegant_file = """
 
 &twiss_output
   filename = "twiss_output.filename.sdds",
-  matched = 0,
 &end
 
 &bunched_beam
-  alpha_x = 1,
-  alpha_y = 1,
-  beta_x = 10,
-  beta_y = 10,
   distribution_cutoff[0] = 3, 3, 3,
   emit_x = 4.6e-08,
   emit_y = 4.6e-08,
   enforce_rms_values[0] = 1, 1, 1,
   n_particles_per_bunch = 5000,
-  sigma_dp = 0.001,
+  sigma_dp = 0.0010000000000000002,
   sigma_s = 0.00065,
+  use_twiss_command_values = 1,
 &end
 
 &track

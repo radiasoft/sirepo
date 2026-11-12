@@ -47,6 +47,10 @@ elegant_file = """
 &end
 
 &twiss_output
+  alpha_x = "(sr_alpha_x)",
+  alpha_y = "(sr_alpha_y)",
+  beta_x = "(sr_beta_x)",
+  beta_y = "(sr_beta_y)",
   filename = "twiss_output.filename.sdds",
   matched = 0,
 &end
@@ -61,8 +65,8 @@ elegant_file = """
   emit_y = 1.5e-06,
   enforce_rms_values[0] = 1, 1, 1,
   n_particles_per_bunch = 5000,
-  sigma_dp = 0.004280050616574745,
-  sigma_s = 0.002981166677631146,
+  sigma_dp = 0.004280050616574747,
+  sigma_s = 0.0029811666776311456,
 &end
 
 &track

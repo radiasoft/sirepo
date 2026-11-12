@@ -1,36 +1,56 @@
+from distgen import Generator
 from impact import Impact
-import impact.parsers
+import pykern.pkio
 import shutil
+import numpy
+
+# backward compatibility
+if not hasattr(numpy, 'trapezoid'):
+    numpy.trapezoid = numpy.trapz
 
 files = dict(
     input_to_id={},
     next_input=1,
 )
 
-def prep_input_file(filename):
+def prep_input_file(filename, template):
     if filename not in files['input_to_id']:
-        n = f"rfdata{files['next_input']}"
+        n = template.format(files["next_input"])
         files['next_input'] += 1
         shutil.copy(filename, n)
         files['input_to_id'][filename] = n
     return files['input_to_id'][filename]
 
+{% if distgenYAML %}
+G = Generator('''
+{{ distgenYAML }}
+''')
+G.run()
+{% endif %}
+
 I = Impact(
     use_temp_dir=False,
     workdir=".",
     timeout=1e6,
+{% if distgenYAML %}
+    initial_particles=G.particles,
+{% endif %}
 )
-I.header.update(dict(
+I.header.update({
 {% for k in impactHeader %}
-    {{k}}={{impactHeader[k]}},
+    "{{k}}": {{impactHeader[k]}},
 {% endfor %}
-))
+})
 del I.lattice[:]
 I.lattice.extend([
+{% if isBunchReport %}
+    dict(type="stop", s=0, name="stop_1", L=0.0),
+{% else %}
 {% for v in lattice %}
     dict(
         {{ v | indent(8) }}    ),
 {% endfor %}
+{% endif %}
 ])
 
 {% if numProcs > 1 %}
@@ -39,8 +59,16 @@ I.numprocs = {{ numProcs }}
 
 {% if distributionFilename %}
 shutil.copy("{{distributionFilename}}", "partcl.data")
+with pykern.pkio.open_text("{{distributionFilename}}") as f:
+    I.header["Np"] = int(f.readline())
 {% endif %}
-I.run()
 
-for k in I.output["particles"]:
-    I.output["particles"][k].write(f"{k}.h5")
+try:
+    I.run()
+
+    for k in I.output["particles"]:
+        I.output["particles"][k].write(f"{k}.h5")
+except Exception as e:
+    print(I.log)
+    raise e
+print(I.log)

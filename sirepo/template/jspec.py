@@ -249,12 +249,12 @@ def stateful_compute_get_elegant_sim_list(data, **kwargs):
         except IOError:
             # ignore errors reading corrupted elegant sim files
             pass
-    return {
-        "simList": res,
-    }
+    return PKDict(
+        simList=res,
+    )
 
 
-def validate_file(file_type, path):
+def validate_file(file_type, path, **kwargs):
     if file_type == "ring-elegantTwiss":
         return None
     assert file_type == "ring-lattice"

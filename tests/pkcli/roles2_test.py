@@ -19,11 +19,11 @@ def setup_module(module):
 
 
 def test_add_plan():
-    from pykern import pkunit
+    from pykern import pkunit, pkcompat
     from sirepo.pkcli import admin, roles
     import datetime
 
-    now = datetime.datetime.utcnow()
+    now = pkcompat.utcnow()
     u = admin.create_user("a@a.a", "a")
     roles.delete(u, "basic")
     r = roles.list(u)

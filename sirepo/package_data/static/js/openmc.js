@@ -330,26 +330,6 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
     self.simScope = $scope;
     self.simComputeModel = 'dagmcAnimation';
 
-    function downloadRemoteGeometryFile() {
-        requestSender.sendStatefulCompute(
-            appState,
-            data => {
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                appState.models.geometryInput.exampleURL = "";
-                appState.saveQuietly('geometryInput');
-                processGeometry();
-            },
-            {
-                method: 'download_remote_lib_file',
-                args: {
-                    exampleURL: appState.models.geometryInput.exampleURL,
-                },
-            }
-        );
-    }
-
     function updateFields() {
         if (! hasGeometry) {
             panelState.showField(
@@ -364,10 +344,6 @@ SIREPO.app.controller('GeometryController', function (appState, openmcService, p
         panelState.showFields('geometryInput', [
             ['dagmcFile', 'materialsFile'], false,
         ]);
-        if (appState.models.geometryInput.exampleURL) {
-            downloadRemoteGeometryFile();
-            return;
-        }
         hasGeometry = true;
         self.simState.runSimulation();
     }
@@ -3465,25 +3441,6 @@ SIREPO.app.directive('applyWeightWindowConfirmation', function(appState, openmcS
                 });
                 return false;
             };
-        },
-    };
-});
-
-SIREPO.app.directive('loadingIndicator', function() {
-    return {
-        restrict: 'A',
-        scope: {
-            message: '<loadingIndicator',
-        },
-        template: `
-            <div style="margin-left: 2em; margin-top: 1ex;" class="lead"
-              data-ng-show="message && ready">
-              <img src="/static/img/sirepo_animated.gif" />
-              {{ message }}
-            </div>
-        `,
-        controller: function($scope, $timeout) {
-            $timeout(() => $scope.ready = true, 500);
         },
     };
 });

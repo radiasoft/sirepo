@@ -74,7 +74,7 @@ def _max_age(weight):
 
 def _points_activity(years):
     """Random function"""
-    max_value = 11.0
+    max_value = 418.4
     return map(
         lambda v: max_value - _factor(v, max_value, 5.0),
         years,

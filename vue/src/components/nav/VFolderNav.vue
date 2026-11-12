@@ -1,5 +1,5 @@
 <template>
-    <li v-bind:class="{active: folder == selected_folder}">
+    <li v-bind:class="{active: folder === selected_folder}">
         <a href v-on:click.prevent="selectFolder">
             <span v-bind:class="{
                 'bi bi-chevron-right': ! folder.isOpen,

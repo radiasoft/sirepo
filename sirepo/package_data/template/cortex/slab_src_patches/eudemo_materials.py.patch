@@ -1,0 +1,54 @@
+--- a/eudemo_materials.py
++++ b/eudemo_materials.py
+@@ -1,3 +1,4 @@
++# eudemo_materials.py
+ """
+ eudemo_materials.py
+ ===================
+@@ -5,7 +6,7 @@
+ Materials are passed in from cfg (inputs.py) — no construction here.
+ """
+ 
+-from __future__ import annotations
++#from __future__ import annotations
+ 
+ from enum import Enum
+ from pathlib import Path
+@@ -13,16 +14,16 @@
+ import sys
+ 
+ import openmc
+-import inputs as cfg
+-import materials
++#import inputs as cfg
++#import materials
+ 
+-# Breeder type enum 
++# Breeder type enum
+ class BreederType(str, Enum):
+     WCLL = "WCLL"
+     HCLL = "HCLL"
+     HCPB = "HCPB"
+ 
+-# Structural / coil / shielding materials 
++# Structural / coil / shielding materials
+ # Identical regardless of breeder concept.
+ #ss316    = materials.ss316Ln_ig(7.93)
+ ccz      = materials.CuCrZr(8.9)
+@@ -35,7 +36,7 @@
+ ss304_b4 = materials.ss304_b4(7.8)
+ water    = materials.Water(0.866)       # pressurised water
+ 
+-# Plasma fill 
++# Plasma fill
+ plasma_mat = openmc.Material(name="plasma")
+ plasma_mat.set_density("g/cm3", 1e-6)
+ plasma_mat.add_element("H", 1.0)
+@@ -145,4 +146,5 @@
+         "IB_Layer_10": {coolant: 0.040, structural: 0.960},
+     }
+     ob = {k.replace("IB_", "OB_"): v for k, v in ib.items() if k.startswith("IB_")}
+-    return {**ib, **ob}
+\ No newline at end of file
++    return {**ib, **ob}
++

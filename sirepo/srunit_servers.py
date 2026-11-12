@@ -53,14 +53,12 @@ def api_and_supervisor(pytest_req, fc_args):
     def _ping_supervisor(uri):
         from requests.exceptions import ConnectionError
 
-        for _ in range(
-            int(os.environ.get("SIREPO_SRUNIT_SERVERS_PING_TIMEOUT", 20)) * 10
-        ):
+        for _ in _poll_iter():
             d = None
             s = None
             try:
                 r = requests.post(uri, json=None, allow_redirects=False)
-            except ConnectionError as e:
+            except ConnectionError:
                 s = 0
             else:
                 if (s := r.status_code) != 200:
@@ -70,7 +68,6 @@ def api_and_supervisor(pytest_req, fc_args):
                     return
                 if "unable to connect" not in d.get("error", ""):
                     break
-            time.sleep(0.1)
         pkunit.restart_or_fail("uri={} status={} reply={}", uri, s, d)
 
     def _subprocess(cmd):
@@ -225,11 +222,32 @@ def sim_db_file(pytest_req):
         finally:
             os._exit(0)
     try:
-        time.sleep(1)
+        _wait_for_port(port)
         yield None
 
     finally:
         os.kill(p, signal.SIGKILL)
+
+
+def _poll_iter():
+    import os, time
+
+    for _ in range(int(os.environ.get("SIREPO_SRUNIT_SERVERS_PING_TIMEOUT", 20)) * 10):
+        yield
+        time.sleep(0.1)
+
+
+def _wait_for_port(port):
+    import socket
+
+    for _ in _poll_iter():
+        try:
+            socket.create_connection(("127.0.0.1", int(port)), timeout=1).close()
+            return
+        except OSError:
+            pass
+
+    raise RuntimeError(f"server did not start port={port}")
 
 
 def _port():

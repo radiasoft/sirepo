@@ -27,10 +27,11 @@ class SimData(sirepo.sim_data.SimDataBase):
                 "twissAnimation",
             ],
         )
-        if "bunchReport1" not in dm:
-            for i in range(1, 5):
-                m = dm[f"bunchReport{i}"] = PKDict()
-                cls.update_model_defaults(m, "bunchReport")
+        for i in range(1, 5):
+            n = f"bunchReport{i}"
+            if n not in dm:
+                dm[n] = PKDict()
+            cls.update_model_defaults(dm[n], "bunchReport")
 
     @classmethod
     def _compute_model(cls, analysis_model, *args, **kwargs):

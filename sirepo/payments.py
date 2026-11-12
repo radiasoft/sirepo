@@ -113,7 +113,7 @@ class API(sirepo.quest.API):
                 s,
                 i,
                 _uid(s.metadata[_STRIPE_SIREPO_UID_METADATA_KEY]),
-                s.get("current_period_end"),
+                _period_end(s),
             )
         return self.reply_ok(PKDict(sessionStatus=c.status))
 
@@ -228,6 +228,10 @@ async def _auditor(_):
     api_paymentCheckoutSessionStatus. This auditor goes through
     all sirepo subscriptions/roles created by that API and revokes
     any that are not active in Stripe.
+
+    A user has one role row per (uid, role), which is shared by all
+    of the user's subscriptions for that role. So the role is only
+    expired when none of the subscriptions for it are active.
     """
 
     async def _stripe_status_is_active(subscription_record):
@@ -245,17 +249,29 @@ async def _auditor(_):
         return s.status in _STRIPE_ACTIVE_SUBSCRIPTION_STATUSES
 
     with sirepo.quest.start() as qcall:
+        g = PKDict()
         for s in qcall.auth_db.model(
             "StripeSubscription"
         ).not_revoked_stripe_subscriptions():
-            if qcall.auth_db.model("UserRole").has_expired_role(s.role, uid=s.uid):
+            g.setdefault((s.uid, s.role), []).append(s)
+        for (uid, role), subs in g.items():
+            a = False
+            for s in subs:
+                if await _stripe_status_is_active(s):
+                    a = True
+                    continue
+                qcall.auth_db.model(
+                    "StripeSubscription"
+                ).revoke_due_to_inactive_stripe_status(s)
+            if a or qcall.auth_db.model("UserRole").has_expired_role(role, uid=uid):
                 continue
-            if await _stripe_status_is_active(
-                s,
-            ):
-                continue
-            pkdlog("revoking uid={} role={}", s.uid, s.role)
-            qcall.auth_db.model("UserRole").expire_role(s.role, uid=s.uid)
-            qcall.auth_db.model(
-                "StripeSubscription"
-            ).revoke_due_to_inactive_stripe_status(s)
+            pkdlog("revoking uid={} role={}", uid, role)
+            qcall.auth_db.model("UserRole").expire_role(role, uid=uid)
+
+
+def _period_end(stripe_sub):
+    """Stripe moved current_period_end from the subscription to its items"""
+    for x in (stripe_sub, stripe_sub["items"].data[0]):
+        if e := x.get("current_period_end"):
+            return e
+    return None

@@ -43,7 +43,9 @@ class ImpactTParser(object):
             element = self.sim_data.model_defaults(n).pkupdate(
                 type=n,
             )
-            positions.append(el["zedge"] if "zedge" in el else el["s"])
+            positions.append(
+                el["zedge"] if "zedge" in el else el.get("s_begin", el["s"])
+            )
             for k, v in el.items():
                 f = "l" if k == "L" else k
                 if f in m:
@@ -51,6 +53,8 @@ class ImpactTParser(object):
                         element[f] = str(v)
                     else:
                         element[f] = v
+                elif f == "s_begin":
+                    element.l = el["s"] - el["s_begin"]
                 elif k in self._IGNORE_MODEL_FIELDS:
                     continue
                 else:
@@ -60,7 +64,7 @@ class ImpactTParser(object):
 
     def _import_elements(self, lattice):
         elements, positions = self._elements_and_positions(lattice)
-        for e in sorted(zip(positions, elements)):
+        for e in sorted(zip(positions, elements), key=lambda x: x[0]):
             self.data.models.beamlines[0].positions.append(
                 PKDict(
                     elemedge=e[0],
@@ -91,6 +95,7 @@ class ImpactTParser(object):
                 pkdlog("unhandled header value {}: {}", k, v)
 
     def _import_impactt(self, parsed):
+        self.data.models.beam.particle = "other"
         self.data.models.beamlines = [
             self.sim_data.model_defaults("beamline").pkupdate(
                 id=self._next_id(),
@@ -101,6 +106,8 @@ class ImpactTParser(object):
         ]
         self._import_header(parsed.header)
         self._import_elements(parsed.lattice)
+        for f in ("activeBeamlineId", "visualizationBeamlineId"):
+            self.data.models.simulation[f] = self.data.models.beamlines[0].id
         return self.data
 
     def _is_enum(self, model_name, field):

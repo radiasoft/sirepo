@@ -86,6 +86,9 @@
     background-color: var(--sr-item-focused-bg-dark-mode);
     color: var(--sr-item-active-dark-mode);
   }
+  .btn-primary.active, .btn-primary:hover, .btn-default:hover {
+    border-color: #ccc;
+  }
 
   .dropdown-menu {
     background-color: var(--sr-panel-bg-dark-mode);

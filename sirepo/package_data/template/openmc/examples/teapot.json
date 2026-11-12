@@ -1,5 +1,12 @@
 {
     "models": {
+        "_externalFiles": [
+            {
+                "name": "utah_teapot.h5m",
+                "model": "geometryInput",
+                "field": "dagmcFile"
+            }
+        ],
         "dagmcAnimation": {},
         "geometry3DReport": {
             "bgColor": "#fff9ed",
@@ -7,8 +14,7 @@
             "showEdges": "0"
         },
         "geometryInput": {
-            "dagmcFile": "utah_teapot.h5m",
-            "exampleURL": "utah_teapot.h5m"
+            "dagmcFile": "utah_teapot.h5m"
         },
         "openmcAnimation": {
             "aspect": "mean",

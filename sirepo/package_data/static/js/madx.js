@@ -4,6 +4,7 @@ var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
 SIREPO.app.config(function() {
+    SIREPO.PLOTTING_SUMMED_LINEOUTS = true;
     SIREPO.FILE_UPLOAD_TYPE = {
         'bunch-sourceFile': '.h5',
     };
@@ -52,7 +53,7 @@ SIREPO.app.config(function() {
 SIREPO.app.factory('madxService', function(appState, commandService, requestSender, rpnService) {
     var self = {};
     rpnService.isCaseInsensitive = true;
-    self.twissFields = ['betx', 'bety', 'alfx', 'alfy', 'x', 'px', 'y', 'py'];
+    self.twissFields = ['betx', 'bety', 'alfx', 'alfy', 'dx', 'dpx', 'dy', 'dpy', 'x', 'px', 'y', 'py'];
 
     self.computeModel = function(analysisModel) {
         return 'animation';
@@ -224,8 +225,6 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
                     panelTitle: outputFile.panelTitle,
                     x: info.plottableColumns[0],
                     y1: info.plottableColumns[1],
-                    y2: 'None',
-                    y3: 'None',
                 };
                 // better twiss defaults
                 if (
@@ -240,8 +239,8 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
                 }
             }
             var m = appState.models[modelKey];
-            if (outputFile.reportType != 'heatmap') {
-                m.aspectRatio = 4.0 / 7;
+            if (! m.aspectRatio) {
+                m.aspectRatio = outputFile.reportType === 'heatmap' ? '1' : '0.5625';
             }
             appState.setModelDefaults(m, 'elementAnimation');
             var yColumnWithNone = appState.clone(info.plottableColumns);
@@ -251,6 +250,8 @@ SIREPO.app.controller('VisualizationController', function(appState, commandServi
                 y1: info.plottableColumns,
                 y2: yColumnWithNone,
                 y3: yColumnWithNone,
+                y4: yColumnWithNone,
+                y5: yColumnWithNone,
             };
             appState.saveQuietly(modelKey);
             frameCache.setFrameCount(info.pageCount || 1, modelKey);
@@ -280,7 +281,8 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: `
             <div data-common-footer="nav"></div>
-            <div data-elegant-import-dialog=""></div>
+            <div data-lattice-import-dialog=""></div>
+            <div data-lattice-conversion-modals=""></div>
         `,
     };
 });
@@ -305,6 +307,7 @@ SIREPO.app.directive('appHeader', function(appState, madxService, latticeService
                 </div>
               </app-header-right-sim-loaded>
               <app-settings>
+                <div data-lattice-conversion-menu=""></div>
               </app-settings>
               <app-header-right-sim-list>
                 <ul class="nav navbar-nav sr-navbar-right">
@@ -359,45 +362,6 @@ SIREPO.app.directive('elementAnimationModalEditor', function(appState, panelStat
                     var data = appState.models[$scope.modelKey];
                     return data;
                 },
-            };
-        },
-    };
-});
-
-SIREPO.app.directive('madXLatticeList', function(appState) {
-    return {
-        restrict: 'A',
-        scope: {
-            model: '=',
-            field: '=',
-        },
-        template: `
-            <select class="form-control" data-ng-model="model[field]" data-ng-options="name as name for name in elegantLatticeList()"></select>
-        `,
-        controller: function($scope) {
-            $scope.elegantLatticeList = function() {
-                if (! appState.isLoaded() || ! $scope.model) {
-                    return null;
-                }
-                var runSetupId = $scope.model._id;
-                var res = ['Lattice'];
-                var index = 0;
-                for (var i = 0; i < appState.models.commands.length; i++) {
-                    var cmd = appState.models.commands[i];
-                    if (cmd._id == runSetupId) {
-                        break;
-                    }
-                    if (cmd._type == 'save_lattice') {
-                        index++;
-                        if (cmd.filename) {
-                            res.push('save_lattice' + (index > 1 ? index : ''));
-                        }
-                    }
-                }
-                if (! $scope.model[$scope.field]) {
-                    $scope.model[$scope.field] = res[0];
-                }
-                return res;
             };
         },
     };
@@ -471,6 +435,8 @@ SIREPO.app.directive('commandConfirmation', function(appState, commandService, l
                             commandTemplate: t,
                             nextId: latticeService.nextId(),
                             beamlineId: appState.models.simulation.activeBeamlineId,
+                            // a line's initial twiss for ptc_twiss
+                            twiss: appState.models.commands.find(c => c._type === 'twiss'),
                         }
                     }
                 );

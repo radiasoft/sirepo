@@ -128,15 +128,6 @@
             "y2": "phi_mid",
             "y3": "bunching"
         },
-        "particleAnimation": {
-            "aspectRatio": "1",
-            "colorMap": "viridis",
-            "framesPerSecond": "2",
-            "histogramBins": 200,
-            "notes": "",
-            "x": "x",
-            "y": "y"
-        },
         "particleLoading": {
             "iall": "0",
             "igamgaus": "1",

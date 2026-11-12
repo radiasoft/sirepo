@@ -1,0 +1,958 @@
+"""Cortex db
+
+:copyright: Copyright (c) 2025 RadiaSoft LLC.  All Rights Reserved.
+:license: http://www.apache.org/licenses/LICENSE-2.0.html
+"""
+
+from pykern.pkcollections import PKDict
+from pykern.pkdebug import pkdc, pkdlog, pkdp
+import contextlib
+import pykern.pkio
+import pykern.sql_db
+import sirepo.srdb
+import sirepo.template.cortex
+import sirepo.util
+import sqlalchemy
+import sqlalchemy.exc
+
+#: report of the summary values listed with the materials unless another is asked for
+# POSIT: reports.js DEFAULT_REPORT, which the browser runs on import
+DEFAULT_LIST_MODEL = "hcpbSlabAnimation"
+
+_BASE = "cortex_material.sqlite3"
+
+#: directory in srdb root which holds each material's plot csv, png and hdf5 files
+_CORTEXDB_DIR = "cortexdb"
+
+#: plot data now in csv files, tables dropped by drop_plot_tables()
+_OLD_PLOT_TABLES = frozenset(("plot_legend", "plot_point"))
+
+# these were required for old xls imports, now they are brought in with independent_variables
+_OLD_PROPERTY_COLUMNS = PKDict(
+    temperature_k="Temperature [K]",
+    neutron_fluence_1_cm2="Neutron Fluence [1/cm²]",
+)
+
+# POSIT: public materials show the results of this report, see VOverview.vue
+_PUBLIC_MODEL = DEFAULT_LIST_MODEL
+
+_SOURCE_DESC = PKDict(
+    EXP="experiment",
+    PP="predictive physics model",
+    NOM="nominal (design target) value",
+    ML="maching learning",
+    DFT="Density Functional Theory",
+)
+_SUMMARY_FIELDS = (
+    "dpa_fpy",
+    "H_appm_fpy",
+    "He_appm_fpy",
+    "activity_Bq_per_kg_at_100y",
+    "decayheat_W_per_cm3_at_100y",
+)
+_SUMMARY_LAYERS = (
+    ("armor", "Armor"),
+    ("first_wall", "First Wall"),
+    ("vacuum_vessel", "Vacuum Vessel"),
+)
+
+
+_meta = None
+
+
+class Error(RuntimeError):
+    """An error to show the user
+
+    Args:
+        messages (list): str messages, args[0]
+    """
+
+    pass
+
+
+def all_materials():
+    """Every material with its owner and the last time a sim completed (admin only)"""
+    with _session() as s:
+        c = PKDict()
+        for r in s.select("sim_summary").all():
+            c[r["material_id"]] = max(
+                c.get(r["material_id"], r["completed"]), r["completed"]
+            )
+        return [
+            PKDict(
+                _row_values(
+                    r, ("material_id", "material_name", "is_plasma_facing", "uid")
+                ),
+                completed=(
+                    int(c[r["material_id"]].timestamp())
+                    if r["material_id"] in c
+                    else None
+                ),
+            )
+            for r in s.select("material").all()
+        ]
+
+
+def cortexdb_path(material_id, *paths):
+    """Path to a material's stored sim output: plot csv, png and hdf5 files
+
+    Laid out as ``<material_id>/<model>/<file>``.
+
+    Args:
+        material_id (int or str): material
+        paths (str): optional model and file name within the material's directory
+    Returns:
+        py.path: path, which may not exist
+    """
+    return sirepo.srdb.root().join(_CORTEXDB_DIR, str(material_id), *paths)
+
+
+def db_upgrade():
+    if not _path().exists():
+        # for tests, db may not exist to upgrade
+        return
+    with _session() as s:
+        if "stat" in [
+            v["name"] for v in sqlalchemy.inspect(s.meta._engine).get_columns("plot")
+        ]:
+            return
+        s.execute(f"ALTER TABLE plot ADD COLUMN stat VARCHAR(100)")
+        s.execute(f"CREATE INDEX ix_plot_stat ON plot (stat)")
+
+
+def delete_material(material_id, uid):
+    """Cascade delete all rows for a material"""
+
+    def _delete(session, table_name, **where):
+        session.delete(table_name, _where(table_name, where))
+
+    def _select_id(session, table_name, **where):
+        return [
+            v[f"{table_name}_id"]
+            for v in session.select(table_name, _where(table_name, where)).all()
+        ]
+
+    def _where(table_name, fields):
+        rv = PKDict(fields)
+        if table_name == "material":
+            rv.uid = uid
+        return rv
+
+    with _session() as s:
+        if len(_select_id(s, "material", material_id=material_id)) < 1:
+            # Possible with two simultaneous deletes, but highly unlikely
+            # TODO(robnagler) assert?
+            pkdlog("unexpected not found material_id={} uid={}", material_id, uid)
+            return False
+        for p in _select_id(s, "material_property", material_id=material_id):
+            for v in _select_id(s, "material_property_value", material_property_id=p):
+                _delete(s, "independent_variable_value", material_property_value_id=v)
+            _delete(s, "material_property_value", material_property_id=p)
+            _delete(s, "independent_variable", material_property_id=p)
+        for t in (
+            "material_property",
+            "material_component",
+            "plot",
+            "sim_summary_value",
+            "sim_summary",
+            "cost_input",
+            "material",
+        ):
+            _delete(s, t, material_id=material_id)
+    return True
+
+
+def drop_plot_tables():
+    """Move plot_point and plot_legend rows into plot csv files and drop the tables
+
+    Plot points and legends are read from the csv files written
+    alongside each plot's png. Older plots may only have their data in
+    the db, so a csv is written for any plot which is missing one.
+    """
+
+    def _points(session, plot_id):
+        rv = []
+        for r in session.execute(
+            sqlalchemy.text(
+                "SELECT dim, idx, point FROM plot_point"
+                + " WHERE plot_id = :plot_id ORDER BY dim, idx"
+            ).bindparams(plot_id=plot_id)
+        ):
+            if r.idx == 0:
+                rv.append([])
+            rv[r.dim].append(r.point)
+        return rv
+
+    def _write_csv(session, plot):
+        p = _points(session, plot.plot_id)
+        if not p:
+            return
+        f = plot_csv_path(plot.material_id, plot.model, plot.stat)
+        pykern.pkio.mkdir_parent_only(f)
+        pykern.pkio.atomic_write(
+            f,
+            sirepo.template.cortex.csv_from_plot(
+                PKDict(
+                    xlabel=plot.xlabel,
+                    legend=[
+                        r.label
+                        for r in session.select(
+                            sqlalchemy.select(session.t.plot_legend)
+                            .where(session.t.plot_legend.c.plot_id == plot.plot_id)
+                            .order_by(session.t.plot_legend.c.dim)
+                        )
+                    ],
+                    points=p,
+                )
+            ),
+        )
+
+    # db_upgrade may run in a process which hasn't initialized this module
+    init_module()
+    t = _old_plot_tables()
+    if not t:
+        return
+    with _session() as s:
+        if "plot_point" in t:
+            if "plot_legend" not in t:
+                raise AssertionError(
+                    f"plot_point without plot_legend, can't write plot csvs db={_path()}"
+                )
+            for p in s.select("plot").all():
+                if not plot_csv_path(p.material_id, p.model, p.stat).exists():
+                    _write_csv(s, p)
+        for n in sorted(t):
+            s.execute(sqlalchemy.text(f"DROP TABLE {n}"))
+    # plot_point was most of the db, VACUUM must run outside a transaction
+    with _engine(isolation_level="AUTOCOMMIT") as e:
+        with e.connect() as c:
+            c.execute(sqlalchemy.text("VACUUM"))
+
+
+def featured_materials():
+    with _session() as s:
+        return [
+            _row_values(r, ("material_id", "material_name", "is_plasma_facing"))
+            for r in s.select(
+                "material", where=PKDict(is_featured=True, is_public=True)
+            ).all()
+        ]
+
+
+def format_material_detail(material_id, is_public, uid):
+
+    def _add_doi(prop):
+        if prop.doi_or_url is None:
+            t = None
+            u = None
+        elif prop.doi_or_url.lower().startswith("http"):
+            t = "URL"
+            u = prop.doi_or_url
+        else:
+            t = "DOI"
+            u = f"https://doi.org/{prop.doi_or_url}"
+        prop.doi = PKDict(
+            type=t,
+            url=u,
+            linkText=prop.doi_or_url,
+            rows=PKDict(
+                Source=(
+                    f"{prop.source}, {_SOURCE_DESC[prop.source]}"
+                    if prop.source in _SOURCE_DESC
+                    else prop.source
+                ),
+                Pointer=prop.pointer,
+                Comments=prop.comments,
+            ),
+        )
+
+    def _add_property_values(prop):
+        def _has_column_value(rows, key):
+            for r in rows:
+                if r[key]:
+                    return True
+            return False
+
+        prop.valueHeadings = PKDict(
+            value="Value" + (f" [{prop.property_unit}]" if prop.property_unit else ""),
+            uncertainty="Uncertainty",
+        )
+        for k in prop.vals[0]:
+            if k in prop.valueHeadings or k.endswith("_id"):
+                continue
+            if _has_column_value(prop.vals, k):
+                prop.valueHeadings[k] = _OLD_PROPERTY_COLUMNS.get(k, k)
+
+    def _find_property(properties, name):
+        for p in properties:
+            if p.property_name == name:
+                return p
+        return None
+
+    def _to_yes_no(value):
+        if value is None:
+            return ""
+        return "Yes" if value else "No"
+
+    m = material_detail(material_id, is_public, uid)
+    res = PKDict(
+        name=m.material_name,
+        density=m.density_g_cm3,
+        density_units="g/cm³",
+        is_atom_pct=m.is_atom_pct,
+        is_plasma_facing=m.is_plasma_facing,
+        is_public=m.is_public,
+        can_be_public=_has_public_model(material_id),
+        section1=PKDict(
+            {
+                # POSIT: the material type names of materialType.js
+                "Material Type": (
+                    "plasma-facing" if m.is_plasma_facing else "structural"
+                ),
+                "Structure": m.structure,
+                "Microstructure Information": m.microstructure,
+                "Processing": m.processing_steps,
+            }
+        ),
+        section2=PKDict(
+            {
+                "Neutron Source": "D-T" if m.is_neutron_source_dt else "D-D",
+                "Neutron Wall Loading": m.neutron_wall_loading,
+                "Availability Factor": (
+                    f"{m.availability_factor}%" if m.availability_factor else ""
+                ),
+            }
+        ),
+        components=m.components,
+        composition=_find_property(m.properties, "composition"),
+        composition_density=_find_property(m.properties, "composition_density"),
+        properties=[
+            p for p in m.properties if not p.property_name.startswith("composition")
+        ],
+    )
+    for c in res.components:
+        c.material_component_name = c.material_component_name.capitalize()
+    for p in m.properties:
+        if "vals" in p and len(p.vals):
+            _add_property_values(p)
+        if p.doi_or_url or p.comments:
+            _add_doi(p)
+    return res
+
+
+def init_module(**imports):
+    global _meta
+
+    if _meta is not None:
+        return
+    sirepo.util.setattr_imports(imports)
+
+    def _optional(v):
+        return f"{v} nullable"
+
+    f = "float 64"
+    _meta = pykern.sql_db.Meta(
+        uri=pykern.sql_db.sqlite_uri(_path()),
+        schema=PKDict(
+            material=PKDict(
+                material_id="primary_id 1",
+                uid="str 8 index",
+                created="datetime index",
+                material_name="str 100",
+                availability_factor=_optional(f),
+                density_g_cm3=f,
+                is_atom_pct="bool",
+                is_bare_tile=_optional("bool"),
+                is_featured=_optional("bool"),
+                is_homogenized_divertor=_optional("bool"),
+                is_homogenized_hcpb=_optional("bool"),
+                is_homogenized_wcll=_optional("bool"),
+                is_neutron_source_dt=_optional("bool"),
+                is_plasma_facing="bool",
+                is_public=_optional("bool"),
+                neutron_wall_loading=_optional("str 32"),
+                structure=_optional("str 100"),
+                microstructure=_optional("str 500"),
+                processing_steps=_optional("str 500"),
+                unique=(("uid", "material_name"),),
+            ),
+            material_component=PKDict(
+                material_component_id="primary_id 2",
+                material_id="primary_id",
+                material_component_name="str 8",
+                max_pct=_optional(f),
+                min_pct=_optional(f),
+                target_pct=f,
+                unique=(("material_id", "material_component_name"),),
+            ),
+            material_property=PKDict(
+                material_property_id="primary_id 3",
+                material_id="primary_id",
+                property_name="str 100",
+                property_unit="str 32",
+                doi_or_url=_optional("str 500"),
+                source=_optional("str 32"),
+                pointer=_optional("str 32"),
+                comments=_optional("str 5000"),
+                unique=(("material_id", "property_name"),),
+            ),
+            material_property_value=PKDict(
+                material_property_value_id="primary_id 4",
+                material_property_id="primary_id",
+                value=f,
+                uncertainty=_optional(f),
+                temperature_k=_optional(f),
+                neutron_fluence_1_cm2=_optional(f),
+            ),
+            independent_variable=PKDict(
+                independent_variable_id="primary_id 5",
+                material_property_id="primary_id",
+                name="str 100",
+                unique=(("material_property_id", "name"),),
+            ),
+            independent_variable_value=PKDict(
+                independent_variable_id="primary_id primary_key index",
+                material_property_value_id="primary_id primary_key index",
+                value=f,
+            ),
+            plot=PKDict(
+                plot_id="primary_id 6",
+                material_id="primary_id index",
+                model="str 100",
+                stat="str 100 index",
+                title="str 100",
+                xlabel="str 100",
+                ylabel="str 100",
+                plot_type="str 10",
+            ),
+            sim_summary=PKDict(
+                material_id="primary_id primary_key index",
+                model="str 100 primary_key",
+                completed="datetime",
+                version="str 100",
+            ),
+            sim_summary_value=PKDict(
+                material_id="primary_id primary_key index",
+                model="str 100 primary_key",
+                name="str 100 primary_key",
+                value=f,
+            ),
+            cost_input=PKDict(
+                material_id="primary_id primary_key index",
+                processes="str 500",
+                production_qty="int 32",
+            ),
+        ).pkupdate(_old_plot_schema(f)),
+    )
+
+
+def insert_material(parsed, uid):
+    return insert_materials([parsed], uid)[0]
+
+
+def insert_materials(parsed, uid):
+    """Insert all materials or none
+
+    Args:
+        parsed (list): parsed materials in file order
+        uid (str): owner of the materials
+    Returns:
+        list: PKDict of material_id and material_name for each material
+    Raises:
+        Error: args[0] is the list of messages, one for each existing name
+    """
+    with _session() as s:
+        x = {
+            r["material_name"]
+            for r in s.select("material", where=PKDict(uid=uid)).all()
+        }
+        if d := [p.material_name for p in parsed if p.material_name in x]:
+            # report every name, so they can be fixed in one pass
+            raise Error([f"material name={n} already exists" for n in d])
+        return [_insert_one(s, p, uid) for p in parsed]
+
+
+def list_materials(uid, model=DEFAULT_LIST_MODEL):
+    """The materials of uid with the summary values of model
+
+    Args:
+        uid (str): owner of the materials
+        model (str): report, which has a summary in `SIM_VERSION`
+    """
+    if model not in sirepo.template.cortex.SIM_VERSION:
+        raise sirepo.util.BadRequest(f"invalid model={model}")
+
+    def _sim_summary_values(session, material_id):
+        return PKDict(
+            [
+                (r["name"], r["value"])
+                for r in s.select(
+                    "sim_summary_value",
+                    where=PKDict(
+                        material_id=material_id,
+                        model=model,
+                    ),
+                ).all()
+            ]
+        )
+
+    def _update_summary(s, row):
+        p = "armor" if row.is_plasma_facing else "first_wall"
+        v = _sim_summary_values(s, row.material_id)
+        for f in _SUMMARY_FIELDS:
+            for n in (f"{f}", f"{f}_std"):
+                pn = f"{p}_{n}"
+                if pn in v:
+                    row[n.lower()] = v[pn]
+        return row
+
+    with _session() as s:
+        return [
+            _update_summary(
+                s,
+                _row_values(
+                    r,
+                    (
+                        "material_id",
+                        "created",
+                        "material_name",
+                        "is_public",
+                        "is_plasma_facing",
+                    ),
+                ),
+            )
+            for r in s.select("material", where=PKDict(uid=uid)).all()
+        ]
+
+
+def load_cost_input(material_id, is_public, uid):
+    with _session() as s:
+        # ensure authorized to material
+        if is_public:
+            _public_material_by_id(s, material_id)
+        else:
+            _material_by_id(s, material_id, uid)
+        r = s.select_one_or_none("cost_input", where=PKDict(material_id=material_id))
+        if not r:
+            return None
+        # processes is "name=Cmp,..."; older rows have only "name,..."
+        p = [x.split("=") for x in r.processes.split(",")]
+        return PKDict(
+            processes=[x[0] for x in p],
+            cmp=PKDict((x[0], float(x[1])) for x in p if len(x) > 1),
+            production_qty=r.production_qty,
+        )
+
+
+def save_cost_input(material_id, uid, processes, cmp, production_qty):
+    with _session() as s:
+        _material_by_id(s, material_id, uid)
+        s.delete("cost_input", PKDict(material_id=material_id))
+        s.insert(
+            "cost_input",
+            material_id=material_id,
+            processes=",".join(f"{p}={cmp[p]}" for p in processes),
+            production_qty=production_qty,
+        )
+
+
+def load_summary(material_id, is_public, uid):
+    def _format_plot(plot):
+        return sirepo.template.cortex.plotdef_to_sim_frame(plot)
+
+    def _layer_summary_rows(session, model):
+        v = PKDict(
+            [
+                (r["name"], r["value"])
+                for r in session.select(
+                    "sim_summary_value",
+                    where=PKDict(material_id=material_id, model=model),
+                ).all()
+            ]
+        )
+        rows = []
+        for prefix, layer in _SUMMARY_LAYERS:
+            row = PKDict(layer=layer)
+            for f in _SUMMARY_FIELDS:
+                for n in (f, f"{f}_std"):
+                    k = f"{prefix}_{n}"
+                    if k in v:
+                        row[n.lower()] = v[k]
+            if len(row) > 1:
+                rows.append(row)
+        return rows
+
+    def _load_plot(row, path):
+        return _format_plot(
+            PKDict(row).pkupdate(
+                sirepo.template.cortex.plot_from_csv(pykern.pkio.read_text(path))
+            )
+        )
+
+    def _load_plots(session):
+        rv = []
+        for r in s.select("plot", where=PKDict(material_id=material_id)).all():
+            # POSIT: _load_summary skips the same models, the db may have
+            # plots for models which are no longer simulated
+            if r.model not in sirepo.template.cortex.SIM_VERSION:
+                continue
+            if not sirepo.template.cortex.report_is_listed(r.stat):
+                continue
+            p = plot_csv_path(r.material_id, r.model, r.stat)
+            # POSIT: sim_api.cortex.check_for_sim_summary writes the csv after
+            # the plot row and the png, so it may be missing (or failed to be
+            # written); a plot is only listed once its image exists
+            if not p.exists():
+                pkdlog("missing plot csv={}", p)
+                continue
+            rv.append(_load_plot(r, p))
+        return rv
+
+    def _load_summary(session):
+        r = PKDict()
+        for summary in s.select(
+            sqlalchemy.select(s.t.sim_summary).where(
+                s.t.sim_summary.c.material_id == material_id
+            )
+        ).all():
+            if summary["model"] not in sirepo.template.cortex.SIM_VERSION:
+                continue
+            r[summary["model"]] = _row_values(
+                summary, ("completed", "version")
+            ).pkupdate(
+                current_version=sirepo.template.cortex.SIM_VERSION[summary["model"]],
+                results=_layer_summary_rows(session, summary["model"]),
+            )
+        return r
+
+    with _session() as s:
+        # ensure authorized to material
+        if is_public:
+            _public_material_by_id(s, material_id)
+        else:
+            _material_by_id(s, material_id, uid)
+        return PKDict(
+            plots=_load_plots(s),
+            sim=_load_summary(s),
+        )
+
+
+def material_detail(material_id, is_public, uid):
+    def _records(session, table_name, record, field):
+        return [
+            PKDict(r)
+            for r in session.select(table_name, where={field: record[field]}).all()
+        ]
+
+    with _session() as s:
+        rv = PKDict(
+            _public_material_by_id(s, material_id)
+            if is_public
+            else _material_by_id(s, material_id, uid)
+        )
+        # Makes testing hard, and don't need to return
+        rv.pkdel("uid")
+        rv.components = _records(s, "material_component", rv, "material_id")
+        rv.properties = _records(s, "material_property", rv, "material_id")
+        for p in rv.properties:
+            p.vals = _records(s, "material_property_value", p, "material_property_id")
+            ivs = PKDict(
+                [
+                    (r.independent_variable_id, r.name)
+                    for r in _records(
+                        s, "independent_variable", p, "material_property_id"
+                    )
+                ]
+            )
+            for mpv in p.vals:
+                for iv in _records(
+                    s, "independent_variable_value", mpv, "material_property_value_id"
+                ):
+                    mpv[ivs[iv.independent_variable_id]] = iv.value
+        return rv
+
+
+def material_owner(material_id):
+    """uid of the user who owns material_id"""
+    with _session() as s:
+        return s.select_one("material", where=PKDict(material_id=material_id))["uid"]
+
+
+def plot_csv_path(material_id, model, stat):
+    """Path to the csv file which holds a plot's points
+
+    Args:
+        material_id (int or str): material
+        model (str): report name, e.g. wcllSlabAnimation
+        stat (str): plot name, e.g. dpa_OB_1_b6
+    Returns:
+        py.path: csv file path, which may not exist
+    """
+    return cortexdb_path(material_id, model, f"{stat}.csv")
+
+
+def public_materials():
+    with _session() as s:
+        return [
+            _row_values(r, ("material_id", "material_name", "is_plasma_facing"))
+            for r in s.select("material", where=PKDict(is_public=True)).all()
+        ]
+
+
+def set_featured(material_id, is_featured, uid):
+    _update_material(material_id, uid, PKDict(is_featured=is_featured))
+
+
+def set_public(material_id, is_public, uid):
+    """Make the material public or private
+
+    Raises:
+        Error: making it public before its _PUBLIC_MODEL results exist
+    """
+    with _session() as s:
+        # ensure authorized before saying anything about the material
+        _material_by_id(s, material_id, uid)
+    if is_public and not _has_public_model(material_id):
+        raise Error(
+            [
+                "The HCPB slab neutronics simulation needs to be completed before"
+                + " a material can be made publicly available."
+            ]
+        )
+    _update_material(material_id, uid, PKDict(is_public=is_public))
+
+
+def update_sim_summary(summary, uid):
+    def _summary_items(summary):
+        r = PKDict()
+        for s in summary:
+            n = s.pkdel("layer").lower().replace(" ", "_")
+            for k, v in s.items():
+                if isinstance(v, float):
+                    r[f"{n}_{k}"] = v
+        return r.items()
+
+    with _session() as s:
+        # ensure authorized to material
+        _material_by_id(s, summary.material_id, uid)
+
+        s.delete(
+            "sim_summary_value",
+            PKDict(material_id=summary.material_id, model=summary.model),
+        )
+        s.delete(
+            "sim_summary",
+            PKDict(material_id=summary.material_id, model=summary.model),
+        )
+        s.insert(
+            "sim_summary",
+            PKDict(
+                {
+                    n: summary[n]
+                    for n in ("material_id", "model", "completed", "version")
+                }
+            ),
+        )
+        for k, v in _summary_items(summary["values"]):
+            s.insert(
+                "sim_summary_value",
+                PKDict({n: summary[n] for n in ("material_id", "model")}).pkupdate(
+                    name=k,
+                    value=v,
+                ),
+            )
+
+        for p in summary.plots:
+            _insert_plot(s, p, uid)
+
+
+@contextlib.contextmanager
+def _engine(**kwargs):
+    """Short-lived engine for the db file, separate from _meta's
+
+    pykern.sql_db.Meta doesn't expose its engine. Used to inspect tables
+    before _meta exists and to run VACUUM outside a transaction.
+    """
+    rv = sqlalchemy.create_engine(pykern.sql_db.sqlite_uri(_path()), **kwargs)
+    try:
+        yield rv
+    finally:
+        rv.dispose()
+
+
+def _has_public_model(material_id):
+    with _session() as s:
+        return bool(
+            s.select_one_or_none(
+                "sim_summary",
+                where=PKDict(material_id=material_id, model=_PUBLIC_MODEL),
+            )
+        )
+
+
+def _insert_one(s, parsed, uid):
+    def _insert_property(session, name, values):
+        vals = values.pop("vals")
+        ivars = values.pop("independent_variables", PKDict())
+        prop_id = session.insert(
+            "material_property",
+            property_name=name,
+            **values,
+        ).material_property_id
+        ivar_ids = {
+            name: session.insert(
+                "independent_variable",
+                material_property_id=prop_id,
+                name=name,
+            ).independent_variable_id
+            for name in ivars
+        }
+        for idx, val in enumerate(vals):
+            val_id = session.insert(
+                "material_property_value",
+                material_property_id=prop_id,
+                **val,
+            ).material_property_value_id
+            for name, values_list in ivars.items():
+                if idx < len(values_list) and values_list[idx] is not None:
+                    session.insert(
+                        "independent_variable_value",
+                        independent_variable_id=ivar_ids[name],
+                        material_property_value_id=val_id,
+                        value=values_list[idx],
+                    )
+
+    def _values(cols, vals):
+        return PKDict((c, vals[c]) for c in cols if c in vals)
+
+    try:
+        rv = s.insert(
+            "material",
+            _values(s.t.material.columns.keys(), parsed).pkupdate(uid=uid),
+        )
+    except sqlalchemy.exc.IntegrityError as e:
+        if "unique" in str(e).lower():
+            # Needs to raise to signal to the session to rollback
+            raise Error([f"material name={parsed.material_name} already exists"])
+        raise
+    for v in parsed.components.values():
+        s.insert(
+            "material_component",
+            _values(s.t.material_component.columns.keys(), v).pkupdate(
+                material_id=rv.material_id
+            ),
+        )
+    for n in parsed.properties:
+        if not parsed.properties[n].property_unit:
+            parsed.properties[n].property_unit = "1"
+        _insert_property(
+            s, n, parsed.properties[n].pkupdate(material_id=rv.material_id)
+        )
+    return PKDict((k, rv[k]) for k in ("material_id", "material_name"))
+
+
+def _insert_plot(session, plotdef, uid):
+    def _insert():
+        return session.insert(
+            "plot",
+            PKDict(
+                {
+                    k: plotdef[k]
+                    for k in (
+                        "material_id",
+                        "title",
+                        "model",
+                        "stat",
+                        "xlabel",
+                        "ylabel",
+                        "plot_type",
+                    )
+                }
+            ),
+        )
+
+    # points and legend are stored in the plot csv file, see plot_csv_path()
+    if m := session.select_one_or_none(
+        "plot",
+        where=PKDict(
+            material_id=plotdef.material_id, model=plotdef.model, stat=plotdef.stat
+        ),
+    ):
+        session.delete("plot", PKDict(plot_id=m.plot_id))
+    _insert()
+
+
+def _material_by_id(session, material_id, uid):
+    return session.select_one(
+        "material", where=PKDict(material_id=material_id, uid=uid)
+    )
+
+
+def _old_plot_schema(float_type):
+    """Schema for plot_point and plot_legend, only while the tables exist
+
+    pykern.sql_db requires every existing table be in the schema, but
+    the tables must not be recreated after drop_plot_tables()
+    """
+    t = _old_plot_tables()
+    rv = PKDict()
+    if "plot_legend" in t:
+        rv.plot_legend = PKDict(
+            plot_id="primary_id primary_key index",
+            # plot dimension 0: x, 1: y1, 2: y2 ...
+            dim="int 32 primary_key",
+            label="str 100",
+        )
+    if "plot_point" in t:
+        rv.plot_point = PKDict(
+            plot_id="primary_id primary_key index",
+            # plot dimension 0: x, 1: y1, 2: y2 ...
+            dim="int 32 primary_key",
+            idx="int 32 primary_key",
+            point=float_type,
+        )
+    return rv
+
+
+def _old_plot_tables():
+    if not _path().exists():
+        return frozenset()
+    with _engine() as e:
+        return _OLD_PLOT_TABLES.intersection(sqlalchemy.inspect(e).get_table_names())
+
+
+def _public_material_by_id(session, material_id):
+    return session.select_one(
+        "material", where=PKDict(material_id=material_id, is_public=True)
+    )
+
+
+def _path():
+    return sirepo.srdb.root().join(_BASE)
+
+
+def _row_values(row, names):
+    def _convert(row, name):
+        if name in ("created", "completed"):
+            return int(row[name].timestamp())
+        return row[name]
+
+    return PKDict([(n, _convert(row, n)) for n in names])
+
+
+def _session():
+    return _meta.session()
+
+
+def _update_material(material_id, uid, values):
+    with _session() as s:
+        # ensure authorized to material
+        _material_by_id(s, material_id, uid)
+        s.execute(
+            sqlalchemy.update(s.t.material)
+            .values(values)
+            .where(
+                s.t.material.c.material_id == material_id,
+                s.t.material.c.uid == uid,
+            )
+        )

@@ -8,6 +8,7 @@ const port = process.env.PORT || 8008;
 
 // https://vite.dev/config/
 export default defineConfig({
+    clearScreen: false,
     plugins: [
         vue(),
     ],

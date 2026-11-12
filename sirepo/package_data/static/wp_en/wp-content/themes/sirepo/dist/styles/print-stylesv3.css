@@ -1,0 +1,15 @@
+#wpadminbar,
+header,
+header .main-nav,
+.landing .intro.white-bar::before,
+section.content-block.intro.white-bar{
+  display:none !important;
+  height: 0px !important;
+  border: none !important;
+}
+
+div,section,main{
+  float:none !important;
+  display:block !important;
+  border: none !important;
+}

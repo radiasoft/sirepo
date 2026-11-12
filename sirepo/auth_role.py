@@ -13,10 +13,11 @@ import sirepo.feature_config
 
 ROLE_ADM = "adm"
 ROLE_PLAN_BASIC = "basic"
+ROLE_PLAN_ENTERPRISE = "enterprise"
 ROLE_PLAN_PREMIUM = "premium"
 ROLE_PLAN_TRIAL = "trial"
 ROLE_USER = "user"
-PLAN_ROLES_PAID = frozenset((ROLE_PLAN_BASIC, ROLE_PLAN_PREMIUM))
+PLAN_ROLES_PAID = frozenset((ROLE_PLAN_BASIC, ROLE_PLAN_ENTERPRISE, ROLE_PLAN_PREMIUM))
 PLAN_ROLES = PLAN_ROLES_PAID.union([ROLE_PLAN_TRIAL])
 _SIM_TYPE_ROLE_PREFIX = "sim_type_"
 
@@ -57,10 +58,13 @@ def for_new_user(auth_method):
     from sirepo import auth
 
     if pkconfig.in_dev_mode:
+        rv = _FOR_NEW_USER.union([ROLE_PLAN_PREMIUM]).union(
+            _for_sim_types("auth_controlled_sim_types")
+        )
         if auth_method == auth.METHOD_GUEST:
-            return _all()
+            return rv.union([ROLE_ADM])
         if auth_method != auth.METHOD_EMAIL and pkunit.is_test_run():
-            return _all() - _ADM_SET
+            return rv
     rv = _FOR_NEW_USER
     if not sirepo.feature_config.have_payments():
         return rv.union([ROLE_PLAN_PREMIUM])
@@ -87,6 +91,7 @@ def _all():
             (
                 ROLE_ADM,
                 ROLE_PLAN_BASIC,
+                ROLE_PLAN_ENTERPRISE,
                 ROLE_PLAN_PREMIUM,
                 ROLE_PLAN_TRIAL,
                 ROLE_USER,

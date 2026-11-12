@@ -1,29 +1,47 @@
-# -*- coding: utf-8 -*-
 """Impact-T execution template.
 :copyright: Copyright (c) 2024 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pmd_beamphysics.labels import mathlabel
-from pykern import pkio
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdp
 from sirepo import simulation_db
 from sirepo.template import code_variable
 from sirepo.template import template_common
+from sirepo.template.impactt_parser import ImpactTParser
 import impact
 import impact.fieldmaps
 import impact.parsers
 import numpy
 import pmd_beamphysics
+import pykern.pkio
+import pykern.pkjson
 import re
 import sirepo.mpi
 import sirepo.sim_data
 import sirepo.template.lattice
-import time
 
 
+_BUNCH_COLUMNS = [
+    # Could get this from lume-impact metadata
+    "x",
+    "px",
+    "y",
+    "py",
+    "z",
+    "pz",
+    "energy",
+    "delta_energy",
+    "delta_z",
+    "delta_t",
+]
+
+_CACHED_STAT_COLUMNS = "stat-columns.json"
+_INITIAL_PARTICLES_OUTFILE = "initial_particles.h5"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 _MAX_OUTPUT_ID = 100
+_NONE = "None"
 _PLOT_TITLE = PKDict(
     {
         "x-px": "Horizontal",
@@ -45,10 +63,15 @@ _S_ELEMENTS = set(
     ]
 )
 _TIME_AND_ENERGY_FILE_NO = 18
-
-
-def code_var(variables):
-    return code_variable.CodeVar(variables, code_variable.PurePythonEval())
+_HEADER_M = set(["sigx", "xmu1", "sigy", "ymu1", "sigz", "zmu1"])
+_INPUT_FILENAME_TEMPLATE = PKDict(
+    DIPOLE="rfdata{}",
+    EMFIELD_CARTESIAN="1T{}.T7",
+    EMFIELD_CYLINDRICAL="1T{}.T7",
+    SOLENOID="1T{}.T7",
+    SOLRF="rfdata{}",
+    WAKEFIELD="fort.{}",
+)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -64,6 +87,7 @@ def background_percent_complete(report, run_dir, is_running):
                     return PKDict(
                         frameCount=len(d["mean_z"]),
                         percentComplete=d["mean_z"][-1] * 100.0 / stop_z,
+                        reports=[_stat_report_info(run_dir)],
                     )
             except IndexError:
                 pass
@@ -79,10 +103,14 @@ def background_percent_complete(report, run_dir, is_running):
     )
 
 
-def bunch_plot(model, frame_index, particle_group):
+def bunch_plot(model, frame_index, particle_group, threshold=None, title=None):
     def _label(name):
         if name == "delta_z":
             return "z -〈z〉"
+        if name == "delta_t":
+            return "t -〈t〉"
+        if name == "delta_energy":
+            return "E -〈E〉"
         if name == "energy":
             return "E"
         return name
@@ -93,11 +121,82 @@ def bunch_plot(model, frame_index, particle_group):
         plot_fields=PKDict(
             x_label=f"{_label(model.x)} [{particle_group.units(model.x)}]",
             y_label=f"{_label(model.y)} [{particle_group.units(model.y)}]",
-            title=_PLOT_TITLE.get(f"{model.x}-{model.y}", f"{model.x} - {model.y}"),
-            threshold=[1e-20, 1e20],
+            title=title
+            or _PLOT_TITLE.get(f"{model.x}-{model.y}", f"{model.x} - {model.y}"),
+            threshold=threshold or [1e-20, 1e20],
+            z_units="pC",
         ),
-        # weights=particle_group.weight,
+        # scale to pC
+        weights=particle_group.weight * 1e12,
     )
+
+
+def code_var(variables):
+    return code_variable.CodeVar(variables, code_variable.PurePythonEval())
+
+
+def get_data_file(run_dir, model, frame, options):
+    if "bunchReport" in model:
+        return _INITIAL_PARTICLES_OUTFILE
+    if frame < 0:
+        return template_common.text_data_file(template_common.RUN_LOG, run_dir)
+    return str(
+        _file_name_for_element_animation(
+            run_dir,
+            model,
+            simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)),
+        )
+    )
+
+
+def output_info(data):
+    def _default_columns(info):
+        if info.name == "final_particles":
+            info.x = "delta_z"
+            info.y = "delta_energy"
+        else:
+            info.x = "x"
+            info.y = "y"
+        return info
+
+    res = []
+    for idx, n in enumerate(_output_names(data)):
+        res.append(
+            _default_columns(
+                PKDict(
+                    modelKey=f"elementAnimation{idx}",
+                    reportIndex=idx,
+                    report="elementAnimation",
+                    name=n,
+                    frameCount=1,
+                    isHistogram=True,
+                    columns=_BUNCH_COLUMNS,
+                )
+            )
+        )
+    return res
+
+
+def post_execution_processing(success_exit, run_dir, **kwargs):
+
+    def _parse_log(default_msg=None):
+        p = template_common.LogParser(
+            run_dir,
+            error_patterns=(
+                r"\s+Error: (.*)",
+                r"(Note: .*)",
+                r"=\s+(BAD TERMINATION.*)",
+                r"Fortran runtime error: (.*)",
+            ),
+        )
+        if default_msg is not None:
+            p.default_msg = default_msg
+        return p.parse_for_errors()
+
+    # Impact-T may fail but return a success, so it can't be trusted
+    if success_exit:
+        return _parse_log(default_msg="")
+    return _parse_log()
 
 
 def prepare_for_client(data, qcall, **kwargs):
@@ -105,8 +204,39 @@ def prepare_for_client(data, qcall, **kwargs):
     return data
 
 
+def prepare_sequential_output_file(run_dir, data):
+    report = data["report"]
+    if "bunchReport" in report:
+        fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+        if fn.exists():
+            fn.remove()
+            try:
+                save_sequential_report_data(data, run_dir)
+            except IOError:
+                # the output file isn't readable
+                pass
+
+
 def python_source_for_model(data, model, qcall, **kwargs):
     return _generate_parameters_file(data)
+
+
+def save_sequential_report_data(data, run_dir):
+    template_common.write_sequential_result(
+        bunch_plot(
+            data.models[data.report],
+            0,
+            pmd_beamphysics.ParticleGroup(
+                str(run_dir.join(_INITIAL_PARTICLES_OUTFILE))
+            ),
+        ).pkupdate(
+            summaryData=PKDict(
+                columns=_BUNCH_COLUMNS,
+            ),
+            title="",
+        ),
+        run_dir=run_dir,
+    )
 
 
 def sim_frame(frame_args):
@@ -115,21 +245,31 @@ def sim_frame(frame_args):
         frame_args,
         frame_args.frameIndex,
         pmd_beamphysics.ParticleGroup(
-            str(frame_args.run_dir.join(_file_name_for_element_animation(frame_args)))
+            str(
+                frame_args.run_dir.join(
+                    _file_name_for_element_animation(
+                        frame_args.run_dir, frame_args.frameReport, frame_args.sim_in
+                    )
+                )
+            )
         ),
     )
+
+
+def sim_frame_statAnimation(frame_args):
+    return stat_animation(_patch_stat_parser(frame_args.run_dir), frame_args)
 
 
 def stat_animation(I, frame_args):
     stats = I.output["stats"]
     plots = PKDict()
-    if frame_args.x == "none":
+    if frame_args.x == _NONE:
         frame_args.x = "mean_z"
     for f in ("x", "y1", "y2", "y3", "y4", "y5"):
-        if frame_args[f] == "none":
+        if frame_args[f] == _NONE:
             continue
         units = I.units(frame_args[f])
-        if units and str(units) != "1":
+        if units and str(units) and str(units) != "1":
             units = f" [{units}]"
         else:
             units = ""
@@ -176,20 +316,51 @@ def stat_animation(I, frame_args):
     )
 
 
-def sim_frame_statAnimation(frame_args):
-    # TODO(pjm): monkey patch to avoid shape errors when loading during updates
-    impact.parsers.load_many_fort = _patched_load_many_fort
-    I = impact.Impact(
-        use_temp_dir=False,
-        workdir=str(frame_args.run_dir),
+def stat_columns(impact_model):
+    return [_NONE, "Bz", "Ez"] + sorted(impact_model.output["stats"].keys())
+
+
+def stateful_compute_import_file(data, **kwargs):
+    if data.args.ext_lower != ".in":
+        raise IOError(f"invalid file={data.args.basename} extension, expecting .in")
+    res = ImpactTParser().parse_file(data.args.file_as_str)
+    res.models.simulation.name = "Imported Sim"
+    return PKDict(
+        imported_data=res,
     )
-    I.load_input(I._workdir + "/ImpactT.in")
-    I.load_output()
-    return stat_animation(I, frame_args)
+
+
+def validate_file(file_type, path, sim_id, qcall):
+    # imported impact input files are always rfdata\d+ or 1T\d+.T7
+    # so use the element name + md5sum to identify files
+    m = re.search(r"^(.*?)-", file_type)
+    if m:
+        # ensure lume-impact can parse the file
+        # files with embedded comments are not parseable by lume-impact
+        p = impact.parsers.fieldmap_parsers.get(m.group(1).lower())
+        if p:
+            try:
+                f = p(str(path))
+            except ValueError:
+                return f"lume-impact failed to parse the input file: {path.basename}"
+
+    d = simulation_db.read_simulation_json(SIM_TYPE, sim_id, qcall)
+    n = None
+    for e in d.models.elements:
+        if e.get("filename") == path.basename:
+            if n is None:
+                s = path.ext if path.ext.lower() == ".t7" else ".txt"
+                n = f"{e.name}-{path.computehash()[:8]}{s}"
+            e.filename = n
+    if n:
+        simulation_db.save_simulation_json(d, False, qcall=qcall)
+        return PKDict(
+            filename=n,
+        )
 
 
 def write_parameters(data, run_dir, is_parallel):
-    pkio.write_text(
+    pykern.pkio.write_text(
         run_dir.join(template_common.PARAMETERS_PYTHON_FILE),
         _generate_parameters_file(data),
     )
@@ -198,12 +369,11 @@ def write_parameters(data, run_dir, is_parallel):
     return None
 
 
-def _file_name_for_element_animation(frame_args):
-    r = frame_args.frameReport
-    for info in _output_info(frame_args.sim_in, frame_args.run_dir):
-        if info.modelKey == r:
+def _file_name_for_element_animation(run_dir, report, data):
+    for info in _output_info(data, run_dir):
+        if info.modelKey == report:
             return info.filename
-    raise AssertionError(f"no output for frameReport={r}")
+    raise AssertionError(f"no output for frame={report}")
 
 
 def _find_last_stop(data, beamline_id):
@@ -219,7 +389,11 @@ def _find_last_stop(data, beamline_id):
             res = _find_last_stop(data, item_id)
             if res:
                 return res
-    return 0
+    if len(beamline.positions):
+        return beamline.positions[-1].elemedge + util.id_map[beamline["items"][-1]].get(
+            "l", 0
+        )
+    raise AssertionError("No beamline items defined")
 
 
 def _format_field(code_var, name, field, field_type, value):
@@ -231,10 +405,9 @@ def _format_field(code_var, name, field, field_type, value):
         if name == "WAKEFIELD":
             # TODO(pjm): handle wakefield filename
             return ""
-        value = f'prep_input_file("{_SIM_DATA.lib_file_name_with_model_field(name, field, value)}")'
+        value = f'prep_input_file("{_SIM_DATA.lib_file_name_with_model_field(name, field, value)}", "{_INPUT_FILENAME_TEMPLATE[name]}")'
     elif field_type == "RPNValue":
-        # TODO(pjm): eval RPNValue
-        value = float(value)
+        value = _eval_var(code_var, value)
     elif field_type == "Integer":
         pass
     else:
@@ -242,31 +415,56 @@ def _format_field(code_var, name, field, field_type, value):
     return f"{field}={value},\n"
 
 
-def _generate_header(data):
+def _eval_var(code_var, value):
+    if code_var.is_var_value(value):
+        return code_var.eval_var_with_assert(value)
+    return float(value)
+
+
+def _eval_model(code_var, model_name, model):
+    s = SCHEMA.model[model_name]
+    for f in model:
+        if s[f][1] == "RPNValue":
+            model[f] = _eval_var(code_var, model[f])
+
+
+def _generate_distgen_xyfile(data, v):
+    d = data.models.distribution
+    if d.Flagdist != "distgen_xyfile":
+        return
+    v.distgenXYFile = _SIM_DATA.get_distgen_file(data, True)
+    v.distgenYAML = template_common.render_jinja(
+        SIM_TYPE,
+        v,
+        "distgen_xyfile.yaml",
+    )
+    d.Flagdist = "16"
+    d.filename = ""
+    # these must be non-zero or Impact-T will crash, even though they are not used for file distributions
+    d.sigx = d.sigy = d.sigz = 1
+
+
+def _generate_header(data, code_var):
     dm = data.models
     res = PKDict()
     for m in ("beam", "distribution", "simulationSettings"):
-        s = SCHEMA.model[m]
+        _eval_model(code_var, m, dm[m])
         for k in dm[m]:
-            if s[k][1] == "RPNValue":
-                res[k] = float(dm[m][k])
-            else:
-                res[k] = dm[m][k]
+            n = f"{k}(m)" if k in _HEADER_M else k
+            res[n] = dm[m][k]
     if dm.beam.particle in ("electron", "proton"):
         res["Bmass"], res["Bcharge"] = SCHEMA.constants.particleMassAndCharge[
             dm.beam.particle
         ]
-    else:
-        if dm.beam.particle != "other":
-            raise AssertionError(f"Invalid particle type: {dm.beam.particle}")
+    elif dm.beam.particle != "other":
+        raise AssertionError(f"Invalid particle type: {dm.beam.particle}")
     del res["particle"]
     del res["filename"]
     return res
 
 
-def _generate_lattice(util, beamline_id, result):
+def _generate_lattice(util, code_var, beamline_id, result):
     beamline = util.id_map[abs(beamline_id)]
-    cv = code_var(util.data.models.rpnVariables)
     output_ids = set(
         impact.parsers.FORT_STAT_TYPES
         + impact.parsers.FORT_DIPOLE_STAT_TYPES
@@ -289,20 +487,28 @@ def _generate_lattice(util, beamline_id, result):
             for f, d in SCHEMA.model[item.type].items():
                 if d[1] == "OutputFile":
                     item[f] = f"fort.{_next_output_id(output_ids)}"
-                el += _format_field(cv, item.type, f, d[1], item[f])
+                el += _format_field(code_var, item.type, f, d[1], item[f])
             result.append(el)
         else:
-            _generate_lattice(util, item.id, result)
+            _generate_lattice(util, code_var, item.id, result)
     return result
 
 
 def _generate_parameters_file(data):
-    res, v = template_common.generate_parameters_file(data)
     util = sirepo.template.lattice.LatticeUtil(data, SCHEMA)
-    v.lattice = _generate_lattice(util, util.select_beamline().id, [])
+    cv = code_var(util.data.models.rpnVariables)
+    _eval_model(cv, "distgen", data.models.distgen)
+    res, v = template_common.generate_parameters_file(data)
+    v.lattice = _generate_lattice(util, cv, util.select_beamline().id, [])
     v.numProcs = sirepo.mpi.cfg().cores
-    v.distributionFilename = _SIM_DATA.get_distribution_file(data)
-    v.impactHeader = _generate_header(data)
+    v.distributionFilename = (
+        _SIM_DATA.get_distribution_file(data, True)
+        if data.models.distribution.Flagdist == "16"
+        else None
+    )
+    v.isBunchReport = "bunchReport" in data.get("report", "")
+    _generate_distgen_xyfile(data, v)
+    v.impactHeader = _generate_header(data, cv)
     return res + template_common.render_jinja(
         SIM_TYPE,
         v,
@@ -320,29 +526,22 @@ def _next_output_id(output_ids):
     return i
 
 
-def output_info(data):
-    res = []
-    for idx, n in enumerate(_output_names(data)):
-        res.append(
-            PKDict(
-                modelKey=f"elementAnimation{idx}",
-                reportIndex=idx,
-                report="elementAnimation",
-                name=n,
-                frameCount=1,
-            )
-        )
-    return res
-
-
 def _output_info(data, run_dir):
-    res = []
+    res = [_stat_report_info(run_dir)]
     for r in output_info(data):
         fn = f"{r.name}.h5"
         if run_dir.join(fn).exists():
             r.filename = fn
             res.append(r)
     return res
+
+
+def _output_names(data):
+    return _watches_in_beamline_order(
+        data,
+        data.models.simulation.visualizationBeamlineId,
+        ["initial_particles", "final_particles"],
+    )
 
 
 # This method is copied, modified and monkey patched from the impact.parsers module.
@@ -391,11 +590,40 @@ def _patched_load_many_fort(path, types=impact.parsers.FORT_STAT_TYPES, verbose=
     return alldat
 
 
+def _patch_stat_parser(run_dir):
+    # TODO(pjm): monkey patch to avoid shape errors when loading during updates
+    impact.parsers.load_many_fort = _patched_load_many_fort
+    I = impact.Impact(
+        use_temp_dir=False,
+        workdir=str(run_dir),
+    )
+    I.load_input(I._workdir + "/ImpactT.in")
+    I.load_output()
+    return I
+
+
 def _plot_label(field):
     l = mathlabel(field)
+    if field == "norm_emit_z":
+        return r"$\epsilon_{n, z}$"
     if re.search(r"mathrm|None", l):
         return field
     return l
+
+
+def _stat_report_info(run_dir):
+    n = run_dir.join(_CACHED_STAT_COLUMNS)
+    if n.exists():
+        c = pykern.pkjson.load_any(n)
+    else:
+        c = stat_columns(_patch_stat_parser(run_dir))
+        pykern.pkjson.dump_pretty(c, filename=n)
+    return PKDict(
+        columns=c,
+        name="Beam Variables",
+        modelKey="statAnimation",
+        report="statAnimation",
+    )
 
 
 def _watches_in_beamline_order(data, beamline_id, result):
@@ -410,11 +638,3 @@ def _watches_in_beamline_order(data, beamline_id, result):
         else:
             _watches_in_beamline_order(data, item_id, result)
     return result
-
-
-def _output_names(data):
-    return _watches_in_beamline_order(
-        data,
-        data.models.simulation.visualizationBeamlineId,
-        ["initial_particles", "final_particles"],
-    )

@@ -1,12 +1,13 @@
-# -*- coding: utf-8 -*-
 """Support for sirepo.srunit tests
 
 :copyright: Copyright (c) 2023 RadiaSoft LLC.  All Rights Reserved.
 :license: http://www.apache.org/licenses/LICENSE-2.0.html
 """
+
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import datetime
+import pykern.pkcompat
 import sirepo.quest
 
 
@@ -16,7 +17,7 @@ class API(sirepo.quest.API):
         req = self.parse_post(filename=True, type=False)
         if "serialization" in req.filename:
             return self.reply_dict(
-                PKDict(date_does_not_marshall=datetime.datetime.utcnow())
+                PKDict(date_does_not_marshall=pykern.pkcompat.utcnow())
             )
         raise AssertionError("invalid request={}", req)
 

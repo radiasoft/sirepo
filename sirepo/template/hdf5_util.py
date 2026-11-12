@@ -59,9 +59,12 @@ class HDF5Util:
                 format_plots (func): Formats plots for field (add labels, units, etc)
                 index (func): Returns dimension index for field
                 model (PKDict): Contains info about entire plot
+                y_fields (tuple): Optional, names of y fields, defaults to ("y1", "y2", "y3")
         """
         x_field = "x"
-        y_fields = ("y1", "y2", "y3")
+        y_fields = (
+            plot_attrs.y_fields if "y_fields" in plot_attrs else ("y1", "y2", "y3")
+        )
 
         plots = PKDict()
         for f in (x_field,) + y_fields:

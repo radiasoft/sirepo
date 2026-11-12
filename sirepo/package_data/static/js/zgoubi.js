@@ -49,9 +49,6 @@ SIREPO.app.directive('appFooter', function() {
         },
         template: `
             <div data-common-footer="nav"></div>
-            <div data-import-dialog="" data-title="Import Zgoubi File" data-description="Select a zgoubi.dat file." data-file-formats=".dat,.res">
-              <div data-zgoubi-import-options=""></div>
-            </div>
         `,
     };
 });
@@ -1035,83 +1032,6 @@ SIREPO.app.directive('twissSummaryPanel', function(appState, plotting) {
         link: function link(scope, element) {
             scope.modelName = 'twissSummaryReport';
             plotting.linkPlot(scope, element);
-        },
-    };
-});
-
-
-SIREPO.app.directive('zgoubiImportOptions', function(fileUpload, requestSender) {
-    return {
-        restrict: 'A',
-        template: `
-            <div data-ng-if="hasMissingFiles()" class="form-horizontal" style="margin-top: 1em;">
-            <div style="margin-bottom: 1ex; white-space: pre;">{{ additionalFileText() }}</div>
-            <input id="file-import" type="file" data-file-model="toscaFile.file" accept="*.zip">
-            <div data-ng-if="uploadDatafile()"></div>
-            </div>
-        `,
-
-        controller: function($scope) {
-            var parentScope = $scope.$parent;
-            var missingFiles;
-            $scope.toscaFile = {
-                file: {},
-            };
-
-            $scope.additionalFileText = function() {
-                if (missingFiles) {
-                    return 'Please upload a zip file which contains the following TOSCA input files:'
-                        + "\n    " + missingFiles.join("\n    ");
-                }
-            };
-
-            $scope.uploadDatafile = function() {
-                if ($scope.toscaFile.file.name) {
-                    parentScope.isUploading = true;
-                    fileUpload.uploadFileToUrl(
-                        $scope.toscaFile.file,
-                        null,
-                        requestSender.formatUrl(
-                            'uploadLibFile',
-                            {
-                                // dummy id because no simulation id is available or required
-                                '<simulation_id>': '11111111',
-                                '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
-                                '<file_type>': 'TOSCA-magnetFile',
-                            }),
-                        function(data) {
-                            parentScope.isUploading = false;
-                            if (data.error) {
-                                parentScope.fileUploadError = data.error;
-                                return;
-                            }
-                            parentScope.fileUploadError = null;
-                        });
-                    $scope.toscaFile.file = {};
-                }
-                return false;
-            };
-
-            $scope.hasMissingFiles = function() {
-                if (parentScope.fileUploadError) {
-                    if (parentScope.errorData && parentScope.errorData.missingFiles) {
-                        var set = {};
-                        parentScope.errorData.missingFiles.forEach(function(err) {
-                            err.TOSCA.forEach(function(name) {
-                                set[name] = 1;
-                            });
-                        });
-                        missingFiles = Object.keys(set).sort(function(a, b) {
-                            return a.localeCompare(b);
-                        });
-                        delete parentScope.errorData;
-                    }
-                }
-                else {
-                    missingFiles = null;
-                }
-                return missingFiles && missingFiles.length;
-            };
         },
     };
 });

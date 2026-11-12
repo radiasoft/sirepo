@@ -9,17 +9,18 @@ from pykern import pkjson
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 from sirepo import crystal
-from sirepo import simulation_db
 from sirepo.template import srw_common
 from sirepo.template import template_common
 import array
 import copy
 import glob
+import itertools
 import math
 import numpy as np
 import os
 import pickle
 import re
+import shutil
 import sirepo.mpi
 import sirepo.sim_data
 import sirepo.sim_run
@@ -39,6 +40,7 @@ _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 PARSED_DATA_ATTR = "srwParsedData"
 
 _CANVAS_MAX_SIZE = 65535
+_COHERENCE_REPORTS = ("coherenceXAnimation", "coherenceYAnimation")
 _LOG_DIR = "__srwl_logs__"
 _MAX_REPORT_POINTS = 20000000
 _MIN_CORES = 3
@@ -254,9 +256,7 @@ def background_percent_complete(report, run_dir, is_running):
         t = int(filename.mtime())
         if not is_running and report == "fluxAnimation":
             # let the client know which flux method was used for the output
-            data = simulation_db.read_json(
-                run_dir.join(template_common.INPUT_BASE_NAME)
-            )
+            data = sirepo.util.json_read(run_dir.join(template_common.INPUT_BASE_NAME))
             res.method = data.models.fluxAnimation.method
         if report == "multiElectronAnimation":
             # let client know that degree of coherence reports are also available
@@ -274,7 +274,7 @@ def background_percent_complete(report, run_dir, is_running):
     if status_files:  # Read the status file if SRW produces the multi-e logs
         progress_file = pkio.py_path(status_files[-1])
         if progress_file.exists():
-            status = simulation_db.read_json(progress_file)
+            status = sirepo.util.json_read(progress_file)
             res.update(
                 PKDict(
                     percentComplete=status.progress,
@@ -334,11 +334,11 @@ def extract_report_data(sim_in):
         return _extract_trajectory_report(dm.trajectoryReport, out.filename)
     if r == _SIM_DATA.EXPORT_RSOPT:
         return out
-    if r in ("coherenceXAnimation", "coherenceYAnimation", "multiElectronAnimation"):
-        out.filename = _best_data_file(out.filename)
-    # TODO(pjm): remove fixup after dcx/dcy files can be read by srwpy.uti_plot_com
-    if r in ("coherenceXAnimation", "coherenceYAnimation"):
-        _fix_file_header(out.filename)
+    is_snapshot = False
+    if r in _COHERENCE_REPORTS or r == "multiElectronAnimation":
+        out.filename, is_snapshot = _snapshot_data_file(
+            out.filename, fix_header=r in _COHERENCE_REPORTS
+        )
     if r == "coherentModesAnimation":
         out.filename = _extract_coherent_modes(dm[r], out)
     wid = dm[r].get("id", 0)
@@ -360,7 +360,11 @@ def extract_report_data(sim_in):
             plotModesEnd=dm[r].get("plotModesEnd", ""),
         ),
     )
-    points, _, allrange, labels, units = srwpy.uti_plot_com.file_load(out.filename)
+    try:
+        points, _, allrange, labels, units = srwpy.uti_plot_com.file_load(out.filename)
+    finally:
+        if is_snapshot:
+            pkio.unchecked_remove(out.filename)
     if (
         r == "multiElectronAnimation"
         and dm.multiElectronAnimation.photonEnergyBandWidth > 0
@@ -541,6 +545,8 @@ def sim_frame(frame_args):
 
 def new_simulation(data, new_simulation_data, qcall=None, **kwargs):
     def _sim_from_radia(models, d):
+        from sirepo import simulation_db
+
         for m in ("simulation", "tabulatedUndulator", "electronBeamPosition"):
             models[m].pkupdate(d[m])
         f = d.tabulatedUndulator.magneticFile
@@ -591,6 +597,8 @@ def post_execution_processing(
 
 
 def prepare_for_client(data, qcall, **kwargs):
+    from sirepo import simulation_db
+
     save = False
     for model_name in _USER_MODEL_LIST_FILENAME.keys():
         if (
@@ -683,7 +691,7 @@ def prepare_sequential_output_file(run_dir, sim_in):
     if m in ("brillianceReport", "mirrorReport"):
         return
     # TODO(pjm): only need to rerun extract_report_data() if report style fields have changed
-    fn = simulation_db.json_filename(template_common.OUTPUT_BASE_NAME, run_dir)
+    fn = sirepo.util.json_path(template_common.OUTPUT_BASE_NAME, run_dir)
     if fn.exists():
         fn.remove()
         output_file = run_dir.join(get_filename_for_model(m))
@@ -745,7 +753,7 @@ def process_watch(wid=0):
         return wfr
 
     def _op():
-        sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        sim_in = sirepo.util.json_read(template_common.INPUT_BASE_NAME)
         report = sim_in.models[f"beamlineAnimation{wid}"]
         p = _wavefront_pickle_filename(wid)
         with open(p, "rb") as f:
@@ -778,7 +786,7 @@ def python_source_for_model(data, model, qcall, plot_reports=True, **kwargs):
 def run_epilogue():
     # POSIT: only called from template.run_epilogue
     def _op():
-        sim_in = simulation_db.read_json(template_common.INPUT_BASE_NAME)
+        sim_in = sirepo.util.json_read(template_common.INPUT_BASE_NAME)
         if sim_in.report == "coherentModesAnimation":
             # this sim creates _really_ large intermediate files which should get removed
             for p in pkio.sorted_glob("*_mi.h5"):
@@ -1000,7 +1008,7 @@ def stateless_compute_process_undulator_definition(data, **kwargs):
     return process_undulator_definition(data)
 
 
-def validate_file(file_type, path):
+def validate_file(file_type, path, **kwargs):
     """Ensure the data file contains parseable rows data"""
     import srwpy.srwl_uti_smp
 
@@ -1075,7 +1083,10 @@ def validate_magnet_data_file(zf):
         if f.endswith("/"):
             continue
         if not template_common.file_extension_ok(f, white_list=["txt", "dat"]):
-            return False, "File {} has forbidden type".format(f)
+            return (
+                False,
+                "File {} has forbidden file extension, must be txt or dat".format(f),
+            )
 
     file_name_column = 3
 
@@ -1161,7 +1172,7 @@ def _beamline_animation_percent_complete(run_dir, res):
             id=0,
         ),
     ]
-    dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
+    dm = sirepo.util.json_read(run_dir.join(template_common.INPUT_BASE_NAME)).models
     for item in dm.beamline:
         if _is_item_disabled(item):
             continue
@@ -1193,7 +1204,8 @@ def _beamline_animation_percent_complete(run_dir, res):
 
 def _best_data_file(primary):
     def _lines(path):
-        return len(pkio.open_text(path).readlines())
+        with pkio.open_text(path) as f:
+            return sum(1 for _ in f)
 
     p = pkio.py_path(primary)
     s = p.new(ext="dat.bkp")
@@ -1527,7 +1539,14 @@ def _compute_grazing_orientation(model):
         preserve_sign(model, "tangentialVectorY", math.sin(grazing_angle))
         model.normalVectorX = 0
         model.tangentialVectorX = 0
-    return model
+    o = _mirror_for_orient(model, grazing_angle).get_orient()[1]
+    return model.pkupdate(
+        outframevx=o[0][0],
+        outframevy=o[0][1],
+        outoptvx=o[2][0],
+        outoptvy=o[2][1],
+        outoptvz=o[2][2],
+    )
 
 
 def _copy_frame_args_into_model(frame_args, name):
@@ -1537,6 +1556,13 @@ def _copy_frame_args_into_model(frame_args, name):
         if f in m and f in m_schema:
             m[f] = frame_args[f]
     return m
+
+
+def _copy_with_fixed_header(src, dst):
+    with pkio.open_text(src) as i, pkio.open_text(dst, mode="wt") as o:
+        h = list(itertools.islice(i, 11))
+        o.writelines(_fixed_header(h) if len(h) == 11 else h)
+        shutil.copyfileobj(i, o)
 
 
 def _core_error(cores):
@@ -1781,68 +1807,44 @@ def _extract_trajectory_report(model, filename):
     )
 
 
-def _fix_file_header(filename):
-    # fixes file header for coherenceXAnimation and coherenceYAnimation reports
-    rows = []
-    pkdc("fix header filename: {}", filename)
-    with pkio.open_text(filename) as f:
-        for line in f:
-            rows.append(line)
-            if len(rows) == 11:
-                pkdc("before header changed rows4: {}", rows[4])
-                pkdc("before header changed rows5: {}", rows[5])
-                pkdc("before header changed rows6: {}", rows[6])
-                pkdc("before header changed rows7: {}", rows[7])
-                pkdc("before header changed rows8: {}", rows[8])
-                pkdc("before header changed rows9: {}", rows[9])
-                # if rows[4] == rows[7]:
-                if rows[6].split()[0] == rows[9].split()[0] and rows[6].split()[0] != 1:
-                    # already fixed up
-                    return
-                col4 = rows[4].split()
-                col5 = rows[5].split()
-                col6 = rows[6].split()
-                col7 = rows[7].split()
-                col8 = rows[8].split()
-                col9 = rows[9].split()
-                # if re.search(r'^\#0 ', rows[4]):
-                if re.search(r"^\#1 ", rows[6]):
-                    col4[0] = col7[0]
-                    rows[4] = " ".join(col4) + "\n"
-                    col5[0] = col8[0]
-                    rows[5] = " ".join(col5) + "\n"
-                    col6[0] = col9[0]
-                    rows[6] = " ".join(col6) + "\n"
-                else:
-                    col7[0] = col4[0]
-                    rows[7] = " ".join(col7) + "\n"
-                    col8[0] = col5[0]
-                    rows[8] = " ".join(col8) + "\n"
-                    col9[0] = col6[0]
-                    rows[9] = " ".join(col9) + "\n"
-                Vmin = float(rows[7].split()[0][1:])
-                Vmax = float(rows[8].split()[0][1:])
-                rows[7] = (
-                    "#"
-                    + str((Vmin - Vmax) / 2)
-                    + " "
-                    + " ".join(rows[7].split()[1:])
-                    + "\n"
-                )
-                rows[8] = (
-                    "#"
-                    + str((Vmax - Vmin) / 2)
-                    + " "
-                    + " ".join(rows[8].split()[1:])
-                    + "\n"
-                )
-                pkdc("after header changed rows4:{}", rows[4])
-                pkdc("after header changed rows5:{}", rows[5])
-                pkdc("after header changed rows6:{}", rows[6])
-                pkdc("after header changed rows7:{}", rows[7])
-                pkdc("after header changed rows8:{}", rows[8])
-                pkdc("after header changed rows9:{}", rows[9])
-    pkio.write_text(filename, "".join(rows))
+def _fixed_header(rows):
+    """Fixes the file header for coherenceXAnimation and coherenceYAnimation reports
+
+    TODO(pjm): remove fixup after dcx/dcy files can be read by srwpy.uti_plot_com
+
+    Args:
+        rows (list): first 11 lines of the file
+    Returns:
+        list: rows with the header fixed (unchanged if already fixed)
+    """
+    if rows[6].split()[0] == rows[9].split()[0] and rows[6].split()[0] != 1:
+        # already fixed up
+        return rows
+    col4 = rows[4].split()
+    col5 = rows[5].split()
+    col6 = rows[6].split()
+    col7 = rows[7].split()
+    col8 = rows[8].split()
+    col9 = rows[9].split()
+    if re.search(r"^\#1 ", rows[6]):
+        col4[0] = col7[0]
+        rows[4] = " ".join(col4) + "\n"
+        col5[0] = col8[0]
+        rows[5] = " ".join(col5) + "\n"
+        col6[0] = col9[0]
+        rows[6] = " ".join(col6) + "\n"
+    else:
+        col7[0] = col4[0]
+        rows[7] = " ".join(col7) + "\n"
+        col8[0] = col5[0]
+        rows[8] = " ".join(col8) + "\n"
+        col9[0] = col6[0]
+        rows[9] = " ".join(col9) + "\n"
+    Vmin = float(rows[7].split()[0][1:])
+    Vmax = float(rows[8].split()[0][1:])
+    rows[7] = "#" + str((Vmin - Vmax) / 2) + " " + " ".join(rows[7].split()[1:]) + "\n"
+    rows[8] = "#" + str((Vmax - Vmin) / 2) + " " + " ".join(rows[8].split()[1:]) + "\n"
+    return rows
 
 
 def _format_amount(value):
@@ -2116,8 +2118,8 @@ def _generate_srw_main(data, plot_reports, beamline_info):
                     )
                     prev_watch = beamline_info.watches[n]
 
-    elif run_all or (
-        _SIM_DATA.srw_is_beamline_report(report) and len(data.models.beamline)
+    elif (run_all or _SIM_DATA.srw_is_beamline_report(report)) and len(
+        data.models.beamline
     ):
         content.append(
             "names = [{}]".format(
@@ -2237,6 +2239,26 @@ def _intensity_units(sim_in):
     return "ph/s/.1%bw/mm^2"
 
 
+def _is_complete_data_file(path):
+    """Does the file contain as many values as its header declares?"""
+    try:
+        with pkio.open_text(path) as f:
+            h = [f.readline() for _ in range(11)]
+            n = sum(1 for _ in f)
+        c = [int(h[i].replace("#", "").split()[0]) for i in (3, 6, 9)]
+        # 11th header line is optional (number of Stokes components)
+        if h[10].startswith("#"):
+            c.append(int(h[10].replace("#", "").split()[0]))
+        else:
+            n += 1
+        if n == math.prod(c):
+            return True
+        pkdlog("incomplete data file={} lines={} header={}", path, n, c)
+    except Exception as e:
+        pkdlog("invalid data file={} error={}", path, repr(e))
+    return False
+
+
 def _is_item_disabled(item):
     return item.get("isDisabled", False)
 
@@ -2270,11 +2292,47 @@ def _machine_learning_percent_complete(run_dir, res):
             filename=_SIM_DATA.ML_OUTPUT,
         ),
     ]
-    dm = simulation_db.read_json(run_dir.join(template_common.INPUT_BASE_NAME)).models
+    dm = sirepo.util.json_read(run_dir.join(template_common.INPUT_BASE_NAME)).models
     count = len(pkio.walk_tree(run_dir, "values.npy"))
     res.frameCount = count
     res.percentComplete = 100 * count / dm.exportRsOpt.totalSamples
     return res
+
+
+def _mirror_for_orient(model, grazing_angle):
+    def _common_mirror_fields():
+        return PKDict(
+            _size_tang=model.get("tangentialSize", 1),
+            _size_sag=model.get("sagittalSize", 1),
+            _nvx=model.normalVectorX,
+            _nvy=model.normalVectorY,
+            _nvz=model.normalVectorZ,
+            _tvx=model.tangentialVectorX,
+            _tvy=model.tangentialVectorY,
+            _x=model.get("horizontalOffset", 0),
+            _y=model.get("verticalOffset", 0),
+        )
+
+    if model.type == "ellipsoidMirror":
+        return srwpy.srwlib.SRWLOptMirEl(
+            _p=model.get("firstFocusLength", 1),
+            _q=model.get("focalLength", 1),
+            _ang_graz=grazing_angle,
+            **_common_mirror_fields(),
+        )
+    if model.type == "sphericalMirror":
+        return srwpy.srwlib.SRWLOptMirSph(
+            _r=model.get("radius", 1),
+            **_common_mirror_fields(),
+        )
+    if model.type == "toroidalMirror":
+        return srwpy.srwlib.SRWLOptMirTor(
+            _rt=model.get("tangentialRadius", 1),
+            _rs=model.get("sagittalRadius", 1),
+            _ap_shape=model.get("apertureShape", "r"),
+            **_common_mirror_fields(),
+        )
+    raise AssertionError(f"unsupported mirror type={model.type}")
 
 
 def _plot_z_footer(z_label, allrange, points):
@@ -2558,6 +2616,53 @@ def _set_parameters(v, data, plot_reports, run_dir, qcall=None):
             v.multiElectronAnimationFilename = _OUTPUT_FOR_MODEL[report].basename
 
 
+def _snapshot_data_file(primary, fix_header=False):
+    """Copy a complete animation output file so it can be read safely
+
+    SRW rewrites the output file (alternating with dat.bkp) in place. For large
+    images this takes many seconds so a reader sees a truncated file or
+    has the file rewritten underneath it. A copy which is validated
+    against its own header can't change while being read.
+
+    Args:
+        primary (str): name of the file SRW writes
+        fix_header (bool): fix the header of the copy (see _fixed_header)
+    Returns:
+        tuple: (filename, is_snapshot). is_snapshot is True if filename is a
+            copy which the caller must remove. If no file is complete, returns
+            what the caller would have read before snapshots (the file
+            _best_data_file picks, with the header fixed in a copy if
+            fix_header) so reading fails (and is retried) as before.
+    """
+    p = pkio.py_path(primary)
+    d = p.new(basename=f"{pkio.random_base62(8)}-snapshot.dat")
+    for c in sorted(
+        (x for x in (p, p.new(ext="dat.bkp")) if x.check()),
+        key=lambda x: x.mtime(),
+        reverse=True,
+    ):
+        try:
+            if fix_header:
+                _copy_with_fixed_header(c, d)
+            else:
+                c.copy(d)
+        except Exception as e:
+            pkdlog("snapshot copy failed: {} error={}", c, e)
+            continue
+        if _is_complete_data_file(d):
+            return d.basename, True
+    pkio.unchecked_remove(d)
+    b = _best_data_file(primary)
+    if not fix_header:
+        return b, False
+    try:
+        _copy_with_fixed_header(pkio.py_path(b), d)
+    except Exception:
+        pkio.unchecked_remove(d)
+        raise
+    return d.basename, True
+
+
 def _superscript(val):
     return re.sub(r"\^2", "\u00B2", val)
 
@@ -2761,10 +2866,13 @@ def _validate_safe_zip(zip_file_name, target_dir=".", *args):
         assert s <= max_file_size, "{} too large ({} > {})".format(
             f, str(s), str(max_file_size)
         )
-        assert file_attrs_ok(attrs), "{} not a normal file or is executable".format(f)
         assert not file_exists_in_dir(
             f, target_dir
         ), "Cannot overwrite file {} in target directory {}".format(f, target_dir)
+        if not i.is_dir():
+            assert file_attrs_ok(attrs), "{} not a normal file or is executable".format(
+                f
+            )
 
     for validator in args:
         res, err_string = validator(zip_file)

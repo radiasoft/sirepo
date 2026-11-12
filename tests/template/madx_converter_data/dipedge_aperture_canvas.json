@@ -1,0 +1,121 @@
+{
+    "beamlines": [
+        {
+            "id": 112,
+            "items": [
+                108,
+                104,
+                106,
+                107,
+                106,
+                105,
+                109,
+                110,
+                111
+            ],
+            "name": "bl"
+        }
+    ],
+    "elements": [
+        {
+            "_id": 108,
+            "_super": "_ELEMENT",
+            "dx": 0,
+            "dy": 0,
+            "l": 0.1,
+            "name": "c1",
+            "psi": 0,
+            "shape": "elliptical",
+            "type": "APERTURE",
+            "xmax": 0.01,
+            "ymax": 0.02
+        },
+        {
+            "_id": 109,
+            "_super": "_ELEMENT",
+            "dx": 0,
+            "dy": 0,
+            "l": 0.1,
+            "name": "c2",
+            "psi": 0,
+            "shape": "rectangular",
+            "type": "APERTURE",
+            "xmax": 0.03,
+            "ymax": 0.04
+        },
+        {
+            "_id": 110,
+            "_super": "_ELEMENT",
+            "dx": 0,
+            "dy": 0,
+            "l": 0.1,
+            "name": "c3",
+            "psi": 0,
+            "shape": "elliptical",
+            "type": "APERTURE",
+            "xmax": 0.05,
+            "ymax": 0.05
+        },
+        {
+            "_id": 111,
+            "_super": "_ELEMENT",
+            "dx": 0,
+            "dy": 0,
+            "l": 0.1,
+            "name": "c4",
+            "psi": 0,
+            "shape": "rectangular",
+            "type": "APERTURE",
+            "xmax": 0,
+            "ymax": 0
+        },
+        {
+            "_id": 106,
+            "_super": "_ELEMENT",
+            "dx": 0,
+            "dy": 0,
+            "l": 0.5,
+            "name": "d1",
+            "psi": 0,
+            "type": "DRIFT"
+        },
+        {
+            "_id": 105,
+            "_super": "_ELEMENT",
+            "dx": 0,
+            "dy": 0,
+            "l": 1.0,
+            "name": "r1",
+            "psi": 0,
+            "type": "DRIFT"
+        },
+        {
+            "_id": 107,
+            "_super": "_ELEMENT",
+            "dx": 0,
+            "dy": 0,
+            "k1": 1.0,
+            "k1s": 0.0,
+            "l": 0.2,
+            "name": "q1",
+            "psi": 0,
+            "type": "QUADRUPOLE"
+        },
+        {
+            "_id": 104,
+            "_super": "_ELEMENT",
+            "angle": 0.1,
+            "dx": 0,
+            "dy": 0,
+            "e1": 0.05,
+            "e2": 0.06,
+            "fint": 0.5,
+            "fintx": 0.4,
+            "gap": 0.02,
+            "l": 1.0,
+            "name": "b1",
+            "psi": 0,
+            "type": "SBEND"
+        }
+    ]
+}

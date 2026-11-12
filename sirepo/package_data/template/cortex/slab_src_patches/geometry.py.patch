@@ -1,0 +1,51 @@
+--- a/geometry.py
++++ b/geometry.py
+@@ -1,3 +1,4 @@
++# geometry.py
+ #!/usr/bin/env python3
+ """
+ geometry.py
+@@ -20,7 +21,7 @@
+ MIX_RECIPES_NORM, structure_material_list
+ """
+ 
+-from __future__ import annotations
++#from __future__ import annotations
+ 
+ import json
+ import math
+@@ -37,8 +38,9 @@
+ # ──────────────────────────────────────────────────────────────────────────────
+ # User configuration
+ # ──────────────────────────────────────────────────────────────────────────────
+-import inputs as cfg
+-import materials
++#import inputs as cfg
++cfg = PKDict(globals())
++#import materials
+ 
+ # ──────────────────────────────────────────────────────────────────────────────
+ # Create output directories
+@@ -297,7 +299,7 @@
+ ]
+ 
+ # Volume-fraction recipes from eudemo_materials.py
+-from eudemo_materials import build_mix_recipes, BreederType   
++#from eudemo_materials import build_mix_recipes, BreederType
+ 
+ MIX_RECIPES_OBJ: dict = build_mix_recipes(cfg)
+ 
+@@ -326,6 +328,8 @@
+ 
+ mixed_materials    = _build_mixed_materials(MIX_RECIPES_NORM)
+ model.materials    = openmc.Materials(list(mixed_materials.values()))
++rsdownload(model.materials)
++
+ 
+ # ──────────────────────────────────────────────────────────────────────────────
+ # CHUNK / RADIAL BIN HELPERS
+@@ -627,3 +631,4 @@
+     dagmc_volume_surface_info(pydagmc_model, _albedo_cells)
+ )
+ 
++

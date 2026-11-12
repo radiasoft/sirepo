@@ -1,0 +1,56 @@
+{
+    "models": {
+        "beamlines": [],
+        "bunchReport1": {
+            "x": "x",
+            "y": "xp"
+        },
+        "bunchReport2": {
+            "x": "y",
+            "y": "yp"
+        },
+        "bunchReport3": {
+            "x": "x",
+            "y": "y"
+        },
+        "bunchReport4": {
+            "x": "t",
+            "y": "P"
+        },
+        "commands": [],
+        "elements": [],
+        "simulation": {
+            "elementPosition": "absolute",
+            "visualizationBeamlineId": ""
+        },
+        "statAnimation": {
+            "aspectRatio": "0.5625",
+            "x": "s",
+            "y1": "beta_x",
+            "y1Position": "left",
+            "y2": "beta_y",
+            "y2Position": "left",
+            "y3": "alpha_x",
+            "y3Position": "right",
+            "y4": "alpha_y",
+            "y4Position": "right",
+            "y5": "None",
+            "y5Position": "right"
+        },
+        "stat2Animation": {
+            "aspectRatio": "0.5625",
+            "x": "s",
+            "y1": "emitt_x",
+            "y1Position": "left",
+            "y2": "emitt_y",
+            "y2Position": "left",
+            "y3": "sigma_x",
+            "y3Position": "right",
+            "y4": "sigma_y",
+            "y4Position": "right",
+            "y5": "None",
+            "y5Position": "right"
+        }
+    },
+    "simulationType": "rftrack"
+}

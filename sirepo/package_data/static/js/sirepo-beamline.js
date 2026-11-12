@@ -860,7 +860,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, panelSt
             <div data-ng-show="simState.isStateError()">{{ simState.errorMessage() }}</div>
           </div>
           <div style="margin-bottom: 1em" class="clearfix"></div>
-          <div data-ng-repeat="report in reports" data-ng-if="simState.hasFrames()">
+          <div data-ng-repeat="report in reports" data-ng-if="hasFrames(report)">
             <div data-watchpoint-report="" data-item-id="report.id" data-ng-if="showReport(report)"></div>
             <div class="clearfix hidden-xl" data-ng-hide="($index + 1) % 2"></div>
             <div class="clearfix visible-xl" data-ng-hide="($index + 1) % 3"></div>
@@ -875,6 +875,11 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, panelSt
                 $scope.reports = [];
             });
 
+            $scope.hasFrames = report => {
+                // ensure the report still has a model (the watchpoint still exists)
+                return $scope.simState.hasFrames() && appState.models[report.modelAccess.modelKey];
+            };
+
             $scope.showReport = report => {
                 if ($scope.simState.isStateRunning()) {
                     return true;
@@ -884,7 +889,7 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, panelSt
 
             $scope.start = function() {
                 $rootScope.$broadcast('saveLattice', appState.models);
-                appState.models.simulation.framesCleared = false;
+                // appState.models.simulation.framesCleared = false;
                 appState.saveChanges(
                     [$scope.simState.model, 'simulation'],
                     $scope.simState.runSimulation);
@@ -900,9 +905,9 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, panelSt
                     return null;
                 }
 
-                if (appState.models.simulation.framesCleared) {
-                    return;
-                }
+                // if (appState.models.simulation.framesCleared) {
+                //     return;
+                // }
                 errorMessage = data.error;
                 if (! data.outputInfo) {
                     return;
@@ -932,15 +937,24 @@ SIREPO.app.directive('beamlineAnimation', function(appState, frameCache, panelSt
             $scope.simState = persistentSimulation.initSimulationState($scope);
             $scope.simState.errorMessage = () => errorMessage;
 
-            $scope.$on('modelChanged', (e, name) => {
-                if (! appState.isReportModelName(name)) {
-                    if (frameCache.getFrameCount() > 0) {
-                        frameCache.setFrameCount(0);
-                        appState.models.simulation.framesCleared = true;
-                        appState.saveQuietly('simulation');
-                    }
-                }
-            });
+            //TODO(pjm): this feature needs more thought
+            // when a change is made on the beamline page, it clears all the results
+            // but this can clear data for non-simulation changes like changing the simulation
+            // name or a beamline item name.
+            // Additionally, it should cancel the running simulation if it really wants to clear
+            // the output, otherwise a long running simulation would continue.
+            // Also, storing the value as simulation.framesCleared is confusing as that is also
+            // an event name within Sirepo.
+            //
+            // $scope.$on('modelChanged', (e, name) => {
+            //     if (! appState.isReportModelName(name)) {
+            //         if (frameCache.getFrameCount() > 0) {
+            //             frameCache.setFrameCount(0);
+            //             appState.models.simulation.framesCleared = true;
+            //             appState.saveQuietly('simulation');
+            //         }
+            //     }
+            // });
         },
     };
 });

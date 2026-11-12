@@ -85,29 +85,29 @@
             "y": "0"
         },
         "bunchReport1": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 50,
             "notes": "",
             "x": "x",
             "y": "px"
         },
         "bunchReport2": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 50,
             "notes": "",
             "x": "y",
             "y": "py"
         },
         "bunchReport3": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 50,
             "notes": "",
             "x": "x",
             "y": "y"
         },
         "bunchReport4": {
-            "colorMap": "afmhot",
-            "histogramBins": 200,
+            "colorMap": "viridis",
+            "histogramBins": 50,
             "notes": "",
             "x": "t",
             "y": "pt"
@@ -440,10 +440,9 @@
             }
         ],
         "elementAnimation118-6": {
-            "aspectRatio": "1",
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "0",
@@ -502,10 +501,9 @@
             "y3": "None"
         },
         "elementAnimation121-20": {
-            "aspectRatio": "1",
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -785,13 +783,13 @@
             "x": "s",
             "y1": "betx",
             "y2": "bety",
-            "y3": "dx"
+            "y3": "dx",
+            "y3Position": "right"
         },
         "elementAnimation126-15": {
-            "aspectRatio": "1",
-            "colorMap": "afmhot",
+            "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 50,
             "horizontalOffset": 0,
             "horizontalSize": 0,
             "includeLattice": "1",
@@ -1055,7 +1053,8 @@
             "x": "s",
             "y1": "betx",
             "y2": "bety",
-            "y3": "None"
+            "y3": "disp1",
+            "y3Position": "right"
         },
         "elements": [
             {

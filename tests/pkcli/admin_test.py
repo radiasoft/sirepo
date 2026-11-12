@@ -15,26 +15,30 @@ def setup_module(module):
 
     srunit.setup_srdb_root()
     os.environ.update(
-        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES="jupyterhublogin",
         SIREPO_AUTH_METHODS="email:guest",
+        SIREPO_FEATURE_CONFIG_PROPRIETARY_SIM_TYPES="jupyterhublogin",
+        SIREPO_FEATURE_CONFIG_SIM_TYPES="myapp",
     )
 
 
 def test_create_user():
     from pykern import pkunit
+    from sirepo import srtime
     from sirepo.pkcli import admin, roles
 
     _init_db()
     pkunit.pkok(admin.create_user("a@a.a", "a"), "unable to create user")
     pkunit.pkok(admin.create_user("b@a.a", "b", plan="trial"), "unable to create user")
-    pkunit.pkeq(
-        [
-            {"role": "premium", "expiration": None},
-            {"role": "trial", "expiration": None},
-            {"role": "user", "expiration": None},
-        ],
-        roles.list_with_expiration("b@a.a"),
-    )
+    for r in roles.list_with_expiration("b@a.a"):
+        if r.role == "premium":
+            pkunit.pkeq(True, r.expiration < srtime.utc_now())
+    pkunit.pkeq(["premium", "trial", "user"], roles.list("b@a.a"))
+    # should not crash
+    roles.add("b@a.a", "user")
+    roles.add_plan("b@a.a", "trial", expiration=1)
+
+    with pkunit.pkexcept("use add-plan command"):
+        roles.add("b@a.a", "premium", expiration=1)
 
 
 def test_delete_user():
@@ -62,6 +66,22 @@ def test_no_user():
 
     _init_db()
     admin.delete_user(_UID_NOT_IN_DB)
+
+
+def test_user_info():
+    from pykern import pkunit
+    from pykern.pkcli import CommandError
+    from sirepo.pkcli import admin
+
+    _init_db()
+    r = admin.user_info(_UID_IN_DB)
+    pkunit.pkeq(_UID_IN_DB, r.uid)
+    pkunit.pkeq("testername", r.name)
+    pkunit.pkeq("tester@b.c", r.email)
+    pkunit.pkok(r.registered, "registered should be set")
+    pkunit.pkok(len(r.roles), "roles not set")
+    with pkunit.pkexcept(CommandError):
+        admin.user_info(_UID_NOT_IN_DB)
 
 
 def _init_db():

@@ -250,7 +250,7 @@ def run_opal(run_dir, opal_id, prev_sim=None):
     LatticeUtil.find_first_command(data, "option").psdumpfreq = 0
     with prep_run_dir(run_dir, data):
         sirepo.pkcli.opal.run_opal(with_mpi=True)
-    return f'{run_dir}/{sirepo.template.opal._OPAL_H5_FILE}'
+    return f'{run_dir}/{sirepo.template.opal.OPAL_H5_FILE}'
 
 
 def run_sims(sim_list):

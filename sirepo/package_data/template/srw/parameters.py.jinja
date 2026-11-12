@@ -62,7 +62,6 @@ varParam = [
     ['ebm_y', 'f', {{electronBeamPosition_verticalPosition}}, 'electron beam initial average vertical position [m]'],
     ['ebm_xp', 'f', {{electronBeamPosition_horizontalAngle}}, 'electron beam initial average horizontal angle [rad]'],
     ['ebm_yp', 'f', {{electronBeamPosition_verticalAngle}}, 'electron beam initial average vertical angle [rad]'],
-    ['ebm_z', 'f', 0., 'electron beam initial average longitudinal position [m]'],
     ['ebm_dr', 'f', {{electronBeamPosition_drift}}, 'electron beam longitudinal drift [m] to be performed before a required calculation'],
     ['ebm_ens', 'f', {{electronBeam_rmsSpread}}, 'electron beam relative energy spread'],
     ['ebm_emx', 'f', {{electronBeam_horizontalEmittance}}, 'electron beam horizontal emittance [m]'],
@@ -88,6 +87,8 @@ varParam = [
     {% endif %}
 
 {% endif %}
+# Beam parameter needed by all source types
+    ['ebm_z', 'f', 0., 'electron beam initial average longitudinal position [m]'],
 {% if rs_type in ['u', 't'] %}
 #---Undulator
 #---idealized params

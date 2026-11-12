@@ -14,7 +14,6 @@ import copy
 import h5py
 import json
 import numpy
-import pymeshlab
 import re
 import sirepo.const
 import sirepo.mpi
@@ -225,6 +224,8 @@ class _MoabGroupExtractor:
         self._write_mesh(item.vol_id, v, p)
 
     def _decimate(self, vertices, polygons):
+        import pymeshlab
+
         ms = pymeshlab.MeshSet()
         ms.add_mesh(pymeshlab.Mesh(vertices, polygons))
         c = len(ms.current_mesh().face_matrix())
@@ -262,6 +263,8 @@ class _MoabGroupExtractor:
         )
 
     def _write_mesh(self, vol_id, points, polys):
+        import pymeshlab
+
         ms = pymeshlab.MeshSet()
         ms.add_mesh(pymeshlab.Mesh(points, polys))
         ms.save_current_mesh(f"{vol_id}.ply")
@@ -288,4 +291,7 @@ class _MoabGroupExtractor:
 
 class _MoabGroupExtractorOp(PKDict):
     def __call__(self):
+        # delay pymeshlab import, see #7726
+        import pymeshlab
+
         self.processor.process_item(self)

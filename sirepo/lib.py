@@ -21,11 +21,27 @@ import sirepo.util
 class LibAdapterBase:
     """Common functionality between code specific LibAdapter implementations."""
 
-    def __init__(self, ignore_files=None):
+    def __init__(self, ignore_files=None, update_filenames=False):
         m = inspect.getmodule(self)
         self._sim_data, _, self._schema = sirepo.sim_data.template_globals(m.SIM_TYPE)
         self._code_var = m.code_var
         self._ignore_files = ignore_files if ignore_files else []
+        self._verified_files = set()
+        self._update_filenames = update_filenames
+
+    def input_filenames(self, data):
+        return set(
+            [
+                self._sim_data.lib_file_name_without_type(v)
+                for v in LatticeUtil(data, self._schema)
+                .iterate_models(
+                    lattice.InputFileIterator(
+                        self._sim_data, update_filenames=self._update_filenames
+                    ),
+                )
+                .result
+            ]
+        )
 
     def _convert(self, data):
         def _model(model, name):
@@ -71,17 +87,13 @@ class LibAdapterBase:
             if f in self._ignore_files:
                 continue
             p = path.dirpath().join(f)
+            if p in self._verified_files:
+                continue
+            self._verified_files.add(p)
             assert p.check(file=True), f"file={f} missing"
 
     def _write_input_files(self, data, source_path, dest_dir):
-        for f in set(
-            LatticeUtil(data, self._schema)
-            .iterate_models(
-                lattice.InputFileIterator(self._sim_data, update_filenames=False),
-            )
-            .result,
-        ):
-            f = self._sim_data.lib_file_name_without_type(f)
+        for f in self.input_filenames(data):
             try:
                 d = dest_dir.join(f)
                 pykern.pkio.mkdir_parent_only(d)
@@ -112,11 +124,12 @@ class Importer:
         ignore_files (list): files ignored during verification and symlink routines [None]
     """
 
-    def __init__(self, sim_type, ignore_files=None):
+    def __init__(self, sim_type, ignore_files=None, update_filenames=False):
         import sirepo.template
 
         self.__adapter = sirepo.template.import_module(sim_type).LibAdapter(
-            ignore_files or []
+            ignore_files or [],
+            update_filenames,
         )
 
     def parse_file(self, path):
@@ -141,6 +154,9 @@ class SimData(PKDict):
     def copy(self):
         """Allows copy.deepcopy"""
         return self.__class__(self, self.__source, self.__adapter)
+
+    def input_filenames(self):
+        return self.__adapter.input_filenames(self)
 
     def write_files(self, dest_dir):
         """Writes files for simulation state

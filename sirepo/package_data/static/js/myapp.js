@@ -3,22 +3,36 @@
 var srlog = SIREPO.srlog;
 var srdbg = SIREPO.srdbg;
 
-SIREPO.app.controller('MyAppSourceController', function (appState, panelState, $scope) {
-    var self = this;
+SIREPO.app.factory('myappService', function(appState) {
+    const self = {};
+    self.computeModel = (analysisModel) => analysisModel || 'activityAnimation';
+    appState.setAppService(self);
+    return self;
+});
 
-    function handleDogDisposition() {
+SIREPO.app.controller('MyAppSourceController', function (appState, frameCache, myappService, panelState, persistentSimulation, $scope) {
+    const self = this;
+    self.simScope = $scope;
+
+    const dogDispositionChanged = () => {
         panelState.showField('dog', 'favoriteTreat', appState.models.dog.disposition == 'friendly');
-    }
+    };
 
-    appState.whenModelsLoaded($scope, function() {
+    self.simHandleStatus = (data) => {
+        frameCache.setFrameCount(data.frameCount);
+    };
+
+    appState.whenModelsLoaded($scope, () => {
         // after the model data is available, hide/show the
         // favoriteTreat field depending on the disposition
-        handleDogDisposition();
+        dogDispositionChanged();
         appState.watchModelFields($scope, ['dog.disposition'], function() {
             // respond to changes in the disposition field value
-            handleDogDisposition();
+            dogDispositionChanged();
         });
     });
+
+    self.simState = persistentSimulation.initSimulationState(self);
 });
 
 SIREPO.app.directive('appFooter', function() {

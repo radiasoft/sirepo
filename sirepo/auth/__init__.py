@@ -5,12 +5,12 @@
 """
 
 from pykern import pkcollections
+from pykern import pkcompat
 from pykern import pkconfig
 from pykern import pkinspect
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 import contextlib
-import datetime
 import importlib
 import sirepo.auth_db
 import sirepo.auth_role
@@ -18,6 +18,7 @@ import sirepo.cookie
 import sirepo.events
 import sirepo.feature_config
 import sirepo.job
+import sirepo.mpi
 import sirepo.payments
 import sirepo.quest
 import sirepo.reply
@@ -47,10 +48,12 @@ _COOKIE_USER = "srau"
 
 _GUEST_USER_DISPLAY_NAME = "Guest User"
 
-_PAYMENT_PLAN_BASIC = "basic"
+_PAYMENT_PLAN_BASIC = sirepo.auth_role.ROLE_PLAN_BASIC
+_PAYMENT_PLAN_ENTERPRISE = sirepo.auth_role.ROLE_PLAN_ENTERPRISE
 _PAYMENT_PLAN_PREMIUM = sirepo.auth_role.ROLE_PLAN_PREMIUM
 _ALL_PAYMENT_PLANS = (
     _PAYMENT_PLAN_BASIC,
+    _PAYMENT_PLAN_ENTERPRISE,
     _PAYMENT_PLAN_PREMIUM,
 )
 
@@ -258,6 +261,12 @@ class _Auth(sirepo.quest.Attr):
     def get_module(self, name):
         return _METHOD_MODULES[name]
 
+    def active_plan(self, uid):
+        u = self.logged_in_user()
+        if rv := self.qcall.auth_db.model("UserRole").unchecked_active_plan(uid=u):
+            return rv.role
+        raise AssertionError(f"user={u} has no active plans")
+
     def guest_uids(self):
         """All of the uids corresponding to guest users."""
         return self.qcall.auth_db.model("UserRegistration").search_all_for_column(
@@ -279,7 +288,10 @@ class _Auth(sirepo.quest.Attr):
 
     def is_premium_user(self):
         return self.qcall.auth_db.model("UserRole").has_active_role(
-            role=sirepo.auth_role.ROLE_PLAN_PREMIUM,
+            role=(
+                sirepo.auth_role.ROLE_PLAN_PREMIUM,
+                sirepo.auth_role.ROLE_PLAN_ENTERPRISE,
+            ),
             uid=self.logged_in_user(),
         )
 
@@ -593,8 +605,7 @@ class _Auth(sirepo.quest.Attr):
         self.qcall.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         self._set_log_user()
 
-    @contextlib.contextmanager
-    def srunit_user(self, want_global):
+    def srunit_user(self):
         """Create a new guest user and log them in
 
         **Only called from srunit**
@@ -603,18 +614,7 @@ class _Auth(sirepo.quest.Attr):
 
         if not pkunit.is_test_run():
             raise AssertionError("must be in pkunit test run")
-        rv = self._create_user(_METHOD_MODULES[METHOD_GUEST], want_login=True)
-        p = None
-        try:
-            if want_global:
-                p = _cfg.logged_in_user
-                _cfg.logged_in_user = rv
-                simulation_db.srunit_logged_in_user(rv)
-            yield rv
-        finally:
-            if want_global:
-                _cfg.logged_in_user = p
-                simulation_db.srunit_logged_in_user(p)
+        return self._create_user(_METHOD_MODULES[METHOD_GUEST], want_login=True)
 
     def unchecked_get_user(self, uid_or_user_name):
         # support other user_name types
@@ -686,7 +686,7 @@ class _Auth(sirepo.quest.Attr):
         else:
             res = self.qcall.auth_db.model(
                 "UserRegistration",
-                created=datetime.datetime.utcnow(),
+                created=pkcompat.utcnow(),
                 display_name=display_name,
                 uid=uid,
             )
@@ -707,6 +707,7 @@ class _Auth(sirepo.quest.Attr):
             max_message_bytes=sirepo.job.cfg().max_message_bytes,
             method=self._qcall_bound_method(),
             needCompleteRegistration=s == _STATE_COMPLETE_REGISTRATION,
+            parallelCoresMax=sirepo.mpi.cfg().cores,
             roles=[],
             userName=None,
             uiWebSocket=sirepo.feature_config.cfg().ui_websocket,
@@ -809,9 +810,12 @@ class _Auth(sirepo.quest.Attr):
 
     def _plan(self, data):
         r = data.roles
-        if sirepo.auth_role.ROLE_PLAN_PREMIUM in r:
-            data.paymentPlan = _PAYMENT_PLAN_PREMIUM
+        if sirepo.auth_role.ROLE_PLAN_ENTERPRISE in r:
+            data.paymentPlan = _PAYMENT_PLAN_ENTERPRISE
             data.upgradeToPlan = None
+        elif sirepo.auth_role.ROLE_PLAN_PREMIUM in r:
+            data.paymentPlan = _PAYMENT_PLAN_PREMIUM
+            data.upgradeToPlan = _PAYMENT_PLAN_ENTERPRISE
         else:
             data.paymentPlan = _PAYMENT_PLAN_BASIC
             data.upgradeToPlan = _PAYMENT_PLAN_PREMIUM

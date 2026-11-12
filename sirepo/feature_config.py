@@ -13,40 +13,44 @@ To add a code that is not in the default list:
 
 #: Codes that depend on other codes
 _DEPENDENT_CODES = dict(
+    cortex=frozenset(("openmc",)),
     jspec=frozenset(("elegant",)),
     controls=frozenset(("madx",)),
-    omega=frozenset(("elegant", "omega", "genesis")),
+    omega=frozenset(("elegant", "opal", "genesis")),
 )
 
 FOSS_CODES = frozenset(
     (
-        "activait",
         "canvas",
         "controls",
         "cortex",
         "elegant",
         "epicsllrf",
         "genesis",
-        "hellweg",
         "impactt",
         "impactx",
-        "jspec",
         "madx",
         "myapp",
         "omega",
         "opal",
         "openmc",
         "radia",
+        "rftrack",
         "shadow",
-        "silas",
         "srw",
-        "warppba",
-        "warpvnd",
-        "zgoubi",
+        "tmap8",
     )
 )
 
 _ALL_CODES = "DEFAULT"
+
+#: cfg values of a sim type which are only used by the server, so are not in the schema
+_SERVER_ONLY = dict(cortex=frozenset(("batch_uid",)))
+
+#: Codes which can be converted to each other through MAD-X
+# POSIT: sirepo.template.madx_converter._converter() has a converter for each
+# but madx
+LATTICE_CONVERSION_CODES = frozenset(("elegant", "madx", "opal", "rftrack"))
 
 #: Configuration
 _cfg = None
@@ -77,11 +81,23 @@ def cfg():
     return _cfg or _init()
 
 
+def dependent_codes(sim_type):
+    """Codes that `sim_type` depends on
+
+    Args:
+        sim_type (str): sim type to look up
+
+    Returns:
+        frozenset: dependency sim types, or empty frozenset
+    """
+    return _DEPENDENT_CODES.get(sim_type, frozenset())
+
+
 def for_sim_type(sim_type):
     """Get cfg for simulation type
 
     Args:
-        sim_type (str): srw, warppba, etc.
+        sim_type (str): srw, elegent, etc.
 
     Returns:
         dict: application specific config
@@ -89,9 +105,17 @@ def for_sim_type(sim_type):
     import pykern.pkcollections
 
     c = cfg()
-    return pykern.pkcollections.PKDict(c[sim_type] if sim_type in c else {}).pkupdate(
+    res = pykern.pkcollections.PKDict(c[sim_type] if sim_type in c else {}).pkupdate(
         c.schema_common
     )
+    for k in _SERVER_ONLY.get(sim_type, ()):
+        res.pkdel(k)
+    if sim_type in LATTICE_CONVERSION_CODES:
+        # "Open as a New ... Simulation" targets
+        res.lattice_conversion_targets = sorted(
+            (LATTICE_CONVERSION_CODES & c.sim_types) - {sim_type}
+        )
+    return res
 
 
 def have_payments():
@@ -155,6 +179,13 @@ def _init():
                 "url base to reach activait example files",
             ),
         ),
+        cortex=dict(
+            batch_uid=(
+                None,
+                str,
+                "uid of the user which runs the admin batch simulations (requires a plan which allows parallel jobs)",
+            ),
+        ),
         debug_mode=(pkconfig.in_dev_mode(), bool, "control debugging output"),
         default_proprietary_sim_types=(
             frozenset(),
@@ -165,6 +196,18 @@ def _init():
             False,
             bool,
             "enable the global resources allocation system",
+        ),
+        home_page_subdir=(
+            "simple_en" if pkconfig.in_dev_mode() else "wp_en",
+            str,
+            "subdirectory under static for home page (en/) files",
+        ),
+        impactt=dict(
+            data_storage_url=(
+                "https://github.com/radiasoft/sirepo-data-impactt/raw/main/",
+                str,
+                "url base to reach impactt example data files",
+            ),
         ),
         is_registration_moderated=(
             False,
@@ -180,6 +223,13 @@ def _init():
             frozenset(),
             set,
             "codes where all users must be authorized via moderation",
+        ),
+        opal=dict(
+            data_storage_url=(
+                "https://github.com/radiasoft/sirepo-data-opal/raw/main/",
+                str,
+                "url base to reach opal example data files",
+            ),
         ),
         openmc=dict(
             data_storage_url=(
@@ -217,6 +267,18 @@ def _init():
                 "url to reach scan monitor daemon",
             ),
         ),
+        rftrack=dict(
+            data_storage_url=(
+                "https://github.com/radiasoft/sirepo-data-rftrack/raw/main/",
+                str,
+                "url base to reach rftrack example data files",
+            ),
+        ),
+        sbatch_sim_types=(
+            set(("openmc", "radia", "srw")),
+            set,
+            "simulation types supported by sbatch",
+        ),
         schema_common=dict(
             support_email=(
                 "support@sirepo.com",
@@ -226,7 +288,6 @@ def _init():
         ),
         sim_types=(set(), set, "simulation types (codes) to be imported"),
         srw=dict(
-            app_url=("/en/xray-beamlines.html", str, "URL for SRW link"),
             mask_in_toolbar=_test("Show the mask element in toolbar"),
             show_video_links=(False, bool, "Display instruction video links"),
             show_open_shadow=_test('Show "Open as a New Shadow Simulation" menu item'),
@@ -252,6 +313,7 @@ def _init():
             set,
             "Vue apps",
         ),
+        # TODO(robnagler) 20250131 remove
         warpvnd=dict(
             allow_3d_mode=(True, bool, "Include 3D features in the Warp VND UI"),
             display_test_boxes=_dev(

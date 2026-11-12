@@ -1,0 +1,62 @@
+&TRAN
+
+  table_dir='.'
+
+  Win = 3.d6, atp = 1.d0
+  freqb = 162.5d6, part = 0.99
+
+  nqtot=1
+  qq=1.
+  Amass=1.
+  npat=10000
+  current=0.0
+
+  Qdesign=1, Adesign=1.
+  db_b=0.0005, df_4D=180.
+
+  epsnx = 0.25d0,  alfax =-0.632d0,   betax = 38.95d0,
+  epsny = 0.25d0,  alfay =-0.632d0,   betay = 38.95d0,
+  epsnz = 12.0d0,  alfaz = 0.000d0,   betaz = 10.00d0,
+
+  phmax=90., dwwmax=0.2
+
+  x00=0.,0., xp00=0.,0., y00=0.,0., yp00=0.,0., ph00=0.,0., dww00=0.
+
+&END
+
+&INDEX
+
+  NRZ=1, igraph=1, iaccep=0, isol=0, iflag_dis=1, iflag2D=0, iflag_qq=1,
+  iflag_upd=13, iflag_rms=1, iint=100, nstep_cav=100
+  iflag_env=0, iflag_cav=1, iflag_ell=0, iflag_fenv=0
+  iflag_lev=0, isrf=100, iflag_mhb=0, iflag_match=0
+  iread_dis=0, iwrite_dis=0
+
+&END
+
+&MATCH
+
+  mat_typ=5, mat_opt=1
+  min_typ=1, min_opt=5
+  min_max=1000
+  min_los=1, min_xys=1
+  min_bnd=1, bnd_fac=2., bnd_low=0., bnd_upp=0.
+  beamw=0., beamf=0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0
+  fit_err=.01
+
+&END
+
+RFQ In: I=5 mA
+  epsnx = 0.15d0,  alfax = 1.75d0,  betax = 6.75d0,
+  epsny = 0.15d0,  alfay = 1.75d0,  betay = 6.75d0,
+  epsnz = 25.0d0,  alfaz = 0.00d0,  betaz = 10.0d0,
+
+RFQ In: I=0 mA
+  epsnx = 0.15d0,  alfax = 1.65d0,  betax = 6.55d0,
+  epsny = 0.15d0,  alfay = 1.65d0,  betay = 6.55d0,
+  epsnz = 25.0d0,  alfaz = 0.00d0,  betaz = 10.0d0,
+
+Scratch#2
+  epsnx = 0.20d0,  alfax =-1.00d0,   betax = 30.0d0,
+  epsny = 0.20d0,  alfay =-1.00d0,   betay = 30.0d0,
+  epsnz = 36.0d0,  alfaz =-0.30d0,   betaz = 10.0d0,

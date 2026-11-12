@@ -1,0 +1,13 @@
+beam, particle=electron, pc=0.1;
+mp: multipole, knl={0, 0.1};
+c1: collimator, l=0.1, apertype=ellipse, aperture={0.01,0.02};
+c2: collimator, l=0.1, apertype=rectangle, aperture={0.03,0.04};
+c3: collimator, l=0.1, apertype=circle, aperture={0.05};
+q1: quadrupole, l=0.2, k1=2, apertype=ellipse, aperture={0.02,0.03};
+s1: solenoid, l=0.2, ks=0.5;
+b1: sbend, l=1, angle=0.3, hgap=0.01;
+b2: sbend, l=1, angle=0.3, apertype=ellipse, aperture={0.03,0.02};
+b3: sbend, l=1, angle=0.3;
+rf: rfcavity, l=0.5, volt=1, freq=1300, lag=0.25;
+tw: twcavity, l=2, volt=10, freq=2856, lag=0.8;
+bl: line=(mp,c1,c2,c3,q1,s1,b1,b2,b3,rf,tw);

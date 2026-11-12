@@ -14,34 +14,44 @@ pytestmark = pytest.mark.sirepo_args(
             SIREPO_STATUS_SIM_NAME="Scooby Doo",
             SIREPO_STATUS_SIM_REPORT="heightWeightReport",
             SIREPO_STATUS_SIM_TYPE="myapp",
+            SIREPO_STATUS_SIM_RANDOM="dog.weight",
         ),
     ),
 )
 
 
 def test_basic(auth_fc):
-    from pykern import pkconfig, pkcompat
+    from pykern import pkcompat
     from pykern.pkunit import pkeq
-    from sirepo import srunit
     import base64
 
-    def _status(fc, headers):
+    def _headers(uid):
+        return PKDict(
+            Authorization="Basic "
+            + pkcompat.from_bytes(
+                base64.b64encode(
+                    pkcompat.to_bytes(f"{uid}:pass"),
+                ),
+            ),
+        )
+
+    def _status(fc, headers, timestamps, delay=0):
+        import time
+
+        if delay:
+            time.sleep(delay)
         r = fc.sr_get_json("serverStatus", headers=headers)
         pkeq("ok", r.state)
         pkeq("unique-value", r.sentinel)
+        timestamps.append(r.datetime)
 
     # POSIT: sirepo.auth.basic.require_user returns logged_in_user in srunit
     u = auth_fc.sr_login_as_guest()
     auth_fc.sr_logout()
-    h = PKDict(
-        Authorization="Basic "
-        + pkcompat.from_bytes(
-            base64.b64encode(
-                pkcompat.to_bytes(f"{u}:pass"),
-            ),
-        ),
-    )
-    auth_fc.sr_thread_start("t1", _status, headers=h)
-    auth_fc.sr_thread_start("t2", _status, headers=h)
-    #    auth_fc.sr_thread_start("t3", _status, headers=h)
+    t = []
+    for i in range(10):
+        auth_fc.sr_thread_start(
+            f"t{i}", _status, headers=_headers(u), timestamps=t, delay=i * 0.5
+        )
     auth_fc.sr_thread_join()
+    pkeq(10, len(t))

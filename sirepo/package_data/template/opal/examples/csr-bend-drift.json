@@ -20,7 +20,7 @@
             "aspectRatio": "1",
             "colorMap": "viridis",
             "framesPerSecond": "2",
-            "histogramBins": 200,
+            "histogramBins": 50,
             "horizontalOffset": -0.0010212848300086264,
             "horizontalSize": 0.013571305951667036,
             "isRunning": 0,
@@ -380,10 +380,13 @@
             "x": "s",
             "y1": "rms x",
             "y2": "rms y",
-            "y3": "rms s"
+            "y3": "rms s",
+            "y4": "emit x",
+            "y4Position": "right",
+            "y5": "emit y",
+            "y5Position": "right"
         },
         "plotAnimation": {
-            "aspectRatio": "1",
             "isRunning": 0,
             "notes": "",
             "x": "SPOS",
