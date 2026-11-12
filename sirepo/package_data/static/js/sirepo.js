@@ -1775,8 +1775,9 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
                 if (c) {
                     if ((! modelName) || modelName === c.value._srcache_modelName) {
                         keys.push(c.primaryKey);
-                        c.continue();
                     }
+                    // continue past other models' frames, or deleteKeys is never called
+                    c.continue();
                 }
                 else {
                     deleteKeys(keys);
