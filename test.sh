@@ -4,7 +4,7 @@
 #
 set -euo pipefail
 
-_KARMA_SUCCESS='TOTAL: 41 SUCCESS$'
+_KARMA_SUCCESS='TOTAL: 44 SUCCESS$'
 
 _err() {
     _msg "$@"
