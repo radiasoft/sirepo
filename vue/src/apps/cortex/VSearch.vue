@@ -42,7 +42,7 @@
                             <input
                                 type="text"
                                 class="form-control form-control-sm"
-                                placeholder="Filter by name or material type"
+                                placeholder="Filter by name or type"
                                 v-model="filter"
                             />
                             <VPager
