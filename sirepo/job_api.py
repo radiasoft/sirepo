@@ -289,8 +289,10 @@ class API(sirepo.quest.API):
                 else self._request_content(k)
             )
             c.pkupdate(
-                api=res.api,
-                serverSecret=sirepo.job.cfg().server_secret,
+                {
+                    "api": res.api,
+                    sirepo.job.SERVER_SECRET_KEY: sirepo.job.cfg().server_secret,
+                }
             )
             if c.api in _MUST_HAVE_METHOD:
                 # TODO(robnagler) should be error reply

@@ -65,6 +65,9 @@ AGENT_URI = "/job-agent-websocket"
 #: path supervisor registers to receive srtime adjustments from server
 SERVER_SRTIME_URI = "/job-api-srtime"
 
+#: key in server requests to supervisor for job.cfg().server_secret, which must not be logged
+SERVER_SECRET_KEY = "serverSecret"
+
 #: path supervisor registers to receive requests from server
 SERVER_URI = "/job-api-request"
 

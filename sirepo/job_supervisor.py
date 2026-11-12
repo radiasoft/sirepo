@@ -119,7 +119,7 @@ class ServerReq(PKDict):
         return "ServerReq(<no content>)"
 
     async def receive(self):
-        s = self.content.pkdel("serverSecret")
+        s = self.content.pkdel(sirepo.job.SERVER_SECRET_KEY)
         # no longer contains secret so ok to log
         if not s:
             pkdlog("no secret in message content={}", self.content)
