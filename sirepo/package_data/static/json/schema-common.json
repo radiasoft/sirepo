@@ -89,6 +89,7 @@
         "authEmailAuthorized": "/auth-email-authorized/<simulation_type>/<token>",
         "authEmailLogin": "/auth-email-login",
         "authGuestLogin": "/auth-guest-login/<simulation_type>",
+        "authHeaderLogin": "/auth-header-login/<simulation_type>",
         "authLdapLogin": "/auth-ldap-login",
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",

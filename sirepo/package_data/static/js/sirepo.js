@@ -2040,6 +2040,9 @@ SIREPO.app.factory('authService', function(authState, uri, stringsService) {
         if ('guest' == method) {
             return 'as Guest';
         }
+        if ('header' == method) {
+            return 'with Single Sign-On';
+        }
         return 'with ' + stringsService.ucfirst(method);
     }
 
@@ -4673,6 +4676,11 @@ SIREPO.app.controller('LoginWithController', function (authState, errorService, 
                 authState.handleLogin(data, self);
             }
         );
+    }
+    else if (m == 'header') {
+        requestSender.globalRedirect('authHeaderLogin', {
+            simulation_type: SIREPO.APP_SCHEMA.simulationType,
+        });
     }
     else if (m == 'email') {
         // handled by the emailLogin directive

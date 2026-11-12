@@ -501,6 +501,7 @@ class _Auth(sirepo.quest.Attr):
             )
 
     def only_for_api_logout(self):
+        m = _METHOD_MODULES[self._qcall_bound_method()]
         sirepo.events.emit(
             self.qcall,
             "auth_logout",
@@ -508,6 +509,8 @@ class _Auth(sirepo.quest.Attr):
         )
         self.qcall.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         self._set_log_user()
+        if hasattr(m, "logout_url"):
+            return m.logout_url()
 
     def parse_display_name(self, value):
         res = value.strip()
@@ -621,7 +624,7 @@ class _Auth(sirepo.quest.Attr):
         # POSIT: Uid's are from the base62 charset so an '@' implies an email.
         if "@" in uid_or_user_name:
             a = PKDict(user_name=uid_or_user_name)
-            m = self.qcall.auth_db.model(_METHOD_MODULES[METHOD_EMAIL].UserModel)
+            m = self.qcall.auth_db.model("AuthEmailUser")
         else:
             a = PKDict(uid=simulation_db.assert_uid(uid_or_user_name))
             m = self.qcall.auth_db.model("UserRegistration")
