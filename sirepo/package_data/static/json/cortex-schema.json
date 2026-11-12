@@ -30,6 +30,11 @@
         "hcpbSlabAnimation": ["stat"],
         "wcllSlabAnimation": ["stat"]
     },
+    "localRoutes": {
+        "search": {
+            "route": "/search"
+        }
+    },
     "model": {
         "hcllSlabAnimation": {
             "stat": ["", "String"]
