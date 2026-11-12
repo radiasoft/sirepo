@@ -423,8 +423,9 @@ angular.module("ngDraggable", [])
                         img.on('mousedown touchstart touchmove touchend touchcancel', absorbEvent_);
                     };
                     var onDragStart = function(evt, obj, elm) {
-                        _allowClone=true;
-                        if(angular.isDefined(obj.data.allowClone)){
+                        // sirepo: draggables without data (e.g. popupReport) aren't cloned
+                        _allowClone=!! obj.data;
+                        if(_allowClone && angular.isDefined(obj.data.allowClone)){
                             _allowClone=obj.data.allowClone;
                         }
                         if(_allowClone) {
