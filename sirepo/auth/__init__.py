@@ -621,7 +621,7 @@ class _Auth(sirepo.quest.Attr):
         # POSIT: Uid's are from the base62 charset so an '@' implies an email.
         if "@" in uid_or_user_name:
             a = PKDict(user_name=uid_or_user_name)
-            m = self.qcall.auth_db.model(_METHOD_MODULES[METHOD_EMAIL].UserModel)
+            m = self.qcall.auth_db.model("AuthEmailUser")
         else:
             a = PKDict(uid=simulation_db.assert_uid(uid_or_user_name))
             m = self.qcall.auth_db.model("UserRegistration")
