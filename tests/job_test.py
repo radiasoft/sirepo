@@ -19,6 +19,28 @@
 _REPORT = "heightWeightReport"
 
 
+def test_frame_not_found(fc):
+    from pykern import pkunit
+    from pykern.pkcollections import PKDict
+    from pykern.pkdebug import pkdp, pkdlog
+    import sirepo.sim_data
+
+    d = fc.sr_sim_data()
+    r = fc.sr_run_sim(d, "activityAnimation")
+    # a frame request for a previous run is rejected by the supervisor
+    r.computeJobSerial -= 1
+    f = fc.sr_get_json(
+        "simulationFrame",
+        PKDict(
+            frame_id=sirepo.sim_data.get_class(fc.sr_sim_type).frame_id(
+                d, r, "activityAnimation", 0
+            ),
+        ),
+    )
+    pkunit.pkeq("error", f.state)
+    pkunit.pkeq("not found", f.error)
+
+
 def test_runCancel(fc):
     from pykern import pkunit
     from pykern.pkdebug import pkdc, pkdp, pkdlog

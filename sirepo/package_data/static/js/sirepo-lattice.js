@@ -955,6 +955,10 @@ SIREPO.app.directive('beamlineEditor', function(appState, latticeService, panelS
             };
 
             $scope.dragStart = (data) => {
+                if (! data) {
+                    // not a lattice item, e.g. the twiss plot's popupReport
+                    return;
+                }
                 dragCanceled = false;
                 $scope.selectItem(data);
                 let idx;

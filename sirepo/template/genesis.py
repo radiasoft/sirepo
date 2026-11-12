@@ -371,24 +371,23 @@ def _get_lattice_and_slice_data(run_dir, lattice_index):
         return d
 
     f = run_dir.join(_LATTICE_DATA_FILENAME.format(lattice_index))
-    if f.exists():
-        return numpy.load(str(f)), numpy.load(str(run_dir.join(_SLICE_DATA_FILENAME)))
+    s = run_dir.join(_SLICE_DATA_FILENAME)
+    if f.exists() and s.exists():
+        return numpy.load(str(f)), numpy.load(str(s))
     o = pkio.read_text(run_dir.join(GENESIS_OUTPUT_FILE))
-    c = 0
-    for v in re.finditer(_LATTICE_RE, o):
+    # parse before saving anything, so a failure doesn't leave a partial cache
+    m = _SLICE_RE.search(o)
+    if not m:
+        raise AssertionError(f"slice data not found in {GENESIS_OUTPUT_FILE}")
+    for i, v in enumerate(re.finditer(_LATTICE_RE, o)):
         _reshape_and_persist(
             numpy.fromstring(v[1], sep="\t"),
             _LATTICE_COLS,
-            run_dir.join(_LATTICE_DATA_FILENAME.format(c)),
+            run_dir.join(_LATTICE_DATA_FILENAME.format(i)),
         )
-        c += 1
     return (
         numpy.load(str(f)),
-        _reshape_and_persist(
-            numpy.fromstring(_SLICE_RE.search(o)[1], sep="\t"),
-            _SLICE_COLS,
-            run_dir.join(_SLICE_DATA_FILENAME),
-        ),
+        _reshape_and_persist(numpy.fromstring(m[1], sep="\t"), _SLICE_COLS, s),
     )
 
 

@@ -74,9 +74,10 @@ class DockerDriver(job_driver.DriverBase):
 
     async def free_resources(self, *args, **kwargs):
         # TODO(robnagler) free_resources does the kill, which is problematic
-        await super().free_resources(*args, **kwargs)
+        if not await super().free_resources(*args, **kwargs):
+            return False
         if self.host is None:
-            return
+            return True
         try:
             h = self.host
             self.host = None
@@ -86,7 +87,7 @@ class DockerDriver(job_driver.DriverBase):
                 self.__users.pkdel(self.uid)
         except Exception as e:
             pkdlog("{} error={} stack={}", self, e, pkdexc())
-        return
+        return True
 
     @classmethod
     def get_instance(cls, op):

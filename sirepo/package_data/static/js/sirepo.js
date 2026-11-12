@@ -1391,21 +1391,23 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
         // a response to the auth request. Has to do with the internals of sbatch.py
         // which does not coordinate login.
         // TODO(robnagler) may need this !(_state == _s_auth && [_e_authMissing, _e_authError])
-        if (self.query('ignoreSRException')) {
-            srlog('sbatchLoginService ignoring srException', srException, 'state', _state, 'reason', r);
-            return true;
-        }
         //TODO(robnagler) an alternative is to broadcast an error.
         // there should be some type of global state management
         // here, since requests are all connected to this event.
         // if there is a frame waiting on a request, this state
         // should be known. requestSender perhaps needs to know...
+        // Always complete the request, even when ignored: frameCache.getFrame
+        // won't send another request for the report until this one completes.
         errorCallback({
             state: 'error',
             //TODO(robnagler) this should be returned from sbatchLoginService or stringService
             error: `Please login to ${authState.sbatchHostDisplayName}`,
             sbatchLoginServiceSRException: true,
         });
+        if (self.query('ignoreSRException')) {
+            srlog('sbatchLoginService ignoring srException', srException, 'state', _state, 'reason', r);
+            return true;
+        }
         self.event(r, {srException: srException});
         return true;
     };
@@ -1468,6 +1470,11 @@ SIREPO.app.service('sbatchLoginService', function($rootScope, appState, authStat
     };
 
     self.jobRunModeChanged = (directiveScope) => {
+        if (directiveScope.$$destroyed) {
+            // whenModelsLoaded calls back with $applyAsync, which may run after
+            // the directive is destroyed, so it would be re-added as a dead owner
+            return;
+        }
         if (self.isSbatchMode(directiveScope.simState.model)) {
             _sbatchScopes.add(directiveScope);
         }
@@ -1768,8 +1775,9 @@ SIREPO.app.factory('srCache', function(appState, $rootScope) {
                 if (c) {
                     if ((! modelName) || modelName === c.value._srcache_modelName) {
                         keys.push(c.primaryKey);
-                        c.continue();
                     }
+                    // continue past other models' frames, or deleteKeys is never called
+                    c.continue();
                 }
                 else {
                     deleteKeys(keys);

@@ -115,12 +115,16 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
         Unsets driver to avoid a callback loop.
         """
-        if hasattr(self, "sr_driver"):
-            del self.sr_driver
+        self.sr_driver_unset()
         self.close()
 
     def sr_driver_set(self, driver):
         self.sr_driver = driver
+
+    def sr_driver_unset(self):
+        """on_close will not notify the driver"""
+        if hasattr(self, "sr_driver"):
+            del self.sr_driver
 
     def sr_on_exception(self):
         self.on_close()
@@ -170,20 +174,39 @@ class _ServerSrtime(_JsonPostRequestHandler):
         self.write(PKDict())
 
 
+def _content_for_log(content):
+    """Content without the server secret, which must not be logged
+
+    Args:
+        content (object): parsed request or None if unparsable
+    Returns:
+        object: copy of content without job.SERVER_SECRET_KEY
+    """
+    if not isinstance(content, dict):
+        return "<unparsable>"
+    rv = PKDict(content)
+    rv.pkdel(sirepo.job.SERVER_SECRET_KEY)
+    return rv
+
+
 async def _incoming(content, handler):
+    c = None
     try:
-        c = content
-        if not isinstance(content, dict):
-            c = pkjson.load_any(content)
+        c = content if isinstance(content, dict) else pkjson.load_any(content)
         if c.get("api") != "api_runStatus":
             pkdc(
                 "class={} content={}",
                 handler.sr_class,
-                c,
+                _content_for_log(c),
             )
         return await handler.sr_class(handler=handler, content=c).receive()
     except Exception as e:
-        pkdlog("exception={} handler={} content={}", e, handler, content)
+        pkdlog(
+            "exception={} handler={} content={}",
+            e,
+            handler,
+            _content_for_log(c),
+        )
         pkdlog(pkdexc())
         try:
             handler.sr_on_exception()
