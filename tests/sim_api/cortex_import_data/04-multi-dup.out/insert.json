@@ -1,0 +1,17 @@
+{
+    "error": [
+        {
+            "msg": "material name=Fe 9Cr 1.5W 0.25V already exists"
+        },
+        {
+            "msg": "material name=Fe 11Cr 1W 0.3V 0.1Ta already exists"
+        },
+        {
+            "msg": "material name=Fe 12Cr 2W 0.2V already exists"
+        },
+        {
+            "msg": "material name=W 1Ta already exists"
+        }
+    ],
+    "state": "error"
+}

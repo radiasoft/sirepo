@@ -210,46 +210,50 @@ _SIM_OUTPUT = PKDict(
     slabAnimation=list(_REPORT_TITLE.slabAnimation.keys()),
 )
 
+# Seconds of a hcpb run. WCLL has the same output, which is why the report
+# type is shared, and is only approximated.
 _SIM_TIME = PKDict(
-    slabAnimation=679,
+    slabAnimation=451,
 )
+
+# Each marker is found in order in the log and the seconds are when it
+# was output. The log has three openmc runs: neutronics, D1S, and depletion.
+# POSIT: batches are counted in the log, and the markers are only for the
+# first 5, which is slab.py.jinja BATCHES. A trigger can run more, and the
+# extras don't match a marker, so the progress waits for the next marker.
+# The times are from a run which took 451 seconds, see
+# tests/template/cortex_plot_test.py::test_log_progress.
 _LOG_TIME = PKDict(
     slabAnimation=[
         [v[0], v[1] / _SIM_TIME.slabAnimation]
         for v in (
-            ["Reading model XML file", 50],
-            ["Simulating batch 2", 75],
-            ["Simulating batch 3", 93],
-            ["Simulating batch 4", 111],
-            ["Simulating batch 5", 128],
-            ["Simulating batch 6", 147],
-            ["Simulating batch 7", 165],
-            ["Simulating batch 8", 182],
-            ["Simulating batch 9", 200],
-            ["Simulating batch 10", 217],
-            ["Performing D1S run", 244],
-            ["Simulating batch 1", 252],
-            ["Simulating batch 2", 274],
-            ["Simulating batch 3", 297],
-            ["Simulating batch 4", 319],
-            ["Simulating batch 5", 342],
-            ["Simulating batch 6", 364],
-            ["Simulating batch 7", 387],
-            ["Simulating batch 8", 410],
-            ["Simulating batch 9", 432],
-            ["Simulating batch 10", 454],
-            ["Creating state point", 476],
-            ["Simulating batch 1", 488],
-            ["Simulating batch 2", 503],
-            ["Simulating batch 3", 520],
-            ["Simulating batch 4", 535],
-            ["Simulating batch 5", 551],
-            ["Simulating batch 6", 566],
-            ["Simulating batch 7", 582],
-            ["Simulating batch 8", 597],
-            ["Simulating batch 9", 613],
-            ["Simulating batch 10", 629],
-            ["Creating state point", 644],
+            # neutronics
+            ["Reading model XML file", 45],
+            ["Simulating batch 1", 54],
+            ["Simulating batch 2", 68],
+            ["Simulating batch 3", 81],
+            ["Simulating batch 4", 95],
+            ["Simulating batch 5", 109],
+            ["Creating state point", 122],
+            # D1S
+            ["Performing D1S run", 126],
+            ["Reading model XML file", 132],
+            ["Simulating batch 1", 140],
+            ["Simulating batch 2", 155],
+            ["Simulating batch 3", 170],
+            ["Simulating batch 4", 185],
+            ["Simulating batch 5", 200],
+            ["Creating state point", 216],
+            # depletion
+            ["Reading model XML file", 230],
+            ["Simulating batch 1", 238],
+            ["Simulating batch 2", 264],
+            ["Simulating batch 3", 289],
+            ["Simulating batch 4", 315],
+            ["Simulating batch 5", 340],
+            ["Creating state point", 365],
+            ["[openmc.deplete]", 366],
+            ["[waste summary]", 403],
         )
     ],
 )

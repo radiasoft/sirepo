@@ -1,0 +1,26 @@
+[
+    {
+        "col": 5,
+        "msg": "unknown nuclide or element in cell=Bogus",
+        "row": 2,
+        "sheet": "Composition"
+    },
+    {
+        "col": 6,
+        "msg": "duplicate nuclide or element in cell=Fe",
+        "row": 2,
+        "sheet": "Composition"
+    },
+    {
+        "col": 7,
+        "msg": "duplicate column in cell=Material Type",
+        "row": 2,
+        "sheet": "Composition"
+    },
+    {
+        "col": 2,
+        "msg": "material type must be structural or plasma-facing in cell=Core",
+        "row": 4,
+        "sheet": "Composition"
+    }
+]

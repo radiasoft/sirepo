@@ -26,27 +26,25 @@
             </VCortexCard>
         </div>
         <div class="col-md-6" v-if="showPublic">
-            <VCortexCard v-if="! material.is_public">
+            <VCortexCard title="Public Access">
+                <p>
+                    This material is <strong>{{ material.is_public ? 'public' : 'private' }}</strong>.
+                    <span class="text-muted">Public materials can be viewed by any user.</span>
+                </p>
                 <button
                     type="button"
                     class="btn btn-outline-primary"
-                    v-on:click="setPublic(true)"
+                    v-bind:disabled="isSaving || ! canToggle()"
+                    v-on:click="setPublic(! material.is_public)"
                 >
-                    Allow Public Access
-                    <VTooltip tooltip="Publicly accessible materials can be viewed by any user" />
+                    <span v-if="isSaving" class="spinner-border spinner-border-sm"></span>
+                    {{ material.is_public ? 'Remove Public Access' : 'Allow Public Access' }}
                 </button>
-                <span class="float-end" style="line-height: 40px; vertical-align: bottom">This material is private.</span>
-            </VCortexCard>
-            <VCortexCard v-if="material.is_public">
-                <button
-                    type="button"
-                    class="btn btn-outline-primary"
-                    v-on:click="setPublic(false)"
-                >
-                    Remove Public Access
-                    <VTooltip tooltip="Remove this material from public access" />
-                </button>
-                <span class="float-end" style="line-height: 40px; vertical-align: bottom">This material is public.</span>
+                <div v-if="! canToggle()" class="form-text">
+                    Run the HCPB Slab neutronics simulation before making
+                    this material public.
+                </div>
+                <div v-if="error" class="text-danger mt-2">{{ error }}</div>
             </VCortexCard>
         </div>
         <div class="col-md-6">
@@ -104,24 +102,15 @@
             </VCortexCard>
         </div>
     </VMasonry>
-    <VConfirmationModal
-        ref="confirm"
-        cancelText="Close"
-        title="Error"
-    >
-        The HCPB slab neutronics simulation needs to be completed before
-        a material can be made publicly available.
-    </VConfirmationModal>
 </template>
 
 <script setup>
- import VConfirmationModal from '@/components/VConfirmationModal.vue';
  import VCortexCard from '@/apps/cortex/VCortexCard.vue';
  import VDOIRows from '@/apps/cortex/VDOIRows.vue';
  import VMasonry from '@/components/layout/VMasonry.vue'
  import VTooltip from '@/components/VTooltip.vue';
  import { db } from '@/apps/cortex/db.js';
- import { ref } from 'vue';
+ import { onMounted, ref } from 'vue';
  import { useRoute } from 'vue-router';
 
  const props = defineProps({
@@ -129,7 +118,9 @@
      materialId: String,
  });
 
- const confirm = ref(null);
+ const MIN_SAVING_MS = 500;
+ const error = ref('');
+ const isSaving = ref(false);
  const route = useRoute();
  const showPublic = ref(route.name === "material");
 
@@ -137,17 +128,40 @@
      return value ? value.toFixed(4) : value;
  };
 
+ // POSIT: material_db _PUBLIC_MODEL results are needed to make it public
+ const canToggle = () => props.material.is_public || props.material.can_be_public;
+
  const setPublic = async (isPublic) => {
-     if (isPublic) {
-         if (! (await db.canSetMaterialPublic(props.materialId))) {
-             confirm.value.showModal();
+     error.value = '';
+     isSaving.value = true;
+     try {
+         // a fast reply would flash the spinner, so it shows for at least this long
+         const [r] = await Promise.all([
+             db.setMaterialPublic(props.materialId, isPublic),
+             new Promise((resolve) => setTimeout(resolve, MIN_SAVING_MS)),
+         ]);
+         if (r.error) {
+             error.value = r.error.value;
              return;
          }
-     }
-     const r = await db.setMaterialPublic(props.materialId, isPublic);
-     if (! r.error) {
          props.material.is_public = isPublic;
      }
+     catch (e) {
+         error.value = 'Unable to change public access, please try again';
+     }
+     finally {
+         isSaving.value = false;
+     }
  };
+
+ onMounted(async () => {
+     // the simulation may have completed since the material was loaded
+     if (showPublic.value && ! canToggle()) {
+         const r = await db.materialDetail(props.materialId, false);
+         if (r.detail) {
+             props.material.can_be_public = r.detail.can_be_public;
+         }
+     }
+ });
 
 </script>

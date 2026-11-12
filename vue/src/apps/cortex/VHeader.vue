@@ -23,7 +23,7 @@
             <template v-slot:admin>
                 <li>
                     <RouterLink class="dropdown-item" v-bind:to="{ name: 'batch' }">
-                        Admin Cortex Batch
+                        Admin Batch Runs
                     </RouterLink>
                 </li>
             </template>

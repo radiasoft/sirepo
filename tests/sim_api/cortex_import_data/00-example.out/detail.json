@@ -1,5 +1,6 @@
 {
     "detail": {
+        "can_be_public": false,
         "components": [
             {
                 "material_component_id": 1002,

@@ -11,6 +11,7 @@ def test_all():
     from sirepo import srunit
     import subprocess
     from sirepo.sim_api.cortex import material_db
+    import sirepo.pkcli.cortex
 
     srunit.setup_srdb_root()
     db_path = str(material_db._path())
@@ -36,6 +37,27 @@ def test_all():
                 "detail.json",
                 material_db.material_detail(material_id=1001, is_public=False, uid=uid),
             )
+            # only the owner can change it, and public needs the hcpb results
+            with pkunit.pkexcept("NoRows"):
+                material_db.set_public(1001, False, "other-uid")
+            with pkunit.pkexcept("needs to be completed"):
+                material_db.set_public(1001, True, uid)
+            material_db.set_public(1001, False, uid)
+            pkunit.pkeq(
+                False,
+                material_db.format_material_detail(1001, False, uid).can_be_public,
+            )
+            # the admin cli updates the material as its owner
+            sirepo.pkcli.cortex.set_material_featured("1001", "1")
+            with material_db._session() as s:
+                pkunit.pkeq(
+                    True,
+                    s.select_one(
+                        "material", where=PKDict(material_id=1001)
+                    ).is_featured,
+                )
+            with pkunit.pkexcept("needs to be completed"):
+                sirepo.pkcli.cortex.set_material_public("1001", "1")
             material_db.delete_material(material_id=1001, uid=uid)
             with pkunit.pkexcept("NoRows"):
                 material_db.material_detail(material_id=1001, is_public=False, uid=uid)

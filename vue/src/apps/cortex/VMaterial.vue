@@ -1,58 +1,31 @@
 <template>
-    <div v-if="error" class="h2 text-center">
-        {{ error }}
+    <div v-if="error" class="container-lg sr-fixed-lg">
+        <div class="alert alert-danger">{{ error }}</div>
+        <RouterLink v-bind:to="{ name: 'search' }">Back to Materials</RouterLink>
     </div>
+    <VLoadingIndicator v-if="! material && ! error" message="Loading material" />
     <div v-if="material" class="container-lg sr-fixed-lg">
-        <div class="float-end">
-            <VNavButton
-                v-bind:active="selectedSection"
-                section="overview"
-                label="Overview"
-                v-on:selected="selectSection"
-            ></VNavButton>
-            <VNavButton
-                v-if="material.properties.length"
-                v-bind:active="selectedSection"
-                section="properties"
-                label="Properties"
-                v-on:selected="selectSection"
-            ></VNavButton>
-            <VNavButton
-                v-bind:active="selectedSection"
-                section="cost"
-                label="Cost"
-                v-on:selected="selectSection"
-            ></VNavButton>
-            <div class="btn-group">
-                <VNavButton
-                    v-bind:active="selectedSection"
-                    section="neutronics"
-                    label="Neutronics"
-                    v-on:selected="selectSection"
-                ></VNavButton>
-                <button
-                    class="btn dropdown-toggle dropdown-toggle-split"
-                    v-bind:class="{
-                        active: isSelected('neutronics'),
-                        'btn-primary': isSelected('neutronics'),
-                        'btn-light': ! isSelected('neutronics'),
-                    }"
-                    data-bs-toggle="dropdown"
-                ></button>
-                <ul class="dropdown-menu dropdown-menu-end" id="sr-neutronics-dropdown-menu">
-                    <li v-for="sim in Object.keys(neutronicsSims)">
-                        <button
-                            class="dropdown-item"
-                            v-on:click="selectNeutronics(sim)"
-                            v-bind:class="{active: isSelected('neutronics') && neutronicsSim === sim}"
-                        >
-                            {{ neutronicsSims[sim] }}
-                        </button>
-                    </li>
-                </ul>
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <div class="h2 mb-0 text-break">{{ material.name }}</div>
+            <!-- one group, so a long name wraps it to the next line as a whole, on the right -->
+            <div class="d-flex flex-wrap align-items-center justify-content-end gap-2 ms-auto">
+                <select
+                    v-if="isSelected('neutronics')"
+                    class="form-select form-select-sm w-auto"
+                    title="Neutronics simulation"
+                    v-model="neutronicsSim"
+                >
+                    <option v-for="r in REPORTS" v-bind:key="r.name" v-bind:value="r.name">
+                        {{ r.label }}
+                    </option>
+                </select>
+                <VTabs
+                    v-bind:items="sections()"
+                    v-bind:pills="true"
+                    v-model="selectedSection"
+                />
             </div>
         </div>
-        <div class="h2">{{ material.name }}</div>
     </div>
     <div v-if="material">
         <div v-if="isSelected('neutronics')">
@@ -61,7 +34,6 @@
                 v-bind:materialName="material.name"
                 v-bind:isPlasmaFacing="material.is_plasma_facing"
                 v-bind:neutronics="neutronicsSim"
-                v-bind:title="neutronicsSims[neutronicsSim]"
             />
         </div>
         <div class="container-lg sr-fixed-lg">
@@ -87,54 +59,59 @@
 
 <script setup>
  import VCost from '@/apps/cortex/VCost.vue';
- import VNavButton from '@/apps/cortex/VNavButton.vue';
  import VNeutronics from '@/apps/cortex/VNeutronics.vue';
  import VOverview from '@/apps/cortex/VOverview.vue';
  import VProperties from '@/apps/cortex/VProperties.vue';
+ import VLoadingIndicator from '@/components/VLoadingIndicator.vue';
+ import VTabs from '@/components/VTabs.vue';
+ import { RouterLink } from 'vue-router';
+ import { DEFAULT_REPORT, REPORTS } from '@/apps/cortex/reports.js';
  import { db } from '@/apps/cortex/db.js';
  import { onMounted, ref } from 'vue';
  import { useRoute } from 'vue-router';
-
- const neutronicsSims = {
-     hcpbSlabAnimation: 'HCPB Slab',
-     hcllSlabAnimation: 'HCLL Slab',
-     wcllSlabAnimation: 'WCLL Slab',
- };
+ import { useRouteQuery } from '@/components/useRouteQuery.js';
 
  const error = ref(null);
  const material = ref(null);
  const materialId = ref(null);
  const route = useRoute();
- // overview, properties, cost, neutronics
- const selectedSection = ref('overview');
- const neutronicsSim = ref(Object.keys(neutronicsSims)[0]);
+ // in the url, so refresh, Back and links show the same section and simulation
+ const selectedSection = useRouteQuery('section', 'overview', {
+     isValid: (v) => sections().some((s) => s.value === v),
+     push: true,
+ });
+ const neutronicsSim = useRouteQuery('sim', DEFAULT_REPORT, {
+     isValid: (v) => REPORTS.some((r) => r.name === v),
+ });
 
  const isSelected = (section) => {
      return selectedSection.value === section;
  };
 
- const selectNeutronics = (neutronics) => {
-     neutronicsSim.value = neutronics;
-     selectSection('neutronics');
- }
-
- const selectSection = (section) => {
-     selectedSection.value = section;
-     // bootstrap dropdown doesn't always dismiss correctly when navigating buttons
-     const d = document.getElementById('sr-neutronics-dropdown-menu')
-     if (d && d.classList) {
-         d.classList.remove('show');
-     }
- };
+ const sections = () => [
+     { value: 'overview', label: 'Overview' },
+     // until the material is loaded, properties is assumed, so a link to it works
+     ...(! material.value || material.value.properties.length
+         ? [{ value: 'properties', label: 'Properties' }]
+         : []),
+     { value: 'cost', label: 'Cost' },
+     { value: 'neutronics', label: 'Neutronics' },
+ ];
 
  onMounted(async () => {
      materialId.value = route.params.materialId;
-     const r = await db.materialDetail(materialId.value, route.name === "view");
-     if (r.error) {
-         error.value = r.error.value;
+     try {
+         const r = await db.materialDetail(materialId.value, route.name === "view");
+         if (r.error) {
+             // POSIT: api_cortexDb replies with Not Found for a missing material
+             error.value = r.error.value === 'Not Found' ? 'Material not found' : r.error.value;
+         }
+         else {
+             material.value = r.detail;
+         }
      }
-     else {
-         material.value = r.detail;
+     catch (e) {
+         error.value = 'Unable to load the material, please try again';
      }
  });
 </script>

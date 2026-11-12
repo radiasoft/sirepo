@@ -1,4 +1,8 @@
 <template>
+    <div v-if="deleteError" class="alert alert-danger alert-dismissible">
+        {{ deleteError }}
+        <button type="button" class="btn-close" v-on:click="deleteError = ''"></button>
+    </div>
     <table class="table table-striped">
         <thead>
             <tr>
@@ -20,40 +24,55 @@
         </thead>
         <tbody>
             <tr
-                v-for="mat in state.materials"
+                v-for="mat in pageItems"
                 v-bind:key="mat.material_id"
             >
                 <td
                     v-for="col in cols"
                     v-bind:key="col.name"
                     v-bind:class="{ 'text-end': col.std || col.numeric }"
-                >{{ formatValue(mat, col) }}<span
+                ><VMaterialLink
+                    v-if="col.isLink"
+                    v-bind:materialId="mat.material_id"
+                >{{ formatValue(mat, col) }}</VMaterialLink><template
+                    v-else
+                >{{ formatValue(mat, col) }}</template><span
                     v-if="col.std && mat[col.name]"
                     class="sr-subheading"
                 >&nbsp;&plusmn;&nbsp;{{ formatStd(mat, col) }}</span></td>
                 <td class="sr-button-bar-td">
                     <div class="sr-button-bar-parent">
                         <div class="sr-button-bar">
-                            <VMaterialLink
-                                v-bind:materialId="mat.material_id"
-                                >
-                                <div class="btn btm-sm btn-info">
-                                    View
-                                </div>
-                            </VMaterialLink>
                             <button
                                 type="button"
                                 v-on:click="removeMaterial(mat)"
                                 class="btn btn-danger btn-sm"
+                                v-bind:disabled="deletingId === mat.material_id"
+                                title="Delete"
                             >
-                                <span class="bi bi-trash3"></span>
+                                <span
+                                    v-if="deletingId === mat.material_id"
+                                    class="spinner-border spinner-border-sm"
+                                ></span>
+                                <span v-else class="bi bi-trash3"></span>
                             </button>
                         </div>
                     </div>
                 </td>
             </tr>
+            <tr v-if="! visible.length">
+                <td v-bind:colspan="cols.length + 1" class="text-muted">
+                    No materials match the filter
+                </td>
+            </tr>
         </tbody>
     </table>
+    <VPager
+        v-model:page="page"
+        v-bind:pageCount="pageCount"
+        v-bind:range="pageRange"
+        v-bind:total="visible.length"
+    />
     <VConfirmationModal
         ref="confirmDeleteModal"
         title="Delete Material"
@@ -67,16 +86,30 @@
 <script setup>
  import VConfirmationModal from '@/components/VConfirmationModal.vue';
  import VMaterialLink from '@/apps/cortex/VMaterialLink.vue';
+ import VPager from '@/apps/cortex/VPager.vue';
  import { RouterLink } from 'vue-router';
  import { db, DB_UPDATED } from '@/apps/cortex/db.js';
- import { onMounted, onUnmounted, reactive, ref } from 'vue';
+ import { onMounted, onUnmounted, reactive, ref, toRef, watch } from 'vue';
  import { pubSub } from '@/services/pubsub.js';
  import { requestSender } from '@/services/requestsender.js';
  import { util } from '@/services/util.js';
+ import { MATERIAL_TYPE_HEADING, materialTypeName } from '@/apps/cortex/materialType.js';
  import { SUMMARY_COLUMNS, useSummary } from '@/apps/cortex/useSummary.js';
+ import { usePagedList } from '@/apps/cortex/usePagedList.js';
 
+ const props = defineProps({
+     // text to filter by, entered in the header of the card
+     filter: { type: String, default: '' },
+     // simulation of the summary columns
+     report: { type: String, required: true },
+ });
  const emit = defineEmits(['materialCount']);
+ // a user's materials have wide rows, a user has fewer than the admin batch page
+ const PAGE_SIZE = 25;
  const confirmDeleteModal = ref(null);
+ const deleteError = ref('');
+ // the material being deleted
+ const deletingId = ref(null);
  const selectedMaterial = ref(null);
  const { formatValue, formatStd } = useSummary();
 
@@ -84,6 +117,8 @@
      {
          name: 'material_name',
          heading: 'Material Name',
+         // the name opens the material
+         isLink: true,
      },
      {
          name: 'created',
@@ -97,25 +132,53 @@
      },
      {
          name: 'is_plasma_facing',
-         heading: 'Material Type',
-         format: (v) => v ? 'plasma-facing' : 'structural',
+         heading: MATERIAL_TYPE_HEADING,
+         format: (v) => materialTypeName(v),
      },
      ...SUMMARY_COLUMNS,
  ]);
+ let loadCount = 0;
  const state = reactive({
      sort: ['material_name', true],
      materials: [],
  });
+ // the page can be changed outside of the table, which also needs the page count
+ const page = defineModel('page', { type: Number, default: 1 });
+ const lastPage = defineModel('pageCount', { type: Number, default: 1 });
+ const { pageCount, pageItems, pageRange, visible } = usePagedList(
+     toRef(state, 'materials'),
+     (m, f) => m.material_name.toLowerCase().includes(f)
+         || materialTypeName(m.is_plasma_facing).toLowerCase().includes(f),
+     { filter: toRef(props, 'filter'), page, pageSize: PAGE_SIZE },
+ );
 
  const deleteSelectedMaterial = async () => {
      confirmDeleteModal.value.closeModal();
-     await db.deleteMaterial(selectedMaterial.value.material_id);
-     await requestSender.sendRequest("cortexSim", {
-         op_name: 'delete',
-         op_args: {
-             material_id: selectedMaterial.value.material_id,
-         },
-     });
+     const m = selectedMaterial.value;
+     deleteError.value = '';
+     deletingId.value = m.material_id;
+     try {
+         const r = await db.deleteMaterial(m.material_id);
+         if (r.error) {
+             deleteError.value = `Unable to delete ${m.material_name}: ${r.error.value}`;
+             return;
+         }
+         // the material is gone, so remove the row without waiting for the sim or the list
+         state.materials = state.materials.filter((x) => x.material_id !== m.material_id);
+         emit('materialCount', state.materials.length);
+         await requestSender.sendRequest("cortexSim", {
+             op_name: 'delete',
+             op_args: {
+                 material_id: m.material_id,
+             },
+         });
+     }
+     catch (e) {
+         deleteError.value = `Unable to delete ${m.material_name}, please try again`;
+     }
+     finally {
+         deletingId.value = null;
+     }
      _loadMaterials();
  };
 
@@ -142,25 +205,20 @@
  }
 
  const _loadMaterials = async () => {
-     // don't show the import panel until we know how many materials are present
-     emit('materialCount', undefined);
-     state.materials = await db.listMaterials();
-
-     const c = cols.map((v) => v.name);
-     for (const r of state.materials) {
-         for (const k in r) {
-             if (k === 'material_id' || k.endsWith('_std') || c.includes(k)) {
-                 continue;
-             }
-             c.push(k);
-             cols.push({
-                 name: k,
-                 heading: k,
-                 format: (v) => util.formatExponential(v),
-                 numeric: true,
-             });
-         }
+     // don't show the import panel until we know how many materials are present.
+     // Not on a reload, which would hide this table until the list returns, and
+     // the page would lose its scroll position.
+     if (! state.materials.length) {
+         emit('materialCount', undefined);
      }
+     const n = ++loadCount;
+     const m = await db.listMaterials(props.report);
+     if (n !== loadCount) {
+         // a newer load was started while waiting
+         return;
+     }
+     // only the known columns are shown, other fields in the rows are ignored
+     state.materials = m;
      emit('materialCount', state.materials.length);
      _sortMaterials();
  };
@@ -189,6 +247,13 @@
          },
      );
  };
+
+ watch(pageCount, (n) => {
+     lastPage.value = n;
+ }, { immediate: true });
+
+ // the summary columns of another simulation
+ watch(() => props.report, _loadMaterials);
 
  onMounted(async () => {
      pubSub.subscribe(DB_UPDATED, _loadMaterials);

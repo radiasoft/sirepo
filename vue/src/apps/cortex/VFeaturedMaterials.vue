@@ -17,7 +17,7 @@
                             <span class="cortex-material-icon bi bi-database"></span>
                             <h5>{{ f.material_name }}</h5>
                             <p class="Card-text">
-                                {{ f.is_plasma_facing ? 'plasma-facing' : 'structural' }}
+                                {{ materialTypeName(f.is_plasma_facing) }}
                             </p>
                         </div>
                     </button>
@@ -30,6 +30,7 @@
 <script setup>
  import VCortexCard from '@/apps/cortex/VCortexCard.vue';
  import VMaterialLink from '@/apps/cortex/VMaterialLink.vue';
+ import { materialTypeName } from '@/apps/cortex/materialType.js';
  import { ref } from 'vue';
 
  const props = defineProps({

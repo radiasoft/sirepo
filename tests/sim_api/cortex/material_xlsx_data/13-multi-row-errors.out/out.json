@@ -1,0 +1,88 @@
+[
+    {
+        "col": 2,
+        "msg": "material type must be structural or plasma-facing in cell=Core",
+        "row": 3,
+        "sheet": "Composition"
+    },
+    {
+        "col": 3,
+        "msg": "density must be between 0 and 25 g/cm3 in cell=30.0",
+        "row": 4,
+        "sheet": "Composition"
+    },
+    {
+        "col": 3,
+        "msg": "density must be number (g/cm3) in cell=x",
+        "row": 5,
+        "sheet": "Composition"
+    },
+    {
+        "col": 1,
+        "msg": "name may not be blank",
+        "row": 6,
+        "sheet": "Composition"
+    },
+    {
+        "msg": "Weight % sum=95 less than 100 by 5, must be within 0.005",
+        "row": 7,
+        "sheet": "Composition"
+    },
+    {
+        "msg": "Weight % sum=110 greater than 100 by 10, must be within 0.005",
+        "row": 8,
+        "sheet": "Composition"
+    },
+    {
+        "col": 4,
+        "msg": "Weight % must not be negative in cell=-1.0 for component=Fe",
+        "row": 9,
+        "sheet": "Composition"
+    },
+    {
+        "col": 5,
+        "msg": "Weight % must not be greater than 100 in cell=101.0 for component=Cr",
+        "row": 9,
+        "sheet": "Composition"
+    },
+    {
+        "msg": "at least one element or nuclide must be provided",
+        "row": 10,
+        "sheet": "Composition"
+    },
+    {
+        "col": 4,
+        "msg": "Weight % must be a number (percentage) in cell=abc for component=Fe",
+        "row": 11,
+        "sheet": "Composition"
+    },
+    {
+        "col": 1,
+        "msg": "duplicate name=sum low",
+        "row": 12,
+        "sheet": "Composition"
+    },
+    {
+        "msg": "'balance' may only be used once components=(Cr, Fe)",
+        "row": 13,
+        "sheet": "Composition"
+    },
+    {
+        "col": 1,
+        "msg": "name must not be a number in cell=316.0",
+        "row": 14,
+        "sheet": "Composition"
+    },
+    {
+        "col": 1,
+        "msg": "name must not be a number in cell=316",
+        "row": 15,
+        "sheet": "Composition"
+    },
+    {
+        "col": 1,
+        "msg": "name value exceeded 100 characters in cell=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "row": 16,
+        "sheet": "Composition"
+    }
+]

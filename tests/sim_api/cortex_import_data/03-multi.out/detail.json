@@ -1,0 +1,59 @@
+{
+    "detail": {
+        "can_be_public": false,
+        "components": [
+            {
+                "material_component_id": 25002,
+                "material_component_name": "Fe",
+                "material_id": 3001,
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 89.8
+            },
+            {
+                "material_component_id": 26002,
+                "material_component_name": "Cr",
+                "material_id": 3001,
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 9.0
+            },
+            {
+                "material_component_id": 27002,
+                "material_component_name": "W",
+                "material_id": 3001,
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 1.0
+            },
+            {
+                "material_component_id": 28002,
+                "material_component_name": "V",
+                "material_id": 3001,
+                "max_pct": null,
+                "min_pct": null,
+                "target_pct": 0.2
+            }
+        ],
+        "composition": null,
+        "composition_density": null,
+        "density": 7.82,
+        "density_units": "g/cm\u00b3",
+        "is_atom_pct": false,
+        "is_plasma_facing": false,
+        "is_public": null,
+        "name": "Fe 9Cr 1W 0.2V",
+        "properties": [],
+        "section1": {
+            "Material Type": "structural",
+            "Microstructure Information": null,
+            "Processing": null,
+            "Structure": null
+        },
+        "section2": {
+            "Availability Factor": "",
+            "Neutron Source": "D-D",
+            "Neutron Wall Loading": null
+        }
+    }
+}

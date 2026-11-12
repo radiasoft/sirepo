@@ -11,6 +11,7 @@ import csv
 import io
 import openpyxl
 import os
+import pykern.pkcli
 import pykern.pkio
 import pykern.pkjson
 import re
@@ -246,6 +247,11 @@ def import_xlsx(uid_or_email, *args):
 
     def _import_xlsx(filename):
         pkdlog("import: {}", filename)
+        if sirepo.sim_api.cortex.material_xlsx.is_multi(filename):
+            pykern.pkcli.command_error(
+                "XLSX import {} is a multiple materials spreadsheet, which is not supported",
+                filename,
+            )
         p = sirepo.sim_api.cortex.material_xlsx.Parser(filename)
         if p.errors:
             raise AssertionError(
@@ -277,13 +283,25 @@ def run_background(cfg_dir):
     )
 
 
-def set_material_featured(material_id, is_featured, uid):
-    sirepo.sim_api.cortex.material_db.init_module()
-    sirepo.sim_api.cortex.material_db.set_featured(
-        material_id, bool(int(is_featured)), uid
-    )
+def set_material_featured(material_id, is_featured):
+    """Feature any user's material, the update is done as its owner
+
+    Args:
+        material_id (str): material
+        is_featured (str): 1 or 0
+    """
+    d = sirepo.sim_api.cortex.material_db
+    d.init_module()
+    d.set_featured(material_id, bool(int(is_featured)), d.material_owner(material_id))
 
 
-def set_material_public(material_id, is_public, uid):
-    sirepo.sim_api.cortex.material_db.init_module()
-    sirepo.sim_api.cortex.material_db.set_public(material_id, bool(int(is_public)), uid)
+def set_material_public(material_id, is_public):
+    """Make any user's material public or private, the update is done as its owner
+
+    Args:
+        material_id (str): material
+        is_public (str): 1 or 0
+    """
+    d = sirepo.sim_api.cortex.material_db
+    d.init_module()
+    d.set_public(material_id, bool(int(is_public)), d.material_owner(material_id))

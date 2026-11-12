@@ -1,6 +1,6 @@
 <template>
     <div class="container-xl sr-fixed-lg">
-        <VCortexCard title="Batch Runs">
+        <VCortexCard title="Admin Batch Runs">
             <p class="text-muted small">
                 Runs the selected simulations one at a time as the batch user.
                 Results replace the material's current results for its owner.
@@ -58,13 +58,13 @@
                         </th>
                         <th>Material Name</th>
                         <th>Owner</th>
-                        <th>Material Type</th>
+                        <th>{{ MATERIAL_TYPE_HEADING }}</th>
                         <th>Last Completed</th>
                         <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="m in pageMaterials()" v-bind:key="m.material_id">
+                    <tr v-for="m in pageItems" v-bind:key="m.material_id">
                         <td>
                             <input
                                 class="form-check-input"
@@ -76,7 +76,7 @@
                         </td>
                         <td>{{ m.material_name }}</td>
                         <td>{{ m.uid }}</td>
-                        <td>{{ m.is_plasma_facing ? 'plasma-facing' : 'structural' }}</td>
+                        <td>{{ materialTypeName(m.is_plasma_facing) }}</td>
                         <td>{{ m.completed ? util.formatDate(m.completed) : '' }}</td>
                         <td>
                             <div v-for="j in jobsFor(m)" v-bind:key="j.report">
@@ -88,62 +88,43 @@
                     </tr>
                 </tbody>
             </table>
-            <div class="d-flex align-items-center gap-3">
-                <span class="text-muted small">
-                    {{ pageRange() }} of {{ visibleMaterials().length }}
-                </span>
-                <div class="btn-group btn-group-sm ms-auto">
-                    <button
-                        type="button"
-                        class="btn btn-outline-secondary"
-                        v-bind:disabled="page <= 1"
-                        v-on:click="page--"
-                    >
-                        Previous
-                    </button>
-                    <button
-                        type="button"
-                        class="btn btn-outline-secondary"
-                        v-bind:disabled="page >= pageCount()"
-                        v-on:click="page++"
-                    >
-                        Next
-                    </button>
-                </div>
-            </div>
+            <VPager
+                v-model:page="page"
+                v-bind:pageCount="pageCount"
+                v-bind:range="pageRange"
+                v-bind:total="visible.length"
+            />
         </VCortexCard>
     </div>
 </template>
 
 <script setup>
  import VCortexCard from '@/apps/cortex/VCortexCard.vue';
+ import VPager from '@/apps/cortex/VPager.vue';
+ import { MATERIAL_TYPE_HEADING, materialTypeName } from '@/apps/cortex/materialType.js';
+ import { REPORTS } from '@/apps/cortex/reports.js';
  import { db } from '@/apps/cortex/db.js';
- import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
+ import { onMounted, onUnmounted, reactive, ref } from 'vue';
+ import { usePagedList } from '@/apps/cortex/usePagedList.js';
  import { util } from '@/services/util.js';
 
- const PAGE_SIZE = 50;
  // POSIT: the job states are those of sirepo.sim_api.cortex.batch
  const JOB_DONE = ['completed', 'error', 'canceled'];
  const POLL_MS = 5000;
- // POSIT: the names are the keys of sirepo.template.cortex SIM_VERSION
- const REPORTS = [
-     { name: 'hcllSlabAnimation', label: 'HCLL Slab' },
-     { name: 'hcpbSlabAnimation', label: 'HCPB Slab' },
-     { name: 'wcllSlabAnimation', label: 'WCLL Slab' },
- ];
  const labels = Object.fromEntries(REPORTS.map(r => [r.name, r.label]));
  const batch = reactive({ is_running: false, jobs: [] });
  const error = ref('');
- const filter = ref('');
  const materials = ref([]);
- const page = ref(1);
  const selectedIds = ref([]);
  const selectedReports = ref(REPORTS.map(r => r.name));
- let lastFilter = '';
+ const { filter, page, pageCount, pageItems, pageRange, visible } = usePagedList(
+     materials,
+     (m, f) => m.material_name.toLowerCase().includes(f) || m.uid.toLowerCase().includes(f),
+ );
  let pollTimer = null;
 
  const allVisibleSelected = () => {
-     const v = visibleMaterials();
+     const v = visible.value;
      return v.length > 0 && v.every(m => selectedIds.value.includes(m.material_id));
  };
 
@@ -157,18 +138,6 @@
 
  const jobsFor = (material) => batch.jobs.filter(j => j.material_id === material.material_id);
 
- const pageCount = () => Math.max(1, Math.ceil(visibleMaterials().length / PAGE_SIZE));
-
- const pageMaterials = () => {
-     const i = (page.value - 1) * PAGE_SIZE;
-     return visibleMaterials().slice(i, i + PAGE_SIZE);
- };
-
- const pageRange = () => {
-     const n = visibleMaterials().length;
-     return n ? `${(page.value - 1) * PAGE_SIZE + 1}-${Math.min(page.value * PAGE_SIZE, n)}` : '0';
- };
-
  const run = async () => {
      error.value = '';
      await _update(db.batchRun(selectedIds.value, selectedReports.value));
@@ -181,19 +150,10 @@
  });
 
  const toggleAll = (checked) => {
-     const v = visibleMaterials().map(m => m.material_id);
+     const v = visible.value.map(m => m.material_id);
      selectedIds.value = checked
          ? [...new Set([...selectedIds.value, ...v])]
          : selectedIds.value.filter(id => ! v.includes(id));
- };
-
- const visibleMaterials = () => {
-     const f = filter.value.trim().toLowerCase();
-     return materials.value.filter(
-         m => ! f
-             || m.material_name.toLowerCase().includes(f)
-             || m.uid.toLowerCase().includes(f)
-     );
  };
 
  const _poll = () => {
@@ -222,12 +182,6 @@
          materials.value = await db.batchListMaterials();
      }
  };
-
- // a new filter or a shorter list may leave the page out of range
- watch([filter, materials], () => {
-     page.value = Math.min(filter.value === lastFilter ? page.value : 1, pageCount());
-     lastFilter = filter.value;
- });
 
  onMounted(async () => {
      materials.value = await db.batchListMaterials();

@@ -1,24 +1,10 @@
 <template>
     <div v-if="material.properties.length" class="col-md-12">
         <VCortexCard>
-            <div class="nav nav-tabs">
-                <li
-                    class="nav-item"
-                    v-for="p in material.properties"
-                    v-bind:key="p"
-                >
-                    <button
-                        type="button"
-                        class="nav-link"
-                        v-bind:class="{
-                                      active: p === selectedProperty,
-                                      }"
-                        v-on:click="selectProperty(p)"
-                    >
-                        {{ formatName(p) }}
-                    </button>
-                </li>
-            </div>
+            <VTabs
+                v-bind:items="material.properties.map((p) => ({ value: p.property_name, label: formatName(p) }))"
+                v-model="selectedName"
+            />
             <div class="row">
                 <div class="col-sm-6">
                     <table class="table">
@@ -59,25 +45,26 @@
 <script setup>
  import VCortexCard from '@/apps/cortex/VCortexCard.vue';
  import VDOIRows from '@/apps/cortex/VDOIRows.vue';
- import VMasonry from '@/components/layout/VMasonry.vue'
- import { ref } from 'vue';
+ import VTabs from '@/components/VTabs.vue';
+ import { computed } from 'vue';
+ import { useRouteQuery } from '@/components/useRouteQuery.js';
 
  const props = defineProps({
      material: Object,
  });
 
- const selectedProperty = ref(null);
+ const _names = props.material.properties.map((p) => p.property_name);
+ // in the url, the first property is the default
+ const selectedName = useRouteQuery('property', _names[0] || '', {
+     isValid: (v) => _names.includes(v),
+ });
+ const selectedProperty = computed(
+     () => props.material.properties.find((p) => p.property_name === selectedName.value),
+ );
 
  const formatName = (property) => {
      return property.property_name.replaceAll('_', ' ');
  };
 
- const selectProperty = (property) => {
-     selectedProperty.value = property;
- };
-
- if (props.material.properties.length) {
-     selectedProperty.value = props.material.properties[0];
- }
 
 </script>

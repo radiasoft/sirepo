@@ -9,6 +9,53 @@ _WASTE_PREFIX = "waste_summary_"
 _WASTE_SCALED_SUFFIX = "_struct_scaled"
 
 
+def test_log_progress():
+    """The percent complete follows the markers in the log of a run
+
+    The log is the order of output of a hcpb run with 5 batches, and a
+    trigger can add batches, which must not move the progress.
+    """
+    from pykern import pkio, pkunit
+    import sirepo.template.cortex
+
+    def _percent(log):
+        pkio.write_text(sirepo.template.cortex.CORTEX_RUN_LOG, "\n".join(log) + "\n")
+        return sirepo.template.cortex.background_percent_complete(
+            "hcpbSlabAnimation", pkunit.work_dir(), True
+        ).percentComplete
+
+    def _run():
+        return [
+            " Reading model XML file 'model.xml' ...",
+            *(f" Simulating batch {i}" for i in range(1, 6)),
+            # extra batches don't have a marker
+            " Simulating batch 6",
+            " Creating state point statepoint.5.h5...",
+        ]
+
+    l = []
+    with pkunit.save_chdir_work():
+        pkunit.pkeq(0, _percent(l))
+        p = 0
+        for x in (
+            _run(),
+            ["Performing D1S run"],
+            _run(),
+            _run(),
+            ["[openmc.deplete] t=0.0 s", "[waste summary] Armor"],
+        ):
+            for i in x:
+                l.append(i)
+                n = _percent(l)
+                pkunit.pkok(n >= p, "{} went back from {} for {}", n, p, i)
+                p = n
+        # the last marker is before the run is complete
+        pkunit.pkeq(True, 85 < p < 100)
+        # the lines which are not markers don't change the percent
+        l.append("[completed] something")
+        pkunit.pkeq(p, _percent(l))
+
+
 def test_report_group():
     """Every report has a section and description, and only these are listed
 

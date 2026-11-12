@@ -31,10 +31,6 @@ class DB {
         });
     }
 
-    async canSetMaterialPublic(material_id) {
-        return (await this.loadSummary(material_id, false)).sim['hcpbSlabAnimation'] ? true : false;
-    }
-
     async deleteMaterial(material_id) {
         return await this.#send('delete_material', {material_id});
     }
@@ -47,8 +43,8 @@ class DB {
         return await this.#send('insert_material', {}, file);
     }
 
-    async listMaterials() {
-        const r = await this.#send('list_materials');
+    async listMaterials(model) {
+        const r = await this.#send('list_materials', {model});
         if (r.op_result) {
             return r.op_result.rows;
         }

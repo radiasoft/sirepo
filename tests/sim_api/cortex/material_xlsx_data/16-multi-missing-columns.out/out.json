@@ -1,0 +1,12 @@
+[
+    {
+        "msg": "missing column material type",
+        "row": 2,
+        "sheet": "Composition"
+    },
+    {
+        "msg": "missing column density",
+        "row": 2,
+        "sheet": "Composition"
+    }
+]
