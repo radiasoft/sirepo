@@ -76,6 +76,7 @@ def init_apis(*args, **kwargs):
     global _cfg
 
     _cfg = pkconfig.init(
+        logout_url=(None, str, "Proxy logout URL to visit after Sirepo logout"),
         tkn=pkconfig.Required(str, "Shared secret supplied only by the trusted proxy"),
         token_header=("X-Sirepo-Auth-Token", _cfg_header, "Proxy shared-secret header"),
         username_header=(
@@ -86,6 +87,10 @@ def init_apis(*args, **kwargs):
     )
     if _cfg.token_header.lower() == _cfg.username_header.lower():
         raise AssertionError("proxy username and token headers must be different")
+
+
+def logout_url():
+    return _cfg.logout_url
 
 
 def _cfg_header(value):

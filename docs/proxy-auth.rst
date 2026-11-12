@@ -94,6 +94,22 @@ Sirepo and OIDC sessions are independent. Sirepo logout does not end the OIDC
 session, and OIDC logout or expiry does not invalidate the Sirepo cookie.
 Configure both logout flows for single sign-out.
 
+To continue to the proxy's logout endpoint after Sirepo logout, configure::
+
+    SIREPO_AUTH_HEADER_LOGOUT_URL=/sso/logout
+
+The value may be a path on the same origin or an absolute HTTP(S) URL. Sirepo
+clears its authentication state and runs logout hooks before redirecting.
+This option applies only to users logged in with ``header`` authentication.
+When unset, Sirepo retains its normal logout destination.
+
+Configure the proxy endpoint to clear its session and initiate the identity
+provider's supported logout flow. Allow access to this endpoint even when the
+proxy session has expired, and finish on a public signed-out page to avoid
+immediately starting login again. Point the setting at the proxy endpoint,
+not directly at the identity provider: the proxy owns the OIDC session and
+any tokens needed to end it.
+
 If access must end when the OIDC session ends, enforce authentication at the
 proxy for HTTP requests and WebSocket upgrades, and close existing WebSocket
 connections on logout or expiry. Removing identity headers does not revoke a

@@ -23,8 +23,9 @@ def client():
         )
     )
     env = PKDict(os.environ).pkupdate(
-        SIREPO_AUTH_METHODS="header",
+        SIREPO_AUTH_METHODS="header:guest",
         SIREPO_AUTH_HEADER_TKN="proxy-test-secret",
+        SIREPO_AUTH_HEADER_LOGOUT_URL="/sso/logout",
         SIREPO_AUTH_HEADER_USERNAME_HEADER="x-proxy-user",
         SIREPO_AUTH_HEADER_TOKEN_HEADER="x-proxy-token",
         SIREPO_FEATURE_CONFIG_SIM_TYPES="myapp",
@@ -86,7 +87,7 @@ def test_login_and_simulations(proxy_client):
     pkunit.pkeq(None, a.displayName)
     pkunit.pkeq("owner@example.com", a.userName)
     pkunit.pkeq("header", a.method)
-    pkunit.pkeq(["header"], a.visibleMethods)
+    pkunit.pkeq(["guest", "header"], a.visibleMethods)
     c.cookie_jar.clear()
     pending = _state(c, "owner@example.com")
     pkunit.pkeq(a.uid, pending.uid)
@@ -112,7 +113,7 @@ def test_login_and_simulations(proxy_client):
     sid = d.models.simulation.simulationId
     pkunit.pkeq(a.uid, _state(c, "other").uid)
     for user, owns in (("other", False), ("owner@example.com", True)):
-        c.sr_get("authLogout", redirect=False)
+        c.sr_get("authLogout", redirect=False).assert_http_redirect("^/sso/logout$")
         if _state(c, user).needCompleteRegistration:
             c.sr_post(
                 "authCompleteRegistration",
@@ -207,6 +208,20 @@ def test_logout(proxy_client):
         ).isLoggedIn,
     )
     pkunit.pkeq(u, _state(c, "logout-user").uid)
+
+
+def test_guest_logout(proxy_client):
+    from pykern import pkunit
+
+    c = proxy_client
+    c.sr_login_as_guest("myapp")
+    c.sr_get(
+        "authLogout",
+        PKDict(simulation_type="myapp"),
+        redirect=False,
+    ).assert_http_redirect("^/myapp$")
+    pkunit.pkeq(False, _state(c, None, None).isLoggedIn)
+    c.sr_get("authLogout", redirect=False).assert_http_redirect("^/$")
 
 
 def test_websocket(proxy_client):

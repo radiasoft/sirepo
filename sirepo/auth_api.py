@@ -44,7 +44,8 @@ class API(sirepo.quest.API):
             except AssertionError:
                 pass
         if self.auth.is_logged_in():
-            self.auth.only_for_api_logout()
+            if u := self.auth.only_for_api_logout():
+                return self.reply_redirect(u)
         return self.reply_redirect_for_app_root(req and req.type)
 
 

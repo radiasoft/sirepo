@@ -501,6 +501,7 @@ class _Auth(sirepo.quest.Attr):
             )
 
     def only_for_api_logout(self):
+        m = _METHOD_MODULES[self._qcall_bound_method()]
         sirepo.events.emit(
             self.qcall,
             "auth_logout",
@@ -508,6 +509,8 @@ class _Auth(sirepo.quest.Attr):
         )
         self.qcall.cookie.set_value(_COOKIE_STATE, _STATE_LOGGED_OUT)
         self._set_log_user()
+        if hasattr(m, "logout_url"):
+            return m.logout_url()
 
     def parse_display_name(self, value):
         res = value.strip()

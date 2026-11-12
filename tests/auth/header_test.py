@@ -148,6 +148,33 @@ def test_ordinary_request(qcall, monkeypatch):
     pkunit.pkeq(False, qcall.auth.is_logged_in())
 
 
+def test_logout(qcall, monkeypatch):
+    from pykern import pkunit
+    from sirepo import events
+    from sirepo.auth import header
+
+    u = _authenticate(qcall, "logout-user")
+    emitted = []
+    emit = events.emit
+
+    def _emit(q, event, kwargs=None):
+        if event == "auth_logout":
+            pkunit.pkeq(u, kwargs.uid)
+            pkunit.pkeq(True, q.auth.is_logged_in())
+            emitted.append(event)
+        emit(q, event, kwargs)
+
+    monkeypatch.setattr(events, "emit", _emit)
+    pkunit.pkeq(None, qcall.auth.only_for_api_logout())
+    pkunit.pkeq(False, qcall.auth.is_logged_in())
+    pkunit.pkeq(["auth_logout"], emitted)
+    _authenticate(qcall, "logout-user")
+    monkeypatch.setitem(header._cfg, "logout_url", "https://sso.example/logout")
+    pkunit.pkeq("https://sso.example/logout", qcall.auth.only_for_api_logout())
+    pkunit.pkeq(False, qcall.auth.is_logged_in())
+    pkunit.pkeq(["auth_logout", "auth_logout"], emitted)
+
+
 def _authenticate(qcall, username):
     from sirepo import util
     from sirepo.auth import header
