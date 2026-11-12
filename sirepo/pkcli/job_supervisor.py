@@ -115,12 +115,16 @@ class _AgentMsg(tornado.websocket.WebSocketHandler):
 
         Unsets driver to avoid a callback loop.
         """
-        if hasattr(self, "sr_driver"):
-            del self.sr_driver
+        self.sr_driver_unset()
         self.close()
 
     def sr_driver_set(self, driver):
         self.sr_driver = driver
+
+    def sr_driver_unset(self):
+        """on_close will not notify the driver"""
+        if hasattr(self, "sr_driver"):
+            del self.sr_driver
 
     def sr_on_exception(self):
         self.on_close()

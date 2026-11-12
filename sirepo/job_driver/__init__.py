@@ -35,6 +35,8 @@ _DEFAULT_CLASS = None
 
 _DEFAULT_MODULE = "local"
 
+_KILL_IF_IDLE_CALLER = "_kill_if_idle"
+
 _cfg = None
 
 _UNTIMED_OPS = frozenset(
@@ -104,18 +106,37 @@ class DriverBase(PKDict):
         self._prepared_sends.pkdel(op.op_id)
 
     async def free_resources(self, caller):
-        """Remove holds on all resources and remove self from data structures"""
+        """Remove holds on all resources and remove self from data structures
+
+        Args:
+            caller (str): who is freeing, for logging and the idle recheck
+        Returns:
+            bool: False if not freed, because the agent is no longer idle
+        """
         try:
             async with self._agent_life_change_lock:
+                if caller == _KILL_IF_IDLE_CALLER and not self._agent_is_idle():
+                    # An op was prepared after the idle check, before the lock
+                    pkdlog("{} no longer idle, not killing", self)
+                    self._start_idle_timeout()
+                    return False
+                # Clear ready before any await so prepare_send can't assign an
+                # op to this agent. Those ops start a new agent, which waits
+                # on the lock.
+                self._websocket_ready.clear()
+                if self._websocket:
+                    # The agent's websocket closes when it is killed, which must
+                    # not free resources again, possibly those of a new agent
+                    self._websocket.sr_driver_unset()
                 await self.kill()
                 self._websocket_ready_timeout_cancel()
-                self._websocket_ready.clear()
                 self._websocket_close()
                 e = f"job_driver.free_resources caller={caller}"
                 for o in list(self._prepared_sends.values()):
                     o.destroy(internal_error=e)
         except Exception as e:
             pkdlog("{} caller={} error={} stack={}", self, caller, e, pkdexc())
+        return True
 
     async def kill(self):
         raise NotImplementedError(
@@ -490,7 +511,7 @@ class DriverBase(PKDict):
                 self._idle_timer = None
                 if self._agent_is_idle():
                     pkdlog("{}", self)
-                    self._start_free_resources(caller="_kill_if_idle")
+                    self._start_free_resources(caller=_KILL_IF_IDLE_CALLER)
                 else:
                     self._start_idle_timeout()
             except Exception as e:
