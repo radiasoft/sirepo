@@ -173,7 +173,7 @@
         "name": "Eurofer 97",
         "properties": [],
         "section1": {
-            "Location": "Armor",
+            "Material Type": "plasma-facing",
             "Microstructure Information": null,
             "Processing": null,
             "Structure": null

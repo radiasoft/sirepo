@@ -7,7 +7,7 @@
     },
     {
         "col": 2,
-        "msg": "invalid material type=wrong-type must be Armor or First Wall",
+        "msg": "invalid material type=wrong-type must be structural or plasma-facing",
         "row": 4,
         "sheet": "Metadata and Settings"
     },

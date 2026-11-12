@@ -45,7 +45,7 @@
         "name": "Simple One",
         "properties": [],
         "section1": {
-            "Location": "First Wall",
+            "Material Type": "structural",
             "Microstructure Information": null,
             "Processing": null,
             "Structure": null

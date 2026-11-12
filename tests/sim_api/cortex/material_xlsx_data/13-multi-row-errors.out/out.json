@@ -1,7 +1,7 @@
 [
     {
         "col": 2,
-        "msg": "location must be Armor or First Wall in cell=Core",
+        "msg": "material type must be structural or plasma-facing in cell=Core",
         "row": 3,
         "sheet": "Composition"
     },
@@ -19,7 +19,7 @@
     },
     {
         "col": 1,
-        "msg": "name must be a string up to 100 characters",
+        "msg": "name may not be blank",
         "row": 6,
         "sheet": "Composition"
     },
@@ -65,6 +65,24 @@
     {
         "msg": "'balance' may only be used once components=(Cr, Fe)",
         "row": 13,
+        "sheet": "Composition"
+    },
+    {
+        "col": 1,
+        "msg": "name must not be a number in cell=316.0",
+        "row": 14,
+        "sheet": "Composition"
+    },
+    {
+        "col": 1,
+        "msg": "name must not be a number in cell=316",
+        "row": 15,
+        "sheet": "Composition"
+    },
+    {
+        "col": 1,
+        "msg": "name value exceeded 100 characters in cell=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "row": 16,
         "sheet": "Composition"
     }
 ]

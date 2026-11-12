@@ -1,6 +1,6 @@
 [
     {
-        "msg": "missing column location",
+        "msg": "missing column material type",
         "row": 2,
         "sheet": "Composition"
     },

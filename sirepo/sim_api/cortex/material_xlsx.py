@@ -18,10 +18,8 @@ _DENSITY_RE = re.compile(r"^density(?:\s*\(.*\))?$", re.IGNORECASE)
 # true expressions return a group(1) that's true (not None)
 _BOOL_RE = re.compile(r"^(?:(t|true|y|yes)|f|false|n|no)$", re.IGNORECASE)
 
-# Loose, the location (armor or first wall) or the older type (plasma-facing or structural)
-_TYPE_RE = re.compile(
-    r"(?:(fac(?:e|ing)|armor)|structur|first[\s\-]*wall)", re.IGNORECASE
-)
+# Loose
+_TYPE_RE = re.compile(r"(?:(fac(?:e|ing))|structur)", re.IGNORECASE)
 
 _WALL_RE = re.compile(r"^(?:(iter)|demo)$", re.IGNORECASE)
 
@@ -30,11 +28,6 @@ _NEUTRON_SOURCE_RE = re.compile(r"\b(?:(d\W?t)|d\W?d)\b", re.IGNORECASE)
 _POINTER_RE = re.compile(r"^((?:(?:p|t|f)\d+(?:[\.\-]\d+)*[,;]?\s*)+)$", re.IGNORECASE)
 
 _SOURCE_RE = re.compile(r"^(exp|pp|nom|ml|dft)$", re.IGNORECASE)
-
-# true expressions return a group(1)
-# POSIT: slab.py.jinja puts a plasma-facing material in the armor layer
-# and any other in the first wall
-_LOCATION_RE = re.compile(r"^(?:(armor)|first[\s\-]*wall)$", re.IGNORECASE)
 
 _IGNORE_FIRST_CELL_RE = re.compile(
     r"^(?:select|enter|please|choose)\s|^(?:material\s+name|multi-layer\s+geometry|operating\s+condition|composition|density\s+unit|legend|required\s+data|optional\s+data|add\s+or\s+remove)",
@@ -548,14 +541,19 @@ class MultiParser(Parser):
 
         Returns:
             tuple: index of the header row and PKDict with the indexes of the
-                name, location and density columns and components, which maps
+                name, material type and density columns and components, which maps
                 the index to the lower case name. Both None on errors.
         """
         for i, r in enumerate(rows):
             if isinstance(r[0], str) and r[0].lower() == "name":
                 break
         else:
-            self._error("missing header row starting with Name")
+            # also a single material spreadsheet without its first sheet
+            self._error(
+                f"missing header row starting with Name in sheet={_MULTI_SHEET}"
+                + f" for multiple materials, or sheet={_SINGLE_SHEET}"
+                + " for a single material"
+            )
             return None, None
         self._row_num = i + 1
         rv = PKDict(name=0, components=PKDict())
@@ -564,8 +562,8 @@ class MultiParser(Parser):
                 continue
             self._col_num = c + 1
             n = str(v).lower()
-            if n == "location":
-                k = "location"
+            if n == "material type":
+                k = "material_type"
             elif _DENSITY_RE.search(n):
                 k = "density"
             elif n in _COMPONENT_FROM_LOWER:
@@ -584,9 +582,9 @@ class MultiParser(Parser):
         # Unknown and duplicate columns are errors, but the rows are still
         # checked so all the errors are reported together
         f = False
-        for k in "location", "density":
+        for k in "material_type", "density":
             if k not in rv:
-                f = self._error(f"missing column {k}") or True
+                f = self._error(f"missing column {k.replace('_', ' ')}") or True
         if not rv.components:
             f = (
                 self._error("at least one element or nuclide column must be provided")
@@ -628,13 +626,18 @@ class MultiParser(Parser):
                 self._col_num = header[col] + 1
                 rv, e = parser(row[header[col]])
                 if e:
-                    self._error(f"{col} {e} in cell={row[header[col]]}")
+                    self._error(
+                        f"{col.replace('_', ' ')} {e} in cell={row[header[col]]}"
+                    )
                 self.result[name] = rv
 
             self._col_num = 1
             n = row[0]
-            if not n or not isinstance(n, str) or len(n) > 100:
-                return self._error("name must be a string up to 100 characters")
+            if n == "":
+                return self._error("name may not be blank")
+            n, e = _parse_material_name(n)
+            if e:
+                return self._error(f"name {e} in cell={row[0]}")
             if n in names:
                 return self._error(f"duplicate name={n}")
             names.add(n)
@@ -643,7 +646,7 @@ class MultiParser(Parser):
                 components=PKDict(),
                 properties=PKDict(),
             )
-            _value("location", _parse_location, "is_plasma_facing")
+            _value("material_type", _parse_is_plasma_facing, "is_plasma_facing")
             _value("density", _parse_density_g_cm3, "density_g_cm3")
             self._col_num = None
             return True
@@ -677,6 +680,18 @@ class MultiParser(Parser):
             self.results = []
 
 
+def is_multi(path):
+    """Is it a multiple materials spreadsheet, see `parse`
+
+    Args:
+        path (py.path): xlsx file
+    Returns:
+        bool: has the sheet `Composition` and not `Metadata and Settings`
+    """
+    n = pandas.ExcelFile(str(path)).sheet_names
+    return _MULTI_SHEET in n and _SINGLE_SHEET not in n
+
+
 def parse(path):
     """Parse a single or multiple materials spreadsheet
 
@@ -690,13 +705,13 @@ def parse(path):
             if there are materials
     """
     try:
-        n = pandas.ExcelFile(str(path)).sheet_names
+        m = is_multi(path)
     except Exception as e:
         pkdlog("path={} error={} stack={}", path, e, pkdexc())
         return PKDict(
             materials=[], errors=[PKDict(msg=f"unable to read file error={e}")]
         )
-    if _MULTI_SHEET in n and _SINGLE_SHEET not in n:
+    if m:
         p = MultiParser(path)
         return PKDict(materials=p.results, errors=p.errors)
     p = Parser(path)
@@ -718,8 +733,6 @@ def _init():
             ("Homogenized Divertor", "is_homogenized_divertor", False, False),
             ("Homogenized HCPB", "is_homogenized_hcpb", False, False),
             ("Homogenized WCLL", "is_homogenized_wcll", False, False),
-            ("Location", "is_plasma_facing", True, False),
-            # older spreadsheets
             ("Material Type", "is_plasma_facing", True, False),
             ("Microstructure Information", "microstructure", False, False),
             ("Name", "material_name", True, False),
@@ -748,11 +761,9 @@ def _init():
     global _COMPONENT_FROM_LOWER, _LABEL_TO_COL, _VALID_COLS
     _COMPONENT_FROM_LOWER = PKDict(_components())
     _LABEL_TO_COL = PKDict(_cols())
-    _VALID_COLS = PKDict()
-    for v in _LABEL_TO_COL.values():
-        if v.is_required:
-            # the first label, not an older one, names the column in errors
-            _VALID_COLS.setdefault(v.name, v)
+    _VALID_COLS = PKDict(
+        {c.name: c for c in [v for v in _LABEL_TO_COL.values() if v.is_required]}
+    )
 
 
 def _parse_availability_factor(value):
@@ -816,25 +827,22 @@ def _parse_is_homogenized_wcll(value):
 
 
 def _parse_material_name(value):
-    return value, None
+    # Excel stores a name typed as 316 as a number, which isn't a useful name
+    if not isinstance(value, str) or _parse_float(value) is not None:
+        return None, "must not be a number"
+    return _parse_string(value, 100)
 
 
 def _parse_is_plasma_facing(value):
     if isinstance(value, str) and (m := _TYPE_RE.search(value)):
         return bool(m.group(1)), None
-    return None, "must be Armor or First Wall"
+    return None, "must be structural or plasma-facing"
 
 
 def _parse_is_neutron_source_dt(value):
     if isinstance(value, str) and (m := _NEUTRON_SOURCE_RE.search(value)):
         return bool(m.group(1)), None
     return None, "must be D-T or D-D"
-
-
-def _parse_location(value):
-    if isinstance(value, str) and (m := _LOCATION_RE.search(value)):
-        return bool(m.group(1)), None
-    return None, "must be Armor or First Wall"
 
 
 def _parse_microstructure(value):

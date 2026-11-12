@@ -76,6 +76,7 @@
  import VFileUploadButton from '@/apps/cortex/VFileUploadButton.vue';
  import VProgress from '@/components/VProgress.vue';
  import { db } from '@/apps/cortex/db.js';
+ import { DEFAULT_REPORT } from '@/apps/cortex/reports.js';
  import { ref } from 'vue';
  import { requestSender } from '@/services/requestsender.js';
  import { schema } from '@/services/schema.js';
@@ -159,7 +160,7 @@
      requestSender.sendRequest("cortexSim", {
          op_name: 'runSim',
          op_args: {
-             report: "hcpbSlabAnimation",
+             report: DEFAULT_REPORT,
              material_id: r.op_result.material_id,
          },
      });

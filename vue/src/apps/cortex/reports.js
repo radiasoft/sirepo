@@ -18,5 +18,6 @@ export const REPORTS = [
     },
 ];
 
+// run on import, listed with the materials and needed to make a material public
 // POSIT: sirepo.sim_api.cortex.material_db DEFAULT_LIST_MODEL
 export const DEFAULT_REPORT = 'hcpbSlabAnimation';

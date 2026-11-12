@@ -45,7 +45,7 @@
         "name": "Fe 9Cr 1W 0.2V",
         "properties": [],
         "section1": {
-            "Location": "First Wall",
+            "Material Type": "structural",
             "Microstructure Information": null,
             "Processing": null,
             "Structure": null

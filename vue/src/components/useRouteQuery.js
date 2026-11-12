@@ -2,7 +2,9 @@ import { computed, shallowRef } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 // Changes made in one tick are applied in one navigation, so setting two
-// values together doesn't lose the first to a stale route.query
+// values together doesn't lose the first to a stale route.query.
+// Don't set a value and navigate in the same tick: the flush would apply
+// the query to the old path and likely cancel the navigation.
 const pending = shallowRef(null);
 
 const flush = (router) => {

@@ -1,0 +1,8 @@
+[
+    {
+        "col": 2,
+        "msg": "invalid name=316.0 must not be a number",
+        "row": 3,
+        "sheet": "Metadata and Settings"
+    }
+]

@@ -13,13 +13,13 @@
     },
     {
         "col": 7,
-        "msg": "duplicate column in cell=Location",
+        "msg": "duplicate column in cell=Material Type",
         "row": 2,
         "sheet": "Composition"
     },
     {
         "col": 2,
-        "msg": "location must be Armor or First Wall in cell=Core",
+        "msg": "material type must be structural or plasma-facing in cell=Core",
         "row": 4,
         "sheet": "Composition"
     }

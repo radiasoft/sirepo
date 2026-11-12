@@ -93,7 +93,7 @@
  import { pubSub } from '@/services/pubsub.js';
  import { requestSender } from '@/services/requestsender.js';
  import { util } from '@/services/util.js';
- import { LOCATION_HEADING, locationName } from '@/apps/cortex/location.js';
+ import { MATERIAL_TYPE_HEADING, materialTypeName } from '@/apps/cortex/materialType.js';
  import { SUMMARY_COLUMNS, useSummary } from '@/apps/cortex/useSummary.js';
  import { usePagedList } from '@/apps/cortex/usePagedList.js';
 
@@ -132,8 +132,8 @@
      },
      {
          name: 'is_plasma_facing',
-         heading: LOCATION_HEADING,
-         format: (v) => locationName(v),
+         heading: MATERIAL_TYPE_HEADING,
+         format: (v) => materialTypeName(v),
      },
      ...SUMMARY_COLUMNS,
  ]);
@@ -148,7 +148,7 @@
  const { pageCount, pageItems, pageRange, visible } = usePagedList(
      toRef(state, 'materials'),
      (m, f) => m.material_name.toLowerCase().includes(f)
-         || locationName(m.is_plasma_facing).toLowerCase().includes(f),
+         || materialTypeName(m.is_plasma_facing).toLowerCase().includes(f),
      { filter: toRef(props, 'filter'), page, pageSize: PAGE_SIZE },
  );
 

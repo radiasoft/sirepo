@@ -437,7 +437,7 @@ class _CortexDb(pykern.pkasyncio.ActionLoop):
                 arg.material_id, arg.is_public, uid
             )
         except sirepo.sim_api.cortex.material_db.Error as e:
-            return PKDict(error=PKDict(value=e.args[0]))
+            return PKDict(error=PKDict(value=" ".join(e.args[0])))
         return PKDict()
 
     def _destroy(self):

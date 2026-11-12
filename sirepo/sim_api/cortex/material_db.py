@@ -16,6 +16,7 @@ import sqlalchemy
 import sqlalchemy.exc
 
 #: report of the summary values listed with the materials unless another is asked for
+# POSIT: reports.js DEFAULT_REPORT, which the browser runs on import
 DEFAULT_LIST_MODEL = "hcpbSlabAnimation"
 
 _BASE = "cortex_material.sqlite3"
@@ -33,7 +34,7 @@ _OLD_PROPERTY_COLUMNS = PKDict(
 )
 
 # POSIT: public materials show the results of this report, see VOverview.vue
-_PUBLIC_MODEL = "hcpbSlabAnimation"
+_PUBLIC_MODEL = DEFAULT_LIST_MODEL
 
 _SOURCE_DESC = PKDict(
     EXP="experiment",
@@ -60,6 +61,12 @@ _meta = None
 
 
 class Error(RuntimeError):
+    """An error to show the user
+
+    Args:
+        messages (list): str messages, args[0]
+    """
+
     pass
 
 
@@ -298,8 +305,10 @@ def format_material_detail(material_id, is_public, uid):
         can_be_public=_has_public_model(material_id),
         section1=PKDict(
             {
-                # POSIT: the location names of material_xlsx and location.js
-                "Location": "Armor" if m.is_plasma_facing else "First Wall",
+                # POSIT: the material type names of materialType.js
+                "Material Type": (
+                    "plasma-facing" if m.is_plasma_facing else "structural"
+                ),
                 "Structure": m.structure,
                 "Microstructure Information": m.microstructure,
                 "Processing": m.processing_steps,
@@ -705,8 +714,10 @@ def set_public(material_id, is_public, uid):
         _material_by_id(s, material_id, uid)
     if is_public and not _has_public_model(material_id):
         raise Error(
-            "The HCPB slab neutronics simulation needs to be completed before"
-            + " a material can be made publicly available."
+            [
+                "The HCPB slab neutronics simulation needs to be completed before"
+                + " a material can be made publicly available."
+            ]
         )
     _update_material(material_id, uid, PKDict(is_public=is_public))
 
