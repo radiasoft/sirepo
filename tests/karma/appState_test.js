@@ -99,4 +99,37 @@ describe('Factory: appState', function() {
         expect(appState.deepEquals(v1, v2)).toBe(false);
         expect(appState.deepEquals(null, null)).toBe(true);
     }));
+
+    it('should not call whenModelsLoaded callback on a destroyed scope', function(done) {
+        inject(function(appState, $rootScope, $timeout) {
+            $httpBackend.when('GET', '/simulation/srw/123/0')
+                .respond({
+                    models: {
+                        simulation: {
+                            simulationId: '123',
+                        },
+                    },
+                });
+            appState.loadModels('123');
+            $httpBackend.flush();
+            expect(appState.isLoaded()).toBe(true);
+            const s = $rootScope.$new();
+            let called = false;
+            // models are loaded, so the callback is queued with
+            // $document.ready() then $applyAsync()
+            appState.whenModelsLoaded(s, () => {
+                called = true;
+            });
+            // jqLite's ready() is async when the document is already loaded
+            setTimeout(() => {
+                // ready() has queued the $applyAsync. The user navigates
+                // away before it runs.
+                s.$destroy();
+                // runs $applyAsync
+                $timeout.flush();
+                expect(called).toBe(false);
+                done();
+            });
+        });
+    });
 });

@@ -37,6 +37,24 @@ def test_file_iterator():
     pkeq(v, ["WAKE-inputfile.knsl45.liwake.sdds"])
 
 
+def test_report_data_missing_file():
+    """Frame for an sdds file that doesn't exist, e.g. not yet written"""
+    from pykern import pkunit
+
+    with pkunit.save_chdir_work():
+        r = _elegant().extract_report_data(
+            "missing.sdds",
+            PKDict(
+                frameIndex=0,
+                frameReport="elementAnimation1-2",
+                sim_in=PKDict(models=PKDict()),
+                x="s",
+                y1="betax",
+            ),
+        )
+    pkunit.pkre("not yet available", r.get("error", ""))
+
+
 def _elegant():
     global elegant
     if not elegant:

@@ -86,6 +86,66 @@ def test_myapp_cancel(fc):
     pkunit.pkeq("canceled", fc.sr_post("runStatus", r2.nextRequest).state)
 
 
+def test_myapp_cancel_waiting_op(fc):
+    """Cancel a run waiting on op_slot, then free op_slot
+
+    The waiting op is destroyed, so its slots are removed. When op_slot
+    frees, _slots_ready must not read the removed run_dir_slot.
+    """
+    from pykern import pkunit
+    from pykern.pkdebug import pkdlog
+    import time
+
+    def _req(sim_data):
+        return dict(
+            forceRun=False,
+            models=sim_data.models,
+            report=report,
+            simulationId=sim_data.models.simulation.simulationId,
+            simulationType=sim_data.simulationType,
+        )
+
+    def _t2(fc, sim_data):
+        # blocks until op_slot is freed by the cancel of sim 1
+        return fc.sr_post("runSimulation", _req(sim_data))
+
+    d1 = fc.sr_sim_data()
+    d1.models.simulation.name = "srunit_long_run"
+    d2 = fc.sr_post(
+        "copySimulation",
+        dict(
+            simulationId=d1.models.simulation.simulationId,
+            simulationType=fc.sr_sim_type,
+            name="sim2",
+            folder="/",
+        ),
+    )
+    report = "heightWeightReport"
+    r1 = fc.sr_post("runSimulation", _req(d1))
+    for _ in range(100):
+        pkunit.pkok(r1.state != "error", "unexpected error state: {}", r1)
+        if r1.state == "running":
+            break
+        time.sleep(0.1)
+        r1 = fc.sr_post("runStatus", r1.nextRequest)
+    else:
+        pkunit.pkfail("runStatus: failed to start running: {}", r1)
+    fc.sr_thread_start("sim2", _t2, sim_data=d2)
+    # wait for sim 2's op to block on op_slot
+    for _ in range(50):
+        time.sleep(0.1)
+        if fc.sr_post("runStatus", _req(d2)).state == "pending":
+            break
+    else:
+        pkunit.pkfail("sim2 not pending")
+    pkdlog("runCancel 2 while waiting on op_slot")
+    fc.sr_post("runCancel", _req(d2))
+    pkdlog("runCancel 1 frees op_slot")
+    fc.sr_post("runCancel", r1.nextRequest)
+    r2 = fc.sr_thread_join().sim2
+    pkunit.pkeq("canceled", r2.state, "sim2 runSimulation reply={}", r2)
+
+
 def test_elegant_concurrent_sim_frame(fc):
     """https://github.com/radiasoft/sirepo/issues/2474"""
     from pykern import pkunit
