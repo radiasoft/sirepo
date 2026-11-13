@@ -1203,13 +1203,19 @@ def _generate_lattice(util, beamline_id, result):
         item = util.get_item(abs(item_id))
         if "type" in item:
             item = PKDict(item)
-            # the beamline (not the element) is the source of truth for an
-            # element's absolute position, matching how impactt reads
-            # beamline.positions[idx].elemedge -- this is what lets the
-            # same element in principle appear in different beamlines at
-            # different positions, and is what the lattice editor's
-            # "absolute" element-positioning UI edits.
-            item.elemedge = beamline.positions[idx].elemedge
+            if util.data.models.simulation.elementPosition == "relative":
+                # elements are end to end. The lattice editor doesn't keep
+                # beamline.positions in step with items for relative
+                # positioning, so they can't be used.
+                item.elemedge = result[-1].elemedge + result[-1].l if result else 0.0
+            else:
+                # the beamline (not the element) is the source of truth for an
+                # element's absolute position, matching how impactt reads
+                # beamline.positions[idx].elemedge -- this is what lets the
+                # same element in principle appear in different beamlines at
+                # different positions, and is what the lattice editor's
+                # "absolute" element-positioning UI edits.
+                item.elemedge = beamline.positions[idx].elemedge
             result.append(item)
         else:
             # rftrack's lattice editor doesn't offer reversing a beamline

@@ -101,7 +101,7 @@ ELEMENTS = [
     ),
     PKDict(
         name='C3',
-        elemedge=0.45,
+        elemedge=0.44999999999999996,
         aperture_shape='none',
         aperture_x=0.015,
         aperture_y=0.015,

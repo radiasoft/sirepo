@@ -497,6 +497,31 @@ def test_lattice_percent_complete():
             )
 
 
+def test_lattice_relative_added_element():
+    """The lattice editor doesn't keep positions for relative positioning
+
+    Adding an element appends to the beamline's items, but not to its
+    positions (sirepo-lattice.js only calls nextPosition when absolute).
+    """
+    from pykern import pkunit
+    from sirepo.template import rftrack
+
+    data = _shipped_example("X-band Linac FODO Cell")
+    pkunit.pkeq("relative", data.models.simulation.elementPosition)
+    data.report = "animation"
+    b = data.models.beamlines[0]
+    for _ in range(len(b.positions) - len(b["items"]) + 1):
+        b["items"].append(b["items"][0])
+    pkunit.pkok(
+        len(b["items"]) > len(b.positions),
+        "items={} positions={}",
+        len(b["items"]),
+        len(b.positions),
+    )
+    with pkunit.save_chdir_work():
+        rftrack.python_source_for_model(data, model=None, qcall=None)
+
+
 def test_lattice_space_charge():
     """A Lattice applies space charge only with kicks: the Total
     Space-Charge Kicks spread over the elements, or, with 0, the

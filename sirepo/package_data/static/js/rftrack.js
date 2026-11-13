@@ -492,6 +492,10 @@ SIREPO.viewLogic('simulationView', function(appState, $scope) {
             // Volume-only settings (tracking range) and Lattice-only ones
             // (per-element step counts) aren't interchangeable, so this
             // can only be picked when the simulation is created.
+            if (! appState.models.simulation.simulationId) {
+                // the New Simulation dialog
+                return;
+            }
             appState.models.simulation.elementPosition = appState.applicationState().simulation.elementPosition;
         },
     ];
