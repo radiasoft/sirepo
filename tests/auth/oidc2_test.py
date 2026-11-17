@@ -36,6 +36,9 @@ def service(request):
         missing_claim=False,
         discovery_issuer=None,
         exchanges=0,
+        token_started=threading.Event(),
+        token_release=threading.Event(),
+        block_token=False,
     )
 
     class Provider(BaseHTTPRequestHandler):
@@ -94,6 +97,9 @@ def service(request):
                 .decode()
             )
             p.exchanges += 1
+            if p.block_token:
+                p.token_started.set()
+                assert p.token_release.wait(timeout=10)
             if p.token_error:
                 return self._json(dict(error="invalid_grant"), status=400)
             claims = dict(
@@ -434,6 +440,166 @@ def test_moderation_request_and_approval(service):
         assert isinstance(r.json(), list), r.text
 
 
+@pytest.mark.parametrize("registration", [False, True])
+def test_logout_cancels_pending_flow(service, registration):
+    from pykern import pkunit
+    import requests
+    import sqlite3
+
+    p = service
+    p.claims = {"email": "logout-pending@example.com"} if registration else {}
+    try:
+        with requests.Session() as session:
+            callback = _authorize(p, session)
+            if registration:
+                _redirect(session.get(callback, allow_redirects=False))
+            saved = session.cookies.copy()
+            exchanges = p.exchanges
+            _redirect(session.get(p.url + "/auth-logout", allow_redirects=False))
+            session.cookies.clear()
+            session.cookies.update(saved)
+            if registration:
+                r = session.post(
+                    p.url + "/auth-oidc-complete-registration",
+                    json=dict(
+                        simulationType="myapp", displayName="Canceled", reason="Test"
+                    ),
+                )
+                assert r.json()["srException"]["routeName"] == "loginFail"
+            else:
+                _login_failure(session.get(callback, allow_redirects=False))
+            assert _state(p, session).isLoggedIn is False
+            assert p.exchanges == exchanges
+            with sqlite3.connect(str(pkunit.work_dir().join("db", "auth.db"))) as db:
+                assert (
+                    db.execute(
+                        "SELECT uid FROM auth_email_user_t WHERE unverified_email=?",
+                        ("logout-pending@example.com",),
+                    ).fetchall()
+                    == []
+                )
+    finally:
+        p.claims = {}
+
+
+@pytest.mark.parametrize("change", ["logout", "new-guest", "registered-login"])
+def test_context_change_during_token_exchange(service, change):
+    from concurrent.futures import ThreadPoolExecutor
+    import requests
+
+    p = service
+    p.block_token = True
+    p.token_started.clear()
+    p.token_release.clear()
+    try:
+        with requests.Session() as session, requests.Session() as callback_browser:
+            callback = _authorize(p, session)
+            callback_browser.cookies.update(session.cookies)
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                result = executor.submit(
+                    callback_browser.get, callback, allow_redirects=False
+                )
+                try:
+                    assert p.token_started.wait(timeout=5)
+                    if change == "logout":
+                        _redirect(
+                            session.get(p.url + "/auth-logout", allow_redirects=False)
+                        )
+                    elif change == "new-guest":
+                        session.post(
+                            p.url + "/auth-guest-login/myapp"
+                        ).raise_for_status()
+                        uid = _state(p, session).uid
+                    else:
+                        p.block_token = False
+                        _redirect(
+                            session.get(_authorize(p, session), allow_redirects=False)
+                        )
+                        uid = _state(p, session).uid
+                finally:
+                    p.token_release.set()
+                response = result.result(timeout=10)
+                _login_failure(response)
+                assert "Set-Cookie" not in response.headers
+            assert _state(p, callback_browser).isLoggedIn is False
+            if change == "logout":
+                assert _state(p, session).isLoggedIn is False
+            else:
+                assert _state(p, session).uid == uid
+    finally:
+        p.block_token = False
+        p.token_release.set()
+
+
+@pytest.mark.parametrize("registration", [False, True])
+@pytest.mark.parametrize("initial_guest", [False, True])
+def test_changed_guest_context(service, registration, initial_guest):
+    import requests
+
+    p = service
+    p.claims = {"email": "context-change@example.com"} if registration else {}
+    try:
+        with requests.Session() as session:
+            _state(p, session)
+            if initial_guest:
+                session.post(p.url + "/auth-guest-login/myapp").raise_for_status()
+            callback = _authorize(p, session)
+            if registration:
+                _redirect(session.get(callback, allow_redirects=False))
+            saved = session.cookies.copy()
+            # A different tab establishes a new guest login.
+            if initial_guest:
+                session.get(p.url + "/auth-logout")
+            session.post(p.url + "/auth-guest-login/myapp").raise_for_status()
+            uid = _state(p, session).uid
+            if registration:
+                r = session.post(
+                    p.url + "/auth-oidc-complete-registration",
+                    json=dict(
+                        simulationType="myapp",
+                        displayName="Wrong Context",
+                        reason="Test",
+                    ),
+                )
+                assert r.json()["srException"]["routeName"] == "loginFail"
+            else:
+                _login_failure(session.get(callback, allow_redirects=False))
+            assert _state(p, session).uid == uid
+            assert _state(p, session).isGuestUser is True
+            # Even a saved pre-switch cookie cannot revive the canceled flow.
+            session.cookies.clear()
+            session.cookies.update(saved)
+            if registration:
+                assert (
+                    session.post(
+                        p.url + "/auth-oidc-complete-registration",
+                        json=dict(
+                            simulationType="myapp", displayName="Replay", reason="Test"
+                        ),
+                    ).json()["srException"]["routeName"]
+                    == "loginFail"
+                )
+            else:
+                _login_failure(session.get(callback, allow_redirects=False))
+    finally:
+        p.claims = {}
+
+
+def test_non_guest_login_cannot_be_replaced(service):
+    import requests
+
+    p = service
+    with requests.Session() as session:
+        _redirect(session.get(_authorize(p, session), allow_redirects=False))
+        uid = _state(p, session).uid
+        exchanges = p.exchanges
+        _login_failure(
+            session.get(p.url + "/auth-oidc-login/myapp", allow_redirects=False)
+        )
+        assert _state(p, session).uid == uid
+        assert p.exchanges == exchanges
+
+
 def test_email_identity(service):
     import requests
 
@@ -467,6 +633,7 @@ def test_email_identity(service):
         {"sub": ""},
         {"email_verified": False},
         {"email_verified": "true"},
+        {"email_verified": None},
     ],
 )
 def test_invalid_claims(service, claims):

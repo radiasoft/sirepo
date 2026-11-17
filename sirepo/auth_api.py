@@ -7,6 +7,7 @@
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp
 import sirepo.auth
+import sirepo.events
 import sirepo.quest
 import sirepo.util
 
@@ -45,6 +46,8 @@ class API(sirepo.quest.API):
                 pass
         if self.auth.is_logged_in():
             self.auth.only_for_api_logout()
+        else:
+            sirepo.events.emit(self, "auth_logout", PKDict(uid=None))
         return self.reply_redirect_for_app_root(req and req.type)
 
 

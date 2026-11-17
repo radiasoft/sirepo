@@ -22,6 +22,19 @@ The provider must support discovery and return a signed ID token containing
 RS256, RS384, RS512, ES256, ES384, and ES512.
 Email claims must be in the ID token; Sirepo does not call the UserInfo endpoint.
 
+Microsoft Entra ID
+~~~~~~~~~~~~~~~~~
+
+Entra ID compatibility has not been established. Its standard ID-token claims
+do not guarantee ``email_verified=true``, which this implementation requires.
+Microsoft also warns that the ``email`` claim is mutable and not guaranteed
+correct. Do not remove the verified-email check or substitute
+``preferred_username`` without defining the deployment's identity trust policy.
+See Microsoft's `ID token claims reference
+<https://learn.microsoft.com/en-us/entra/identity-platform/id-token-claims-reference>`_.
+An Entra deployment would also need a tenant-specific issuer matching discovery
+and tokens, rather than a ``common`` or ``organizations`` issuer.
+
 Sirepo configuration
 --------------------
 
@@ -102,8 +115,18 @@ the most recently started flow. Missing cookies, denied authorization, expired
 requests, or invalid tokens open Sirepo's login-failure page. Start again from
 the Sirepo login page.
 
-Pending request rows are deleted when a callback consumes them, including failed
-token exchanges or provider denials with valid state. Starting a new login
+Starting OIDC requires a logged-out or guest browser session. Log out explicitly
+before switching a registered account. Pending flows are bound to that original
+session: changing accounts or guests cancels them, and guest simulations can
+only migrate from the guest that started the flow.
+
+Logout cancels both pending authorization and pending registration, including
+when the browser is not yet logged in and when a token exchange is in flight.
+A canceled callback cannot restore a session using a saved cookie.
+
+Pending requests are marked consumed before token exchange and deleted when the
+callback finishes or fails. The row remains during network I/O so another tab
+can cancel it. Starting a new login
 removes the browser's previous pending request and all expired requests.
 Sirepo's existing periodic-task scheduler also removes expired requests at
 startup and every hour on the primary server. Expiration is checked on

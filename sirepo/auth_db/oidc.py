@@ -16,3 +16,5 @@ class AuthOidcLogin(sirepo.auth_db.UserDbBase):
     simulation_type = sqlalchemy.Column(sqlalchemy.String(100), nullable=False)
     expires = sqlalchemy.Column(sqlalchemy.DateTime(), nullable=False)
     email = sqlalchemy.Column(sqlalchemy.String(255))
+    guest_uid = sqlalchemy.Column(sirepo.auth_db.STRING_ID)
+    consumed = sqlalchemy.Column(sqlalchemy.Boolean, nullable=False, default=False)

@@ -11,6 +11,7 @@ from joserfc import jwt
 from joserfc.errors import JoseError
 from joserfc.jwk import KeySet
 from pykern import pkconfig, pkinspect
+from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdlog
 import datetime
 import hmac
@@ -19,6 +20,7 @@ import pyisemail
 import secrets
 import sirepo.feature_config
 import sirepo.cron
+import sirepo.events
 import sirepo.quest
 import sirepo.srtime
 import sirepo.uri
@@ -44,13 +46,15 @@ class API(sirepo.quest.API):
         try:
             return await self._login_redirect(simulation_type)
         except sirepo.util.Forbidden:
+            _cancel_pending(self)
             self.auth.login_fail_redirect(this_module, "oauth-state")
 
     async def _login_redirect(self, simulation_type):
         _require_http_get(self)
         req = self.parse_params(type=simulation_type)
-        if self.auth.user_if_logged_in(AUTH_METHOD):
-            self.auth.login_success_response(req.type, want_redirect=True)
+        guest_uid = _guest_context(self)
+        if guest_uid is None:
+            self.auth.reset_state()
         async with _client() as client:
             metadata = await _metadata(client)
             state = secrets.token_urlsafe(32)
@@ -78,15 +82,22 @@ class API(sirepo.quest.API):
             verifier=verifier,
             simulation_type=req.type,
             expires=sirepo.srtime.utc_now() + _LOGIN_LIFETIME,
+            guest_uid=guest_uid,
         ).save()
         self.cookie.set_value(_COOKIE_STATE, state)
         return self.reply_redirect(url)
 
-    @sirepo.quest.Spec("allow_cookieless_set_user")
+    @sirepo.quest.Spec("allow_visitor")
     async def api_authOidcCallback(self):
         try:
             return await self._callback()
         except sirepo.util.Forbidden:
+            if self.bucket_unchecked_get("oidc_claimed") and self.auth_db.model(
+                "AuthOidcLogin"
+            ).unchecked_search_by(
+                state=self.cookie.unchecked_get_value(_COOKIE_STATE) or ""
+            ):
+                _cancel_pending(self)
             self.auth.login_fail_redirect(this_module, "oauth-state")
 
     @sirepo.quest.Spec("require_cookie_sentinel", display_name="UserDisplayName")
@@ -100,6 +111,9 @@ class API(sirepo.quest.API):
             or not pending.email
             or pending.expires < sirepo.srtime.utc_now()
         ):
+            self.auth.login_fail_redirect(this_module, "oauth-state")
+        if not _same_context(self, pending.guest_uid):
+            _cancel_pending(self)
             self.auth.login_fail_redirect(this_module, "oauth-state")
         if pending.simulation_type != req.type:
             raise sirepo.util.BadRequest("OIDC registration application mismatch")
@@ -137,15 +151,25 @@ class API(sirepo.quest.API):
         ):
             raise sirepo.util.Forbidden("invalid OIDC login state")
         pending = self.auth_db.model("AuthOidcLogin").unchecked_search_by(state=state)
-        self.cookie.unchecked_remove(_COOKIE_STATE)
-        if not pending or pending.email or pending.expires < sirepo.srtime.utc_now():
+        if (
+            not pending
+            or pending.email
+            or pending.consumed
+            or pending.expires < sirepo.srtime.utc_now()
+            or not _same_context(self, pending.guest_uid)
+        ):
             raise sirepo.util.Forbidden("expired or consumed OIDC login state")
         login = pending.as_pkdict()
-        consumed = pending.query().filter_by(state=state).delete()
-        # Consume the request before network I/O, including failed exchanges.
+        consumed = (
+            pending.query()
+            .filter_by(state=state, consumed=False)
+            .update(dict(consumed=True))
+        )
+        # Claim before network I/O, but retain the row so logout can cancel it.
         self.auth_db.commit()
         if consumed != 1:
             raise sirepo.util.Forbidden("consumed OIDC login state")
+        self.bucket_set("oidc_claimed", True)
         if params.get("error"):
             raise sirepo.util.Forbidden("OIDC authorization was denied")
         if not params.get("code"):
@@ -196,6 +220,12 @@ class API(sirepo.quest.API):
         ) as e:
             pkdlog("OIDC token exchange or validation failed: {}", type(e).__name__)
             raise sirepo.util.Forbidden("OIDC authentication failed") from None
+        pending = self.auth_db.model("AuthOidcLogin")
+        if pending.query().filter_by(state=state).delete() != 1:
+            raise sirepo.util.Forbidden("OIDC login was canceled")
+        if not _same_context(self, login.guest_uid):
+            raise sirepo.util.Forbidden("OIDC login context changed")
+        self.cookie.unchecked_remove(_COOKIE_STATE)
         _registration_or_login(self, claims, login.simulation_type)
 
 
@@ -226,6 +256,46 @@ def init_apis(*args, **kwargs):
     if u.path != "/auth-oidc-callback" or u.query:
         raise AssertionError("OIDC redirect_uri must end in /auth-oidc-callback")
     _CLEANUP_CRON = sirepo.cron.CronTask(60 * 60, _cleanup, None)
+    sirepo.events.register(
+        PKDict(auth_logout=_event_auth_logout, end_api_call=_event_end_api_call)
+    )
+
+
+def _cancel_pending(qcall):
+    for key in (_COOKIE_STATE, _COOKIE_REGISTRATION):
+        if state := qcall.cookie.unchecked_get_value(key):
+            qcall.auth_db.model("AuthOidcLogin").query().filter_by(state=state).delete()
+            qcall.cookie.unchecked_remove(key)
+
+
+def _event_auth_logout(qcall, kwargs):
+    _cancel_pending(qcall)
+
+
+def _event_end_api_call(qcall, kwargs):
+    for key in (_COOKIE_STATE, _COOKIE_REGISTRATION):
+        if state := qcall.cookie.unchecked_get_value(key):
+            pending = qcall.auth_db.model("AuthOidcLogin").unchecked_search_by(
+                state=state
+            )
+            if pending and not _same_context(qcall, pending.guest_uid):
+                _cancel_pending(qcall)
+                qcall.cookie.save_to_reply(kwargs.resp)
+                return
+
+
+def _guest_context(qcall):
+    if qcall.auth.user_if_logged_in(qcall.auth.METHOD_GUEST):
+        return qcall.auth.logged_in_user()
+    if qcall.auth.is_logged_in():
+        raise sirepo.util.Forbidden("Log out before starting OIDC login")
+    return None
+
+
+def _same_context(qcall, guest_uid):
+    if qcall.auth.user_if_logged_in(qcall.auth.METHOD_GUEST):
+        return qcall.auth.logged_in_user() == guest_uid
+    return guest_uid is None and not qcall.auth.is_logged_in()
 
 
 async def _cleanup(_):
@@ -297,6 +367,7 @@ def _registration_or_login(qcall, claims, sim_type):
         email=email,
         simulation_type=sim_type,
         expires=sirepo.srtime.utc_now() + _LOGIN_LIFETIME,
+        guest_uid=_guest_context(qcall),
     ).save()
     qcall.cookie.set_value(_COOKIE_REGISTRATION, state)
     raise sirepo.util.Redirect(sirepo.uri.local_route(sim_type, "oidcRegistration"))

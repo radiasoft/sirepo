@@ -83,6 +83,7 @@ def test_moderation(qcall, monkeypatch):
     from sirepo import util
     from sirepo.auth import oidc
 
+    qcall.auth.reset_state()
     with pytest.raises(util.Redirect):
         oidc._registration_or_login(
             qcall,
