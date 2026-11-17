@@ -33,6 +33,7 @@ def service(request):
         omit_id_token=False,
         token_error=False,
         wrong_key=False,
+        jwks_error=False,
         missing_claim=False,
         discovery_issuer=None,
         exchanges=0,
@@ -54,6 +55,8 @@ def service(request):
                     )
                 )
             if path.path == "/jwks":
+                if p.jwks_error:
+                    return self._json(dict(error="unavailable"), status=503)
                 return self._json(dict(keys=[p.key.as_dict(is_private=False)]))
             assert path.path == "/authorize"
             args = {k: v[0] for k, v in urllib.parse.parse_qs(path.query).items()}
@@ -637,14 +640,19 @@ def test_email_identity(service):
     ],
 )
 def test_invalid_claims(service, claims):
+    from pykern import pkio, pkunit
     import requests
 
     service.claims = claims
+    log = pkunit.work_dir().join("server.log")
+    offset = len(pkio.read_text(log))
     try:
         with requests.Session() as session:
             r = session.get(_authorize(service, session), allow_redirects=False)
             _login_failure(r)
             assert _state(service, session).isLoggedIn is False
+            if "email_verified" in claims:
+                assert "OIDC identity validation failed" in pkio.read_text(log)[offset:]
     finally:
         service.claims = {}
 
@@ -728,9 +736,12 @@ def test_expired_and_replaced_state(service):
 
 
 def test_discovery_issuer(service):
+    from pykern import pkio, pkunit
     import requests
 
     service.discovery_issuer = "https://wrong.example"
+    log = pkunit.work_dir().join("server.log")
+    offset = len(pkio.read_text(log))
     try:
         with requests.Session() as session:
             _login_failure(
@@ -738,22 +749,34 @@ def test_discovery_issuer(service):
                     service.url + "/auth-oidc-login/myapp", allow_redirects=False
                 )
             )
+            assert "OIDC discovery failed" in pkio.read_text(log)[offset:]
     finally:
         service.discovery_issuer = None
 
 
 @pytest.mark.parametrize(
-    "error", ["omit_id_token", "token_error", "wrong_key", "missing_claim"]
+    "error,stage",
+    [
+        ("omit_id_token", "token exchange"),
+        ("token_error", "token exchange"),
+        ("jwks_error", "signing-key retrieval"),
+        ("wrong_key", "ID-token validation"),
+        ("missing_claim", "ID-token validation"),
+    ],
 )
-def test_token_failure(service, error):
+def test_token_failure(service, error, stage):
+    from pykern import pkio, pkunit
     import requests
 
     service[error] = True
+    log = pkunit.work_dir().join("server.log")
+    offset = len(pkio.read_text(log))
     try:
         with requests.Session() as session:
             callback = _authorize(service, session)
             _login_failure(session.get(callback, allow_redirects=False))
             assert _state(service, session).isLoggedIn is False
+            assert f"OIDC {stage} failed" in pkio.read_text(log)[offset:]
             _login_failure(session.get(callback, allow_redirects=False))
     finally:
         service[error] = False

@@ -67,16 +67,9 @@ class API(sirepo.quest.API):
                 code_verifier=verifier,
                 response_mode="query",
             )
-        m = self.auth_db.model("AuthOidcLogin")
-        m.query().filter(type(m).expires < sirepo.srtime.utc_now()).delete()
-        if previous := self.cookie.unchecked_get_value(_COOKIE_STATE):
-            if old := m.unchecked_search_by(state=previous):
-                old.delete()
-        if previous := self.cookie.unchecked_get_value(_COOKIE_REGISTRATION):
-            if old := m.unchecked_search_by(state=previous):
-                old.delete()
-            self.cookie.unchecked_remove(_COOKIE_REGISTRATION)
-        m.new(
+        _delete_expired(self)
+        _cancel_pending(self)
+        self.auth_db.model("AuthOidcLogin").new(
             state=state,
             nonce=nonce,
             verifier=verifier,
@@ -106,11 +99,7 @@ class API(sirepo.quest.API):
         pending = self.auth_db.model("AuthOidcLogin").unchecked_search_by(
             state=self.cookie.unchecked_get_value(_COOKIE_REGISTRATION) or ""
         )
-        if (
-            not pending
-            or not pending.email
-            or pending.expires < sirepo.srtime.utc_now()
-        ):
+        if not pending or not pending.is_pending_registration():
             self.auth.login_fail_redirect(this_module, "oauth-state")
         if not _same_context(self, pending.guest_uid):
             _cancel_pending(self)
@@ -128,7 +117,7 @@ class API(sirepo.quest.API):
         self.cookie.unchecked_remove(_COOKIE_REGISTRATION)
         _login(
             self,
-            dict(sub="registration", email=email, email_verified=True),
+            _email_user(self, email),
             req.type,
             display_name=name,
             moderation_reason=reason,
@@ -153,9 +142,7 @@ class API(sirepo.quest.API):
         pending = self.auth_db.model("AuthOidcLogin").unchecked_search_by(state=state)
         if (
             not pending
-            or pending.email
-            or pending.consumed
-            or pending.expires < sirepo.srtime.utc_now()
+            or not pending.is_pending_authorization()
             or not _same_context(self, pending.guest_uid)
         ):
             raise sirepo.util.Forbidden("expired or consumed OIDC login state")
@@ -176,9 +163,11 @@ class API(sirepo.quest.API):
             raise sirepo.util.Forbidden("missing OIDC authorization code")
         if params.get("iss", _cfg.issuer) != _cfg.issuer:
             raise sirepo.util.Forbidden("invalid OIDC authorization issuer")
+        stage = "discovery"
         try:
             async with _client() as client:
                 metadata = await _metadata(client)
+                stage = "token exchange"
                 token = await client.fetch_token(
                     metadata["token_endpoint"],
                     grant_type="authorization_code",
@@ -187,13 +176,16 @@ class API(sirepo.quest.API):
                 )
                 if not token.get("id_token"):
                     raise sirepo.util.Forbidden("missing OIDC ID token")
+                stage = "signing-key retrieval"
                 response = await client.request(
                     "GET", metadata["jwks_uri"], withhold_token=True
                 )
                 response.raise_for_status()
+                keys = KeySet.import_key_set(response.json())
+                stage = "ID-token validation"
                 decoded = jwt.decode(
                     token["id_token"],
-                    KeySet.import_key_set(response.json()),
+                    keys,
                     algorithms=["RS256", "RS384", "RS512", "ES256", "ES384", "ES512"],
                 )
                 claims = CodeIDToken(
@@ -217,8 +209,9 @@ class API(sirepo.quest.API):
             ValueError,
             KeyError,
             TypeError,
+            sirepo.util.Forbidden,
         ) as e:
-            pkdlog("OIDC token exchange or validation failed: {}", type(e).__name__)
+            pkdlog("OIDC {} failed: {}", stage, type(e).__name__)
             raise sirepo.util.Forbidden("OIDC authentication failed") from None
         pending = self.auth_db.model("AuthOidcLogin")
         if pending.query().filter_by(state=state).delete() != 1:
@@ -226,7 +219,7 @@ class API(sirepo.quest.API):
         if not _same_context(self, login.guest_uid):
             raise sirepo.util.Forbidden("OIDC login context changed")
         self.cookie.unchecked_remove(_COOKIE_STATE)
-        _registration_or_login(self, claims, login.simulation_type)
+        _registration_or_login(self, _validated_email(claims), login.simulation_type)
 
 
 def init_apis(*args, **kwargs):
@@ -300,8 +293,12 @@ def _same_context(qcall, guest_uid):
 
 async def _cleanup(_):
     with sirepo.quest.start() as qcall:
-        m = qcall.auth_db.model("AuthOidcLogin")
-        m.query().filter(type(m).expires < sirepo.srtime.utc_now()).delete()
+        _delete_expired(qcall)
+
+
+def _delete_expired(qcall):
+    m = qcall.auth_db.model("AuthOidcLogin")
+    m.query().filter(type(m).expires < sirepo.srtime.utc_now()).delete()
 
 
 def _cfg_url(value):
@@ -331,7 +328,7 @@ def _client():
     )
 
 
-def _email_user(qcall, claims):
+def _validated_email(claims):
     subject = claims.get("sub")
     email = claims.get("email")
     if (
@@ -343,21 +340,28 @@ def _email_user(qcall, claims):
         or not pyisemail.is_email(email)
         or claims.get("email_verified") is not True
     ):
+        pkdlog(
+            "OIDC identity validation failed: subject or verified email missing or invalid"
+        )
         raise sirepo.util.Forbidden("OIDC login requires a subject and verified email")
+    return email.lower()
+
+
+def _email_user(qcall, email):
     users = qcall.auth_db.model(UserModel)
-    email = email.lower()
     user = users.unchecked_search_by(user_name=email)
     if not user:
         user = users.unchecked_search_by(unverified_email=email)
         if user and user.user_name not in (None, email):
+            pkdlog("OIDC account resolution failed: email conflicts with an account")
             raise sirepo.util.Forbidden("OIDC email conflicts with an account")
-    return email, user
+    return user if user else users.new(unverified_email=email)
 
 
-def _registration_or_login(qcall, claims, sim_type):
-    email, user = _email_user(qcall, claims)
-    if user and not qcall.auth.need_complete_registration(user):
-        return _login(qcall, claims, sim_type)
+def _registration_or_login(qcall, email, sim_type):
+    user = _email_user(qcall, email)
+    if not qcall.auth.need_complete_registration(user):
+        return _login(qcall, user, sim_type)
     state = secrets.token_urlsafe(32)
     qcall.auth_db.model(
         "AuthOidcLogin",
@@ -375,17 +379,14 @@ def _registration_or_login(qcall, claims, sim_type):
 
 def _login(
     qcall,
-    claims,
+    user,
     sim_type,
     display_name=None,
     moderation_reason=None,
     want_redirect=True,
 ):
-    email, user = _email_user(qcall, claims)
-    if not user or not user.user_name:
-        if not user:
-            user = qcall.auth_db.model(UserModel).new(unverified_email=email)
-        user.user_name = email
+    if not user.user_name:
+        user.user_name = user.unverified_email
         user.save()
     if not qcall.auth.user_if_logged_in(qcall.auth.METHOD_GUEST):
         # Preserve normal guest migration without linking other browser accounts.
@@ -414,7 +415,14 @@ async def _metadata(client):
         for key in ("authorization_endpoint", "token_endpoint", "jwks_uri"):
             _cfg_url(metadata[key])
         return metadata
-    except (httpx.HTTPError, ValueError, KeyError, TypeError, AssertionError) as e:
+    except (
+        httpx.HTTPError,
+        ValueError,
+        KeyError,
+        TypeError,
+        AssertionError,
+        sirepo.util.Forbidden,
+    ) as e:
         pkdlog("OIDC discovery failed: {}", type(e).__name__)
         raise sirepo.util.Forbidden("OIDC discovery failed") from None
 

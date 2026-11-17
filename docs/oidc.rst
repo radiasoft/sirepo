@@ -114,6 +114,9 @@ another login in the same browser replaces the previous pending login; finish
 the most recently started flow. Missing cookies, denied authorization, expired
 requests, or invalid tokens open Sirepo's login-failure page. Start again from
 the Sirepo login page.
+Server logs distinguish discovery, token exchange, signing-key retrieval,
+ID-token validation, and identity/account resolution failures without logging
+tokens, authorization codes, credentials, or identity claim values.
 
 Starting OIDC requires a logged-out or guest browser session. Log out explicitly
 before switching a registered account. Pending flows are bound to that original

@@ -87,11 +87,7 @@ def test_moderation(qcall, monkeypatch):
     with pytest.raises(util.Redirect):
         oidc._registration_or_login(
             qcall,
-            dict(
-                sub="unregistered",
-                email="unregistered@example.com",
-                email_verified=True,
-            ),
+            "unregistered@example.com",
             "myapp",
         )
     assert (
@@ -165,6 +161,31 @@ def test_periodic_cleanup(qcall):
     assert oidc._CLEANUP_CRON._coro_func == oidc._cleanup
 
 
+@pytest.mark.parametrize(
+    "email,consumed,expired,authorization,registration",
+    [
+        (None, False, False, True, False),
+        (None, True, False, False, False),
+        ("pending@example.com", False, False, False, True),
+        ("pending@example.com", True, False, False, False),
+        (None, False, True, False, False),
+        ("pending@example.com", False, True, False, False),
+    ],
+)
+def test_pending_states(qcall, email, consumed, expired, authorization, registration):
+    import datetime
+    from sirepo import srtime
+
+    pending = qcall.auth_db.model(
+        "AuthOidcLogin",
+        email=email,
+        consumed=consumed,
+        expires=srtime.utc_now() + datetime.timedelta(minutes=-1 if expired else 1),
+    )
+    assert pending.is_pending_authorization() is authorization
+    assert pending.is_pending_registration() is registration
+
+
 def _login(qcall, subject, email, verified=True):
     from sirepo import util
     from sirepo.auth import oidc
@@ -172,7 +193,12 @@ def _login(qcall, subject, email, verified=True):
     with pytest.raises(util.Redirect):
         oidc._login(
             qcall,
-            {"sub": subject, "email": email, "email_verified": verified},
+            oidc._email_user(
+                qcall,
+                oidc._validated_email(
+                    {"sub": subject, "email": email, "email_verified": verified}
+                ),
+            ),
             "myapp",
         )
     return qcall.auth.logged_in_user()
