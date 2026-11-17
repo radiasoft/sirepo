@@ -8,7 +8,7 @@ import pytest
 
 
 @pytest.fixture(scope="module")
-def qcall():
+def _qcall():
     from sirepo import srunit
 
     with srunit.quest_start(
@@ -23,6 +23,12 @@ def qcall():
         }
     ) as q:
         yield q
+
+
+@pytest.fixture
+def qcall(_qcall):
+    _qcall.auth.reset_state()
+    return _qcall
 
 
 def test_accounts(qcall):
@@ -47,8 +53,8 @@ def test_accounts(qcall):
 def test_link_existing_and_pending(qcall):
     from pykern import pkunit
 
-    uid = qcall.auth.logged_in_user()
-    pkunit.pkeq(uid, _login(qcall, "email-subject", "OTHER@example.com"))
+    uid = _login(qcall, "email-subject", "linked@example.com")
+    pkunit.pkeq(uid, _login(qcall, "different-subject", "LINKED@example.com"))
     qcall.auth_db.model("AuthEmailUser", unverified_email="pending@example.com").save()
     uid = _login(qcall, "pending-subject", "pending@example.com")
     pkunit.pkeq("pending@example.com", qcall.auth.user_name(uid))
@@ -79,6 +85,8 @@ def test_moderation(qcall, monkeypatch):
     from pykern import pkunit
     from sirepo import feature_config
 
+    uid = _login(qcall, "subject", "moderated-existing@example.com")
+    qcall.auth.complete_registration("Existing User")
     monkeypatch.setitem(feature_config.cfg(), "is_registration_moderated", True)
     from sirepo import util
     from sirepo.auth import oidc
@@ -98,8 +106,11 @@ def test_moderation(qcall, monkeypatch):
     )
     pkunit.pkeq(
         "Existing User",
-        qcall.auth.user_display_name(_login(qcall, "subject", "existing@example.com")),
+        qcall.auth.user_display_name(
+            _login(qcall, "subject", "moderated-existing@example.com")
+        ),
     )
+    pkunit.pkeq(uid, qcall.auth.logged_in_user())
 
 
 def test_urls(qcall):

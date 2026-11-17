@@ -8,10 +8,31 @@ from pykern.pkcollections import PKDict
 import pytest
 
 
-@pytest.fixture(scope="module", params=[False, True], ids=["unmoderated", "moderated"])
+@pytest.fixture(autouse=True)
+def http_timeout(monkeypatch):
+    import requests
+
+    original = requests.sessions.Session.request
+
+    def request(self, *args, **kwargs):
+        kwargs.setdefault("timeout", 15)
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(requests.sessions.Session, "request", request)
+
+
+@pytest.fixture(
+    scope="module",
+    params=[
+        (False, "client_secret_basic", "RS256"),
+        (True, "client_secret_basic", "RS256"),
+        (False, "client_secret_post", "ES256"),
+    ],
+    ids=["unmoderated", "moderated", "post-es256"],
+)
 def service(request):
-    from authlib.jose import JsonWebKey, JsonWebToken
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from joserfc import jwk, jwt
     from pykern import pkio, pkunit
     from sirepo import const, srunit
     import base64
@@ -25,17 +46,22 @@ def service(request):
     import time
     import urllib.parse
 
+    moderated, token_auth, algorithm = request.param
+    key_args = ("EC", "P-256") if algorithm == "ES256" else ("RSA", 2048)
     p = PKDict(
-        moderated=request.param,
-        key=JsonWebKey.generate_key("RSA", 2048, is_private=True),
+        moderated=moderated,
+        key=jwk.generate_key(*key_args),
+        other_key=jwk.generate_key(*key_args),
         codes={},
         claims={},
         omit_id_token=False,
         token_error=False,
         wrong_key=False,
         jwks_error=False,
-        missing_claim=False,
+        missing_claim=None,
         discovery_issuer=None,
+        malformed_discovery=False,
+        malformed_jwks=False,
         exchanges=0,
         token_started=threading.Event(),
         token_release=threading.Event(),
@@ -46,6 +72,8 @@ def service(request):
         def do_GET(self):
             path = urllib.parse.urlsplit(self.path)
             if path.path == "/.well-known/openid-configuration":
+                if p.malformed_discovery:
+                    return self._json([])
                 return self._json(
                     dict(
                         issuer=p.discovery_issuer or p.issuer,
@@ -57,6 +85,8 @@ def service(request):
             if path.path == "/jwks":
                 if p.jwks_error:
                     return self._json(dict(error="unavailable"), status=503)
+                if p.malformed_jwks:
+                    return self._json(dict(keys="not-a-key-set"))
                 return self._json(dict(keys=[p.key.as_dict(is_private=False)]))
             assert path.path == "/authorize"
             args = {k: v[0] for k, v in urllib.parse.parse_qs(path.query).items()}
@@ -78,16 +108,22 @@ def service(request):
 
         def do_POST(self):
             assert self.path == "/token"
-            assert (
-                self.headers["Authorization"]
-                == "Basic " + base64.b64encode(b"sirepo-test:test-secret").decode()
-            )
             args = {
                 k: v[0]
                 for k, v in urllib.parse.parse_qs(
                     self.rfile.read(int(self.headers["Content-Length"])).decode()
                 ).items()
             }
+            if token_auth == "client_secret_basic":
+                assert (
+                    self.headers["Authorization"]
+                    == "Basic " + base64.b64encode(b"sirepo-test:test-secret").decode()
+                )
+                assert "client_secret" not in args
+            else:
+                assert "Authorization" not in self.headers
+                assert args["client_id"] == "sirepo-test"
+                assert args["client_secret"] == "test-secret"
             assert args["grant_type"] == "authorization_code"
             assert args["redirect_uri"] == p.callback
             request = p.codes.pop(args["code"])
@@ -117,21 +153,13 @@ def service(request):
             )
             claims.update(p.claims)
             if p.missing_claim:
-                claims.pop("exp")
+                claims.pop(p.missing_claim)
             token = dict(access_token="test-access-token", token_type="Bearer")
             if not p.omit_id_token:
-                token["id_token"] = (
-                    JsonWebToken(["RS256"])
-                    .encode(
-                        {"alg": "RS256"},
-                        claims,
-                        (
-                            JsonWebKey.generate_key("RSA", 2048, is_private=True)
-                            if p.wrong_key
-                            else p.key
-                        ),
-                    )
-                    .decode()
+                token["id_token"] = jwt.encode(
+                    {"alg": algorithm},
+                    claims,
+                    p.other_key if p.wrong_key else p.key,
                 )
             return self._json(token)
 
@@ -158,6 +186,7 @@ def service(request):
         SIREPO_AUTH_OIDC_ISSUER=p.issuer,
         SIREPO_AUTH_OIDC_CLIENT_ID="sirepo-test",
         SIREPO_AUTH_OIDC_CLIENT_SECRET="test-secret",
+        SIREPO_AUTH_OIDC_TOKEN_ENDPOINT_AUTH_METHOD=token_auth,
         SIREPO_AUTH_OIDC_REDIRECT_URI=p.callback,
         SIREPO_FEATURE_CONFIG_SIM_TYPES="myapp",
         SIREPO_FEATURE_CONFIG_MODERATED_SIM_TYPES="myapp" if p.moderated else "",
@@ -206,14 +235,52 @@ def service(request):
         thread.join(timeout=5)
 
 
-def test_login_registration_and_cookie_recovery(service):
+@pytest.fixture
+def registered_user(service, http_timeout):
+    from pykern import pkunit
+    import requests
+    import sqlite3
+
+    with requests.Session() as session:
+        route = _redirect(
+            session.get(_authorize(service, session), allow_redirects=False)
+        )
+        if route == "/myapp#/oidc-registration":
+            session.post(
+                service.url + "/auth-oidc-complete-registration",
+                json=dict(
+                    simulationType="myapp",
+                    displayName="OIDC User",
+                    reason="Integration test account",
+                ),
+            ).raise_for_status()
+        state = _state(service, session)
+        assert state.isLoggedIn is True
+        assert state.method == "oidc"
+        assert state.userName == "oidc@example.com"
+        if service.moderated:
+            with sqlite3.connect(str(pkunit.work_dir().join("db", "auth.db"))) as db:
+                db.execute(
+                    "INSERT OR IGNORE INTO user_role_t (uid, role) VALUES (?, 'sim_type_myapp')",
+                    (state.uid,),
+                )
+    return state.uid
+
+
+def test_login_registration_and_cookie_recovery(service, monkeypatch):
     from pykern import pkunit
     import requests
     import sqlite3
 
     p = service
+    monkeypatch.setitem(p, "claims", {"email": "registration@example.com"})
     with requests.Session() as session:
         assert _state(p, session).isLoggedIn is False
+        with sqlite3.connect(str(pkunit.work_dir().join("db", "auth.db"))) as db:
+            counts = [
+                db.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+                for table in ("auth_email_user_t", "user_registration_t")
+            ]
         callback = _authorize(p, session)
         r = session.get(callback, allow_redirects=False)
         assert _redirect(r) == "/myapp#/oidc-registration"
@@ -221,8 +288,10 @@ def test_login_registration_and_cookie_recovery(service):
         assert state.visibleMethods == ["guest", "oidc"]
         assert state.isLoggedIn is False
         with sqlite3.connect(str(pkunit.work_dir().join("db", "auth.db"))) as db:
-            assert db.execute("SELECT uid FROM auth_email_user_t").fetchall() == []
-            assert db.execute("SELECT uid FROM user_registration_t").fetchall() == []
+            assert [
+                db.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+                for table in ("auth_email_user_t", "user_registration_t")
+            ] == counts
         if p.moderated:
             for reason in (None, "", " \t", 12):
                 r = session.post(
@@ -247,7 +316,7 @@ def test_login_registration_and_cookie_recovery(service):
         state = _state(p, session)
         assert state.needCompleteRegistration is False
         assert state.method == "oidc"
-        assert state.userName == "oidc@example.com"
+        assert state.userName == "registration@example.com"
         uid = state.uid
         assert (
             session.post(
@@ -285,7 +354,7 @@ def test_login_registration_and_cookie_recovery(service):
 
 
 @pytest.mark.parametrize("existing", [True, False], ids=["existing-user", "new-user"])
-def test_guest_simulations(service, existing):
+def test_guest_simulations(service, registered_user, existing):
     from pykern import pkunit
     import requests
     import sqlite3
@@ -385,14 +454,14 @@ def test_registration_expiry_and_browser_binding(service):
         p.claims = {}
 
 
-def test_moderation_request_and_approval(service):
+def test_moderation_request_and_approval(service, registered_user):
     from pykern import pkunit
     import requests
     import sqlite3
 
     p = service
     if not p.moderated:
-        return
+        pytest.skip("approval only applies to moderated deployments")
     role = "sim_type_myapp"
     with requests.Session() as applicant, requests.Session() as moderator:
         _redirect(applicant.get(_authorize(p, applicant), allow_redirects=False))
@@ -486,7 +555,7 @@ def test_logout_cancels_pending_flow(service, registration):
 
 
 @pytest.mark.parametrize("change", ["logout", "new-guest", "registered-login"])
-def test_context_change_during_token_exchange(service, change):
+def test_context_change_during_token_exchange(service, registered_user, change):
     from concurrent.futures import ThreadPoolExecutor
     import requests
 
@@ -588,13 +657,18 @@ def test_changed_guest_context(service, registration, initial_guest):
         p.claims = {}
 
 
-def test_non_guest_login_cannot_be_replaced(service):
+def test_non_guest_login_cannot_be_replaced(service, registered_user):
     import requests
 
     p = service
     with requests.Session() as session:
         _redirect(session.get(_authorize(p, session), allow_redirects=False))
-        uid = _state(p, session).uid
+        state = _state(p, session)
+        assert state.isLoggedIn is True
+        assert state.isGuestUser is False
+        assert state.method == "oidc"
+        uid = state.uid
+        assert uid == registered_user
         exchanges = p.exchanges
         _login_failure(
             session.get(p.url + "/auth-oidc-login/myapp", allow_redirects=False)
@@ -603,13 +677,19 @@ def test_non_guest_login_cannot_be_replaced(service):
         assert p.exchanges == exchanges
 
 
-def test_email_identity(service):
+def test_email_identity(service, registered_user):
+    from pykern import pkunit
     import requests
+    import sqlite3
 
     p = service
     with requests.Session() as session:
-        _redirect(session.get(_authorize(p, session), allow_redirects=False))
+        assert (
+            _redirect(session.get(_authorize(p, session), allow_redirects=False))
+            == "/myapp#/simulations"
+        )
         uid = _state(p, session).uid
+        assert uid == registered_user
         try:
             p.claims = {"sub": "different-subject", "email": "OIDC@example.com"}
             session.cookies.clear()
@@ -617,9 +697,24 @@ def test_email_identity(service):
             assert _state(p, session).uid == uid
             p.claims = {"email": "new-address@example.com"}
             session.cookies.clear()
-            _redirect(session.get(_authorize(p, session), allow_redirects=False))
+            assert (
+                _redirect(session.get(_authorize(p, session), allow_redirects=False))
+                == "/myapp#/oidc-registration"
+            )
             state = _state(p, session)
             assert state.isLoggedIn is False
+            with sqlite3.connect(str(pkunit.work_dir().join("db", "auth.db"))) as db:
+                assert db.execute(
+                    "SELECT email FROM auth_oidc_login_t WHERE email=?",
+                    ("new-address@example.com",),
+                ).fetchall() == [("new-address@example.com",)]
+                assert (
+                    db.execute(
+                        "SELECT uid FROM auth_email_user_t WHERE user_name=?",
+                        ("new-address@example.com",),
+                    ).fetchall()
+                    == []
+                )
         finally:
             p.claims = {}
 
@@ -631,6 +726,7 @@ def test_email_identity(service):
         {"aud": "wrong-client"},
         {"aud": ["sirepo-test", "other-client"], "azp": "other-client"},
         {"nonce": "wrong-nonce"},
+        {"nonce": "wrong-nonce", "nonce_supported": False},
         {"exp": 1},
         {"iat": 9999999999},
         {"sub": ""},
@@ -657,7 +753,7 @@ def test_invalid_claims(service, claims):
         service.claims = {}
 
 
-def test_state_binding_consumption_and_denial(service):
+def test_state_binding_consumption_and_denial(service, registered_user):
     import requests
     import urllib.parse
 
@@ -757,11 +853,31 @@ def test_discovery_issuer(service):
 @pytest.mark.parametrize(
     "error,stage",
     [
+        ("malformed_discovery", "discovery"),
+        ("malformed_jwks", "signing-key retrieval"),
+    ],
+)
+def test_malformed_provider_response(service, monkeypatch, error, stage):
+    from pykern import pkio, pkunit
+    import requests
+
+    log = pkunit.work_dir().join("server.log")
+    offset = len(pkio.read_text(log))
+    with requests.Session() as session:
+        callback = _authorize(service, session)
+        monkeypatch.setitem(service, error, True)
+        _login_failure(session.get(callback, allow_redirects=False))
+        assert _state(service, session).isLoggedIn is False
+        assert f"OIDC {stage} failed" in pkio.read_text(log)[offset:]
+
+
+@pytest.mark.parametrize(
+    "error,stage",
+    [
         ("omit_id_token", "token exchange"),
         ("token_error", "token exchange"),
         ("jwks_error", "signing-key retrieval"),
         ("wrong_key", "ID-token validation"),
-        ("missing_claim", "ID-token validation"),
     ],
 )
 def test_token_failure(service, error, stage):
@@ -780,6 +896,18 @@ def test_token_failure(service, error, stage):
             _login_failure(session.get(callback, allow_redirects=False))
     finally:
         service[error] = False
+
+
+@pytest.mark.parametrize(
+    "claim", ["iss", "aud", "exp", "iat", "sub", "nonce", "email", "email_verified"]
+)
+def test_missing_claim(service, monkeypatch, claim):
+    import requests
+
+    monkeypatch.setitem(service, "missing_claim", claim)
+    with requests.Session() as session:
+        _login_failure(session.get(_authorize(service, session), allow_redirects=False))
+        assert _state(service, session).isLoggedIn is False
 
 
 def _authorize(provider, session):
