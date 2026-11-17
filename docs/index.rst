@@ -13,6 +13,7 @@ The codes run inside a Python web server.
 
    sirepo
    modules
+   oidc
 
 Indices and tables
 ==================
