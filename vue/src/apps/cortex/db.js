@@ -77,6 +77,21 @@ class DB {
         return r.op_result;
     }
 
+    async pathwayAnalysis(material_id, is_public, model, metric, by_element, cooling_seconds) {
+        // goes through cortexSim, which runs it on an agent, like calculateCost
+        return await requestSender.sendRequest("cortexSim", {
+            op_name: 'pathway_analysis',
+            op_args: {material_id, is_public, model, metric, by_element, cooling_seconds},
+        });
+    }
+
+    async pathwayNuclide(material_id, is_public, model, nuclide, cooling_seconds) {
+        return await requestSender.sendRequest("cortexSim", {
+            op_name: 'pathway_nuclide',
+            op_args: {material_id, is_public, model, nuclide, cooling_seconds},
+        });
+    }
+
     async publicMaterials() {
         return (await this.#send('public_materials')).op_result;
     }

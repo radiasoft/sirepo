@@ -224,6 +224,70 @@ class API(sirepo.quest.API):
     def cortex_db_done(self, result):
         self.__loop.call_soon_threadsafe(self.__result.put_nowait, result)
 
+    async def _pathway_compute(self, method, args, compute_args):
+        """Run a pathway analysis method of template.cortex on an agent
+
+        The inputs are stored with the material (material_db.pathway_paths),
+        which an agent can't read, so they are staged in the user's lib dir.
+        A user has one staged set, replaced when another is analyzed.
+
+        Args:
+            method (str): stateless_compute method
+            args (PKDict): material_id, is_public, model (one of
+                template.cortex.SIM_VERSION), cooling_seconds
+            compute_args (PKDict): the method's own args
+        Returns:
+            PKDict: the method's result, or error
+        """
+
+        def _stage(paths, stamp):
+            if (
+                _SIM_DATA.lib_file_exists(_SIM_DATA.PATHWAY_STAMP, qcall=self)
+                and pykern.pkio.read_text(
+                    _SIM_DATA.lib_file_abspath(_SIM_DATA.PATHWAY_STAMP, qcall=self)
+                )
+                == stamp
+            ):
+                return
+            for k, p in paths.items():
+                _SIM_DATA.lib_file_write(_SIM_DATA.pathway_lib_file(k), p, qcall=self)
+            # last, so a partial stage is never used
+            _SIM_DATA.lib_file_write(_SIM_DATA.PATHWAY_STAMP, stamp, qcall=self)
+
+        if args.model not in sirepo.template.cortex.SIM_VERSION:
+            raise AssertionError(f"invalid model={args.model}")
+        # authorizes the user to the material
+        d = sirepo.sim_api.cortex.material_db.material_detail(
+            args.material_id, args.is_public, self.auth.logged_in_user()
+        )
+        p = sirepo.sim_api.cortex.material_db.pathway_paths(
+            args.material_id, args.model
+        )
+        if not p:
+            return PKDict(
+                error="The pathway analysis inputs are not available, run the simulation again"
+            )
+        # the files are replaced by each run
+        s = f"{args.material_id}-{args.model}-{p.results.mtime()}"
+        _stage(p, s)
+        return (
+            await self.call_api(
+                "statelessCompute",
+                body=PKDict(
+                    method=method,
+                    args=compute_args.pkupdate(
+                        # validated by template.cortex
+                        cooling_seconds=int(args.cooling_seconds),
+                        # POSIT: the material's layer in slab.py.jinja, as
+                        # VNeutronics.vue layerMaterial
+                        layer="Armor" if d.is_plasma_facing else "First_Wall",
+                        stamp=s,
+                    ),
+                    simulationType=SIM_TYPE,
+                ),
+            )
+        ).content_as_object()
+
     async def _sim_calculate_cost(self, args):
         """Query the material (fast) then dispatch the CPU-heavy tea
         evaluation/chart rendering to template.cortex via statelessCompute,
@@ -269,6 +333,34 @@ class API(sirepo.quest.API):
                 ),
             )
         return PKDict()
+
+    async def _sim_pathway_analysis(self, args):
+        """Isotopic pathway analysis of the material's layer in a model's run
+
+        Args:
+            args (PKDict): see `_pathway_compute`, and metric, by_element
+        Returns:
+            PKDict: see template.cortex.stateless_compute_pathway_analysis
+        """
+        return await self._pathway_compute(
+            "pathway_analysis",
+            args,
+            PKDict(by_element=bool(args.by_element), metric=args.metric),
+        )
+
+    async def _sim_pathway_nuclide(self, args):
+        """Production pathway of a final nuclide of the material's layer
+
+        Args:
+            args (PKDict): see `_pathway_compute`, and nuclide
+        Returns:
+            PKDict: see template.cortex.stateless_compute_pathway_nuclide
+        """
+        return await self._pathway_compute(
+            "pathway_nuclide",
+            args,
+            PKDict(nuclide=args.nuclide),
+        )
 
     async def _sim_runSim(self, args):
         s = await self._update_material_sim(args.material_id)

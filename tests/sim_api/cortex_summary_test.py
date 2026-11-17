@@ -93,13 +93,10 @@ def test_all():
                     material_db.plot_csv_path(_MATERIAL_ID, _REPORT, "dpa_all")
                 ),
             )
-            pkunit.pkeq(
-                ["DPA"],
-                [
-                    p.title
-                    for p in material_db.load_summary(_MATERIAL_ID, False, uid).plots
-                ],
-            )
+            s = material_db.load_summary(_MATERIAL_ID, False, uid)
+            pkunit.pkeq(["DPA"], [p.title for p in s.plots])
+            # the zip has no pathway inputs
+            pkunit.pkeq(False, s.sim[_REPORT].pathway)
             # the zip written by the sim imports
             r = pkio.mkdir_parent(pkunit.work_dir().join("run_dir"))
             pkjson.dump_pretty(
@@ -118,6 +115,15 @@ def test_all():
             r.join("dpa_OB_1_b6.png").write_binary(b"png2")
             for n in sirepo.template.cortex.STATEPOINTS:
                 r.join(f"{n}.hdf5").write_binary(n.encode())
+            # POSIT: template.cortex._pathway_inputs
+            p = r.join("slab", "HCPB", "depletion_run")
+            for x in (
+                p.join(_SIM_DATA.PATHWAY_FILES.chain),
+                p.join("r2s", "activation", _SIM_DATA.PATHWAY_FILES.material_map),
+                p.join("r2s", "activation", _SIM_DATA.PATHWAY_FILES.results),
+            ):
+                pkio.mkdir_parent_only(x)
+                x.write_binary(x.basename.encode())
             # not in an agent, so lib_file_write needs the user
             sirepo.simulation_db._cfg.logged_in_user = uid
             sirepo.template.cortex._save_summary_to_database(
@@ -126,6 +132,13 @@ def test_all():
             pkunit.pkeq(True, sirepo.sim_api.cortex.check_for_sim_summary(qcall, uid))
             pkunit.pkeq(b"png2", d.join("dpa_OB_1_b6.png").read_binary())
             pkunit.pkeq(b"depletion", d.join("depletion.hdf5").read_binary())
+            # stored with the other files of the run
+            for n in _SIM_DATA.PATHWAY_FILES.values():
+                pkunit.pkeq(n.encode(), d.join(n).read_binary())
+            pkunit.pkeq(
+                True,
+                material_db.load_summary(_MATERIAL_ID, False, uid).sim[_REPORT].pathway,
+            )
             # the file name can't point at another material than the json
             _write_zip(qcall, file_material_id=2001)
             with pkunit.pkexcept("does not match"):

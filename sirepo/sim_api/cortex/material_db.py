@@ -9,6 +9,7 @@ from pykern.pkdebug import pkdc, pkdlog, pkdp
 import contextlib
 import pykern.pkio
 import pykern.sql_db
+import sirepo.sim_data
 import sirepo.srdb
 import sirepo.template.cortex
 import sirepo.util
@@ -43,6 +44,7 @@ _SOURCE_DESC = PKDict(
     ML="maching learning",
     DFT="Density Functional Theory",
 )
+_SIM_DATA = sirepo.sim_data.get_class("cortex")
 _SUMMARY_FIELDS = (
     "dpa_fpy",
     "H_appm_fpy",
@@ -621,6 +623,7 @@ def load_summary(material_id, is_public, uid):
                 summary, ("completed", "version")
             ).pkupdate(
                 current_version=sirepo.template.cortex.SIM_VERSION[summary["model"]],
+                pathway=pathway_paths(material_id, summary["model"]) is not None,
                 results=_layer_summary_rows(session, summary["model"]),
             )
         return r
@@ -676,6 +679,27 @@ def material_owner(material_id):
     """uid of the user who owns material_id"""
     with _session() as s:
         return s.select_one("material", where=PKDict(material_id=material_id))["uid"]
+
+
+def pathway_paths(material_id, model):
+    """Paths to a run's pathway analysis inputs
+
+    POSIT: sim_api.cortex.check_for_sim_summary extracts them from the
+    summary zip, see SimData.PATHWAY_FILES
+
+    Args:
+        material_id (int or str): material
+        model (str): report name, e.g. wcllSlabAnimation
+    Returns:
+        PKDict: path by key of PATHWAY_FILES, None if any is missing
+    """
+    rv = PKDict(
+        {
+            k: cortexdb_path(material_id, model, v)
+            for k, v in _SIM_DATA.PATHWAY_FILES.items()
+        }
+    )
+    return rv if all(p.exists() for p in rv.values()) else None
 
 
 def plot_csv_path(material_id, model, stat):

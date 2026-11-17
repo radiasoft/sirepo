@@ -140,6 +140,12 @@
             </VCol>
         </div>
     </component>
+    <VPathwayAnalysis
+        v-if="hasPathway()"
+        v-show="activeTab() === PATHWAY_TAB"
+        v-bind:materialId="materialId"
+        v-bind:neutronics="neutronics"
+    />
 </template>
 
 <script setup>
@@ -147,6 +153,7 @@
  import VCol from '@/components/layout/VCol.vue';
  import VCortexCard from '@/apps/cortex/VCortexCard.vue';
  import VNeutronicsSim from '@/apps/cortex/VNeutronicsSim.vue';
+ import VPathwayAnalysis from '@/apps/cortex/VPathwayAnalysis.vue';
  import VReportImage from '@/apps/cortex/VReportImage.vue';
  import VTabs from '@/components/VTabs.vue';
  import { REPORTS } from '@/apps/cortex/reports.js';
@@ -165,6 +172,8 @@
      neutronics: String,
  });
  const reportsBySection = reactive({});
+ // after the report tabs, when the run has the inputs (summary pathway)
+ const PATHWAY_TAB = 'Isotopic Pathway Analysis';
  const GEOMETRY_DESCRIPTION = 'Layered slab model: armor, first wall, breeder layers and vacuum vessel. The plots show results through the slab thickness (radial position).';
  // POSIT: the keys are the sections of sirepo.template.cortex _REPORT_GROUP
  const sections = {
@@ -233,6 +242,8 @@
      const v = visibleTabs();
      return v.find((t) => tabKey(t) === selectedTabKey.value) || v[0];
  };
+
+ const hasPathway = () => Boolean(simSummary.value && simSummary.value.pathway);
 
  const hasSibling = (report, offset) => {
      return Boolean(siblingReport(report, offset));
@@ -355,7 +366,11 @@
  const tabKey = (tab) => tab.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
  const visibleTabs = () => {
-     return [...new Set(Object.keys(reportsBySection).map(s => sections[s].tab))];
+     const rv = [...new Set(Object.keys(reportsBySection).map(s => sections[s].tab))];
+     if (hasPathway()) {
+         rv.push(PATHWAY_TAB);
+     }
+     return rv;
  };
 
  const loadAndRebuild = async () => {

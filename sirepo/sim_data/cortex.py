@@ -13,6 +13,17 @@ import sirepo.util
 
 
 class SimData(sirepo.sim_data.SimDataBase):
+    #: openmc-pathway-analysis inputs of a run, in the summary zip and
+    #: stored with the material's other sim files (material_db.cortexdb_path)
+    PATHWAY_FILES = PKDict(
+        chain="bluemira_chain.xml",
+        material_map="cell_material_map.csv",
+        results="depletion_results.h5",
+    )
+
+    #: lib file which identifies the staged pathway inputs, see `pathway_lib_file`
+    PATHWAY_STAMP = "pathway-stamp.json"
+
     #: json of the sim summary inside the summary zip
     SUMMARY_JSON = "summary.json"
 
@@ -21,6 +32,19 @@ class SimData(sirepo.sim_data.SimDataBase):
     @classmethod
     def fixup_old_data(cls, data, qcall, **kwargs):
         cls._init_models(data.models)
+
+    @classmethod
+    def pathway_lib_file(cls, key):
+        """Lib file a pathway input is staged to for the agent
+
+        A user has one set of staged inputs, identified by `PATHWAY_STAMP`.
+
+        Args:
+            key (str): key of `PATHWAY_FILES`
+        Returns:
+            str: basename in the user's lib dir
+        """
+        return f"pathway-{cls.PATHWAY_FILES[key]}"
 
     @classmethod
     def parts_from_summary_file(cls, filename):

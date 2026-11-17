@@ -12,6 +12,7 @@ import cortex_tea.material_def
 import cortex_tea.plotting
 import cortex_tea.tea_api
 import csv
+import heapq
 import io
 import math
 import numpy
@@ -37,6 +38,39 @@ _TOKAMAK_INPUTS_FILE = "Tokamak_inputs.json"
 _COOLING_TIME = "cooling time (time after irradiation)"
 
 _NUCLIDE_LEGEND = "The legend gives each nuclide and its half-life."
+
+# POSIT: slab.py.jinja _y_to_s_milestones
+_SECONDS_PER_YEAR = 365 * 24 * 3600
+
+#: cooling times (seconds after shutdown) a pathway analysis may be of, some of
+#: slab.py.jinja DEPLETION_MILESTONE_SECONDS_TO_PLOT
+# POSIT: VPathwayAnalysis.vue COOLING_TIMES
+_PATHWAY_COOLING_SECONDS = frozenset(
+    (
+        86_400,
+        7 * 86_400,
+        _SECONDS_PER_YEAR // 12,
+        _SECONDS_PER_YEAR,
+        10 * _SECONDS_PER_YEAR,
+        100 * _SECONDS_PER_YEAR,
+        1_000 * _SECONDS_PER_YEAR,
+    )
+)
+
+#: rows listed by pathway analysis, the rest are summed into "Other"
+_PATHWAY_MAX_ROWS = 15
+
+#: openmc_pathway_analysis attribute_material_metric_origins metrics
+# POSIT: VPathwayAnalysis.vue METRICS
+_PATHWAY_METRICS = frozenset(
+    ("activity", "contact_dose", "decay_heat", "waste_disposal_rating")
+)
+
+#: openmc nuclide name, e.g. Co60 or Ag108_m1
+_PATHWAY_NUCLIDE_RE = re.compile(r"^[A-Z][a-z]?\d{1,3}(?:_m\d)?$")
+
+#: loaded pathway inputs, kept by the agent's analysis process between requests
+_pathway = PKDict(stamp=None)
 
 # Section and description of each report, the first pattern matching a stat
 # wins so a specific pattern must precede the general one it overlaps. A None
@@ -432,6 +466,89 @@ def stateless_compute_calculate_cost(data, **kwargs):
     )
 
 
+def stateless_compute_pathway_analysis(data, **kwargs):
+    """Attribute a layer's metric after cooling to the layer's original components
+
+    Runs openmc_pathway_analysis on the inputs that sim_api.cortex staged
+    in the user's lib dir (see SimData.pathway_lib_file).
+
+    Args:
+        data (PKDict): data.args has layer (material name in the material map,
+            e.g. First_Wall), metric (one of `_PATHWAY_METRICS`), by_element
+            (bool, else by nuclide), cooling_seconds (one of
+            `_PATHWAY_COOLING_SECONDS`), and stamp (identifies the staged inputs)
+    Returns:
+        PKDict: layer, metric, units, coolingSeconds (of the depletion step
+            nearest cooling_seconds), total, wasteClass (of the layer at that
+            step), rows (origins), radionuclides (final nuclides which carry
+            the metric) and skipped (final nuclides which couldn't be traced).
+            rows and radionuclides are name, value, percent; largest first.
+    """
+    a = data.args
+    if a.metric not in _PATHWAY_METRICS:
+        raise AssertionError(f"invalid metric={a.metric}")
+    s = _pathway_step(a)
+    r = s.pathways.attribute_material_metric_origins(
+        material_id=s.material_id,
+        metric=a.metric,
+        end_step=s.step,
+        aggregate_origins_by_element=bool(a.by_element),
+    )
+    return PKDict(
+        coolingSeconds=s.cooling_seconds,
+        layer=a.layer,
+        metric=a.metric,
+        radionuclides=_pathway_rows(r.target_value, r.total_value),
+        rows=_pathway_rows(r.origin_value, r.total_value),
+        skipped=sorted(r.skipped_targets),
+        total=r.total_value,
+        units=r.units,
+        wasteClass=str(
+            s.pathways.get_material(
+                s.material_id, timestep_index=s.step
+            ).waste_classification()
+        ),
+    )
+
+
+def stateless_compute_pathway_nuclide(data, **kwargs):
+    """Production pathway of a final nuclide of a layer after cooling
+
+    Args:
+        data (PKDict): data.args has layer, cooling_seconds and stamp (see
+            `stateless_compute_pathway_analysis`), and nuclide (e.g. Mn53)
+    Returns:
+        PKDict: nuclide, origins (name, percent of the nuclide's atoms;
+            largest first) and chain (name, channel: the reaction or decay
+            which produced it, None for the first) from the largest origin
+            along the path which carries the most atoms, or error
+    """
+    a = data.args
+    if not _PATHWAY_NUCLIDE_RE.search(a.nuclide):
+        raise AssertionError(f"invalid nuclide={a.nuclide}")
+    s = _pathway_step(a)
+    # same args as attribute_material_metric_origins, which is cached
+    r = s.pathways.target_origins(
+        material_id=s.material_id,
+        target=a.nuclide,
+        end_step=s.step,
+    )
+    if r.notes:
+        return PKDict(error=" ".join(r.notes))
+    o = _pathway_rows(
+        PKDict(
+            (u, float(d.get("fraction", 0)))
+            for u, _, d in r.condensed_graph.edges(data=True)
+        ),
+        1.0,
+    )
+    return PKDict(
+        chain=_pathway_chain(r.combined_graph, o[0].name, a.nuclide) if o else [],
+        nuclide=a.nuclide,
+        origins=o,
+    )
+
+
 def plot_from_csv(text):
     """Parse plot points and legend written by `csv_from_plot`
 
@@ -600,6 +717,179 @@ def _json_filename(stat):
     return f"{_png_filename(stat)}.json"
 
 
+def _pathway_chain(graph, origin, nuclide):
+    """Path from origin to nuclide which carries the most atoms
+
+    The path whose smallest edge (atoms moved) is largest. Parallel edges
+    (the same nuclides, different channels or steps) count as their largest.
+
+    Args:
+        graph (networkx.MultiDiGraph): target_origins combined_graph, edges
+            have atoms and channel
+        origin (str): initial nuclide
+        nuclide (str): final nuclide
+    Returns:
+        list: PKDict name and channel (None for origin), empty if no path
+    """
+    if origin == nuclide:
+        # in the material from the start
+        return [PKDict(name=origin, channel=None)]
+    # largest atoms and its channel by nuclide and its product
+    e = PKDict()
+    for u, v, d in graph.edges(data=True):
+        n = float(d.get("atoms", 0))
+        if n > e.setdefault(u, PKDict()).get(v, (-1.0, None))[0]:
+            e[u][v] = (n, d.get("channel"))
+    # widest path search: w is the largest smallest edge to reach a nuclide
+    w = PKDict({origin: math.inf})
+    prev = PKDict()
+    q = [(-math.inf, origin)]
+    while q:
+        b, u = heapq.heappop(q)
+        if u == nuclide:
+            break
+        for v, (n, c) in e.get(u, PKDict()).items():
+            # -1 so a path is found even if edges carry no atoms
+            if min(-b, n) > w.get(v, -1.0):
+                w[v] = min(-b, n)
+                prev[v] = (u, c)
+                heapq.heappush(q, (-w[v], v))
+    if nuclide not in prev:
+        return []
+    rv = []
+    v = nuclide
+    while v != origin:
+        rv.insert(0, PKDict(name=v, channel=prev[v][1]))
+        v = prev[v][0]
+    return [PKDict(name=origin, channel=None)] + rv
+
+
+def _pathway_cooling_step(results, cooling_seconds):
+    """Depletion step nearest `cooling_seconds` after shutdown
+
+    Shutdown is the step after the last one with a source.
+
+    Args:
+        results (openmc.deplete.Results): depletion results
+        cooling_seconds (int): time after shutdown
+    Returns:
+        tuple: step index (int), seconds after shutdown of that step (float)
+    """
+    t = numpy.array(results.get_times(time_units="s"))
+    s = numpy.nonzero([r.source_rate for r in results])[0]
+    if not len(s) or s[-1] + 1 >= len(t):
+        raise AssertionError("depletion results have no cooling steps")
+    t = t - t[s[-1] + 1]
+    rv = int(numpy.argmin(numpy.abs(t - cooling_seconds)))
+    return rv, float(t[rv])
+
+
+def _pathway_inputs(run_dir, report):
+    """openmc-pathway-analysis inputs written by the run's depletion
+
+    Args:
+        run_dir (py.path): run directory
+        report (str): one of `SIM_VERSION`
+    Returns:
+        list: py.path of each of `SimData.PATHWAY_FILES`, empty if any is missing
+    """
+    # POSIT: slab.py.jinja DEPLETION_RUN_DIR and R2S_ACTIVATION_DIR
+    d = run_dir.join(
+        "slab",
+        re.search(r"(\w+)SlabAnimation", report).group(1).upper(),
+        "depletion_run",
+    )
+    f = _SIM_DATA.PATHWAY_FILES
+    rv = [
+        d.join(f.chain),
+        d.join("r2s", "activation", f.material_map),
+        d.join("r2s", "activation", f.results),
+    ]
+    if all(p.exists() for p in rv):
+        return rv
+    pkdlog("missing pathway inputs run_dir={} report={}", run_dir, report)
+    return []
+
+
+def _pathway_load(stamp):
+    """Load the staged pathway inputs, unless already loaded for `stamp`
+
+    Loading takes several seconds, so the agent's analysis process keeps the
+    last inputs it loaded in `_pathway`.
+
+    Args:
+        stamp (str): identifies the staged inputs, see sim_api.cortex
+    Returns:
+        PKDict: material_map (material name to depletion material id) and
+            pathways (openmc_pathway_analysis.ActivationPathways)
+    """
+    import openmc_pathway_analysis
+
+    if _pathway.stamp == stamp:
+        return _pathway
+    f = PKDict(
+        {
+            k: _SIM_DATA.lib_file_abspath(_SIM_DATA.pathway_lib_file(k))
+            for k in _SIM_DATA.PATHWAY_FILES
+        }
+    )
+    with pykern.pkio.open_text(f.material_map) as x:
+        m = PKDict((r["material_name"], r["mat_id"]) for r in csv.DictReader(x))
+    # invalidate in case loading fails
+    _pathway.stamp = None
+    _pathway.pkupdate(
+        material_map=m,
+        pathways=openmc_pathway_analysis.ActivationPathways(
+            str(f.results), chain=str(f.chain)
+        ),
+        stamp=stamp,
+    )
+    return _pathway
+
+
+def _pathway_rows(values, total):
+    """Largest values as table rows, the rest summed into "Other"
+
+    Args:
+        values (dict): value by name
+        total (float): of all the values, for percent
+    Returns:
+        list: PKDict name, percent, value; largest first, at most
+            `_PATHWAY_MAX_ROWS` and "Other"
+    """
+    v = sorted(((k, float(x)) for k, x in values.items() if x > 0), key=lambda x: -x[1])
+    rv = [PKDict(name=k, value=x) for k, x in v[:_PATHWAY_MAX_ROWS]]
+    if len(v) > _PATHWAY_MAX_ROWS:
+        rv.append(PKDict(name="Other", value=sum(x[1] for x in v[_PATHWAY_MAX_ROWS:])))
+    for r in rv:
+        r.percent = r.value / total * 100 if total > 0 else 0.0
+    return rv
+
+
+def _pathway_step(args):
+    """Load the staged inputs and find the layer's material and the cooling step
+
+    Args:
+        args (PKDict): layer, cooling_seconds and stamp, see
+            `stateless_compute_pathway_analysis`
+    Returns:
+        PKDict: pathways (ActivationPathways), material_id, step and
+            cooling_seconds (of step)
+    """
+    if args.cooling_seconds not in _PATHWAY_COOLING_SECONDS:
+        raise AssertionError(f"invalid cooling_seconds={args.cooling_seconds}")
+    p = _pathway_load(args.stamp)
+    if args.layer not in p.material_map:
+        raise AssertionError(f"layer={args.layer} not in the material map")
+    s, c = _pathway_cooling_step(p.pathways.depletion_results, args.cooling_seconds)
+    return PKDict(
+        cooling_seconds=c,
+        material_id=p.material_map[args.layer],
+        pathways=p.pathways,
+        step=s,
+    )
+
+
 def _plot_from_file(plot_json, material_id, report, stat):
     def _label(value):
         return re.sub(r"\$\^2\$", "²", value)
@@ -727,6 +1017,8 @@ def _save_summary_to_database(run_dir, report, stats):
             f.write(str(run_dir.join(_png_filename(s))), f"{s}.png")
         for s in STATEPOINTS:
             f.write(str(run_dir.join(f"{s}.hdf5")), f"{s}.hdf5")
+        for p in _pathway_inputs(run_dir, report):
+            f.write(str(p), p.basename)
         f.writestr(_SIM_DATA.SUMMARY_JSON, pykern.pkjson.dump_str(summary))
     _SIM_DATA.lib_file_write(_SIM_DATA.summary_file_from_parts(report, m), z)
 
