@@ -134,16 +134,14 @@ class API(sirepo.quest.API):
         p = _role_info(i.role, req.req_data.status)
         pkdlog("status={} uid={} role={}", p.status, i.uid, i.role)
         # Force METHOD_EMAIL. We are sending them an email so we will
-        # need an email for them. We only have emails for METHOD_EMAIL
-        # users.
+        # need an email for them. OIDC users also use the email account model.
         with self.auth.logged_in_user_set(uid=i.uid, method=self.auth.METHOD_EMAIL):
-            u = self.auth.user_name(i.uid)
-            # Sanity check. user_name() should blow up above if METHOD_EMAIL is not
-            # correct but good to be sure.
+            # Read the shared model even when METHOD_EMAIL is not enabled.
+            u = self.auth_db.model("AuthEmailUser").search_by(uid=i.uid).user_name
+            # Sanity check. The account lookup should blow up above if there
+            # is no email account, but good to be sure.
             if not u:
-                raise AssertionError(
-                    f"auth method={self.auth.METHOD_EMAIL} is incorrect for uid={i.uid}"
-                )
+                raise AssertionError(f"email missing for uid={i.uid}")
             p.pkupdate(
                 display_name=self.auth.user_display_name(i.uid),
                 uid=i.uid,

@@ -37,6 +37,9 @@ METHOD_EMAIL = "email"
 #: Guest is a special method. Do not use this var, use qcall.auth.METHOD_GUEST
 METHOD_GUEST = "guest"
 
+#: Do not use this var, use qcall.auth.METHOD_OIDC
+METHOD_OIDC = "oidc"
+
 #: key for auth method for login state
 _COOKIE_METHOD = "sram"
 
@@ -152,6 +155,7 @@ def only_for_api_method_modules():
 class _Auth(sirepo.quest.Attr):
     METHOD_EMAIL = METHOD_EMAIL
     METHOD_GUEST = METHOD_GUEST
+    METHOD_OIDC = METHOD_OIDC
 
     # Keys passed to child quests (nested call_api) so login state is cascaded
     _INIT_QUEST_FOR_CHILD_KEYS = frozenset(
@@ -534,10 +538,13 @@ class _Auth(sirepo.quest.Attr):
         self._login_user(m, uid)
 
     def require_email_user(self):
+        """Require a user authenticated through a verified-email method."""
         i = self.require_user()
         m = self._qcall_bound_method()
-        if m != METHOD_EMAIL:
-            raise sirepo.util.Forbidden(f"method={m} is not email for uid={i}")
+        if m not in (METHOD_EMAIL, METHOD_OIDC):
+            raise sirepo.util.Forbidden(
+                f"method={m} is not a verified-email method for uid={i}"
+            )
 
     def require_plan(self):
         u = self.require_user()
@@ -621,7 +628,7 @@ class _Auth(sirepo.quest.Attr):
         # POSIT: Uid's are from the base62 charset so an '@' implies an email.
         if "@" in uid_or_user_name:
             a = PKDict(user_name=uid_or_user_name)
-            m = self.qcall.auth_db.model(_METHOD_MODULES[METHOD_EMAIL].UserModel)
+            m = self.qcall.auth_db.model("AuthEmailUser")
         else:
             a = PKDict(uid=simulation_db.assert_uid(uid_or_user_name))
             m = self.qcall.auth_db.model("UserRegistration")

@@ -90,6 +90,9 @@
         "authEmailLogin": "/auth-email-login",
         "authGuestLogin": "/auth-guest-login/<simulation_type>",
         "authLdapLogin": "/auth-ldap-login",
+        "authOidcLogin": "/auth-oidc-login/<simulation_type>",
+        "authOidcCallback": "/auth-oidc-callback",
+        "authOidcCompleteRegistration": "/auth-oidc-complete-registration",
         "authLogout": "/auth-logout/?<simulation_type>",
         "authState": "/auth-state",
         "beginSession": "/begin-session",
@@ -323,6 +326,15 @@
                   "controller": "LoginConfirmController as loginConfirm",
                   "sirepoNoLoginRedirect": true,
                   "templateUrl": "/static/html/complete-registration.html"
+                }
+            },
+            "oidcRegistration": {
+                "route": "/oidc-registration",
+                "config": {
+                    "controller": "LoginConfirmController as loginConfirm",
+                    "sirepoNoLoginRedirect": true,
+                    "oidcRegistration": true,
+                    "templateUrl": "/static/html/complete-registration.html"
                 }
             },
             "contentTooLarge": {
