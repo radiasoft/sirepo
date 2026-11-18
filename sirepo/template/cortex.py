@@ -25,6 +25,7 @@ import sirepo.mpi
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.template.openmc
+import sirepo.util
 import zipfile
 
 CORTEX_RUN_LOG = "cortex.log"
@@ -56,6 +57,106 @@ _PATHWAY_COOLING_SECONDS = frozenset(
         1_000 * _SECONDS_PER_YEAR,
     )
 )
+
+#: cooling times (seconds after shutdown) of the impurity comparison's class table
+_IMPURITY_COOLING_SECONDS = (
+    86_400,
+    _SECONDS_PER_YEAR,
+    10 * _SECONDS_PER_YEAR,
+    100 * _SECONDS_PER_YEAR,
+    1_000 * _SECONDS_PER_YEAR,
+)
+
+#: waste summary csv columns for NRC 10 CFR 61.55 Table 1 and Table 2 Class A,
+#: B and C, and Fetter; POSIT: slab.py.jinja waste summary csv headers
+_NRC_TABLE1 = "NRC Table 1 (long-lived)"
+_NRC_TABLE2 = (
+    "NRC Table 2 Class A",
+    "NRC Table 2 Class B",
+    "NRC Table 2 Class C",
+)
+
+_FETTER = "Fetter et al. (1990)"
+
+#: waste summary columns drawn by the impurity comparison, with their legend
+_IMPURITY_LIMITS = PKDict(
+    {
+        _NRC_TABLE1: "NRC Table 1",
+        _NRC_TABLE2[0]: "NRC Class A",
+        _NRC_TABLE2[1]: "NRC Class B",
+        _NRC_TABLE2[2]: "NRC Class C",
+        _FETTER: "Fetter",
+    }
+)
+
+#: material layers: title, waste summary file name, the layer's column in the
+#: decay heat and shutdown dose csvs, and whether its waste ratings are also
+#: structure scaled (Armor is all structure, so they're the same)
+# POSIT: slab.py.jinja file names and csv headers
+_IMPURITY_LAYERS = PKDict(
+    Armor=PKDict(
+        decay_heat="Armor",
+        shutdown_dose="Armor",
+        struct_scaled=False,
+        title="Armor",
+        waste="Armor",
+    ),
+    First_Wall=PKDict(
+        decay_heat="First wall",
+        shutdown_dose="First Wall",
+        struct_scaled=True,
+        title="First Wall",
+        waste="First_wall",
+    ),
+)
+
+#: impurity comparison plots, in the order shown
+# POSIT: VImpurities.vue CLASS_TITLES for the is_waste ones
+_IMPURITY_PLOTS = PKDict(
+    waste=PKDict(
+        is_waste=True,
+        title="Waste disposal rating",
+        ylabel="Waste disposal rating",
+    ),
+    waste_struct_scaled=PKDict(
+        is_waste=True,
+        title="Waste disposal rating, structure scaled",
+        ylabel="Waste disposal rating",
+    ),
+    shutdown_dose=PKDict(
+        is_waste=False,
+        title="Shutdown dose rate",
+        ylabel="Shutdown dose rate [μSv/h]",
+    ),
+    decay_heat=PKDict(
+        is_waste=False,
+        title="Decay heat",
+        ylabel="Decay heat [W/cm³]",
+    ),
+)
+
+#: times marked on the impurity comparison plots: seconds after shutdown, label
+# POSIT: slab.py.jinja DEPLETION_MILESTONE_SECONDS_TO_PLOT and its plots' refs
+_IMPURITY_MILESTONES = (
+    (1, "1 s"),
+    (60, "1 m"),
+    (3_600, "1 h"),
+    (86_400, "1 d"),
+    (7 * 86_400, "1 w"),
+    (_SECONDS_PER_YEAR / 12, "1 mo"),
+    (_SECONDS_PER_YEAR, "1 y"),
+    (10 * _SECONDS_PER_YEAR, "10 y"),
+    (100 * _SECONDS_PER_YEAR, "100 y"),
+    (1_000 * _SECONDS_PER_YEAR, "1000 y"),
+)
+
+#: impurity comparison ratios aren't drawn where both runs are below this
+#: fraction of the curve's peak
+_IMPURITY_PEAK_FRACTION = 1e-9
+
+#: impurity comparison ratios of waste ratings aren't drawn where both runs
+#: are below this (1% of a limit), since they can't change the class
+_IMPURITY_WASTE_MIN = 0.01
 
 #: rows listed by pathway analysis, the rest are summed into "Other"
 _PATHWAY_MAX_ROWS = 15
@@ -234,11 +335,26 @@ _REPORT_TITLE = PKDict(
     ),
 )
 
+#: reports run with the material's default composition, listed with the
+#: materials and run by batch. The rest of `SIM_VERSION` are impurity reports.
+# POSIT: reports.js REPORTS
+NEUTRONICS_REPORTS = ("hcllSlabAnimation", "hcpbSlabAnimation", "wcllSlabAnimation")
+
+#: every report, see `report_parts`
 SIM_VERSION = PKDict(
     hcllSlabAnimation="1.03",
+    hcllSlabMaxImpurityAnimation="1.03",
+    hcllSlabMinImpurityAnimation="1.03",
     hcpbSlabAnimation="1.03",
+    hcpbSlabMaxImpurityAnimation="1.03",
+    hcpbSlabMinImpurityAnimation="1.03",
     wcllSlabAnimation="1.03",
+    wcllSlabMaxImpurityAnimation="1.03",
+    wcllSlabMinImpurityAnimation="1.03",
 )
+
+# POSIT: the keys of SIM_VERSION
+_REPORT_RE = re.compile(r"^(hcll|hcpb|wcll)Slab(?:(Max|Min)Impurity)?Animation$")
 
 _SIM_OUTPUT = PKDict(
     slabAnimation=list(_REPORT_TITLE.slabAnimation.keys()),
@@ -466,6 +582,68 @@ def stateless_compute_calculate_cost(data, **kwargs):
     )
 
 
+def stateless_compute_impurity_comparison(data, **kwargs):
+    """Compare the material's layer with impurities at their max and at 0
+
+    sim_api.cortex reads the csv files (`impurity_comparison_files`) stored by
+    the max and min impurity runs and passes them here, so the plots are drawn
+    off the api server.
+
+    Args:
+        data (PKDict): data.args has layer (key of `_IMPURITY_LAYERS`), max
+            and min (PKDict csv text by key of `impurity_comparison_files`)
+    Returns:
+        PKDict: layer (title), classes (PKDict by waste key: list of PKDict
+            coolingSeconds, max and min (PKDict nrcClass, fetterExceeds); the
+            structure scaled ones only if they differ from the unscaled ones)
+            and plots (list of PKDict name, title and png: list of bytes)
+    """
+    a = data.args
+    l = _IMPURITY_LAYERS[a.layer]
+    t = PKDict()
+    for i in ("max", "min"):
+        t[i] = PKDict({k: _impurity_table(v) for k, v in a[i].items()})
+    if sorted(t.max) != sorted(t.min):
+        raise AssertionError("max and min runs have different files")
+    rv = PKDict(classes=PKDict(), layer=l.title, plots=[])
+    for k, x in _IMPURITY_PLOTS.items():
+        if k not in t.max:
+            continue
+        if not numpy.array_equal(t.max[k].years, t.min[k].years):
+            raise AssertionError(f"{k} max and min runs have different times")
+        if x.is_waste:
+            rv.classes[k] = _impurity_classes(t.max[k], t.min[k])
+            c = _IMPURITY_LIMITS
+        else:
+            c = PKDict({l[k]: None})
+        rv.plots.append(
+            PKDict(
+                name=k,
+                title=x.title,
+                png=list(
+                    _impurity_png(
+                        t.max[k].years,
+                        [
+                            PKDict(
+                                label=v,
+                                max=t.max[k].columns[n],
+                                min=t.min[k].columns[n],
+                            )
+                            for n, v in c.items()
+                        ],
+                        f"{x.title} - {l.title}",
+                        x.ylabel,
+                        is_waste=x.is_waste,
+                    ),
+                ),
+            ),
+        )
+    if rv.classes.get("waste_struct_scaled") == rv.classes.get("waste"):
+        # same table twice; the plot is still shown, its values differ
+        rv.classes.pkdel("waste_struct_scaled")
+    return rv
+
+
 def stateless_compute_pathway_analysis(data, **kwargs):
     """Attribute a layer's metric after cooling to the layer's original components
 
@@ -605,6 +783,62 @@ def report_is_listed(stat):
     return _report_group(stat).section is not None
 
 
+def impurity_comparison_files(layer):
+    """csv files of the impurity runs which the comparison uses
+
+    Args:
+        layer (str): key of `_IMPURITY_LAYERS`
+    Returns:
+        PKDict: basename (in material_db.cortexdb_path) by key of
+            `_IMPURITY_PLOTS`
+    """
+    l = _IMPURITY_LAYERS[layer]
+    rv = PKDict(
+        decay_heat="decayheat_all_cells.csv",
+        shutdown_dose="sdr_time_layers_OB_1_b6.csv",
+        waste=f"waste_summary_{l.waste}.csv",
+    )
+    if l.struct_scaled:
+        rv.waste_struct_scaled = f"waste_summary_{l.waste}_struct_scaled.csv"
+    return rv
+
+
+def impurity_report(report, impurity):
+    """The impurity report of a neutronics report
+
+    Args:
+        report (str): one of `NEUTRONICS_REPORTS`, e.g. hcpbSlabAnimation
+        impurity (str): max or min
+    Returns:
+        str: e.g. hcpbSlabMaxImpurityAnimation
+    """
+    if report not in NEUTRONICS_REPORTS:
+        raise AssertionError(f"invalid report={report}")
+    rv = report.replace(
+        "SlabAnimation", f"Slab{impurity.capitalize()}ImpurityAnimation"
+    )
+    if rv not in SIM_VERSION:
+        raise AssertionError(f"invalid impurity={impurity}")
+    return rv
+
+
+def report_parts(report):
+    """The blanket and the impurity case of a report
+
+    Args:
+        report (str): one of `SIM_VERSION`, e.g. hcpbSlabMaxImpurityAnimation
+    Returns:
+        PKDict: blanket (e.g. HCPB, the slab type) and impurity (None for the
+            material's default composition, else max or min)
+    """
+    if not (m := _REPORT_RE.search(report)):
+        raise AssertionError(f"invalid report={report}")
+    return PKDict(
+        blanket=m.group(1).upper(),
+        impurity=m.group(2).lower() if m.group(2) else None,
+    )
+
+
 def write_parameters(data, run_dir, is_parallel):
     pykern.pkio.write_text(
         "cortex_plot.py",
@@ -614,7 +848,7 @@ def write_parameters(data, run_dir, is_parallel):
         "cortex_materials.py",
         template_common.render_jinja(SIM_TYPE, PKDict(), "cortex_materials.py"),
     )
-    t = re.search(r"(\w+)SlabAnimation", data.report).group(1).upper()
+    t = report_parts(data.report).blanket
     # POSIT: slab_src_patches/inputs.py.patch also reads {t}_tbr_scaling.json
     # from dagmcPath. It isn't in the data repo yet, so it isn't fetched here
     # and the sim falls back to the local (unscaled) TBR. Add it to this list
@@ -652,7 +886,7 @@ def write_parameters(data, run_dir, is_parallel):
 def _generate_material_definition(data):
     m = data.models.material
     components = ""
-    for c in m.components:
+    for c in _impurity_components(m.components, report_parts(data.report).impurity):
         components += f"""
             PKDict(
                 {c.component_type}="{c.component}",
@@ -713,8 +947,250 @@ t = material_from_definition(
 )"""
 
 
+def _impurity_classes(max_table, min_table):
+    """NRC class of each run at `_IMPURITY_COOLING_SECONDS`
+
+    Args:
+        max_table (PKDict): waste summary of the max run, see `_impurity_table`
+        min_table (PKDict): of the min run
+    Returns:
+        list: PKDict coolingSeconds, max and min (PKDict nrcClass and
+            fetterExceeds: the Fetter rating is over 1, which the run's plots
+            show next to the class)
+    """
+    rv = []
+    for s in _IMPURITY_COOLING_SECONDS:
+        i = int(numpy.argmin(numpy.abs(max_table.years - s / _SECONDS_PER_YEAR)))
+        rv.append(
+            PKDict(
+                coolingSeconds=float(max_table.years[i] * _SECONDS_PER_YEAR),
+                **{
+                    k: PKDict(
+                        fetterExceeds=bool(t.columns[_FETTER][i] > 1.0),
+                        nrcClass=_nrc_class(t.columns, i),
+                    )
+                    for k, t in (("max", max_table), ("min", min_table))
+                },
+            ),
+        )
+    return rv
+
+
+def _impurity_components(components, impurity):
+    """The material's components for an impurity report
+
+    An impurity is a component with a min of 0 and a max greater than 0. They
+    are set to their max (impurity="max") or 0 ("min"), and the change goes to
+    the largest component which isn't an impurity (the balance). Every other
+    component keeps its percent.
+
+    Args:
+        components (list): sim materialComponent: percent, min_percent,
+            max_percent (None if the component has no range)
+        impurity (str): None (unchanged), max or min, see `report_parts`
+    Returns:
+        list: copies of the components
+    """
+
+    def _is_impurity(component):
+        return (
+            component.get("min_percent") == 0
+            and (component.get("max_percent") or 0) > 0
+        )
+
+    rv = [PKDict(c) for c in components]
+    if impurity is None:
+        return rv
+    b = [c for c in rv if not _is_impurity(c)]
+    if not b:
+        raise sirepo.util.UserAlert(
+            "The material has only impurities, so the impurities can't be changed",
+            "no balance component",
+        )
+    b = max(b, key=lambda c: c.percent)
+    for c in rv:
+        if _is_impurity(c):
+            x = c.max_percent if impurity == "max" else 0.0
+            b.percent -= x - c.percent
+            c.percent = x
+    if b.percent < 0:
+        raise sirepo.util.UserAlert(
+            f"{b.component} would be negative with the impurities at their maximum",
+            "balance={} percent={}",
+            b.component,
+            b.percent,
+        )
+    return rv
+
+
+def _impurity_png(years, series, title, ylabel, is_waste=False):
+    """Values of both runs on top and their ratio below
+
+    The ratio (max / no impurities) is on a log axis, so it shows both small
+    and very large effects (linear if it spans less than a decade, where log
+    and linear look alike). It isn't drawn where both runs are negligible:
+    ratings below `_IMPURITY_WASTE_MIN` (they can't change the class), or
+    other values below `_IMPURITY_PEAK_FRACTION` of the curve's peak.
+
+    Args:
+        years (numpy.array): time after irradiation
+        series (list): PKDict label (None if only one), max and min (numpy
+            arrays of each run)
+        title (str): of the plot
+        ylabel (str): of the top panel
+        is_waste (bool): waste ratings: the rating = 1 limit and 0.1
+            reference lines, and the `_IMPURITY_WASTE_MIN` cutoff
+    Returns:
+        bytes: png
+    """
+    import matplotlib.backends.backend_agg
+    import matplotlib.figure
+    import matplotlib.ticker
+
+    def _positive(values):
+        # not drawn on a log scale
+        return numpy.where(values > 0, values, numpy.nan)
+
+    def _ratio(m, n):
+        x = numpy.fmax(m, n)
+        t = (
+            _IMPURITY_WASTE_MIN
+            if is_waste
+            else _IMPURITY_PEAK_FRACTION * numpy.nanmax(x)
+        )
+        return numpy.where(x > t, m / n, numpy.nan)
+
+    # the size of most of the run's plots (about 2180 x 1170 pixels)
+    f = matplotlib.figure.Figure(figsize=(11, 6), dpi=200)
+    matplotlib.backends.backend_agg.FigureCanvasAgg(f)
+    a, d = f.subplots(2, 1, sharex=True, gridspec_kw={"height_ratios": [2, 1]})
+    for i, x in enumerate(series):
+        c = f"C{i}"
+        m = _positive(x.max)
+        n = _positive(x.min)
+        l = f"{x.label}, " if x.label else ""
+        a.plot(years, m, color=c, label=f"{l}max impurities")
+        a.plot(years, n, color=c, linestyle="--", label=f"{l}no impurities")
+        d.plot(years, _ratio(m, n), color=c, label=x.label)
+    # as the run's plots: dashed lines on both panels, labeled on the top one
+    for t, l in _IMPURITY_MILESTONES:
+        for x in a, d:
+            x.axvline(
+                t / _SECONDS_PER_YEAR,
+                color="gray",
+                linestyle="--",
+                linewidth=1,
+                alpha=0.6,
+            )
+        a.text(
+            t / _SECONDS_PER_YEAR,
+            0.98,
+            l,
+            transform=a.get_xaxis_transform(),
+            rotation=90,
+            va="top",
+            ha="right",
+            fontsize=8,
+            alpha=0.8,
+        )
+    if is_waste:
+        # as slab.py.jinja _plot_waste_summary_one: the limit and a reference
+        a.axhline(1.0, color="black", linestyle="--", linewidth=1)
+        a.axhline(0.1, color="black", linestyle=":", linewidth=1)
+    a.set_yscale("log")
+    a.set_ylabel(ylabel)
+    a.set_title(title)
+    a.grid(True, alpha=0.3)
+    a.legend(fontsize="x-small", ncol=2 if len(series) > 1 else 1)
+    d.axhline(1, color="black", linewidth=0.8)
+    d.set_xscale("log")
+    d.set_yscale("log")
+    y = d.get_ylim()
+    if y[1] / y[0] < 10:
+        # within a decade a log axis is nearly linear, and its ticks are
+        # minor ones with too few digits to tell apart (e.g. ×1 ×1 ×1)
+        d.set_yscale("linear")
+        # the panel is short, the default would give two ticks. Steps of
+        # 1, 2 or 5 times a power of ten need exactly that power's digits.
+        d.yaxis.set_major_locator(
+            matplotlib.ticker.MaxNLocator(nbins=5, steps=[1, 2, 5, 10]),
+        )
+        t = d.yaxis.get_major_locator().tick_values(*d.get_ylim())
+        n = max(0, -math.floor(math.log10(t[1] - t[0]) + 1e-9))
+        d.yaxis.set_major_formatter(
+            matplotlib.ticker.FuncFormatter(lambda y, _: f"×{y:.{n}f}"),
+        )
+    else:
+        d.yaxis.set_major_formatter(
+            matplotlib.ticker.FuncFormatter(lambda y, _: f"×{y:g}"),
+        )
+        # unlabeled: they'd overlap
+        d.yaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
+    d.set_xlabel("Time after irradiation [years]")
+    d.set_ylabel("Max / no impurities")
+    d.grid(True, which="both", alpha=0.3)
+    f.tight_layout()
+    b = io.BytesIO()
+    f.savefig(b, format="png")
+    return b.getvalue()
+
+
+def _impurity_table(text):
+    """Parse a plot csv written by a run
+
+    Args:
+        text (str): csv whose first column is the time after irradiation
+            in years, e.g. waste_summary_<layer>.csv
+    Returns:
+        PKDict: years (numpy array) and columns (PKDict name to numpy array)
+    """
+    p = plot_from_csv(text)
+    return PKDict(
+        columns=PKDict((k, numpy.array(v)) for k, v in zip(p.legend[1:], p.points[1:])),
+        years=numpy.array(p.points[0]),
+    )
+
+
 def _json_filename(stat):
     return f"{_png_filename(stat)}.json"
+
+
+def _nrc_class(columns, index):
+    """NRC 10 CFR 61.55 class from the ratings at a time
+
+    POSIT: a port of slab.py.jinja _classify_from_ratios
+
+    Args:
+        columns (PKDict): waste summary columns, see `_impurity_table`
+        index (int): row
+    Returns:
+        str: Class A, Class B, Class C or GTCC
+    """
+
+    def _table2(a, b, c):
+        if a < 1.0:
+            return "Class A"
+        if b < 1.0:
+            return "Class B"
+        if c < 1.0:
+            return "Class C"
+        return "GTCC"
+
+    t1 = float(columns[_NRC_TABLE1][index])
+    t2 = [float(columns[k][index]) for k in _NRC_TABLE2]
+    if t1 > 0.0 and any(x > 0.0 for x in t2):
+        if t1 < 0.1:
+            return _table2(*t2)
+        if t1 < 1.0:
+            return "Class C" if t2[2] < 1.0 else "GTCC"
+        return "GTCC"
+    if t1 > 0.0:
+        if t1 < 0.1:
+            return "Class A"
+        return "Class C" if t1 < 1.0 else "GTCC"
+    if any(x > 0.0 for x in t2):
+        return _table2(*t2)
+    return "Class A"
 
 
 def _pathway_chain(graph, origin, nuclide):
@@ -794,11 +1270,7 @@ def _pathway_inputs(run_dir, report):
         list: py.path of each of `SimData.PATHWAY_FILES`, empty if any is missing
     """
     # POSIT: slab.py.jinja DEPLETION_RUN_DIR and R2S_ACTIVATION_DIR
-    d = run_dir.join(
-        "slab",
-        re.search(r"(\w+)SlabAnimation", report).group(1).upper(),
-        "depletion_run",
-    )
+    d = run_dir.join("slab", report_parts(report).blanket, "depletion_run")
     f = _SIM_DATA.PATHWAY_FILES
     rv = [
         d.join(f.chain),
@@ -952,7 +1424,9 @@ def _report_group(stat):
 
 
 def _report_type(report):
-    return re.sub(r"(\w+S)(labAnimation)", r"s\2", report)
+    # validates report; every report is a slab
+    report_parts(report)
+    return "slabAnimation"
 
 
 def _save_summary_to_database(run_dir, report, stats):
@@ -970,12 +1444,9 @@ def _save_summary_to_database(run_dir, report, stats):
             except ValueError:
                 return v
 
-        m = re.search(r"(\w+)SlabAnimation", report)
-        if not m:
-            return []
         p = run_dir.join(
             "slab",
-            m.group(1).upper(),
+            report_parts(report).blanket,
             "neutronics_results",
             "OB_1_b6",
             "summary_results.csv",

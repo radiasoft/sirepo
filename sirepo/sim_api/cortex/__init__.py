@@ -175,6 +175,10 @@ def update_sim_from_material_detail(sim, material_id, detail):
                     else "element"
                 ),
                 component=c.material_component_name,
+                # None if no range; template.cortex uses them for the
+                # impurity reports
+                max_percent=c.max_pct,
+                min_percent=c.min_pct,
                 percent=c.target_pct,
             )
             for c in detail.components
@@ -333,6 +337,47 @@ class API(sirepo.quest.API):
                 ),
             )
         return PKDict()
+
+    async def _sim_impurity_comparison(self, args):
+        """Compare the material's layer with impurities at their max and at 0
+
+        Args:
+            args (PKDict): material_id, is_public, model (one of
+                template.cortex.NEUTRONICS_REPORTS)
+        Returns:
+            PKDict: see template.cortex.stateless_compute_impurity_comparison,
+                or error
+        """
+        if args.model not in sirepo.template.cortex.NEUTRONICS_REPORTS:
+            raise AssertionError(f"invalid model={args.model}")
+        # authorizes the user to the material
+        d = sirepo.sim_api.cortex.material_db.material_detail(
+            args.material_id, args.is_public, self.auth.logged_in_user()
+        )
+        # POSIT: the material's layer in slab.py.jinja, as VNeutronics.vue
+        l = "Armor" if d.is_plasma_facing else "First_Wall"
+        c = PKDict(layer=l)
+        for i in ("max", "min"):
+            c[i] = PKDict()
+            for k, f in sirepo.template.cortex.impurity_comparison_files(l).items():
+                p = sirepo.sim_api.cortex.material_db.cortexdb_path(
+                    args.material_id,
+                    sirepo.template.cortex.impurity_report(args.model, i),
+                    f,
+                )
+                if not p.exists():
+                    return PKDict(error="Run the impurity simulations to compare them")
+                c[i][k] = pykern.pkio.read_text(p)
+        return (
+            await self.call_api(
+                "statelessCompute",
+                body=PKDict(
+                    method="impurity_comparison",
+                    args=c,
+                    simulationType=SIM_TYPE,
+                ),
+            )
+        ).content_as_object()
 
     async def _sim_pathway_analysis(self, args):
         """Isotopic pathway analysis of the material's layer in a model's run

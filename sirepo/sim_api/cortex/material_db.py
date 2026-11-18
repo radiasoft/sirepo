@@ -479,9 +479,9 @@ def list_materials(uid, model=DEFAULT_LIST_MODEL):
 
     Args:
         uid (str): owner of the materials
-        model (str): report, which has a summary in `SIM_VERSION`
+        model (str): one of `NEUTRONICS_REPORTS`
     """
-    if model not in sirepo.template.cortex.SIM_VERSION:
+    if model not in sirepo.template.cortex.NEUTRONICS_REPORTS:
         raise sirepo.util.BadRequest(f"invalid model={model}")
 
     def _sim_summary_values(session, material_id):

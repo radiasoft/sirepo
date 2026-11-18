@@ -153,9 +153,10 @@ def _reply_object(reply, api_name):
 
 
 def _reports(op_args):
-    rv = op_args.get("reports") or sorted(sirepo.template.cortex.SIM_VERSION)
+    rv = op_args.get("reports") or sorted(sirepo.template.cortex.NEUTRONICS_REPORTS)
     for r in rv:
-        if r not in sirepo.template.cortex.SIM_VERSION:
+        # impurity reports are only run from the Impurities tab
+        if r not in sirepo.template.cortex.NEUTRONICS_REPORTS:
             raise AssertionError(f"invalid report={r}")
     return rv
 

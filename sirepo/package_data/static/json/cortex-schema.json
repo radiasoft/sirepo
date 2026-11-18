@@ -27,8 +27,14 @@
     },
     "frameIdFields": {
         "hcllSlabAnimation": ["stat"],
+        "hcllSlabMaxImpurityAnimation": ["stat"],
+        "hcllSlabMinImpurityAnimation": ["stat"],
         "hcpbSlabAnimation": ["stat"],
-        "wcllSlabAnimation": ["stat"]
+        "hcpbSlabMaxImpurityAnimation": ["stat"],
+        "hcpbSlabMinImpurityAnimation": ["stat"],
+        "wcllSlabAnimation": ["stat"],
+        "wcllSlabMaxImpurityAnimation": ["stat"],
+        "wcllSlabMinImpurityAnimation": ["stat"]
     },
     "localRoutes": {
         "search": {
@@ -39,7 +45,19 @@
         "hcllSlabAnimation": {
             "stat": ["", "String"]
         },
+        "hcllSlabMaxImpurityAnimation": {
+            "stat": ["", "String"]
+        },
+        "hcllSlabMinImpurityAnimation": {
+            "stat": ["", "String"]
+        },
         "hcpbSlabAnimation": {
+            "stat": ["", "String"]
+        },
+        "hcpbSlabMaxImpurityAnimation": {
+            "stat": ["", "String"]
+        },
+        "hcpbSlabMinImpurityAnimation": {
             "stat": ["", "String"]
         },
         "material": {
@@ -51,6 +69,8 @@
         "materialComponent": {
             "component": ["Component", "String"],
             "component_type": ["Component Type", "ComponentType"],
+            "max_percent": ["Max percent", "Float"],
+            "min_percent": ["Min percent", "Float"],
             "percent": ["Percent", "Float"]
         },
         "simulationSettings": {
@@ -58,6 +78,12 @@
             "tallyConvergenceThreshold": ["Tally convergence threshold", "Float", 0.05, "Flux convergence threshold, optimal value: 0.01. A higher value will run faster but with less precision.", 0, 1]
         },
         "wcllSlabAnimation": {
+            "stat": ["", "String"]
+        },
+        "wcllSlabMaxImpurityAnimation": {
+            "stat": ["", "String"]
+        },
+        "wcllSlabMinImpurityAnimation": {
             "stat": ["", "String"]
         }
     },
@@ -74,7 +100,23 @@
             "title": "Neutronics Plot",
             "advanced": []
         },
+        "hcllSlabMaxImpurityAnimation": {
+            "title": "Neutronics Plot",
+            "advanced": []
+        },
+        "hcllSlabMinImpurityAnimation": {
+            "title": "Neutronics Plot",
+            "advanced": []
+        },
         "hcpbSlabAnimation": {
+            "title": "Neutronics Plot",
+            "advanced": []
+        },
+        "hcpbSlabMaxImpurityAnimation": {
+            "title": "Neutronics Plot",
+            "advanced": []
+        },
+        "hcpbSlabMinImpurityAnimation": {
             "title": "Neutronics Plot",
             "advanced": []
         },
@@ -90,6 +132,14 @@
             ]
         },
         "wcllSlabAnimation": {
+            "title": "Neutronics Plot",
+            "advanced": []
+        },
+        "wcllSlabMaxImpurityAnimation": {
+            "title": "Neutronics Plot",
+            "advanced": []
+        },
+        "wcllSlabMinImpurityAnimation": {
             "title": "Neutronics Plot",
             "advanced": []
         }

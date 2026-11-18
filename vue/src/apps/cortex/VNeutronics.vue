@@ -140,6 +140,15 @@
             </VCol>
         </div>
     </component>
+    <VImpurities
+        v-if="hasImpurities()"
+        v-show="activeTab() === IMPURITY_TAB"
+        v-bind:materialId="materialId"
+        v-bind:neutronics="neutronics"
+        v-bind:components="components"
+        v-bind:runs="impurityRuns"
+        v-on:simCompleted="loadAndRebuild()"
+    />
     <VPathwayAnalysis
         v-if="hasPathway()"
         v-show="activeTab() === PATHWAY_TAB"
@@ -156,7 +165,8 @@
  import VPathwayAnalysis from '@/apps/cortex/VPathwayAnalysis.vue';
  import VReportImage from '@/apps/cortex/VReportImage.vue';
  import VTabs from '@/components/VTabs.vue';
- import { REPORTS } from '@/apps/cortex/reports.js';
+ import VImpurities from '@/apps/cortex/VImpurities.vue';
+ import { REPORTS, impurityReport } from '@/apps/cortex/reports.js';
  import slabUrl from '@/assets/cortex/slab.png';
  import { db } from '@/apps/cortex/db.js';
  import { onMounted, onUnmounted, reactive, ref, watch } from 'vue';
@@ -169,11 +179,14 @@
      materialId: String,
      materialName: String,
      isPlasmaFacing: Boolean,
+     // the material's components: material_component_name, target_pct, min_pct, max_pct
+     components: Array,
      neutronics: String,
  });
  const reportsBySection = reactive({});
  // after the report tabs, when the run has the inputs (summary pathway)
  const PATHWAY_TAB = 'Isotopic Pathway Analysis';
+ const IMPURITY_TAB = 'Impurities';
  const GEOMETRY_DESCRIPTION = 'Layered slab model: armor, first wall, breeder layers and vacuum vessel. The plots show results through the slab thickness (radial position).';
  // POSIT: the keys are the sections of sirepo.template.cortex _REPORT_GROUP
  const sections = {
@@ -200,6 +213,8 @@
  // in the url by its key, e.g. waste-dose-rate, which activeTab() checks is visible
  const selectedTabKey = useRouteQuery('tab', '');
  const simSummary = ref(null);
+ // summary sims of the report's impurity runs: max and min
+ const impurityRuns = ref({});
 
  const downloadOutputZip = async () => {
      downloadError.value = '';
@@ -242,6 +257,14 @@
      const v = visibleTabs();
      return v.find((t) => tabKey(t) === selectedTabKey.value) || v[0];
  };
+
+ // a viewer of a public material can't run them, so only once they have run
+ const hasImpurities = () => Boolean(
+     props.components
+         // POSIT: sirepo.template.cortex _impurity_components
+         && props.components.some((c) => c.min_pct === 0 && c.max_pct > 0)
+         && (! isViewing() || (impurityRuns.value.max && impurityRuns.value.min))
+ );
 
  const hasPathway = () => Boolean(simSummary.value && simSummary.value.pathway);
 
@@ -331,10 +354,18 @@
      }
      hasPlots.value = Boolean(Object.keys(reportsBySection).length);
      simSummary.value = summary.sim[props.neutronics];
+     setImpurityRuns();
      isReady.value = true;
      // does not await for images images to load
      rebuildCounter += 1;
      loadImages(rebuildCounter);
+ };
+
+ const setImpurityRuns = () => {
+     impurityRuns.value = {
+         max: summary?.sim[impurityReport(props.neutronics, 'max')],
+         min: summary?.sim[impurityReport(props.neutronics, 'min')],
+     };
  };
 
  const showSibling = (report, offset) => {
@@ -367,6 +398,9 @@
 
  const visibleTabs = () => {
      const rv = [...new Set(Object.keys(reportsBySection).map(s => sections[s].tab))];
+     if (hasImpurities()) {
+         rv.push(IMPURITY_TAB);
+     }
      if (hasPathway()) {
          rv.push(PATHWAY_TAB);
      }
@@ -374,15 +408,27 @@
  };
 
  const loadAndRebuild = async () => {
+     // the completion of the report's run and its impurity runs
+     const completed = (s) => [
+         props.neutronics,
+         impurityReport(props.neutronics, 'max'),
+         impurityReport(props.neutronics, 'min'),
+     ].map((r) => s?.sim[r]?.completed);
      isLoadingPlots.value = true;
      try {
          const s = await db.loadSummary(props.materialId, isViewing());
-         if (summary && s
-             && summary?.sim[props.neutronics]?.completed === s?.sim[props.neutronics]?.completed) {
+         const o = summary && completed(summary);
+         const n = s && completed(s);
+         if (o && n && o.join() === n.join()) {
              // same summary, no rebuild required
              return;
          }
          summary = s;
+         if (o && n && o[0] === n[0]) {
+             // only an impurity run changed
+             setImpurityRuns();
+             return;
+         }
          await rebuildReports();
      }
      finally {

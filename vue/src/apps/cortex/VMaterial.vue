@@ -33,6 +33,7 @@
                 v-bind:materialId="materialId"
                 v-bind:materialName="material.name"
                 v-bind:isPlasmaFacing="material.is_plasma_facing"
+                v-bind:components="material.components"
                 v-bind:neutronics="neutronicsSim"
             />
         </div>

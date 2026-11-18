@@ -39,6 +39,14 @@ class DB {
         return (await this.#send('featured_materials')).op_result;
     }
 
+    async impurityComparison(material_id, is_public, model) {
+        // goes through cortexSim, which draws the plots on an agent
+        return await requestSender.sendRequest("cortexSim", {
+            op_name: 'impurity_comparison',
+            op_args: {material_id, is_public, model},
+        });
+    }
+
     async insertMaterial(file) {
         return await this.#send('insert_material', {}, file);
     }
