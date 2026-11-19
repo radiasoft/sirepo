@@ -43,6 +43,9 @@ _NUCLIDE_LEGEND = "The legend gives each nuclide and its half-life."
 # POSIT: slab.py.jinja _y_to_s_milestones
 _SECONDS_PER_YEAR = 365 * 24 * 3600
 
+#: absorption probabilities kept by `_pathway_patch`
+_PATHWAY_CACHE_SIZE = 4
+
 #: cooling times (seconds after shutdown) a pathway analysis may be of, some of
 #: slab.py.jinja DEPLETION_MILESTONE_SECONDS_TO_PLOT
 # POSIT: VPathwayAnalysis.vue COOLING_TIMES
@@ -169,6 +172,12 @@ _PATHWAY_METRICS = frozenset(
 
 #: openmc nuclide name, e.g. Co60 or Ag108_m1
 _PATHWAY_NUCLIDE_RE = re.compile(r"^[A-Z][a-z]?\d{1,3}(?:_m\d)?$")
+
+#: units of the pathway analysis metrics which have them, the same as the
+#: summary table and the activity and decay heat plots (not the layer totals)
+# POSIT: material_db _SUMMARY_FIELDS activity_Bq_per_kg_at_100y and
+# decayheat_W_per_cm3_at_100y
+_PATHWAY_UNITS = PKDict(activity="Bq/kg", decay_heat="W/cm3")
 
 #: loaded pathway inputs, kept by the agent's analysis process between requests
 _pathway = PKDict(stamp=None)
@@ -671,6 +680,7 @@ def stateless_compute_pathway_analysis(data, **kwargs):
         metric=a.metric,
         end_step=s.step,
         aggregate_origins_by_element=bool(a.by_element),
+        units=_PATHWAY_UNITS.get(a.metric),
     )
     return PKDict(
         coolingSeconds=s.cooling_seconds,
@@ -1297,6 +1307,7 @@ def _pathway_load(stamp):
     """
     import openmc_pathway_analysis
 
+    _pathway_patch()
     if _pathway.stamp == stamp:
         return _pathway
     f = PKDict(
@@ -1317,6 +1328,42 @@ def _pathway_load(stamp):
         stamp=stamp,
     )
     return _pathway
+
+
+def _pathway_patch():
+    """Compute openmc_pathway_analysis absorption probabilities once per graph
+
+    Remove when openmc-pathway-analysis caches it itself.
+    target_origins calls compute_absorption_probabilities(production graph,
+    origins) for each target, but neither argument depends on the target, so
+    attribute_material_metric_origins solves the same problem for every final
+    nuclide: 40 s instead of 1 s for activity at 1 day on a slab run.
+    Results are the same.
+
+    Installed once per process. An entry keeps its graph, so the graph's id
+    can't be reused by another graph while it's cached.
+    """
+    import openmc_pathway_analysis.production_graph
+
+    m = openmc_pathway_analysis.production_graph
+    f = m.compute_absorption_probabilities
+    if getattr(f, "sr_is_cached", False):
+        return
+    # (graph, key, result), most recent last
+    c = []
+
+    def _cached(graph, *, origins, **kwargs):
+        k = (tuple(origins), tuple(sorted(kwargs.items())))
+        for x in c:
+            if x[0] is graph and x[1] == k:
+                return x[2]
+        rv = f(graph, origins=origins, **kwargs)
+        c.append((graph, k, rv))
+        del c[:-_PATHWAY_CACHE_SIZE]
+        return rv
+
+    _cached.sr_is_cached = True
+    m.compute_absorption_probabilities = _cached
 
 
 def _pathway_rows(values, total):

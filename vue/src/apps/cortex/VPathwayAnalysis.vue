@@ -49,8 +49,8 @@
                 <div v-if="error" class="text-danger mt-3">{{ error }}</div>
                 <div class="text-muted small mt-3">
                     Attributes the metric of the layer made of this material,
-                    at the time after shutdown, to the elements or nuclides the
-                    layer was made of.
+                    at the time after shutdown, to the elements or nuclides in
+                    the layer before irradiation.
                 </div>
             </VCortexCard>
         </div>
@@ -74,7 +74,7 @@
                     <div class="text-muted small">
                         The share of the {{ metricLabel(result.metric).toLowerCase() }}
                         that comes from each {{ result.byElement ? 'element' : 'nuclide' }}
-                        the layer was made of.
+                        in the layer before irradiation.
                     </div>
                     <table class="table table-sm">
                         <thead>

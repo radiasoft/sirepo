@@ -78,7 +78,7 @@ def test_pathway_analysis():
             y = sirepo.template.cortex._SECONDS_PER_YEAR
             r = _compute()
             pkunit.pkeq("First_Wall", r.layer)
-            pkunit.pkeq("Bq", r.units)
+            pkunit.pkeq("Bq/kg", r.units)
             pkunit.pkeq(100 * y, r.coolingSeconds)
             # the nearest step, shutdown, since the results have no step at 1 day
             pkunit.pkeq(0, _compute(cooling_seconds=86_400).coolingSeconds)
@@ -94,6 +94,13 @@ def test_pathway_analysis():
                 [x.name for x in _compute(by_element=True).rows],
             )
             pkunit.pkeq(None, _compute(metric="waste_disposal_rating").units)
+            # target_origins solves once per graph, see _pathway_patch
+            import openmc_pathway_analysis.production_graph
+
+            pkunit.pkok(
+                openmc_pathway_analysis.production_graph.compute_absorption_probabilities.sr_is_cached,
+                "compute_absorption_probabilities not patched",
+            )
             # the loaded inputs are kept for the same stamp
             p = sirepo.template.cortex._pathway.pathways
             _compute(metric="decay_heat")
