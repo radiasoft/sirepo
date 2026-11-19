@@ -2048,6 +2048,9 @@ SIREPO.app.factory('authService', function(authState, uri, stringsService) {
         if ('guest' == method) {
             return 'as Guest';
         }
+        if ('oidc' == method) {
+            return 'with Single Sign-On';
+        }
         return 'with ' + stringsService.ucfirst(method);
     }
 
@@ -4682,6 +4685,11 @@ SIREPO.app.controller('LoginWithController', function (authState, errorService, 
             }
         );
     }
+    else if (m == 'oidc') {
+        requestSender.globalRedirect('authOidcLogin', {
+            simulation_type: SIREPO.APP_SCHEMA.simulationType,
+        });
+    }
     else if (m == 'email') {
         // handled by the emailLogin directive
     }
@@ -4704,22 +4712,28 @@ SIREPO.app.controller('LoginConfirmController', function (authState, requestSend
     self.warningText = '';
 
     if ($route.current.templateUrl.indexOf('complete-registration') >= 0) {
-        if (! SIREPO.authState.isLoggedIn) {
+        const oidc = $route.current.oidcRegistration;
+        if (! oidc && ! SIREPO.authState.isLoggedIn) {
             requestSender.localRedirect('login');
             return;
         }
-        if (! SIREPO.authState.needCompleteRegistration) {
+        if (! oidc && ! SIREPO.authState.needCompleteRegistration) {
             requestSender.localRedirect(SIREPO.APP_SCHEMA.appDefaults.route);
             return;
         }
         self.submit = function() {
             requestSender.sendRequest(
-                'authCompleteRegistration',
+                oidc ? 'authOidcCompleteRegistration' : 'authCompleteRegistration',
                 function (data) {
+                    if (data.state === 'ok' && oidc && authState.isModerated) {
+                        $('#sr-complete-registration-done').modal('show');
+                        return;
+                    }
                     authState.handleLogin(data, self);
                 },
                 {
                     displayName: self.data.displayName,
+                    reason: self.data.reason,
                     simulationType: SIREPO.APP_NAME
                 }
             );

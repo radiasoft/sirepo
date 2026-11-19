@@ -41,8 +41,12 @@ dependencies = [
     # only needed for testing (srunit)
     "websockets",
     # Optional dependencies
+    # required for OAuth and OIDC login
+    "Authlib>=1.7.2,<2",
+    # required for OIDC login
+    "httpx>=0.27,<1",
+    "joserfc>=1.6.8,<2",
     # required for email login and smtp
-    "Authlib>=0.13",
     "dnspython",
     # required for sbatch agent
     "asyncssh",
