@@ -27,8 +27,9 @@ def http_timeout(monkeypatch):
         (False, "client_secret_basic", "RS256"),
         (True, "client_secret_basic", "RS256"),
         (False, "client_secret_post", "ES256"),
+        (False, "client_secret_post", "RS256"),
     ],
-    ids=["unmoderated", "moderated", "post-es256"],
+    ids=["unmoderated", "moderated", "post-es256", "mapped-username"],
 )
 def service(request):
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -47,9 +48,11 @@ def service(request):
     import urllib.parse
 
     moderated, token_auth, algorithm = request.param
+    mapped = token_auth == "client_secret_post" and algorithm == "RS256"
     key_args = ("EC", "P-256") if algorithm == "ES256" else ("RSA", 2048)
     p = PKDict(
         moderated=moderated,
+        mapped=mapped,
         key=jwk.generate_key(*key_args),
         other_key=jwk.generate_key(*key_args),
         codes={},
@@ -91,7 +94,9 @@ def service(request):
             assert path.path == "/authorize"
             args = {k: v[0] for k, v in urllib.parse.parse_qs(path.query).items()}
             assert args["response_type"] == "code"
-            assert args["scope"] == "openid email profile"
+            assert args["scope"] == (
+                "openid profile directory" if mapped else "openid email profile"
+            )
             assert args["code_challenge_method"] == "S256"
             assert args["client_id"] == "sirepo-test"
             assert args["redirect_uri"] == p.callback
@@ -152,8 +157,19 @@ def service(request):
                 email_verified=True,
             )
             claims.update(p.claims)
+            if mapped:
+                claims["directory_user"] = claims.pop("email").split("@")[0]
+                if "email_verified" not in p.claims:
+                    claims.pop("email_verified")
             if p.missing_claim:
-                claims.pop(p.missing_claim)
+                claims.pop(
+                    (
+                        "directory_user"
+                        if mapped and p.missing_claim == "email"
+                        else p.missing_claim
+                    ),
+                    None,
+                )
             token = dict(access_token="test-access-token", token_type="Bearer")
             if not p.omit_id_token:
                 token["id_token"] = jwt.encode(
@@ -187,6 +203,12 @@ def service(request):
         SIREPO_AUTH_OIDC_CLIENT_ID="sirepo-test",
         SIREPO_AUTH_OIDC_CLIENT_SECRET="test-secret",
         SIREPO_AUTH_OIDC_TOKEN_ENDPOINT_AUTH_METHOD=token_auth,
+        SIREPO_AUTH_OIDC_EMAIL_CLAIM="directory_user" if mapped else "email",
+        SIREPO_AUTH_OIDC_EMAIL_DOMAIN="example.com" if mapped else "",
+        SIREPO_AUTH_OIDC_REQUIRE_VERIFIED_EMAIL=str(int(not mapped)),
+        SIREPO_AUTH_OIDC_SCOPES=(
+            "openid:profile:directory" if mapped else "openid:email:profile"
+        ),
         SIREPO_AUTH_OIDC_REDIRECT_URI=p.callback,
         SIREPO_FEATURE_CONFIG_SIM_TYPES="myapp",
         SIREPO_FEATURE_CONFIG_MODERATED_SIM_TYPES="myapp" if p.moderated else "",
@@ -904,6 +926,8 @@ def test_token_failure(service, error, stage):
 def test_missing_claim(service, monkeypatch, claim):
     import requests
 
+    if service.mapped and claim == "email_verified":
+        pytest.skip("mapped deployment explicitly trusts absent verification")
     monkeypatch.setitem(service, "missing_claim", claim)
     with requests.Session() as session:
         _login_failure(session.get(_authorize(service, session), allow_redirects=False))

@@ -133,6 +133,71 @@ def test_urls(qcall):
             oidc._cfg_url(url)
 
 
+@pytest.mark.parametrize(
+    "value,domain,verified,required,expected",
+    [
+        ("Person@Example.org", None, True, True, "person@example.org"),
+        ("Person", "example.org", None, False, "person@example.org"),
+        ("Person@Other.org", "example.org", None, False, "person@other.org"),
+        ("Person", None, None, False, None),
+        ("bad name", "example.org", None, False, None),
+        (["Person"], "example.org", None, False, None),
+        (None, "example.org", None, False, None),
+        ("Person@Example.org", None, None, True, None),
+        ("Person@Example.org", None, False, False, None),
+        ("Person@Example.org", None, "true", False, None),
+        ("Person@Example.org", None, 1, False, None),
+        ("x" * 250, "example.org", None, False, None),
+    ],
+)
+def test_email_mapping(qcall, monkeypatch, value, domain, verified, required, expected):
+    from sirepo import util
+    from sirepo.auth import oidc
+
+    monkeypatch.setitem(oidc._cfg, "email_claim", "directory_user")
+    monkeypatch.setitem(oidc._cfg, "email_domain", domain)
+    monkeypatch.setitem(oidc._cfg, "require_verified_email", required)
+    claims = dict(sub="subject", directory_user=value, email="ignored@example.org")
+    if verified is not None:
+        claims["email_verified"] = verified
+    if expected is None:
+        with pytest.raises(util.Forbidden):
+            oidc._validated_email(claims)
+    else:
+        assert oidc._validated_email(claims) == expected
+
+
+def test_email_domain(qcall):
+    from sirepo.auth import oidc
+
+    assert oidc._cfg_email_domain("Example.ORG") == "example.org"
+    for domain in ("@example.org", "https://example.org", "bad domain", "a@b.org"):
+        with pytest.raises(AssertionError):
+            oidc._cfg_email_domain(domain)
+
+
+@pytest.mark.parametrize(
+    "changes,message",
+    [
+        (dict(scopes=("email", "profile")), "scopes must include openid"),
+        (dict(email_claim=None), "email_claim must not be empty"),
+        (
+            dict(email_domain="example.org", require_verified_email=True),
+            "email_domain requires require_verified_email=false",
+        ),
+    ],
+)
+def test_invalid_identity_config(qcall, monkeypatch, changes, message):
+    from sirepo.auth import oidc
+
+    cfg = oidc._cfg.copy()
+    cfg.update(changes)
+    monkeypatch.setattr(oidc, "_cfg", cfg)
+    monkeypatch.setattr(oidc.pkconfig, "init", lambda **kwargs: cfg)
+    with pytest.raises(AssertionError, match=message):
+        oidc.init_apis()
+
+
 def test_periodic_cleanup(qcall):
     import asyncio
     import datetime

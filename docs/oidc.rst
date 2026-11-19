@@ -17,7 +17,8 @@ the public Sirepo origin::
     https://sirepo.example.org/auth-oidc-callback
 
 The provider must support discovery and return a signed ID token containing
-``sub``, ``email``, and a boolean ``email_verified=true``. Sirepo requests the
+``sub`` and the configured email claim. By default, Sirepo requires ``email``
+and a boolean ``email_verified=true`` and requests the
 ``openid email profile`` scopes. Supported ID-token signing algorithms are
 RS256, RS384, RS512, ES256, ES384, and ES512.
 Email claims must be in the ID token; Sirepo does not call the UserInfo endpoint.
@@ -26,7 +27,7 @@ Microsoft Entra ID
 ~~~~~~~~~~~~~~~~~
 
 Entra ID compatibility has not been established. Its standard ID-token claims
-do not guarantee ``email_verified=true``, which this implementation requires.
+do not guarantee ``email_verified=true``, which Sirepo requires by default.
 Microsoft also warns that the ``email`` claim is mutable and not guaranteed
 correct. Do not remove the verified-email check or substitute
 ``preferred_username`` without defining the deployment's identity trust policy.
@@ -34,6 +35,9 @@ See Microsoft's `ID token claims reference
 <https://learn.microsoft.com/en-us/entra/identity-platform/id-token-claims-reference>`_.
 An Entra deployment would also need a tenant-specific issuer matching discovery
 and tokens, rather than a ``common`` or ``organizations`` issuer.
+The claim-mapping and trust settings below support organization-managed
+identities without Entra-specific application logic, but the administrator must
+confirm the app registration's claims and directory policies.
 
 Sirepo configuration
 --------------------
@@ -57,6 +61,42 @@ If the provider requires credentials in the request body, set::
 
     SIREPO_AUTH_OIDC_TOKEN_ENDPOINT_AUTH_METHOD=client_secret_post
 
+Email claim mapping and trust
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``SIREPO_AUTH_OIDC_EMAIL_CLAIM`` selects one exact, top-level ID-token claim
+(default ``email``); Sirepo does not try alternate claims automatically.
+``SIREPO_AUTH_OIDC_SCOPES`` is a colon-separated list (default
+``openid:email:profile``) and must contain ``openid``. Scopes request claims;
+the provider must be configured to actually emit the selected claim.
+
+For an organization-managed username claim, an example configuration is::
+
+    SIREPO_AUTH_OIDC_EMAIL_CLAIM=samaccountname
+    SIREPO_AUTH_OIDC_EMAIL_DOMAIN=example.org
+    SIREPO_AUTH_OIDC_SCOPES=openid:profile:email
+    SIREPO_AUTH_OIDC_REQUIRE_VERIFIED_EMAIL=0
+
+The domain is appended only when the selected value contains no ``@``, matching
+LDAP's convention. Full email addresses are left unchanged; this setting is
+not a domain allowlist. LDAP and OIDC domain settings are independent.
+The resulting address is validated and lowercased before account lookup.
+Never use an arbitrary subject identifier as a mailbox name.
+
+``SIREPO_AUTH_OIDC_REQUIRE_VERIFIED_EMAIL`` defaults to true. Set it to false
+only when the configured issuer and claim mapping are authoritative for the
+resulting addresses. This permits an absent ``email_verified`` claim, not an
+explicit false or malformed value. Configuring an email domain requires this
+explicit opt-in because a derived address has not been verified by OIDC.
+For nonstandard email claims, administrators must also confirm any
+``email_verified`` assertion applies to the selected address.
+
+Trusting an issuer's mapping allows it to select existing email-based accounts
+and their simulations. Confirm username-to-mailbox correspondence, who can
+edit the claim, guest enrollment, and identifier reassignment policies.
+Deriving an address does not verify that a mailbox exists or is controlled
+by the user.
+
 Provider and callback URLs require HTTPS. HTTP is allowed only for loopback
 addresses for local development. When using a reverse proxy, expose the OIDC
 routes on the same public origin as the application and preserve Sirepo's
@@ -65,18 +105,18 @@ session cookies.
 Accounts and access
 -------------------
 
-At each login, Sirepo selects the account by the provider's verified email
+At each login, Sirepo selects the account by the configured, trusted email
 address, matched case-insensitively, as with email and LDAP login. If there is no
-matching registered account, Sirepo holds the verified identity in a short-lived
+matching registered account, Sirepo holds the trusted identity in a short-lived
 pending request and asks the user to enter a display name. The account and user
 directory are created only when the registration form is submitted, using the
 normal login and moderation path.
 Existing guest accounts retain their user directory when converted to a new
 OIDC account.
 
-Only configure a provider trusted to verify ownership of every email address
-it asserts. Its account enrollment, email verification, and recovery policies
-are part of Sirepo's authentication trust boundary: a verified email can grant
+Only configure a provider trusted to assert ownership of every mapped address.
+Its account enrollment, email verification, and recovery policies
+are part of Sirepo's authentication trust boundary: a trusted email can grant
 access to an existing account and its simulations.
 
 Email addresses are the account identifiers; Sirepo does not store a separate

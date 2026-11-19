@@ -229,6 +229,18 @@ def init_apis(*args, **kwargs):
         issuer=pkconfig.Required(_cfg_url, "Exact OIDC provider issuer URL"),
         client_id=pkconfig.Required(str, "OIDC client identifier"),
         client_secret=pkconfig.Required(str, "OIDC confidential client secret"),
+        email_claim=("email", str, "ID-token claim containing email or username"),
+        email_domain=(
+            None,
+            _cfg_email_domain,
+            "Domain appended to usernames without @",
+        ),
+        require_verified_email=(
+            True,
+            bool,
+            "Require email_verified=true from provider",
+        ),
+        scopes=(("openid", "email", "profile"), tuple, "OIDC scopes to request"),
         redirect_uri=pkconfig.Required(
             _cfg_url, "Registered public URL ending in /auth-oidc-callback"
         ),
@@ -238,6 +250,12 @@ def init_apis(*args, **kwargs):
             "Token authentication: client_secret_basic or client_secret_post",
         ),
     )
+    if "openid" not in _cfg.scopes:
+        raise AssertionError("OIDC scopes must include openid")
+    if not _cfg.email_claim:
+        raise AssertionError("OIDC email_claim must not be empty")
+    if _cfg.email_domain and _cfg.require_verified_email:
+        raise AssertionError("OIDC email_domain requires require_verified_email=false")
     if _cfg.token_endpoint_auth_method not in (
         "client_secret_basic",
         "client_secret_post",
@@ -315,13 +333,20 @@ def _cfg_url(value):
     return value
 
 
+def _cfg_email_domain(value):
+    value = value.lower()
+    if "@" in value or not pyisemail.is_email("oidc@" + value):
+        raise AssertionError("invalid OIDC email_domain")
+    return value
+
+
 def _client():
     return AsyncOAuth2Client(
         _cfg.client_id,
         _cfg.client_secret,
         token_endpoint_auth_method=_cfg.token_endpoint_auth_method,
         redirect_uri=_cfg.redirect_uri,
-        scope="openid email profile",
+        scope=" ".join(_cfg.scopes),
         code_challenge_method="S256",
         timeout=10,
         follow_redirects=False,
@@ -330,7 +355,10 @@ def _client():
 
 def _validated_email(claims):
     subject = claims.get("sub")
-    email = claims.get("email")
+    email = claims.get(_cfg.email_claim)
+    if isinstance(email, str) and "@" not in email and _cfg.email_domain:
+        email += "@" + _cfg.email_domain
+    verified = claims.get("email_verified")
     if (
         not isinstance(subject, str)
         or not subject
@@ -338,12 +366,15 @@ def _validated_email(claims):
         or not isinstance(email, str)
         or len(email) > 255
         or not pyisemail.is_email(email)
-        or claims.get("email_verified") is not True
+        or (
+            verified is not True
+            and (_cfg.require_verified_email or "email_verified" in claims)
+        )
     ):
         pkdlog(
-            "OIDC identity validation failed: subject or verified email missing or invalid"
+            "OIDC identity validation failed: subject, mapped email, or verification missing or invalid"
         )
-        raise sirepo.util.Forbidden("OIDC login requires a subject and verified email")
+        raise sirepo.util.Forbidden("OIDC identity does not satisfy email policy")
     return email.lower()
 
 
