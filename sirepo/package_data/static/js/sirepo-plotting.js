@@ -4057,7 +4057,7 @@ SIREPO.app.directive('parameterPlot', function(appState, focusPointService, layo
                     .each(function (d) {
                         // the plot index, not the position among g.param-plot
                         // elements, which differ when lines or bands precede it
-                        var ip = parseInt(d3.select(this).attr('data-sr-index'));
+                        var ip = parseInt(d3.select(this).attr('data-sr-index'), 10);
                         var sp = d3.select(this).selectAll('.scatter-point');
                         var dp = d3.select(this).selectAll('.data-point');
                         [sp, dp].forEach(function (pt) {

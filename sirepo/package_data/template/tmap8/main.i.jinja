@@ -25,7 +25,7 @@
 []
 
 [MultiApps]
-  [sub]
+  [{{ multi_app }}]
     type = SamplerFullSolveMultiApp
     input_files = '{{ sub_file }}'
     sampler = mc
@@ -41,7 +41,7 @@
 [Controls]
   [cmdline]
     type = MultiAppSamplerControl
-    multi_app = sub
+    multi_app = {{ multi_app }}
     sampler = mc
     param_names = '{{ param_names }}'
   []

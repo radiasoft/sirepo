@@ -1,0 +1,42 @@
+    0 KSP unpreconditioned resid norm 3.052675937632e+07 true resid norm 3.052675937632e+07 ||r(i)||/||b|| 1.000000000000e+00
+    1 KSP unpreconditioned resid norm 6.298038899385e+04 true resid norm 6.298038899385e+04 ||r(i)||/||b|| 2.063120694125e-03
+    2 KSP unpreconditioned resid norm 6.591626741054e-10 true resid norm 1.461281826991e+01 ||r(i)||/||b|| 4.786888149435e-07
+  Nonlinear solve did not converge due to DIVERGED_MAX_IT iterations 1
+[31m Solve Did NOT Converge![39m
+Aborting as solve did not converge
+
+[31m
+*** ERROR ***
+The following occurred in the TimeStepper 'ConstantDT' of type ConstantDT.
+
+Solve failed and timestep already at or below dtmin, cannot continue![39m
+
+Stack frames: 14
+0: tmap8() [0x409708f]
+1: tmap8() [0xbe929a]
+2: tmap8() [0xbf10ba]
+3: tmap8() [0xbf11a7]
+4: tmap8() [0x14c62a8]
+5: tmap8() [0x1f61585]
+6: tmap8() [0x1f618ef]
+    0 KSP unpreconditioned resid norm 3.052675937632e+07 true resid norm 3.052675937632e+07 ||r(i)||/||b|| 1.000000000000e+00
+    1 KSP unpreconditioned resid norm 6.298038899385e+04 true resid norm 6.298038899385e+04 ||r(i)||/||b|| 2.063120694125e-03
+    2 KSP unpreconditioned resid norm 6.591626741054e-10 true resid norm 1.461281826991e+01 ||r(i)||/||b|| 4.786888149435e-07
+  Nonlinear solve did not converge due to DIVERGED_MAX_IT iterations 1
+[31m Solve Did NOT Converge![39m
+Aborting as solve did not converge
+
+[31m
+*** ERROR ***
+The following occurred in the TimeStepper 'ConstantDT' of type ConstantDT.
+
+Solve failed and timestep already at or below dtmin, cannot continue![39m
+
+Stack frames: 14
+0: tmap8() [0x409708f]
+1: tmap8() [0xbe929a]
+2: tmap8() [0xbf10ba]
+3: tmap8() [0xbf11a7]
+4: tmap8() [0x14c62a8]
+5: tmap8() [0x1f61585]
+6: tmap8() [0x1f618ef]

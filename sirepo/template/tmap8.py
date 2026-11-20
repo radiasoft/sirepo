@@ -26,8 +26,9 @@ import sirepo.util
 import tempfile
 import zipfile
 
-# terminal color codes, which MOOSE writes around errors
-_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+MC_MAIN_FILE = "main.i"
+MC_SUB_FILE = "sub.i"
+TMAP8_INPUT_FILE = "tmap8.i"
 _BARE_FPARSE_RE = re.compile(r"^\$\{fparse\s+(?P<expr>.+)\}$")
 _BARE_VAR_RE = re.compile(r"^\$\{(?P<var>[A-Za-z_]\w*)\}$")
 _COMMENT_LINE_RE = re.compile(r"^\s*#")
@@ -46,23 +47,47 @@ _EXPERIMENTAL_DATA_ERRORS = (KeyError, ValueError, zipfile.BadZipFile)
 # strips "#", "=" and "-" decorations from a heading, e.g. "# ==== Geometry ===="
 _HEADING_STRIP_RE = re.compile(r"^[\s#=-]+|[\s=-]+$")
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_]\w*$")
+_INCLUDE_RE = re.compile(
+    r"^(?P<prefix>\s*!include\s+)['\"]?(?P<path>[^'\"\s]+)['\"]?", re.MULTILINE
+)
 # ${units v a -> b} inside an expression, e.g. "${units E eV -> J} / kB"
 _INNER_UNITS_RE = re.compile(
     r"\$\{units\s+(?P<value>[^\s{}]+)\s+(?P<unit>[^\s{}]+?)"
     + r"(?:\s*->\s*(?P<convert>[^\s{}]+))?\s*\}"
 )
-_INCLUDE_RE = re.compile(
-    r"^(?P<prefix>\s*!include\s+)['\"]?(?P<path>[^'\"\s]+)['\"]?", re.MULTILINE
-)
 # POSIT: the models with InputFile fields in tmap8-schema.json
 _LIB_FILE_PREFIXES = ("plotAnimation-", "simulationSettings-")
+# the [Outputs] block in sub.i which writes each sample's csv
+_MC_CSV_OUTPUT = "csv"
+# relative; a sample which ends earlier than the others didn't converge
+_MC_END_TIME_TOLERANCE = 1e-6
+_MC_LOWER_PERCENTILE = 5
+# the [MultiApps] block in main.i which runs sub.i for each sample
+_MC_MULTI_APP = "sub"
+# SamplerFullSolveMultiApp names each sample's csv
+# <main input>_out_<multi app><N>_<csv output>.csv
+_MC_SAMPLE_CSV_GLOB = (
+    os.path.splitext(MC_MAIN_FILE)[0] + f"_out_{_MC_MULTI_APP}*_{_MC_CSV_OUTPUT}.csv"
+)
+_MC_UPPER_PERCENTILE = 95
+# after the percentiles it's computed from
+_MC_CI_LEVEL = _MC_UPPER_PERCENTILE - _MC_LOWER_PERCENTILE
+_MOOSE_ERROR_CONTEXT = "The following occurred in "
+# a MOOSE error message, e.g. "Solve failed and timestep already at or below
+# dtmin, cannot continue!", up to the stack trace; LogParser multiline
+_MOOSE_ERROR_PATTERN = (
+    r"^\*\*\* ERROR \*\*\*\n(.*?)(?=^\s*Stack frames:|\n\s*\n\s*\n|\Z)"
+)
 _NESTED_FPARSE_UNIT_RE = re.compile(
     r"^\$\{units\s+\$\{fparse\s+(?P<expr>.+?)\}\s+(?P<unit>\S+?)(?:\s*->\s*(?P<convertUnit>\S+))?\s*\}$"
 )
 _NESTED_VAR_REF_RE = re.compile(r"\$\{([A-Za-z_]\w*)\}")
+_NONE = "None"
 _NUMBER_RE = re.compile(r"^[~+-]?\d+(\.\d+)?([eE][+-]?\d+)?$")
-_UNIT_RE = re.compile(r"\$\{units\s+([0-9eE.+-]+)\s+(\S+?)(?:\s*->\s*(\S+))?\s*\}")
-# exponents of kg, m, s, A, K, mol, cd
+_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
+# an unindented parameter assignment, i.e. a top-level parameter
+_TOP_LEVEL_PARAM_RE = re.compile(r"^[A-Za-z_]\w*\s*=")
+# exponents of kg, m, s, A, K, mol, cd; before _UNITS, which uses it
 _UNIT_DIMS = PKDict(
     current=(0, 0, 0, 1, 0, 0, 0),
     energy=(1, 2, -2, 0, 0, 0, 0),
@@ -102,6 +127,9 @@ _UNITS = PKDict(
 )
 # inch; "in" is a Python keyword, so it can't be a PKDict keyword argument
 _UNITS["in"] = (0.0254, _UNIT_DIMS.length)
+# e.g. ^2, ^-3, ^0.5, ^(1/2)
+_UNIT_EXPONENT_RE = re.compile(r"\^(\(-?\d+(?:\.\d+)?(?:/\d+)?\)|-?\d+(?:\.\d+)?)")
+_UNIT_NAME_RE = re.compile(r"[A-Za-z]+")
 # added after scaling to SI: K = degC + 273.15; only for a unit on its own
 _UNIT_OFFSETS = PKDict(degC=273.15)
 # longest first, so "da" and "mu" match before "d" and "m"
@@ -127,30 +155,8 @@ _UNIT_PREFIXES = (
     ("z", 1e-21),
     ("y", 1e-24),
 )
-# e.g. ^2, ^-3, ^0.5, ^(1/2)
-_UNIT_EXPONENT_RE = re.compile(r"\^(\(-?\d+(?:\.\d+)?(?:/\d+)?\)|-?\d+(?:\.\d+)?)")
-_UNIT_NAME_RE = re.compile(r"[A-Za-z]+")
+_UNIT_RE = re.compile(r"\$\{units\s+([0-9eE.+-]+)\s+(\S+?)(?:\s*->\s*(\S+))?\s*\}")
 _UNIT_TERM_RE = re.compile(r"(?P<sym>[A-Za-z]+|1)(?:\^\(?(?P<exp>-?\d+(?:\.\d+)?)\)?)?")
-_MC_LOWER_PERCENTILE = 5
-_MC_UPPER_PERCENTILE = 95
-_MC_CI_LEVEL = _MC_UPPER_PERCENTILE - _MC_LOWER_PERCENTILE
-# relative; a sample which ends earlier than the others didn't converge
-_MC_END_TIME_TOLERANCE = 1e-6
-_MC_SAMPLE_CSV_GLOB = "main_out_sub*_csv.csv"
-_MOOSE_ERROR_CONTEXT = "The following occurred in "
-# a MOOSE error message, e.g. "Solve failed and timestep already at or below
-# dtmin, cannot continue!", up to the stack trace
-_MOOSE_ERROR_RE = re.compile(
-    r"^\*\*\* ERROR \*\*\*\n(?P<message>.*?)(?=^\s*Stack frames:|\n\s*\n\s*\n|\Z)",
-    re.MULTILINE | re.DOTALL,
-)
-_NONE = "None"
-_SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
-# an unindented parameter assignment, i.e. a top-level parameter
-_TOP_LEVEL_PARAM_RE = re.compile(r"^[A-Za-z_]\w*\s*=")
-MC_MAIN_FILE = "main.i"
-MC_SUB_FILE = "sub.i"
-TMAP8_INPUT_FILE = "tmap8.i"
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -169,9 +175,7 @@ def background_percent_complete(report, run_dir, is_running):
         if not samples.converged:
             return None
         return _report_info(samples.converged[0]).pkupdate(
-            name="TMAP8 Output (Monte Carlo, {} samples)".format(
-                len(samples.converged)
-            ),
+            name=f"TMAP8 Output (Monte Carlo, {len(samples.converged)} samples)",
         )
 
     def _report_info(csv_file):
@@ -231,24 +235,18 @@ def post_execution_processing(success_exit, run_dir, **kwargs):
         if not m or not m.failed:
             return None
         if not m.converged:
-            # job_cmd reports an exception on a successful exit as an error
+            # POSIT: job_cmd._do_compute._exit_reply returns an exception
+            # raised here as job.ERROR, with str(exception) as the error
             raise RuntimeError(f"None of the {m.total} samples converged")
         return (
             f"{m.failed} of {m.total} samples did not converge"
             + " and are not included in the statistics"
         )
+    # MPI runs write TMAP8's output to the MPI log, others to the run log
     for n in (sirepo.const.MPI_LOG, template_common.RUN_LOG):
-        f = run_dir.join(n)
-        if not f.exists():
-            continue
-        # every MPI rank may report the error, so use the first
-        m = _MOOSE_ERROR_RE.search(_ANSI_RE.sub("", pykern.pkio.read_text(f)))
-        if m:
-            l = [x.strip() for x in m.group("message").splitlines() if x.strip()]
-            # the status line shows only the first line, so put the message
-            # before MOOSE's "The following occurred in ..." context
-            c = [x for x in l if x.startswith(_MOOSE_ERROR_CONTEXT)]
-            return "\n".join([x for x in l if x not in c] + c)
+        e = _MooseLogParser(run_dir, log_filename=n).parse_for_errors()
+        if e:
+            return e.rstrip()
     return None
 
 
@@ -261,17 +259,24 @@ def prepare_for_client(data, qcall, **kwargs):
         # derived from comment and unit, so always current
         x.commentMath = _comment_math(x.get("comment"))
         x.unitMath = _unit_math(x.get("unit"))
-    code_var(data.models.get("rpnVariables", [])).compute_cache(data, SCHEMA)
+    code_var(v).compute_cache(data, SCHEMA)
     return data
 
 
 def python_source_for_model(data, model, qcall, for_export=False, **kwargs):
+    """The TMAP8 input, or a Monte Carlo study's inputs for an export
+
+    Returns:
+        str or PKDict: the input (sub.i for a Monte Carlo study), or for
+            an export of a Monte Carlo study, basename to content for
+            main.i and sub.i, which `exporter` writes as separate files
+    """
     u = _uncertain_variables(data)
     if u and for_export:
         # POSIT: same files as write_parameters, so main.i finds sub.i
         return PKDict(
             {
-                MC_MAIN_FILE: _generate_monty_carlo_file(data, u),
+                MC_MAIN_FILE: _generate_monte_carlo_file(data, u),
                 MC_SUB_FILE: _generate_parameters_file(data, qcall, for_mc=True),
             }
         )
@@ -303,7 +308,8 @@ def sim_frame_plotAnimation(frame_args):
     if e:
         plots.append(e)
         colors.append(_EXPERIMENTAL_COLOR)
-    res = template_common.parameter_plot(
+    # parameter_plot includes the experiment's x_points in x_range
+    return template_common.parameter_plot(
         x=_x_points(d, frame_args.x, bool(m)),
         plots=plots,
         model=frame_args,
@@ -315,12 +321,6 @@ def sim_frame_plotAnimation(frame_args):
         ),
         plot_colors=colors,
     )
-    if e:
-        res.x_range = [
-            min(res.x_range[0], min(e.x_points)),
-            max(res.x_range[1], max(e.x_points)),
-        ]
-    return res
 
 
 def stateful_compute_import_file(data, **kwargs):
@@ -373,6 +373,24 @@ def validate_file(file_type, path, **kwargs):
             return f"Failed to read experimental data: {e}"
 
 
+def write_parameters(data, run_dir, is_parallel):
+    u = _uncertain_variables(data)
+    if u:
+        pykern.pkio.write_text(
+            run_dir.join(MC_SUB_FILE),
+            _generate_parameters_file(data, for_mc=True),
+        )
+        pykern.pkio.write_text(
+            run_dir.join(MC_MAIN_FILE),
+            _generate_monte_carlo_file(data, u),
+        )
+    else:
+        pykern.pkio.write_text(
+            run_dir.join(TMAP8_INPUT_FILE),
+            _generate_parameters_file(data),
+        )
+
+
 class _CodeVar(code_variable.CodeVar):
     """Evaluates ${units} conversions as TMAP8 does
 
@@ -403,6 +421,27 @@ class _CodeVar(code_variable.CodeVar):
         return super().eval_var(_expand_units(expr) if isinstance(expr, str) else expr)
 
 
+class _MooseLogParser(template_common.LogParser):
+    """MOOSE's "*** ERROR ***" messages; each MPI rank's copy is included once"""
+
+    def __init__(self, run_dir, **kwargs):
+        super().__init__(
+            run_dir,
+            # None, so job_cmd uses its own message
+            default_msg=None,
+            error_patterns=(_MOOSE_ERROR_PATTERN,),
+            multiline=True,
+            **kwargs,
+        )
+
+    def _error_from_match(self, match):
+        t = [x.strip() for x in match.group(1).splitlines() if x.strip()]
+        # the status line shows only the first line, so put the message
+        # before MOOSE's "The following occurred in ..." context
+        c = [x for x in t if x.startswith(_MOOSE_ERROR_CONTEXT)]
+        return "\n".join([x for x in t if x not in c] + c) + "\n"
+
+
 def _add_parameter_groups(data, qcall):
     """Set group on parameters which don't have it"""
     n = data.models.get("simulationSettings", PKDict()).get("inputFile")
@@ -423,7 +462,9 @@ def _add_parameter_groups(data, qcall):
 def _column_label(name, units):
     for u in units:
         if u.name == name:
-            return "{} (${}$)".format(name, u.unit) if u.unit else name
+            if not u.unit:
+                return name
+            return f"{name} ({_unit_math(u.unit) or f'${u.unit}$'})"
     return name
 
 
@@ -435,12 +476,12 @@ def _column_plots(col, dim, d, is_mc, units):
     both get the same color from the caller so they read as one legend
     series. Otherwise returns a single line dict.
     """
-    if is_mc and "{}_mean".format(col) in d.columns:
-        lo = d["{}_p{:02d}".format(col, _MC_LOWER_PERCENTILE)].tolist()
-        hi = d["{}_p{:02d}".format(col, _MC_UPPER_PERCENTILE)].tolist()
+    if is_mc and f"{col}_mean" in d.columns:
+        lo = d[f"{col}_p{_MC_LOWER_PERCENTILE:02d}"].tolist()
+        hi = d[f"{col}_p{_MC_UPPER_PERCENTILE:02d}"].tolist()
         return [
             PKDict(
-                label="{} ({}% CI)".format(_column_label(col, units), _MC_CI_LEVEL),
+                label=f"{_column_label(col, units)} ({_MC_CI_LEVEL}% CI)",
                 dim=dim,
                 style="band",
                 points=hi,
@@ -451,7 +492,7 @@ def _column_plots(col, dim, d, is_mc, units):
             PKDict(
                 label=_column_label(col, units),
                 dim=dim,
-                points=d["{}_mean".format(col)].tolist(),
+                points=d[f"{col}_mean"].tolist(),
             ),
         ]
     return [
@@ -476,43 +517,38 @@ def _comment_math(comment):
             comment has a "$", e.g. ${units ...}
     """
 
-    def _is_alone_unit(name, words, index, lead, trail):
+    def _is_alone_unit(name, index, lead, trail):
         if name in _COMMENT_UNITS_NOT_ALONE:
             return False
-        if len(words) == 1 or ("(" in lead and ")" in trail):
+        if len(w) == 1 or ("(" in lead and ")" in trail):
             return True
-        p = words[index - 1].lstrip("([{") if index else ""
+        p = w[index - 1].lstrip("([{") if index else ""
         if _NUMBER_RE.match(p) or p == "in":
             return True
-        return index == 0 and words[1] in ("-", "=")
+        return index == 0 and w[1] in ("-", "=")
 
-    if not comment:
-        return ""
-    t = re.split(r"(\s+)", comment)
-    w = [x for x in t if x and not x.isspace()]
-    i = -1
-    f = False
-    r = []
-    for x in t:
-        if not x or x.isspace():
-            r.append(x)
-            continue
-        i += 1
-        if "$" in x:
-            # mathRendering would see math in it, e.g. ${units ...}
-            return ""
-        l, c, e = _COMMENT_WORD_RE.match(x).groups()
+    def _word(match):
+        x = match.group()
+        # the index of every word, so it's taken before any return
+        n = next(i)
+        p, c, e = _COMMENT_WORD_RE.match(x).groups()
         # keep the parentheses of an expression, e.g. "W/(mum*K)"
         while e.startswith(")") and c.count("(") > c.count(")"):
             c += ")"
             e = e[1:]
         u = _unit_latex(c)
-        if u and (u.is_expression or _is_alone_unit(c, w, i, l, e)):
-            f = True
-            r.append(f"{l}${u.latex}${e}")
-        else:
-            r.append(x)
-    return "".join(r) if f else ""
+        if u and (u.is_expression or _is_alone_unit(c, n, p, e)):
+            return f"{p}${u.latex}${e}"
+        return x
+
+    # mathRendering would see math in a "$", e.g. ${units ...}
+    if not comment or "$" in comment:
+        return ""
+    w = comment.split()
+    i = iter(range(len(w)))
+    r = re.sub(r"\S+", _word, comment)
+    # a unit adds "$", which the comment didn't have
+    return r if r != comment else ""
 
 
 def _data_file_params(root):
@@ -592,61 +628,63 @@ def _extract_parameters(root, groups):
       - comment: the trailing `# ...` comment text for the parameter, or None
       - group: the heading of the block of parameters it's in, or ""
     """
-    r = []
-    for name, raw_value in root.params():
-        value, unit, convert_unit = raw_value, None, None
-        if isinstance(raw_value, str):
-            nested = _NESTED_FPARSE_UNIT_RE.match(raw_value)
-            bare = None if nested else _BARE_FPARSE_RE.match(raw_value)
-            bare_var = None if (nested or bare) else _BARE_VAR_RE.match(raw_value)
-            if nested:
-                value = _NESTED_VAR_REF_RE.sub(r"\1", nested.group("expr"))
-                unit = nested.group("unit")
-                convert_unit = nested.group("convertUnit")
-            elif bare:
-                value = _NESTED_VAR_REF_RE.sub(r"\1", bare.group("expr"))
-            elif bare_var:
-                value = bare_var.group("var")
-            else:
-                match = _UNIT_RE.search(raw_value)
-                if match:
-                    magnitude, from_unit, to_unit = match.groups()
-                    value = float(magnitude)
-                    unit = from_unit
-                    convert_unit = to_unit
-        r.append(
+
+    def _parse(raw):
+        """(value, unit, convertUnit) of a parameter's text"""
+        if not isinstance(raw, str):
+            return raw, None, None
+        m = _NESTED_FPARSE_UNIT_RE.match(raw)
+        if m:
+            return (
+                _NESTED_VAR_REF_RE.sub(r"\1", m.group("expr")),
+                m.group("unit"),
+                m.group("convertUnit"),
+            )
+        m = _BARE_FPARSE_RE.match(raw)
+        if m:
+            return _NESTED_VAR_REF_RE.sub(r"\1", m.group("expr")), None, None
+        m = _BARE_VAR_RE.match(raw)
+        if m:
+            return m.group("var"), None, None
+        m = _UNIT_RE.search(raw)
+        if m:
+            return float(m.group(1)), m.group(2), m.group(3)
+        return raw, None, None
+
+    res = []
+    for n, x in root.params():
+        v, u, c = _parse(x)
+        res.append(
             PKDict(
-                name=name,
-                value=value,
-                defaultValue=value,
-                unit=unit,
-                convertUnit=convert_unit,
-                comment=root.comment(name),
-                group=groups.get(name, ""),
+                name=n,
+                value=v,
+                defaultValue=v,
+                unit=u,
+                convertUnit=c,
+                comment=root.comment(n),
+                group=groups.get(n, ""),
             )
         )
-    return r
+    return res
 
 
 def _format_parameter_value(value, unit, convert_unit=None):
     """Reconstruct the `${...}` (or plain) text for *value*/*unit*, inverting `_extract_parameters`."""
     if isinstance(value, str):
         expr = (
-            "${{{}}}".format(value)
-            if _IDENTIFIER_RE.match(value)
-            else "${{fparse {}}}".format(value)
+            f"${{{value}}}" if _IDENTIFIER_RE.match(value) else f"${{fparse {value}}}"
         )
     else:
         expr = str(value)
     if not unit:
         return expr
-    u = "{} -> {}".format(unit, convert_unit) if convert_unit else unit
-    return "${{units {} {}}}".format(expr, u)
+    u = f"{unit} -> {convert_unit}" if convert_unit else unit
+    return f"${{units {expr} {u}}}"
 
 
-def _generate_monty_carlo_file(data, uncertain_variables):
+def _generate_monte_carlo_file(data, uncertain_variables):
     """Generate a MOOSE Stochastic Tools main.i driver for the parameters file"""
-    n = ["{}_dist".format(v.name) for v in uncertain_variables]
+    n = [f"{v.name}_dist" for v in uncertain_variables]
     return template_common.render_jinja(
         SIM_TYPE,
         PKDict(
@@ -660,6 +698,7 @@ def _generate_monty_carlo_file(data, uncertain_variables):
                 for n, v in zip(n, uncertain_variables)
             ],
             dist_names=" ".join(n),
+            multi_app=_MC_MULTI_APP,
             num_rows=data.models.simulationSettings.numSamples,
             param_names=" ".join(_sampled_name(v) for v in uncertain_variables),
             seed=data.models.simulationSettings.seed,
@@ -686,53 +725,7 @@ def _generate_parameters_file(data, qcall=None, for_mc=False):
                 v.value, v.unit, v.get("convertUnit")
             )
     if for_mc:
-        for v in _uncertain_variables(data):
-            if v.get("convertUnit"):
-                # MultiAppSamplerControl replaces the whole parameter, which
-                # would skip the unit conversion, so sample a plain value in
-                # the original unit and convert it here
-                root[_sampled_name(v)] = _format_parameter_value(v.value, None)
-                root[v.name] = _format_parameter_value(
-                    _sampled_name(v), v.unit, v.convertUnit
-                )
-        d = {"console"}
-        for c in root.children:
-            if c.name == "Executioner":
-                # MultiApps/[sub]'s ignore_solve_not_converge (see
-                # _generate_monty_carlo_file) requires this, or MOOSE errors
-                # at startup: "Requesting to ignore failed solutions, but
-                # 'Executioner/error_on_dtmin' is true in sub-application."
-                c["error_on_dtmin"] = "false"
-            elif c.name == "Outputs":
-                # batch MC runs solve hundreds of times over -- disable
-                # expensive/noisy outputs, and use a named [csv] block
-                # (not the bare "csv = true" flag) so that
-                # SamplerFullSolveMultiApp names each sample's file
-                # main_out_sub<N>_csv.csv, matching _MC_SAMPLE_CSV_GLOB
-                if "exodus" in c:
-                    c["exodus"] = "false"
-                    d.add("exodus")
-                for cc in c.children:
-                    if cc.get("type") == "Exodus":
-                        d.add(cc.name)
-                        cc.remove()
-                # MOOSE rejects file_base with multiple sub-app instances
-                for n in [c] + c.children:
-                    if "file_base" in n:
-                        n.removeParam("file_base")
-                c["console"] = "false"
-                if "csv" in c:
-                    c.removeParam("csv")
-                if not any(cc.name == "csv" for cc in c.children):
-                    c.append("csv", type="CSV")
-        # objects may name the disabled outputs, e.g. outputs = 'console csv'
-        # outputs = '' means all outputs, so only rewrite when one is removed
-        for n in root.descendants:
-            if "outputs" in n:
-                o = n["outputs"].split()
-                k = [x for x in o if x not in d]
-                if len(k) < len(o):
-                    n["outputs"] = " ".join(k) or "none"
+        _mc_sub_input(root, data)
     return root.render()
 
 
@@ -808,11 +801,11 @@ def _mc_aggregate(csv_files):
         if c == "time":
             continue
         stack = numpy.vstack([numpy.interp(res.time, f["time"], f[c]) for f in frames])
-        res["{}_mean".format(c)] = stack.mean(axis=0)
-        res["{}_p{:02d}".format(c, _MC_LOWER_PERCENTILE)] = numpy.percentile(
+        res[f"{c}_mean"] = stack.mean(axis=0)
+        res[f"{c}_p{_MC_LOWER_PERCENTILE:02d}"] = numpy.percentile(
             stack, _MC_LOWER_PERCENTILE, axis=0
         )
-        res["{}_p{:02d}".format(c, _MC_UPPER_PERCENTILE)] = numpy.percentile(
+        res[f"{c}_p{_MC_UPPER_PERCENTILE:02d}"] = numpy.percentile(
             stack, _MC_UPPER_PERCENTILE, axis=0
         )
     return pandas.DataFrame(res)
@@ -845,6 +838,72 @@ def _mc_samples(run_dir):
         if len(y) > 1 and y.iloc[-1] >= e - _MC_END_TIME_TOLERANCE * abs(e)
     ]
     return PKDict(converged=c, failed=len(f) - len(c), total=len(f))
+
+
+def _mc_sub_input(root, data):
+    """Change the input for each Monte Carlo sample (sub.i)
+
+    Sampled parameters with a unit conversion get a "_sampled" companion,
+    and outputs are reduced to each sample's csv.
+    """
+    for v in _uncertain_variables(data):
+        if v.get("convertUnit"):
+            # MultiAppSamplerControl replaces the whole parameter, which
+            # would skip the unit conversion, so sample a plain value in
+            # the original unit and convert it here
+            root[_sampled_name(v)] = _format_parameter_value(v.value, None)
+            root[v.name] = _format_parameter_value(
+                _sampled_name(v), v.unit, v.convertUnit
+            )
+    d = {"console"}
+    for c in root.children:
+        if c.name == "Executioner":
+            # MultiApps/[sub]'s ignore_solve_not_converge (see
+            # _generate_monte_carlo_file) requires this, or MOOSE errors
+            # at startup: "Requesting to ignore failed solutions, but
+            # 'Executioner/error_on_dtmin' is true in sub-application."
+            c["error_on_dtmin"] = "false"
+        elif c.name == "Outputs":
+            d.update(_mc_sub_outputs(c))
+    # objects may name the disabled outputs, e.g. outputs = 'console csv'
+    # outputs = '' means all outputs, so only rewrite when one is removed
+    for n in root.descendants:
+        if "outputs" in n:
+            o = n["outputs"].split()
+            k = [x for x in o if x not in d]
+            if len(k) < len(o):
+                n["outputs"] = " ".join(k) or "none"
+
+
+def _mc_sub_outputs(outputs):
+    """Reduce the [Outputs] block to the csv for each sample
+
+    Returns:
+        set: names of the outputs which were disabled or removed
+    """
+    res = set()
+    # batch MC runs solve hundreds of times over -- disable
+    # expensive/noisy outputs, and use a named [csv] block
+    # (not the bare "csv = true" flag) so that
+    # SamplerFullSolveMultiApp names each sample's file
+    # to match _MC_SAMPLE_CSV_GLOB
+    if "exodus" in outputs:
+        outputs["exodus"] = "false"
+        res.add("exodus")
+    for cc in outputs.children:
+        if cc.get("type") == "Exodus":
+            res.add(cc.name)
+            cc.remove()
+    # MOOSE rejects file_base with multiple sub-app instances
+    for n in [outputs] + outputs.children:
+        if "file_base" in n:
+            n.removeParam("file_base")
+    outputs["console"] = "false"
+    if "csv" in outputs:
+        outputs.removeParam("csv")
+    if not any(cc.name == _MC_CSV_OUTPUT for cc in outputs.children):
+        outputs.append(_MC_CSV_OUTPUT, type="CSV")
+    return res
 
 
 def _merge_input(input_file, files):
@@ -887,31 +946,32 @@ def _merge_input(input_file, files):
         _scan(input_file)
         return res, m
 
+    def _load(names):
+        """Parse input_file, with names (its includes) beside it"""
+        with tempfile.TemporaryDirectory() as d:
+            d = pykern.pkio.py_path(d)
+            for n in [input_file] + names:
+                pykern.pkio.write_text(
+                    d.join(n),
+                    _INCLUDE_RE.sub(
+                        lambda x: x.group("prefix") + os.path.basename(x.group("path")),
+                        _text(n),
+                    ),
+                )
+            try:
+                return pyhit.load(str(d.join(input_file)))
+            except RuntimeError as e:
+                raise sirepo.util.UserAlert(
+                    "Failed to parse TMAP8 input file", "pyhit error={}", e
+                )
+
     i, m = _includes()
     if m:
         return PKDict(missing=m)
-    with tempfile.TemporaryDirectory() as d:
-        d = pykern.pkio.py_path(d)
-        for n in [input_file] + i:
-            pykern.pkio.write_text(
-                d.join(n),
-                _INCLUDE_RE.sub(
-                    lambda x: x.group("prefix") + os.path.basename(x.group("path")),
-                    _text(n),
-                ),
-            )
-        try:
-            r = pyhit.load(str(d.join(input_file)))
-        except RuntimeError as e:
-            raise sirepo.util.UserAlert(
-                "Failed to parse TMAP8 input file", "pyhit error={}", e
-            )
-    m = []
-    for n, k in _data_file_params(r):
-        b = os.path.basename(n[k])
-        if b not in files and b not in m:
-            m.append(b)
-    return PKDict(missing=m, root=r)
+    r = _load(i)
+    # data files, in order, without duplicates
+    m = dict.fromkeys(os.path.basename(n[k]) for n, k in _data_file_params(r))
+    return PKDict(missing=[x for x in m if x not in files], root=r)
 
 
 def _parameter_groups(text):
@@ -925,22 +985,24 @@ def _parameter_groups(text):
     Returns:
         PKDict: parameter name to heading, "" when there is none
     """
-    l = text.splitlines()
-    h = []
-    c = ""
-    i = 0
-    while i < len(l):
-        if not _COMMENT_LINE_RE.match(l[i]):
-            h.append(c)
-            i += 1
-            continue
-        j = i
-        while j + 1 < len(l) and _COMMENT_LINE_RE.match(l[j + 1]):
+
+    def _heading(index):
+        """Heading named by the comment block at index, or None"""
+        j = index
+        while j < len(t) and _COMMENT_LINE_RE.match(t[j]):
             j += 1
-        if j + 1 < len(l) and _TOP_LEVEL_PARAM_RE.match(l[j + 1]):
-            c = _HEADING_STRIP_RE.sub("", l[i])
-        h.extend([c] * (j + 1 - i))
-        i = j + 1
+        if j < len(t) and _TOP_LEVEL_PARAM_RE.match(t[j]):
+            return _HEADING_STRIP_RE.sub("", t[index])
+        return None
+
+    t = text.splitlines()
+    # the heading in effect at each line
+    h = []
+    for i, x in enumerate(t):
+        c = h[-1] if h else ""
+        if _COMMENT_LINE_RE.match(x) and not (i and _COMMENT_LINE_RE.match(t[i - 1])):
+            c = _heading(i) or c
+        h.append(c)
     r = pyhit.parse(text)
     return PKDict((k, h[r.line(k) - 1]) for k, _ in r.params())
 
@@ -982,7 +1044,8 @@ def _sampled_name(variable):
 def _scaled(value, conversion):
     """Expression for value (number or expression text) * scale + offset"""
     s, o = conversion
-    return "(({}) * {!r}{})".format(value, s, " + {!r}".format(o) if o else "")
+    a = f" + {o!r}" if o else ""
+    return f"(({value}) * {s!r}{a})"
 
 
 def _stat_report_file(run_dir):
@@ -1068,11 +1131,12 @@ def _unit_latex(text):
             return r"\mu\mathrm{m}"
         if name in _UNITS or name in _COMMENT_UNITS:
             return r"\mathrm{" + name + "}"
-        for p, _ in _UNIT_PREFIXES:
-            b = name[len(p) :]
-            if name.startswith(p) and b in _UNITS and b not in _UNIT_OFFSETS:
-                return (r"\mu\mathrm{" + b if p == "mu" else r"\mathrm{" + name) + "}"
-        raise _Invalid()
+        p = _unit_prefixed(name)
+        if not p:
+            raise _Invalid()
+        return (
+            r"\mu\mathrm{" + p.base if p.prefix == "mu" else r"\mathrm{" + name
+        ) + "}"
 
     def _term():
         if text.startswith("sqrt(", s.i):
@@ -1093,12 +1157,12 @@ def _unit_latex(text):
 
     s = PKDict(i=0, is_expression=False)
     try:
-        l = _expr()
+        r = _expr()
     except _Invalid:
         return None
     if s.i != len(text):
         return None
-    return PKDict(latex=l, is_expression=s.is_expression)
+    return PKDict(latex=r, is_expression=s.is_expression)
 
 
 def _unit_math(unit):
@@ -1107,17 +1171,29 @@ def _unit_math(unit):
     return f"${u.latex}$" if u else ""
 
 
+def _unit_prefixed(name):
+    """A MOOSE unit name with an SI prefix, e.g. "mum" or "kJ"
+
+    Returns:
+        PKDict: prefix, factor and base (a `_UNITS` name), or None
+    """
+    for p, f in _UNIT_PREFIXES:
+        b = name[len(p) :]
+        if name.startswith(p) and b in _UNITS and b not in _UNIT_OFFSETS:
+            return PKDict(base=b, factor=f, prefix=p)
+    return None
+
+
 def _unit_si(unit):
     """(factor to SI, exponents) for a unit such as "m^4/at/s", or None"""
 
     def _symbol(name):
         if name in _UNITS:
             return _UNITS[name]
-        for p, f in _UNIT_PREFIXES:
-            b = name[len(p) :]
-            if name.startswith(p) and b in _UNITS and b not in _UNIT_OFFSETS:
-                return (f * _UNITS[b][0], _UNITS[b][1])
-        return None
+        p = _unit_prefixed(name)
+        if not p:
+            return None
+        return (p.factor * _UNITS[p.base][0], _UNITS[p.base][1])
 
     t = re.split(r"\s*([*/])\s*", unit.strip())
     f = 1.0
@@ -1164,24 +1240,6 @@ def _x_points(d, x, is_mc):
     # in a Monte Carlo run, only "time" survives _mc_aggregate() unsuffixed --
     # every other column only exists as <x>_mean/_p05/_p95, so use the mean
     # for the x-axis (a confidence band doesn't make sense for the x-axis)
-    if is_mc and "{}_mean".format(x) in d.columns:
-        return d["{}_mean".format(x)].tolist()
+    if is_mc and f"{x}_mean" in d.columns:
+        return d[f"{x}_mean"].tolist()
     return d[x].tolist()
-
-
-def write_parameters(data, run_dir, is_parallel):
-    u = _uncertain_variables(data)
-    if u:
-        pykern.pkio.write_text(
-            run_dir.join(MC_SUB_FILE),
-            _generate_parameters_file(data, for_mc=True),
-        )
-        pykern.pkio.write_text(
-            run_dir.join(MC_MAIN_FILE),
-            _generate_monty_carlo_file(data, u),
-        )
-    else:
-        pykern.pkio.write_text(
-            run_dir.join(TMAP8_INPUT_FILE),
-            _generate_parameters_file(data),
-        )

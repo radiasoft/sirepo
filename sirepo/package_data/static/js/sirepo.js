@@ -4998,10 +4998,6 @@ SIREPO.app.controller('SimulationsController', function (appDataService, appStat
 
     self.canCopy = () => appDataService.canCopy();
 
-    self.canCreateNewSimulation = () => {
-	return SIREPO.APP_SCHEMA.constants.canCreateNewSimulation;
-    };
-
     self.canDelete = function(item) {
         if (item.isFolder) {
             return item.children.length === 0;

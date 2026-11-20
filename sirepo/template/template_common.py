@@ -10,6 +10,7 @@ from pykern import pkjinja
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdlog, pkdp, pkdexc
 from sirepo.template import code_variable
+import itertools
 import math
 import os
 import re
@@ -53,6 +54,9 @@ PLOT_LINE_COLOR = [
 #: stderr and stdout
 RUN_LOG = "run.log"
 
+#: terminal color codes, removed by LogParser
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
 _HISTOGRAM_BINS_MAX = 500
 
 
@@ -94,12 +98,22 @@ class JobCmdFile(PKDict):
 
 
 class LogParser(PKDict):
+    """Error messages from a run's log
+
+    Each of `error_patterns` captures a message in group 1. Matches are
+    searched for in each line, or with `multiline`, over the whole log
+    (with `re.MULTILINE` and `re.DOTALL`), for messages which span lines.
+    Terminal color codes are removed first. Repeated messages, e.g. from
+    each MPI rank, are included once.
+    """
+
     def __init__(self, run_dir, **kwargs):
         super().__init__(run_dir=run_dir, **kwargs)
         self.pksetdefault(
             default_msg="An unknown error occurred",
             error_patterns=(r"Error: (.*)",),
             log_filename=RUN_LOG,
+            multiline=False,
         )
 
     def parse_for_errors(self):
@@ -108,22 +122,36 @@ class LogParser(PKDict):
             return ""
         res = ""
         e = set()
-        with pkio.open_text(p) as f:
-            for line in f:
-                if m := self._parse_log_line(line):
-                    if m not in e:
-                        res += m
-                        e.add(m)
+        for m in self._errors(p):
+            if m not in e:
+                res += m
+                e.add(m)
         if res:
             return res
         return self.default_msg
+
+    def _error_from_match(self, match):
+        """The message for a match, for a subclass to format"""
+        return match.group(1) + "\n"
+
+    def _errors(self, path):
+        if self.multiline:
+            t = _ANSI_RE.sub("", pkio.read_text(path))
+            for p in self.error_patterns:
+                for m in re.finditer(p, t, re.MULTILINE | re.DOTALL):
+                    yield self._error_from_match(m)
+            return
+        with pkio.open_text(path) as f:
+            for line in f:
+                if m := self._parse_log_line(_ANSI_RE.sub("", line)):
+                    yield m
 
     def _parse_log_line(self, line):
         res = ""
         for pattern in self.error_patterns:
             m = re.search(pattern, line)
             if m:
-                res += m.group(1) + "\n"
+                res += self._error_from_match(m)
         return res
 
 
@@ -614,9 +642,11 @@ def model_from_frame_args(frame_args):
 
 
 def parameter_plot(x, plots, model, plot_fields=None, plot_colors=None):
+    # a plot may have its own x_points, e.g. a scatter of measured data
+    a = list(itertools.chain(x, *(p["x_points"] for p in plots if p.get("x_points"))))
     res = PKDict(
         x_points=x,
-        x_range=[min(x), max(x)] if x else [0, 0],
+        x_range=[min(a), max(a)] if a else [0, 0],
         plots=plots,
         y_range=compute_plot_color_and_range(plots, plot_colors),
     )

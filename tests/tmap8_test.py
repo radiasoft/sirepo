@@ -60,9 +60,28 @@ def test_comment_math_client(fc):
     pkunit.pkok(any(x.unitMath for x in v), "no unitMath")
 
 
+def test_experimental_file(fc):
+    from pykern import pkunit
+
+    d = fc.sr_sim_data("val-2a Ion Implantation Experiment")
+    for p in (
+        pkunit.data_dir().join("experiment.csv"),
+        _xlsx(pkunit.work_dir().join("experiment.xlsx")),
+    ):
+        pkunit.pkeq(
+            None,
+            _upload(fc, d, "plotAnimation-experimentalFile", p).get("error"),
+        )
+    p = pkunit.work_dir().join("one_column.csv")
+    p.write("time\n1\n2\n")
+    pkunit.pkre(
+        "expecting two columns",
+        _upload(fc, d, "plotAnimation-experimentalFile", p).error,
+    )
+
+
 def test_expression_units():
     from pykern import pkunit
-    from pykern.pkcollections import PKDict
     from sirepo.template import tmap8
 
     v = tmap8.code_var(
@@ -93,26 +112,6 @@ def test_expression_units():
     # an unknown unit is left unevaluated
     pkunit.pkeq(
         "${units 1 furlong -> m}", tmap8._expand_units("${units 1 furlong -> m}")
-    )
-
-
-def test_experimental_file(fc):
-    from pykern import pkunit
-
-    d = fc.sr_sim_data("val-2a Ion Implantation Experiment")
-    for p in (
-        pkunit.data_dir().join("experiment.csv"),
-        _xlsx(pkunit.work_dir().join("experiment.xlsx")),
-    ):
-        pkunit.pkeq(
-            None,
-            _upload(fc, d, "plotAnimation-experimentalFile", p).get("error"),
-        )
-    p = pkunit.work_dir().join("one_column.csv")
-    p.write("time\n1\n2\n")
-    pkunit.pkre(
-        "expecting two columns",
-        _upload(fc, d, "plotAnimation-experimentalFile", p).error,
     )
 
 
@@ -166,27 +165,6 @@ def test_import_includes(new_user_fc):
     d = _import(fc, f)
     pkunit.pkeq("main.i", d.models.simulationSettings.inputFile)
     pkunit.pkeq(["history.csv"], d.models.simulationSettings.dataFiles)
-
-
-def test_post_execution_processing():
-    from pykern import pkunit
-    from sirepo.template import tmap8
-
-    # an excerpt of a failed run's log; *.log files are ignored by git
-    # not empty_work_dir(), which holds the fc tests' db
-    d = pkunit.work_dir().join("not_converged").ensure(dir=True)
-    pkunit.data_dir().join("not_converged.txt").copy(d.join("mpi_run.log"))
-    pkunit.pkeq(
-        "Solve failed and timestep already at or below dtmin, cannot continue!\n"
-        + "The following occurred in the TimeStepper 'ConstantDT' of type ConstantDT.",
-        tmap8.post_execution_processing(success_exit=False, run_dir=d),
-    )
-    pkunit.pkeq(None, tmap8.post_execution_processing(success_exit=True, run_dir=d))
-    # no MOOSE error, so job_cmd uses its default
-    pkunit.pkeq(
-        None,
-        tmap8.post_execution_processing(success_exit=False, run_dir=pkunit.data_dir()),
-    )
 
 
 def test_mc_failed_samples():
@@ -261,6 +239,27 @@ def test_parameter_groups_filled(fc):
     r = fc.sr_post("saveSimulationData", d)
     pkunit.pkeq("Physical Constants", r.models.rpnVariables[0].group)
     pkunit.pkeq(8, len(set(v.group for v in r.models.rpnVariables)))
+
+
+def test_post_execution_processing():
+    from pykern import pkunit
+    from sirepo.template import tmap8
+
+    # an excerpt of a failed run's log; *.log files are ignored by git
+    # not empty_work_dir(), which holds the fc tests' db
+    d = pkunit.work_dir().join("not_converged").ensure(dir=True)
+    pkunit.data_dir().join("not_converged.txt").copy(d.join("mpi_run.log"))
+    pkunit.pkeq(
+        "Solve failed and timestep already at or below dtmin, cannot continue!\n"
+        + "The following occurred in the TimeStepper 'ConstantDT' of type ConstantDT.",
+        tmap8.post_execution_processing(success_exit=False, run_dir=d),
+    )
+    pkunit.pkeq(None, tmap8.post_execution_processing(success_exit=True, run_dir=d))
+    # no MOOSE error, so job_cmd uses its default
+    pkunit.pkeq(
+        None,
+        tmap8.post_execution_processing(success_exit=False, run_dir=pkunit.data_dir()),
+    )
 
 
 def test_uncertainty_export(fc):
