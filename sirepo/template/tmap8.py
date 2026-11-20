@@ -42,6 +42,8 @@ _COMMENT_UNITS_NOT_ALONE = frozenset(
 _COMMENT_WORD_RE = re.compile(r"^([(\[{]*)(.*?)([)\]}.,;:]*)$")
 # block parameters which name an input file read by TMAP8
 _DATA_FILE_PARAMS = frozenset(("csv_file", "data_file", "file"))
+# the unit and optional conversion which end ${units v a -> b}
+_DOLLAR_UNITS_TAIL = r"\s+(?P<unit>[^\s{}]+?)(?:\s*->\s*(?P<convert>[^\s{}]+))?\s*\}"
 _EXPERIMENTAL_COLOR = "#000000"
 _EXPERIMENTAL_DATA_ERRORS = (KeyError, ValueError, zipfile.BadZipFile)
 # strips "#", "=" and "-" decorations from a heading, e.g. "# ==== Geometry ===="
@@ -51,10 +53,7 @@ _INCLUDE_RE = re.compile(
     r"^(?P<prefix>\s*!include\s+)['\"]?(?P<path>[^'\"\s]+)['\"]?", re.MULTILINE
 )
 # ${units v a -> b} inside an expression, e.g. "${units E eV -> J} / kB"
-_INNER_UNITS_RE = re.compile(
-    r"\$\{units\s+(?P<value>[^\s{}]+)\s+(?P<unit>[^\s{}]+?)"
-    + r"(?:\s*->\s*(?P<convert>[^\s{}]+))?\s*\}"
-)
+_INNER_UNITS_RE = re.compile(r"\$\{units\s+(?P<value>[^\s{}]+)" + _DOLLAR_UNITS_TAIL)
 # POSIT: the models with InputFile fields in tmap8-schema.json
 _LIB_FILE_PREFIXES = ("plotAnimation-", "simulationSettings-")
 # the [Outputs] block in sub.i which writes each sample's csv
@@ -78,8 +77,9 @@ _MOOSE_ERROR_CONTEXT = "The following occurred in "
 _MOOSE_ERROR_PATTERN = (
     r"^\*\*\* ERROR \*\*\*\n(.*?)(?=^\s*Stack frames:|\n\s*\n\s*\n|\Z)"
 )
+# ${units ${fparse expr} a -> b}
 _NESTED_FPARSE_UNIT_RE = re.compile(
-    r"^\$\{units\s+\$\{fparse\s+(?P<expr>.+?)\}\s+(?P<unit>\S+?)(?:\s*->\s*(?P<convertUnit>\S+))?\s*\}$"
+    r"^\$\{units\s+\$\{fparse\s+(?P<expr>.+?)\}" + _DOLLAR_UNITS_TAIL + "$"
 )
 _NESTED_VAR_REF_RE = re.compile(r"\$\{([A-Za-z_]\w*)\}")
 _NONE = "None"
@@ -155,8 +155,8 @@ _UNIT_PREFIXES = (
     ("z", 1e-21),
     ("y", 1e-24),
 )
-_UNIT_RE = re.compile(r"\$\{units\s+([0-9eE.+-]+)\s+(\S+?)(?:\s*->\s*(\S+))?\s*\}")
-_UNIT_TERM_RE = re.compile(r"(?P<sym>[A-Za-z]+|1)(?:\^\(?(?P<exp>-?\d+(?:\.\d+)?)\)?)?")
+# ${units v a -> b} with a number, a parameter's value
+_UNIT_RE = re.compile(r"\$\{units\s+(?P<value>[0-9eE.+-]+)" + _DOLLAR_UNITS_TAIL)
 
 
 def background_percent_complete(report, run_dir, is_running):
@@ -507,7 +507,7 @@ def _column_plots(col, dim, d, is_mc, units):
 def _comment_math(comment):
     """The comment with its units as math, for mathRendering
 
-    A word is a unit when it parses as a unit expression (`_unit_latex`).
+    A word is a unit when it parses as a unit expression (`_unit_parse`).
     A single unit name, which could be an ordinary word, is a unit only
     when it is the whole comment, is in parentheses, follows a number or
     "in", or starts the comment before "-" or "=".
@@ -536,7 +536,7 @@ def _comment_math(comment):
         while e.startswith(")") and c.count("(") > c.count(")"):
             c += ")"
             e = e[1:]
-        u = _unit_latex(c)
+        u = _unit_parse(c)
         if u and (u.is_expression or _is_alone_unit(c, n, p, e)):
             return f"{p}${u.latex}${e}"
         return x
@@ -638,7 +638,7 @@ def _extract_parameters(root, groups):
             return (
                 _NESTED_VAR_REF_RE.sub(r"\1", m.group("expr")),
                 m.group("unit"),
-                m.group("convertUnit"),
+                m.group("convert"),
             )
         m = _BARE_FPARSE_RE.match(raw)
         if m:
@@ -648,7 +648,7 @@ def _extract_parameters(root, groups):
             return m.group("var"), None, None
         m = _UNIT_RE.search(raw)
         if m:
-            return float(m.group(1)), m.group(2), m.group(3)
+            return float(m.group("value")), m.group("unit"), m.group("convert")
         return raw, None, None
 
     res = []
@@ -1087,15 +1087,36 @@ def _unit_conversion(unit, convert_unit):
     )
 
 
-def _unit_latex(text):
-    """LaTeX for a unit expression such as "W/(mum*K)" or "mol/sqrt(Pa)"
+def _unit_exponent_value(text):
+    """The value of an exponent such as 2, -0.5 or 1/2"""
+    n, _, d = text.partition("/")
+    return float(n) / float(d or 1)
+
+
+def _unit_math(unit):
+    """The unit as $latex$, for mathRendering, or "" if not understood"""
+    u = _unit_parse(unit) if unit else None
+    return f"${u.latex}$" if u else ""
+
+
+def _unit_parse(text):
+    """Parse a unit expression such as "W/(mum*K)" or "mol/sqrt(Pa)"
 
     expr := term (("/" | "*") term)*
     term := ("sqrt(" expr ")" | "(" expr ")" | name | "1") ("^" exponent)?
 
+    Spaces around operators are ignored. A name is a MOOSE unit, with or
+    without an SI prefix, or one of `_COMMENT_UNITS`, which can be
+    rendered but not converted.
+
+    MOOSE converts only integer exponents, without parentheses, and has no
+    sqrt(), so is_moose is false for those, though they can be rendered.
+
     Returns:
-        PKDict: latex, and is_expression (has an operator or exponent),
-            or None if text isn't a unit expression of known names
+        PKDict: latex; factor (to SI, or None if a name can't be
+            converted) and dims (exponents of `_UNIT_DIMS`); is_expression
+            (has an operator or exponent); is_moose (MOOSE can convert
+            it); or None if text isn't a unit expression of known names
     """
 
     class _Invalid(Exception):
@@ -1104,19 +1125,28 @@ def _unit_latex(text):
     def _exponent():
         m = _UNIT_EXPONENT_RE.match(text, s.i)
         if not m:
-            return ""
+            return None
         s.i = m.end()
         s.is_expression = True
-        return "^{" + m.group(1).strip("()") + "}"
+        if not re.fullmatch(r"-?\d+", m.group(1)):
+            s.is_moose = False
+        return m.group(1).strip("()")
 
     def _expr():
         r = _term()
-        while s.i < len(text) and text[s.i] in "/*":
-            r += "/" if text[s.i] == "/" else r" \cdot "
+        while True:
+            _skip_spaces()
+            if s.i >= len(text) or text[s.i] not in "/*":
+                return r
+            o = text[s.i]
             s.i += 1
             s.is_expression = True
-            r += _term()
-        return r
+            _skip_spaces()
+            t = _term()
+            r = _unit(
+                r.latex + ("/" if o == "/" else r" \cdot ") + t.latex,
+                _product(r, t, -1 if o == "/" else 1),
+            )
 
     def _group(open_text):
         s.i += len(open_text)
@@ -1124,51 +1154,83 @@ def _unit_latex(text):
         if not text.startswith(")", s.i):
             raise _Invalid()
         s.i += 1
-        return f"({r})" if open_text == "(" else r"\sqrt{" + r + "}"
+        if open_text == "(":
+            return _unit(f"({r.latex})", r)
+        return _unit(r"\sqrt{" + r.latex + "}", _power(r, 0.5))
 
     def _name(name):
+        if name in _UNITS:
+            return _unit(
+                r"\mathrm{" + name + "}", PKDict(zip(("factor", "dims"), _UNITS[name]))
+            )
         if name == "um":
-            return r"\mu\mathrm{m}"
-        if name in _UNITS or name in _COMMENT_UNITS:
-            return r"\mathrm{" + name + "}"
+            return _unit(r"\mu\mathrm{m}", None)
+        if name in _COMMENT_UNITS:
+            return _unit(r"\mathrm{" + name + "}", None)
         p = _unit_prefixed(name)
         if not p:
             raise _Invalid()
-        return (
-            r"\mu\mathrm{" + p.base if p.prefix == "mu" else r"\mathrm{" + name
-        ) + "}"
+        return _unit(
+            (r"\mu\mathrm{" + p.base if p.prefix == "mu" else r"\mathrm{" + name) + "}",
+            PKDict(factor=p.factor * _UNITS[p.base][0], dims=_UNITS[p.base][1]),
+        )
+
+    def _power(unit, exponent):
+        if unit.factor is None:
+            return None
+        return PKDict(
+            factor=unit.factor**exponent, dims=[x * exponent for x in unit.dims]
+        )
+
+    def _product(left, right, sign):
+        if left.factor is None or right.factor is None:
+            return None
+        return PKDict(
+            factor=left.factor * right.factor**sign,
+            dims=[x + y * sign for x, y in zip(left.dims, right.dims)],
+        )
+
+    def _skip_spaces():
+        while s.i < len(text) and text[s.i] == " ":
+            s.i += 1
 
     def _term():
         if text.startswith("sqrt(", s.i):
             s.is_expression = True
+            s.is_moose = False
             r = _group("sqrt(")
         elif text.startswith("(", s.i):
             r = _group("(")
         elif text.startswith("1/", s.i):
             s.i += 1
-            r = "1"
+            r = _unit("1", PKDict(factor=1.0, dims=_UNIT_DIMS.none))
         else:
             m = _UNIT_NAME_RE.match(text, s.i)
             if not m:
                 raise _Invalid()
             s.i = m.end()
             r = _name(m.group())
-        return r + _exponent()
+        e = _exponent()
+        if e is None:
+            return r
+        return _unit(f"{r.latex}^{{{e}}}", _power(r, _unit_exponent_value(e)))
 
-    s = PKDict(i=0, is_expression=False)
+    def _unit(latex, si):
+        """latex, with factor and dims from si (None if not convertible)"""
+        return PKDict(
+            latex=latex,
+            factor=si.factor if si else None,
+            dims=si.dims if si else None,
+        )
+
+    s = PKDict(i=0, is_expression=False, is_moose=True)
     try:
         r = _expr()
     except _Invalid:
         return None
     if s.i != len(text):
         return None
-    return PKDict(latex=r, is_expression=s.is_expression)
-
-
-def _unit_math(unit):
-    """The unit as $latex$, for mathRendering, or "" if not understood"""
-    u = _unit_latex(unit) if unit else None
-    return f"${u.latex}$" if u else ""
+    return r.pkupdate(is_expression=s.is_expression, is_moose=s.is_moose)
 
 
 def _unit_prefixed(name):
@@ -1186,31 +1248,10 @@ def _unit_prefixed(name):
 
 def _unit_si(unit):
     """(factor to SI, exponents) for a unit such as "m^4/at/s", or None"""
-
-    def _symbol(name):
-        if name in _UNITS:
-            return _UNITS[name]
-        p = _unit_prefixed(name)
-        if not p:
-            return None
-        return (p.factor * _UNITS[p.base][0], _UNITS[p.base][1])
-
-    t = re.split(r"\s*([*/])\s*", unit.strip())
-    f = 1.0
-    d = [0.0] * len(_UNIT_DIMS.none)
-    for o, x in zip(["*"] + t[1::2], t[0::2]):
-        m = _UNIT_TERM_RE.fullmatch(x)
-        if not m:
-            return None
-        if m.group("sym") == "1":
-            continue
-        u = _symbol(m.group("sym"))
-        if not u:
-            return None
-        e = float(m.group("exp") or 1) * (1 if o == "*" else -1)
-        f *= u[0] ** e
-        d = [a + b * e for a, b in zip(d, u[1])]
-    return (f, tuple(d))
+    u = _unit_parse(unit.strip())
+    if not u or not u.is_moose or u.factor is None:
+        return None
+    return (u.factor, tuple(u.dims))
 
 
 def _variables_for_eval(variables):

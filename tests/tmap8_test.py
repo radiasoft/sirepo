@@ -318,6 +318,23 @@ def test_unit_conversion():
             c[0] + c[1],
         )
     pkunit.pkeq(None, tmap8._unit_conversion("m", "s"))
+    # values from tmap8 --show-input
+    for a, b, v in (
+        ("W/(mum*K)", "W/(m*K)", 1e6),
+        ("m^-2", "mum^-2", 1e-12),
+        ("1/s", "1/h", 3600),
+    ):
+        c = tmap8._unit_conversion(a, b)
+        pkunit.pkok(c and abs(c[0] - v) <= 1e-9 * v, "{} -> {} {}", a, b, c)
+    # MOOSE rejects these ("Expected a number", "Unknown unit 'sqrt'"),
+    # though comments use them and they're rendered
+    for a, b in (
+        ("Pa^0.5", "kPa^0.5"),
+        ("mol/sqrt(Pa)", "mol/sqrt(kPa)"),
+        ("m^(2)", "mum^(2)"),
+    ):
+        pkunit.pkeq(None, tmap8._unit_conversion(a, b), "{} -> {}", a, b)
+        pkunit.pkok(tmap8._unit_math(a), "not rendered {}", a)
 
 
 def _assert_export_runnable(fc, data):
