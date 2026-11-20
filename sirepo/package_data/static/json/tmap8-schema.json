@@ -89,6 +89,7 @@
         }
     },
     "strings": {
+        "completionState": "",
         "importText": "Import a TMAP8 input file (.i)",
         "simulationSource": "TMAP8 Source (*.i)"
     },

@@ -19,12 +19,15 @@ import pykern.pkcompat
 import pykern.pkio
 import pykern.pkjson
 import re
+import sirepo.const
 import sirepo.sim_data
 import sirepo.simulation_db
 import sirepo.util
 import tempfile
 import zipfile
 
+# terminal color codes, which MOOSE writes around errors
+_ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 _BARE_FPARSE_RE = re.compile(r"^\$\{fparse\s+(?P<expr>.+)\}$")
 _BARE_VAR_RE = re.compile(r"^\$\{(?P<var>[A-Za-z_]\w*)\}$")
 _COMMENT_LINE_RE = re.compile(r"^\s*#")
@@ -131,7 +134,16 @@ _UNIT_TERM_RE = re.compile(r"(?P<sym>[A-Za-z]+|1)(?:\^\(?(?P<exp>-?\d+(?:\.\d+)?
 _MC_LOWER_PERCENTILE = 5
 _MC_UPPER_PERCENTILE = 95
 _MC_CI_LEVEL = _MC_UPPER_PERCENTILE - _MC_LOWER_PERCENTILE
+# relative; a sample which ends earlier than the others didn't converge
+_MC_END_TIME_TOLERANCE = 1e-6
 _MC_SAMPLE_CSV_GLOB = "main_out_sub*_csv.csv"
+_MOOSE_ERROR_CONTEXT = "The following occurred in "
+# a MOOSE error message, e.g. "Solve failed and timestep already at or below
+# dtmin, cannot continue!", up to the stack trace
+_MOOSE_ERROR_RE = re.compile(
+    r"^\*\*\* ERROR \*\*\*\n(?P<message>.*?)(?=^\s*Stack frames:|\n\s*\n\s*\n|\Z)",
+    re.MULTILINE | re.DOTALL,
+)
 _NONE = "None"
 _SIM_DATA, SIM_TYPE, SCHEMA = sirepo.sim_data.template_globals()
 # an unindented parameter assignment, i.e. a top-level parameter
@@ -144,9 +156,8 @@ TMAP8_INPUT_FILE = "tmap8.i"
 def background_percent_complete(report, run_dir, is_running):
 
     def _gather_results(res):
-        r = _mc_report_info(_mc_sample_files(run_dir)) or _report_info(
-            _stat_report_file(run_dir)
-        )
+        m = _mc_samples(run_dir)
+        r = _mc_report_info(m) if m else _report_info(_stat_report_file(run_dir))
         if r:
             res.pkupdate(
                 frameCount=1,
@@ -154,11 +165,13 @@ def background_percent_complete(report, run_dir, is_running):
             )
         return res
 
-    def _mc_report_info(csv_files):
-        if not csv_files:
+    def _mc_report_info(samples):
+        if not samples.converged:
             return None
-        return _report_info(csv_files[0]).pkupdate(
-            name="TMAP8 Output (Monte Carlo, {} samples)".format(len(csv_files)),
+        return _report_info(samples.converged[0]).pkupdate(
+            name="TMAP8 Output (Monte Carlo, {} samples)".format(
+                len(samples.converged)
+            ),
         )
 
     def _report_info(csv_file):
@@ -202,6 +215,43 @@ def get_data_file(run_dir, model, frame, options):
     raise AssertionError(f"unknown model={model}")
 
 
+def post_execution_processing(success_exit, run_dir, **kwargs):
+    """The MOOSE error from the log of a failed run, e.g. a solve which
+    didn't converge, or an alert for Monte Carlo samples which didn't
+
+    A Monte Carlo study ignores samples which don't converge
+    (ignore_solve_not_converge), and the run succeeds, so those are
+    found by their output (`_mc_samples`).
+
+    Returns:
+        str: error or alert message, or None to use the default
+    """
+    if success_exit:
+        m = _mc_samples(run_dir)
+        if not m or not m.failed:
+            return None
+        if not m.converged:
+            # job_cmd reports an exception on a successful exit as an error
+            raise RuntimeError(f"None of the {m.total} samples converged")
+        return (
+            f"{m.failed} of {m.total} samples did not converge"
+            + " and are not included in the statistics"
+        )
+    for n in (sirepo.const.MPI_LOG, template_common.RUN_LOG):
+        f = run_dir.join(n)
+        if not f.exists():
+            continue
+        # every MPI rank may report the error, so use the first
+        m = _MOOSE_ERROR_RE.search(_ANSI_RE.sub("", pykern.pkio.read_text(f)))
+        if m:
+            l = [x.strip() for x in m.group("message").splitlines() if x.strip()]
+            # the status line shows only the first line, so put the message
+            # before MOOSE's "The following occurred in ..." context
+            c = [x for x in l if x.startswith(_MOOSE_ERROR_CONTEXT)]
+            return "\n".join([x for x in l if x not in c] + c)
+    return None
+
+
 def prepare_for_client(data, qcall, **kwargs):
     v = data.models.get("rpnVariables", [])
     if v and any("group" not in x for x in v):
@@ -229,9 +279,9 @@ def python_source_for_model(data, model, qcall, for_export=False, **kwargs):
 
 
 def sim_frame_plotAnimation(frame_args):
-    m = _mc_sample_files(frame_args.run_dir)
+    m = _mc_samples(frame_args.run_dir)
     d = (
-        _mc_aggregate(m)
+        _mc_aggregate(m.converged)
         if m
         else pandas.read_csv(str(_stat_report_file(frame_args.run_dir)))
     )
@@ -746,11 +796,15 @@ def _mc_aggregate(csv_files):
     timestep, mirroring plot_uncertainty.py's aggregation approach.
 
     Samples with adaptive time stepping have different timesteps, so
-    each sample is interpolated onto the first sample's times.
+    each sample is interpolated onto the times of the one with the most.
+
+    Args:
+        csv_files (list): converged samples, from `_mc_samples`
     """
     frames = [pandas.read_csv(str(f)) for f in csv_files]
-    res = PKDict(time=frames[0]["time"])
-    for c in frames[0].columns:
+    t = max(frames, key=len)
+    res = PKDict(time=t["time"])
+    for c in t.columns:
         if c == "time":
             continue
         stack = numpy.vstack([numpy.interp(res.time, f["time"], f[c]) for f in frames])
@@ -766,6 +820,31 @@ def _mc_aggregate(csv_files):
 
 def _mc_sample_files(run_dir):
     return pykern.pkio.sorted_glob(run_dir.join(_MC_SAMPLE_CSV_GLOB))
+
+
+def _mc_samples(run_dir):
+    """Monte Carlo samples, split by whether they converged
+
+    A sample which doesn't converge stops early, and its csv ends before
+    the end time, which is the latest time of any sample. A sample with
+    only the initial row also failed, in case every sample failed at
+    the start.
+
+    Returns:
+        PKDict: converged (csv files), failed (count), total, or None if
+            the run isn't a Monte Carlo study
+    """
+    f = _mc_sample_files(run_dir)
+    if not f:
+        return None
+    t = [pandas.read_csv(str(x), usecols=["time"])["time"] for x in f]
+    e = max(x.iloc[-1] for x in t)
+    c = [
+        x
+        for x, y in zip(f, t)
+        if len(y) > 1 and y.iloc[-1] >= e - _MC_END_TIME_TOLERANCE * abs(e)
+    ]
+    return PKDict(converged=c, failed=len(f) - len(c), total=len(f))
 
 
 def _merge_input(input_file, files):

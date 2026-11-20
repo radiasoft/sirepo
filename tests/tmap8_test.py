@@ -168,6 +168,70 @@ def test_import_includes(new_user_fc):
     pkunit.pkeq(["history.csv"], d.models.simulationSettings.dataFiles)
 
 
+def test_post_execution_processing():
+    from pykern import pkunit
+    from sirepo.template import tmap8
+
+    # an excerpt of a failed run's log; *.log files are ignored by git
+    # not empty_work_dir(), which holds the fc tests' db
+    d = pkunit.work_dir().join("not_converged").ensure(dir=True)
+    pkunit.data_dir().join("not_converged.txt").copy(d.join("mpi_run.log"))
+    pkunit.pkeq(
+        "Solve failed and timestep already at or below dtmin, cannot continue!\n"
+        + "The following occurred in the TimeStepper 'ConstantDT' of type ConstantDT.",
+        tmap8.post_execution_processing(success_exit=False, run_dir=d),
+    )
+    pkunit.pkeq(None, tmap8.post_execution_processing(success_exit=True, run_dir=d))
+    # no MOOSE error, so job_cmd uses its default
+    pkunit.pkeq(
+        None,
+        tmap8.post_execution_processing(success_exit=False, run_dir=pkunit.data_dir()),
+    )
+
+
+def test_mc_failed_samples():
+    from pykern import pkunit
+    from sirepo.template import tmap8
+
+    def _samples(*samples):
+        d = pkunit.work_dir().join("mc_failed_samples")
+        if d.exists():
+            d.remove()
+        d.ensure(dir=True)
+        for i, rows in enumerate(samples):
+            d.join(f"main_out_sub{i:02d}_csv.csv").write(
+                "time,v\n" + "".join(f"{t},{v}\n" for t, v in rows)
+            )
+        return d
+
+    # sample 0 failed at the start, sample 2 failed part way
+    d = _samples(
+        [(0, 0)],
+        [(0, 1), (1, 2), (2, 3)],
+        [(0, 1), (0.5, 9)],
+        [(0, 1), (2, 5)],
+    )
+    m = tmap8._mc_samples(d)
+    pkunit.pkeq(2, m.failed)
+    pkunit.pkeq(
+        ["main_out_sub01_csv.csv", "main_out_sub03_csv.csv"],
+        [x.basename for x in m.converged],
+    )
+    # on the times of the sample with the most, only converged samples
+    a = tmap8._mc_aggregate(m.converged)
+    pkunit.pkeq([0, 1, 2], a.time.tolist())
+    pkunit.pkeq([1.0, 2.5, 4.0], a.v_mean.tolist())
+    pkunit.pkeq(
+        "2 of 4 samples did not converge and are not included in the statistics",
+        tmap8.post_execution_processing(success_exit=True, run_dir=d),
+    )
+    d = _samples([(0, 1), (1, 2)], [(0, 1), (1, 3)])
+    pkunit.pkeq(None, tmap8.post_execution_processing(success_exit=True, run_dir=d))
+    d = _samples([(0, 1)], [(0, 1)])
+    with pkunit.pkexcept("None of the 2 samples converged"):
+        tmap8.post_execution_processing(success_exit=True, run_dir=d)
+
+
 def test_parameter_groups():
     from pykern import pkunit
     import pyhit
