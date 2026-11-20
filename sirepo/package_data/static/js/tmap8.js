@@ -55,6 +55,15 @@ SIREPO.app.factory('tmap8Service', function(appDataService, appState, $rootScope
         return Boolean((self.parameterFilter.text || '').trim() || self.parameterFilter.changedOnly);
     };
 
+    // a rpnVariable's uncertainty: the default fields of its distribution's model
+    self.uncertaintyDefaults = (distributionType) => {
+        const res = {};
+        if (distributionType) {
+            appState.setModelDefaults(res, self.distributionModelName(distributionType));
+        }
+        return res;
+    };
+
     // the service outlives a simulation, so don't carry a filter to the next one
     $rootScope.$on('modelsLoaded', self.clearParameterFilter);
     appState.setAppService(self);
@@ -155,7 +164,7 @@ SIREPO.app.controller('VizController', function(appState, frameCache, panelState
     self.simState = persistentSimulation.initSimulationState(self);
 });
 
-SIREPO.app.directive('rpnUncertainty', function(appState, tmap8Service) {
+SIREPO.app.directive('rpnUncertainty', function(tmap8Service) {
     return {
         restrict: 'A',
         scope: {
@@ -199,13 +208,7 @@ SIREPO.app.directive('rpnUncertainty', function(appState, tmap8Service) {
                     return;
                 }
                 if (newValue !== oldValue) {
-                    $scope.model[$scope.field] = {};
-                    if (newValue) {
-                        appState.setModelDefaults(
-                            $scope.model[$scope.field],
-                            tmap8Service.distributionModelName(newValue),
-                        );
-                    }
+                    $scope.model[$scope.field] = tmap8Service.uncertaintyDefaults(newValue);
                 }
                 setView();
             });
@@ -406,11 +409,7 @@ SIREPO.app.directive('parameterArray', function(appState, mathRendering, rpnServ
                 }
                 else {
                     v.uncertaintyDistribution = SIREPO.APP_SCHEMA.enum.Distribution[0][0];
-                    v.uncertainty = {};
-                    appState.setModelDefaults(
-                        v.uncertainty,
-                        tmap8Service.distributionModelName(v.uncertaintyDistribution),
-                    );
+                    v.uncertainty = tmap8Service.uncertaintyDefaults(v.uncertaintyDistribution);
                 }
                 setDirty();
             };

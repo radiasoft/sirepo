@@ -1,7 +1,10 @@
 /* TMAP8 parameter table (parameterArray in tmap8.js) */
 
 /* the field's label is empty, but fieldEditor still draws it (a floated
-   "&nbsp;"), which pushes the full-width table down a line */
+   "&nbsp;"), which pushes the full-width table down a line.
+   POSIT: fieldEditor's template (sirepo-components.js) puts the label, with
+   class control-label, directly in a div with class
+   utilities.modelFieldID(modelName, field), "model-<model>-<field>" */
 .model-simulationSettings-parameters > .control-label {
     display: none;
 }
