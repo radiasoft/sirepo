@@ -97,11 +97,15 @@ def _run_file(data, template, out_dir, qcall):
 
     def _files(python_source):
         if isinstance(python_source, PKDict):
-            return t
+            # several files: basename to content
+            yield from python_source.items()
+            return
         yield _default_path(), python_source
 
     for k, v in _files(
-        template.python_source_for_model(copy.deepcopy(data), model=None, qcall=qcall)
+        template.python_source_for_model(
+            copy.deepcopy(data), model=None, qcall=qcall, for_export=True
+        )
     ):
         p = out_dir.join(k)
         p.write(v)

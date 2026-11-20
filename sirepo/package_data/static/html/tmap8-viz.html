@@ -1,10 +1,20 @@
 <div class="container-fluid">
+  <div class="row" data-ng-if="! appState.models.simulationSettings.inputFile">
+    <div class="col-lg-8 col-xxl-6">
+      <div class="alert alert-warning" role="alert">
+        This simulation was created with a prior version of the TMAP8
+        application and has no input file. Please delete it and use Import
+        to create a new simulation from a TMAP8 input file.
+      </div>
+    </div>
+  </div>
   <div class="row">
-    <div class="col-lg-6 col-xxl-4">
+    <div class="col-lg-6 col-xxl-4" data-ng-if="appState.models.simulationSettings.inputFile">
+        <div data-tmap8-parameter-toolbar=""></div>
         <div data-basic-editor-panel="" data-view-name="simulationSettings"></div>
     </div>
     <div class="col-lg-6 col-xxl-4" data-ng-if="appState.models.rpnVariables">
-      <div data-simple-panel="simulationStatus">
+      <div data-basic-editor-panel="" data-view-name="simulationStatus" data-want-buttons="">
         <div data-sim-status-panel="viz.simState" data-start-function="viz.startSimulation()"></div>
       </div>
     </div>

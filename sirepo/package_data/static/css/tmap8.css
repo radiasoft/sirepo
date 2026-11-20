@@ -1,0 +1,128 @@
+/* TMAP8 parameter table (parameterArray in tmap8.js) */
+
+/* the field's label is empty, but fieldEditor still draws it (a floated
+   "&nbsp;"), which pushes the full-width table down a line */
+.model-simulationSettings-parameters > .control-label {
+    display: none;
+}
+
+.sr-tmap8-params {
+    margin-left: 3px;
+    margin-right: 3px;
+    /* keep the colgroup widths, so long names wrap instead of squeezing Value */
+    table-layout: fixed;
+    /* width: 100% with the margins would overflow the panel */
+    width: calc(100% - 6px);
+}
+
+.sr-tmap8-param-name {
+    /* fallback for long name segments without "_" */
+    overflow-wrap: anywhere;
+}
+
+/* the computed value uses the col-sm-12 padding on both sides; rpnStatic
+   only cancels the left */
+.sr-tmap8-params [data-rpn-static] > .form-control-static {
+    margin-right: -15px;
+}
+
+/* no line between a parameter and its uncertainty fields, so they read as one */
+.sr-tmap8-params .sr-tmap8-uncertainty-row > td {
+    border-top: none;
+}
+
+.sr-tmap8-group > th {
+    /* neutral gray, apart from the panel-info heading's blue */
+    background-color: rgba(0, 0, 0, 0.09);
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* explicit, since the name is several spans and the unit is KaTeX output */
+.sr-tmap8-unit {
+    margin-left: 0.75ex;
+}
+
+/* filter, "Changed only" and Expand/Collapse all, on one line above the panel */
+.sr-tmap8-param-toolbar {
+    align-items: center;
+    display: flex;
+    gap: 1em;
+    margin-bottom: 1ex;
+}
+
+/* the filter takes the free width, and shrinks first in a narrow panel */
+.sr-tmap8-filter {
+    flex: 1 1 auto;
+    min-width: 6em;
+}
+
+.sr-tmap8-group-buttons {
+    flex: none;
+}
+
+/* square, the height of a btn-sm such as "Changed only" */
+.sr-tmap8-group-buttons > .btn {
+    align-items: center;
+    display: inline-flex;
+    font-size: 16px;
+    height: 30px;
+    justify-content: center;
+    padding: 0;
+    width: 30px;
+}
+
+/* glyphicons are offset down 1px by default */
+.sr-tmap8-group-buttons .glyphicon {
+    top: 0;
+}
+
+.sr-tmap8-changed-only {
+    flex: none;
+    white-space: nowrap;
+}
+
+.sr-tmap8-filter-count {
+    margin-bottom: 0.5ex;
+    /* the table-condensed cell padding, so it lines up with the table */
+    padding: 0 5px;
+}
+
+/* rpnUncertainty: the distribution and its parameters on one row */
+.sr-tmap8-uncertainty {
+    display: flex;
+    /* bottom-align the fields, so the inputs line up when a label wraps */
+    align-items: flex-end;
+}
+
+.sr-tmap8-uncertainty-field {
+    flex: 1 1 0;
+    min-width: 0;
+    /* balances the -15px margins of .form-group in a .form-horizontal panel */
+    padding: 0 15px;
+}
+
+/* "±": a toggle, highlighted while the parameter has uncertainty */
+.sr-tmap8-uncertainty-button {
+    align-items: center;
+    display: inline-flex;
+    font-size: 16px;
+    font-weight: bold;
+    /* the btn-xs height, so it lines up with the reset button */
+    height: 22px;
+    justify-content: center;
+    line-height: 1;
+    min-width: 22px;
+    padding: 0 4px;
+}
+
+/* the reset and uncertainty buttons, centered on the value input's line */
+.sr-tmap8-button-cell {
+    align-items: center;
+    display: flex;
+    gap: 2px;
+    justify-content: flex-end;
+    min-height: 34px;
+}

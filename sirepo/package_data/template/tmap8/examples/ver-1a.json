@@ -14,6 +14,7 @@
             {
                 "comment": "Boltzmann constant",
                 "defaultValue": 1.380649e-23,
+                "group": "Physical Constants",
                 "name": "kb",
                 "unit": "J/K",
                 "value": 1.380649e-23
@@ -21,6 +22,7 @@
             {
                 "comment": "Gas constant",
                 "defaultValue": 8.31446261815324,
+                "group": "Physical Constants",
                 "name": "R",
                 "unit": "J/mol/K",
                 "value": 8.31446261815324
@@ -28,6 +30,7 @@
             {
                 "comment": null,
                 "defaultValue": 2373,
+                "group": "Data used in TMAP4/TMAP7 case",
                 "name": "temperature",
                 "unit": "K",
                 "value": 2373
@@ -35,6 +38,7 @@
             {
                 "comment": null,
                 "defaultValue": 1000000,
+                "group": "Data used in TMAP4/TMAP7 case",
                 "name": "initial_pressure",
                 "unit": "Pa",
                 "value": 1000000
@@ -42,6 +46,7 @@
             {
                 "comment": null,
                 "defaultValue": 5.2e-11,
+                "group": "Data used in TMAP4/TMAP7 case",
                 "name": "volume_enclosure",
                 "unit": "m^3",
                 "value": 5.2e-11
@@ -49,6 +54,7 @@
             {
                 "comment": null,
                 "defaultValue": 2.16e-06,
+                "group": "Data used in TMAP4/TMAP7 case",
                 "name": "surface_area",
                 "unit": "m^2",
                 "value": 2.16e-06
@@ -56,6 +62,7 @@
             {
                 "comment": null,
                 "defaultValue": "1.58e-4*exp(-308000.0/(R*temperature))",
+                "group": "Data used in TMAP4/TMAP7 case",
                 "name": "diffusivity_SiC",
                 "unit": "m^2/s",
                 "value": "1.58e-4*exp(-308000.0/(R*temperature))"
@@ -63,6 +70,7 @@
             {
                 "comment": null,
                 "defaultValue": "7.244e22 / temperature",
+                "group": "Data used in TMAP4/TMAP7 case",
                 "name": "solubility_constant",
                 "unit": "at/m^3/Pa",
                 "value": "7.244e22 / temperature"
@@ -70,6 +78,7 @@
             {
                 "comment": null,
                 "defaultValue": 3.3e-05,
+                "group": "Data used in TMAP4/TMAP7 case",
                 "name": "slab_thickness",
                 "unit": "m",
                 "value": 3.3e-05
@@ -77,6 +86,7 @@
             {
                 "comment": null,
                 "defaultValue": "kb*temperature",
+                "group": "Useful equations/conversions",
                 "name": "concentration_to_pressure_conversion_factor",
                 "unit": "Pa*m^3",
                 "value": "kb*temperature"

@@ -16,4 +16,23 @@ class SimData(sirepo.sim_data.SimDataBase):
 
     @classmethod
     def _lib_file_basenames(cls, data):
-        return []
+        res = []
+        s = data.models.get("simulationSettings")
+        if s and s.get("inputFile"):
+            res.append(
+                cls.lib_file_name_with_model_field(
+                    "simulationSettings", "inputFile", s.inputFile
+                )
+            )
+            res.extend(
+                cls.lib_file_name_with_model_field("simulationSettings", "dataFile", n)
+                for n in s.get("dataFiles", [])
+            )
+        p = data.models.get("plotAnimation")
+        if p and p.get("experimentalFile"):
+            res.append(
+                cls.lib_file_name_with_model_field(
+                    "plotAnimation", "experimentalFile", p.experimentalFile
+                )
+            )
+        return res
