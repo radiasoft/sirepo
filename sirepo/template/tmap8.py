@@ -203,6 +203,12 @@ def code_var(variables):
 
 
 def get_data_file(run_dir, model, frame, options):
+    if frame == SCHEMA.constants.logFileFrameId:
+        # TMAP8's output is in the MPI log, or the run log on one core
+        f = run_dir.join(sirepo.const.MPI_LOG)
+        return template_common.text_data_file(
+            f.basename if f.exists() else template_common.RUN_LOG, run_dir
+        )
     if model == "plotAnimation":
         m = _mc_sample_files(run_dir)
         if not m:

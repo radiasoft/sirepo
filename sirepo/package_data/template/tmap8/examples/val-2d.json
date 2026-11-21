@@ -57,13 +57,13 @@
                 "value": 6800.0
             },
             {
-                "comment": null,
+                "comment": "Sirepo: TDS_initial_time, not 4000, so the plot starts at the desorption",
                 "convertUnit": null,
-                "defaultValue": 4000.0,
+                "defaultValue": 5000.0,
                 "group": "Model parameters",
                 "name": "outputs_initial_time",
                 "unit": "s",
-                "value": 4000.0
+                "value": 5000.0
             },
             {
                 "comment": "(-)",

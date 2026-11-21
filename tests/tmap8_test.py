@@ -167,6 +167,27 @@ def test_import_includes(new_user_fc):
     pkunit.pkeq(["history.csv"], d.models.simulationSettings.dataFiles)
 
 
+def test_log_file():
+    from pykern import pkunit
+    from sirepo.template import tmap8
+
+    d = pkunit.work_dir().join("log_file")
+    if d.exists():
+        d.remove()
+    d.ensure(dir=True)
+    d.join("run.log").write("one core")
+
+    def _log():
+        return tmap8.get_data_file(
+            d, "animation", tmap8.SCHEMA.constants.logFileFrameId, None
+        )
+
+    # TMAP8's output is in the run log on one core, otherwise the MPI log
+    pkunit.pkeq("run.log.txt", _log().reply_uri)
+    d.join("mpi_run.log").write("mpi")
+    pkunit.pkeq("mpi_run.log.txt", _log().reply_uri)
+
+
 def test_mc_failed_samples():
     from pykern import pkunit
     from sirepo.template import tmap8

@@ -108,7 +108,7 @@ SIREPO.app.directive('appHeader', function(tmap8Service) {
     };
 });
 
-SIREPO.app.controller('VizController', function(appState, frameCache, panelState, persistentSimulation, $scope) {
+SIREPO.app.controller('VizController', function(appState, frameCache, panelState, persistentSimulation, requestSender, $scope) {
     const self = this;
     self.simScope = $scope;
     self.errorMessage = '';
@@ -162,6 +162,16 @@ SIREPO.app.controller('VizController', function(appState, frameCache, panelState
     };
 
     self.simState = persistentSimulation.initSimulationState(self);
+
+    // "View TMAP8 log" in the Simulation Status panel
+    self.simState.logFileURL = () => {
+        return requestSender.formatUrl('downloadRunFile', {
+            '<simulation_id>': appState.models.simulation.simulationId,
+            '<simulation_type>': SIREPO.APP_SCHEMA.simulationType,
+            '<model>': self.simState.model,
+            '<frame>': SIREPO.APP_SCHEMA.constants.logFileFrameId,
+        });
+    };
 });
 
 SIREPO.app.directive('rpnUncertainty', function(tmap8Service) {
