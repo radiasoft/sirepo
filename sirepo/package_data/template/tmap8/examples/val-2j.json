@@ -1,0 +1,207 @@
+{
+    "models": {
+        "plotAnimation": {
+            "aspectRatio": "0.75",
+            "experimentalFile": "val-2j-experiment.csv",
+            "experimentalLabel": "Experiment (scaled to TMAP8 peak)",
+            "experimentalYScale": 0.001613,
+            "x": "temperature_pp",
+            "y1": "release_rate",
+            "y1Position": "left"
+        },
+        "rpnVariables": [
+            {
+                "comment": "Boltzmann constant in J/K",
+                "convertUnit": null,
+                "defaultValue": 1.380649e-23,
+                "group": "Physical Constants",
+                "name": "kB_J",
+                "unit": "J/K",
+                "value": 1.380649e-23
+            },
+            {
+                "comment": "diffusivity pre-exponential",
+                "convertUnit": "mum^2/s",
+                "defaultValue": 6.9e-07,
+                "group": "Diffusion Parameters (Eq. 11)",
+                "name": "D0",
+                "unit": "m^2/s",
+                "value": 6.9e-07
+            },
+            {
+                "comment": "diffusion activation energy (K)",
+                "convertUnit": null,
+                "defaultValue": "${units 1.07 eV -> J} / kB_J",
+                "group": "Diffusion Parameters (Eq. 11)",
+                "name": "E_d",
+                "unit": null,
+                "value": "${units 1.07 eV -> J} / kB_J"
+            },
+            {
+                "comment": "trapping prefactor (Eq. 21)",
+                "convertUnit": null,
+                "defaultValue": 420000000.0,
+                "group": "(O-)-center (hydroxyl) Trapping Parameters (Eq. 13, 21)",
+                "name": "alpha_t",
+                "unit": "1/s",
+                "value": 420000000.0
+            },
+            {
+                "comment": "trapping energy (K) (Eq. 21)",
+                "convertUnit": null,
+                "defaultValue": "${units 1.04 eV -> J} / kB_J",
+                "group": "(O-)-center (hydroxyl) Trapping Parameters (Eq. 13, 21)",
+                "name": "epsilon_t",
+                "unit": null,
+                "value": "${units 1.04 eV -> J} / kB_J"
+            },
+            {
+                "comment": "detrapping prefactor (Eq. 13)",
+                "convertUnit": null,
+                "defaultValue": 4100000.0,
+                "group": "(O-)-center (hydroxyl) Trapping Parameters (Eq. 13, 21)",
+                "name": "alpha_r",
+                "unit": "1/s",
+                "value": 4100000.0
+            },
+            {
+                "comment": "detrapping energy (K) (Eq. 13)",
+                "convertUnit": null,
+                "defaultValue": "${units 1.19 eV -> J} / kB_J",
+                "group": "(O-)-center (hydroxyl) Trapping Parameters (Eq. 13, 21)",
+                "name": "epsilon_r",
+                "unit": null,
+                "value": "${units 1.19 eV -> J} / kB_J"
+            },
+            {
+                "comment": "annihilation prefactor (Eq. 18)",
+                "convertUnit": null,
+                "defaultValue": 100.0,
+                "group": "Defect Annihilation Parameters (Eqs. 16-18)",
+                "name": "alpha_anneal",
+                "unit": "1/s",
+                "value": 100.0
+            },
+            {
+                "comment": "annihilation energy (K) (Eq. 18)",
+                "convertUnit": null,
+                "defaultValue": "${units 0.9 eV -> J} / kB_J",
+                "group": "Defect Annihilation Parameters (Eqs. 16-18)",
+                "name": "E_anneal",
+                "unit": null,
+                "value": "${units 0.9 eV -> J} / kB_J"
+            },
+            {
+                "comment": "average grain radius",
+                "convertUnit": "mum",
+                "defaultValue": 1.5e-06,
+                "group": "Geometry",
+                "name": "grain_radius",
+                "unit": "m",
+                "value": 1.5e-06
+            },
+            {
+                "comment": "number of radial elements",
+                "convertUnit": null,
+                "defaultValue": 100,
+                "group": "Geometry",
+                "name": "num_elems",
+                "unit": null,
+                "value": 100
+            },
+            {
+                "comment": "lattice molecule density",
+                "convertUnit": "1/mum^3",
+                "defaultValue": 1.88e+28,
+                "group": "Material Properties",
+                "name": "N_lattice",
+                "unit": "1/m^3",
+                "value": 1.88e+28
+            },
+            {
+                "comment": "total defect fraction: Sample E (Table 1)",
+                "convertUnit": null,
+                "defaultValue": 0.018,
+                "group": "Material Properties",
+                "name": "Ct0",
+                "unit": null,
+                "value": 0.018
+            },
+            {
+                "comment": "concentration scaling factor",
+                "convertUnit": null,
+                "defaultValue": 1,
+                "group": "Material Properties",
+                "name": "trap_per_free",
+                "unit": null,
+                "value": 1
+            },
+            {
+                "comment": "initial temperature",
+                "convertUnit": null,
+                "defaultValue": 300.0,
+                "group": "TDS Parameters",
+                "name": "T_start",
+                "unit": "K",
+                "value": 300.0
+            },
+            {
+                "comment": "5 K/min",
+                "convertUnit": null,
+                "defaultValue": "5.0/60.0",
+                "group": "TDS Parameters",
+                "name": "heating_rate",
+                "unit": "K/s",
+                "value": "5.0/60.0"
+            },
+            {
+                "comment": "ramp duration (300 K to 900 K)",
+                "convertUnit": null,
+                "defaultValue": "(900.0 - 300.0) / heating_rate",
+                "group": "TDS Parameters",
+                "name": "end_time",
+                "unit": null,
+                "value": "(900.0 - 300.0) / heating_rate"
+            },
+            {
+                "comment": "initial trapped concentration (arb. units, uniform)",
+                "convertUnit": null,
+                "defaultValue": 1.0,
+                "group": "Initial Conditions",
+                "name": "C0_trapped",
+                "unit": null,
+                "value": 1.0
+            },
+            {
+                "comment": null,
+                "convertUnit": null,
+                "defaultValue": "alpha_r * exp(-epsilon_r / T_start) * C0_trapped / (alpha_t * exp(-epsilon_t / T_start) * Ct0)",
+                "group": "Initial Conditions",
+                "name": "C0_mobile",
+                "unit": null,
+                "value": "alpha_r * exp(-epsilon_r / T_start) * C0_trapped / (alpha_t * exp(-epsilon_t / T_start) * Ct0)"
+            }
+        ],
+        "simulation": {
+            "folder": "/Examples",
+            "name": "val-2j Tritium Thermal Desorption from Li2TiO3"
+        },
+        "simulationSettings": {
+            "dataFiles": [],
+            "inputFile": "val-2j.i",
+            "numSamples": 100,
+            "seed": 2026,
+            "units": [
+                {
+                    "name": "time",
+                    "unit": "s"
+                },
+                {
+                    "name": "temperature_pp",
+                    "unit": "K"
+                }
+            ]
+        }
+    },
+    "simulationType": "tmap8"
+}

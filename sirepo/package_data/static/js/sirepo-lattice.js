@@ -2819,8 +2819,12 @@ SIREPO.app.directive('rpnStatic', function(rpnService) {
             isBusy: '<',
             isError: '<',
         },
+        // the exponent doesn't shrink, so a truncated value keeps its magnitude,
+        // ex. 2.62465469...e-11
         template: `
-            <div data-ng-attr-title="{{ computedRpnValue(); }}" class="form-control-static" style="text-overflow: ellipsis; overflow: hidden; margin-left: -15px; padding-left: 0; white-space: nowrap">{{ computedRpnValue(); }}</div>
+            <div data-ng-attr-title="{{ computedRpnValue(); }}" class="form-control-static" style="display: flex; overflow: hidden; margin-left: -15px; padding-left: 0; white-space: nowrap">
+              <span style="min-width: 0; overflow: hidden; text-overflow: ellipsis">{{ valueParts()[0] }}</span><span style="flex: none">{{ valueParts()[1] }}</span>
+            </div>
         `,
         controller: function($scope) {
             $scope.computedRpnValue = function() {
@@ -2830,6 +2834,13 @@ SIREPO.app.directive('rpnStatic', function(rpnService) {
                 return $scope.isError
                     ? ''
                     : rpnService.valueAsString(rpnService.getRpnValueForField($scope.model, $scope.field));
+            };
+
+            // [mantissa, exponent], ex. ["2.6246546933733482", "e-11"]
+            $scope.valueParts = function() {
+                const v = $scope.computedRpnValue();
+                const m = typeof v === 'string' && v.match(/^(.*?)(e[+-]?\d+)$/i);
+                return m ? [m[1], m[2]] : [v, ''];
             };
         },
     };

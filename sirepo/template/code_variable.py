@@ -334,7 +334,8 @@ class PurePythonEval:
             "chs": operator.neg,
             "cos": math.cos,
             "exp": math.exp,
-            "log": math.log,
+            # math.log has an optional base arg and no signature for _get_arg_count
+            "log": lambda x: math.log(x),
             "log10": math.log10,
             "pow": operator.pow,
             "sin": math.sin,

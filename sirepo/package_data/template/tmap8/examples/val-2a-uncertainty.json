@@ -1,0 +1,193 @@
+{
+    "models": {
+        "plotAnimation": {
+            "aspectRatio": "0.75",
+            "experimentalFile": "val-2a-experiment.csv",
+            "experimentalLabel": "Experiment",
+            "x": "time",
+            "y1": "scaled_recombination_flux_right",
+            "y1Position": "left"
+        },
+        "rpnVariables": [
+            {
+                "comment": null,
+                "convertUnit": null,
+                "defaultValue": 5,
+                "group": "Mesh and solver controls",
+                "name": "nx_scale",
+                "unit": null,
+                "value": 5
+            },
+            {
+                "comment": null,
+                "convertUnit": null,
+                "defaultValue": 300,
+                "group": "Mesh and solver controls",
+                "name": "high_dt_max",
+                "unit": null,
+                "value": 300
+            },
+            {
+                "comment": null,
+                "convertUnit": null,
+                "defaultValue": 4,
+                "group": "Mesh and solver controls",
+                "name": "low_dt_max",
+                "unit": null,
+                "value": 4
+            },
+            {
+                "comment": null,
+                "convertUnit": null,
+                "defaultValue": 20000.0,
+                "group": "Mesh and solver controls",
+                "name": "simulation_time",
+                "unit": "s",
+                "value": 20000.0
+            },
+            {
+                "comment": null,
+                "convertUnit": "mum^2/s",
+                "defaultValue": 3e-10,
+                "group": "Material properties and boundary coefficients",
+                "name": "diffusivity_D",
+                "uncertainty": {
+                    "mean": 3e-10,
+                    "standard_deviation": 3e-11
+                },
+                "uncertaintyDistribution": "Normal",
+                "unit": "m^2/s",
+                "value": 3e-10
+            },
+            {
+                "comment": null,
+                "convertUnit": "mum^4/at/s",
+                "defaultValue": 2e-31,
+                "group": "Material properties and boundary coefficients",
+                "name": "recombination_parameter_enclos2",
+                "uncertainty": {
+                    "mean": 2e-31,
+                    "standard_deviation": 4e-32
+                },
+                "uncertaintyDistribution": "Normal",
+                "unit": "m^4/at/s",
+                "value": 2e-31
+            },
+            {
+                "comment": null,
+                "convertUnit": "mum^4/at/s",
+                "defaultValue": 1e-27,
+                "group": "Material properties and boundary coefficients",
+                "name": "recombination_coefficient_parameter_enclos1_TMAP4",
+                "unit": "m^4/at/s",
+                "value": 1e-27
+            },
+            {
+                "comment": null,
+                "convertUnit": "at/mum^2/s",
+                "defaultValue": 4.9e+19,
+                "group": "Source term definition (normal distribution) and applied surface flux history",
+                "name": "flux_high",
+                "unit": "at/m^2/s",
+                "value": 4.9e+19
+            },
+            {
+                "comment": null,
+                "convertUnit": null,
+                "defaultValue": 0.0,
+                "group": "Source term definition (normal distribution) and applied surface flux history",
+                "name": "flux_low",
+                "unit": "at/mum^2/s",
+                "value": 0.0
+            },
+            {
+                "comment": null,
+                "convertUnit": "mum",
+                "defaultValue": 2.4e-09,
+                "group": "Source term definition (normal distribution) and applied surface flux history",
+                "name": "width",
+                "unit": "m",
+                "value": 2.4e-09
+            },
+            {
+                "comment": null,
+                "convertUnit": "mum",
+                "defaultValue": 1.4e-08,
+                "group": "Source term definition (normal distribution) and applied surface flux history",
+                "name": "depth",
+                "unit": "m",
+                "value": 1.4e-08
+            },
+            {
+                "comment": null,
+                "convertUnit": null,
+                "defaultValue": 5820.0,
+                "group": "Source term definition (normal distribution) and applied surface flux history",
+                "name": "time_1",
+                "unit": "s",
+                "value": 5820.0
+            },
+            {
+                "comment": null,
+                "convertUnit": null,
+                "defaultValue": 9056.0,
+                "group": "Source term definition (normal distribution) and applied surface flux history",
+                "name": "time_2",
+                "unit": "s",
+                "value": 9056.0
+            },
+            {
+                "comment": null,
+                "convertUnit": null,
+                "defaultValue": 12062.0,
+                "group": "Source term definition (normal distribution) and applied surface flux history",
+                "name": "time_3",
+                "unit": "s",
+                "value": 12062.0
+            },
+            {
+                "comment": null,
+                "convertUnit": null,
+                "defaultValue": 14572.0,
+                "group": "Source term definition (normal distribution) and applied surface flux history",
+                "name": "time_4",
+                "unit": "s",
+                "value": 14572.0
+            },
+            {
+                "comment": null,
+                "convertUnit": null,
+                "defaultValue": 17678.0,
+                "group": "Source term definition (normal distribution) and applied surface flux history",
+                "name": "time_5",
+                "unit": "s",
+                "value": 17678.0
+            }
+        ],
+        "simulation": {
+            "folder": "/Examples",
+            "name": "val-2a Ion Implantation Experiment with uncertainty"
+        },
+        "simulationSettings": {
+            "dataFiles": [],
+            "inputFile": "val-2a.i",
+            "numSamples": 50,
+            "seed": 2026,
+            "units": [
+                {
+                    "name": "time",
+                    "unit": "s"
+                },
+                {
+                    "name": "scaled_recombination_flux_left",
+                    "unit": "at/m^2/s"
+                },
+                {
+                    "name": "scaled_recombination_flux_right",
+                    "unit": "at/m^2/s"
+                }
+            ]
+        }
+    },
+    "simulationType": "tmap8"
+}

@@ -11,10 +11,14 @@
         }
     },
     "constants": {
+        "canCreateNewSimulation": false,
         "simulationSourceExtension": "i"
     },
     "dynamicFiles": {
         "sirepoLibs": {
+            "css": [
+                "tmap8.css"
+            ],
             "js": [
                 "tmap8.js",
                 "sirepo-lattice.js"
@@ -28,7 +32,11 @@
         ]
     },
     "frameIdFields": {
-        "plotAnimation": ["x", "y1", "y2", "y3", "y4", "y5"]
+        "plotAnimation": [
+            "x", "y1", "y2", "y3", "y4", "y5",
+            "experimentalFile", "experimentalLabel", "experimentalXOffset",
+            "experimentalXScale", "experimentalYOffset", "experimentalYScale"
+        ]
     },
     "localRoutes": {
         "viz": {
@@ -50,7 +58,14 @@
         },
         "plotAnimation": {
             "_super": ["_", "model", "_PARAMETER_PLOT_COMMON"],
-            "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.5625"]
+            "aspectRatio": ["Aspect Ratio", "AspectRatio", "0.5625"],
+            "experimentalFile": ["Experimental Data File (.csv, .xlsx)", "InputFile", "", "Two columns of horizontal and vertical values. Rows which are not numeric, such as a header, are skipped."],
+            "experimentalLabel": ["Legend Label", "String", "Experiment"],
+            "experimentalPosition": ["Y Axis", "AxisPosition", "left", "Plot against the left y axis, with the simulation values, or a separate right y axis"],
+            "experimentalXOffset": ["Horizontal Offset", "Float", 0, "Plotted horizontal value = value * scale + offset"],
+            "experimentalXScale": ["Horizontal Scale", "Float", 1, "Plotted horizontal value = value * scale + offset"],
+            "experimentalYOffset": ["Vertical Offset", "Float", 0, "Plotted vertical value = value * scale + offset"],
+            "experimentalYScale": ["Vertical Scale", "Float", 1, "Plotted vertical value = value * scale + offset"]
         },
         "rpnVariable": {
             "name": ["Name", "String"],
@@ -61,6 +76,7 @@
             "uncertainty": ["", "distribution"]
         },
         "simulationSettings": {
+            "dataFiles": ["", "FileNameArray", []],
             "inputFile": ["TMAP8 Input File (.i)", "InputFile"],
             "parameters": ["", "ParameterArray"],
             "units": ["", "ColumnUnitArray"],
@@ -73,6 +89,8 @@
         }
     },
     "strings": {
+        "completionState": "",
+        "importText": "Import a TMAP8 input file (.i)",
         "simulationSource": "TMAP8 Source (*.i)"
     },
     "view": {
@@ -117,23 +135,34 @@
                             "rightLimit"
                         ]]
                     ]
+                ]],
+                ["Experimental Data", [
+                    "experimentalFile",
+                    "experimentalLabel",
+                    "experimentalPosition",
+                    "experimentalXScale",
+                    "experimentalXOffset",
+                    "experimentalYScale",
+                    "experimentalYOffset"
                 ]]
             ]
         },
         "simulationSettings": {
-            "title": "Simulation Settings",
+            "title": "Parameters",
             "basic": [
-                "inputFile",
                 "parameters"
             ],
-            "advanced": [
-                "numSamples",
-                "seed"
-            ]
+            "advanced": []
         },
         "simulationStatus": {
             "title": "Simulation Status",
-            "advanced": []
+            "basic": [
+                "simulationSettings.numSamples"
+            ],
+            "advanced": [
+                "simulationSettings.numSamples",
+                "simulationSettings.seed"
+            ]
         },
         "uniformDistribution": {
             "advanced": [

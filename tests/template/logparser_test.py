@@ -102,6 +102,19 @@ def test_srw_logparser():
     )
 
 
+def test_tmap8_logparser():
+    from sirepo.template import tmap8
+
+    # multiline, with color codes, reported by two MPI ranks
+    _case(
+        "Solve failed and timestep already at or below dtmin, cannot continue!\n"
+        + "The following occurred in the TimeStepper 'ConstantDT' of type ConstantDT.\n",
+        "tmap8_1.txt",
+        parser_object=tmap8._MooseLogParser,
+    )
+    _case(None, "srw1.txt", parser_object=tmap8._MooseLogParser)
+
+
 def _case(expect, filename, parser_object=None, parser_function=None):
     from pykern import pkunit
 

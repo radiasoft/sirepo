@@ -4892,7 +4892,7 @@ SIREPO.app.controller('ServerUpgradedController', function (errorService, reques
     requestSender.globalRedirectRoot();
 });
 
-SIREPO.app.controller('SimulationsController', function (appState, browserStorage, errorService, fileManager, panelState, requestSender, stringsService, $location, $rootScope, $scope) {
+SIREPO.app.controller('SimulationsController', function (appDataService, appState, browserStorage, errorService, fileManager, panelState, requestSender, stringsService, $location, $rootScope, $scope) {
     var self = this;
     const iconViewStorageKey = "iconView";
     const sortFieldStorageKey = "sortField";
@@ -4996,9 +4996,7 @@ SIREPO.app.controller('SimulationsController', function (appState, browserStorag
             });
     }
 
-    self.canCreateNewSimulation = () => {
-	return SIREPO.APP_SCHEMA.constants.canCreateNewSimulation;
-    };
+    self.canCopy = () => appDataService.canCopy();
 
     self.canDelete = function(item) {
         if (item.isFolder) {

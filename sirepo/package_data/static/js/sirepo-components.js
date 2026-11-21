@@ -2301,7 +2301,7 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
         template: `
             <div data-simple-heading="{{ panelHeading }}" data-model-key="modelKey">
               <div class="model-panel-heading-buttons"></div>
-              <a href data-ng-show="hasEditor" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
+              <a href data-ng-show="isEditorShown()" data-ng-click="showEditor()" title="Edit"><span class="sr-panel-heading glyphicon glyphicon-pencil"></span></a>
               ${SIREPO.appPanelHeadingButtons || ''}
               <div data-ng-if="isReport" data-ng-show="hasData()" class="dropdown" style="display: inline-block">
                 <a href class="dropdown-toggle" data-toggle="dropdown" title="Download"> <span class="sr-panel-heading glyphicon glyphicon-cloud-download" style="margin-bottom: 0"></span></a>
@@ -2338,6 +2338,12 @@ SIREPO.app.directive('panelHeading', function(appState, frameCache, panelState, 
             // used for python export which lives in SIREPO.appDownloadLinks
             $scope.reportTitle = function () {
                 return $scope.panelHeading;
+            };
+
+            // the app's service may hide it, ex. tmap8Service
+            $scope.isEditorShown = () => {
+                const s = appState.appService;
+                return $scope.hasEditor && ! (s && s.isEditorShown && ! s.isEditorShown(viewKey));
             };
 
             $scope.dataFileURL = function(suffix) {
